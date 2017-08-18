@@ -4,7 +4,7 @@
 Knowledege
 ********************
 
-Hopefully you find some of this helpful. It's a collection of places we"ve beat our heads in the wall.
+Hopefully you find some of this helpful. It's a collection of places we've beat our heads in the wall.
 
 Last update: 08.17.2017
 
@@ -17,7 +17,7 @@ Maya Known Things
 Reloading a ui from a menu crashes maya
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Props to `Charles Wardlaw <http://sugarandcyanide.com/blog/>`_ for help on this. This stems from maya changing the way things work and what worked from 2011-2016 broke. However there"s a pretty simple fix.
+Props to `Charles Wardlaw <http://sugarandcyanide.com/blog/>`_ for help on this. This stems from maya changing the way things work and what worked from 2011-2016 broke. However there's a pretty simple fix.
     
     * Changing my previous ``c = lambda *a:self.reload()`` to ``c = lambda *a:mc.evalDeferred(self.reload,lp=True)`` resolved it.
 
@@ -123,20 +123,9 @@ Concepts
 ====================
 Not everyone does things the same way and use terms differently. Here's some help in following what we're talking about.
 
-Raycasting
----------------
-This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
-manner of things with that information. Some possiblities are:
-
-* Snapping to a position in space
-* Getting uv data for follicles
-* On interactive aiming
-
-
-OptionVar
-------------
-Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.
-
+Locators
+---------
+See `locinator's section <locinator.html#concepts>`_
 
 msgList
 ----------
@@ -148,3 +137,16 @@ This is a way we store information to make things happen regardless of what you 
 
 * The `match buffer <locinator.html#match-buffer>`_ stores objects to use with snapping regardless of selection
 * The rayCast buffer defines cast targets for raycasting.
+
+OptionVar
+------------
+Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.
+
+Raycasting
+---------------
+This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
+manner of things with that information. Some possiblities are:
+
+* Snapping to a position in space
+* Getting uv data for follicles
+* On interactive aiming

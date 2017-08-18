@@ -128,10 +128,11 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#concepts">Concepts</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#raycasting">Raycasting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#optionvar">OptionVar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#locators">Locators</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#msglist">msgList</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#object-buffer">Object Buffer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optionvar">OptionVar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#raycasting">Raycasting</a></li>
 </ul>
 </li>
 </ul>
@@ -355,19 +356,9 @@
 <div class="section" id="concepts">
 <h2>Concepts<a class="headerlink" href="#concepts" title="Permalink to this headline">¶</a></h2>
 <p>Not everyone does things the same way and use terms differently. Here's some help in following what we're talking about.</p>
-<div class="section" id="raycasting">
-<h3>Raycasting<a class="headerlink" href="#raycasting" title="Permalink to this headline">¶</a></h3>
-<p>This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
-manner of things with that information. Some possiblities are:</p>
-<ul class="simple">
-<li>Snapping to a position in space</li>
-<li>Getting uv data for follicles</li>
-<li>On interactive aiming</li>
-</ul>
-</div>
-<div class="section" id="optionvar">
-<h3>OptionVar<a class="headerlink" href="#optionvar" title="Permalink to this headline">¶</a></h3>
-<p>Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.</p>
+<div class="section" id="locators">
+<h3>Locators<a class="headerlink" href="#locators" title="Permalink to this headline">¶</a></h3>
+<p>See <a class="reference external" href="locinator.html#concepts">locinator's section</a></p>
 </div>
 <div class="section" id="msglist">
 <h3>msgList<a class="headerlink" href="#msglist" title="Permalink to this headline">¶</a></h3>
@@ -379,6 +370,20 @@ manner of things with that information. Some possiblities are:</p>
 <ul class="simple">
 <li>The <a class="reference external" href="locinator.html#match-buffer">match buffer</a> stores objects to use with snapping regardless of selection</li>
 <li>The rayCast buffer defines cast targets for raycasting.</li>
+</ul>
+</div>
+<div class="section" id="optionvar">
+<h3>OptionVar<a class="headerlink" href="#optionvar" title="Permalink to this headline">¶</a></h3>
+<p>Option variables are maya preference items that we use mainly for ui consistancy and saving settings between sessions and between tools. For example, changing the optionVar for rayCasting options will be used by the various tools that use it.</p>
+</div>
+<div class="section" id="raycasting">
+<h3>Raycasting<a class="headerlink" href="#raycasting" title="Permalink to this headline">¶</a></h3>
+<p>This is the function of using a point and vector in 3d space and shooting those rays at surfaces. We then can do all
+manner of things with that information. Some possiblities are:</p>
+<ul class="simple">
+<li>Snapping to a position in space</li>
+<li>Getting uv data for follicles</li>
+<li>On interactive aiming</li>
 </ul>
 </div>
 </div>
