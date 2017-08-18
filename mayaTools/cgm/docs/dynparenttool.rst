@@ -4,9 +4,10 @@
 Dynamic Parent Tool
 ********************
 
+Status: Alpha release
+
 Overview
 ==========
-
 
 The dynamic parent tool is for setting up and managing dynamic parent setups for controls in rigs. Underlying tech
 was creating during Morpheus 2 development. Acknowlegments to our friend John Doublestein for the initial seed of how to do this.
@@ -202,7 +203,7 @@ These functions are somewhat contextual. They work both off of maya selection an
 * ``Move Up`` - Move selected down in the list
 
 Practical Uses
-=============
+===============
 
 Referenced Assets
 ---------------------

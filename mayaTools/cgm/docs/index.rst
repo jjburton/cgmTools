@@ -12,6 +12,7 @@ Welcome to cgmToolbox User Guide!
 The cgmToolbox is a collection of tools we write, share, and use to do our work. Because we don't charge for the 
 toolbox, others allow us to share their work as well.
 
+
 Connect
 =============
 * `CG Monks <http://www.cgmonks.com/>`_
@@ -26,6 +27,7 @@ Contributors
 
 * David Bokser
 * Josh Burton
+* Ryan Comingdeer
 
 **Additional Contributors**
 
@@ -48,7 +50,7 @@ Directory of docs
    toolbox
    dynparenttool
    locinator
-   concepts
+   knowledge
    support
 
 

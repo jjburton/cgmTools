@@ -25,9 +25,11 @@ import os
 import maya.cmds as mc
 import maya.mel as mel
 import copy
-from cgm.core import cgm_General as cgmGeneral
-
-mayaVersion = cgmGeneral.__mayaVersion__
+import time
+import pprint
+from cgm.core import cgm_General as cgmGEN
+reload(cgmGEN)
+mayaVersion = cgmGEN.__mayaVersion__
 
 # Maya version check
 if mayaVersion >= 2011:
@@ -58,10 +60,535 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
 
+
+_str_popWindow = 'cgmMM'#...outside to push to killUI
+class markingMenu(object):
+    POPWINDOW = _str_popWindow
+    
+    def __init__(self):	
+        """
+        Initializes the pop up menu class call
+        """
+    
+        self._str_MM = self.__class__.__name__  
+        
+        log.debug(">>> %s "%(self._str_MM) + "="*75)          
+        self.l_optionVars = []		
+        #self.create_guiOptionVar('isClicked', value = 0)
+        #self.create_guiOptionVar('mmAction', value = 0)
+        self.create_guiOptionVar('clockStart', value = 0.0)  
+    
+        #>>>> Clock set
+        #====================================================================
+    
+        self.var_clockStart.value = time.clock()
+        #log.info("{0} >> clockStart: {1}".format(self._str_MM,self.clockStartVar.value))
+        #pprint.pprint(self.__dict__)
+        #self.var_isClicked.value = 0
+        #self.var_mmAction.value = 0
+    
+        #log.debug( mc.getPanel(withFocus=True)) 
+        
+        _p = mc.getPanel(up = True)
+        if _p is None:
+            log.debug("No panel detected...")
+            return 
+        if _p:
+            log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
+            _parentPanel = mc.panel(_p,q = True,ctl = True)
+            log.debug("...panel parent: {1}...".format(self._str_MM,_parentPanel))
+            if 'MayaWindow' in _parentPanel:
+                _p = 'viewPanes'   
+                
+        if not mc.control(_p, ex = True):
+            return "{0} doesn't exist!".format(_p)
+        else: 
+            if not mc.popupMenu('cgmMM',ex = True):
+                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
+                             pmc = lambda *a: self.createUI(),                             
+                             postMenuCommandOnce=True)#postMenuCommandOnce=True
+            else:
+                log.info("|{0}| >> editing existing...".format(self._str_MM))  
+                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
+                             pmc = lambda *a: self.createUI(),
+                             postMenuCommandOnce=True)#dai = True,
+    
+    def createUI(self, parent = 'cgmMM'):
+        log.info("|{0}| >> createUI...".format(self._str_MM))  
+        try:mc.menu(parent,e = True, deleteAllItems = True)
+        except Exception,err:
+            log.error("Failed to delete menu items")
+            for a in err.args():
+                print a
+                
+        mc.menuItem('test',p = parent)
+                
+        
+        #mc.showWindow('cgmMM')
+        
+    def create_guiOptionVar(self,varName,*args,**kws):
+        fullName = "cgmVar_%s_%s"%(self._str_MM ,varName)
+        if args:args[0] = fullName
+        if kws and 'varName' in kws.keys():kws.pop('varName')
+        self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
+        log.debug('var_%s'%varName)
+        if fullName not in self.l_optionVars:
+            self.l_optionVars.append(fullName)
+        return fullName
+
+
 def run():
+    #cgmGUI().delete()
     win = cgmGUI()
 
+
+def reloadUI(cls,window):
+    #killChildren(window)
+    #mc.deleteUI(window)
+    #self.close()
+    #del(self)
+    return cls()
+    
+def reloadUI2(self):
+    try:
+        cls = self.__class__
+        killChildren(self.WINDOW_NAME)
+        self.close()
+        del(self)
+        return cls()
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
+def resetUI(cls,window,l_optionVars):
+    do_resetGuiInstanceOptionVars(l_optionVars)
+    #killChildren(window)
+
+    return cls()
+  
+        
+
+def killChildren(uiElement):
+    l_ = []
+    l_toCheck = []
+    l_toCheck.extend( mc.lsUI(controls = True, l = True) )
+    l_toCheck.extend( mc.lsUI(mi = True, l = True) )
+    l_toCheck.extend( mc.lsUI(controlLayouts = True, l = True) )
+    l_toCheck.extend( mc.lsUI(collection = True, l = True) )
+    l_toCheck.extend( mc.lsUI(rmc = True, l = True) )
+    l_toCheck.extend( mc.lsUI(menus = True, l = True) )
+    l_toCheck.extend( mc.lsUI(contexts = True, l = True) )
+    
+    for c in l_toCheck:
+        if  uiElement in c.split('|') and not str(c).endswith(uiElement):
+            l_.append(c)
+            
+    for c in l_:
+        #log.info('deleting old ui: {0}'.format(c))
+        try:mc.deleteUI(c)
+        except Exception,err:log.debug('failed to delete: {0} | err: {1}'.format(c,err))     
+
+if cgmGEN.__mayaVersion__ > 2016:
+    _b_reload = False
+else:
+    _b_reload = True
+        
 class cgmGUI(mUI.BaseMelWindow):
+    """
+    Base CG Monks core gui
+    """
+    #These feed to Hamish's basemel ui stuff
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmGUI'
+    DEFAULT_SIZE = 200, 300
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = True
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
+    TOOLNAME = 'cgmGUI'
+    WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+    l_allowedDockAreas = ['right', 'left']
+    
+    def __init__( self,*args,**kws):
+        _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))        
+        
+        #Check our tool option var for debug mode to set logger level if so
+        if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
+            log.setLevel(logging.DEBUG)	
+        
+        #killChildren(self)
+        #>>> Standard cgm variables
+        #====================	    
+        self.l_optionVars = []
+        self.l_helpElements = []
+        self.l_oldGenElements = []
+        self.description = __description__
+        self.initializeTemplates() 
+        
+        #>>> Insert our init, overloaded for other tools
+        self.insert_init(self,*args,**kws)
+            
+        #>>> Menu
+        self.setup_Variables()	
+        self.build_menus()
+
+        #>>> Body
+        #====================        
+        self.build_layoutWrapper(self)
+
+        #====================
+        # Show and Dock
+        #====================
+        #Maya2011 QT docking - from Red9's examples
+        #if mayaVersion == 2011:
+        #'Maya2011 dock delete'
+
+            
+        #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
+        """_dock = '{0}Dock'.format(__toolName__)        
+        self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
+                                      label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
+                                      floating = self.var_Dock.value,
+                                      allowedArea=self.l_allowedDockAreas,
+                                      width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
+        
+        
+        _dock = '{0}Dock'.format(self.__toolName__)            
+        if mc.dockControl(_dock, exists=True):
+            log.info('Deleting {0}'.format(_dock))
+            mc.deleteUI(_dock, control=True)   
+            
+        if self.var_Dock and self.var_Dock.value:
+            self.do_dock()
+            
+        self.show()
+
+    def insert_init(self,*args,**kws):
+        """ This is meant to be overloaded per gui """
+        _str_func = 'insert_init[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))   
+        
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        
+        #log.info("WINDOW_NAME: '%s'"%cgmGUI.WINDOW_NAME)
+        #log.info("WINDOW_TITLE: '%s'"%cgmGUI.WINDOW_TITLE)
+        #log.info("DEFAULT_SIZE: %s"%str(cgmGUI.DEFAULT_SIZE))
+        
+        self.description = 'This is a series of tools for working with cgm Sets'
+        self.__version__ = __version__
+        self.__toolName__ = self.__class__.TOOLNAME		
+        #self.l_allowedDockAreas = ['right', 'left']
+        
+        #self.WINDOW_NAME = cgmGUI.WINDOW_NAME
+        #self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
+        #self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
+        
+        self.setup_Variables()	
+
+    def setup_Variables(self):
+        self.create_guiOptionVar('ShowHelp',defaultValue = 0)
+        self.create_guiOptionVar('Dock',defaultValue = 0)
+        self.create_guiOptionVar('DockSide',defaultValue = 0)	
+        self.create_cgmDebugOptionVar(defaultValue = 0)
+
+    def create_guiOptionVar(self,varName,*args,**kws):
+        fullName = "cgmVar_%s%s"%(self.__toolName__,varName)
+        if args:args[0] = fullName
+        if kws and 'varName' in kws.keys():kws.pop('varName')
+        self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
+        log.debug('var_%s'%varName)
+        if fullName not in self.l_optionVars:
+            self.l_optionVars.append(fullName)
+        return fullName
+
+    def create_cgmDebugOptionVar(self,*args,**kws):
+        fullName = "cgmVar_guiDebug"
+        self.__dict__['var_DebugMode'] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
+        if fullName not in self.l_optionVars:
+            self.l_optionVars.append(fullName)
+    #=========================================================================
+    # Menu Building
+    #=========================================================================
+    def build_menus(self):
+        _str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))   
+        
+        self.uiMenu_FirstMenu = mUI.MelMenu( l='Root', pmc=self.buildMenu_first)		        
+        self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
+        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
+
+    def buildMenu_first( self, *args):
+        self.uiMenu_FirstMenu.clear()
+        #>>> Reset Options		
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+                         #en = _b_reload,
+                         c = lambda *a:mc.evalDeferred(self.reload,lp=True))
+                         #c=cgmGEN.Callback(reloadUI,self.__class__,self.WINDOW_NAME))
+                         #c=lambda *a: reloadUI(self.__class__,self.WINDOW_NAME))		
+                
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+                         #en = _b_reload,
+                         #c = cgmGEN.Callback(resetUI(str(self.WINDOW_NAME))))
+                         c = lambda *a:mc.evalDeferred(self.reload,lp=True))                         
+                         #c=cgmGEN.Callback( resetUI,self.__class__, self.WINDOW_NAME, self.l_optionVars))                         
+                         #c=lambda *a: resetUI(self.__class__, self.WINDOW_NAME, self.l_optionVars))    
+
+    def buildMenu_options( self, *args):
+        self.uiMenu_OptionsMenu.clear()
+        #>>> Reset Options				
+        mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
+                         c = lambda *a:mc.evalDeferred(self.do_dock,lp=True))                         
+
+    def buildMenu_help( self, *args):
+        self.uiMenu_HelpMenu.clear()
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Show Help",
+                         cb=self.var_ShowHelp.value,
+                         c = lambda *a:mc.evalDeferred(self.do_showHelpToggle,lp=True))                         
+
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
+                         c=lambda *a: log_selfReport(self) )
+        mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
+
+        # Update Mode
+        iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
+        mUI.MelMenuItem( iMenu_loggerMaster, l='Info',
+                         c = lambda *a:mc.evalDeferred(self.set_loggingInfo,lp=True))                         
+                         
+        mUI.MelMenuItem( iMenu_loggerMaster, l='Debug',
+                         c = lambda *a:mc.evalDeferred(self.set_loggingDebug,lp=True))                         
+                         
+
+    def set_loggingInfo(self):
+        self.var_DebugMode.value = 0
+        log.setLevel(logging.INFO)
+        
+    def set_loggingDebug(self):
+        self.var_DebugMode.value = 1
+        log.setLevel(logging.DEBUG)    
+
+    #>> Menu Functions
+    #=========================================================================    
+    def reset(self):
+        do_resetGuiInstanceOptionVars(self.l_optionVars)
+        self.__class__()
+        #Callback(do_resetGuiInstanceOptionVars,self.l_optionVars,run).__call__()
+        #reloadUI(self)
+        #self.close()
+        #self.build_layoutWrapper(self)
+        #reloadGUI(self)
+        #run()
+
+    def reload(self):
+        _str_func = 'reload[{0}]'.format(self.__toolName__)            
+        log.debug("|{0}| >> reload".format(_str_func))
+        self.__class__()
+        #killChildren(self.WINDOW_NAME)
+        #reloadUI(self)
+        #reloadGUI(self)
+        #self.build_layoutWrapper(self)
+        #self.close()
+        #run()
+        #cgmGUI()
+        #self.delete()
+        #run()
+                   
+    def do_dock( self):
+        _str_func = 'do_dock'
+        #log.info("dockCnt: {0}".format(self.dockCnt))
+        #log.debug("uiDock: {0}".format(self.uiDock))                
+        #log.debug("area: {0}".format(self.l_allowedDockAreas[self.var_DockSide.value]))
+        #log.debug("label: {0}".format(self.WINDOW_TITLE))
+        #log.debug("self: {0}".format(self.Get()))                
+        #log.debug("content: {0}".format(self.WINDOW_NAME))
+        #log.debug("floating: {0}".format(not self.var_Dock.value))
+        #log.debug("allowedArea: {0}".format(self.l_allowedDockAreas))
+        #log.debug("width: {0}".format(self.DEFAULT_SIZE[0])) 
+        try:
+            self.uiDock
+        except:
+            log.debug("|{0}| >> making uiDock attr".format(_str_func)) 
+            self.uiDock = False
+            
+        _dock = '{0}Dock'.format(self.__toolName__)   
+        _l_allowed = self.__class__.l_allowedDockAreas
+        
+        if mc.dockControl(_dock,q=True, exists = True):
+            log.debug('linking...')
+            self.uiDock = _dock
+            mc.dockControl(_dock , edit = True, area=_l_allowed[self.var_DockSide.value],
+                           label=self.WINDOW_TITLE, content=self.Get(),
+                           allowedArea=_l_allowed,
+                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                    
+        #else:
+        else:
+            log.debug('creating...')       
+            mc.dockControl(_dock , area=_l_allowed[self.var_DockSide.value],
+                           label=self.WINDOW_TITLE, content=self.Get(),
+                           allowedArea=_l_allowed,
+                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1]) 
+            self.uiDock = _dock
+        
+        
+        """log.info("floating: {0}".format(mc.dockControl(_dock, q = True, floating = True)))
+        log.info("var_Doc: {0}".format(self.var_Dock.value))
+        _floating = mc.dockControl(_dock, q = True, floating = True)
+        if _floating and self.var_Dock == 1:
+            log.info('mismatch')
+            self.var_Dock = 0
+        if not _floating and self.var_Dock == 0:
+            log.info("mismatch2")
+            self.var_Dock = 1"""
+        
+        mc.dockControl(_dock, edit = True, floating = self.var_Dock.value, width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])
+        self.uiDock = _dock   
+        _floating = mc.dockControl(_dock, q = True, floating = True)            
+        if _floating:
+            #log.info("Not visible, resetting position.")
+            #mc.dockControl(self.uiDock, e=True, visible = False)
+            mc.window(_dock, edit = True, tlc = [200, 200])
+        self.var_Dock.toggle()
+                
+
+    def do_showHelpToggle( self):
+        doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
+        self.var_ShowHelp.toggle()
+
+    def do_DebugModeToggle( self):
+        self.var_DebugMode.toggle()	
+        if self.var_DebugMode.value:
+            log.setLevel(logging.DEBUG)	
+            #self.log.setLevel(logging.DEBUG)
+        else:
+            log.setLevel(logging.INFO)
+            #self.log.setLevel(logging.INFO)
+
+    def do_DebugEchoTest(self):
+        log.info('#'+'='*25)
+        log.info('Tool: %s'%self.__toolName__)	
+        log.info("Info call")
+        log.debug("Debug call")
+        log.warning("warning call")
+
+
+    #=========================================================================
+    # Layouts
+    #=========================================================================
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        def modeSet( item ):
+            i =  self.setModes.index(item)
+            self.SetToolsModeOptionVar.set( i )
+            self.setMode = i
+
+        MainForm = mUI.MelColumnLayout(parent)
+        SetHeader = add_Header('HI')
+
+        self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
+        add_Button(MainForm)
+        add_Button(MainForm,'Debug test', lambda *a: self.do_DebugEchoTest())
+        add_Button(MainForm,'Debug test 2', lambda *a: self.do_DebugEchoTest())
+        
+        #add_Button(MainForm,'Reset', lambda *a: resetUI(self))
+        #add_Button(MainForm,'Reload', lambda *a: reloadUI(self))
+        #add_Button(MainForm,'module Reload', lambda *a: reloadUI(self))
+        
+        mc.melInfo(p=MainForm,label ='asdf!')
+
+    def initializeTemplates(self):
+        initializeTemplates()
+        return
+        guiBackgroundColor = [.45,.45,.45]
+        guiTextFieldColor = [.4,.4,.4]    
+        guiHeaderColor = [.25,.25,.25]
+        guiSubMenuColor = [.65,.65,.65]
+        guiButtonColor = [.35,.35,.35]
+        guiHelpBackgroundColor = [0.8, 0.8, 0.8]
+        guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
+        guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
+
+        if mc.uiTemplate( 'cgmUITemplate', exists=True ):
+            mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUITemplate')
+        mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
+        mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
+        mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
+        mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
+        mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)
+        mc.textField(dt = 'cgmUITemplate',backgroundColor = [1,1,1],h=20)
+        mc.formLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor)    
+        mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
+        mc.frameLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
+
+        # Define our header template
+        if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
+            mc.deleteUI( 'cgmUIHeaderTemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUIHeaderTemplate')
+        mc.text(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
+        mc.separator(dt='cgmUIHeaderTemplate', height = 5, style = 'none',backgroundColor = guiHeaderColor)
+        mc.formLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)    
+        mc.rowLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
+        mc.rowColumnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
+        mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
+        mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
+        mc.frameLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
+
+        # Define our sub template
+        if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
+            mc.deleteUI( 'cgmUISubTemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUISubTemplate')
+        mc.formLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.text(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.separator(dt='cgmUISubTemplate', height = 2, style = 'none', backgroundColor = guiSubMenuColor)
+        mc.rowLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
+        mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
+        mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
+        mc.frameLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
+
+
+        # Define our instructional template
+        if mc.uiTemplate( 'cgmUIInstructionsTemplate', exists=True ):
+            mc.deleteUI( 'cgmUIInstructionsTemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUIInstructionsTemplate')
+        mc.text(dt = 'cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
+        mc.formLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
+        mc.rowLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
+        mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
+        mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
+        mc.textField(dt = 'cgmUIInstructionsTemplate',backgroundColor = [1,1,1],h=20)
+        mc.textScrollList(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
+        mc.frameLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
+
+        # Define our Reserved
+        if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
+            mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUIReservedTemplate')
+        mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiTextFieldColor,h=20)
+        mc.formLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)    
+        mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+        mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
+        mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
+        mc.frameLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor) 
+
+        # Define our Locked
+        if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
+            mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
+        mc.uiTemplate('cgmUILockedTemplate')
+        mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor, h=20)
+        mc.frameLayout(dt='cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor) 
+
+
+
+
+class cgmGUI2(mUI.BaseMelWindow):
     """
     Base CG Monks core gui
     """
@@ -76,7 +603,7 @@ class cgmGUI(mUI.BaseMelWindow):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
  
-        
+    @cgmGEN.Timer
     def __init__( self,*args,**kws):
         #Check our tool option var for debug mode to set logger level if so
         if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
@@ -121,13 +648,15 @@ class cgmGUI(mUI.BaseMelWindow):
                                       floating = self.var_Dock.value,
                                       allowedArea=self.l_allowedDockAreas,
                                       width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
+        
+        """
         _dock = '{0}Dock'.format(self.__toolName__)            
         if mc.dockControl(_dock, exists=True):
             log.info('Deleting {0}'.format(_dock))
             mc.deleteUI(_dock, control=True)   
             
         if self.var_Dock and self.var_Dock.value:
-            self.do_dock()
+            self.do_dock()"""
             
 
     def insert_init(self,*args,**kws):
@@ -821,23 +1350,26 @@ def doEndMayaProgressBar(mayaMainProgressBar = None):
 def log_selfReport(self):
     try:
         log.info("="*100)		
-        log.info("{0} GUI = {1} {0}".format(cgmGeneral._str_headerDiv, self))
+        log.info("{0} GUI = {1} {0}".format(cgmGEN._str_headerDiv, self))
         log.info("="*100)	
         l_keys = self.__dict__.keys()
         l_keys.sort()		    
-        log.info(" Self Stored: " + cgmGeneral._str_subLine)
+        log.info(" Self Stored: " + cgmGEN._str_subLine)
         for i,str_k in enumerate(l_keys):
             try:
                 buffer = self.__dict__[str_k]
                 #type(buffer)
                 bfr_type = type(buffer)
                 if bfr_type in [bool,str,list,tuple]:
-                    log.info(cgmGeneral._str_baseStart * 2 + "[{0}] : {1} ".format(str_k,buffer))
+                    log.info(cgmGEN._str_baseStart * 2 + "[{0}] : {1} ".format(str_k,buffer))
                 if 'var_' in str_k:
-                    log.info(cgmGeneral._str_baseStart * 2 + "[{3}] | full:{0} | type: {1} | value: {2}".format(buffer.name,buffer.varType,buffer.value,str_k))		
-                #log.info(cgmGeneral._str_baseStart * 4 + "Type: {0}".format(type(buffer)))
+                    log.info(cgmGEN._str_baseStart * 2 + "[{3}] | full:{0} | type: {1} | value: {2}".format(buffer.name,buffer.varType,buffer.value,str_k))		
+                #log.info(cgmGEN._str_baseStart * 4 + "Type: {0}".format(type(buffer)))
             except Exception,error:
                 log.error("log_selfReport >> '{0}' key fail | error: {1}".format(str_k,error))
+                
+        pprint.pprint(self.__dict__)
+        
     except Exception,error:
         log.error("log_self fail | error: {0}".format(error))
         
