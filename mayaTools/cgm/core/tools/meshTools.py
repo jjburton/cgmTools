@@ -44,7 +44,7 @@ reload(DraggerContextFactory)
 mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================
-__version__ = '0.05312017'
+__version__ = '0.08182017'
 __toolName__ = 'cgmMeshTools'
 __description__ = "These are tools for working with mesh"
 #__toolURL__ = 'www.cgmonks.com'
@@ -66,6 +66,7 @@ class go(cgmUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = __defaultSize__
+    TOOLNAME = '__toolName__'
 
     #@cgmGeneral.Timer    
     def insert_init(self,*args,**kws):
@@ -95,6 +96,8 @@ class go(cgmUI.cgmGUI):
         self._l_latheAxisOptions = ['x','y','z']
         self._l_aimAxisOptions = ['x+','x-','y+','y-','z+','z-']
         self._l_extendMode = ['NONE','segment','radial','disc','cylinder','loliwrap','endCap']
+        
+        self.setup_Variables()
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -336,76 +339,54 @@ class go(cgmUI.cgmGUI):
             raise Exception,"{0} build_layoutWrapper failed | {1}".format(self._str_reportStart,error)
     #@cgmGeneral.Timer
     def setup_Variables(self):
-        try:
-            #cgmUI.cgmGUI.setup_Variables(self)#Initialize parent ones, then add our own
-            self.create_guiOptionVar('ShowHelp',defaultValue = 0)
-            
-            self.create_guiOptionVar('BaseObject',defaultValue = '')
-            self.create_guiOptionVar('AxisMode', defaultValue = 0)#Register the option var    
-            self.create_guiOptionVar('PivotMode', defaultValue = 0)#Register the option var     
-            self.create_guiOptionVar('ProxiMode', defaultValue = 1)#Register the option var  
-            self.create_guiOptionVar('ProxiResult', defaultValue = 4)#Register the option var              
-            self.create_guiOptionVar('ProxiAmount', defaultValue = 0.0)#Register the option var            
-            self.create_guiOptionVar('ProxiExpand', defaultValue = 1)#Register the option var                                         
-            self.create_guiOptionVar('SpaceMode', defaultValue = 0)#Register the option var     
-            self.create_guiOptionVar('ResultMode', defaultValue = 0)#Register the option var     
-            self.create_guiOptionVar('Tolerance', defaultValue = .002)#Register the option var
-            self.create_guiOptionVar('Multiplier', defaultValue = 1.0)#Register the option var
-            self.create_guiOptionVar('ClickMode', defaultValue = 0)#Register the option var
-            self.create_guiOptionVar('ClickCreate', defaultValue = 0)#Register the option var
-            self.create_guiOptionVar('ClickDrag', defaultValue = 0)#Register the option var
-            self.create_guiOptionVar('ClickClamp', defaultValue = 0)#Register the option var
+        #cgmUI.cgmGUI.setup_Variables(self)#Initialize parent ones, then add our own
+        self.create_guiOptionVar('ShowHelp',defaultValue = 0)
+        
+        self.create_guiOptionVar('BaseObject',defaultValue = '')
+        self.create_guiOptionVar('AxisMode', defaultValue = 0)#Register the option var    
+        self.create_guiOptionVar('PivotMode', defaultValue = 0)#Register the option var     
+        self.create_guiOptionVar('ProxiMode', defaultValue = 1)#Register the option var  
+        self.create_guiOptionVar('ProxiResult', defaultValue = 4)#Register the option var              
+        self.create_guiOptionVar('ProxiAmount', defaultValue = 0.0)#Register the option var            
+        self.create_guiOptionVar('ProxiExpand', defaultValue = 1)#Register the option var                                         
+        self.create_guiOptionVar('SpaceMode', defaultValue = 0)#Register the option var     
+        self.create_guiOptionVar('ResultMode', defaultValue = 0)#Register the option var     
+        self.create_guiOptionVar('Tolerance', defaultValue = .002)#Register the option var
+        self.create_guiOptionVar('Multiplier', defaultValue = 1.0)#Register the option var
+        self.create_guiOptionVar('ClickMode', defaultValue = 0)#Register the option var
+        self.create_guiOptionVar('ClickCreate', defaultValue = 0)#Register the option var
+        self.create_guiOptionVar('ClickDrag', defaultValue = 0)#Register the option var
+        self.create_guiOptionVar('ClickClamp', defaultValue = 0)#Register the option var
 
-            self.create_guiOptionVar('SelectBuffer', defaultValue = '')
+        self.create_guiOptionVar('SelectBuffer', defaultValue = '')
 
-            self.create_guiOptionVar('CastLatheAxis', defaultValue = 2)
-            self.create_guiOptionVar('CastAimAxis', defaultValue = 2)
-            self.create_guiOptionVar('CastPoints', defaultValue = 9)
-            self.create_guiOptionVar('CastXOffset', defaultValue = 0.0)
-            self.create_guiOptionVar('CastYOffset', defaultValue = 0.0)
-            self.create_guiOptionVar('CastZOffset', defaultValue = 0.0)
-            self.create_guiOptionVar('CastMarkHits', defaultValue = 0)
-            self.create_guiOptionVar('CastClosedCurve', defaultValue = 1)	    
-            self.create_guiOptionVar('CastMinRotate', defaultValue = 0.0)
-            self.create_guiOptionVar('CastMinUse', defaultValue = 0)	    
-            self.create_guiOptionVar('CastMaxRotate', defaultValue = 0.0)
-            self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	  
-            self.create_guiOptionVar('CastDegree', defaultValue = 3)	    	    
-            self.create_guiOptionVar('CastRange', defaultValue = 100.0)
-            self.create_guiOptionVar('CastClosestInRange', defaultValue = 1)
+        self.create_guiOptionVar('CastLatheAxis', defaultValue = 2)
+        self.create_guiOptionVar('CastAimAxis', defaultValue = 2)
+        self.create_guiOptionVar('CastPoints', defaultValue = 9)
+        self.create_guiOptionVar('CastXOffset', defaultValue = 0.0)
+        self.create_guiOptionVar('CastYOffset', defaultValue = 0.0)
+        self.create_guiOptionVar('CastZOffset', defaultValue = 0.0)
+        self.create_guiOptionVar('CastMarkHits', defaultValue = 0)
+        self.create_guiOptionVar('CastClosedCurve', defaultValue = 1)	    
+        self.create_guiOptionVar('CastMinRotate', defaultValue = 0.0)
+        self.create_guiOptionVar('CastMinUse', defaultValue = 0)	    
+        self.create_guiOptionVar('CastMaxRotate', defaultValue = 0.0)
+        self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	  
+        self.create_guiOptionVar('CastDegree', defaultValue = 3)	    	    
+        self.create_guiOptionVar('CastRange', defaultValue = 100.0)
+        self.create_guiOptionVar('CastClosestInRange', defaultValue = 1)
 
-            self.create_guiOptionVar('CastObjectUp', defaultValue = 1)
-            self.create_guiOptionVar('CastInsetMult', defaultValue = 0.2)
-            self.create_guiOptionVar('CastInsetUse', defaultValue = 0)	    
-            self.create_guiOptionVar('CastXRootOffset', defaultValue = 0.0)
-            self.create_guiOptionVar('CastYRootOffset', defaultValue = 0.0)
-            self.create_guiOptionVar('CastZRootOffset', defaultValue = 0.0)	    
-            self.create_guiOptionVar('CastJoin', defaultValue = 1)
-            self.create_guiOptionVar('CastExtendMode', defaultValue = 1)
-            self.create_guiOptionVar('CastMidMeshCast', defaultValue = 0)
-            self.create_guiOptionVar('CastRotateBank', defaultValue = 0.0)
+        self.create_guiOptionVar('CastObjectUp', defaultValue = 1)
+        self.create_guiOptionVar('CastInsetMult', defaultValue = 0.2)
+        self.create_guiOptionVar('CastInsetUse', defaultValue = 0)	    
+        self.create_guiOptionVar('CastXRootOffset', defaultValue = 0.0)
+        self.create_guiOptionVar('CastYRootOffset', defaultValue = 0.0)
+        self.create_guiOptionVar('CastZRootOffset', defaultValue = 0.0)	    
+        self.create_guiOptionVar('CastJoin', defaultValue = 1)
+        self.create_guiOptionVar('CastExtendMode', defaultValue = 1)
+        self.create_guiOptionVar('CastMidMeshCast', defaultValue = 0)
+        self.create_guiOptionVar('CastRotateBank', defaultValue = 0.0)
 
-
-            """ 
-	    objectUp = 'y+',
-	    insetMult = None,#Inset multiplier
-	    rootOffset = [],#offset root before cast
-	    rootRotate = None,
-	    joinMode = False,
-	    extendMode = None,
-	    closedCurve = True,
-	    l_specifiedRotates = None,
-	    maxDistance = 1000,
-	    closestInRange = True,
-	    midMeshCast = False,
-	    rotateBank = None,
-	    joinHits = None,#keys to processed hits to see what to join
-	    axisToCheck = ['x','y']
-
-	    """            
-
-        except Exception,error:
-            raise Exception,"{0} setup_Variables failed | {1}".format(self._str_reportStart,error)  
 
     def reload(self):
         """

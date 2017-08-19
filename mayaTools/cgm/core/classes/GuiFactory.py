@@ -225,12 +225,13 @@ class cgmGUI(mUI.BaseMelWindow):
         self.l_oldGenElements = []
         self.description = __description__
         self.initializeTemplates() 
+        self.setup_baseVariables()	
         
         #>>> Insert our init, overloaded for other tools
         self.insert_init(self,*args,**kws)
+        
             
         #>>> Menu
-        self.setup_Variables()	
         self.build_menus()
 
         #>>> Body
@@ -285,16 +286,16 @@ class cgmGUI(mUI.BaseMelWindow):
         #self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
         #self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
         
-        self.setup_Variables()	
-
-    def setup_Variables(self):
+    def setup_baseVariables(self):
+        _str_func = 'setup_baseVariables[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func)) 
         self.create_guiOptionVar('ShowHelp',defaultValue = 0)
         self.create_guiOptionVar('Dock',defaultValue = 0)
         self.create_guiOptionVar('DockSide',defaultValue = 0)	
         self.create_cgmDebugOptionVar(defaultValue = 0)
 
     def create_guiOptionVar(self,varName,*args,**kws):
-        fullName = "cgmVar_%s%s"%(self.__toolName__,varName)
+        fullName = "cgmVar_%s%s"%(self.__class__.TOOLNAME,varName)
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
@@ -625,7 +626,7 @@ class cgmGUI2(mUI.BaseMelWindow):
         self.insert_init(self,*args,**kws)
             
         #>>> Menu
-        self.setup_Variables()	
+        self.setup_baseVariables()	
         self.build_menus()
 
         #>>> Body
@@ -676,7 +677,7 @@ class cgmGUI2(mUI.BaseMelWindow):
         self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
         self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
         
-        self.setup_Variables()	
+        self.setup_baseVariables()	
         self.build_menus()        
 
     def setup_Variables(self):
@@ -977,7 +978,7 @@ def initializeTemplates():
         mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
     mc.uiTemplate('cgmUITemplate')
     mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
-    mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
+    mc.button(dt = 'cgmUITemplate', height = 20, backgroundColor = guiButtonColor,align = 'center')
     mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
     mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
     mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)

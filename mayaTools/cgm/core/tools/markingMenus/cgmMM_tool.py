@@ -529,7 +529,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         mc.menuItem(parent = uiOptions, l='Option UI', 
                     #c=mmCallback(UICHUNKS.call_optionVar_ui))                    
-                    c=lambda *a:TOOLBOX.ui())
+                    c=lambda *a:mc.evalDeferred(TOOLBOX.ui,lp=1))
                     #c=mmCallback(UISNAPCALLS.ui_optionVars))
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
@@ -1327,14 +1327,15 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
                     #c = lambda *a: ui_CallAndKill(DYNPARENTTOOL.ui))
                     #c = mmCallback(DYNPARENTTOOL.ui))
-                    c = lambda *a:DYNPARENTTOOL.ui())
+                    c = lambda *a: mc.evalDeferred(DYNPARENTTOOL.ui,lp=0))
+                    #c = lambda *a:DYNPARENTTOOL.ui())
                     #c=lambda *a: DYNPARENTTOOL.ui())           
         mc.menuItem(parent = _r,
                     rp='S',
                     l='MRS',
                     ann = "WIP",
                     #c = mmCallback(RBUILDER.ui))
-                    c=lambda *a: RBUILDER.ui())           
+                    c=lambda *a: mc.evalDeferred(RBUILDER.ui()))           
         
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,

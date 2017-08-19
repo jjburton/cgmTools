@@ -27,9 +27,19 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.tools import locinator as LOCINATOR
+import cgm.core.lib.locator_utils as LOC
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import curve_Utils as CURVES
+import cgm.core.tools.lib.snap_calls as SNAPCALLS
+from cgm.core.tools import meshTools as MESHTOOLS
+reload(MESHTOOLS)
+from cgm.core.lib import node_utils as NODES
+from cgm.core.tools import attrTools as ATTRTOOLS
+from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 
+import cgm.core.tools.locinator as LOCINATOR
+import cgm.core.lib.arrange_utils as ARRANGE
+import cgm.core.lib.rigging_utils as RIGGING
 import cgm.core.classes.GuiFactory as cgmUI
 reload(cgmUI)
 mUI = cgmUI.mUI
@@ -72,6 +82,10 @@ class ui(cgmUI.cgmGUI):
         self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('objectDefaultsFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('shapeFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('snapFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('tdFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('animFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('layoutFrameCollapse',defaultValue = 0) 
 
 
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')   
@@ -144,25 +158,25 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'build_layoutWrapper'
         #Match
         #Aim
-        
+
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
-        
+
         ui_tabs = mUI.MelTabLayout( _MainForm)
-        
+
         #uiTab_setup = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         #self.uiTab_setup = uiTab_setup
-        
+
         uiTab_options = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')       
         uiTab_tools = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
-    
+
         for i,tab in enumerate(['Options','Tools']):
             ui_tabs.setLabel(i,tab)
-    
+
         self.buildTab_options(uiTab_options)
         self.buildTab_tools(uiTab_tools)
         #self.buildTab_create(uiTab_create)
         #self.buildTab_update(uiTab_update)
-    
+
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)  
         _MainForm(edit = True,
                   af = [(ui_tabs,"top",0),
@@ -171,24 +185,14 @@ class ui(cgmUI.cgmGUI):
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
-        
+
                         ],
                   ac = [(ui_tabs,"bottom",0,_row_cgm),
                         ],
                   attachNone = [(_row_cgm,"top")])  
-        
-    def buildTab_tools(self,parent):
-        _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
-        parent(edit = True,
-               af = [(_column,"top",0),
-                     (_column,"left",0),
-                     (_column,"right",0),                        
-                     (_column,"bottom",0)])    
-        
-        #>>>Shape Creation ====================================================================================
-        mc.setParent(_column)
-        cgmUI.add_SectionBreak()
-        _shapes_frame = mUI.MelFrameLayout(_column,label = 'Shape Creation',vis=True,
+
+    def buildSection_shape(self,parent):
+        _shapes_frame = mUI.MelFrameLayout(parent,label = 'Shape Creation',vis=True,
                                            collapse=self.var_shapeFrameCollapse.value,
                                            collapsable=True,
                                            enable=True,
@@ -197,74 +201,74 @@ class ui(cgmUI.cgmGUI):
                                            collapseCommand = lambda:self.var_shapeFrameCollapse.setValue(1)
                                            )	
         _shape_inside = mUI.MelColumnLayout(_shapes_frame,useTemplate = 'cgmUISubTemplate')  
-    
+
         #>>>Shape Type Row  -------------------------------------------------------------------------------------
         # _row_shapeType = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)
         _row_shapeType = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate')
-    
+
         mUI.MelSpacer(_row_shapeType,w=5)                                      
         mUI.MelLabel(_row_shapeType,l='Shape:')
         self.uiField_shape = mUI.MelLabel(_row_shapeType,
                                           ann='Change the default create shape',
                                           ut='cgmUIInstructionsTemplate',w=100)
-    
+
         _row_shapeType.setStretchWidget(self.uiField_shape) 
-    
-    
+
+
         mUI.MelLabel(_row_shapeType,l='Default Color:')
         self.uiField_shapeColor = mUI.MelLabel(_row_shapeType,
                                                ann='Change the default create color',                                               
                                                ut='cgmUIInstructionsTemplate',w = 100)
-    
-    
-    
+
+
+
         _row_shapeType.layout()
-    
+
         #....shape default
         self.uiField_shape(edit=True, label = self.var_curveCreateType.value)
         self.uiField_shapeColor(edit=True, label = self.var_defaultCreateColor.value)
-    
-    
+
+
         self.uiPopup_createShape()
         self.uiPopup_createColor()
-    
-    
+
+
         #>>>Create Aim defaults mode -------------------------------------------------------------------------------------
         _d = {'aim':self.var_createAimAxis,
               }
-    
+
         for k in _d.keys():
             _var = _d[k]
-    
+
             _row = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)
-    
+
             mUI.MelSpacer(_row,w=5)                      
             mUI.MelLabel(_row,l='Create {0}:'.format(k))
             _row.setStretchWidget( mUI.MelSeparator(_row) )
-    
+
             uiRC = mUI.MelRadioCollection()
-    
+
             _on = _var.value
-    
+
             for i,item in enumerate(SHARED._l_axis_by_string):
                 if i == _on:
                     _rb = True
                 else:_rb = False
-    
+
                 uiRC.createButton(_row,label=item,sl=_rb,
                                   onCommand = cgmGen.Callback(_var.setValue,i))
-    
+
                 mUI.MelSpacer(_row,w=2)       
-    
-    
+
+
             _row.layout()    
-    
+
         #>>>Create Size Modes -------------------------------------------------------------------------------------
         _row_createSize = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate')
         mUI.MelSpacer(_row_createSize,w=5)                                              
         mUI.MelLabel(_row_createSize,l='Size Mode:')
         _row_createSize.setStretchWidget(mUI.MelSeparator(_row_createSize)) 
-    
+
         uiRC = mUI.MelRadioCollection()
         _on = self.var_createSizeMode.value
         #self.var_createSizeValue
@@ -272,12 +276,12 @@ class ui(cgmUI.cgmGUI):
             if i == _on:
                 _rb = True
             else:_rb = False
-    
+
             uiRC.createButton(_row_createSize,label=item,sl=_rb,
                               onCommand = cgmGen.Callback(self.var_createSizeMode.setValue,i))
             mUI.MelSpacer(_row_createSize,w=2)    
-    
-    
+
+
         cgmUI.add_Button(_row_createSize,'Size',
                          lambda *a:self.var_createSizeValue.uiPrompt_value('Set Size'),
                          'Set the create size value')   
@@ -285,13 +289,13 @@ class ui(cgmUI.cgmGUI):
                          lambda *a:self.var_createSizeMulti.uiPrompt_value('Set create size multiplier'),
                          'Set the create size multiplier value') 
         mUI.MelSpacer(_row_createSize,w=5)                                              
-    
+
         _row_createSize.layout()  
-    
+
         #>>>Create -------------------------------------------------------------------------------------
         #_row_curveCreate = mUI.MelHSingleStretchLayout(_shape_inside,ut='cgmUISubTemplate') 
         _row_curveCreate = mUI.MelHLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)   
-    
+
         cgmUI.add_Button(_row_curveCreate,'Create',
                          lambda *a:uiFunc_createCurve(),
                          'Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(self.var_curveCreateType.value,
@@ -301,11 +305,296 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row_curveCreate,'One of each',
                          lambda *a:uiFunc_createOneOfEach(),
                          'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )       
+
+        _row_curveCreate.layout()  
+
+    def buildSection_snap(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Snap',vis=True,
+                                    collapse=self.var_snapFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_snapFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_snapFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        
+        
+        #>>>Base snap -------------------------------------------------------------------------------------
+        _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        
+        mc.button(parent=_row_base,
+                  l = 'Point',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a:SNAPCALLS.snap_action(None,'point'),
+                  ann = "Point snap in a from:to selection")
+        
+        mc.button(parent=_row_base,
+                    l = 'Point - closest',
+                    ut = 'cgmUITemplate',                    
+                    c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
+                    ann = "Closest point on target")    
     
-        _row_curveCreate.layout()
+        mc.button(parent=_row_base,
+                    l = 'Parent',
+                    ut = 'cgmUITemplate',                    
+                    c = lambda *a:SNAPCALLS.snap_action(None,'parent'),
+                    ann = "Parent snap in a from:to selection")
+        mc.button(parent=_row_base,
+                  l = 'Orient',
+                  ut = 'cgmUITemplate',                  
+                  c = lambda *a:SNAPCALLS.snap_action(None,'orient'),
+                  ann = "Orient snap in a from:to selection")        
+
+        _row_base.layout() 
+        
+        #>>>Aim snap -------------------------------------------------------------------------------------
+        _row_aim = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        
+        mc.button(parent=_row_aim,
+                  l = 'Aim',
+                  ut = 'cgmUITemplate',                                    
+                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = "Aim snap in a from:to selection")
+
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                  
+                  l = 'All to last',
+                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = "Aim all objects to the last in selection")
+        
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                  
+                  l = 'Selection Order',
+                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToNext'),
+                  ann = "Aim in selection order from each to next")
+        
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                                    
+                  l = 'First to Mid',
+                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','firstToRest'),
+                  ann = "Aim the first object to the midpoint of the rest")    
+
+        _row_aim.layout() 
+        
+        #>>>Ray snap -------------------------------------------------------------------------------------
+        _row_ray = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_ray,w=5)                                              
+        mUI.MelLabel(_row_ray,l='CastSnap:')
+        _row_ray.setStretchWidget(mUI.MelSeparator(_row_ray)) 
+        
+        mc.button(parent=_row_ray,
+                    l = 'RayCast',
+                    ut = 'cgmUITemplate',                                                        
+                    c = lambda *a:SNAPCALLS.raySnap_start(None),
+                    ann = "RayCast snap selected objects")
+        mc.button(parent=_row_ray,
+                    l = 'AimCast',
+                    ut = 'cgmUITemplate',                                                        
+                    c = lambda *a:SNAPCALLS.aimSnap_start(None),
+                    ann = "AimCast snap selected objects")   
+        mUI.MelSpacer(_row_ray,w=5)                                              
+        _row_ray.layout()             
+        
+        #>>>Match snap -------------------------------------------------------------------------------------
+        _row_match = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_match,w=5)                                              
+        mUI.MelLabel(_row_match,l='MatchSnap:')
+        _row_match.setStretchWidget(mUI.MelSeparator(_row_match)) 
+        
+        mc.button(parent=_row_match,
+                    l = 'Self',
+                    ut = 'cgmUITemplate',                                                                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, None,'each','Match',False,**{'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    ann = "Update selected objects to match object. If the object has no match object, a loc is created")
+        mc.button(parent=_row_match,
+                    ut = 'cgmUITemplate',                                                                            
+                    l = 'Target',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, LOCINATOR.update_obj, None,'each','Match',False,**{'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    ann = "Update the match object, not the object itself")
+        mc.button(parent=_row_match,
+                    ut = 'cgmUITemplate',                                                                            
+                    l = 'Buffer',
+                    #c = cgmGen.Callback(buttonAction,raySnap_start(_sel)),                    
+                    c = cgmGen.Callback(LOCINATOR.update_obj,**{'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    ann = "Update the buffer (if exists)")    
+        mUI.MelSpacer(_row_match,w=5)                                              
+        _row_match.layout()         
+        
+        #>>>Arrange snap -------------------------------------------------------------------------------------
+        _row_arrange = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_arrange,w=5)                                              
+        mUI.MelLabel(_row_arrange,l='Arrange:')
+        _row_arrange.setStretchWidget(mUI.MelSeparator(_row_arrange)) 
+        
+        mc.button(parent=_row_arrange,
+                  l = 'Along line(Even)',
+                  ut = 'cgmUITemplate',                                                                                              
+                  c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+                  ann = "Layout on line from first to last item")
+        mc.button(parent=_row_arrange,
+                  l = 'Along line(Spaced)',
+                  ut = 'cgmUITemplate',                                                                                              
+                  c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
+                  ann = "Layout on line from first to last item closest as possible to original position")    
+        mUI.MelSpacer(_row_arrange,w=5)                                              
+        _row_arrange.layout()         
+
+    def buildSection_rigging(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Rigging Utils',vis=True,
+                                    collapse=self.var_tdFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_tdFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_tdFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
         
         
+        #>>>Create -------------------------------------------------------------------------------------
+        _row_create = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_create,w=5)                                              
+        mUI.MelLabel(_row_create,l='Create from selected:')
+        _row_create.setStretchWidget(mUI.MelSeparator(_row_create)) 
         
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                    
+                  l = 'Transform',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}))    
+        
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Joint',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'))         
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Locator',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))                          
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Curve',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))                          
+        
+        mUI.MelSpacer(_row_create,w=5)                                              
+        _row_create.layout()  
+        
+        #>>>Copy -------------------------------------------------------------------------------------
+        _row_copy = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_copy,w=5)                                              
+        mUI.MelLabel(_row_copy,l='Copy:')
+        _row_copy.setStretchWidget(mUI.MelSeparator(_row_copy)) 
+        
+        mc.button(parent=_row_copy,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Transform',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_transform, None,'eachToFirst','Match Transform'),                    
+                  ann = "")
+        mc.button(parent=_row_copy,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Orienation',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
+                  ann = "")
+    
+        mc.button(parent=_row_copy,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Shapes',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.shapeParent_in_place, None,'lastFromRest','Copy Shapes', **{'snapFirst':True}),
+                  ann = "")
+
+    
+        #Pivot stuff -------------------------------------------------------------------------------------------
+        mc.button(parent=_row_copy,
+                  ut = 'cgmUITemplate',                                                          
+                  l = 'rotatePivot',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, None,'eachToFirst', 'Match RP',**{'rotatePivot':True,'scalePivot':False}),                                               
+                  ann = "Copy the rotatePivot from:to")
+        mc.button(parent=_row_copy,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'scalePivot',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.copy_pivot, None,'eachToFirst', 'Match SP', **{'rotatePivot':False,'scalePivot':True}),                                               
+                  ann = "Copy the scalePivot from:to")        
+        
+        
+        mUI.MelSpacer(_row_copy,w=5)                                              
+        _row_copy.layout()      
+        
+        #>>>group -------------------------------------------------------------------------------------
+        _row_group = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_group,w=5)                                              
+        mUI.MelLabel(_row_group,l='Group:')
+        _row_group.setStretchWidget(mUI.MelSeparator(_row_group)) 
+        
+        mc.button(parent=_row_group,
+                  ut = 'cgmUITemplate',                                                          
+                  l = 'Just Group',
+                  ann = 'Simple grouping. Just like ctrl + g',                        
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group',**{'parent':False,'maintainParent':False}),)  
+        mc.button(parent=_row_group,
+                  ut = 'cgmUITemplate',                                                          
+                  l = 'Group Me',
+                  ann = 'Group selected objects matching transform as well.',                                        
+                  #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group',**{'parent':True,'maintainParent':False}))          
+        mc.button(parent=_row_group,
+                  ut = 'cgmUITemplate',                                                          
+                  l = 'In Place',
+                  ann = 'Group me while maintaining heirarchal position',                                                        
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group In Place',**{'parent':True,'maintainParent':True}))     
+
+        mUI.MelSpacer(_row_group,w=5)                                              
+        _row_group.layout()         
+        
+
+
+    def buildTab_tools(self,parent):
+        _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
+        parent(edit = True,
+               af = [(_column,"top",0),
+                     (_column,"left",0),
+                     (_column,"right",0),                        
+                     (_column,"bottom",0)])    
+
+        #>>>Shape Creation ====================================================================================
+        mc.setParent(_column)
+        
+        #>>>Tools -------------------------------------------------------------------------------------        
+        cgmUI.add_SectionBreak()        
+        _row_tools1 = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    
+        mc.button(parent=_row_tools1,
+                  l = 'DynParent Tool',
+                  ut = 'cgmUITemplate',
+                  c= cgmGen.Callback(DYNPARENTTOOL.ui),
+                  ann = "Tool for modifying and setting up dynamic parent groups")
+    
+        mc.button(parent=_row_tools1,
+                  l = 'Locinator',
+                  ut = 'cgmUITemplate',
+                  c= cgmGen.Callback(LOCINATOR.ui),
+                  ann = "LOCATORS")
+    
+        mc.button(parent=_row_tools1,
+                  l = 'AttrTools',
+                  ut = 'cgmUITemplate',
+                  c= cgmGen.Callback(ATTRTOOLS.ui),
+                  ann = "Do stuff with attributes!")
+    
+        mc.button(parent=_row_tools1,
+                  l = 'MeshTools',
+                  ut = 'cgmUITemplate',
+                  c= cgmGen.Callback(MESHTOOLS.go),
+                  ann = "LOCATORS")
+    
+        _row_tools1.layout()          
+        
+        
+        cgmUI.add_SectionBreak()
+        self.buildSection_snap(_column)
+        self.buildSection_shape(_column)
+        self.buildSection_rigging(_column)
+
+
     def buildTab_options(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
         parent(edit = True,
@@ -313,7 +602,7 @@ class ui(cgmUI.cgmGUI):
                      (_column,"left",0),
                      (_column,"right",0),                        
                      (_column,"bottom",0)])        
- 
+
         #>>>Match ====================================================================================
         _update_frame = mUI.MelFrameLayout(_column,label = 'Match Options',vis=True,
                                            collapse=self.var_matchFrameCollapse.value,
@@ -538,9 +827,9 @@ class ui(cgmUI.cgmGUI):
         _row_orient.layout()        
 
 
-        
-        
-        
+
+
+
 
 
     def cb_setCreateShape(self,shape):
