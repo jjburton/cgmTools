@@ -25,6 +25,7 @@ import maya.mel as mel
 from cgm.core import cgm_General as cgmGen
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
+reload(MMCONTEXT)
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.locator_utils as LOC
@@ -36,11 +37,14 @@ reload(MESHTOOLS)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.tools.locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.rigging_utils as RIGGING
 import cgm.core.classes.GuiFactory as cgmUI
+import cgm.core.tools.lib.annotations as TOOLANNO
+reload(TOOLANNO)
 reload(cgmUI)
 mUI = cgmUI.mUI
 
@@ -76,7 +80,9 @@ class ui(cgmUI.cgmGUI):
 
         self.uiPopUpMenu_createShape = None
         self.uiPopUpMenu_color = None
-
+        self.uiPopUpMenu_attr = None
+        self.uiPopUpMenu_raycastCreate = None
+        
         self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('rayCastFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
@@ -91,11 +97,14 @@ class ui(cgmUI.cgmGUI):
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')   
 
         self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+        self.var_createRayCast = cgmMeta.cgmOptionVar('cgmVar_createRayCast', defaultValue = 'locator')        
+        self.var_attrCreateType = cgmMeta.cgmOptionVar('cgmVar_attrCreateType', defaultValue = 'float')        
         self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
         self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
         self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
         self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
         self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)
+        self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')
 
 
         self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
@@ -114,7 +123,7 @@ class ui(cgmUI.cgmGUI):
         #self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
         self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)    
         self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
-
+    
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='File', pmc = cgmGen.Callback(self.buildMenu_first))
         self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGen.Callback(self.buildMenu_buffer))
@@ -440,6 +449,253 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row_arrange,w=5)                                              
         _row_arrange.layout()         
 
+    
+    def buildRow_mesh(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='Mesh:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        mc.button(parent=_row,
+                  l = 'MeshTools',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a: mc.evalDeferred(MESHTOOLS.ui,lp=1),                  
+                  ann = "LOCATORS")    
+        mc.button(parent=_row,
+                  l = 'abSymMesh',
+                  ut = 'cgmUITemplate',
+                  ann = "abSymMesh by Brendan Ross - fantastic tool for some blendshape work",                                                                                                       
+                  c=lambda *a: mel.eval('abSymMesh'),)          
+
+        _row.layout()    
+        
+    def buildRow_skin(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='skin:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        mc.button(parent=_row,
+                  l='abWeightLifter',
+                  ut = 'cgmUITemplate',
+                  ann = "abWeightLifter by Brendan Ross - really good tool for transferring and working with skin data",                                                                                                                       
+                  c=lambda *a: mel.eval('abWeightLifter'),)         
+        mc.button(parent=_row,
+                  l='ngSkinTools',
+                  ut = 'cgmUITemplate',
+                  en=False,
+                  ann = "Read the docs. Give it a chance. Be amazed.",                                                                                                                       
+                  c=lambda *a: mel.eval('abWeightLifter'),)           
+
+        _row.layout()    
+        
+        
+    def buildRow_matchMode(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='Match Mode:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        uiRC = mUI.MelRadioCollection()
+
+        _on = self.var_matchMode.value
+
+        for i,item in enumerate(['point','orient','point/orient']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(LOCINATOR.uiFunc_change_matchMode,self,i))
+
+            mUI.MelSpacer(_row,w=2)       
+
+        _row.layout()        
+        
+    def buildRow_context(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='Context:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        uiRC = mUI.MelRadioCollection()
+
+        _on = self.var_contextTD.value
+
+        for i,item in enumerate(['selection','children','heirarchy','scene']):
+            if item == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_contextTD.setValue,item))
+
+            mUI.MelSpacer(_row,w=2)       
+
+        _row.layout()  
+        
+        """
+uiRC = mc.radioMenuItemCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_contextTD.value
+            
+            for i,item in enumerate(['selection','children','heirarchy','scene']):
+                if item == _v:
+                    _rb = True
+                else:_rb = False
+                mc.menuItem(parent=uiMenu_context,collection = uiRC,
+                            label=item,
+                            c = mmCallback(self.var_contextTD.setValue,item),                                  
+                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
+                            rb = _rb)           
+        
+        """
+        
+    def buildSection_rayCast(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Raycast Options',vis=True,
+                                    collapse=self.var_rayCastFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_rayCastFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_rayCastFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        
+        
+        #>>>Raycast ====================================================================================
+
+    
+        #>>>Cast Mode  -------------------------------------------------------------------------------------
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_rayCastMode.value
+    
+        _row1 = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    
+    
+        mUI.MelSpacer(_row1,w=5)
+    
+        mUI.MelLabel(_row1,l='Cast')
+        _row1.setStretchWidget( mUI.MelSeparator(_row1) )
+    
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_rayCastMode.value
+    
+        for i,item in enumerate(['close','mid','far','all','x','y','z']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+    
+            uiRC.createButton(_row1,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_rayCastMode.setValue,i))
+    
+            mUI.MelSpacer(_row1,w=2)    
+    
+        _row1.layout() 
+    
+        #>>>offset Mode  -------------------------------------------------------------------------------------
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_rayCastOffsetMode.value        
+    
+        _row_offset = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_offset,w=5)                              
+        mUI.MelLabel(_row_offset,l='Offset')
+        _row_offset.setStretchWidget( mUI.MelSeparator(_row_offset) )  
+    
+        for i,item in enumerate(['None','Distance','snapCast']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+    
+            uiRC.createButton(_row_offset,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_rayCastOffsetMode.setValue,i))
+    
+            mUI.MelSpacer(_row1,w=2)   
+    
+    
+        _row_offset.layout()
+    
+    
+        #>>>offset Mode  -------------------------------------------------------------------------------------
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_rayCastOrientMode.value        
+    
+        _row_orient = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_orient,w=5)                              
+        mUI.MelLabel(_row_orient,l='Orient')
+        _row_orient.setStretchWidget( mUI.MelSeparator(_row_orient) )  
+    
+        for i,item in enumerate(['None','Normal']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+    
+            uiRC.createButton(_row_orient,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_rayCastOrientMode.setValue,i))
+    
+            mUI.MelSpacer(_row1,w=2)   
+    
+        cgmUI.add_Button(_row_orient,'Set drag interval',
+                         lambda *a:self.var_rayCastDragInterval.uiPrompt_value('Set drag interval'),
+                         'Set the rayCast drag interval by ui prompt')   
+        cgmUI.add_Button(_row_orient,'Set Offset',
+                         lambda *a:self.var_rayCastOffsetDist.uiPrompt_value('Set offset distance'),
+                         'Set the the rayCast offset distance by ui prompt')         
+        mUI.MelSpacer(_row_orient,w=5)                                                  
+        _row_orient.layout()
+        
+        #>>>rayCast -------------------------------------------------------------------------------------
+        _row_rayCast = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_rayCast,w=5)                                              
+        mUI.MelLabel(_row_rayCast,l='rayCast:')
+        _row_rayCast.setStretchWidget(mUI.MelSeparator(_row_rayCast)) 
+    
+    
+        self.uiField_rayCastCreate = mUI.MelLabel(_row_rayCast,
+                                                  ann='Change the default rayCast create type',
+                                                  ut='cgmUIInstructionsTemplate',w=100)        
+        self.uiField_rayCastCreate(edit=True, label = self.var_createRayCast.value)
+    
+        self.uiPopup_createRayCast()       
+    
+        mc.button(parent=_row_rayCast,
+                  ut = 'cgmUITemplate',                                                                              
+                  l = 'Create',
+                  c = lambda a: SNAPCALLS.rayCast_create(None,self.var_createRayCast.value,False),
+                  ann = TOOLANNO._d['raycast']['create'])       
+        mc.button(parent=_row_rayCast,
+                  ut = 'cgmUITemplate',                                                                              
+                  l = 'Drag',
+                  c = lambda a: SNAPCALLS.rayCast_create(None,self.var_createRayCast.value,True),
+                  ann = TOOLANNO._d['raycast']['drag'])       
+        """
+            mUI.MelLabel(_row_rayCast,
+                         l=' | ')
+    
+            mc.button(parent=_row_rayCast,
+                      ut = 'cgmUITemplate',                                                                              
+    
+                    l = 'RayCast Snap',
+                    c = lambda *a:SNAPCALLS.raySnap_start(None),
+                    ann = "RayCast snap selected objects")
+            mc.button(parent=_row_rayCast,
+                      ut = 'cgmUITemplate',                                                                                                
+                      l = 'AimCast',
+                      c = lambda *a:SNAPCALLS.aimSnap_start(None),
+                      ann = "AimCast snap selected objects") """   
+    
+        mUI.MelSpacer(_row_rayCast,w=5)                                                  
+        _row_rayCast.layout()
+            
+            
     def buildSection_rigging(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Rigging Utils',vis=True,
                                     collapse=self.var_tdFrameCollapse.value,
@@ -450,6 +706,25 @@ class ui(cgmUI.cgmGUI):
                                     collapseCommand = lambda:self.var_tdFrameCollapse.setValue(1)
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        
+        self.buildRow_context(_inside)        
+        
+        
+        _row_tools1 = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    
+        mc.button(parent=_row_tools1,
+                  l = 'DynParent Tool',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a: mc.evalDeferred(DYNPARENTTOOL.ui,lp=1),                  
+                  ann = "Tool for modifying and setting up dynamic parent groups")
+
+        mc.button(parent=_row_tools1,
+                  l = 'Locinator',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a: mc.evalDeferred(LOCINATOR.ui,lp=1),                  
+                  ann = "LOCATORS")
+
+        _row_tools1.layout()                  
         
         
         #>>>Create -------------------------------------------------------------------------------------
@@ -543,9 +818,103 @@ class ui(cgmUI.cgmGUI):
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.group_me, None,'each','Group In Place',**{'parent':True,'maintainParent':True}))     
 
         mUI.MelSpacer(_row_group,w=5)                                              
-        _row_group.layout()         
+        _row_group.layout()      
+        
+        
+        #>>>Attr -------------------------------------------------------------------------------------
+        _row_attr = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_attr,w=5)                                              
+        mUI.MelLabel(_row_attr,l='Attr:')
+        _row_attr.setStretchWidget(mUI.MelSeparator(_row_attr)) 
+        
+        
+        self.uiField_attrType = mUI.MelLabel(_row_attr,
+                                             ann='Change the default attr type',
+                                             ut='cgmUIInstructionsTemplate',w=100)        
+        self.uiField_attrType(edit=True, label = self.var_attrCreateType.value)
+        mc.button(parent = _row_attr,
+                  ut = 'cgmUITemplate',                                                                            
+                  l='+',
+                  ann = "Add specified attribute type",                                                                                                                       
+                  c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,self.var_attrCreateType.value,**{}))
+        self.uiPopup_createAttr()
         
 
+        mc.button(parent = _row_attr,
+                  ut = 'cgmUITemplate',                                                                            
+                  l='cgmAttrTools',
+                  ann = "Launch cgmAttrTools - Collection of tools for making creating, editing and managing attributes a little less painful",                                                                                                                       
+                  c=cgmGen.Callback(ATTRTOOLS.ui))   
+    
+        """
+        _add = mc.menuItem(parent=uiAttr,subMenu=True,
+                           l='Add',
+                           ann = "Add attributes to selected objects...",                                                                                                                              
+                           rp='S') 
+        _d_attrTypes = {"string":'E','float':'S','enum':'NE','vector':'SW','int':'W','bool':'NW','message':'SE'}
+        for _t,_d in _d_attrTypes.iteritems():
+            mc.menuItem(parent=_add,
+                        l=_t,
+                        ann = "Add a {0} attribute(s) to the selected objects".format(_t),                                                                                                       
+                        c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,_t,**{'autoLoadFail':True}),
+                        rp=_d)"""
+    
+        mc.button(parent = _row_attr,
+                    ut = 'cgmUITemplate',                                                                              
+                    l = 'Compare Attrs',
+                    ann = "Compare the attributes of selected objects. First object is the base of comparison",                                                                                                                                                
+                    c = cgmGen.Callback(MMCONTEXT.func_process, ATTR.compare_attrs, None, 'firstToRest','Compare Attrs',True,**{}))           
+
+        mUI.MelSpacer(_row_attr,w=5)                                              
+        _row_attr.layout()         
+
+
+        #>>>Joints -------------------------------------------------------------------------------------
+        _row_joints = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_joints,w=5)                                              
+        mUI.MelLabel(_row_joints,l='Joints:')
+        _row_joints.setStretchWidget(mUI.MelSeparator(_row_joints)) 
+        
+
+        mc.button(parent=_row_joints, 
+                  ut = 'cgmUITemplate',                                                                              
+                  l = 'Show x',
+                  ann = "Show the joint axis by current context",                                        
+                  c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
+                  )               
+        mc.button(parent=_row_joints, 
+                  ut = 'cgmUITemplate',                                                                              
+                  l = 'Hide x',
+                  ann = "Hide the joint axis by current context",                                        
+                  c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
+                  )     
+        
+        
+        mc.button(parent = _row_joints,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l='cometJO',
+                  c=lambda *a: mel.eval('cometJointOrient'),
+                  ann="General Joint orientation tool  by Michael Comet")   
+        mc.button(parent=_row_joints, 
+                  ut = 'cgmUITemplate',                                                                              
+                  l = 'Freeze',
+                  ann = "Freeze the joint orientation - our method as we don't like Maya's",                                        
+                  c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
+                  )            
+         
+        
+        mc.button(parent = _row_joints,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l='seShapeTaper',
+                  ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
+                  c=lambda *a: mel.eval('seShapeTaper'),)   
+        
+        mUI.MelSpacer(_row_joints,w=5)                                              
+        _row_joints.layout()          
+        
+        
+        self.buildRow_mesh(_inside)
+        self.buildRow_skin(_inside)
 
     def buildTab_tools(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
@@ -558,42 +927,34 @@ class ui(cgmUI.cgmGUI):
         #>>>Shape Creation ====================================================================================
         mc.setParent(_column)
         
-        #>>>Tools -------------------------------------------------------------------------------------        
-        cgmUI.add_SectionBreak()        
-        _row_tools1 = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 5)
-    
-        mc.button(parent=_row_tools1,
-                  l = 'DynParent Tool',
-                  ut = 'cgmUITemplate',
-                  c= cgmGen.Callback(DYNPARENTTOOL.ui),
-                  ann = "Tool for modifying and setting up dynamic parent groups")
-    
-        mc.button(parent=_row_tools1,
-                  l = 'Locinator',
-                  ut = 'cgmUITemplate',
-                  c= cgmGen.Callback(LOCINATOR.ui),
-                  ann = "LOCATORS")
-    
-        mc.button(parent=_row_tools1,
-                  l = 'AttrTools',
-                  ut = 'cgmUITemplate',
-                  c= cgmGen.Callback(ATTRTOOLS.ui),
-                  ann = "Do stuff with attributes!")
-    
-        mc.button(parent=_row_tools1,
-                  l = 'MeshTools',
-                  ut = 'cgmUITemplate',
-                  c= cgmGen.Callback(MESHTOOLS.go),
-                  ann = "LOCATORS")
-    
-        _row_tools1.layout()          
+        """
+_str_section = 'Contextual TD mode'
+            uiRC = mc.radioMenuItemCollection()
+            #self.uiOptions_menuMode = []		
+            _v = self.var_contextTD.value
+            
+            for i,item in enumerate(['selection','children','heirarchy','scene']):
+                if item == _v:
+                    _rb = True
+                else:_rb = False
+                mc.menuItem(parent=uiMenu_context,collection = uiRC,
+                            label=item,
+                            c = mmCallback(self.var_contextTD.setValue,item),                                  
+                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
+                            rb = _rb)                        
+        """
         
+        
+        
+        
+        #>>>Tools -------------------------------------------------------------------------------------        
+        cgmUI.add_SectionBreak()         
         
         cgmUI.add_SectionBreak()
         self.buildSection_snap(_column)
         self.buildSection_shape(_column)
         self.buildSection_rigging(_column)
-
+        self.buildSection_rayCast(_column)
 
     def buildTab_options(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
@@ -734,103 +1095,7 @@ class ui(cgmUI.cgmGUI):
         _row_defaults.layout() 
 
 
-        #>>>Raycast ====================================================================================
-        mc.setParent(_column)
-        cgmUI.add_SectionBreak()
-        _raycast_frame = mUI.MelFrameLayout(_column,label = 'RayCast Options',vis=True,
-                                            collapse=self.var_rayCastFrameCollapse.value,
-                                            collapsable=True,
-                                            enable=True,
-                                            useTemplate = 'cgmUIHeaderTemplate',
-                                            expandCommand = lambda:self.var_rayCastFrameCollapse.setValue(0),
-                                            collapseCommand = lambda:self.var_rayCastFrameCollapse.setValue(1)
-                                            )	
-        _raycast_inside = mUI.MelColumnLayout(_raycast_frame,useTemplate = 'cgmUISubTemplate') 
-
-
-        #>>>Cast Mode  -------------------------------------------------------------------------------------
-        uiRC = mUI.MelRadioCollection()
-        _on = self.var_rayCastMode.value
-
-        _row1 = mUI.MelHSingleStretchLayout(_raycast_inside,ut='cgmUISubTemplate',padding = 5)
-
-
-        mUI.MelSpacer(_row1,w=5)
-
-        mUI.MelLabel(_row1,l='Cast')
-        _row1.setStretchWidget( mUI.MelSeparator(_row1) )
-
-        uiRC = mUI.MelRadioCollection()
-        _on = self.var_rayCastMode.value
-
-        for i,item in enumerate(['close','mid','far','all','x','y','z']):
-            if i == _on:
-                _rb = True
-            else:_rb = False
-
-            uiRC.createButton(_row1,label=item,sl=_rb,
-                              onCommand = cgmGen.Callback(self.var_rayCastMode.setValue,i))
-
-            mUI.MelSpacer(_row1,w=2)    
-
-        _row1.layout() 
-
-        #>>>offset Mode  -------------------------------------------------------------------------------------
-        uiRC = mUI.MelRadioCollection()
-        _on = self.var_rayCastOffsetMode.value        
-
-        _row_offset = mUI.MelHSingleStretchLayout(_raycast_inside,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelSpacer(_row_offset,w=5)                              
-        mUI.MelLabel(_row_offset,l='Offset')
-        _row_offset.setStretchWidget( mUI.MelSeparator(_row_offset) )  
-
-        for i,item in enumerate(['None','Distance','snapCast']):
-            if i == _on:
-                _rb = True
-            else:_rb = False
-
-            uiRC.createButton(_row_offset,label=item,sl=_rb,
-                              onCommand = cgmGen.Callback(self.var_rayCastOffsetMode.setValue,i))
-
-            mUI.MelSpacer(_row1,w=2)   
-
-
-        _row_offset.layout()
-
-
-        #>>>offset Mode  -------------------------------------------------------------------------------------
-        uiRC = mUI.MelRadioCollection()
-        _on = self.var_rayCastOrientMode.value        
-
-        _row_orient = mUI.MelHSingleStretchLayout(_raycast_inside,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelSpacer(_row_orient,w=5)                              
-        mUI.MelLabel(_row_orient,l='Orient')
-        _row_orient.setStretchWidget( mUI.MelSeparator(_row_orient) )  
-
-        for i,item in enumerate(['None','Normal']):
-            if i == _on:
-                _rb = True
-            else:_rb = False
-
-            uiRC.createButton(_row_orient,label=item,sl=_rb,
-                              onCommand = cgmGen.Callback(self.var_rayCastOrientMode.setValue,i))
-
-            mUI.MelSpacer(_row1,w=2)   
-
-        cgmUI.add_Button(_row_orient,'Set drag interval',
-                         lambda *a:self.var_rayCastDragInterval.uiPrompt_value('Set drag interval'),
-                         'Set the rayCast drag interval by ui prompt')   
-        cgmUI.add_Button(_row_orient,'Set Offset',
-                         lambda *a:self.var_rayCastOffsetDist.uiPrompt_value('Set offset distance'),
-                         'Set the the rayCast offset distance by ui prompt')         
-
-        _row_orient.layout()        
-
-
-
-
-
-
+        self.buildSection_rayCast(_column)
 
     def cb_setCreateShape(self,shape):
         self.var_curveCreateType.setValue(shape)
@@ -865,7 +1130,16 @@ class ui(cgmUI.cgmGUI):
         self.var_defaultCreateColor.setValue(color)
         self.uiField_shapeColor(edit=True,label=color)
         return True
-
+    def cb_setCreateAttr(self,attr):
+        self.var_attrCreateType.setValue(attr)
+        self.uiField_attrType(edit=True,label=attr)
+        return True
+    
+    def cb_setRayCastCreate(self,m):
+        self.var_createRayCast.setValue(m)
+        self.uiField_rayCastCreate(edit=True,label=m)
+        return True
+    
     def uiPopup_createColor(self):
         if self.uiPopUpMenu_color:
             self.uiPopUpMenu_color.clear()
@@ -889,59 +1163,52 @@ class ui(cgmUI.cgmGUI):
                                 label = o,
                                 ann = "Set the create color to: {0}".format(o),
                                 c=cgmGen.Callback(self.cb_setCreateColor,o))
+    
+    def uiPopup_createAttr(self):
+        if self.uiPopUpMenu_attr:
+            self.uiPopUpMenu_attr.clear()
+            self.uiPopUpMenu_attr.delete()
+            self.uiPopUpMenu_attr = None
 
-        """
-        self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])            
-        #self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
-        self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffset', defaultValue=0)
-        self.var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0) 
-        self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
-        #self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)        
+        self.uiPopUpMenu_attr = mUI.MelPopupMenu(self.uiField_attrType,button = 1)
+        _popUp = self.uiPopUpMenu_attr 
+
+        mUI.MelMenuItem(_popUp,
+                        label = "Set Attr Type",
+                        en=False)     
+        mUI.MelMenuItemDiv(_popUp)
+     
+        for a in ATTR._l_simpleTypes:
+            mUI.MelMenuItem(_popUp,
+                            label = a,
+                            ann = "Set the create attr to: {0}".format(a),
+                            c=cgmGen.Callback(self.cb_setCreateAttr,a))
+            
+    def uiPopup_createRayCast(self):
+        if self.uiPopUpMenu_raycastCreate:
+            self.uiPopUpMenu_raycastCreate.clear()
+            self.uiPopUpMenu_raycastCreate.delete()
+            self.uiPopUpMenu_raycastCreate = None
+
+        self.uiPopUpMenu_raycastCreate = mUI.MelPopupMenu(self.uiField_rayCastCreate,button = 1)
+        _popUp = self.uiPopUpMenu_raycastCreate 
+
+        mUI.MelMenuItem(_popUp,
+                        label = "Set Create Type",
+                        en=False)     
+        mUI.MelMenuItemDiv(_popUp)
+
+        for m in  ['locator','joint','jointChain','curve','duplicate','vectorLine','data']:
+            mUI.MelMenuItem(_popUp,
+                            label = m,
+                            ann = "Create {0} by rayCasting".format(m),
+                            c=cgmGen.Callback(self.cb_setRayCastCreate,m))        
+         
+             
 
 
 
 
 
-        return
 
-uiMenuAim = mc.menuItem( parent = uiMenu_objDefault, l='Obj Aim', subMenu=True)    
-                uiRC = mc.radioMenuItemCollection(parent = uiMenuAim)
 
-                #self.uiOptions_menuMode = []		
-                _v = self.var_objDefaultAimAxis.value
-
-                for i,item in enumerate(SHARED._l_axis_by_string):
-                    if i == _v:
-                        _rb = True
-                    else:_rb = False
-                    mc.menuItem(parent = uiMenuAim,collection = uiRC,
-                                label=item,   
-                                c = cgmGen.Callback(self.var_objDefaultAimAxis.setValue,i),
-                                rb = _rb)  
-"""
-def uiFunc_createOneOfEach():
-    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)        
-    CURVES.create_oneOfEach(var_createSizeValue.value)
-
-def uiFunc_createCurve():
-    reload(CURVES)
-    var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
-    var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
-    var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
-    var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
-    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
-    var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)        
-    CURVES.create_controlCurve(mc.ls(sl=True),
-                               var_curveCreateType.value,
-                               var_defaultCreateColor.value,
-                               var_createSizeMode.value,
-                               var_createSizeValue.value,
-                               var_createSizeMulti.value,
-                               SHARED._l_axis_by_string[var_createAimAxis.value])
-def uiSetupOptionVars_curveCreation(self):
-    self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
-    self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
-    self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
-    self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
-    self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
-    self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25) 

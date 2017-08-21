@@ -30,6 +30,7 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LISTS
 from cgm.lib import lists
 
+_l_simpleTypes = ['string','float','enum','vector','int','bool','message']
 _d_attrTypes = {'message':('message','msg'),
                 'double':('float','fl','f','doubleLinear','doubleAngle','double','d'),
                 'string':('string','s','str'),

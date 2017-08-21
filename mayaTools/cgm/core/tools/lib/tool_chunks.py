@@ -36,12 +36,12 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.locator_utils as LOC
 from cgm.core.tools import meshTools
-#reload(meshTools)
+reload(meshTools)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
-#reload(ATTRTOOLS)
+reload(ATTRTOOLS)
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-#reload(DYNPARENTTOOL)
+reload(DYNPARENTTOOL)
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
@@ -178,7 +178,7 @@ def uiSection_joints(parent = None):
     mc.menuItem(parent=uiJoints, 
                 l = 'Freeze Orient',
                 ann = "Freeze the joint orientation",                                        
-                c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, 'each','FreezeOrientation',True,**{}),                                                                      
+                c = cgmGen.Callback(MMCONTEXT.func_process, None, JOINTS.freezeOrientation, 'each','FreezeOrientation',True,**{}),                                                                      
                 )    
     
     
@@ -797,8 +797,6 @@ def uiSection_riggingUtils(parent, selection = None):
                 l = 'DynParent Tool',
                 en=True,
                 c=cgmGen.Callback(DYNPARENTTOOL.ui),
-                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                #c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
                 ann = "Tool for modifying and setting up dynamic parent groups")
     
     mc.menuItem(parent=_p,

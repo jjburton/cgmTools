@@ -130,7 +130,7 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     return _l_context
 
     
-def set_attrs(self, attr = None, value = None, context = 'selection', mType = None):
+def set_attrs(self, attr = None, value = None, context = 'selection', mType = None, select = True):
     """
     Get data for updating a transform
     
@@ -153,7 +153,8 @@ def set_attrs(self, attr = None, value = None, context = 'selection', mType = No
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | attr:{2} | value:{3} | error: {4} | {5}".format(_str_func,NAMES.get_short(o),attr,value,err,Exception))
     
-    mc.select(_l_context)
+    if select:    
+        mc.select(_l_context)
     return True
 
 def color_override(value = None, context = 'selection', mType = None):
