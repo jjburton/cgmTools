@@ -523,7 +523,7 @@ def uiRadialMenu_root(self,parent,direction = None, callback = None):
     
     mc.menuItem(parent=_r,
                 l = 'UI',
-                c = callback(ui),                                                                                      
+                c = lambda *a:mc.evalDeferred(ui,lp=True),                                                                                      
                 rp = 'NW')       
     
     #>>>Bake ==============================================================================================
@@ -880,8 +880,8 @@ class ui(cgmUI.cgmGUI):
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
         
-        _MainForm = mUI.MelFormLayout(self)            
-        ui_tabs = mUI.MelTabLayout( _MainForm,w=180,ut='cgmUISubTemplate' )
+        _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')            
+        ui_tabs = mUI.MelTabLayout( _MainForm,w=180,ut='cgmUITemplate' )
         uiTab_update = mUI.MelColumnLayout(ui_tabs)
         uiTab_create = mUI.MelColumnLayout( ui_tabs )
         
