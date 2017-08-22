@@ -902,11 +902,6 @@ def uiSection_snap(parent, selection = None ):
                 l = 'Along line(Spaced)',
                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
                 ann = "Layout on line from first to last item closest as possible to original position")   
-    #>>Options ----------------------------------------------------------------------------------------
-    mc.menuItem(parent=parent,
-                l = '{Options}',
-                c = lambda *a:call_toolbox_ui(),
-                ann = "Set shared option variables")
     
     return
 

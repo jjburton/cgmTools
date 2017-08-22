@@ -210,7 +210,8 @@ class cgmGUI(mUI.BaseMelWindow):
     l_allowedDockAreas = ['right', 'left']
     
     def __init__( self,*args,**kws):
-        _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
+        _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
+                
         log.info("|{0}| >>...".format(_str_func))        
         
         #Check our tool option var for debug mode to set logger level if so
@@ -285,7 +286,7 @@ class cgmGUI(mUI.BaseMelWindow):
         #self.WINDOW_NAME = cgmGUI.WINDOW_NAME
         #self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
         #self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
-        
+    
     def setup_baseVariables(self):
         _str_func = 'setup_baseVariables[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func)) 

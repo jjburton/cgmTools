@@ -30,7 +30,7 @@ from cgm.core.tools import locinator as LOCINATOR
 reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
 reload(TOOLBOX)
-
+import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
@@ -529,7 +529,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
         mc.menuItem(parent = uiOptions, l='Option UI', 
                     #c=mmCallback(UICHUNKS.call_optionVar_ui))                    
-                    c=lambda *a:mc.evalDeferred(TOOLBOX.ui,lp=1))
+                    c=lambda *a:cgmToolbox.uiByTab(2))
                     #c=mmCallback(UISNAPCALLS.ui_optionVars))
         
         uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
