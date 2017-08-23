@@ -36,6 +36,7 @@ if mayaVersion >= 2011:
     currentGenUI = True
 else:
     currentGenUI = False
+
     
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -102,16 +103,28 @@ class markingMenu(object):
                 
         if not mc.control(_p, ex = True):
             return "{0} doesn't exist!".format(_p)
-        else: 
-            if not mc.popupMenu('cgmMM',ex = True):
-                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
-                             pmc = lambda *a: self.createUI(),                             
-                             postMenuCommandOnce=True)#postMenuCommandOnce=True
+        else:
+            if mayaVersion == 2017:
+                log.warning("2017 Support mode. Must click twice. Sorry. Maya done messed it up.")
+                if not mc.popupMenu('cgmMM',ex = True):
+                    mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
+                                 pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
+                                 postMenuCommandOnce=0)#postMenuCommandOnce=True
+                else:
+                    log.info("|{0}| >> editing existing...".format(self._str_MM))  
+                    mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
+                                 pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
+                                 postMenuCommandOnce=0)#dai = True,
             else:
-                log.info("|{0}| >> editing existing...".format(self._str_MM))  
-                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
-                             pmc = lambda *a: self.createUI(),
-                             postMenuCommandOnce=True)#dai = True,
+                if not mc.popupMenu('cgmMM',ex = True):
+                    mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
+                                 pmc = lambda *a: self.createUI(),                             
+                                 postMenuCommandOnce=True)#postMenuCommandOnce=True
+                else:
+                    log.info("|{0}| >> editing existing...".format(self._str_MM))  
+                    mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
+                                 pmc = lambda *a: self.createUI(),                            
+                                 postMenuCommandOnce=True)#dai = True,            
     
     def createUI(self, parent = 'cgmMM'):
         log.info("|{0}| >> createUI...".format(self._str_MM))  
@@ -124,7 +137,7 @@ class markingMenu(object):
         mc.menuItem('test',p = parent)
                 
         
-        #mc.showWindow('cgmMM')
+        mc.showWindow('cgmMM')
         
     def create_guiOptionVar(self,varName,*args,**kws):
         fullName = "cgmVar_%s_%s"%(self._str_MM ,varName)
