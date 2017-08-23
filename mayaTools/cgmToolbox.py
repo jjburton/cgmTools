@@ -57,6 +57,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 reload(MMCONTEXT)
 from cgm.core.lib import shared_data as SHARED
+reload(SHARED)
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.locator_utils as LOC
 from cgm.core.lib import snap_utils as SNAP
@@ -76,6 +77,7 @@ import cgm.core.lib.rigging_utils as RIGGING
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.lib.distance_utils as DIST
+import cgm.core.tools.toolbox as TOOLBOX
 reload(DIST)
 reload(TOOLANNO)
 reload(cgmUI)
@@ -480,11 +482,11 @@ def uiBuild_cgmMenu( *args ):
     #                c=lambda *args: ToolboxWindow())
     mc.menuItem(p = menu, l='Open Tool Win',
                 c=cgmGen.Callback(ui))
-    
+
     #>>Snap ----------------------------------------------------------------------
     _snap = mc.menuItem(p=menu,l='Snap',subMenu = True, tearOff = True)  
     UICHUNKS.uiSection_snap(_snap)
-    
+
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_selection(_td)
@@ -562,7 +564,7 @@ def loadLocinator2( *a ):
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)
     LOCINATOR.ui()
-    
+
 def loadDynParentTool( *a ):
     from cgm.core.tools import dynParentTool as DYNPARENTTOOL
     reload(DYNPARENTTOOL)
@@ -575,7 +577,7 @@ def loadNGSKIN():
     except:
         log.warning("Failed to load. Go get it.")
         webbrowser.open("http://www.ngskintools.com/")
-    
+
 def loadAnimTools( *a ):
     from cgm.tools import animTools
     reload(animTools)
@@ -678,7 +680,7 @@ class ToolboxTab(mUI.MelColumnLayout):
         for toolStr, annStr, pressCB in toolTuples:
             assert pressCB is not None
             mUI.MelButton( _column, l=toolStr, ann=annStr, c=pressCB,ut = 'cgmUITemplate' )
-            
+
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
                   af = [(_column,"top",0),
@@ -687,7 +689,7 @@ class ToolboxTab(mUI.MelColumnLayout):
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
-    
+
                         ],
                   ac = [(_column,"bottom",2,_row_cgm),
                         ],
@@ -737,7 +739,7 @@ class ToolboxWindow(mUI.BaseMelWindow):
 
 def uiByTab(tabIndex = 0):
     win = ui()
-    
+
     win.uiTab_setup.setSelectedTabIdx(tabIndex)
 
 class ui(cgmUI.cgmGUI):
@@ -751,7 +753,7 @@ class ui(cgmUI.cgmGUI):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 425,350
     TOOLNAME = 'toolbox.ui'
-    
+
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -762,7 +764,7 @@ class ui(cgmUI.cgmGUI):
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
-        
+
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
@@ -782,6 +784,8 @@ class ui(cgmUI.cgmGUI):
         self.create_guiOptionVar('animFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('layoutFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('distanceFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('colorFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('animOptionsFrameCollapse',defaultValue = 0) 
 
 
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')   
@@ -813,7 +817,7 @@ class ui(cgmUI.cgmGUI):
         #self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
         self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)    
         self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
-        
+
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGen.Callback(self.buildMenu_first))
         self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGen.Callback(self.buildMenu_buffer))
@@ -830,11 +834,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
-    
+
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
-    
-    
+
+
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))   
 
@@ -888,14 +892,14 @@ class ui(cgmUI.cgmGUI):
         uiTab_options = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')       
         uiTab_legacy = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')       
 
-        for i,tab in enumerate(['TD','Anim','Options','Legacy']):
+        for i,tab in enumerate(['TD','Anim','Settings','Legacy']):
             ui_tabs.setLabel(i,tab)
-            
+
         self.buildTab_td(uiTab_td)
         self.buildTab_anim(uiTab_anim)
         self.buildTab_options(uiTab_options)
         self.buildTab_legacy(uiTab_legacy)
-        
+
         #self.buildTab_create(uiTab_create)
         #self.buildTab_update(uiTab_update)
 
@@ -914,7 +918,7 @@ class ui(cgmUI.cgmGUI):
                   attachNone = [(_row_cgm,"top")])  
 
     def buildSection_shape(self,parent):
-        _shapes_frame = mUI.MelFrameLayout(parent,label = 'Shapes',vis=True,
+        _shapes_frame = mUI.MelFrameLayout(parent,label = 'Controls',vis=True,
                                            collapse=self.var_shapeFrameCollapse.value,
                                            collapsable=True,
                                            enable=True,
@@ -1019,17 +1023,35 @@ class ui(cgmUI.cgmGUI):
         _row_curveCreate = mUI.MelHLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)   
 
         cgmUI.add_Button(_row_curveCreate,'Create',
-                         lambda *a:uiFunc_createCurve(),
+                         lambda *a:TOOLBOX.uiFunc_createCurve(),
                          'Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(self.var_curveCreateType.value,
                                                                                                                          self.var_defaultCreateColor.value,
                                                                                                                          SHARED._l_axis_by_string[self.var_createAimAxis.value]))                    
         #mUI.MelSpacer(_row_curveCreate,w=10)                                              
         cgmUI.add_Button(_row_curveCreate,'One of each',
-                         lambda *a:uiFunc_createOneOfEach(),
+                         lambda *a:TOOLBOX.uiFunc_createOneOfEach(),
                          'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )       
 
         _row_curveCreate.layout()  
-
+        
+        self.buildRow_resizeObj(_shape_inside)
+        self.buildRow_mirrorCurve(_shape_inside)        
+        
+    def buildSection_color(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Color',vis=True,
+                                    collapse=self.var_colorFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_colorFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_colorFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        
+        
+        self.buildRow_color(_inside)
+        
+        
     def buildSection_snap(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Snap',vis=True,
                                     collapse=self.var_snapFrameCollapse.value,
@@ -1263,7 +1285,64 @@ class ui(cgmUI.cgmGUI):
                   ann = "Read the docs. Give it a chance. Be amazed.",                                                                                                                       
                   c=lambda *a: loadNGSKIN())           
 
+        _row.layout()   
+        
+    def buildRow_skin(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='skin:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mc.button(parent=_row,
+                  l='abWeightLifter',
+                  ut = 'cgmUITemplate',
+                  ann = "abWeightLifter by Brendan Ross - really good tool for transferring and working with skin data",                                                                                                                       
+                  c=lambda *a: mel.eval('abWeightLifter'),)         
+        mc.button(parent=_row,
+                  l='ngSkinTools',
+                  ut = 'cgmUITemplate',
+                  ann = "Read the docs. Give it a chance. Be amazed.",                                                                                                                       
+                  c=lambda *a: loadNGSKIN())           
+
         _row.layout()    
+        
+    def buildRow_resizeObj(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='resizeObj:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mc.button(parent=_row,
+                  ut = 'cgmUITemplate',                  
+                  l = 'Make resizeObj',
+                  ann = 'Make control a resize object so you can more easily shape it',                
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_controlResizeObj, None,'each','Resize obj'))        
+        mc.button(parent=_row,
+                  ut = 'cgmUITemplate', 
+                  l = 'Push resizeObj changes',
+                  ann = 'Push the control changes back to control',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.push_controlResizeObj, None,'each','Resize obj'))        
+        _row.layout() 
+        
+    def buildRow_mirrorCurve(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='mirror:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mc.button(parent=_row,
+                  ut = 'cgmUITemplate',  
+                  l = 'Mirror World Space To target',
+                  ann = 'Given a selection of two curves, mirror across X (for now only x)',
+                  c = cgmGen.Callback(CURVES.mirror_worldSpace))                   
+        _row.layout()   
+        
 
     def buildRow_aimMode(self,parent):
         #>>>Match mode -------------------------------------------------------------------------------------
@@ -1337,25 +1416,88 @@ class ui(cgmUI.cgmGUI):
 
             mUI.MelSpacer(_row,w=2)       
 
-        _row.layout()  
+        _row.layout()
 
+    def buildRow_color(self,parent):
+        
+        #_row_index = mUI.MelColumnLayout(parent)
+        #mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
+        cgmUI.add_Header('Index')        
+        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
+        colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
+        for i in colorSwatchesList:
+            colorBuffer = mc.colorIndex(i, q=True)
+            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
+                      pc = cgmGen.Callback(MMCONTEXT.color_override,i,None,'shape'),                        
+                      annotation = 'Sets the color of the object to this')
+
+        #_row.layout() 
+        #_row_rbg
+        mc.setParent(parent)
+        cgmUI.add_Header('RGB')
+        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
+        _IndexKeys = SHARED._d_colorSetsRGB.keys()
+        i = 0
+        for k1 in _IndexKeys:
+            _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
+            _sub = False
+            if _keys2:_sub = True
+            colorBuffer = SHARED._d_colors_to_RGB[k1]
+            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
+                      pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],None,'shape'),                        
+                      annotation = 'Sets color by rgb to {0}'.format(k1))            
+            
+            i+=1
+
+            if _sub:                  
+                for k2 in _keys2:
+                    _buffer = "{0}{1}".format(k1,k2)
+                    #log.info( SHARED._d_colors_to_RGB[_buffer] )
+                    mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=SHARED._d_colors_to_RGB[_buffer],                      
+                              pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],None,'shape'),                        
+                              annotation = 'Sets color by rgb to {0}'.format(k2))            
+                    i+=1
+        
+        
         """
-uiRC = mc.radioMenuItemCollection()
-            #self.uiOptions_menuMode = []		
-            _v = self.var_contextTD.value
+        for k1 in _IndexKeys:
+            _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
+            _sub = False
+            if _keys2:_sub = True
+    
+            mc.menuItem(parent=uiRGBShape,subMenu = _sub,
+                        en = True,
+                        ann = "Set overrideColor by {0} to {1}...".format(ctxt,k1),                                                                                                        
+                        l=k1,
+                        c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],ctxt,'shape'))
+    
+            if _sub:
+                mc.menuItem(en = True,
+                            l=k1,
+                            c=cgmGen.Callback(MMCONTEXT.color_override,k1,ctxt,'shape'))                    
+                for k2 in _keys2:
+                    _buffer = "{0}{1}".format(k1,k2)
+                    mc.menuItem(en = True,
+                                ann = "Set overrideColor by {0} to {1}".format(ctxt,k2),                                                                                                                                            
+                                l=_buffer,
+                                c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],ctxt,'shape'))              
+          """
+        
+    def buildSection_animOptions(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Anim Options',vis=True,
+                                    collapse=self.var_animOptionsFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_animOptionsFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_animOptionsFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
 
-            for i,item in enumerate(['selection','children','heirarchy','scene']):
-                if item == _v:
-                    _rb = True
-                else:_rb = False
-                mc.menuItem(parent=uiMenu_context,collection = uiRC,
-                            label=item,
-                            c = mmCallback(self.var_contextTD.setValue,item),                                  
-                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
-                            rb = _rb)           
 
-        """
-
+        #>>>Raycast ====================================================================================
+        
+        
     def buildSection_rayCast(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Raycast Options',vis=True,
                                     collapse=self.var_rayCastFrameCollapse.value,
@@ -1501,13 +1643,13 @@ uiRC = mc.radioMenuItemCollection()
                                     collapseCommand = lambda:self.var_distanceFrameCollapse.setValue(1)
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
-        
+
         #>>>Near -------------------------------------------------------------------------------------
         _row_near = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_near,w=5)                                              
         mUI.MelLabel(_row_near,l='Near:')
         _row_near.setStretchWidget(mUI.MelSeparator(_row_near)) 
-        
+
         mc.button(parent=_row_near, 
                   ut = 'cgmUITemplate',                                                                              
                   l = 'Target',
@@ -1538,16 +1680,16 @@ uiRC = mc.radioMenuItemCollection()
                   ann = "Create nearest surface point nodes in from:to selection list",                                        
                   c = cgmGen.Callback(MMCONTEXT.func_process, DIST.create_closest_point_node, None,'firstToEach','Create closest Point Node',True,**{}),                                                                      
                   )      
-        
+
         mUI.MelSpacer(_row_near,w=5)                                              
         _row_near.layout()   
-        
+
         #>>>Far -------------------------------------------------------------------------------------
         _row_far = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_far,w=5)                                              
         mUI.MelLabel(_row_far,l='far:')
         _row_far.setStretchWidget(mUI.MelSeparator(_row_far)) 
-        
+
         mc.button(parent=_row_far, 
                   ut = 'cgmUITemplate',
                   l = 'Target',
@@ -1563,10 +1705,10 @@ uiRC = mc.radioMenuItemCollection()
 
         mUI.MelSpacer(_row_far,w=5)                                              
         _row_far.layout()           
-        
 
 
-        
+
+
     def buildSection_rigging(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Rigging',vis=True,
                                     collapse=self.var_tdFrameCollapse.value,
@@ -1577,8 +1719,6 @@ uiRC = mc.radioMenuItemCollection()
                                     collapseCommand = lambda:self.var_tdFrameCollapse.setValue(1)
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
-
-        self.buildRow_context(_inside)        
 
         _row_tools1 = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
@@ -1799,22 +1939,22 @@ uiRC = mc.radioMenuItemCollection()
 
         #>>>Shape Creation ====================================================================================
         mc.setParent(_column)
-        
+
         self.buildSection_snap(_column)
-        
-        
+
+
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',                                                                                                
                   l='cgmLocinator',
                   ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",                                                                                                                                       
                   c=lambda *a: LOCINATOR.ui()) 
-        
+
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',  
                   l='cgmDynParentTool',
                   ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
                   c=lambda *a: DYNPARENTTOOL.ui())   
-    
+
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',  
                   l='autoTangent',
@@ -1845,8 +1985,8 @@ uiRC = mc.radioMenuItemCollection()
                   l='red9.Studio Tools',
                   ann = "Launch Red 9's tools",
                   c=lambda *a:Red9.start())           
-        
-        
+
+
 
 
     def buildTab_legacy(self,parent):
@@ -1859,12 +1999,12 @@ uiRC = mc.radioMenuItemCollection()
 
         #>>>Shape Creation ====================================================================================
         mc.setParent(_column)
-        
+
         cgmUI.add_Button(_column,
                          'AnimTools',
                          lambda a:loadAnimTools(),
                          "Old simple anim tool holder")
-        
+
         cgmUI.add_Button(_column,
                          'SetTools 1.0',
                          lambda a:loadSetTools(),
@@ -1874,19 +2014,19 @@ uiRC = mc.radioMenuItemCollection()
                          'Locinator 1.0',
                          lambda a:loadLocinator(),
                          "Original Tool for creating, updating, locators")
-        
+
         cgmUI.add_Button(_column,
                          'tdTools 1.0',
                          lambda a:loadTDTools(),
                          "Series of tools for general purpose TD work - curves, naming, position, deformers") 
-        
+
         cgmUI.add_Button(_column,
                          'attrTools 1.0',
                          lambda a:loadAttrTools(),
                          "Old attribute tools")
-        
 
-        
+
+
 
     def buildTab_td(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
@@ -1898,6 +2038,7 @@ uiRC = mc.radioMenuItemCollection()
 
         #>>>Shape Creation ====================================================================================
         mc.setParent(_column)
+        
 
         """
         _str_section = 'Contextual TD mode'
@@ -1921,19 +2062,23 @@ uiRC = mc.radioMenuItemCollection()
 
         #>>>Tools -------------------------------------------------------------------------------------        
         self.buildSection_snap(_column)
-        cgmUI.add_SectionBreak()                 
-                     
+        cgmUI.add_HeaderBreak()                 
+
+        self.buildRow_context(_column)                     
         self.buildSection_rigging(_column)
         cgmUI.add_SectionBreak()  
-        
+
         self.buildSection_shape(_column)
         cgmUI.add_SectionBreak()            
 
+        self.buildSection_color(_column)
+        cgmUI.add_SectionBreak()  
+
         self.buildSection_rayCast(_column)
         cgmUI.add_SectionBreak()      
-        
+
         self.buildSection_distance(_column)
-        
+
 
     def buildTab_options(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
@@ -2056,6 +2201,7 @@ uiRC = mc.radioMenuItemCollection()
 
 
         self.buildSection_rayCast(_column)
+        self.buildSection_animOptions(_column)
 
     def cb_setCreateShape(self,shape):
         self.var_curveCreateType.setValue(shape)
