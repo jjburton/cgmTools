@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -28,6 +28,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import attribute_utils as ATTR
+import cgm.core.lib.transform_utils as TRANS
 
 def get_list(context = 'selection', mType = None, getTransform = False):
     """
@@ -56,32 +57,32 @@ def get_list(context = 'selection', mType = None, getTransform = False):
         log.debug("|{0}| >> selection mode...".format(_str_func))
         if mType:
             if mType == 'shape':
-                _bfr = mc.ls(sl=True)
+                _bfr = mc.ls(sl=True, shortNames = False)
                 for o in _bfr:
-                    _l_context.extend(mc.listRelatives(o,shapes=True,f=True))
-            else:_l_context = mc.ls(sl=True, type=mType)
-        else:_l_context = mc.ls(sl=True)
+                    _l_context.extend(TRANS.shapes_get(o,True))
+            else:_l_context = mc.ls(sl=True, type=mType, shortNames = False)
+        else:_l_context = mc.ls(sl=True, shortNames = False)
     elif _context == 'scene':
         log.debug("|{0}| >> scene mode...".format(_str_func))        
         if mType is not None:
-            _l_context = mc.ls(type=mType)
+            _l_context = mc.ls(type=mType, shortNames = False)
         else:
             raise Exception,"Really shouldn't use this without a specific object type..."
         
     elif _context == 'children':
         log.debug("|{0}| >> children mode...".format(_str_func)) 
         
-        _sel = mc.ls(sl=True)
+        _sel = mc.ls(sl=True, shortNames = False)
         for o in _sel:
             if mType:
-                if mc.ls(o,type=mType):
+                if mc.ls(o,type=mType, shortNames = False):
                     _l_context.append(o)
             else:_l_context.append(o)
             
             if mType:
-                try:_buffer = mc.listRelatives (o, allDescendents=True, type = mType) or []
+                try:_buffer = mc.listRelatives (o, allDescendents=True, type = mType, fullPath = True) or []
                 except:_buffer = []
-            else:_buffer = mc.listRelatives (o, allDescendents=True) or []
+            else:_buffer = mc.listRelatives (o, allDescendents=True, fullPath = True) or []
             for o2 in _buffer:
                 if o2 not in _l_context:
                     _l_context.append(o2)
@@ -89,33 +90,34 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     elif _context == 'heirarchy':
         log.debug("|{0}| >> heirarchy mode...".format(_str_func))  
         
-        _sel = mc.ls(sl=True)
+        _sel = mc.ls(sl=True, shortNames = False)
         for o in _sel:
             if mType:
-                if mc.ls(o,type=mType):
+                if mc.ls(o,type=mType, shortNames = False):
                     _l_context.append(o)
             else:_l_context.append(o)
             
             _parents = SEARCH.get_all_parents(o)
+            _buffer = []
             if _parents:
                 root = _parents[-1]#...get the top of the tree
                 if mType:
-                    if mc.ls(root,type=mType):
+                    if mc.ls(root,type=mType, shortNames = False):
                         _l_context.append(root)
                 else:_l_context.append(root)   
                 
                 if mType:
-                    try:_buffer = mc.listRelatives (root, allDescendents=True, type = mType) or []
+                    try:_buffer = mc.listRelatives (root, allDescendents=True, type = mType, fullPath = True) or []
                     except:_buffer = []
-                    else:_buffer = mc.listRelatives (root, allDescendents=True) or []
+                    else:_buffer = mc.listRelatives (root, allDescendents=True, fullPath = True) or []
                 for o2 in _buffer:
                     if o2 not in _l_context:
                         _l_context.append(o2)
             else:
                 if mType:
-                    try:_buffer = mc.listRelatives (o, allDescendents=True, type = mType) or []
+                    try:_buffer = mc.listRelatives (o, allDescendents=True, type = mType, fullPath = True) or []
                     except:_buffer = []
-                else:_buffer = mc.listRelatives (o, allDescendents=True) or []
+                else:_buffer = mc.listRelatives (o, allDescendents=True, fullPath = True) or []
                 for o2 in _buffer:
                     if o2 not in _l_context:
                         _l_context.append(o2)                
@@ -187,7 +189,7 @@ def color_override(value = None, context = 'selection', mType = None):
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | value:{2} | error: {3} | {4}".format(_str_func,NAMES.get_short(o),value,err,Exception))
     
-    mc.select(mc.ls(_l_context,type = 'transform'))
+    mc.select(mc.ls(_l_context,type = 'transform', shortNames = False))
     return True
 
 def select(context = 'selection', mType = None):
@@ -228,7 +230,7 @@ def func_enumrate_all_to_last(func,objects= None, mode = 'toFrom',**kws):
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
     if objects == None:
-            objects = mc.ls(sl=True)
+            objects = mc.ls(sl=True, shortNames = False)
     for i,o in enumerate(objects[:-1]):
         log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
         try:
@@ -256,7 +258,7 @@ def func_all_to_last(func,objects = None, mode = 'toFrom',**kws):
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__))  
     log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
     if objects == None:
-            objects = mc.ls(sl=True)
+            objects = mc.ls(sl=True, shortNames = False)
     #for i,o in enumerate(objects[:-1]):
         #log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
     try:
@@ -269,7 +271,7 @@ def func_all_to_last(func,objects = None, mode = 'toFrom',**kws):
         
     #mc.select(objects)
     
-def func_process(func,objects = None, processMode = 'all', calledFrom = None, noSelect = True, **kws):
+def func_process(func,objects = None, processMode = 'all', calledFrom = None, noSelect = True, context = 'selection', mType = None, getTransform = False, **kws):
     """
     Process objects passed with fuction provided in different modes...
     
@@ -302,7 +304,12 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
     else:_str_func = "func_process"
     
     if objects == None:
-        objects = mc.ls(sl=True,flatten=True)
+        if context == None:
+            context = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection').value    
+            objects = get_list(context,mType,getTransform)
+        else:
+            objects = get_list(context,mType,getTransform)
+
     
     log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
     log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )

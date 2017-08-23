@@ -304,6 +304,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,l = 'cgmMM - {0}'.format(self.l_menuModes[self.var_menuMode.value]),en=False)
         
         #pprint.pprint(self.__dict__)
+        #mc.showWindow('cgmMM')
     
     @cgmGen.Timer    
     def setup_optionVars(self):
@@ -1399,9 +1400,9 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         #self.create_guiOptionVar('rayCastOffsetDist', defaultValue = 1.0)
 
         _r = mc.menuItem(parent=parent,subMenu = True,
-                             l = 'Snap',
-                             #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                             rp = direction)
+                         l = 'Snap',
+                         #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+                         rp = direction)
     
         #---------------------------------------------------------------------------
     
@@ -1760,17 +1761,18 @@ def setKey(keyModeOverride = None):
     else:#Let's check the channel box for objects
         selection = SEARCH.get_selectedFromChannelBox(False) or []
         if not selection:
+            log.debug("|{0}| >> No channel box selection. ".format(_str_func))
             selection = mc.ls(sl=True) or []
             
             
     if not selection:
         return log.warning('cgmPuppetKey.setKey>>> Nothing selected!')
-            
+    
             
     if keyModeOverride:
-        log.info
+        log.debug("|{0}| >> Key override mode. ".format(_str_func))
         if keyModeOverride== 'breakdown':
-            mc.setKeyframe(breakdown = True)     
+            mc.setKeyframe(selection,breakdown = True)     
         else:
             mc.setKeyframe(selection)
             
@@ -1778,7 +1780,7 @@ def setKey(keyModeOverride = None):
         if not KeyTypeOptionVar.value:
             mc.setKeyframe(selection)
         else:
-            mc.setKeyframe(breakdown = True)     
+            mc.setKeyframe(selection,breakdown = True)     
 
 	
 

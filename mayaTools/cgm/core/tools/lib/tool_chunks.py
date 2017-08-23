@@ -377,7 +377,10 @@ def uiSection_mesh(parent):
                 l='abSym',
                 ann = "abSymMesh by Brendan Ross - fantastic tool for some blendshape work",                                                                                                       
                 c=lambda *a: mel.eval('abSymMesh'),)
-    
+    mc.menuItem(parent = uiMesh,
+                l='abTwoFace',
+                ann = "abTwoFace by Brendan Ross - fantastic tool for splitting blendshapes",                                                                                                       
+                c=lambda *a: mel.eval('abTwoFace'),)    
     
 def uiSection_skin(parent):
     _str_func = 'uiSection_skin'  

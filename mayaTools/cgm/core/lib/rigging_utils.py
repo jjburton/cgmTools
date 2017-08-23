@@ -12,7 +12,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -752,7 +752,47 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
             if _b_2016Plus:
                 mShape.overrideRGBColors = 0
             mShape.overrideColor = _color
+            
+def override_clear(target = None, pushToShapes = True):
+    """
+    Clear override flags on target and shapes if you choose
+    
+    :parameters
+        target(str): What to color - shape or transform with shapes
+        pushToShapes(bool): Push the overrides to shapes of passed transforms
 
+    :returns
+        info(dict)
+    """   
+    _str_func = "override_clear"
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
+
+    _shapes = []
+    
+    mTarget = r9Meta.MetaClass(target, autoFill=False)
+    
+    if mTarget.hasAttr('overrideEnabled'):
+        log.debug("|{0}|  >> overrideEnabled  on target...".format(_str_func))            
+        _shapes.append(mTarget.mNode)
+        
+    if pushToShapes:
+        _bfr = mc.listRelatives(target, s=True, fullPath=True)
+        if _bfr:
+            _shapes.extend(_bfr)
+            
+    if not _shapes:
+        raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
+
+    for i,s in enumerate(_shapes):
+        mShape = r9Meta.MetaClass(s)
+        try:
+            mShape.overrideEnabled = False
+        except Exception,err:
+            log.warning("|{0}|  >> target failed: {1} | err: {2}".format(_str_func,s,err))        
+            
+    return True
+        
+            
 def getControlShader(direction = 'center', controlType = 'main', transparent = False):
     _node = "cgmBlockShader_{0}{1}".format(direction,controlType.capitalize())
     log.info(_node)
