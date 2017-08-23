@@ -22,6 +22,7 @@ import maya.cmds as mc
 
 
 #from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_Meta as cgmMeta
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shape_utils as SHAPE
@@ -122,6 +123,7 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     else:
         log.warning("|{0}| >> context unkown: {1}...".format(_str_func,_context))        
         return False
+
     if getTransform:
         for i,o in enumerate(_l_context):
             _trans = SEARCH.get_transform(o)
@@ -168,18 +170,24 @@ def color_override(value = None, context = 'selection', mType = None):
         info(dict)
     """   
     _str_func = "color_override"
-    _context = context.lower()
+    if context is None:
+        _context = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection').value
+    else:
+        _context = context.lower()
     _l_context = get_list(_context, mType)
     _l_context.extend(get_list(_context,'joint'))
-    log.info("|{0}| >> value: {1} | mType: {2} | context: {3}".format(_str_func,value,mType,_context))             
-        
+    
+    log.debug("|{0}| >> value: {1} | mType: {2} | context: {3}".format(_str_func,value,mType,_context))             
+    if not _l_context:
+        raise ValueError,"|{0}| >> Nothing found in context. {1}".format(_str_func,context)
+    
     for o in _l_context:
         try:
             RIGGING.override_color(o,value)
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | value:{2} | error: {3} | {4}".format(_str_func,NAMES.get_short(o),value,err,Exception))
     
-    mc.select(_l_context)
+    mc.select(mc.ls(_l_context,type = 'transform'))
     return True
 
 def select(context = 'selection', mType = None):
