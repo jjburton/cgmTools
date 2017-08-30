@@ -81,6 +81,7 @@ import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.skin_utils as SKIN
 import cgm.core.lib.constraint_utils as CONSTRAINTS
 reload(DIST)
+reload(TOOLBOX)
 reload(TOOLANNO)
 reload(cgmUI)
 reload(RIGGING)
@@ -1727,6 +1728,42 @@ class ui(cgmUI.cgmGUI):
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
 
+        #>>>Distance -------------------------------------------------------------------------------------
+        _row_dist= mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_dist,w=5)                                              
+        mUI.MelLabel(_row_dist,l='Distance:')
+        _row_dist.setStretchWidget(mUI.MelSeparator(_row_dist)) 
+        
+        self.uiFF_distance = mUI.MelFloatField(_row_dist, ut='cgmUISubTemplate', w= 50 )
+        mc.button(parent=_row_dist,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l = 'Measure',
+                  c = lambda *a:TOOLBOX.uiFunc_distanceMeastureToField(self),
+                  #c = lambda *a:SNAPCALLS.aimSnap_start(None),
+                  ann = "Measures distance between selected objects/components")        
+        
+        _row_dist.layout()
+        
+        #>>>Vector -------------------------------------------------------------------------------------
+        _row_vec= mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row_vec,w=5)                                              
+        mUI.MelLabel(_row_vec,l='Vector:')        
+        _row_vec.setStretchWidget(mUI.MelSeparator(_row_vec)) 
+
+        for a in list('xyz'):
+            mUI.MelLabel(_row_vec,l=a)
+            self.__dict__['uiFF_vec{0}'.format(a.capitalize())] = mUI.MelFloatField(_row_vec, ut='cgmUISubTemplate', w= 50 )
+            
+        mc.button(parent=_row_vec,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l = 'Measure',
+                  c = lambda *a:TOOLBOX.uiFunc_vectorMeasureToField(self),
+                  ann = "Measures vector between selected objects/components")        
+        
+
+        _row_vec.layout()
+        
+        
         #>>>Near -------------------------------------------------------------------------------------
         _row_near = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_near,w=5)                                              

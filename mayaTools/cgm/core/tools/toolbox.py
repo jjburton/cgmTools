@@ -33,6 +33,7 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 from cgm.core.tools import meshTools as MESHTOOLS
+import cgm.core.lib.distance_utils as DIST
 reload(MESHTOOLS)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
@@ -78,3 +79,23 @@ def uiSetupOptionVars_curveCreation(self):
     self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
     self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
     self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25) 
+    
+
+def uiFunc_distanceMeastureToField(self):
+    _res = DIST.get_distance_between_targets()
+    if not _res:
+        raise ValueError,"Found no distance data."
+    
+    self.uiFF_distance.setValue(_res)
+    
+def uiFunc_vectorMeasureToField(self):
+    _res = DIST.get_vector_between_targets()
+    
+    if not _res:
+        raise ValueError,"Found no vector data."
+    
+    self.uiFF_vecX.setValue(_res[0][0])
+    self.uiFF_vecY.setValue(_res[0][1])
+    self.uiFF_vecZ.setValue(_res[0][2])
+    
+    

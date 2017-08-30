@@ -266,6 +266,47 @@ def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point'
             return _l_shapes[_idx]
         return _l_pos[_idx]
         
+def get_distance_between_targets(targetList=None):
+    """
+    """
+    _str_func = 'get_distance_between_targets'
+    if not targetList:
+        targetList = mc.ls(sl=True,flatten = False)
+    l_pos = []
+    l_dist = []
+    for o in targetList:
+        l_pos.append(POS.get(o))
+    
+    if len(l_pos) <= 1:
+        raise ValueError("|{0}| >> Must have more positions. targetList: {1}".format(_str_func,targetList))
+    
+    for i,p in enumerate(l_pos[:-1]):
+        d = get_distance_between_points(p,l_pos[i+1])
+        log.info("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
+        l_dist.append(d)
+        
+    return sum(l_dist)
+
+def get_vector_between_targets(targetList=None):
+    """
+    """
+    _str_func = 'get_vector_between_targets'
+    if not targetList:
+        targetList = mc.ls(sl=True,flatten = False)
+    l_pos = []
+    l_vec = []
+    for o in targetList:
+        l_pos.append(POS.get(o))
+    
+    if len(l_pos) <= 1:
+        raise ValueError("|{0}| >> Must have more positions. targetList: {1}".format(_str_func,targetList))
+    
+    for i,p in enumerate(l_pos[:-1]):
+        d = MATHUTILS.get_vector_of_two_points(p,l_pos[i+1])
+        log.info("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
+        l_vec.append(d)
+        
+    return l_vec
     
 def get_distance_between_points(point1,point2):
     """
