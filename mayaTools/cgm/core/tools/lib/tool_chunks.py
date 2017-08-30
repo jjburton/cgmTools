@@ -252,11 +252,6 @@ def uiSection_controlCurves(parent, selection = None):
                 en=False,
                 l = 'Mirror')  
     
-    #>>Options ----------------------------------------------------------------------------------------
-    mc.menuItem(parent=uiCurve,
-                l = '{Options}',
-                c = lambda *a:call_toolbox_ui(),
-                ann = "Set shared option variables")    
 
 def uiSection_shapes(parent = None, selection = None, pairSelected = True):
     _str_func = 'uiSection_shapes'    
@@ -947,11 +942,7 @@ def uiSection_rayCast(parent, selection = None):
                     ann = "Create {0} by drag rayCasting".format(m))            
 
     
-    #>>Options ----------------------------------------------------------------------------------------
-    mc.menuItem(parent=_p,
-                l = '{Options}',
-                c = lambda *a:call_toolbox_ui(),
-                ann = "Set shared option variables")
+
     
     
     

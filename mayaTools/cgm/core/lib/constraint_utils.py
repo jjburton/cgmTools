@@ -91,7 +91,7 @@ def get_constraintsFrom(node=None, fullPath = False):
         return [NAMES.long(o) for o in _res]
     return _res
 
-def get_targets(node=None, fullPath = True):
+def get_targets(node=None, fullPath = True, select = False):
     """
     Get the constraints a given node drives
     
@@ -102,15 +102,28 @@ def get_targets(node=None, fullPath = True):
         list of targets(list)
     """   
     _str_func = 'get_targets'
-    
+    if node == None:
+        _sel = mc.ls(sl=True,long=True)
+        if _sel:
+            node = _sel[0]
+        else:
+            raise ValueError,"|{0}| >> No node arg. None selected".format(_str_func)
+            
     node = VALID.mNodeString(node)
     _type = VALID.get_mayaType(node)
 
     _call = _d_type_to_call.get(_type,False)
     if not _call:
+        _to = get_constraintsTo(node,True)
+        if _to:
+            log.info("|{0}| >> Not a constraint node. Found contraints to. Returning first".format(_str_func))
+            return get_targets(_to[0],fullPath,select)
+            
         raise ValueError,"|{0}| >> {1} not a known type of constraint. node: {2}".format(_str_func,_type,node)
 
     _res = _call(node,q=True,targetList=True)
+    if select:
+        mc.select(_res)
     if fullPath:
         return [NAMES.long(o) for o in _res]
     return _res

@@ -78,9 +78,12 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.tools.toolbox as TOOLBOX
+import cgm.core.lib.skin_utils as SKIN
+import cgm.core.lib.constraint_utils as CONSTRAINTS
 reload(DIST)
 reload(TOOLANNO)
 reload(cgmUI)
+reload(RIGGING)
 mUI = cgmUI.mUI
 
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -753,6 +756,7 @@ class ui(cgmUI.cgmGUI):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 425,350
     TOOLNAME = 'toolbox.ui'
+    
 
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
@@ -789,7 +793,9 @@ class ui(cgmUI.cgmGUI):
 
 
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')   
-
+        self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+        self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)
+        self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
         self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
         self.var_createRayCast = cgmMeta.cgmOptionVar('cgmVar_createRayCast', defaultValue = 'locator')        
         self.var_attrCreateType = cgmMeta.cgmOptionVar('cgmVar_attrCreateType', defaultValue = 'float')        
@@ -1206,7 +1212,12 @@ class ui(cgmUI.cgmGUI):
                   l = 'abSymMesh',
                   ut = 'cgmUITemplate',
                   ann = "abSymMesh by Brendan Ross - fantastic tool for some blendshape work",                                                                                                       
-                  c=lambda *a: mel.eval('abSymMesh'),)          
+                  c=lambda *a: mel.eval('abSymMesh'),)  
+        mc.button(parent=_row,
+                  l = 'abTwoFace',
+                  ut = 'cgmUITemplate',        
+                  ann = "abTwoFace by Brendan Ross - fantastic tool for splitting blendshapes",                                                                                                       
+                  c=lambda *a: mel.eval('abTwoFace'),)         
 
         _row.layout()   
 
@@ -1275,6 +1286,12 @@ class ui(cgmUI.cgmGUI):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         mc.button(parent=_row,
+                          l='Copy',
+                          ut = 'cgmUITemplate',
+                          ann = "Copy skin weights based on targets",                                                                                                                       
+                          c = cgmGen.Callback(MMCONTEXT.func_process, SKIN.transfer_fromTo, None, 'firstToRest','Copy skin weights',True,**{}))           
+
+        mc.button(parent=_row,
                   l='abWeightLifter',
                   ut = 'cgmUITemplate',
                   ann = "abWeightLifter by Brendan Ross - really good tool for transferring and working with skin data",                                                                                                                       
@@ -1287,24 +1304,19 @@ class ui(cgmUI.cgmGUI):
 
         _row.layout()   
         
-    def buildRow_skin(self,parent):
+    def buildRow_constraints(self,parent):
         #>>>Match mode -------------------------------------------------------------------------------------
         _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=5)                      
-        mUI.MelLabel(_row,l='skin:')
+        mUI.MelLabel(_row,l='Constraints:')
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         mc.button(parent=_row,
-                  l='abWeightLifter',
+                  l='Get Targets',
                   ut = 'cgmUITemplate',
-                  ann = "abWeightLifter by Brendan Ross - really good tool for transferring and working with skin data",                                                                                                                       
-                  c=lambda *a: mel.eval('abWeightLifter'),)         
-        mc.button(parent=_row,
-                  l='ngSkinTools',
-                  ut = 'cgmUITemplate',
-                  ann = "Read the docs. Give it a chance. Be amazed.",                                                                                                                       
-                  c=lambda *a: loadNGSKIN())           
+                  ann = "Get targets of contraints",                                                                                                                       
+                  c = cgmGen.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_targets, None, 'each','Get targets',True,**{'select':True}))           
 
         _row.layout()    
         
@@ -1419,10 +1431,15 @@ class ui(cgmUI.cgmGUI):
         _row.layout()
 
     def buildRow_color(self,parent):
+        mc.button(parent = parent,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l='Clear Override*',
+                  ann = "Clear override settings on contextual objects.",                                                                                                                                       
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.override_clear, None, 'each','Clear override',True,**{'context':None}))           
         
         #_row_index = mUI.MelColumnLayout(parent)
         #mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
-        cgmUI.add_Header('Index')        
+        cgmUI.add_Header('Index*')        
         uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
         colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
         for i in colorSwatchesList:
@@ -1434,7 +1451,7 @@ class ui(cgmUI.cgmGUI):
         #_row.layout() 
         #_row_rbg
         mc.setParent(parent)
-        cgmUI.add_Header('RGB')
+        cgmUI.add_Header('RGB*')
         uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
         _IndexKeys = SHARED._d_colorSetsRGB.keys()
         i = 0
@@ -1495,8 +1512,74 @@ class ui(cgmUI.cgmGUI):
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
 
 
-        #>>>Raycast ====================================================================================
+        #>>>KeyMode ====================================================================================
+        uiRC = mUI.MelRadioCollection()
+
+        _row1 = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row1,w=5)
+        mUI.MelLabel(_row1,l='KeyMode')
+        _row1.setStretchWidget( mUI.MelSeparator(_row1) )
+
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_keyMode.value
+
+        for i,item in enumerate(['Default','Channelbox']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row1,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_keyMode.setValue,i))
+
+            mUI.MelSpacer(_row1,w=2)    
+
+        _row1.layout()   
         
+        #>>>KeyType ====================================================================================
+        uiRC = mUI.MelRadioCollection()
+
+        _row1 = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row1,w=5)
+        mUI.MelLabel(_row1,l='Key Type')
+        _row1.setStretchWidget( mUI.MelSeparator(_row1) )
+
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_keyType.value
+
+        for i,item in enumerate(['reg','breakdown']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row1,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_keyType.setValue,i))
+
+            mUI.MelSpacer(_row1,w=2)    
+
+        _row1.layout()   
+        
+        #>>>Reset mode ====================================================================================
+        uiRC = mUI.MelRadioCollection()
+
+        _row1 = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row1,w=5)
+        mUI.MelLabel(_row1,l='Reset Mode')
+        _row1.setStretchWidget( mUI.MelSeparator(_row1) )
+
+        uiRC = mUI.MelRadioCollection()
+        _on = self.var_resetMode.value
+
+        for i,item in enumerate(['Default','Transform Attrs']):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row1,label=item,sl=_rb,
+                              onCommand = cgmGen.Callback(self.var_resetMode.setValue,i))
+
+            mUI.MelSpacer(_row1,w=2)    
+
+        _row1.layout()         
         
     def buildSection_rayCast(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Raycast Options',vis=True,
@@ -1928,6 +2011,7 @@ class ui(cgmUI.cgmGUI):
 
         self.buildRow_mesh(_inside)
         self.buildRow_skin(_inside)
+        self.buildRow_constraints(_inside)
 
     def buildTab_anim(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
