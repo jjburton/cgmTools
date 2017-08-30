@@ -1,5 +1,5 @@
 global proc cgmToolbox() {
-	python( "import cgmToolbox;reload(cgmToolbox);cgmToolbox.ToolboxWindow()" );
+	python( "import cgmToolbox;reload(cgmToolbox);cgmToolbox.ui()" );
 	}
 
 

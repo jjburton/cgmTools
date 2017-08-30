@@ -189,6 +189,7 @@ def is_component(arg = None):
         status(bool)
     """   
     _str_func = 'is_component'
+    arg = mNodeString(arg)
     _arg = stringArg(arg,False,_str_func)   
     log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
     

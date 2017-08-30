@@ -530,8 +530,8 @@ def set(node, attr = None, value = None, lock = False,**kws):
     elif _validType == 'enum':
         _l = get_enum(_d).split(':')        
         if VALID.stringArg(value) and ':' in value:
-            if len(_l) != len(value.split(':')):
-                raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
+            #if len(_l) != len(value.split(':')):
+                #raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
             mc.addAttr(_combined, edit=True, en = value, **kws)              
         else:
             _l = get_enum(_d).split(':')
