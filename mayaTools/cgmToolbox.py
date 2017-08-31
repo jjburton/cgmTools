@@ -1584,6 +1584,17 @@ class ui(cgmUI.cgmGUI):
 
         _row1.layout()         
         
+    def buildSection_transform(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Transform',vis=True,
+                                    collapse=self.var_transformFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_transformFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_transformFrameCollapse.setValue(1)
+                                    )	
+        TOOLBOX.TT.buildColumn_main(self,_frame)   
+        
     def buildSection_rayCast(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Raycast Options',vis=True,
                                     collapse=self.var_rayCastFrameCollapse.value,
@@ -1597,7 +1608,6 @@ class ui(cgmUI.cgmGUI):
 
 
         #>>>Raycast ====================================================================================
-
 
         #>>>Cast Mode  -------------------------------------------------------------------------------------
         uiRC = mUI.MelRadioCollection()
@@ -1736,7 +1746,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_row_dist,l='Distance:')
         _row_dist.setStretchWidget(mUI.MelSeparator(_row_dist)) 
         
-        self.uiFF_distance = mUI.MelFloatField(_row_dist, ut='cgmUISubTemplate', w= 50 )
+        self.uiFF_distance = mUI.MelFloatField(_row_dist, ut='cgmUISubTemplate', w= 50)
+        """self.uiFF_distance = mUI.MelLabel(_row_dist,
+                                          l='21231',
+                                          ann='Change the default create shape',
+                                          ut='cgmUIInstructionsTemplate',w=100)"""        
         mc.button(parent=_row_dist,
                   ut = 'cgmUITemplate',                                                                                                
                   l = 'Measure',
@@ -2015,13 +2029,13 @@ class ui(cgmUI.cgmGUI):
 
         mc.button(parent=_row_joints, 
                   ut = 'cgmUITemplate',                                                                              
-                  l = 'Show x',
+                  l = '*Show x',
                   ann = "Show the joint axis by current context",                                        
                   c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
                   )               
         mc.button(parent=_row_joints, 
                   ut = 'cgmUITemplate',                                                                              
-                  l = 'Hide x',
+                  l = '*Hide x',
                   ann = "Hide the joint axis by current context",                                        
                   c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
                   )     
@@ -2191,8 +2205,11 @@ class ui(cgmUI.cgmGUI):
 
         self.buildRow_context(_column)                     
         self.buildSection_rigging(_column)
+        
         cgmUI.add_SectionBreak()  
-
+        self.buildSection_transform(_column)
+        cgmUI.add_SectionBreak()  
+                
         self.buildSection_shape(_column)
         cgmUI.add_SectionBreak()            
 

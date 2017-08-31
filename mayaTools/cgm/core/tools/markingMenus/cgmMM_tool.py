@@ -27,6 +27,7 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
+import cgm.core.lib.transform_utils as TRANS
 reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
 reload(TOOLBOX)
@@ -1345,17 +1346,14 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         if self._b_sel_few:
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Reverse',
-                             c = mmCallback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToNext','Reverse Parent'),                                             
+                             c = lambda *a:TRANS.parent_orderedTargets(),                                             
                              rp = 'S')
             mc.menuItem(parent=_p, #subMenu = True,
                              l = 'Ordered',
-                             c = mmCallback(MMCONTEXT.func_process, RIGGING.parent_set, self._l_sel,'eachToPrevious','Parent Order'),                                             
+                             c = lambda *a:TRANS.parent_orderedTargets(reverse=True),                                             
                              rp = 'SW')   
         
 
-        
-        
-        
         _attr = mc.menuItem(parent=_r,subMenu=True,
                             l='Attr',
                             rp='SW')     

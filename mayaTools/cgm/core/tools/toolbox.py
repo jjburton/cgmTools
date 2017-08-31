@@ -46,6 +46,8 @@ import cgm.core.lib.rigging_utils as RIGGING
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.tools.transformTools as TT
+reload(TT)
 reload(TOOLANNO)
 reload(cgmUI)
 mUI = cgmUI.mUI
@@ -101,6 +103,7 @@ def uiFunc_vectorMeasureToField(self):
     
 
 #>>
+
 def buildRow_parent(self,parent):
     #>>>Match mode -------------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
@@ -121,7 +124,17 @@ def buildRow_parent(self,parent):
               ann = "Parent in reverse selection order",                                                                                                                       
               c = lambda *a:TRANS.parent_orderedTargets(reverse=True))                                             
 
-
     _row.layout()   
+    
+
+def buildColumn_transform(self,parent):
+    _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    
+    
+    
+    
+    
+    
+    
     
     

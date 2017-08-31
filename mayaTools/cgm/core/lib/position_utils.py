@@ -363,10 +363,12 @@ def get_info(target = None, boundingBox = False):
     _d ['createdFrom']=_target
     _d ['objectType']=VALID.get_mayaType(_target)
     _d ['position']=get(target,_posPivot,'world')
+    _d ['translate']=get(target,_posPivot,'local')    
     _d ['scalePivot']=get(_transform,'sp','world')
     _d ['rotation']= mc.xform (_transform, q=True, ws=True, ro=True)
     _d ['rotateOrder']=mc.xform (_transform, q=True, roo=True )
     _d ['rotateAxis'] = mc.xform(_transform, q=True, os = True, ra=True)
+    _d ['rotateLocal'] = mc.xform(_transform,q=True, os=True, ro=True)
     
     #cgmGen.log_info_dict(_d,'|{0}.{1}| info...'.format(__name__,_str_func))
 
