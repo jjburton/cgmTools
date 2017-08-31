@@ -426,7 +426,7 @@ def uiFunc_valuesSend(self,section=None,key=None):
     
     _d_setAttrValues = {}
     
-    if section in ['translate','rotate','scale']:
+    if section in ['translate','rotate','scale','jointOrient']:
         _s = section
         if not key:
             for a in 'XYZ':
@@ -439,14 +439,15 @@ def uiFunc_valuesSend(self,section=None,key=None):
             
             except Exception,err:
                 log.error("|{0}| >> Failed to get key data. Section: {0} | key: {1}...".format(_str_func,section,key))                
-                log.error(err)
-          
+                log.error(err)   
     else:
         log.warning("|{0}| >> Havent' setup for {1}...".format(_str_func,section))                
     
     for a,v in _d_setAttrValues.iteritems():
+        log.info("|{0}| >> Trying attr: {1} | v: {2}... ".format(_str_func,a,v))                        
         for mObj in _ml_targets:
-            try:ATTR.set(mObj.mNode,a,_v)        
+            log.info("|{0}| >> Trying Object: {1}... ".format(_str_func,mObj.mNode))                                    
+            try:ATTR.set(mObj.mNode,a,v)        
             except Exception,err:
                 log.error("|{0}| >> Failed to get set data. Object: {0} | a: {1} | v: {2}...".format(_str_func,mObj.mNode,a,v))                
                 log.error(err)
