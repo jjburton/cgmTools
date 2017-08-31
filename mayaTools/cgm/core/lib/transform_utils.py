@@ -731,6 +731,37 @@ def parent_create(node,parentName = None):
 
     return parent
 
+def parent_orderedTargets(targetList=None, reverse = False):
+    """
+    """
+    _str_func = 'parent_orderedTargets'
+    _sel =False
+    if not targetList:
+        targetList = mc.ls(sl=True,flatten = False)
+        _sel=True
+        log.info("|{0}| >> targetList: {1}".format(_str_func,targetList))
+        
+    for i,o in enumerate(targetList):
+        targetList[i] = parent_set(o,False)
+        
+    if len(targetList) <= 1:
+        raise ValueError("|{0}| >> Must have more objects. targetList: {1}".format(_str_func,targetList))
+    
+    if reverse is False:
+        targetList.reverse()
+        log.info("|{0}| >> reverse: {1}".format(_str_func,targetList))
+    
+    for i,o in enumerate(targetList[:-1]):
+        targetList[i] = parent_set(o,targetList[i+1])
+    #else:
+    #    for i,o in enumerate(targetList[1:]):
+    #        targetList[i] = parent_set(o,targetList[i-1])        
+    
+    if _sel:
+        targetList.reverse()
+        mc.select(targetList)
+    return targetList
+
 
     
 def is_childTo(node, parent):

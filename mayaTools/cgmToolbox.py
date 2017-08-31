@@ -791,6 +791,7 @@ class ui(cgmUI.cgmGUI):
         self.create_guiOptionVar('distanceFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('colorFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('animOptionsFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('transformFrameCollapse',defaultValue = 0) 
 
 
         self.var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode', defaultValue = 'world')   
@@ -1304,6 +1305,7 @@ class ui(cgmUI.cgmGUI):
                   c=lambda *a: loadNGSKIN())           
 
         _row.layout()   
+        
         
     def buildRow_constraints(self,parent):
         #>>>Match mode -------------------------------------------------------------------------------------
@@ -1922,7 +1924,9 @@ class ui(cgmUI.cgmGUI):
 
 
         mUI.MelSpacer(_row_copy,w=5)                                              
-        _row_copy.layout()      
+        _row_copy.layout()    
+        
+        TOOLBOX.buildRow_parent(self,_inside)
 
         #>>>group -------------------------------------------------------------------------------------
         _row_group = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)

@@ -45,6 +45,7 @@ import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.rigging_utils as RIGGING
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
+import cgm.core.lib.transform_utils as TRANS
 reload(TOOLANNO)
 reload(cgmUI)
 mUI = cgmUI.mUI
@@ -97,5 +98,30 @@ def uiFunc_vectorMeasureToField(self):
     self.uiFF_vecX.setValue(_res[0][0])
     self.uiFF_vecY.setValue(_res[0][1])
     self.uiFF_vecZ.setValue(_res[0][2])
+    
+
+#>>
+def buildRow_parent(self,parent):
+    #>>>Match mode -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)                      
+    mUI.MelLabel(_row,l='Parent:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )      
+
+    mc.button(parent=_row,
+              l='Ordered',
+              ut = 'cgmUITemplate',
+              ann = "Parent in selection order",    
+              c = lambda *a:TRANS.parent_orderedTargets())                                             
+
+    mc.button(parent=_row,
+              l='Reverse Ordered',
+              ut = 'cgmUITemplate',
+              ann = "Parent in reverse selection order",                                                                                                                       
+              c = lambda *a:TRANS.parent_orderedTargets(reverse=True))                                             
+
+
+    _row.layout()   
     
     
