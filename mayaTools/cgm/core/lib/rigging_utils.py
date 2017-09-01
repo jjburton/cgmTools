@@ -480,11 +480,11 @@ def create_at(obj = None, create = 'null'):
     log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
     
     
-
+    
     #return rotation order
     if _create in ['null','joint']:
-        objTrans = mc.xform (obj, q=True, ws=True, rp=True)
-        objRot = mc.xform (obj, q=True, ws=True, ro=True)
+        objTrans = TRANS.position_get(obj)#mc.xform (obj, q=True, ws=True, rp=True)
+        objRot = TRANS.orient_get(obj)#mc.xform (obj, q=True, ws=True, ro=True)
         objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)        
     if _create == 'null':
         _created = mc.group (w=True, empty=True)

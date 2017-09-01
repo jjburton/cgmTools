@@ -349,7 +349,6 @@ def uiFunc_updateFields(self):
     #_type = VALID.get_mayaType(_short)
     
     if not self._mTransformTarget:
-        log.error("No source")
         return False
     _short = self._mTransformTarget.mNode
     
