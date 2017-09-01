@@ -109,7 +109,7 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
     
         MMCONTEXT.func_process(SNAP.go, objects ,selectionMode, 'Snap', **kws)
     
-    
+    mc.select(objects)
     return
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag

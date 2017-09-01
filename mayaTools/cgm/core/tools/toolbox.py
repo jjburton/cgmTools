@@ -50,6 +50,7 @@ import cgm.core.tools.transformTools as TT
 reload(TT)
 reload(TOOLANNO)
 reload(cgmUI)
+reload(SNAPCALLS)
 mUI = cgmUI.mUI
 
 _2016 = False
