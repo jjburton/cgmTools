@@ -1410,36 +1410,42 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(parent=_pnt,
                     l = 'Object',
                     en = self._b_sel_pair,
-                    c = mmCallback(snap_action,self,'point'),
+                    c = lambda *a:snap_action(self,'point'),
+                    #c = mmCallback(snap_action,self,'point'),
                     rp = 'NW')	        
         mc.menuItem(parent=_pnt,
                     l = 'Closest on Target',
                     en = self._b_sel_pair,
-                    c = mmCallback(snap_action,self,'closestPoint'),
+                    c = lambda *a:snap_action(self,'closestPoint'),
+                    #c = mmCallback(snap_action,self,'closestPoint'),
                     rp = 'W')	
         
         mc.menuItem(parent=_r,
                         l = 'Parent',
-                        en = self._b_sel_pair,                        
-                        c = mmCallback(snap_action,self,'parent'),
+                        en = self._b_sel_pair,    
+                        c = lambda *a:snap_action(self,'parent'),                        
+                        #c = mmCallback(snap_action,self,'parent'),
                         rp = 'N')	
         mc.menuItem(parent=_r,
                         l = 'Orient',
-                        en = self._b_sel_pair,                        
-                        c = mmCallback(snap_action,self,'orient'),
+                        en = self._b_sel_pair,   
+                        c = lambda *a:snap_action(self,'orient'),                                                
+                        #c = mmCallback(snap_action,self,'orient'),
                         rp = 'NE')	       
 
         mc.menuItem(parent=_r,
                         l = 'RayCast',
                         en = self._b_sel,
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),		            
-                        c = mmCallback(raySnap_start,self._l_sel),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),
+                        c = lambda *a:raySnap_start(self,self._l_sel),                                                
+                        #c = mmCallback(raySnap_start,self._l_sel),
                         rp = 'W')	
         mc.menuItem(parent=_r,
                         l = 'AimCast',
                         en = self._b_sel,                        
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                 
-                        c = mmCallback(aimSnap_start,self._l_sel),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),  
+                        c = lambda *a:aimSnap_start(self,self._l_sel),                                                
+                        #c = mmCallback(aimSnap_start,self._l_sel),
                         rp = 'E')
         if self._b_sel_few:
             _aim = mc.menuItem(parent=_r,subMenu = True,
@@ -1449,25 +1455,29 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                             rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'All to last',
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
-                        c = mmCallback(snap_action,self,'aim','eachToLast'),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),         
+                        c = lambda *a:snap_action(self,'aim','eachToLast'),                                                
+                        #c = mmCallback(snap_action,self,'aim','eachToLast'),
                         rp = 'E') 
             mc.menuItem(parent=_aim,
                         l = 'Selection Order',
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
-                        c = mmCallback(snap_action,self,'aim','eachToNext'),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),      
+                        c = lambda *a:snap_action(self,'aim','eachToNext'),                                                
+                        #c = mmCallback(snap_action,self,'aim','eachToNext'),
                         rp = 'SE')
             mc.menuItem(parent=_aim,
                         l = 'First to Midpoint',
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
-                        c = mmCallback(snap_action,self,'aim','firstToRest'),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),  
+                        c = lambda *a:snap_action(self,'aim','firstToRest'),                                                
+                        #c = mmCallback(snap_action,self,'aim','firstToRest'),
                         rp = 'S')             
         else:
             mc.menuItem(parent=_r,
                         l = 'Aim',
                         en = self._b_sel_pair,
-                        #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
-                        c = mmCallback(snap_action,self,'aim','eachToLast'),
+                        #c = mmCallback(buttonAction,raySnap_start(_sel)),
+                        c = lambda *a:snap_action(self,'aim','eachToLast'),                                                
+                        #c = mmCallback(snap_action,self,'aim','eachToLast'),
                         rp = 'SE')     
         
         """mc.menuItem(parent=_r,
@@ -1482,17 +1492,20 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(parent=_match,
                     l = 'Self',
                     en=self._b_sel,
-                    c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    c = lambda *a:MMCONTEXT.func_process(LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                                          
+                    #c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'self'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'SW')     
         mc.menuItem(parent=_match,
                     l = 'Target',
                     en=self._b_sel,
-                    c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    c = lambda *a: MMCONTEXT.func_process(LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                                          
+                    #c = mmCallback(MMCONTEXT.func_process, LOCINATOR.update_obj, self._l_sel,'each','Match',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'target'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'W')           
         mc.menuItem(parent=_match,
                     l = 'Buffer',
-                    #c = mmCallback(buttonAction,raySnap_start(_sel)),                    
-                    c = mmCallback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
+                    #c = mmCallback(buttonAction,raySnap_start(_sel)),   
+                    c = lambda a: LOCINATOR.update_obj(**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                                          
+                    #c = mmCallback(LOCINATOR.update_obj,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,'mode':'buffer'}),#'targetPivot':self.var_matchModePivot.value                                                                      
                     rp = 'S')  
 
 def killUI():
