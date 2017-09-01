@@ -1078,24 +1078,24 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row_base,
                   l = 'Point',
                   ut = 'cgmUITemplate',
-                  c = lambda *a:SNAPCALLS.snap_action(None,'point'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'point'),
                   ann = "Point snap in a from:to selection")
 
         mc.button(parent=_row_base,
                   l = 'Point - closest',
                   ut = 'cgmUITemplate',                    
-                  c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'closestPoint'),
                   ann = "Closest point on target")    
 
         mc.button(parent=_row_base,
                   l = 'Parent',
                   ut = 'cgmUITemplate',                    
-                  c = lambda *a:SNAPCALLS.snap_action(None,'parent'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'parent'),
                   ann = "Parent snap in a from:to selection")
         mc.button(parent=_row_base,
                   l = 'Orient',
                   ut = 'cgmUITemplate',                  
-                  c = lambda *a:SNAPCALLS.snap_action(None,'orient'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'orient'),
                   ann = "Orient snap in a from:to selection")        
 
         _row_base.layout() 
@@ -1108,25 +1108,25 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row_aim,
                   l = 'Aim',
                   ut = 'cgmUITemplate',                                    
-                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
                   ann = "Aim snap in a from:to selection")
 
         mc.button(parent=_row_aim,
                   ut = 'cgmUITemplate',                  
                   l = 'All to last',
-                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
                   ann = "Aim all objects to the last in selection")
 
         mc.button(parent=_row_aim,
                   ut = 'cgmUITemplate',                  
                   l = 'Selection Order',
-                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToNext'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToNext'),
                   ann = "Aim in selection order from each to next")
 
         mc.button(parent=_row_aim,
                   ut = 'cgmUITemplate',                                    
                   l = 'First to Mid',
-                  c = lambda *a:SNAPCALLS.snap_action(None,'aim','firstToRest'),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','firstToRest'),
                   ann = "Aim the first object to the midpoint of the rest")    
 
         _row_aim.layout() 
@@ -1140,12 +1140,12 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row_ray,
                   l = 'RayCast',
                   ut = 'cgmUITemplate',                                                        
-                  c = lambda *a:SNAPCALLS.raySnap_start(None),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.raySnap_start(None),
                   ann = "RayCast snap selected objects")
         mc.button(parent=_row_ray,
                   l = 'AimCast',
                   ut = 'cgmUITemplate',                                                        
-                  c = lambda *a:SNAPCALLS.aimSnap_start(None),
+                  c = lambda *a:TOOLBOX.SNAPCALLS.aimSnap_start(None),
                   ann = "AimCast snap selected objects")   
         mUI.MelSpacer(_row_ray,w=5)                                              
         _row_ray.layout()             
@@ -1983,8 +1983,9 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent = _row_attr,
                   ut = 'cgmUITemplate',                                                                            
                   l='+',
-                  ann = "Add specified attribute type",                                                                                                                       
-                  c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,self.var_attrCreateType.value,**{}))
+                  ann = "Add specified attribute type",  
+                  c = lambda *a:ATTRTOOLS.uiPrompt_addAttr(self.var_attrCreateType.value))
+                  #c = cgmGen.Callback(ATTRTOOLS.uiPrompt_addAttr,self.var_attrCreateType.value,**{}))
         self.uiPopup_createAttr()
 
 
