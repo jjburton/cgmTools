@@ -104,6 +104,7 @@ class markingMenu(object):
         if not mc.control(_p, ex = True):
             return "{0} doesn't exist!".format(_p)
         else:
+            """
             if mayaVersion == 2017:
                 log.warning("2017 Support mode. Must click twice. Sorry. Maya done messed it up.")
                 if not mc.popupMenu('cgmMM',ex = True):
@@ -114,17 +115,17 @@ class markingMenu(object):
                     log.info("|{0}| >> editing existing...".format(self._str_MM))  
                     mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
                                  pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
-                                 postMenuCommandOnce=0)#dai = True,
+                                 postMenuCommandOnce=0)#dai = True,"""
+            #else:
+            if not mc.popupMenu('cgmMM',ex = True):
+                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
+                             pmc = lambda *a: self.createUI(),                             
+                             postMenuCommandOnce=True)#postMenuCommandOnce=True
             else:
-                if not mc.popupMenu('cgmMM',ex = True):
-                    mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = lambda *a: self.createUI(),                             
-                                 postMenuCommandOnce=True)#postMenuCommandOnce=True
-                else:
-                    log.info("|{0}| >> editing existing...".format(self._str_MM))  
-                    mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
-                                 pmc = lambda *a: self.createUI(),                            
-                                 postMenuCommandOnce=True)#dai = True,            
+                log.info("|{0}| >> editing existing...".format(self._str_MM))  
+                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
+                             pmc = lambda *a: self.createUI(),                            
+                             postMenuCommandOnce=True)#dai = True,            
     
     def createUI(self, parent = 'cgmMM'):
         log.info("|{0}| >> createUI...".format(self._str_MM))  
@@ -978,16 +979,15 @@ def setBGColorState(textFieldToChange, newState):
 #=========================================================================
 # Define our Templates
 #=========================================================================
+guiBackgroundColor = [.45,.45,.45]
+guiTextFieldColor = [.4,.4,.4]    
+guiHeaderColor = [.25,.25,.25]
+guiSubMenuColor = [.65,.65,.65]
+guiButtonColor = [.35,.35,.35]
+guiHelpBackgroundColor = [0.8, 0.8, 0.8]
+guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
+guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
 def initializeTemplates():
-    guiBackgroundColor = [.45,.45,.45]
-    guiTextFieldColor = [.4,.4,.4]    
-    guiHeaderColor = [.25,.25,.25]
-    guiSubMenuColor = [.65,.65,.65]
-    guiButtonColor = [.35,.35,.35]
-    guiHelpBackgroundColor = [0.8, 0.8, 0.8]
-    guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
-    guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
-
     if mc.uiTemplate( 'cgmUITemplate', exists=True ):
         mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
     mc.uiTemplate('cgmUITemplate')
@@ -1001,6 +1001,7 @@ def initializeTemplates():
     mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
     mc.frameLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
     mc.tabLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
+    mc.text(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
 
     # Define our header template
     if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
@@ -1015,6 +1016,7 @@ def initializeTemplates():
     mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
     mc.frameLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
     mc.textField(dt = 'cgmUIHeaderTemplate',backgroundColor = [1,1,1],h=20)
+    mc.text(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
 
     # Define our sub template
     if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
@@ -1031,6 +1033,7 @@ def initializeTemplates():
     mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
     mc.frameLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
     mc.tabLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
+    mc.text(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
 
 
     # Define our instructional template

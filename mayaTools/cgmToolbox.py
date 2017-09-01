@@ -755,7 +755,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 425,350
+    DEFAULT_SIZE = 450,350
     TOOLNAME = 'toolbox.ui'
     
 
