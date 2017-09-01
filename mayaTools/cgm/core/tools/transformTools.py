@@ -405,7 +405,9 @@ def uiFunc_getTargets(self):
         if self._mTransformTarget in _ml_targets:
             _ml_targets.remove(self._mTransformTarget)
             log.info("|{0}| >> Removed source...".format(_str_func))            
-        
+    elif not _b_lockSource and self._mTransformTarget:
+        if self._mTransformTarget not in _ml_targets:
+            _ml_targets.insert(0,self._mTransformTarget)
     
     if not _ml_targets:
         log.info("|{0}| >> No targets selected".format(_str_func))                
