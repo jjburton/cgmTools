@@ -2093,7 +2093,12 @@ class ui(cgmUI.cgmGUI):
                   l='cgmDynParentTool',
                   ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
                   c=lambda *a: DYNPARENTTOOL.ui())   
-
+        mc.button(parent = _column,
+                  ut = 'cgmUITemplate',  
+                  l='cgmTransformTools',
+                  ann = "Launch cgmTransformTools - a tool for tweaking values",                                                                                                                                       
+                  c=lambda *a: TOOLBOX.TT.ui())  
+        
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',  
                   l='autoTangent',

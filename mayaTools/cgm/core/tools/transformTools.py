@@ -173,7 +173,8 @@ def buildColumn_main(self,parent):
     
     buildRow_vector(self,_inside,'translate')
     buildRow_vector(self,_inside,'position')
-    buildRow_vector(self,_inside,'rotate')    
+    buildRow_vector(self,_inside,'rotate')
+    buildRow_vector(self,_inside,'orient')        
     buildRow_vector(self,_inside,'rotateAxis')
     buildRow_vector(self,_inside,'jointOrient')    
     buildRow_vector(self,_inside,'scale')
@@ -360,12 +361,13 @@ def uiFunc_updateFields(self):
     
     pprint.pprint(_info)
     #pprint.pprint(self._d_transformAttrFields)
-    _d_sectionToDatKey = {'rotate':'rotation'}
+    _d_sectionToDatKey = {'rotate':'rotateLocal',
+                          'orient':'rotation'}
     
     for section in self._d_transformAttrFields.keys():
         log.info("|{0}| >> On {1}".format(_str_func,section))
         _s = section
-        if _s in ['translate','rotate','position','rotateAxis','scalePivot']:
+        if _s in ['translate','rotate','position','rotateAxis','scalePivot','orient']:
             _k = _d_sectionToDatKey.get(_s,_s)
             for i,v in enumerate(_info[_k]):
                 self._d_transformAttrFields[_s]['XYZ'[i]].setValue(v)   
@@ -473,6 +475,20 @@ def uiFunc_valuesSend(self,section=None,key=None):
             except Exception,err:
                 log.error("|{0}| >> Failed to get set data. Object: {0} | section: {2}...".format(_str_func,mObj.mNode,_s))                
                 log.error(err) 
+    elif _s == 'orient':
+        for mObj in _ml_targets:
+            log.info("|{0}| >> Trying Object: {1} | [{2}]... ".format(_str_func,mObj.mNode,_s)) 
+            val = TRANS.orient_get(mObj.mNode)
+            log.info("|{0}| >> pre val: [{1}] ".format(_str_func,val)) 
+        
+            for k,v in _d_fieldValues.iteritems():
+                val['XYZ'.index(k)] = v
+            log.info("|{0}| >> post val: [{1}] ".format(_str_func,val))   
+            try:
+                TRANS.orient_set(mObj.mNode, val)     
+            except Exception,err:
+                log.error("|{0}| >> Failed to get set data. Object: {0} | section: {2}...".format(_str_func,mObj.mNode,_s))                
+                log.error(err)         
     elif _s == 'scaleLossy':
         log.warning("|{0}| >> NOTE - Scale lossy is pushed to local scale on targets ".format(_str_func,mObj.mNode,_s))                     
         for mObj in _ml_targets:
@@ -547,13 +563,21 @@ def uiFunc_valuesTweak(self,mode = '+'):
                 _v = ATTR.get(mObj.mNode, attr)
                 log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
                 _v = _tweak_call(_v,_tweak)
+                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                                 
                 ATTR.set(mObj.mNode, attr,_v)
                
             elif attr == 'position':
                 _v = TRANS.position_get(mObj.mNode)
                 log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
                 _v = _tweak_call(_v,_tweak)
+                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                 
                 TRANS.position_set(mObj.mNode, _v)  
+            elif attr == 'orient':
+                _v = TRANS.orient_get(mObj.mNode)
+                log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
+                _v = _tweak_call(_v,_tweak)
+                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                                 
+                TRANS.orient_set(mObj.mNode, _v)                  
             else:
                 log.warning("|{0}| >> Haven't setup for {1}...".format(_str_func,_s))           
         
