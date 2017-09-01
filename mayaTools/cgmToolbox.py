@@ -1082,12 +1082,6 @@ class ui(cgmUI.cgmGUI):
     
         mc.button(parent=_row_aim,
                   ut = 'cgmUITemplate',                  
-                  l = 'All to last',
-                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
-                  ann = "Aim all objects to the last in selection")
-    
-        mc.button(parent=_row_aim,
-                  ut = 'cgmUITemplate',                  
                   l = 'Sel Order',
                   c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToNext'),
                   ann = "Aim in selection order from each to next")
@@ -1148,11 +1142,15 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                  
                   c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'orient'),
                   ann = "Orient snap in a from:to selection")        
-
+        mc.button(parent=_row_base,
+                  l = 'RayCast',
+                  ut = 'cgmUITemplate',                                                        
+                  c = lambda *a:TOOLBOX.SNAPCALLS.raySnap_start(None),
+                  ann = "RayCast snap selected objects")
         _row_base.layout() 
 
         
-
+        """
         #>>>Ray snap -------------------------------------------------------------------------------------
         _row_ray = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_ray,w=5)                                              
@@ -1170,7 +1168,7 @@ class ui(cgmUI.cgmGUI):
                   c = lambda *a:TOOLBOX.SNAPCALLS.aimSnap_start(None),
                   ann = "AimCast snap selected objects")   
         mUI.MelSpacer(_row_ray,w=5)                                              
-        _row_ray.layout()             
+        _row_ray.layout()    """         
 
         #>>>Match snap -------------------------------------------------------------------------------------
         self.buildRow_matchMode(_inside)     
@@ -1618,7 +1616,7 @@ class ui(cgmUI.cgmGUI):
         TOOLBOX.TT.buildColumn_main(self,_frame)   
         
     def buildSection_rayCast(self,parent):
-        _frame = mUI.MelFrameLayout(parent,label = 'Raycast Options',vis=True,
+        _frame = mUI.MelFrameLayout(parent,label = 'Raycast',vis=True,
                                     collapse=self.var_rayCastFrameCollapse.value,
                                     collapsable=True,
                                     enable=True,
@@ -2376,7 +2374,7 @@ class ui(cgmUI.cgmGUI):
 
 
         self.buildSection_objDefaults(_column)
-        self.buildSection_rayCast(_column)
+        #self.buildSection_rayCast(_column)
         self.buildSection_animOptions(_column)
 
     def cb_setCreateShape(self,shape):

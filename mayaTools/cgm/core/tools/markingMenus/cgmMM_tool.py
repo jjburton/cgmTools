@@ -1452,14 +1452,14 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                         l = 'RayCast',
                         en = self._b_sel,
                         #c = mmCallback(buttonAction,raySnap_start(_sel)),
-                        c = lambda *a:raySnap_start(self,self._l_sel),                                                
+                        c = lambda *a:raySnap_start(self._l_sel),                                                
                         #c = mmCallback(raySnap_start,self._l_sel),
                         rp = 'W')	
         mc.menuItem(parent=_r,
                         l = 'AimCast',
                         en = self._b_sel,                        
                         #c = mmCallback(buttonAction,raySnap_start(_sel)),  
-                        c = lambda *a:aimSnap_start(self,self._l_sel),                                                
+                        c = lambda *a:aimSnap_start(self._l_sel),                                                
                         #c = mmCallback(aimSnap_start,self._l_sel),
                         rp = 'E')
         if self._b_sel_few:

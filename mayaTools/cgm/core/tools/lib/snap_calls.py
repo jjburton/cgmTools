@@ -30,6 +30,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import curve_Utils as CURVES
+from cgm.core.cgmPy import validateArgs as VALID
 
 import cgm.core.classes.GuiFactory as cgmUI
 reload(cgmUI)
@@ -78,6 +79,10 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
             MMCONTEXT.func_process(SNAP.aim_atMidPoint, objects ,selectionMode,'Snap aim', **kws)
         else:
             MMCONTEXT.func_process(SNAP.aim, objects ,selectionMode,'Snap aim', **kws)
+            
+        if selectionMode == 'eachToNext':
+            SNAP.aim(objects[-1],objects[-2],VALID.simpleAxis(aim_axis).inverse.p_string, up_axis, var_aimMode.value)
+            
     else:
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
@@ -125,10 +130,12 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     _str_func = 'raySnap_start'
     _toSnap = False
     _toAim = False
-    
+    if not targets:
+        targets = mc.ls(sl=True)
+        
     if snap:
         if not create or create == 'duplicate':
-            targets = mc.ls(sl=True)#...to use g to do again?...    
+            #targets = mc.ls(sl=True)#...to use g to do again?...    
             _toSnap = targets
 
             log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))

@@ -34,7 +34,6 @@ from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 from cgm.core.tools import meshTools as MESHTOOLS
 import cgm.core.lib.distance_utils as DIST
-reload(MESHTOOLS)
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
@@ -47,6 +46,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.transformTools as TT
+reload(MESHTOOLS)
 reload(TT)
 reload(TOOLANNO)
 reload(cgmUI)
