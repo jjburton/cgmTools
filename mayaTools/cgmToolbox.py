@@ -781,7 +781,8 @@ class ui(cgmUI.cgmGUI):
 
         self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('rayCastFrameCollapse',defaultValue = 0) 
-        self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
+        self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0)
+        self.create_guiOptionVar('aimOptionsFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('objectDefaultsFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('shapeFrameCollapse',defaultValue = 0) 
         self.create_guiOptionVar('snapFrameCollapse',defaultValue = 0) 
@@ -1059,7 +1060,57 @@ class ui(cgmUI.cgmGUI):
         
         self.buildRow_color(_inside)
         
+    def buildSection_aim(self,parent):
+        _frame = mUI.MelFrameLayout(parent,label = 'Aim',vis=True,
+                                    collapse=self.var_aimFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_aimFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_aimFrameCollapse.setValue(1)
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
         
+        #>>>Aim snap -------------------------------------------------------------------------------------    
+        _row_aim = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    
+        mc.button(parent=_row_aim,
+                  l = 'Aim',
+                  ut = 'cgmUITemplate',                                    
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = "Aim snap in a from:to selection")
+    
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                  
+                  l = 'All to last',
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = "Aim all objects to the last in selection")
+    
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                  
+                  l = 'Sel Order',
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToNext'),
+                  ann = "Aim in selection order from each to next")
+    
+        mc.button(parent=_row_aim,
+                  ut = 'cgmUITemplate',                                    
+                  l = 'First to Mid',
+                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','firstToRest'),
+                  ann = "Aim the first object to the midpoint of the rest")  
+        
+        mc.button(parent=_row_aim,
+                  l = 'AimCast',
+                  ut = 'cgmUITemplate',                                                        
+                  c = lambda *a:TOOLBOX.SNAPCALLS.aimSnap_start(None),
+                  ann = "AimCast snap selected objects")           
+    
+        _row_aim.layout()   
+        
+        
+        self.buildRow_aimMode(_inside)        
+        self.buildSection_objDefaults(_inside,frame=False)
+        
+            
     def buildSection_snap(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Snap',vis=True,
                                     collapse=self.var_snapFrameCollapse.value,
@@ -1100,36 +1151,7 @@ class ui(cgmUI.cgmGUI):
 
         _row_base.layout() 
 
-        #>>>Aim snap -------------------------------------------------------------------------------------
-        self.buildRow_aimMode(_inside)
-
-        _row_aim = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-
-        mc.button(parent=_row_aim,
-                  l = 'Aim',
-                  ut = 'cgmUITemplate',                                    
-                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
-                  ann = "Aim snap in a from:to selection")
-
-        mc.button(parent=_row_aim,
-                  ut = 'cgmUITemplate',                  
-                  l = 'All to last',
-                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToLast'),
-                  ann = "Aim all objects to the last in selection")
-
-        mc.button(parent=_row_aim,
-                  ut = 'cgmUITemplate',                  
-                  l = 'Selection Order',
-                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','eachToNext'),
-                  ann = "Aim in selection order from each to next")
-
-        mc.button(parent=_row_aim,
-                  ut = 'cgmUITemplate',                                    
-                  l = 'First to Mid',
-                  c = lambda *a:TOOLBOX.SNAPCALLS.snap_action(None,'aim','firstToRest'),
-                  ann = "Aim the first object to the midpoint of the rest")    
-
-        _row_aim.layout() 
+        
 
         #>>>Ray snap -------------------------------------------------------------------------------------
         _row_ray = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -1729,6 +1751,62 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row_rayCast,w=5)                                                  
         _row_rayCast.layout()
 
+    def buildSection_objDefaults(self,parent,frame=True):
+        if frame:
+            _frame = mUI.MelFrameLayout(parent,label = 'Obj Defaults',vis=True,
+                                        collapse=self.var_objectDefaultsFrameCollapse.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        useTemplate = 'cgmUIHeaderTemplate',
+                                        expandCommand = lambda:self.var_objectDefaultsFrameCollapse.setValue(0),
+                                        collapseCommand = lambda:self.var_objectDefaultsFrameCollapse.setValue(1)
+                                        )	
+            _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        else:
+            _inside = parent
+
+
+        #>>>Aim defaults mode -------------------------------------------------------------------------------------
+        _d = {'aim':self.var_objDefaultAimAxis,
+              'up':self.var_objDefaultUpAxis,
+              'out':self.var_objDefaultOutAxis}
+
+        for k in _d.keys():
+            _var = _d[k]
+
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+            mUI.MelSpacer(_row,w=5)                      
+            mUI.MelLabel(_row,l='Obj {0}:'.format(k))
+            _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+            uiRC = mUI.MelRadioCollection()
+
+            _on = _var.value
+
+            for i,item in enumerate(SHARED._l_axis_by_string):
+                if i == _on:
+                    _rb = True
+                else:_rb = False
+
+                uiRC.createButton(_row,label=item,sl=_rb,
+                                  onCommand = cgmGen.Callback(_var.setValue,i))
+
+                mUI.MelSpacer(_row,w=2)       
+
+
+            _row.layout() 
+
+
+        #>>>Buttons -------------------------------------------------------------------------------------
+        _row_defaults = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5, )
+
+        cgmUI.add_Button(_row_defaults,'Tag selected for aim',
+                         lambda *a:MMCONTEXT.func_process(SNAP.verify_aimAttrs, mc.ls(sl=True),'each','Verify aim attributes',True,**{}),)                                       
+        _row_defaults.layout() 
+    
+         
+
     def buildSection_distance(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Distance',vis=True,
                                     collapse=self.var_distanceFrameCollapse.value,
@@ -2205,11 +2283,15 @@ class ui(cgmUI.cgmGUI):
 
 
 
-        #>>>Tools -------------------------------------------------------------------------------------        
-        self.buildSection_snap(_column)
-        cgmUI.add_HeaderBreak()                 
-
+        #>>>Tools -------------------------------------------------------------------------------------  
         self.buildRow_context(_column)                     
+        
+        self.buildSection_snap(_column)
+        cgmUI.add_HeaderBreak()        
+        
+        self.buildSection_aim(_column)
+        cgmUI.add_HeaderBreak()   
+
         self.buildSection_rigging(_column)
         
         cgmUI.add_SectionBreak()  
@@ -2256,12 +2338,12 @@ class ui(cgmUI.cgmGUI):
         mc.setParent(_column)
         #cgmUI.add_SectionBreak()        
         _aim_frame = mUI.MelFrameLayout(_column,label = 'Aim Options',vis=True,
-                                        collapse=self.var_aimFrameCollapse.value,
+                                        collapse=self.var_aimOptionsFrameCollapse.value,
                                         collapsable=True,
                                         enable=True,
                                         useTemplate = 'cgmUIHeaderTemplate',
-                                        expandCommand = lambda:self.var_aimFrameCollapse.setValue(0),
-                                        collapseCommand = lambda:self.var_aimFrameCollapse.setValue(1)
+                                        expandCommand = lambda:self.var_aimOptionsFrameCollapse.setValue(0),
+                                        collapseCommand = lambda:self.var_aimOptionsFrameCollapse.setValue(1)
                                         )	
         _aim_inside = mUI.MelColumnLayout(_aim_frame,useTemplate = 'cgmUISubTemplate')  
 
@@ -2293,61 +2375,7 @@ class ui(cgmUI.cgmGUI):
         _row_aimFlags.layout()"""
 
 
-
-        #>>>Obj Defaults ====================================================================================
-        mc.setParent(_column)
-        #cgmUI.add_SectionBreak()
-        _defaults_frame = mUI.MelFrameLayout(_column,label = 'Object Defaults Options',vis=True,
-                                             collapse=self.var_objectDefaultsFrameCollapse.value,
-                                             collapsable=True,
-                                             enable=True,
-                                             useTemplate = 'cgmUIHeaderTemplate',
-                                             expandCommand = lambda:self.var_objectDefaultsFrameCollapse.setValue(0),
-                                             collapseCommand = lambda:self.var_objectDefaultsFrameCollapse.setValue(1)
-                                             )	
-        _defaults_inside = mUI.MelColumnLayout(_defaults_frame,useTemplate = 'cgmUISubTemplate')  
-
-
-        #>>>Aim defaults mode -------------------------------------------------------------------------------------
-        _d = {'aim':self.var_objDefaultAimAxis,
-              'up':self.var_objDefaultUpAxis,
-              'out':self.var_objDefaultOutAxis}
-
-        for k in _d.keys():
-            _var = _d[k]
-
-            _row = mUI.MelHSingleStretchLayout(_defaults_inside,ut='cgmUISubTemplate',padding = 5)
-
-            mUI.MelSpacer(_row,w=5)                      
-            mUI.MelLabel(_row,l='Obj {0}:'.format(k))
-            _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-            uiRC = mUI.MelRadioCollection()
-
-            _on = _var.value
-
-            for i,item in enumerate(SHARED._l_axis_by_string):
-                if i == _on:
-                    _rb = True
-                else:_rb = False
-
-                uiRC.createButton(_row,label=item,sl=_rb,
-                                  onCommand = cgmGen.Callback(_var.setValue,i))
-
-                mUI.MelSpacer(_row,w=2)       
-
-
-            _row.layout() 
-
-
-        #>>>Buttons -------------------------------------------------------------------------------------
-        _row_defaults = mUI.MelHLayout(_defaults_inside,ut='cgmUISubTemplate',padding = 5, )
-
-        cgmUI.add_Button(_row_defaults,'Tag selected for aim',
-                         lambda *a:MMCONTEXT.func_process(SNAP.verify_aimAttrs, mc.ls(sl=True),'each','Verify aim attributes',True,**{}),)                                       
-        _row_defaults.layout() 
-
-
+        self.buildSection_objDefaults(_column)
         self.buildSection_rayCast(_column)
         self.buildSection_animOptions(_column)
 
