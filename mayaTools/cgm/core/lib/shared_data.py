@@ -103,11 +103,13 @@ _d_colors_to_index = {'black':1,'grayDark':2,'grayLight':3,'redDark':4,
 
 _d_colors_to_RGB = {'red':[1,0,0],'redDark':[.5,0,0],'redLight':[1,.2,.2],'redBlack':[.1,0,0],'redWhite':[1,.5,.5],
                     'orange':[1,.27,0],'orangeDark':[.65,.1,0],'orangeLight':[1,.5,.2],'orangeBlack':[.2,.02,0],'orangeWhite':[1,.6,.1],                    
-                    'yellow':[1,1,0],'yellowDark':[.65,.47,0],'yellowLight':[1,.8,.1],'yellowBlack':[.25,.25,0],'yellowWhite':[1,.9,.4],
+                    'yellow':[1,1,0],'yellowDark':[.882,.815,.121],'yellowLight':[1,.8,.1],'yellowBlack':[.25,.25,0],'yellowWhite':[1,1,.7],
                     'green':[0,1,0],'greenDark':[0,.129,0],'greenLight':[.193,1,0],'greenBlack':[0,.015,0],'greenWhite':[.667,1,.667],                                        
                     'blue':[0,0,1],'blueDark':[0,.05,.4],'blueLight':[.06,.275,1],'blueBlack':[0,0,.1],'blueWhite':[.5,.5,1],
                     'purple':[.22,0,.44],'purpleDark':[.22,0,.44],'purpleLight':[.5,0,1],'purpleBlack':[.05,0,.1],'purpleWhite':[.8,.6,1],
                     'teal':[0,1,.5],
+                    'white':[1,1,1],'black':[0,0,0],
+                    'gray':[.5,.5,.5],'gray25':[.25,.25,.25],'gray75':[.75,.75,.75],
                     }
 
 _d_colorSetsRGB = {'red':['White','Light','Dark','Black'],
@@ -115,7 +117,10 @@ _d_colorSetsRGB = {'red':['White','Light','Dark','Black'],
                    'yellow':['White','Light','Dark','Black'],
                    'green':['White','Light','Dark','Black'],
                    'blue':['White','Light','Dark','Black'],
-                   'teal':[]}
+                   'teal':[],
+                   'white':[],
+                   'black':[],
+                   'gray':['25','75']}
 
 _d_colorsByIndexSets = {'red':['pink','redBright','redDark'],
                         'orange':['orangeDark','peach'],
@@ -130,9 +135,9 @@ _d_colorsByIndexSets = {'red':['pink','redBright','redDark'],
 #We have our main dicts which use rgb and a corresponding setup for old stuff...
 _d_side_colors = {'left':{'main':'blue',
                           'sub':'blueWhite',
-                          'direct':'blueBlack'},
+                          'direct':'blueDark'},
                   'right':{'main':'red',
-                           'sub':'redBright',
+                           'sub':'redWhite',
                            'direct':'redDark'},
                   'center':{'main':'yellow',
                             'sub':'yellowWhite',

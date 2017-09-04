@@ -142,6 +142,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#shape-creation">Shape Creation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#resize-obj">Resize Obj</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mirror">Mirror</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#control-coloring">Control Coloring</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#color">Color</a></li>
@@ -609,11 +610,13 @@ Some tools work with this contextual setup. They are designated in the ui/markin
 <h3>Controls<a class="headerlink" href="#controls" title="Permalink to this headline">¶</a></h3>
 <p>This section is for working with curve control creation and manipluation.</p>
 <img alt="_images/toolbox_controls.png" class="align-center" src="_images/toolbox_controls.png" />
-<p>There are 3 main sections currently.</p>
+<p>There are 4 main sections currently.</p>
 <ol class="arabic simple">
 <li><strong>Shape creation</strong> - Create curve shapes based off of selection</li>
 <li><strong>ResizeObj</strong> - Someone we started trying a couple gigs back and find it useful</li>
 <li><strong>Mirror</strong> - Still fleshing this out but should be obvious</li>
+<li><strong>Shape editing</strong> - see <a class="reference external" href="toolbox.html#shape">notes in rigging section</a></li>
+<li><strong>Control coloring</strong> - Row for basic control coloring</li>
 </ol>
 <div class="section" id="shape-creation">
 <h4>Shape Creation<a class="headerlink" href="#shape-creation" title="Permalink to this headline">¶</a></h4>
@@ -660,6 +663,15 @@ Some tools work with this contextual setup. They are designated in the ui/markin
 <p>Pretty sparse for now.</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">Mirror</span> <span class="pre">World</span> <span class="pre">Space</span> <span class="pre">To</span> <span class="pre">Target</span></code> - Only works across X now. Given two selected curves, mirrors the first to the second. Supports multi shape controls. Wrote this for a recent gig. Need to flesh out more.</li>
+</ul>
+</div>
+<div class="section" id="control-coloring">
+<h4>Control Coloring<a class="headerlink" href="#control-coloring" title="Permalink to this headline">¶</a></h4>
+<p>Supports curves and geo both. With geo, a shader will be setup to acomplish the shader.</p>
+<img alt="_images/toolbox_controls_color.png" class="align-center" src="_images/toolbox_controls_color.png" />
+<ul class="simple">
+<li><strong>Create row</strong> - Set color by our defaults for left, center and right / main,sub,direct styling.</li>
+<li><code class="docutils literal"><span class="pre">Clr*</span></code> - Clear color overrides on selected</li>
 </ul>
 </div>
 </div>
@@ -911,6 +923,13 @@ Some tools work with this contextual setup. They are designated in the ui/markin
 <div class="section" id="legacy-tab">
 <h2>Legacy Tab<a class="headerlink" href="#legacy-tab" title="Permalink to this headline">¶</a></h2>
 <img alt="_images/toolbox_legacy_base.png" class="align-center" src="_images/toolbox_legacy_base.png" />
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">AnimTools</span></code> - Old standalone collection</li>
+<li><code class="docutils literal"><span class="pre">SetTools</span> <span class="pre">1.0</span></code> - Will be rewriting soon</li>
+<li><code class="docutils literal"><span class="pre">Locinator</span> <span class="pre">1.0</span></code> - Old version. Like the new one but not as neat.</li>
+<li><code class="docutils literal"><span class="pre">tdTools</span> <span class="pre">1.0</span></code> - Old version of this. Still a few tools we need to migrate.</li>
+<li><code class="docutils literal"><span class="pre">AttrTools</span> <span class="pre">1.0</span></code> - Old version. New one is in alpha. Docs not done.</li>
+</ul>
 </div>
 <div class="section" id="top-menu">
 <h2>Top Menu<a class="headerlink" href="#top-menu" title="Permalink to this headline">¶</a></h2>

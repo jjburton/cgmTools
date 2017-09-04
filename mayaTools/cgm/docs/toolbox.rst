@@ -368,11 +368,13 @@ This section is for working with curve control creation and manipluation.
 .. image:: _static/img/toolbox/toolbox_controls.png
     :align: center
 
-There are 3 main sections currently.
+There are 4 main sections currently.
 
 #. **Shape creation** - Create curve shapes based off of selection
 #. **ResizeObj** - Someone we started trying a couple gigs back and find it useful
 #. **Mirror** - Still fleshing this out but should be obvious
+#. **Shape editing** - see `notes in rigging section <toolbox.html#shape>`_
+#. **Control coloring** - Row for basic control coloring 
 
 Shape Creation
 ^^^^^^^^^^^^^^^
@@ -411,6 +413,15 @@ Pretty sparse for now.
 
 * ``Mirror World Space To Target`` - Only works across X now. Given two selected curves, mirrors the first to the second. Supports multi shape controls. Wrote this for a recent gig. Need to flesh out more.
 
+Control Coloring
+^^^^^^^^^^^^^^^^^
+Supports curves and geo both. With geo, a shader will be setup to acomplish the shader.
+
+.. image:: _static/img/toolbox/toolbox_controls_color.png
+    :align: center
+
+* **Create row** - Set color by our defaults for left, center and right / main,sub,direct styling.
+* ``Clr*`` - Clear color overrides on selected
  
 Color
 ------
@@ -647,6 +658,11 @@ Legacy Tab
 .. image:: _static/img/toolbox/toolbox_legacy_base.png
     :align: center
 
+* ``AnimTools`` - Old standalone collection
+* ``SetTools 1.0`` - Will be rewriting soon
+* ``Locinator 1.0`` - Old version. Like the new one but not as neat.
+* ``tdTools 1.0`` - Old version of this. Still a few tools we need to migrate.
+* ``AttrTools 1.0`` - Old version. New one is in alpha. Docs not done.
 
 
 
