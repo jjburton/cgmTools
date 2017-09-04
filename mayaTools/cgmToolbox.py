@@ -828,8 +828,9 @@ class ui(cgmUI.cgmGUI):
         self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
 
     def build_menus(self):
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGen.Callback(self.buildMenu_first))
-        self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGen.Callback(self.buildMenu_buffer))
+        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
+        self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = lambda *a:self.buildMenu_buffer())
+        self.uiMenu_Help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help())
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
@@ -851,6 +852,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))   
 
+    def buildMenu_help(self):
+        self.uiMenu_Help.clear()
+        
+        UICHUNKS.uiSection_help(self.uiMenu_Help)        
+        
     def buildMenu_buffer(self):
         self.uiMenu_Buffers.clear()  
 
@@ -2157,7 +2163,7 @@ class ui(cgmUI.cgmGUI):
         mc.setParent(_column)
 
         self.buildSection_snap(_column)
-
+        self.buildSection_aim(_column)
 
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',                                                                                                

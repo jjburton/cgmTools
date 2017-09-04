@@ -205,7 +205,7 @@
 </div>
 <div class="section" id="knowledege">
 <h1>Knowledege<a class="headerlink" href="#knowledege" title="Permalink to this headline">¶</a></h1>
-<p>Hopefully you find some of this helpful. It's a collection of places we&quot;ve beat our heads in the wall.</p>
+<p>Hopefully you find some of this helpful. It's a collection of places we've beat our heads in the wall.</p>
 <p>Last update: 08.17.2017</p>
 <div class="section" id="maya-known-things">
 <h2>Maya Known Things<a class="headerlink" href="#maya-known-things" title="Permalink to this headline">¶</a></h2>
@@ -213,7 +213,7 @@
 <h3>2017<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="reloading-a-ui-from-a-menu-crashes-maya">
 <h4>Reloading a ui from a menu crashes maya<a class="headerlink" href="#reloading-a-ui-from-a-menu-crashes-maya" title="Permalink to this headline">¶</a></h4>
-<p>Props to <a class="reference external" href="http://sugarandcyanide.com/blog/">Charles Wardlaw</a> for help on this. This stems from maya changing the way things work and what worked from 2011-2016 broke. However there&quot;s a pretty simple fix.</p>
+<p>Props to <a class="reference external" href="http://sugarandcyanide.com/blog/">Charles Wardlaw</a> for help on this. This stems from maya changing the way things work and what worked from 2011-2016 broke. However there's a pretty simple fix.</p>
 <blockquote>
 <div><ul class="simple">
 <li>Changing my previous <code class="docutils literal"><span class="pre">c</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">*a:self.reload()</span></code> to <code class="docutils literal"><span class="pre">c</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">*a:mc.evalDeferred(self.reload,lp=True)</span></code> resolved it.</li>
