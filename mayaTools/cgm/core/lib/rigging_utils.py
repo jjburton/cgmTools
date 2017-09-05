@@ -823,7 +823,7 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
     
     
     
-def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True, shaderSetup = True, transparent = False):
+def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True, rgb = True, shaderSetup = True, transparent = False):
     """
     Sets the override color on shapes and more
     
@@ -839,12 +839,21 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
     if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
     l_targets = VALID.listArg(target)
     
-    _color = SHARED._d_side_colors[direction][controlType]
+    if rgb:
+        _color = SHARED._d_side_colors[direction][controlType]
+    else:
+        _color = SHARED._d_side_colors_index[direction][controlType]
+        
     _shader = False
     _set = False
    
     for t in l_targets:
-        override_color(t,_color,pushToShapes=pushToShapes )
+        if rgb:
+            override_color(t,_color,pushToShapes=pushToShapes )
+        else:
+            _v = SHARED._d_colors_to_index[_color]
+            override_color(t,index=_v,pushToShapes=pushToShapes )
+            
         
         if shaderSetup and VALID.get_mayaType(t) in ['nurbsSurface','mesh']:
             if not _shader:

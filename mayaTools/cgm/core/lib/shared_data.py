@@ -141,8 +141,16 @@ _d_side_colors = {'left':{'main':'blue',
                            'direct':'redDark'},
                   'center':{'main':'yellow',
                             'sub':'yellowWhite',
-                            'direct':'yellowDark'},}
-
+                            'direct':'yellowDark'}}
+_d_side_colors_index = {'left':{'main':'blueBright',
+                                'sub':'blueSky',
+                                'direct':'blueDark'},
+                        'right':{'main':'redBright',
+                                 'sub':'pink',
+                                 'direct':'redDark'},
+                        'center':{'main':'yellow',
+                                  'sub':'yellowBright',
+                                  'direct':'peach'}}
 
 #>>> Gui
 #===================================================================
