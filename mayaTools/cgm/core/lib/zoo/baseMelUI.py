@@ -724,7 +724,7 @@ class MelGridLayout(BaseMelLayout):
 
 	AUTO_GROW = True
 	def __new__( cls, parent, **kw ):
-		autoGrow = kw.pop( 'autoGrow', self.AUTO_GROW )
+		autoGrow = kw.pop( 'autoGrow', cls.AUTO_GROW )
 		kw.setdefault( 'ag', autoGrow )
 
 		return BaseMelLayout.__new__( cls, parent, **kw )

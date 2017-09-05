@@ -3,22 +3,17 @@
 ********************
 Toolbox
 ********************
-Last update: 09.01.2017
+Last update: 09.05.2017
 
 
 The cgmToolbox is a collection of many tools that may be accessed in a several ways:
 
 * **Tool Window** - The easiest way to access most of the tools is through the main window and be the main part of what we'll be talking about.
 * **Top menu** - We'll be talking about using this method in the next sections
-* **Marking menu** - We'll get to this later or you can LATER
-
-The new top menu was initially released in February 2017. It shares tool libraries with the
-marking menu so most items available in one are in the other. Menu sections may be torn off for easy access.
+* **Marking menu** - We'll get to this later...
 
 .. image:: _static/img/toolbox/toolbox_td_base.png
     :align: center
-
-Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/206286478 
 
 
 Access
@@ -36,9 +31,12 @@ Menu
 
 Setup
 --------
+.. image:: _static/img/toolbox/toolbox_menu_setup.png
+    :align: center
 
 * ``Create cgmToolboxMenu`` - adds the top menu to maya
 * ``Autoload on maya start`` - Yup.
+* ``Dock`` - In testing. Docks the ui.
 
 .. tip::
     Most functions in the top menu are also in the marking menu.
@@ -59,7 +57,6 @@ Help
 * ``Videos`` - Links to red9 and our vimeo channels
 * ``Coding Questions`` - Visit one of our favorite places - stackoverflow
 * ``Enviornment Info`` - See `support <support.html#reporting-issues>`_ for details.
-
 
 
 
@@ -420,7 +417,10 @@ Supports curves and geo both. With geo, a shader will be setup to acomplish the 
 .. image:: _static/img/toolbox/toolbox_controls_color.png
     :align: center
 
-* **Create row** - Set color by our defaults for left, center and right / main,sub,direct styling.
+* ``[] rgb`` - Color by rgb rather than index. If versions before 2016 this isn't usable.
+* ``[] geo`` - When checked, geo controls will be given a shader with transparency per color setting. Note, when off surfaces wire color will be the only thing changed.
+* ``[] push`` - Push color changes to sub shapes. If unchecked only the selected shape or transform will be affected.
+* ``[][][][]...`` - Set color by our defaults for left, center and right / main,sub,direct styling.
 * ``Clr*`` - Clear color overrides on selected
  
 Color
@@ -668,6 +668,11 @@ Legacy Tab
 
 Top Menu
 ===============
+The new top menu was initially released in February 2017. It shares tool libraries with the
+marking menu so most items available in one are in the other. Menu sections may be torn off for easy access.
+
+Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/206286478 
+
 Should be pretty self explanatory from the sections above. Most of the functions in the tool window are accessible here as well.
 
 Snap

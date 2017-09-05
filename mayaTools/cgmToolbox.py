@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.08222017'
+__version__ = '0.1.09042017'
 
 #from __future__ import with_statement
 
@@ -80,6 +80,8 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.skin_utils as SKIN
 import cgm.core.lib.constraint_utils as CONSTRAINTS
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.list_utils as LISTS
 reload(DIST)
 reload(TOOLBOX)
 reload(TOOLANNO)
@@ -101,8 +103,6 @@ _2016 = False
 if cgmGen.__mayaVersion__ >=2016:
     _2016 = True
 #==========================================================================
-
-
 
 def clean_scriptPaths():
     _str_func = 'clean_scriptPaths'
@@ -844,6 +844,9 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
+                         c = lambda *a:self.do_dock())        
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -898,7 +901,7 @@ class ui(cgmUI.cgmGUI):
         #Aim
 
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
-
+        #self._uiDockContent = _MainForm
         ui_tabs = mUI.MelTabLayout( _MainForm)
         #uiTab_setup = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         self.uiTab_setup = ui_tabs
@@ -1462,15 +1465,23 @@ class ui(cgmUI.cgmGUI):
 
         _row.layout()
 
-    def uiFunc_colorControl(self,side,controlType,cb_geo,cb_rgb):
+    def uiFunc_colorControl(self,side,controlType,cb_geo,cb_rgb,cb_push):
         #'direction':side,'controlType':typ, 'shaderSetup':_cb_geo.getValue()
         
         MMCONTEXT.func_process(RIGGING.colorControl,None,'each',
                                noSelect = False,
                                **{'direction':side,'controlType':controlType,
                                   'rgb':cb_rgb.getValue(),
-                                  'shaderSetup':cb_geo.getValue(),'transparent':True}),                  
+                                  'pushToShapes':cb_push.getValue(),
+                                  'shaderSetup':cb_geo.getValue(),'transparent':True}), 
         
+    def uiFunc_colorShape(self,cb_push = None,key=None,index=None,rgb=None):
+        MMCONTEXT.func_process(RIGGING.override_color,None,'each',
+                               noSelect = False,
+                               **{'key':key,
+                                  'index':index,
+                                  'rgb':rgb,
+                                  'pushToShapes':cb_push.getValue()}),       
         
     def buildRow_colorControls(self,parent):
         _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate')
@@ -1487,9 +1498,13 @@ class ui(cgmUI.cgmGUI):
         _cb_geo = mUI.MelCheckBox(_row,en=True,
                                   v = False,
                                   label = 'geo',
-                                  ann='Setup shaders or just overrides on geo targets')           
+                                  ann='Setup shaders or just wireframe overrides on geo targets')           
+        _cb_push = mUI.MelCheckBox(_row,en=True,
+                                   v = True,
+                                   label = 'push',
+                                   ann='Push color changes to shapes? If not, only first shape or selected shapes will be colored') 
         
-        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(1,9), cwh = (30,20),cr=True)
+        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(1,9), cwh = (25,20),cr=True)
         
         i = 0
         for side in ['left','center','right']:
@@ -1497,14 +1512,14 @@ class ui(cgmUI.cgmGUI):
                 colorName = SHARED._d_side_colors[side][typ]
                 colorBuffer = SHARED._d_colors_to_RGB.get(colorName,[0,0,0])
                 mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer, 
-                          pc = cgmGen.Callback(self.uiFunc_colorControl,side,typ,_cb_geo,_cb_rgb),                        
+                          pc = cgmGen.Callback(self.uiFunc_colorControl,side,typ,_cb_geo,_cb_rgb,_cb_push),                        
                           #pc = cgmGen.Callback(MMCONTEXT.func_process,RIGGING.colorControl,None,'each',noSelect = False,**{'direction':side,'controlType':typ, 'transparent':True}),                        
                           #pc = lambda *a: MMCONTEXT.func_process(RIGGING.colorControl,None,'each',noSelect = False,**{'direction':side,'controlType':typ, 'shaderSetup':_cb_geo.getValue(),'transparent':True}),                                                  
                           annotation = 'Sets color to for {0} {1} default'.format(side,typ))    
                 
                 i+=1
         
-        #RIGGING.colorControl(shaderSetup=,transparent=,rgb =True)
+        #RIGGING.colorControl(shaderSetup=,transparent=,rgb =True)        
         _row.setStretchWidget( mUI.MelSeparator(_row) )     
         mc.button(parent = _row,
                   ut = 'cgmUITemplate',                                                                                                
@@ -1517,51 +1532,31 @@ class ui(cgmUI.cgmGUI):
         
         _row.layout()
         return
-        #_row_index = mUI.MelColumnLayout(parent)
-        #mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
-        cgmUI.add_Header('Index*')        
-        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
-        colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
-        for i in colorSwatchesList:
-            colorBuffer = mc.colorIndex(i, q=True)
-            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
-                      pc = cgmGen.Callback(MMCONTEXT.color_override,i,None,'shape'),                        
-                      annotation = 'Sets the color of the object to this')
-
-        #_row.layout() 
-        #_row_rbg
-        mc.setParent(parent)
-        cgmUI.add_Header('RGB*')
-        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,15), cwh = (27,14),cr=True)
-        _IndexKeys = SHARED._d_colorSetsRGB.keys()
-        i = 0
-        for k1 in _IndexKeys:
-            _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
-            _sub = False
-            if _keys2:_sub = True
-            colorBuffer = SHARED._d_colors_to_RGB[k1]
-            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
-                      pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],None,'shape'),                        
-                      annotation = 'Sets color by rgb to {0}'.format(k1))            
-            
-            i+=1
-
-            if _sub:                  
-                for k2 in _keys2:
-                    _buffer = "{0}{1}".format(k1,k2)
-                    #log.info( SHARED._d_colors_to_RGB[_buffer] )
-                    mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=SHARED._d_colors_to_RGB[_buffer],                      
-                              pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],None,'shape'),                        
-                              annotation = 'Sets color by rgb to {0}'.format(k2))            
-                    i+=1
-
+        
     def buildRow_color(self,parent):
-        mc.button(parent = parent,
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=5)
+        mUI.MelLabel(_row,l="Options:")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )            
+        
+                 
+        _cb_push = mUI.MelCheckBox(_row,en=True,
+                                   v = True,
+                                   label = 'push',
+                                   ann='Push color changes to shapes? If not, only first shape or selected shapes will be colored') 
+        
+        
+        mc.button(parent = _row,
                   ut = 'cgmUITemplate',                                                                                                
                   l='Clear Override*',
                   ann = "Clear override settings on contextual objects.",                                                                                                                                       
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.override_clear, None, 'each','Clear override',True,**{'context':None}))           
+
+        mUI.MelSpacer(_row,w=5)        
+        _row.layout()
         
+        
+        mc.setParent(parent)
         _b_idxOnly = False
         if cgmGen.__mayaVersion__ < 2016:
             _b_idxOnly = True        
@@ -1569,20 +1564,34 @@ class ui(cgmUI.cgmGUI):
         #_row_index = mUI.MelColumnLayout(parent)
         #mc.columnLayout(columnAttach = ('both',5),backgroundColor = [.2,.2,.2])
         cgmUI.add_Header('Index*')        
-        uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,10), cwh = (27,14),cr=True)
+        
+        #_row = mUI.MelRow(parent,ut='cgmUISubTemplate')
+        
+        mUI.MelGridLayout(parent = parent, aec = False, numberOfRowsColumns=(2,10), cwh = (27,14),cr=True)
+        
         colorSwatchesList = [1,2,3,11,24,21,12,10,25,4,13,20,8,30,9,5,6,18,15,29,28,7,27,19,23,26,14,17,22,16]
+        #for l in splitList:
+            #r= mUI.MelGridLayout(parent = parent, aec = False, numberOfRowsColumns=(1,10), cwh = (27,14),cr=True)
+            #r = mUI.MelHLayout(parent, height = 15)
         for i in colorSwatchesList:
             colorBuffer = mc.colorIndex(i, q=True)
-            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
-                      pc = cgmGen.Callback(MMCONTEXT.color_override,i,None,'shape'),                        
+            mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer, 
+                      pc = cgmGen.Callback(self.uiFunc_colorShape,**{'index':i,'cb_push':_cb_push}),                                 
+                      #pc = cgmGen.Callback(self.uiFunc_colorShape,_cb_push,**{'index':i}),
+                      #pc = cgmGen.Callback(MMCONTEXT.color_override,i,None,'shape'),                        
                       annotation = 'Sets the color of the object to this')
-
+            #r.layout()
+            
+            
         #_row.layout() 
         #_row_rbg
         mc.setParent(parent)
         if not _b_idxOnly:
             cgmUI.add_Header('RGB*')
-            uiGrid_colorSwatch_index = mc.gridLayout(aec = False, numberOfRowsColumns=(2,10), cwh = (27,14),cr=True)
+            
+            #_row = mUI.MelRow(parent,ut='cgmUISubTemplate')
+            
+            mUI.MelGridLayout(parent,aec = False, numberOfRowsColumns=(2,10), cwh = (27,14),cr=True)
                 
             _IndexKeys = SHARED._d_colorSetsRGB.keys()
             i = 0
@@ -1591,8 +1600,10 @@ class ui(cgmUI.cgmGUI):
                 _sub = False
                 if _keys2:_sub = True
                 colorBuffer = SHARED._d_colors_to_RGB[k1]
-                mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,                      
-                          pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],None,'shape'),                        
+                mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer,
+                          pc = cgmGen.Callback(self.uiFunc_colorShape, **{'rgb':SHARED._d_colors_to_RGB[k1],'cb_push':_cb_push}),                                
+                          #pc = cgmGen.Callback(self.uiFunc_colorShape,_cb_push,**{'rgb':SHARED._d_colors_to_RGB[k1]}),                          
+                          #pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],None,'shape'),                        
                           annotation = 'Sets color by rgb to {0}'.format(k1))            
                 
                 i+=1
@@ -1601,8 +1612,9 @@ class ui(cgmUI.cgmGUI):
                     for k2 in _keys2:
                         _buffer = "{0}{1}".format(k1,k2)
                         #log.info( SHARED._d_colors_to_RGB[_buffer] )
-                        mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=SHARED._d_colors_to_RGB[_buffer],                      
-                                  pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],None,'shape'),                        
+                        mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=SHARED._d_colors_to_RGB[_buffer],     
+                                  pc = cgmGen.Callback(self.uiFunc_colorShape, **{'rgb':SHARED._d_colors_to_RGB[_buffer],'cb_push':_cb_push}),                                                                  
+                                  #pc = cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],None,'shape'),                        
                                   annotation = 'Sets color by rgb to {0}{1}'.format(k1,k2))            
                         i+=1
                         
@@ -1610,29 +1622,6 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Header('Side defaults*')
         self.buildRow_colorControls(parent)
         
-        """
-        for k1 in _IndexKeys:
-            _keys2 = SHARED._d_colorSetsRGB.get(k1,[])
-            _sub = False
-            if _keys2:_sub = True
-    
-            mc.menuItem(parent=uiRGBShape,subMenu = _sub,
-                        en = True,
-                        ann = "Set overrideColor by {0} to {1}...".format(ctxt,k1),                                                                                                        
-                        l=k1,
-                        c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[k1],ctxt,'shape'))
-    
-            if _sub:
-                mc.menuItem(en = True,
-                            l=k1,
-                            c=cgmGen.Callback(MMCONTEXT.color_override,k1,ctxt,'shape'))                    
-                for k2 in _keys2:
-                    _buffer = "{0}{1}".format(k1,k2)
-                    mc.menuItem(en = True,
-                                ann = "Set overrideColor by {0} to {1}".format(ctxt,k2),                                                                                                                                            
-                                l=_buffer,
-                                c=cgmGen.Callback(MMCONTEXT.color_override,SHARED._d_colors_to_RGB[_buffer],ctxt,'shape'))              
-          """
         
     def buildSection_animOptions(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Anim Options',vis=True,

@@ -262,17 +262,14 @@
 </div>
 <div class="section" id="toolbox">
 <h1>Toolbox<a class="headerlink" href="#toolbox" title="Permalink to this headline">¶</a></h1>
-<p>Last update: 09.01.2017</p>
+<p>Last update: 09.05.2017</p>
 <p>The cgmToolbox is a collection of many tools that may be accessed in a several ways:</p>
 <ul class="simple">
 <li><strong>Tool Window</strong> - The easiest way to access most of the tools is through the main window and be the main part of what we'll be talking about.</li>
 <li><strong>Top menu</strong> - We'll be talking about using this method in the next sections</li>
-<li><strong>Marking menu</strong> - We'll get to this later or you can LATER</li>
+<li><strong>Marking menu</strong> - We'll get to this later...</li>
 </ul>
-<p>The new top menu was initially released in February 2017. It shares tool libraries with the
-marking menu so most items available in one are in the other. Menu sections may be torn off for easy access.</p>
 <img alt="_images/toolbox_td_base.png" class="align-center" src="_images/toolbox_td_base.png" />
-<p>Until we get embeded video sorted. Please use this link: <a class="reference external" href="https://player.vimeo.com/video/206286478">https://player.vimeo.com/video/206286478</a></p>
 <div class="section" id="access">
 <h2>Access<a class="headerlink" href="#access" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -288,9 +285,11 @@ marking menu so most items available in one are in the other. Menu sections may 
 <h2>Menu<a class="headerlink" href="#menu" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="setup">
 <h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/toolbox_menu_setup.png" class="align-center" src="_images/toolbox_menu_setup.png" />
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">Create</span> <span class="pre">cgmToolboxMenu</span></code> - adds the top menu to maya</li>
 <li><code class="docutils literal"><span class="pre">Autoload</span> <span class="pre">on</span> <span class="pre">maya</span> <span class="pre">start</span></code> - Yup.</li>
+<li><code class="docutils literal"><span class="pre">Dock</span></code> - In testing. Docks the ui.</li>
 </ul>
 <div class="admonition tip">
 <p class="first admonition-title">Tip</p>
@@ -670,7 +669,10 @@ Some tools work with this contextual setup. They are designated in the ui/markin
 <p>Supports curves and geo both. With geo, a shader will be setup to acomplish the shader.</p>
 <img alt="_images/toolbox_controls_color.png" class="align-center" src="_images/toolbox_controls_color.png" />
 <ul class="simple">
-<li><strong>Create row</strong> - Set color by our defaults for left, center and right / main,sub,direct styling.</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">rgb</span></code> - Color by rgb rather than index. If versions before 2016 this isn't usable.</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">geo</span></code> - When checked, geo controls will be given a shader with transparency per color setting. Note, when off surfaces wire color will be the only thing changed.</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">push</span></code> - Push color changes to sub shapes. If unchecked only the selected shape or transform will be affected.</li>
+<li><code class="docutils literal"><span class="pre">[][][][]...</span></code> - Set color by our defaults for left, center and right / main,sub,direct styling.</li>
 <li><code class="docutils literal"><span class="pre">Clr*</span></code> - Clear color overrides on selected</li>
 </ul>
 </div>
@@ -933,6 +935,9 @@ Some tools work with this contextual setup. They are designated in the ui/markin
 </div>
 <div class="section" id="top-menu">
 <h2>Top Menu<a class="headerlink" href="#top-menu" title="Permalink to this headline">¶</a></h2>
+<p>The new top menu was initially released in February 2017. It shares tool libraries with the
+marking menu so most items available in one are in the other. Menu sections may be torn off for easy access.</p>
+<p>Until we get embeded video sorted. Please use this link: <a class="reference external" href="https://player.vimeo.com/video/206286478">https://player.vimeo.com/video/206286478</a></p>
 <p>Should be pretty self explanatory from the sections above. Most of the functions in the tool window are accessible here as well.</p>
 <div class="section" id="id11">
 <h3>Snap<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>

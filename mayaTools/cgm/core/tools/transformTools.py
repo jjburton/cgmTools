@@ -326,7 +326,7 @@ def uiFunc_load_selected(self, bypassAttrCheck = False):
     #self._ml_ = []
     self._mTransformTarget = False
 
-    _sel = mc.ls(sl=True)
+    _sel = mc.ls(sl=True,type='transform')
 
     #Get our raw data
     if _sel:

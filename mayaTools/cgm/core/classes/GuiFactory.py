@@ -180,8 +180,7 @@ def resetUI(cls,window,l_optionVars):
     return cls()
   
         
-
-def killChildren(uiElement):
+def getChildren(uiElement):
     l_ = []
     l_toCheck = []
     l_toCheck.extend( mc.lsUI(controls = True, l = True) )
@@ -194,8 +193,14 @@ def killChildren(uiElement):
     
     for c in l_toCheck:
         if  uiElement in c.split('|') and not str(c).endswith(uiElement):
-            l_.append(c)
+            l_.append(c)  
             
+    pprint.pprint(l_)    
+    return l_
+                
+def killChildren(uiElement):
+    l_ = getChildren(uiElement)
+       
     for c in l_:
         #log.info('deleting old ui: {0}'.format(c))
         try:mc.deleteUI(c)
@@ -244,7 +249,6 @@ class cgmGUI(mUI.BaseMelWindow):
         
         #>>> Insert our init, overloaded for other tools
         self.insert_init(self,*args,**kws)
-        
             
         #>>> Menu
         self.build_menus()
@@ -274,9 +278,13 @@ class cgmGUI(mUI.BaseMelWindow):
         if mc.dockControl(_dock, exists=True):
             log.info('Deleting {0}'.format(_dock))
             mc.deleteUI(_dock, control=True)   
-            
+        """    
         if self.var_Dock and self.var_Dock.value:
-            self.do_dock()
+            try:
+                self.do_dock()
+            except Exception,err:
+                log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
+        """    
             
         self.show()
 
@@ -432,18 +440,21 @@ class cgmGUI(mUI.BaseMelWindow):
         _dock = '{0}Dock'.format(self.__toolName__)   
         _l_allowed = self.__class__.l_allowedDockAreas
         
+  
+        _content = self.Get()
+            
         if mc.dockControl(_dock,q=True, exists = True):
             log.debug('linking...')
             self.uiDock = _dock
             mc.dockControl(_dock , edit = True, area=_l_allowed[self.var_DockSide.value],
-                           label=self.WINDOW_TITLE, content=self.Get(),
+                           label=self.WINDOW_TITLE, content=_content,
                            allowedArea=_l_allowed,
                            width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                    
         #else:
         else:
             log.debug('creating...')       
             mc.dockControl(_dock , area=_l_allowed[self.var_DockSide.value],
-                           label=self.WINDOW_TITLE, content=self.Get(),
+                           label=self.WINDOW_TITLE, content=_content,
                            allowedArea=_l_allowed,
                            width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1]) 
             self.uiDock = _dock
@@ -1200,7 +1211,7 @@ def add_TextBlock(text, align = 'center'):
 def add_cgmFooter(parent = False):
     from cgm import images as cgmImagesFolder
     
-    _row_cgm = mUI.MelRow(parent, bgc = [.25,.25,.25], h = 20)
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
     try:
         _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
