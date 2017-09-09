@@ -72,6 +72,92 @@ def get_tag(node = None, tag = None):
     else:
         return False    
 
+def get_objectSetsDict():
+    """ 
+    Return a semi intelligent dictionary of sets in a mays scene file.
+
+    Return dict keys:
+    all(list) -- all sets found
+    maya(list) -- maya made and controlled sets (tweakSet, etc)
+    render(list) -- sets returned by mc.listSets(type=1)
+    deformer(list) -- sets returned by mc.listSets(type=2)
+    referenced(dict) -- ['From Scene'] are local sets, all other sets are indexed to their reference prefix
+    qss(list) -- quick select sets
+    types(dict) -- Sets indexed to their type as understood by cgm tools. 'typeModifier' tag in this case
+
+    """    
+    returnSetsDict = {'maya':[],'qss':[],'referenced':{},'cgmTypes':{},'objectSetGroups':[]}
+
+    returnSetsDict['all'] = mc.ls(type='objectSet') or []
+    returnSetsDict['render'] = mc.listSets(type = 1) or []
+    returnSetsDict['deformer'] = mc.listSets(type = 2) or []    
+
+    refBuffer = {'From Scene':[]}
+    returnSetsDict['referenced'] = refBuffer
+
+    typeBuffer = {'NONE':[]}
+    returnSetsDict['cgmTypes'] = typeBuffer
+
+    for s in returnSetsDict['all']:
+        #Get our qss sets
+        if mc.sets(s,q=True,text=True) == 'gCharacterSet':
+            returnSetsDict['qss'].append(s)
+
+        #Get our maya sets
+        for check in ['defaultCreaseDataSet',
+                      'defaultObjectSet',
+                      'defaultLightSet',
+                      'initialParticleSE',
+                      'initialShadingGroup',
+                      'Vray',
+                      'SG',
+                      ['cluster','Set'],
+                      ['skinCluster','Set'],
+                      'tweakSet']:
+            if type(check) is list:
+                buffer = []
+                for c in check:
+                    if c in s:
+                        buffer.append(1)
+                    else:buffer.append(0)
+                if len(buffer) == sum(buffer):
+                    returnSetsDict['maya'].append(s)
+                    break
+
+            elif check in s:
+                returnSetsDict['maya'].append(s)
+                break
+
+        # Get our reference prefixes and sets sorted out
+        if mc.referenceQuery(s, isNodeReferenced=True):
+            refPrefix = NAME.get_refPrefix(s)
+
+            if refPrefix in refBuffer.keys():
+                refBuffer[refPrefix].append(s)
+            else:
+                refBuffer[refPrefix] = [s]
+        else:
+            refBuffer['From Scene'].append(s)
+
+        #Type sort
+        buffer = ATTR.get(s,'cgmType')
+        for tag,v in coreShared.objectSetTypes.iteritems():
+            if v == buffer:
+                if tag in typeBuffer.keys():
+                    typeBuffer[tag].append(s)
+                else:
+                    typeBuffer[tag] = [s]
+        else:
+            typeBuffer['NONE'].append(s)
+
+        #Set group check
+        if ATTR.get(s,'cgmType') == 'objectSetGroup':
+            returnSetsDict['objectSetGroups'].append(s)
+
+    return returnSetsDict
+
+
+
 def get_nonintermediateShape(shape):
     """
     Get the nonintermediate shape on a transform

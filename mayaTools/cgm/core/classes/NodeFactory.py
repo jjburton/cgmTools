@@ -2048,7 +2048,9 @@ class build_conditionNetworkFromGroup(object):
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
 
-        children = self.i_group.getChildren()
+        #children = self.i_group.getChildren()
+        mChildren = self.i_group.getChildren(asMeta=True)
+        children = [mObj.p_nameShort for mObj in mChildren]
         children.insert(0,'none')
 
         #Make our attr

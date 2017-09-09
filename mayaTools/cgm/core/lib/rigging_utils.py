@@ -658,101 +658,104 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
     """   
     _str_func = "set_color"
     if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
-
-    _shapes = []
-    #If it's accepable target to color
     
-    mTarget = r9Meta.MetaClass(target, autoFill=False)
+    l_targets = VALID.listArg(target)
     
-    if mTarget.hasAttr('overrideEnabled'):
-        log.debug("|{0}|  >> overrideEnabled  on target...".format(_str_func))            
-        _shapes.append(mTarget.mNode)
-    if pushToShapes:
-        _bfr = mc.listRelatives(target, s=True, fullPath=True)
-        if _bfr:
-            _shapes.extend(_bfr)
-            
-    if not _shapes:
-        raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,target)        
-    
-    #log.info(key)
-    #log.info(index)
-    #log.info(rgb)
-    if index is None and rgb is None and key is None:
-        raise ValueError,"|{0}|  >> Must have a value for index,rgb or key".format(_str_func)
-    
-    #...little dummy proofing..
-    if key:
-        _type = type(key)
+    for t in l_targets:
+        _shapes = []
+        #If it's accepable target to color
         
-        if _type not in [str,unicode] :
-            log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
-            
-            if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
-                log.debug("|{0}|  >> vector arg for key...".format(_str_func))            
-                rgb = key
-                key = None
-            elif index is None and issubclass(_type,int):
-                log.debug("|{0}|  >> int arg for key...".format(_str_func))            
-                index = key
-                key = None
-            else:
-                raise ValueError,"|{0}|  >> Not sure what to do with this key arg: {1}".format(_str_func,key)
-    
-    _b_RBGMode = False
-    _b_2016Plus = False
-    if cgmGen.__mayaVersion__ >=2016:
-        _b_2016Plus = True
+        #mTarget = r9Meta.MetaClass(target, autoFill=False)
         
-    if key is not None:
-        _color = False
-        if _b_2016Plus:
-            log.debug("|{0}|  >> 2016+ ...".format(_str_func))            
-            _color = SHARED._d_colors_to_RGB.get(key,False)
-            
-            if _color:
-                rgb = _color
-        
-        if _color is False:
-            log.debug("|{0}|  >> Color key not found in rgb dict checking index...".format(_str_func))
-            _color = SHARED._d_colors_to_index.get(key,False)
-            if _color is False:
-                raise ValueError,"|{0}|  >> Unknown color key: '{1}'".format(_str_func,key) 
+        if ATTR.has_attr(t,'overrideEnabled'):
+            log.debug("|{0}|  >> overrideEnabled  on target...".format(_str_func))            
+            _shapes.append(t)
+        if pushToShapes:
+            _bfr = mc.listRelatives(t, s=True, fullPath=True)
+            if _bfr:
+                _shapes.extend(_bfr)
                 
-    if rgb is not None:
-        if not _b_2016Plus:
-            raise ValueError,"|{0}|  >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+        if not _shapes:
+            raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,t)        
         
-        _b_RBGMode = True        
-        if len(rgb) == 3:
-            _color = rgb
-        else:
-            raise ValueError,"|{0}|  >> Too many rgb values: '{1}'".format(_str_func,rgb) 
+        #log.info(key)
+        #log.info(index)
+        #log.info(rgb)
+        if index is None and rgb is None and key is None:
+            raise ValueError,"|{0}|  >> Must have a value for index,rgb or key".format(_str_func)
         
-    if index is not None:
-        _color = index
-
-    log.debug("|{0}|  >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
-    
-
-    for i,s in enumerate(_shapes):
-        mShape = r9Meta.MetaClass(s)
-        
-        mShape.overrideEnabled = True
-        #attributes.doSetAttr(s,'overrideEnabled',True)
-        
-    
-        if _b_RBGMode:
-            mShape.overrideRGBColors = 1
-            mShape.overrideColorRGB = _color
-            #attributes.doSetAttr(s,'overrideRGBColors','RGB')#...brilliant attr naming here Autodesk...            
-            #attributes.doSetAttr(s,'overrideColorsRGB',[1,1,1])
-
-        else:
-            if _b_2016Plus:
-                mShape.overrideRGBColors = 0
-            mShape.overrideColor = _color
+        #...little dummy proofing..
+        if key:
+            _type = type(key)
             
+            if _type not in [str,unicode] :
+                log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
+                
+                if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):
+                    log.debug("|{0}|  >> vector arg for key...".format(_str_func))            
+                    rgb = key
+                    key = None
+                elif index is None and issubclass(_type,int):
+                    log.debug("|{0}|  >> int arg for key...".format(_str_func))            
+                    index = key
+                    key = None
+                else:
+                    raise ValueError,"|{0}|  >> Not sure what to do with this key arg: {1}".format(_str_func,key)
+        
+        _b_RBGMode = False
+        _b_2016Plus = False
+        if cgmGen.__mayaVersion__ >=2016:
+            _b_2016Plus = True
+            
+        if key is not None:
+            _color = False
+            if _b_2016Plus:
+                log.debug("|{0}|  >> 2016+ ...".format(_str_func))            
+                _color = SHARED._d_colors_to_RGB.get(key,False)
+                
+                if _color:
+                    rgb = _color
+            
+            if _color is False:
+                log.debug("|{0}|  >> Color key not found in rgb dict checking index...".format(_str_func))
+                _color = SHARED._d_colors_to_index.get(key,False)
+                if _color is False:
+                    raise ValueError,"|{0}|  >> Unknown color key: '{1}'".format(_str_func,key) 
+                    
+        if rgb is not None:
+            if not _b_2016Plus:
+                raise ValueError,"|{0}|  >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+            
+            _b_RBGMode = True        
+            if len(rgb) == 3:
+                _color = rgb
+            else:
+                raise ValueError,"|{0}|  >> Too many rgb values: '{1}'".format(_str_func,rgb) 
+            
+        if index is not None:
+            _color = index
+    
+        log.debug("|{0}|  >> Color: {1} | rgbMode: {2}".format(_str_func,_color,_b_RBGMode))
+        
+    
+        for i,s in enumerate(_shapes):
+            mShape = r9Meta.MetaClass(s)
+            
+            mShape.overrideEnabled = True
+            #attributes.doSetAttr(s,'overrideEnabled',True)
+            
+        
+            if _b_RBGMode:
+                mShape.overrideRGBColors = 1
+                mShape.overrideColorRGB = _color
+                #attributes.doSetAttr(s,'overrideRGBColors','RGB')#...brilliant attr naming here Autodesk...            
+                #attributes.doSetAttr(s,'overrideColorsRGB',[1,1,1])
+    
+            else:
+                if _b_2016Plus:
+                    mShape.overrideRGBColors = 0
+                mShape.overrideColor = _color   
+    
 def override_clear(target = None, pushToShapes = True):
     """
     Clear override flags on target and shapes if you choose

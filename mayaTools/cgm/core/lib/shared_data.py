@@ -172,3 +172,11 @@ _d_gui_direction_colors = {'center':[0.971679, 1, 0],
                            'right':[0.976471 ,0.355012, 0.310173]}
 
     
+#>>>Object Sets
+#==================================================================
+objectSetTypes = {'animation':'animSet',
+                  'layout':'layoutSet',
+                  'modeling':'modelingSet',
+                  'td':'tdSet',
+                  'fx':'fxSet',
+                  'lighting':'lightingSet'}
