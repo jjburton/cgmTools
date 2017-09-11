@@ -69,6 +69,7 @@ import cgm.core.cgmPy.validateArgs as VALID
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+import cgm.core.tools.setTools as SETTOOLS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.tools.locinator as LOCINATOR
@@ -82,6 +83,7 @@ import cgm.core.lib.skin_utils as SKIN
 import cgm.core.lib.constraint_utils as CONSTRAINTS
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.list_utils as LISTS
+import cgm.core.lib.skinDat as SKINDAT
 reload(DIST)
 reload(TOOLBOX)
 reload(TOOLANNO)
@@ -1353,7 +1355,24 @@ class ui(cgmUI.cgmGUI):
                   ann = "Get targets of contraints",                                                                                                                       
                   c = cgmGen.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_targets, None, 'each','Get targets',True,**{'select':True}))           
 
-        _row.layout()    
+        _row.layout()   
+        
+    def buildRow_skinDat(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='skinDat:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mc.button(parent=_row,
+                  l='Write',
+                  ut = 'cgmUITemplate',
+                  ann = "Write skinDat data",
+                  c = lambda *a:SKINDAT.data().write())
+                  #c = cgmGen.Callback(MMCONTEXT.func_process, SKINDAT.data, None, 'each','Get targets',True,**{'select':True}))           
+
+        _row.layout()   
         
     def buildRow_resizeObj(self,parent):
         #>>>Match mode -------------------------------------------------------------------------------------
@@ -2045,6 +2064,12 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = lambda *a: mc.evalDeferred(LOCINATOR.ui,lp=1),                  
                   ann = "LOCATORS")
+        
+        mc.button(parent=_row_tools1,
+                  l = 'SetTools',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a: mc.evalDeferred(SETTOOLS.ui,lp=1),                  
+                  ann = "Tool for working with sets in maya")        
 
         _row_tools1.layout()                  
 
@@ -2244,6 +2269,7 @@ class ui(cgmUI.cgmGUI):
         self.buildRow_mesh(_inside)
         self.buildRow_skin(_inside)
         self.buildRow_constraints(_inside)
+        self.buildRow_skinDat(_inside)
 
     def buildTab_anim(self,parent):
         _column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
@@ -2275,6 +2301,12 @@ class ui(cgmUI.cgmGUI):
                   l='cgmTransformTools',
                   ann = "Launch cgmTransformTools - a tool for tweaking values",                                                                                                                                       
                   c=lambda *a: TOOLBOX.TT.ui())  
+        mc.button(parent = _column,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l='cgmSetTools',
+                  ann = "Launch cgmSetTools - a tool for working with sets in maya",                                                                                                                                       
+                  c=lambda *a: SETTOOLS.ui()) 
+        
         
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',  

@@ -447,6 +447,25 @@ class cgmNode(r9Meta.MetaClass):
     #========================================================================================================
     #>>> Names...
     #========================================================================================================
+    def uiPrompt_rename(self,title = None):
+        _short = self.p_nameShort
+        if title is None:
+            _title = 'Rename {0}'.format(_short)
+        else:_title = title
+        result = mc.promptDialog(title=_title,
+                                 message='Current: {0} | type: {1}'.format(_short,self.getMayaType()),
+                                 button=['OK', 'Cancel'],
+                                 text = self.p_nameBase,
+                                 defaultButton='OK',
+                                 cancelButton='Cancel',
+                                 dismissString='Cancel')
+        if result == 'OK':
+            _v =  mc.promptDialog(query=True, text=True)
+            self.rename(_v)
+        else:
+            log.error("|{0}| Name change cancelled".format(self.name))
+            return False 
+    
     def getNameShort(self):
         return NAMES.short(self.mNode)
    
@@ -3098,7 +3117,7 @@ class cgmObject(cgmNode):
             return validateObjListArg(buffer)
         return buffer
 
-    def getConstrainingObjects(self,asMeta = False, fullPath = False):
+    def getConstrainingObjects(self,asMeta = False, fullPath = False, select = False):
         l_constainingObjects = []	    
         ml_buffer = self.getConstraintsTo(True,fullPath)
         if ml_buffer:
@@ -3108,6 +3127,8 @@ class cgmObject(cgmNode):
 
         if asMeta and buffer:
             return validateObjListArg(l_constainingObjects)
+        if select:
+            mc.select(l_constainingObjects)
         return l_constainingObjects
 
     def getConstraintsByDrivingObject(self,obj,asMeta = False, fullPath = False):
@@ -3860,7 +3881,7 @@ class cgmObjectSet(cgmNode):
     """ 
     Maya Object Set Class handler
     """ 	   
-    def __init__(self,setName = None,setType = False,qssState = None,value = None,**kws):
+    def __init__(self,setName = None,setType = False,qssState = None,value = None,nameOnCall = False,**kws):
         """ 
         Intializes an set factory class handler
 
@@ -3916,6 +3937,9 @@ class cgmObjectSet(cgmNode):
         #Attempt to set a value on call
         if value is not None:           
             self.value = value	
+            
+        if nameOnCall:
+            self.uiPrompt_rename()
 
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Properties
@@ -3984,8 +4008,8 @@ class cgmObjectSet(cgmNode):
                 doSetType = setTypes.get(setType)
             if search.returnTagInfo(self.mNode,'cgmType') != doSetType:
                 if ATTR.store_info(self.mNode,'cgmType',doSetType):
-                    self.doName()
-                    log.debug("'%s' renamed!"%(self.mNode))  
+                    #self.doName()
+                    #log.debug("'%s' renamed!"%(self.mNode))  
                     return self.mNode
                 else:               
                     log.warning("'%s' failed to store info"%(self.mNode))  
@@ -4005,7 +4029,18 @@ class cgmObjectSet(cgmNode):
         return validateObjListArg(self.getList(),noneValid=True)   
 
     def getList(self):
-        return mc.sets(self.mNode, q = True) or []    
+        return mc.sets(self.mNode, q = True) or []   
+    
+    def log(self):
+        print cgmGEN._str_subLine
+        print "objectSet: '{0}' data...".format(self.p_nameShort)
+        _data = self.getList()
+        print _data
+        for v in _data:
+            print v
+        print cgmGEN._str_subLine
+            
+        
 
     def doSetList(self, objectList = []):
         """
@@ -4076,6 +4111,7 @@ class cgmObjectSet(cgmNode):
         info(string) -- must be an object in the scene
 
         """
+        _str_func = 'append'
         if not mc.objExists(info):
             log.debug("'%s' doesn't exist. Cannot add to object set."%info)
             return False
@@ -4087,7 +4123,8 @@ class cgmObjectSet(cgmNode):
             return
         try:
             mc.sets(info,add = self.mNode)
-            #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	    
+            #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	
+            log.info("|{0}| >> Appended to objectSet: {1} | data: {2}".format(_str_func,self.p_nameShort,info))   
         except Exception, error:
             log.error("'append fail | {0}' failed to add to '{1}' | {2}"%(info,self.mNode,error))    
 
@@ -4118,6 +4155,7 @@ class cgmObjectSet(cgmNode):
 
     def remove(self,info,*a,**kw):
         """ Store information to an object in maya via case specific attribute. """
+        _str_func = 'remove'
         buffer = mc.ls(info,shortNames=True)   
         info = buffer[0]
 
@@ -4127,6 +4165,7 @@ class cgmObjectSet(cgmNode):
         try:
             mc.sets(info,rm = self.mNode)    
             log.debug("'%s' removed from '%s'!"%(info,self.mNode))  
+            log.info("|{0}| >> removed from objectSet: {1} | data: {2}".format(_str_func,self.p_nameShort,info))   
 
         except:
             log.error("'%s' failed to remove from '%s'"%(info,self.mNode))    
@@ -4165,14 +4204,22 @@ class cgmObjectSet(cgmNode):
 
     def copy(self):
         """ Duplicate a set """
+        _str_func = 'copy'
         buffer = mc.sets(name = ('%s_Copy'%self.mNode), copy = self.mNode)
         log.debug("'%s' duplicated!"%(self.mNode))
+        #log.info("|{0}| >> Appended to objectSet: {1} | data: {2}".format(_str_func,self.p_nameShort,info))   
+        log.warning("|{0}| >> New objectSet : {1} | from: {2}".format(_str_func, buffer, self.p_nameShort))   
 
         for attr in dictionary.cgmNameTags:
             if mc.objExists("%s.%s"%(self.mNode,attr)):
                 ATTR.copy_to(self.mNode,attr,buffer)
-
-        return cgmObjectSet(buffer)
+                
+        mDup = cgmObjectSet(buffer)
+        if self.isQss():
+            mDup.makeQss(True)
+        if self.getSetType():
+            mDup.doSetType(self.getSetType())
+        return mDup
 
 
     def select(self):
@@ -4285,9 +4332,9 @@ class cgmOptionVar(object):
             if varType is not None:
                 requestVarType = self.returnVarTypeFromCall(varType)
             elif defaultValue is not None:
-                requestVarType = search.returnDataType(defaultValue)                
+                requestVarType = VALID.get_dataType(defaultValue)                
             elif value is not None:
-                requestVarType = search.returnDataType(value)
+                requestVarType = VALID.get_dataType(value)
             else:
                 requestVarType = 'int'
 
@@ -4346,6 +4393,7 @@ class cgmOptionVar(object):
                 except:
                     log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
         object.__setattr__(self, self.name, value)
+        log.info(self)
 
     def uiPrompt_value(self,title = None):
         if title is None:
@@ -4380,7 +4428,7 @@ class cgmOptionVar(object):
     #==============    
     def getType(self):
         dataBuffer = mc.optionVar(q=self.name)                                         
-        typeBuffer = search.returnDataType(dataBuffer) or False
+        typeBuffer = VALID.get_dataType(dataBuffer) or 'string'
         if not typeBuffer:
             log.warning("I don't know what this is!")
             return False
@@ -4442,7 +4490,8 @@ class cgmOptionVar(object):
 
         else:
             #If it exists, first check for data buffer
-            typeBuffer = search.returnDataType(dataBuffer) or False
+            #log.info(dataBuffer)
+            typeBuffer = VALID.get_dataType(dataBuffer) or False
             if not typeBuffer:
                 #log.debug('Changing to int!')
                 typeBuffer = 'int'
@@ -4913,7 +4962,7 @@ class cgmAttr(object):
                 #log.debug("'%s' exists. creating as message."%value)
                 self.attrType = 'message'		
             else:
-                dataReturn = search.returnDataType(value)
+                dataReturn = VALID.get_dataType(value)
                 #log.debug("Trying to create attr of type '%s'"%dataReturn)
                 self.attrType =  ATTR.validate_attrTypeName(dataReturn)
         else:
@@ -6672,7 +6721,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
         if type(mayaType) not in [tuple,list]:l_mayaTypes = [mayaType]
         else: l_mayaTypes = mayaType
         #str_type = search.returnObjectType(_mi_arg.getComponent())
-        str_type = search.returnObjectType(_arg)
+        str_type = VALID.get_mayaType(_arg)
         if str_type not in l_mayaTypes:
             if noneValid:
                 log.warning("%s '%s' mayaType: '%s' not in: '%s'"%(__str_reportStart,_argShort,str_type,l_mayaTypes))

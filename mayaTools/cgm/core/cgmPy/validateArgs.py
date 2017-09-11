@@ -218,7 +218,7 @@ def get_component(arg = None):
         _root = _rootSplit[0]
         _compType = _rootSplit[1]
         #pprint.pprint(vars())
-        log.info("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
+        log.debug("|{0}| >> split: {1} | root: {2} | comp: {3}".format(_str_func,_split,_root,_compType))   
         return ["{0}{1}".format(_compType,_splitJoin), _root, _compType, get_mayaType(arg)]
     return False
 
@@ -239,6 +239,49 @@ def isFloatEquivalent(lhs, rhs, **kwargs):
         raise TypeError("Arguments must be 'int' or 'float'")
 
     return abs(lhs-rhs) <= sys.float_info.epsilon
+
+def get_dataType(data = None):
+    """
+    Designed for opionVar but general data type return. Default is string.
+
+    :parameters:
+        data | varied
+
+    :returns
+        dataType(varied)
+    """ 
+    def simpleReturn(t):
+        if t is int:
+            return 'int'
+        elif t is float:
+            return 'float'
+        elif t is unicode or t is str:
+            return 'string'
+        else:
+            return False   
+
+    typeReturn = type(data)
+
+    if typeReturn is list:
+        if not data:
+            return 'string'
+        stringFound = False
+        # First if there is a single string in the data set, the rest of the list will be treated as a string set
+        for o in data:
+            if type(o) is unicode or type(o) is str:
+                return 'string'
+        # If not, check for floats
+        for o in data:
+            if type(o) is float:
+                return 'float'        
+        # Else just use the first one
+        if type(data[0]) is unicode or type(data[0]) is str:
+            return 'string'
+        else:
+            return simpleReturn(type(data[0]))
+    else:
+        return simpleReturn(typeReturn) 
+
 
 def vectorArg(arg,noneValid = True):
     """

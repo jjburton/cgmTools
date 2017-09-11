@@ -42,6 +42,8 @@ from cgm.core.tools import attrTools as ATTRTOOLS
 reload(ATTRTOOLS)
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 reload(DYNPARENTTOOL)
+import cgm.core.tools.setTools as SETTOOLS
+reload(SETTOOLS)
 from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
@@ -444,6 +446,10 @@ def uiSection_animUtils(parent):
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
                 c=lambda *a: DYNPARENTTOOL.ui())   
+    mc.menuItem(parent = parent,
+                l='cgmSetTools',
+                ann = "Launch cgm's setTools - a tool for managing maya selection sets",                                                                                                                                       
+                c=lambda *a: SETTOOLS.ui())   
     
     mc.menuItem(parent = parent,
             l='autoTangent',
