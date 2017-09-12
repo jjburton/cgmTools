@@ -27,6 +27,8 @@ import maya.mel as mel
 import copy
 import time
 import pprint
+import webbrowser
+
 from cgm.core import cgm_General as cgmGEN
 reload(cgmGEN)
 mayaVersion = cgmGEN.__mayaVersion__
@@ -1216,7 +1218,7 @@ def add_cgmFooter(parent = False):
         _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(log.info("Will fix this soon:)")))  
+                          c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
         for arg in err.args:
