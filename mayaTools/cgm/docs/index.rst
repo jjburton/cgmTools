@@ -50,6 +50,7 @@ Directory of docs
    toolbox
    dynparenttool
    locinator
+   settools
    knowledge
    support
 

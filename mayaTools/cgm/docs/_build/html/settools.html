@@ -1,0 +1,439 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>SetTools &mdash; cgmTools 1.0.1 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/styleoverrides.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="cgmTools 1.0.1 documentation" href="index.html"/>
+        <link rel="next" title="Knowledege" href="knowledge.html"/>
+        <link rel="prev" title="Locinator" href="locinator.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> cgmTools
+          
+
+          
+            
+            <img src="_static/cgmCalig_64px.png" class="logo" />
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">What's new?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="toolbox.html">Toolbox</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynparenttool.html">Dynamic Parent Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="locinator.html">Locinator</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">SetTools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#accessing">Accessing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#menu">Menu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#force-update">Force Update</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modes">Modes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#anim">Anim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#setup">Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#autohide">Autohide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#load-refs">Load Refs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dock">Dock</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#body">Body</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#multiset-row">MultiSet Row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#objectset-row">ObjectSet Row</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#popup">Popup</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="knowledge.html">Knowledege</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">cgmTools</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>SetTools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/settools.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<div class="section" id="settools">
+<h1>SetTools<a class="headerlink" href="#settools" title="Permalink to this headline">¶</a></h1>
+<p>Status: Alpha release</p>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>cgmSetTools is a tool for working with selection sets in maya. The 2.0 rewrite was completed in September 2017.</p>
+<p><strong>What can I do with it?</strong></p>
+<ul class="simple">
+<li>Filter certain types of selection sets to work with</li>
+<li>Mutiset functionality. Key,reset,delete key on muliple sets as once</li>
+</ul>
+</div>
+<div class="section" id="accessing">
+<h2>Accessing<a class="headerlink" href="#accessing" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><dl class="first docutils">
+<dt>UI</dt>
+<dd><ul class="first last">
+<li>Top cgm menu - <code class="docutils literal"><span class="pre">CGM&gt;</span> <span class="pre">animation&gt;</span> <span class="pre">cgmSetTools</span></code></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>Python</li>
+</ol>
+<div class="highlight-guess"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cgm.core.tools.setTools</span> <span class="kn">as</span> <span class="nn">setTools</span>
+<span class="n">setTools</span><span class="o">.</span><span class="n">ui</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If you open the ui, you should see something like this:</p>
+<img alt="_images/settools_base.png" class="align-center" src="_images/settools_base.png" />
+<p>The UI has to main parts. The top menu and body.</p>
+</div>
+<div class="section" id="menu">
+<h2>Menu<a class="headerlink" href="#menu" title="Permalink to this headline">¶</a></h2>
+<p>The top menu is where we set our options.</p>
+<img alt="_images/settools_options.png" class="align-center" src="_images/settools_options.png" />
+<div class="section" id="force-update">
+<h3>Force Update<a class="headerlink" href="#force-update" title="Permalink to this headline">¶</a></h3>
+<p>Necessary when reloading the scene or if you made changes outside the tool and want to see those changes represented.</p>
+</div>
+<div class="section" id="modes">
+<h3>Modes<a class="headerlink" href="#modes" title="Permalink to this headline">¶</a></h3>
+<p>The tool allows for the user to specify want options they want displayed during use.</p>
+<div class="section" id="anim">
+<h4>Anim<a class="headerlink" href="#anim" title="Permalink to this headline">¶</a></h4>
+<p>When active new options will show up in the ui. Both the muliset function bar and the left options on the row per objectSet.</p>
+<img alt="_images/settools_anim.png" class="align-center" src="_images/settools_anim.png" />
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">s</span></code> - Always visible. Select the items of the objectSet.</li>
+<li><code class="docutils literal"><span class="pre">k</span></code> - Key the items of the objectSet</li>
+<li><code class="docutils literal"><span class="pre">d</span></code> - Delete any curent keys of items in the objectSet</li>
+<li><code class="docutils literal"><span class="pre">r</span></code> - Reset the items of the objectSet</li>
+</ul>
+</div>
+<div class="section" id="setup">
+<h4>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h4>
+<img alt="_images/settools_setup.png" class="align-center" src="_images/settools_setup.png" />
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">+</span></code> - Add selected items to this objectSet</li>
+<li><code class="docutils literal"><span class="pre">-</span></code> - Remove selected items from this objectSet</li>
+<li><code class="docutils literal"><span class="pre">e</span></code> - Edit mode. When toggled, an additional scrollList is generated below the row's objectSet which offers options on a per item level.</li>
+</ul>
+<img alt="_images/settools_edit.png" class="align-center" src="_images/settools_edit.png" />
+<ul class="simple">
+<li>Currently left clicking any item in the list will select it. Looking into more options. Open to suggestions</li>
+</ul>
+</div>
+</div>
+<div class="section" id="autohide">
+<h3>Autohide<a class="headerlink" href="#autohide" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/settools_autohide.png" class="align-center" src="_images/settools_autohide.png" />
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">Anim</span> <span class="pre">Layersets</span></code> - Hide anim layerset sets</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">non</span> <span class="pre">Qss</span></code> - Hide non qss sets</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">Maya</span> <span class="pre">Sets</span></code> - Hide default maya sets</li>
+</ul>
+</div>
+<div class="section" id="load-refs">
+<h3>Load Refs<a class="headerlink" href="#load-refs" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/settools_ref.png" class="align-center" src="_images/settools_ref.png" />
+<p>You have the ability to only load the referenced sets you want. By default they aren't loaded. This is most handy with animation sets and multiple assets. The menu is split by:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">All</span></code> - This will activate all reference prefixes</li>
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">Prefix</span></code> - You can toggle individual prefixes</li>
+<li><code class="docutils literal"><span class="pre">Clear</span></code> - If you want to clear all of the reference prefixes</li>
+</ul>
+</div>
+<div class="section" id="dock">
+<h3>Dock<a class="headerlink" href="#dock" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/settools_options.png" class="align-center" src="_images/settools_options.png" />
+<p>You can dock the tool with the <code class="docutils literal"><span class="pre">dock</span></code> button. Pressing when docked will undock it. Docked it looks something like this...</p>
+<img alt="_images/settools_dock.png" class="align-center" src="_images/settools_dock.png" />
+</div>
+</div>
+<div class="section" id="body">
+<h2>Body<a class="headerlink" href="#body" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="multiset-row">
+<h3>MultiSet Row<a class="headerlink" href="#multiset-row" title="Permalink to this headline">¶</a></h3>
+<p>Only available with <a class="reference external" href="settools.html#anim">anim mode</a></p>
+<img alt="_images/settools_multiset.png" class="align-center" src="_images/settools_multiset.png" />
+<ul>
+<li><p class="first"><code class="docutils literal"><span class="pre">[]</span></code> - When checked or unchecked all of the checkboxes on all loaded objectSet rows will toggle to match</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">[&lt;&lt;&lt;</span> <span class="pre">Active</span> <span class="pre">Sets&gt;&gt;&gt;]</span></code> - Toggle for two different multimodes.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Active sets - Only objectSets with their rows checked will be affected</li>
+<li>All Loaded Sets - ALL loaded sets will be affected</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">K</span></code> - Key the items of the objectSets</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">D</span></code> - Delete any curent keys of items in the objectSets</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">R</span></code> - Reset the items of the objectSets</p>
+</li>
+</ul>
+</div>
+<div class="section" id="objectset-row">
+<h3>ObjectSet Row<a class="headerlink" href="#objectset-row" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/settools_setrow.png" class="align-center" src="_images/settools_setrow.png" />
+<ul>
+<li><p class="first">As previously discussed, certain modes have more options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference external" href="settools.html#anim">Anim</a></li>
+<li><a class="reference external" href="settools.html#setup">Setup</a></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">s</span></code> - Always visible. Select the items of the objectSet.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">+</span></code> - Add selected items to this objectSet</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">-</span></code> - Remove selected items from this objectSet</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">e</span></code> - Edit mode. When toggled, an additional scrollList is generated below the row's objectSet which offers options on a per item level.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Currently left clicking any item in the list will select it. Looking into more options. Open to suggestions</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">[</span> <span class="pre">nameOfASet</span> <span class="pre">]</span></code> - Textfield that displays the name of the set's base name. Each has an annotation with the set's full name. Additionally, each has a <a class="reference external" href="settools.html#Popup">right click menu</a>.</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">k</span></code> - Key the items of the objectSet</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">d</span></code> - Delete any curent keys of items in the objectSet</p>
+</li>
+<li><p class="first"><code class="docutils literal"><span class="pre">r</span></code> - Reset the items of the objectSet</p>
+</li>
+</ul>
+</div>
+<div class="section" id="popup">
+<h3>Popup<a class="headerlink" href="#popup" title="Permalink to this headline">¶</a></h3>
+<p>Right click menu on the objectSet row textfield.</p>
+<img alt="_images/settools_setpopup.png" class="align-center" src="_images/settools_setpopup.png" />
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">[]</span> <span class="pre">Qss</span></code> - Qss state. Check to change.</li>
+<li><code class="docutils literal"><span class="pre">Make</span> <span class="pre">Type:</span></code> - Tag as a specific type. Unsure if we're keeping this. It's intended as an additional way to flag sets for filtering.</li>
+<li><code class="docutils literal"><span class="pre">Select</span> <span class="pre">set</span></code> - Select the set itself.</li>
+<li><code class="docutils literal"><span class="pre">Purge</span></code> - Clear the set but leave the set</li>
+<li><code class="docutils literal"><span class="pre">Rename</span></code> - Bring up a uiPrompt to rename the set</li>
+<li><code class="docutils literal"><span class="pre">Copy</span></code> - Create a new set with all of this set's items</li>
+<li><code class="docutils literal"><span class="pre">Log</span></code> - Print a breakdown of</li>
+<li><code class="docutils literal"><span class="pre">Delete</span></code> - Delete the set</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="knowledge.html" class="btn btn-neutral float-right" title="Knowledege" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="locinator.html" class="btn btn-neutral" title="Locinator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, CG Monks.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
