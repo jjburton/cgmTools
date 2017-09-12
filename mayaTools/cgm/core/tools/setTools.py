@@ -417,9 +417,11 @@ class ui(cgmUI.cgmGUI):
         #    doGroupLocal(self)        
         
     def uiFunc_createSet(self):
-        _str_func = 'uiFunc_createSet'    
+        _str_func = 'uiFunc_createSet'   
+        _ls = mc.ls(sl=True,flatten = True)
         mObjectSet = cgmMeta.cgmObjectSet(qssState = True,nameOnCall=True)
-        mObjectSet.addSelected()
+        for o in _ls:
+            mObjectSet.append(o)
         log.info("|{0}| >> Created: {1}".format(_str_func,mObjectSet.p_nameShort))  
         
         mc.evalDeferred(self.uiUpdate_objectSets,lp=True)
@@ -518,9 +520,10 @@ class ui(cgmUI.cgmGUI):
         else:
             _list.clear()
             l_items = mObjectSet.getList()
+            l_items.sort()
             self.d_itemLists[mObjectSet] = l_items
             for o in l_items:
-                _list.append(o)                
+                _list.append(str(o))                
             _list(e=True, vis = True)
             
     def uiFunc_itemList_dc(self,mObjectSet = None):
@@ -529,13 +532,15 @@ class ui(cgmUI.cgmGUI):
         _list = self.d_itemScrollLists[mObjectSet]
         
         _indices = _list.getSelectedIdxs() or []
-        log.debug("|{0}| >> indices: {1} | objectSet: {2}".format(_str_func, _indices,_str))  
         
         _l = []
         l_buffer = self.d_itemLists[mObjectSet]
         
         for i in _indices:
-            _l.append(l_buffer[i])
+            v = l_buffer[i]
+            #log.info("|{0}| >> indices: {1} | objectSet: {2} | v: {3}".format(_str_func, _indices,_str, v))  
+            _l.append(v)
+            print(v)
         mc.select(_l)
         return _l
         #mc.evalDeferred(self.uiUpdate_objectSets,lp=True)            
@@ -723,11 +728,11 @@ def buildSetsForm_main(self,parent):
                   l = 'Create Set',
                   c = lambda *a:self.uiFunc_createSet(),
                   ann = 'Create new buffer from selected buffer')    
-    mc.button(parent=NewSetRow ,
+    """mc.button(parent=NewSetRow ,
               ut = 'cgmUITemplate',                                                                                                
               l = 'Update',
               c = lambda *a:self.uiUpdate_objectSets(),
-              ann = 'Force the ui to update')	    
+              ann = 'Force the ui to update')"""	    
     NewSetRow.layout()
 
     """
@@ -966,7 +971,8 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
     index = self.ml_objectSets.index(mObjectSet)
     log.info("|{0}| >> objectSet: {1} | index: {2}".format(_str_func,objectSet, index))
     _short = mObjectSet.p_nameShort    
-        
+    _base = mObjectSet.p_nameBase
+    
     #Get check box state
     b_activeState = False
     if mObjectSet.p_nameShort in self.var_ActiveSets.value:
@@ -1032,7 +1038,8 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
                   c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
                   ann = "Work with items in our list: {0}".format(_short))
     
-    _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameShort,
+    _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameBase,
+                                  ann = _short,
                                   editable = False)
     
     _row.setStretchWidget(_uiTF_name)
@@ -1135,6 +1142,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             height = 150
         uiItemList = mUI.MelObjectScrollList(parent, allowMultiSelection=True,en=True,
                                              bgc = [.9,.9,.9],height = height, vis=False,
+                                             sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
                                              dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
                                              #selectCommand = self.uiFunc_selectParent_inList)
         self.d_itemScrollLists[mObjectSet] = uiItemList
