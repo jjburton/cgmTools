@@ -19,9 +19,12 @@ cgmSetTools is a tool for working with selection sets in maya. The 2.0 rewrite w
 Accessing
 ==============
 1. UI
+
     * Top cgm menu - ``CGM> animation> cgmSetTools``
-    
-2. Python
+
+2. Toolbox>TD>Rigging
+3. Toolbox>Anim
+4. Python
     
 .. code-block:: guess
 
@@ -174,7 +177,7 @@ Right click menu on the objectSet row textfield.
 * ``Purge`` - Clear the set but leave the set
 * ``Rename`` - Bring up a uiPrompt to rename the set
 * ``Copy`` - Create a new set with all of this set's items
-* ``Log`` - Print a breakdown of 
+* ``Log`` - Print a breakdown of what's in the set in the script editor
 * ``Delete`` - Delete the set
 
 

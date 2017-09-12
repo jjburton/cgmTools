@@ -1,21 +1,22 @@
 .. toctree::
 
+********************
 What's new?
-==============
+********************
 We'll keep this page update with the most important bits of what's new and getting started with the tools.
 
-Last update: 09.04.2017
+Last update: 09.12.2017
 
 Quick Start
------------------ 
+=============== 
 
 Requirments
-^^^^^^^^^^^^^^
+--------------
 * Maya 2010+
 * OS - WIndows, Mac, Linux
 
 Tutorial
-^^^^^^^^^^^^^^   
+-----------   
 Let's do this
 
 .. raw: html
@@ -26,7 +27,7 @@ Let's do this
 Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/204937700 
 
 Stand Alone
-^^^^^^^^^^^^^^^^^
+--------------
 1. Download the latest
 2. Unzip it to your maya scripts folder
 
@@ -44,27 +45,42 @@ If you're having issues, check .. `Support`
 
 
 Active Development
--------------------
+=====================
 
 Docs
-^^^^^^^^
+---------
 
 These help docs will be continued to be fleshed out. We currently only have about 30% coverage on tools
 
-   * Toolbox/Toolbox almost done - 09.04.2017  
+   * Toolbox/Toolbox up (09.05.2017) - Collecting Feedback
+   * SetTools docs up (09.11.2017) - Collecting Feedback
    * AttrTools docs in que
    * Knowledge - Added 08.17.2017
 
 Bugs
-^^^^^^^
+--------
 
    * `2017`
       * General ui slow down - This seems to be an issue with 2017. Rebooting the computer resolves and sometimes force stopping Python. Continuing to investigate.
    * dynParentTool crash - ``Patch testing`` - Potential fix in bugs branch we're testing. Close to final testing on this.
 
 Features/Updates
-^^^^^^^^^^^^^^^^^^
-
+--------------------
+* **Toolbox** - Continuing to flesh out the tools as we work through gigs.
 * **MRS** - Morpheus Rig System
-* **cgmSetTools** - 2.0 rewrite commencing
 * **Build Pulls** - Working on a method to make getting update much easier
+
+2017
+^^^^^^^
+* SetTools 2.0
+* Transform Tools
+* New Docs using Sphinx
+* Toolbox 2.0
+* MarkingMenu 2.0
+* dynParentTool 
+* AttrTools 2.0
+* Locinator 2.0
+
+2016
+^^^^^^^
+* MeshTools - Initial Release
