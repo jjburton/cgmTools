@@ -63,6 +63,7 @@ def create_curveSetup(jointList = None,
                       stretchBy = 'translate',
                       advancedTwistSetup = False,
                       addMidTwist = False,
+                      midIndex = None,
                       extendTwistToEnd = False,
                       reorient = False,                      
                       moduleInstance = None,**kws):
@@ -199,10 +200,14 @@ def create_curveSetup(jointList = None,
             log.debug("|{0}| >> Creating use curve for midTwist mode...".format(_str_func))                                            
             mi_useCurve = cgmMeta.validateObjArg(CURVES.create_fromList([mJnt.mNode for mJnt in ml_joints]))
 
-        ml_midTwistJoints = [] #exteded list of before and after joints
-        int_mid = False       
 
-        int_mid = int(len(ml_joints)/2)
+        ml_midTwistJoints = [] #exteded list of before and after joints
+        
+        if midIndex is not None:
+            int_mid = midIndex
+
+        else:
+            int_mid = int(len(ml_joints)/2)
         #Need to check for even value for this
         if len(ml_joints)%2 == 0:#even
             log.debug("|{0}| >> even...".format(_str_func))                                                

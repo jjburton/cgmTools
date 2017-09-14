@@ -1,9 +1,9 @@
 .. toctree::
 
 ********************
-SetTools
+Set Tools
 ********************
-Status: Alpha release
+Status: Alpha release - 09.12.2017
 
 Overview
 ==========
@@ -36,7 +36,7 @@ If you open the ui, you should see something like this:
 .. image:: _static/img/settools/settools_base.png
     :align: center
 
-The UI has to main parts. The top menu and body.
+The UI has two main parts. The top menu and body.
 
 
 Menu
@@ -53,7 +53,7 @@ Necessary when reloading the scene or if you made changes outside the tool and w
     
 Modes
 -------
-The tool allows for the user to specify want options they want displayed during use.
+The tool allows for the user to specify which options they want displayed during use.
 
 Anim
 ^^^^^^

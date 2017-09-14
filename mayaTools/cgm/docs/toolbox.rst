@@ -3,7 +3,10 @@
 ********************
 Toolbox
 ********************
-Last update: 09.05.2017
+
+Status: Alpha release - August 2017
+
+Last Updated: 09.05.2017
 
 
 The cgmToolbox is a collection of many tools that may be accessed in a several ways:
@@ -14,7 +17,6 @@ The cgmToolbox is a collection of many tools that may be accessed in a several w
 
 .. image:: _static/img/toolbox/toolbox_td_base.png
     :align: center
-
 
 Access
 ===============

@@ -47,10 +47,13 @@ Directory of docs
    :maxdepth: 5
    
    quickstart
-   toolbox
+   attrtools   
    dynparenttool
    locinator
+   markingmenu
+   meshtools
    settools
+   toolbox
    knowledge
    support
 

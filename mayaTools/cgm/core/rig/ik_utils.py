@@ -113,6 +113,7 @@ def spline(jointList = None,
     b_extendTwistToEnd= VALID.boolArg(extendTwistToEnd)
 
     if int_lenJoints<3:
+        pprint.pprint(vars())
         raise ValueError,"needs at least three joints"
     
     if parentGutsTo is None:

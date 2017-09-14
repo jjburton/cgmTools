@@ -5,7 +5,19 @@ What's new?
 ********************
 We'll keep this page update with the most important bits of what's new and getting started with the tools.
 
-Last update: 09.12.2017
+Last update: 09.14.2017
+
+Added Docs: 
+
+* `Set Tools <settools.html>`_
+* `Attr Tools <attrtools.html>`_
+* `Mesh Tools <meshtools.html>`_
+* `MarkingMenu <markingmenu.html>`_
+
+New Tools:
+
+* Set Tools 2.0
+* Toolbox 2.0
 
 Quick Start
 =============== 
@@ -83,4 +95,4 @@ Features/Updates
 
 2016
 ^^^^^^^
-* MeshTools - Initial Release
+* MeshTools 1.0 - Initial Release

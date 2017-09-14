@@ -6,14 +6,18 @@ Dynamic Parent Tool
 
 Status: Alpha release
 
+Last Updated: August 2017
+
 Overview
 ==========
 
 The dynamic parent tool is for setting up and managing dynamic parent setups for controls in rigs. Underlying tech
 was creating during Morpheus 2 development. Acknowlegments to our friend John Doublestein for the initial seed of how to do this.
 
-Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/220053622 
+.. image:: _static/img/dynparenttool/dynparenttool_vid_1.png
+    :align: center
 
+Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/220053622 
 
 **Features**
 

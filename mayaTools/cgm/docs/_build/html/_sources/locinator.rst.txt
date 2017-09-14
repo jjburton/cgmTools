@@ -3,21 +3,27 @@
 ********************
 Locinator
 ********************
+
 Status: Alpha release
+
+Last Updated: August 2017
 
 Overview
 ==========
 
-.. image:: _static/img/locinator/loc_uiMain.png
+.. image:: _static/img/locinator/loc_vid_1.png
     :align: center
+
+Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/205330429 
+
     
 cgmLocinator is  a tool for matching objects to locators or other objects as well as creating update-able locators in a
 myriad of ways.
 
 In early 2017, we undertook a rewrite of cgmLocinator as a part of our new marking menu push and core rewrite. New locator types and a conversion from a traditional ui to a marking menu are a part of this push.
 
-Until we get embeded video sorted. Please use this link: https://player.vimeo.com/video/205330429 
-
+.. image:: _static/img/locinator/loc_uiMain.png
+    :align: center
 
 **What can I do with it?**
 

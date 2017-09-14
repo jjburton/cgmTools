@@ -867,7 +867,7 @@ class cgmGUI2(mUI.BaseMelWindow):
         add_LineBreak()
         mc.text(label='Version: %s' % self.__version__)
         mc.text(label='')
-        add_Button(column,'Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/morphyMaker/")')
+        add_Button(column,'Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://docs.cgmonks.com/index.html")')
         add_Button(column,'Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
         mc.setParent( '..' )
         mc.showWindow( window )
