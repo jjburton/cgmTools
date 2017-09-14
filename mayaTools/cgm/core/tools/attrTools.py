@@ -153,7 +153,7 @@ class ui(cgmUI.cgmGUI):
     
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/attrtools-2-0/");',                        
+                    c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/attrtools.html");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )      

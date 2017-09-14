@@ -106,13 +106,13 @@ class go(cgmUI.cgmGUI):
                          c= lambda *a: self.do_showHelpToggle())
 
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Docs - meshTools",
-                         c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/meshtools");')
+                         c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/meshtools.html");')
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Docs - MeshMath",
-                         c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/meshtools/meshmath");')
+                         c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/meshtools.html#math");')
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Docs - Casting",
-                         c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/meshtools/meshCast");')	
+                         c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/meshtools.html#cast");')	
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Docs - Utils",
-                         c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/meshtools/meshutils");')	
+                         c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/meshtools.html#utils");')	
 
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )

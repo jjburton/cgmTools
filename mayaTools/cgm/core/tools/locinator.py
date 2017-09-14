@@ -677,7 +677,7 @@ def uiRadialMenu_root(self,parent,direction = None, callback = None):
                 #rp = 'NE')
     mc.menuItem(parent=_utils,
                 l = 'Get Help',
-                c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/locinator-2-0/");',                        
+                c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/locinator.html");',                        
                 rp = 'N')       
     
     
@@ -831,7 +831,7 @@ def uiRadialMenu_rootOLD(self,parent,direction = None):
                 #rp = 'NE')
     mc.menuItem(parent=_utils,
                 l = 'Get Help',
-                c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/locinator-2-0/");',                        
+                c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/locinator.html");',                        
                 rp = 'N')       
     
     
@@ -945,7 +945,7 @@ class ui(cgmUI.cgmGUI):
         mc.menuItem(p=self.uiMenu_help,l='----------------',en=False)
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/cgmmarkingmenu/locinator-2-0/");',                        
+                    c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/locinator.html");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )        

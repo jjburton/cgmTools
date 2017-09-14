@@ -91,7 +91,7 @@ class ui(cgmUI.cgmGUI):
     
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("https://docs.google.com/document/d/1ztN9wZfYunvGlao2iRL5WSc9oJTN021Bk6LNZqhbrL8/edit?usp=sharing");',                        
+                    c='import webbrowser;webbrowser.open("http://docs.cgmonks.com/dynparenttool.html");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
