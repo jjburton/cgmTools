@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -60,8 +60,8 @@ def get_list(context = 'selection', mType = None, getTransform = False):
                 _bfr = mc.ls(sl=True, shortNames = False)
                 for o in _bfr:
                     _l_context.extend(TRANS.shapes_get(o,True))
-            else:_l_context = mc.ls(sl=True, type=mType, shortNames = False)
-        else:_l_context = mc.ls(sl=True, shortNames = False)
+            else:_l_context = mc.ls(sl=True, type=mType, shortNames = False,flatten=True)
+        else:_l_context = mc.ls(sl=True, shortNames = False,flatten=True)
     elif _context == 'scene':
         log.debug("|{0}| >> scene mode...".format(_str_func))        
         if mType is not None:

@@ -16,7 +16,7 @@ __version__ = '0.1.09042017'
 import os
 import re
 import sys
-
+import webbrowser
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -2077,25 +2077,38 @@ class ui(cgmUI.cgmGUI):
         #>>>Create -------------------------------------------------------------------------------------
         _row_create = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_create,w=5)                                              
-        mUI.MelLabel(_row_create,l='Create from selected:')
+        mUI.MelLabel(_row_create,l='Create:')
         _row_create.setStretchWidget(mUI.MelSeparator(_row_create)) 
 
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                    
-                  l = 'Transform',
+                  l = 'Trans',
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}))    
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                    
+                  l = 'Trans(mid)',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
 
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                                        
-                  l = 'Joint',
-                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'))         
+                  l = 'Jnt',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Joint',**{'create':'joint'}))         
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                                        
-                  l = 'Locator',
-                  c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))                          
+                  l = 'Jnt(mid)',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Joint at mid',**{'create':'joint','midPoint':'True'}))         
+        
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                                        
-                  l = 'Curve',
+                  l = 'Loc',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc')) 
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Loc(mid)',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','Create Loc at mid',**{'mode':'midPoint'}))           
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'Crv',
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))                          
 
         mUI.MelSpacer(_row_create,w=5)                                              

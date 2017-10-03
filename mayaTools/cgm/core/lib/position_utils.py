@@ -429,3 +429,20 @@ def layout_byColumn(objList = None,columns=3,startPos = [0,0,0]):
             bufferX += sizeX
         bufferY -= sizeY    
     
+def get_midPointDict(sourceList,forceBBCenter = False):
+    _str_func = 'get_midPointDict'    
+    _d_info = {}
+    _l_pos = []
+    _l_rot = []
+    for s in sourceList:
+        log.debug("|{0}| >> Checking source: {1}'".format(_str_func,s))        
+        _d_shape = get_info(s,boundingBox=forceBBCenter)
+        _l_pos.append(_d_shape['position'])
+        _l_rot.append(_d_shape['rotation'])
+        _d_info[s] = _d_shape
+    #_d_info['info'] = _d_info
+    _d_info['positions'] = _l_pos
+    _d_info['rotations'] = _l_rot
+    _d_info['position'] = MATH.get_average_pos(_l_pos)
+    _d_info['rotation'] = MATH.get_average_pos(_l_rot)
+    return _d_info 

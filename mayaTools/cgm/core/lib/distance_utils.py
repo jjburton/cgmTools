@@ -89,6 +89,8 @@ def get_size_byShapes(arg, mode = 'max'):
     
     if mode == 'max':
         return max(max(_sizeX), max(_sizeY), max(_sizeZ))
+    elif mode == 'bb':
+        return [max(_sizeX), max(_sizeY), max(_sizeZ)]       
     else:
         raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
         

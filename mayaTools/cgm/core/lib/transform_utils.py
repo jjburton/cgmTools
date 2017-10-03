@@ -34,6 +34,7 @@ from cgm.core.lib import shared_data as SHARED
 #from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import position_utils as POS
+reload(POS)
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import snap_utils as SNAP
 
@@ -273,7 +274,48 @@ def scalePivot_set(node=None, new_pos = None):
     
     mc.xform (_node,  ws=True, sp= new_pos, p=True)
 
- 
+def rotateOrder_get(node=None):
+    """
+    Query the local rotation/euler of a given obj
+    
+    :parameters:
+        node(str): node to query
+        asEuclid(bool): whether to return a EUCLID.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotateOrder_get'
+    
+    node = VALID.mNodeString(node)
+    
+    _res = mc.xform (node, q=True, roo=True )
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    
+    return _res
+
+def rotateOrder_set(node=None, rotateOrder = None, preserve = True):
+    """
+    Set the rotateOrder of an object
+    
+    :parameters:
+        node(str): node to query
+        rotateOrder(str)
+        preserve(bool) - Whether to set with preserve or not
+        asEuclid(bool): whether to return a EUCLID.Vector3
+
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotateOrder_set'
+    
+    node = VALID.mNodeString(node)
+    
+    _res = mc.xform(node, roo=rotateOrder,p=preserve)
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,_res,node))
+    
+    return _res
+
 
 def rotateAxis_get(node=None, asEuclid = False):
     """
@@ -341,6 +383,7 @@ def rotate_get(node=None, asEuclid = False):
     if asEuclid:
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
     return _res
+
 eulerAngles_get = rotate_get#...for you Dave
 
 def rotate_set(node=None, new_rot = None):
@@ -467,6 +510,29 @@ def scale_to_size(node = None, size = 1.0, mode = 'shape'):
     multiplier = size/currentSize
     mc.scale(multiplier,multiplier,multiplier, node, relative = True)
     #mc.makeIdentity(node,apply=True,scale=True)   
+    
+def scale_to_boundingBox(node = None, box = [1,1,1]):
+    """
+    Scale an object to a bounding box size
+    
+    :parameters:
+        node(str): node to modify
+        box(double3): Box to scale to
+
+    :returns
+        None
+    """
+    _str_func = 'orient_set'
+    
+    mc.makeIdentity(node, apply =True, scale = True)    
+    _bb_current = DIST.get_bb_size(node)
+    _l_scale = []
+    for i,v in enumerate(_bb_current):
+        _l_scale.append( box[i]/v )
+        
+    #mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, absolute = True)
+    mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
+    
     
     
 def scaleLocal_get(node=None, asEuclid = False):

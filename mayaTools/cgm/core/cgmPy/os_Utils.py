@@ -320,3 +320,36 @@ def get_module_data(path = None, level = None, mode = 0, cleanPyc = False):
         if _b_debug:print(k)
             
     return _d_files, _l_ordered_list, _l_pycd
+
+
+def import_file(mFile = None, namespace = None):
+    """
+    Import a file with a list of items
+    """
+    _str_func = 'import_file'
+    
+    if not os.path.exists(mFile):
+        log.error("|{0}| >> File doesn't exist: '{1}'".format(_str_func,mFile))
+        return False
+    
+    _i = 0
+    _name = 'IMPORT_{0}'.format(_i)
+    while mc.objExists(_name):
+        _i +=1
+        _name = 'IMPORT_{0}'.format(_i)
+    
+    kws = {}
+    if namespace is not None:
+        kws = {'namespace':namespace}
+    mc.file(mFile, i = True, pr = True, force = True,prompt = False,  gn = _name, gr = True, **kws) 
+    
+    _l = mc.listRelatives (_name, children = True, type='transform',fullPath=True) or []
+    _res = []
+    for c in _l:
+        _res.append(mc.parent(c, world = True)[0])
+    
+    mc.delete(_name)    
+    return _res
+    
+    
+    

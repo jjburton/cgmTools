@@ -9,6 +9,7 @@ Refactoring attribte calls to core.
 import copy
 import re
 import sys
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -327,19 +328,27 @@ def delete(*a):
     _str_func = 'delete'
     _d = validate_arg(*a) 
     _combined = _d['combined'] 
+    try:
+        if mc.objExists(_combined):
+            if get_parent(_d):raise ValueError,"{0} is child attr, try deleting parent attr: {1}".format(_combined,get_parent(_d))
+            try:
+                mc.setAttr(_combined,lock=False)
+            except:pass            
+            try:
+                break_connection(_combined)
+            except:pass
+            
+            _out = get_driven(_d) or []
+            for p in _out:
+                log.warning("|{0}| >> [{1}] | breaking out plug: {2}".format(_str_func,_combined,p))     
+                disconnect(_combined,p)
     
-    if mc.objExists(_combined):
-        if get_parent(_d):raise ValueError,"{0} is child attr, try deleting parent attr: {1}".format(_combined,get_parent(_d))
-        try:
-            mc.setAttr(_combined,lock=False)
-        except:pass            
-        try:
-            break_connection(_combined)
-        except:pass
-
-        mc.deleteAttr(_combined)  
-        return True
-    return False
+            mc.deleteAttr(_combined)  
+            return True
+        return False
+    except Exception,err:
+        pprint.pprint(vars())
+        raise Exception,err
         
 def get(*a, **kws):
     """   
@@ -1086,7 +1095,7 @@ def get_familyDict(*a):
     if returnDict:
         return returnDict
     return False
-
+    
 def break_connection(*a):
     """   
     Breaks connections on an attribute. Handles locks on source or end

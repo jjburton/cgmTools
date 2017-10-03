@@ -7,6 +7,7 @@ www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -115,17 +116,17 @@ def match_orientation(obj = None, source = None,
     _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
     _dup = False
     
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
-    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
+    log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.debug("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
     
     if _l_children:#...parent children to world as we'll be messing with stuff
         for i,c in enumerate(_l_children):
             _l_children[i] = parent_set(c,False)
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
         _dup = mc.duplicate(obj, parentOnly = True)[0]
-        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
+        log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
         for s in _l_shapes:
             shapeParent_in_place(_dup,s,keepSource=False)        
         
@@ -134,7 +135,7 @@ def match_orientation(obj = None, source = None,
     _restorePivotSP = False
     
     if rotateAxis:
-        log.info("|{0}| >> rotateAxis...".format(_str_func))        
+        log.debug("|{0}| >> rotateAxis...".format(_str_func))        
         
         #There must be a better way to do this. Storing to be able to restore after matrix ops
         _restorePivotRP = mc.xform(obj, q=True, ws=True, rp = True)
@@ -170,17 +171,17 @@ def match_orientation(obj = None, source = None,
         mc.xform(obj,ws=True, sp = _restorePivotSP) 
             
     if rotateOrder:   
-        log.info("|{0}| >> rotateOrder...".format(_str_func))                  
+        log.debug("|{0}| >> rotateOrder...".format(_str_func))                  
         mc.xform(obj, roo = mc.xform (source, q=True, roo=True ), p=True)#...match rotateOrder
                 
     if _dup:
-        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
+        log.debug("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
         #mc.delete(_l_shapes)
         shapeParent_in_place(obj,_dup)
         mc.delete(_dup)
         
     for c in _l_children:
-        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
+        log.debug("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
         log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
         
         parent_set(c,obj)  
@@ -217,39 +218,39 @@ def match_transform(obj = None, source = None,
     _l_shapes = mc.listRelatives (obj, shapes = True, fullPath = True) or []
     _dup = False
     
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
-    log.info("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
+    log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.debug("|{0}| >> shapes:{1}".format(_str_func,_l_shapes))
     
     if _l_children:#...parent children to world as we'll be messing with stuff
         for i,c in enumerate(_l_children):
             _l_children[i] = parent_set(c,False)
-    log.info("|{0}| >> children:{1}".format(_str_func,_l_children))
+    log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
         _dup = mc.duplicate(obj, parentOnly = True)[0]
         for s in _l_shapes:
             shapeParent_in_place(_dup,s,keepSource=False)
-        log.info("|{0}| >> dup:{1}".format(_str_func,_dup))
+        log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
         
         
     #The meat of it...        
     if rotateOrder or rotateAxis:
-        log.info("|{0}| >> orientation copy...".format(_str_func))                                  
+        log.debug("|{0}| >> orientation copy...".format(_str_func))                                  
         match_orientation(obj,source,rotateOrder,rotateAxis)
         
     if rotatePivot or scalePivot:    
-        log.info("|{0}| >> pivot copy...".format(_str_func))                                  
+        log.debug("|{0}| >> pivot copy...".format(_str_func))                                  
         copy_pivot(obj,source, rotatePivot, scalePivot)    
         
 
     if _dup:
-        log.info("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
+        log.debug("|{0}| >> shapes back...: {1}".format(_str_func,_l_shapes))          
         #mc.delete(_l_shapes)
         shapeParent_in_place(obj,_dup,)
         mc.delete(_dup)
         
     for c in _l_children:
-        log.info("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
+        log.debug("|{0}| >> parent back...: '{1}'".format(_str_func,c))  
         log.debug("|{0}| >> obj:{1}".format(_str_func,obj))    
         parent_set(c,obj)  
         
@@ -358,7 +359,7 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
     _str_func = 'shapeParent_in_place'
     
     l_shapes = VALID.listArg(shapeSource)
-    
+    obj = VALID.mNodeString(obj)
     log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
     
     if replaceShapes:
@@ -460,7 +461,7 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
             log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
     return True
 
-def create_at(obj = None, create = 'null'):
+def create_at(obj = None, create = 'null',midPoint = False):
     """
     Create a null matching a given obj
     
@@ -479,46 +480,43 @@ def create_at(obj = None, create = 'null'):
     log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
     log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
     
-    
-    
-    #return rotation order
-    if _create in ['null','joint']:
+    if midPoint:
+        _d = TRANS.POS.get_midPointDict(obj)
+        objTrans = _d['position']
+        objRot = _d['rotation']
+        objRotAxis = None
+        
+    elif _create in ['null','joint']:
         objTrans = TRANS.position_get(obj)#mc.xform (obj, q=True, ws=True, rp=True)
         objRot = TRANS.orient_get(obj)#mc.xform (obj, q=True, ws=True, ro=True)
-        objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)        
+        objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)   
+            
     if _create == 'null':
         _created = mc.group (w=True, empty=True)
-        #mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
-        mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
+        if not midPoint:
+            mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
+            
         mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
-        #for i,a in enumerate(['X','Y','Z']):
-                        #attributes.doSetAttr(groupBuffer, 'rotateAxis|{0}|'.format(a), objRotAxis[i])    
-        #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
         mc.xform(_created, ws=True, ro= objRot,p=False)
-        mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+        if objRotAxis:
+            mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
         
     elif _create == 'joint':
-        #raise NotImplementedError,"joints not done yet"
-        #mc.select(cl=True)
-        #_created = mc.joint()
-        #ATTR.set(_created,'displayLocalAxis',True)
-
         mc.select(cl=True)
         _created = mc.joint()
-        #mc.setAttr ((groupBuffer+'.rotateOrder'), correctRo)
-        mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
+        if not midPoint:        
+            mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
         mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
-        #for i,a in enumerate(['X','Y','Z']):
-                        #attributes.doSetAttr(groupBuffer, 'rotateAxis|{0}|'.format(a), objRotAxis[i])    
-        #mc.rotate(objRot[0], objRot[1], objRot[2], [groupBuffer], ws=True)
         mc.xform(_created, ws=True, ro= objRot,p=False)
-        mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+        if objRotAxis:
+            mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+        
     elif _create == 'curve':
         l_pos = []
         #_sel = mc.ls(sl=True,flatten=True)
         for i,o in enumerate(obj):
             p = TRANS.position_get(o)
-            log.info("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+            log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
             l_pos.append(p)
     
         if len(l_pos) <= 1:
@@ -526,14 +524,13 @@ def create_at(obj = None, create = 'null'):
     
         knot_len = len(l_pos)+3-1		
         _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  
-        log.info("|{0}| >> created: {1}".format(_str_func,_created))  
+        log.debug("|{0}| >> created: {1}".format(_str_func,_created))  
         
     elif _create == 'locator':
         raise NotImplementedError,"locators not done yet"
     else: 
         raise NotImplementedError,"|{0}| >> unknown mode: {1}".format(_str_func,_create)  
 
-        
     mc.select(_created)
     return _created
     
@@ -678,9 +675,9 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         if not _shapes:
             raise ValueError,"|{0}|  >> Not a shape and has no shapes: '{1}'".format(_str_func,t)        
         
-        #log.info(key)
-        #log.info(index)
-        #log.info(rgb)
+        #log.debug(key)
+        #log.debug(index)
+        #log.debug(rgb)
         if index is None and rgb is None and key is None:
             raise ValueError,"|{0}|  >> Must have a value for index,rgb or key".format(_str_func)
         
@@ -895,8 +892,7 @@ def duplicate_shape(shape):
             _transform = SEARCH.get_transform(shape)
             _shapes = mc.listRelatives(_transform,s=True, fullPath = True)
             _idx = _shapes.index(coreNames.get_long(shape))
-            log.info(_shapes)
-            log.info(_idx)
+
             
             _bfr = mc.duplicate(shape)
             _newShapes = mc.listRelatives(_bfr[0], s=True, fullPath = True)
@@ -908,6 +904,7 @@ def duplicate_shape(shape):
             
         
     except Exception,err:
+        pprint.pprint(vars())
         if not SEARCH.is_shape(shape):
             log.error("|{0}|  >> Failure >> Not a shape: {1}".format(_str_func,shape))
         raise Exception,"|{0}|  >> failed! | err: {1}".format(_str_func,err)  
