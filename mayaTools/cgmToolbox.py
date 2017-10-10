@@ -23,7 +23,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGen
-
 import cgm.core.classes.GuiFactory as cgmUI
 #try:
 #    import wingdbstub
@@ -1227,6 +1226,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                                                                                              
                   c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
                   ann = "Layout on line from first to last item closest as possible to original position")    
+        
         mUI.MelSpacer(_row_arrange,w=5)                                              
         _row_arrange.layout()         
 
@@ -2087,7 +2087,7 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                    
                   l = 'Trans(mid)',
-                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
 
         mc.button(parent=_row_create,
                   ut = 'cgmUITemplate',                                        

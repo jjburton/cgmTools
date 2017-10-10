@@ -3009,8 +3009,12 @@ class cgmObject(cgmNode):
         buffer = TRANS.group_me(self,parentTo,maintain)
         if typeModifier:
             ATTR.store_info(buffer,'cgmTypeModifier',typeModifier)
+            self.connectChildNode(buffer,typeModifier + 'Group','source')
         if buffer and asMeta:
-            return cgmObject(buffer)
+            mGrp = cgmObject(buffer)
+            if typeModifier:
+                mGrp.doName()
+            return mGrp
         return buffer
     
     def doCreateAt(self, create = 'null', copyAttrs = False, asMeta = True):

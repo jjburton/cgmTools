@@ -1064,38 +1064,26 @@ def attachObjToCurve(obj = None, crv = None):
     except StandardError,error:
 	raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	
 '''
-def attachObjToCurve(*args, **kws):
+def attachObjToCurve(obj = None, crv = None):
     """
-    Function to see if a curve is an ep curve
+       
     @kws
     baseCurve -- curve on check
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
-        def __init__(self,*args, **kws):
-            """
-            """	
-            super(fncWrap, self).__init__(curve = None)
-            self._str_funcName = 'attachObjToCurve'	
-            self._l_ARGS_KWS_DEFAULTS = [{'kw':'obj',"default":None},
-                                         {'kw':'crv',"default":None}]	    
-            self.__dataBind__(*args, **kws)
-            #=================================================================
+    _str_func = 'attachObjToCurve'
 
-        def __func__(self):
-            """
-            """
-            obj = cgmValid.objString(self.d_kws['obj'],isTransform=True)
-            crv = cgmValid.objString(self.d_kws['crv'],mayaType='nurbsCurve')	
-            d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
-            mi_poci = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
-            mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
-            mi_poci.parameter = d_returnBuff['parameter']
-            mc.connectAttr("%s.position"%mi_poci.mNode,"%s.t"%obj)
-            mi_poci.doStore('cgmName',obj)
-            mi_poci.doName()
 
-            return True
-    return fncWrap(*args, **kws).go()
+    obj = cgmValid.objString(obj,isTransform=True)
+    crv = cgmValid.objString(crv,mayaType='nurbsCurve')	
+    d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
+    mi_poci = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+    mc.connectAttr("%s.worldSpace"%d_returnBuff['shape'],"%s.inputCurve"%mi_poci.mNode)
+    mi_poci.parameter = d_returnBuff['parameter']
+    mc.connectAttr("%s.position"%mi_poci.mNode,"%s.t"%obj)
+    mi_poci.doStore('cgmName',obj)
+    mi_poci.doName()
+
+    return True
 
 def getUParamOnCurve(obj = None, crv = None):
     """

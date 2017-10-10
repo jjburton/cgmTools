@@ -27,6 +27,7 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
+import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
 reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
@@ -862,6 +863,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = lambda *a:self.bc_create_curve(),
                     rp = "S")
+        
         _control = mc.menuItem(parent=_r,subMenu = True,
                                l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
                                rp = "W") 
@@ -873,6 +875,31 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     l = 'Change options'.format(self.var_curveCreateType.value),#'Control Curve',
                     c = lambda *a:TOOLBOX.ui(),
                     rp = "SW")          
+        
+        #Mid...
+        _mid = mc.menuItem(parent=_r,subMenu = True,
+                           l = 'Mid: ',#'Control Curve',
+                           en = self._b_sel_pair,
+                           rp = "E")
+        
+        mc.menuItem(parent=_mid,
+                  ut = 'cgmUITemplate',                    
+                  l = 'Trans',
+                  rp = 'NE',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
+        mc.menuItem(parent=_mid,
+                  ut = 'cgmUITemplate',                    
+                  l = 'Joint',
+                  rp = 'E',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'joint','midPoint':'True'}))    
+        mc.menuItem(parent=_mid,
+                  ut = 'cgmUITemplate',                    
+                  l = 'Loc',
+                  rp = 'SE',
+                  c = lambda *a:MMCONTEXT.func_process(LOC.create, self._l_sel,'all','midPointLoc',False,**{'mode':'midPoint'}),)                                                                      
+        
+        
+        
         
         
         #>>Locator ------------------------------------------------------------------------------------------
@@ -1421,32 +1448,48 @@ class cgmMarkingMenu(cgmUI.markingMenu):
     
         _pnt = mc.menuItem(parent=_r,subMenu = True,
                            l = 'Point',
-                           rp = 'NW')	
+                           rp = 'NW')
         mc.menuItem(parent=_pnt,
                     l = 'Object',
                     en = self._b_sel_pair,
                     c = lambda *a:snap_action(self,'point'),
                     #c = mmCallback(snap_action,self,'point'),
-                    rp = 'NW')	        
+                    rp = 'NW')
         mc.menuItem(parent=_pnt,
                     l = 'Closest on Target',
                     en = self._b_sel_pair,
                     c = lambda *a:snap_action(self,'closestPoint'),
                     #c = mmCallback(snap_action,self,'closestPoint'),
-                    rp = 'W')	
+                    rp = 'W')
+        mc.menuItem(parent=_pnt,
+                  l = 'Along line(Even)',
+                  en = self._b_sel_few,
+                  ut = 'cgmUITemplate',                                                                                              
+                  c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+                  ann = "Layout on line from first to last item",
+                  rp = 'SW')
+        mc.menuItem(parent=_pnt,
+                  l = 'Along line(Spaced)',
+                  en = self._b_sel_few,                  
+                  ut = 'cgmUITemplate',                                                                                              
+                  c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
+                  ann = "Layout on line from first to last item closest as possible to original position",
+                  rp = 'S')
+        
+        
         
         mc.menuItem(parent=_r,
                         l = 'Parent',
                         en = self._b_sel_pair,    
                         c = lambda *a:snap_action(self,'parent'),                        
                         #c = mmCallback(snap_action,self,'parent'),
-                        rp = 'N')	
+                        rp = 'N')
         mc.menuItem(parent=_r,
                         l = 'Orient',
                         en = self._b_sel_pair,   
                         c = lambda *a:snap_action(self,'orient'),                                                
                         #c = mmCallback(snap_action,self,'orient'),
-                        rp = 'NE')	       
+                        rp = 'NE')
 
         mc.menuItem(parent=_r,
                         l = 'RayCast',
