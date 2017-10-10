@@ -13,6 +13,12 @@ The cgmToolbox is a collection of tools we write, share, and use to do our work.
 toolbox, others allow us to share their work as well.
 
 
+License
+=========
+The cgmToolbox is free to use for both commercial and personal projects. For now consider it as attribution share alike. You can't resell our code nor call your own. You're free to modify it however you like.
+
+More specific legalese shall follow when we get around to it.
+
 Connect
 =============
 * `CG Monks <http://www.cgmonks.com/>`_

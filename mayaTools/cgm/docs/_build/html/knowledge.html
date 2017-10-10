@@ -129,6 +129,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#cmds-mc">cmds/mc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#wing">Wing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sphinx">Sphinx</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python">Python</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sys">Sys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pprint">pprint</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#concepts">Concepts</a><ul>
@@ -355,6 +362,73 @@
 </dl>
 </li>
 </ul>
+</div>
+<div class="section" id="wing">
+<h3>Wing<a class="headerlink" href="#wing" title="Permalink to this headline">¶</a></h3>
+<p>Setting up wing auto completion with maya can be a bit tedious but as Josh got a new computer he had to go through it again recently and is putting it here so we don't forget.</p>
+<p><a class="reference external" href="https://wingware.com/doc/howtos/maya">https://wingware.com/doc/howtos/maya</a></p>
+<p>Getting things setup can be a little tedious.
+* Project Properties</p>
+<blockquote>
+<div><ul class="simple">
+<li>Python executable - Point to maya mayapy.exe. Example: <cite>c:Program FilesAutodeskMaya2017binmayapy.exe</cite></li>
+<li><dl class="first docutils">
+<dt>Python path - Set to custom</dt>
+<dd><ul class="first last">
+<li>Add repo. Example <cite>d:reposcgmToolsmayaTools</cite></li>
+<li>Add pi helper path. Example ``</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>Preferences. edit&gt;Preferences</dt>
+<dd><ul class="first last">
+<li><dl class="first docutils">
+<dt>Source Analysis -</dt>
+<dd><ul class="first last">
+<li>Add pi helper path. <cite>d:[your path]pi-files</cite></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="sphinx">
+<h3>Sphinx<a class="headerlink" href="#sphinx" title="Permalink to this headline">¶</a></h3>
+<p>We use sphinx, this is how we get rolling on new machines.</p>
+<ol class="arabic simple">
+<li>Install Python (2.76 I one we currently use for Maya reasons)</li>
+<li>Open a command prompt</li>
+<li><code class="docutils literal"><span class="pre">$</span> <span class="pre">easy_install</span> <span class="pre">sphinx</span></code></li>
+<li><code class="docutils literal"><span class="pre">$</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">sphinx_rtd_theme</span></code></li>
+<li>Walk to doc directory</li>
+<li>Make changes to rsts</li>
+<li><code class="docutils literal"><span class="pre">$</span> <span class="pre">make</span> <span class="pre">html</span></code></li>
+</ol>
+</div>
+<div class="section" id="python">
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="sys">
+<h4>Sys<a class="headerlink" href="#sys" title="Permalink to this headline">¶</a></h4>
+<ul class="simple">
+<li>Pathing uses <code class="docutils literal"><span class="pre">/</span></code> on windows. - <code class="docutils literal"><span class="pre">sys.path.append(&quot;d:/repos/cgmTools/mayaTools/&quot;)</span></code></li>
+</ul>
+</div>
+<div class="section" id="pprint">
+<h4>pprint<a class="headerlink" href="#pprint" title="Permalink to this headline">¶</a></h4>
+<p>pprint is a fantastic tool for logging data while working. It breaks out dict data in a readable format. Pretty sure maya started using it in 2017 or as results in the script editor got the same readabilty around that time.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">pprint.pprint(vars())</span></code> for example will print all active variables in the middle of a function without using some sort of editor to track it.</li>
+</ul>
+</div>
 </div>
 </div>
 <div class="section" id="concepts">

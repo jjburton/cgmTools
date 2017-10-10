@@ -117,6 +117,48 @@ cmds/mc
 * ``mc.listConnections``
     * To get plugs properly, you need both source and destination flags set - one True, one False to get expected results. Ran into a bug where the default value in maya changed between versions. Don"t assume.
 
+Wing
+----------------
+Setting up wing auto completion with maya can be a bit tedious but as Josh got a new computer he had to go through it again recently and is putting it here so we don't forget.
+
+https://wingware.com/doc/howtos/maya
+
+Getting things setup can be a little tedious.
+* Project Properties
+    * Python executable - Point to maya mayapy.exe. Example: `c:\Program Files\Autodesk\Maya2017\bin\mayapy.exe`
+    * Python path - Set to custom
+        * Add repo. Example `d:\repos\cgmTools\mayaTools`
+        * Add pi helper path. Example ``
+* Preferences. edit>Preferences
+    * Source Analysis - 
+        * Add pi helper path. `d:\[your path]\pi-files`
+
+Sphinx
+--------
+We use sphinx, this is how we get rolling on new machines.
+
+#. Install Python (2.76 I one we currently use for Maya reasons)
+#. Open a command prompt
+#. ``$ easy_install sphinx``
+#. ``$ pip install sphinx_rtd_theme``
+#. Walk to doc directory
+#. Make changes to rsts
+#. ``$ make html``
+
+Python
+------
+
+Sys
+^^^^^
+
+* Pathing uses ``/`` on windows. - ``sys.path.append("d:/repos/cgmTools/mayaTools/")``
+
+pprint
+^^^^^^^^^
+pprint is a fantastic tool for logging data while working. It breaks out dict data in a readable format. Pretty sure maya started using it in 2017 or as results in the script editor got the same readabilty around that time.
+
+* ``pprint.pprint(vars())`` for example will print all active variables in the middle of a function without using some sort of editor to track it.
+
 
 
 Concepts
