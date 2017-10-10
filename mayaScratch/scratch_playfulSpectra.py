@@ -4,6 +4,195 @@ import cgm.core.lib.attribute_utils as ATTR
 import maya.cmds as mc
 
 #===================================================================================================
+# >> Abyss work
+#===================================================================================================
+def renameFinger(base = 'thumb',direction = 'l',tag = 'sknj'):
+    import cgm.core.cgm_Meta as cgmMeta
+    import maya.cmds as mc
+    ml = cgmMeta.validateObjListArg(mc.ls(sl=1))
+    for i,mObj in enumerate(ml):
+        mObj.rename("{0}_{1}_{2}_{3}".format(base,direction,i,tag))
+        
+        
+#>>Arms.....
+
+import cgm.core.rig.joint_utils as JOINTS
+reload(JOINTS)
+
+JOINTS.orientChain(mc.ls(sl=1), worldUpAxis=[0,1,0])
+
+ml_joints = cgmMeta.validateObjListArg(mc.ls(type='joint'))
+for mJnt in ml_joints:
+    if not mJnt.getShapes():
+        mJnt.rename(mJnt.p_nameBase.replace('blend','fk'))
+        
+        
+import cgm.projects.specpl as SPECTRA
+reload(SPECTRA)
+
+d_l = {'fkJoints':[u'l_shoulder_fk', u'l_elbow_fk', u'l_wrist_fk'],
+       'ikJoints':[u'l_shoulder_ik', u'l_elbow_ik', u'l_wrist_ik'],
+       'blendJoints':[u'l_shoulder_blend', u'l_elbow_blend', u'l_wrist_blend'],
+       'settings':'l_arm_root',
+       'orientation':'xyz',
+       'fkGroup':'l_arm_fk_grp',
+       'ikGroup':'l_arm_ik_grp',        
+       'ikControl':'l_arm_IK_anim',
+       'mirrorDirection' : 'Left',        
+       'globalScalePlug' : 'Master_master_anim.scaleY',
+       'ikMid':'l_elbow_pole'}
+SPECTRA.buildFKIK(**d_l)
+
+d_r = {'fkJoints':[u'r_shoulder_fk', u'r_elbow_fk', u'r_wrist_fk'],
+       'ikJoints':[u'r_shoulder_ik', u'r_elbow_ik', u'r_wrist_ik'],
+       'blendJoints':[u'r_shoulder_blend', u'r_elbow_blend', u'r_wrist_blend'],
+       'orientation':'xyz',
+       'settings':'r_arm_root',
+       'fkGroup':'r_arm_fk_grp',
+       'ikGroup':'r_arm_ik_grp',        
+       'ikControl':'r_arm_IK_anim',
+       'mirrorDirection' : 'Right',        
+       'globalScalePlug' : 'Master_master_anim.scaleY',
+       'ikMid':'r_elbow_pole'}
+SPECTRA.buildFKIK(**d_r)
+
+ml_joints = cgmMeta.validateObjListArg(mc.ls(sl=1))
+for mJnt in ml_joints:
+    mJnt.rename(mJnt.p_nameBase + '_seg')
+    
+reload(SPECTRA)
+import maya.cmds as mc
+mc.ls(sl=True)
+cgmMeta.validateObjListArg(mc.ls(sl=1))
+SPECTRA.createAndContrainRigFromSkinJoints(mc.ls(sl=True))
+SPECTRA.create_lengthSetup(mc.ls(sl=True))
+SPECTRA.setup_fingers(mc.ls(sl=True))
+SPECTRA.setup_linearSegment(mc.ls(sl=True))
+
+#...arms...
+_dshoulderTwist_l = {'blendJoints':[u'l_shoulder_blend', u'l_elbow_blend', u'l_wrist_blend'],
+                     'settings':'l_arm_root',
+                     'segmentHandle':'l_elbow_direct',
+                     'rootGroup':'Arm_l_grp',
+                     'baseName':'l_arm'}
+_dshoulderTwist_r = {'blendJoints':[u'r_shoulder_blend', u'r_elbow_blend', u'r_wrist_blend'],
+                     'settings':'r_arm_root',
+                     'segmentHandle':'r_elbow_direct',
+                     'rootGroup':'Arm_r_grp',
+                     'baseName':'r_arm'}
+SPECTRA.shoulderTwist(**_dshoulderTwist_l)
+
+import cgm.core.classes.NodeFactory as NODEF
+NODEF.createSingleBlendNetwork('l_arm_root.stableShoulder',
+                               'l_shoulder_rig_orientConstraint1.l_shoulder_rig_stable_aimW0',   
+                               'l_shoulder_rig_orientConstraint1.l_shoulder_rig_follow_aimW1',                            
+                               maxValue=1, 
+                               minValue=0)
+
+
+#...Legs -----------------------------------------------------------------------
+d_l_front = {'fkJoints':[u'l_front_hip_fk', u'l_front_knee_fk', u'l_front_ankle_fk'],
+             'ikJoints':[u'l_front_hip_ik', u'l_front_knee_ik', u'l_front_ankle_ik'],
+             'blendJoints':[u'l_front_hip_blend', u'l_front_knee_blend', u'l_front_ankle_blend'],
+             'settings':'l_front_leg_root',
+             'orientation':'xyz',
+             'fkGroup':'l_front_leg_fk_grp',
+             'ikGroup':'l_front_leg_ik_grp',        
+             'ikControl':'l_front_foot_ik_anim',
+             'mirrorDirection' : 'Left',        
+             'globalScalePlug' : 'Master_master_anim.scaleY',
+             'ikMid':'l_front_knee_pole'}
+d_r_front = {'fkJoints':[u'r_front_hip_fk', u'r_front_knee_fk', u'r_front_ankle_fk'],
+             'ikJoints':[u'r_front_hip_ik', u'r_front_knee_ik', u'r_front_ankle_ik'],
+             'blendJoints':[u'r_front_hip_blend', u'r_front_knee_blend', u'r_front_ankle_blend'],
+             'settings':'r_front_leg_root',
+             'orientation':'xyz',
+             'fkGroup':'r_front_leg_fk_grp',
+             'ikGroup':'r_front_leg_ik_grp',        
+             'ikControl':'r_front_foot_ik_anim',
+             'mirrorDirection' : 'Left',        
+             'globalScalePlug' : 'Master_master_anim.scaleY',
+             'ikMid':'r_front_knee_pole'}
+d_l_back = {'fkJoints':[u'l_back_hip_fk', u'l_back_knee_fk', u'l_back_ankle_fk'],
+             'ikJoints':[u'l_back_hip_ik', u'l_back_knee_ik', u'l_back_ankle_ik'],
+             'blendJoints':[u'l_back_hip_blend', u'l_back_knee_blend', u'l_back_ankle_blend'],
+             'settings':'l_back_leg_root',
+             'orientation':'xyz',
+             'fkGroup':'l_back_leg_fk_grp',
+             'ikGroup':'l_back_leg_ik_grp',        
+             'ikControl':'l_back_foot_ik_anim',
+             'mirrorDirection' : 'Left',        
+             'globalScalePlug' : 'Master_master_anim.scaleY',
+             'ikMid':'l_back_knee_pole'}
+d_r_back = {'fkJoints':[u'r_back_hip_fk', u'r_back_knee_fk', u'r_back_ankle_fk'],
+             'ikJoints':[u'r_back_hip_ik', u'r_back_knee_ik', u'r_back_ankle_ik'],
+             'blendJoints':[u'r_back_hip_blend', u'r_back_knee_blend', u'r_back_ankle_blend'],
+             'settings':'r_back_leg_root',
+             'orientation':'xyz',
+             'fkGroup':'r_back_leg_fk_grp',
+             'ikGroup':'r_back_leg_ik_grp',        
+             'ikControl':'r_back_foot_ik_anim',
+             'mirrorDirection' : 'Right',        
+             'globalScalePlug' : 'Master_master_anim.scaleY',
+             'ikMid':'r_back_knee_pole'}
+
+
+SPECTRA.buildFKIK(**d_l)
+SPECTRA.create_lengthSetup(mc.ls(sl=True))
+SPECTRA.createAndContrainRigFromSkinJoints(mc.ls(sl=True))
+SPECTRA.setup_linearSegment(mc.ls(sl=True))
+reload(SPECTRA)
+SPECTRA.setup_footPivots(**SPECTRA.d_footTest)
+
+#Feet... ------------------------------------------------------------------------------------------------
+d_foot_r_front = {'pivotToe' : 'r_front_toe_pivot',
+                  'pivotHeel' : 'r_front_heel_pivot',
+                  'pivotBall' : 'r_front_ball_pivot',
+                  'pivotInner' : 'r_front_inr_pivot',
+                  'pivotOutr' : 'r_front_outr_pivot',
+                  'pivotBall' : 'r_front_ball_pivot',
+                  #pivotBallWiggle : None,
+                  #jointBall : None,
+                  'direction':'right',
+                  'orientation' : 'xyz',
+                  'controlIK' : 'r_front_foot_ik_anim',
+                  'ikHandle':'r_front_foot_ik_anim|ikChain_PV_ikH',
+                  'jointIKBall':'r_front_ball_ik',
+                  'jointIKHeel':'r_front_heel_ik',
+                  'baseName':'right_front'} 
+d_foot_l_back = {'pivotToe' : 'l_back_toe_pivot',
+                 'pivotHeel' : 'l_back_heel_pivot',
+                 'pivotBall' : 'l_back_ball_pivot',
+                 'pivotInner' : 'l_back_inr_pivot',
+                 'pivotOutr' : 'l_back_outr_pivot',
+                 'pivotBall' : 'l_back_ball_pivot',
+                 #pivotBallWiggle : None,
+                 #jointBall : None,
+                 'direction':'left',
+                 'orientation' : 'xyz',
+                 'controlIK' : 'l_back_foot_ik_anim',
+                 'ikHandle':'l_back_foot_ik_anim|ikChain_PV_ikH',
+                 'jointIKBall':'l_back_ball_ik',
+                 'jointIKHeel':'l_back_heel_ik',
+                 'baseName':'left_back'} 
+d_foot_r_back = {'pivotToe' : 'r_back_toe_pivot',
+                 'pivotHeel' : 'r_back_heel_pivot',
+                 'pivotBall' : 'r_back_ball_pivot',
+                 'pivotInner' : 'r_back_inr_pivot',
+                 'pivotOutr' : 'r_back_outr_pivot',
+                 'pivotBall' : 'r_back_ball_pivot',
+                 #pivotBallWiggle : None,
+                 #jointBall : None,
+                 'direction':'right',
+                 'orientation' : 'xyz',
+                 'controlIK' : 'r_back_foot_ik_anim',
+                 'ikHandle':'r_back_foot_ik_anim|ikChain_PV_ikH',
+                 'jointIKBall':'r_back_ball_ik',
+                 'jointIKHeel':'r_back_heel_ik',
+                 'baseName':'right_back'}          
+SPECTRA.setup_footPivots(**d_foot_r_front)
+
+#===================================================================================================
 # >> Native work
 #===================================================================================================
 #Need call to buffer 

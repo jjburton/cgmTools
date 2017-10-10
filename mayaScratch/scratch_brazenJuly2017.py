@@ -22,6 +22,7 @@ import cgm.core.lib.attribute_utils as ATTR
 for o in mc.ls(type='joint'):
     ATTR.set(o,'segmentScaleCompensate',1)
 
+import maya.cmds as mc 
 
 m1.rig_getRigHandleJoints(False)
 m1.setState('skeleton',forceNew=True)

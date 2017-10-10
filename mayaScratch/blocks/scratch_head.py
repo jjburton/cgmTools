@@ -1,9 +1,12 @@
 import maya.cmds as mc
 from cgm.core import cgm_Meta as cgmMeta
-cgm.core._reload()
+
 import cgm.core.mrs.RigBlocks as RBLOCKS
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.cgm_General as cgmGEN
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+reload(BLOCKSHARE)
+cgm.core._reload()
 
 _root = 'NotBatman_master_block'
 mBlock = RBLOCKS.cgmRigBlock(blockType = 'master', size = 1)
@@ -29,8 +32,8 @@ b1.changeState('prerig')
 
 b1.getState()
 cgm.core._reload()
-rFac = BLOCKS.rigFactory(_block)
-rFac._d_block['buildModule']
+rFac = RBLOCKS.rigFactory(_block)
+rFac.d_block['buildModule']
 
 rFac.buildModule.build_shapes(i_rig)
 rFac.buildModule.build_rigSkeleton(i_rig)
@@ -63,34 +66,38 @@ BlockFactory.changeState('define')
 RBLOCKS.get_blockModule('master')
 
 
-
-
 #====================================================================================================
 #>>>Rig building
 #====================================================================================================
+import maya.cmds as mc
+from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_General as cgmGEN
+import cgm.core.mrs.RigBlocks as RBLOCKS
+import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.builder_utils as  BUILDUTILS
+import cgm.core.cgm_General as cgmGEN
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.lib.transform_utils as TRANS
+reload(TRANS)
+reload(BLOCKSHARE)
+reload(RBLOCKS)
+reload(BLOCKUTILS)
+cgm.core._reload()
+from Red9.core import Red9_Meta as r9Meta
+r9Meta.MetaClass(_block)
+RBLOCKS.cgmRigBlock(_block)
+
 b1 = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'head')
 _block = 'cube_head_block'
 b1 = cgmMeta.asMeta(_block)
 
-mRigFac = RBLOCKS.rigFactory(b1)
-cgmGEN.walk_dat(mRigFac.__dict__)
-cgmGEN.log_info_dict(mRigFac.__dict__)
-import pprint
-pprint.pprint(mRigFac.__dict__)
+b1.verify()
+rFac = RBLOCKS.rigFactory(_block)
+rFac.d_block['buildModule']
+rFac.d_joints
+cgmGEN.log_info_dict(rFac.__dict__)
+rFac.buildModule.build_rigSkeleton(rFac)
+rFac.buildModule.build_shapes(rFac)
 
-mRigFac.log_self()#>>uses pprint
-
-#Skeleton...
-b1.atBlockModule('build_skeleton')
-
-BLOCKUTILS.skeleton_buildRigChain(b1)
-b1.atBlockModule('build_skeleton')
-b1.atBlockModule('build_rigSkeleton')
-b1.atBlockUtils('verify_dynSwitch')
-b1.moduleTarget.isSkeletonized()
-BLOCKUTILS.skeleton_buildRigChain(b1)
-BLOCKUTILS.skeleton_buildHandleChain(b1)
-
-pprint.pprint(vars())
-
-mRigFac.atBlockModule('build_rigSkeleton')
+import cgm.core.lib.attribute_utils as ATTR
+ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
