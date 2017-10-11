@@ -69,16 +69,8 @@ These help docs will be continued to be fleshed out. We currently only have abou
    * AttrTools docs in que
    * Knowledge - Added 08.17.2017
 
-Bugs
---------
-
-   * `2017`
-      * General ui slow down - This seems to be an issue with 2017. Rebooting the computer resolves and sometimes force stopping Python. Continuing to investigate.
-   * dynParentTool crash - ``Patch testing`` - Potential fix in bugs branch we're testing. Close to final testing on this.
-
 Features/Updates
 --------------------
-* **Toolbox** - Continuing to flesh out the tools as we work through gigs.
 * **MRS** - Morpheus Rig System
 * **Build Pulls** - Working on a method to make getting update much easier
 
@@ -96,3 +88,41 @@ Features/Updates
 2016
 ^^^^^^^
 * MeshTools 1.0 - Initial Release
+
+
+Release Notes
+================
+
+10.11.2017
+----------------
+Small sprint on getting the main menu working a bit faster and fixing a few bugs.
+
+Toolbox
+^^^^^^^^^
+* Rework of cgmTop menu for speed. Previously, it was rebuilding everytime you moused over the menu. Now it does initially then on request via the ``Rebuild`` option.
+* Moved module stuff around to clean things up and again try to get a bit more speed
+* Create mid point mode - After doing some gig work, added the ability to create not just via object but by midpoint of objects or components
+
+    * ``Toolbox> TD Tab > Rigging Section > Create row`` - null(mid), jnt(mid), loc(mid)
+
+MarkingMenu
+^^^^^^^^^^^^^^
+For the sake of speed moving away from the all in one menu and instead providing access to important items and tools for more options. The marking menu option toggling was just too tedious.
+
+* Added align options to snap marking menu. ``Marking Menu > Snap > Point > Along line (even/spaced)``
+* Added ``TD Marking Menu > Create > Mid > Null/Joint/Locator`` 
+* Rewored bottom menu to just be our most used tools rather than being contextual
+
+SDK
+^^^^^
+This took some rework of some core stuff and refactoring from non core libraries. Prompted by the last project Josh worked.
+
+* Started ``cgm.core.lib.sdk_utils`` for this endeavour.
+* NEW Calls
+    * ``cgm.core.lib.search.seek_upStream/seek_downStream``
+* New section in cgmToolbox
+* Ammended top menu with new functions
+* seShapeTaper - Moved from joints
+* NEW
+    * Get Driven - Get objects driven by an sdk driver (usually an attribute) and select them
+    * Get Driven Plugs - Get plugs driven by an sdk driver

@@ -256,7 +256,6 @@ Joints
 * ``*Show x`` - Show axis (CONTEXTUAL) 
 * ``*Hide x`` - Hide axis (CONTEXTUAL) 
 * ``cometJO`` - Tool by the brilliant Michael B. Comet for orienting joints
-* ``seShapeTaper`` - Tool by our good friend Scott Englert for splitting sdk 'poses'
 
 
 
@@ -280,6 +279,20 @@ Constraints
 ^^^^^^^^^^^^^^^^
 * ``Get Targets`` - Given a selected object with constraints or a constraint, select the targets of the constraints involved
     
+skinDat
+^^^^^^^^^^^^^^^^
+Tmp till we get a ui going...
+    
+SDK
+^^^^^^^^^^^^^^^^
+
+* ``Driven`` - Get objects driven by an sdk driver (usually an attribute) and select them
+* ``Driven Plugs`` - Get plugs driven by an sdk driver...
+* ``Driver`` - Get objects driver by an sdk driver (usually an attribute) and select them
+* ``Driver Plugs`` - Get plugs driver by an sdk driver...
+* ``seShapeTaper`` - Tool by our good friend Scott Englert for splitting sdk 'poses'
+    
+
 Transform
 -----------
 This section/tool is for tweaking and pushing transform data on one node and to others. When Bokser suggested it, it made me think of Lightwave's edtior but it also has a bit of Comet's influence as well.

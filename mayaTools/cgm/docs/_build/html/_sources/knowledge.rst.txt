@@ -125,13 +125,13 @@ https://wingware.com/doc/howtos/maya
 
 Getting things setup can be a little tedious.
 * Project Properties
-    * Python executable - Point to maya mayapy.exe. Example: `c:\Program Files\Autodesk\Maya2017\bin\mayapy.exe`
+    * Python executable - Point to maya mayapy.exe. Example: ``c:\Program Files\Autodesk\Maya2017\bin\mayapy.exe``
     * Python path - Set to custom
-        * Add repo. Example `d:\repos\cgmTools\mayaTools`
+        * Add repo. Example ``d:\repos\cgmTools\mayaTools``
         * Add pi helper path. Example ``
 * Preferences. edit>Preferences
     * Source Analysis - 
-        * Add pi helper path. `d:\[your path]\pi-files`
+        * Add pi helper path. ``d:\[your path]\pi-files``
 
 Sphinx
 --------
