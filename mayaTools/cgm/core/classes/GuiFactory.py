@@ -1453,3 +1453,43 @@ def varBuffer_remove(self,optionVar):
 
     for o in sel:
         optionVar.remove(o)
+        
+        
+            
+            
+def uiSection_help(parent):
+    _str_func = 'uiSection_help'  
+    
+    mc.menuItem(parent = parent,
+                l='CGM Docs',
+                ann = "Find help for various tools",
+                c=lambda *a: webbrowser.open("http://docs.cgmonks.com"))  
+    
+    mc.menuItem(parent = parent,
+                l='Report issue',
+                ann = "Load a browser page to report a bug",
+                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new"))    
+    mc.menuItem(parent = parent,
+                l='Get Builds',
+                ann = "Get the latest builds of cgmTools from bitBucket",
+                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads/?tab=branches")) 
+    _vids = mc.menuItem(parent = parent,subMenu = True,
+                        l='Videos')
+    
+    mc.menuItem(parent = _vids,
+                l='cgm',
+                ann = "CG Monks Vimeo Channel",
+                c=lambda *a: webbrowser.open("http://vimeo.com/cgmonks"))     
+    mc.menuItem(parent = _vids,
+                l='Red9',
+                ann = "Red 9 Vimeo Channel",
+                c=lambda *a: webbrowser.open("http://vimeo.com/user9491246"))    
+   
+    mc.menuItem(parent = parent,
+                l='Coding questions',
+                ann = "Get help on stack overflow for your coding questions",
+                c=lambda *a: webbrowser.open("http://stackoverflow.com"))          
+    mc.menuItem(parent = parent,
+                l='Enviornment Info',
+                ann = "Get your maya/os enviorment info. Useful for bug reporting to tool makers",
+                c=lambda *a: cgmGEN.report_enviornment())     

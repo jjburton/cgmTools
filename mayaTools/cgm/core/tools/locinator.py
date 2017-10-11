@@ -524,7 +524,7 @@ def uiRadialMenu_root(self,parent,direction = None, callback = None):
     mc.menuItem(parent=_r,
                 l = 'UI',
                 c = lambda *a:mc.evalDeferred(ui,lp=True),                                                                                      
-                rp = 'NW')       
+                rp = 'SW')       
     
     #>>>Bake ==============================================================================================
     _bakeFrames = mc.menuItem(parent=_r,subMenu = True,

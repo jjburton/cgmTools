@@ -29,6 +29,7 @@ from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
+
 reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
 reload(TOOLBOX)
@@ -53,8 +54,11 @@ from cgm.tools import setTools
 from cgm.tools import attrTools
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
+import cgm.core.tools.lib.tool_calls as TOOLCALLS
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 reload(UISNAPCALLS)
+import cgm.core.tools.lib.annotations as TOOLANNO
+reload(TOOLANNO)
 import cgm.core.rig.joint_utils as JOINTS
 reload(JOINTS)
 """
@@ -310,7 +314,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         #pprint.pprint(self.__dict__)
         #mc.showWindow('cgmMM')
     
-    @cgmGen.Timer    
+    #@cgmGen.Timer    
     def setup_optionVars(self):
         self.create_guiOptionVar('menuMode', defaultValue = 0)            
         self.var_keyType = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
@@ -333,7 +337,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         MMPuppet.uiSetupOptionVars(self)
         TOOLBOX.uiSetupOptionVars_curveCreation(self)
         
-    @cgmGen.Timer
+    #@cgmGen.Timer
     def bUI_radialRoot_td(self,parent):
         #Radial---------------------------------------------------
         self.bUI_radial_snap(parent,'N')
@@ -352,7 +356,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     rp = "S")           
         
         
-    @cgmGen.Timer    
+    #@cgmGen.Timer    
     def bUI_radialRoot_anim(self,parent):
         self.bUI_radial_snap(parent,'N')
         
@@ -463,9 +467,9 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         LOCINATOR.uiBuffer_control(self, uiBuffers)
         self.bUI_rayCastBuffer(uiBuffers)        
         
-    @cgmGen.Timer    
+    #@cgmGen.Timer    
     def bUI_menuBottom_td(self,parent):
-        
+        """
         _contextMode = self.var_contextTD.value
         
         UICHUNKS.uiSection_selection(parent)
@@ -518,8 +522,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             #>>>Curve ==============================================================================================
             UICHUNKS.uiSection_curves(parent)
             
-         
-                                    
+                      
             #>>>Mesh ==============================================================================================
             UICHUNKS.uiSection_mesh(parent)
             
@@ -531,26 +534,53 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         #>>>Nodes ==============================================================================================
         UICHUNKS.uiSection_nodes(parent)
         
-
- 
+"""
+        mc.menuItem(parent = parent, l='cgmToolbox',
+                    ann=TOOLANNO.cgmToolbox.get('ui'),
+                    c=lambda *a:TOOLBOX.ui())
+        
+        mc.menuItem(parent = parent, l='Locinator',
+                    c=lambda *a:TOOLCALLS.locinator())
+        
+        mc.menuItem(parent = parent, l='SetTools',
+                    c=lambda *a:TOOLCALLS.setTools())
+        
+        mc.menuItem(parent = parent, l='DynParentTool',
+                    c=lambda *a:TOOLCALLS.dynParentTool())
+        
+        mc.menuItem(parent = parent, l='AttrTools',
+                    c=lambda *a:TOOLCALLS.attrTools())        
+        
+        mc.menuItem(parent = parent,
+                    l='MRS - WIP',
+                    c=lambda *a: mc.evalDeferred(RBUILDER.ui))                   
+        
+        #UICHUNKS.uiSection_arrange(parent,self._len_sel, self._b_sel_pair)
+        #UICHUNKS.uiSection_shapes(parent,self._l_sel,self._b_sel_pair)
+        #UICHUNKS.uiSection_curves(parent)
+        #UICHUNKS.uiSection_mesh(parent)
+        #UICHUNKS.uiSection_nodes(parent)
+        
         #-----------------------------------------------------------------------------         
         mc.menuItem(p=parent,l = "-"*25,en = False)
-                    
-        uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
-        self.bUI_optionMenu_contextTD(uiOptions)
-        self.bUI_optionMenu_objDefaults(uiOptions)
-        self.bUI_optionMenu_aimMode(uiOptions)
-        self.bUI_optionMenu_resetMode(uiOptions)
-        self.bUI_optionMenu_rayCast(uiOptions)
-        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
-        mc.menuItem(parent = uiOptions, l='Option UI', 
-                    #c=mmCallback(UICHUNKS.call_optionVar_ui))                    
-                    c=lambda *a:cgmToolbox.uiByTab(2))
-                    #c=mmCallback(UISNAPCALLS.ui_optionVars))
+        mc.menuItem(parent = parent, l='Options',
+                    ann='Open cgmToolbox where many options are accessible',
+                    c=lambda *a:TOOLBOX.uiByTab(2))
         
-        uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
-        LOCINATOR.uiBuffer_control(self, uiBuffers)
-        self.bUI_rayCastBuffer(uiBuffers)
+        #uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
+        #self.bUI_optionMenu_contextTD(uiOptions)
+        #self.bUI_optionMenu_objDefaults(uiOptions)
+        #self.bUI_optionMenu_aimMode(uiOptions)
+        #self.bUI_optionMenu_resetMode(uiOptions)
+        #self.bUI_optionMenu_rayCast(uiOptions)
+        #LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)
+        
+        #mc.menuItem(parent = uiOptions, l='Option UI', 
+        #            c=lambda *a:cgmToolbox.uiByTab(2))
+        
+        #uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
+        #LOCINATOR.uiBuffer_control(self, uiBuffers)
+        #self.bUI_rayCastBuffer(uiBuffers)
         
     def bUI_optionMenu_keyType(self, parent):
         try:#>>> KeyType 
@@ -723,8 +753,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                 else:_rb = False
                 mc.menuItem(parent=uiMenu_context,collection = uiRC,
                             label=item,
+                            #c = lambda *a:ui_CallAndKill(self.var_contextTD.setValue,item),
                             c = mmCallback(self.var_contextTD.setValue,item),                                  
-                            #c = lambda *a:self.raySnap_setAndStart(self.var_rayCastMode.setValue(i)),                                  
                             rb = _rb)                
         except Exception,err:
             log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
@@ -847,7 +877,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
 
         mc.menuItem(parent=_r,
                     en = self._b_sel,
-                    l = 'Transform here',
+                    l = 'Null here',
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = lambda *a:self.button_action_per_sel(RIGGING.create_at,'Create Transform'),
                     rp = "N")        
@@ -876,7 +906,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     c = lambda *a:TOOLBOX.ui(),
                     rp = "SW")          
         
-        #Mid...
+        #Mid..............................................................................
         _mid = mc.menuItem(parent=_r,subMenu = True,
                            l = 'Mid: ',#'Control Curve',
                            en = self._b_sel_pair,
@@ -884,7 +914,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         
         mc.menuItem(parent=_mid,
                   ut = 'cgmUITemplate',                    
-                  l = 'Trans',
+                  l = 'Null',
                   rp = 'NE',
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
         mc.menuItem(parent=_mid,
@@ -1363,22 +1393,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     l = 'In Place',
                     c = lambda *a:MMCONTEXT.func_process(RIGGING.group_me, self._l_sel,'each','Group In Place',**{'parent':True,'maintainParent':True}),                                                                 
                     rp = "NW")    
-        
-        mc.menuItem(parent = _r,
-                    rp='N',
-                    l='cgmDynParentTool',
-                    ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
-                    #c = lambda *a: ui_CallAndKill(DYNPARENTTOOL.ui))
-                    #c = mmCallback(DYNPARENTTOOL.ui))
-                    c = lambda *a: mc.evalDeferred(DYNPARENTTOOL.ui,lp=0))
-                    #c = lambda *a:DYNPARENTTOOL.ui())
-                    #c=lambda *a: DYNPARENTTOOL.ui())           
-        mc.menuItem(parent = _r,
-                    rp='S',
-                    l='MRS',
-                    ann = "WIP",
-                    #c = mmCallback(RBUILDER.ui))
-                    c=lambda *a: mc.evalDeferred(RBUILDER.ui))           
+
         
         _p = mc.menuItem(parent=_r, subMenu = True,
                          en=self._b_sel_few,
@@ -1922,7 +1937,7 @@ class mmCallback(object):
                 log.info("kws: {0}".format(self._kwargs))
             for a in err.args:
                 log.info(a)
-            raise Exception,err
+            #raise Exception,err
         finally:print 'got here...'
 
 

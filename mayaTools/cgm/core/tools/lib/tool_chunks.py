@@ -38,13 +38,21 @@ import cgm.core.lib.locator_utils as LOC
 from cgm.core.tools import meshTools
 reload(meshTools)
 from cgm.core.lib import node_utils as NODES
+import cgm.core.lib.sdk_utils as SDK
+reload(SDK)
+import cgm.core.tools.lib.tool_calls as TOOLCALLS
+reload(TOOLCALLS)
+
 from cgm.core.tools import attrTools as ATTRTOOLS
 reload(ATTRTOOLS)
-from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
-import cgm.core.tools.setTools as SETTOOLS
-reload(SETTOOLS)
+
+#from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+#reload(DYNPARENTTOOL)
+
+#import cgm.core.tools.setTools as SETTOOLS
+#reload(SETTOOLS)
 from cgm.core.tools import locinator as LOCINATOR
+
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
@@ -192,6 +200,24 @@ def uiSection_sdk(parent = None):
                         subMenu=True)
     
     mc.menuItem(parent = uiSDK,
+                l='Get Driven',
+                ann = "Get driven objects from a sdk driver",                                                        
+                c=lambda *a:SDK.get_driven(None,getPlug=False))
+    mc.menuItem(parent = uiSDK,
+                l='Get Driven Plugs',
+                ann = "Get driven plugs from a sdk driver",                                                        
+                c=lambda *a:SDK.get_driven(None,getPlug=True))
+    mc.menuItem(parent = uiSDK,
+                l='Get Driver',
+                ann = "Get driver objects from a sdk driver",                                                        
+                c=lambda *a:SDK.get_driver(None,getPlug=False))
+    mc.menuItem(parent = uiSDK,
+                l='Get Driver Plugs',
+                ann = "Get driver plugs from a sdk driver",                                                        
+                c=lambda *a:SDK.get_driver(None,getPlug=True))
+    
+    
+    mc.menuItem(parent = uiSDK,
                 l='seShapeTaper',
                 ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
                 c=lambda *a: mel.eval('seShapeTaper'),)   
@@ -227,13 +253,13 @@ def uiSection_controlCurves(parent, selection = None):
 
     mc.menuItem(parent=uiCurve,
                 l='Create Control Curve',
-                c=cgmGen.Callback(TOOLBOX.uiFunc_createCurve),
+                c=cgmGen.Callback(uiFunc_createCurve),
                 ann='Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(var_curveCreateType.value,
                                                                                                                     var_defaultCreateColor.value,
                                                                                                                     SHARED._l_axis_by_string[var_createAimAxis.value]))                    
     mc.menuItem(parent=uiCurve,
                 l='One of each',
-                c=cgmGen.Callback(TOOLBOX.uiFunc_createOneOfEach),                
+                c=cgmGen.Callback(uiFunc_createOneOfEach),                
                 #c=lambda *a:TOOLBOX.uiFunc_createOneOfEach(),
                 ann='Create one of each curve stored in cgm libraries. Size: {0} '.format(var_createSizeValue.value) )       
     
@@ -389,8 +415,7 @@ def uiSection_skin(parent):
                 c=lambda *a: mel.eval('abWeightLifter'),)         
     mc.menuItem(parent = uiSkin,
                 l='ngSkin',
-                en=False,
-                c=lambda *a: mel.eval('cometJointOrient'),) 
+                c=lambda *a: TOOLCALLS.ngskin()) 
     
 def uiSection_attributes(parent):
     _str_func = 'uiSection_attributes'  
@@ -401,7 +426,7 @@ def uiSection_attributes(parent):
     mc.menuItem(parent = uiAttr,
                 l='cgmAttrTools',
                 ann = "Launch cgmAttrTools - Collection of tools for making creating, editing and managing attributes a little less painful",                                                                                                                       
-                c=cgmGen.Callback(ATTRTOOLS.ui))   
+                c=cgmGen.Callback(TOOLCALLS.attrTools))   
     
     
     _add = mc.menuItem(parent=uiAttr,subMenu=True,
@@ -441,15 +466,15 @@ def uiSection_animUtils(parent):
     mc.menuItem(parent = parent,
                 l='cgmLocinator',
                 ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",                                                                                                                                       
-                c=lambda *a: LOCINATOR.ui()) 
+                c=lambda *a: TOOLCALLS.locinator()) 
     mc.menuItem(parent = parent,
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
-                c=lambda *a: DYNPARENTTOOL.ui())   
+                c=lambda *a: TOOLCALLS.dynParentTool())   
     mc.menuItem(parent = parent,
                 l='cgmSetTools',
                 ann = "Launch cgm's setTools - a tool for managing maya selection sets",                                                                                                                                       
-                c=lambda *a: SETTOOLS.ui())   
+                c=lambda *a: TOOLCALLS.setTools())   
     
     mc.menuItem(parent = parent,
             l='autoTangent',
@@ -496,45 +521,6 @@ def uiSection_layout(parent):
             ann = "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD.",
             c=lambda *a: mel.eval('zooHUDCtrl'))
 
-
-    
-    
-def uiSection_help(parent):
-    _str_func = 'uiSection_help'  
-    
-    mc.menuItem(parent = parent,
-                l='CGM Docs',
-                ann = "Find help for various tools",
-                c=lambda *a: webbrowser.open("http://docs.cgmonks.com"))  
-    
-    mc.menuItem(parent = parent,
-                l='Report issue',
-                ann = "Load a browser page to report a bug",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new"))    
-    mc.menuItem(parent = parent,
-                l='Get Builds',
-                ann = "Get the latest builds of cgmTools from bitBucket",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads/?tab=branches")) 
-    _vids = mc.menuItem(parent = parent,subMenu = True,
-                        l='Videos')
-    
-    mc.menuItem(parent = _vids,
-                l='cgm',
-                ann = "CG Monks Vimeo Channel",
-                c=lambda *a: webbrowser.open("http://vimeo.com/cgmonks"))     
-    mc.menuItem(parent = _vids,
-                l='Red9',
-                ann = "Red 9 Vimeo Channel",
-                c=lambda *a: webbrowser.open("http://vimeo.com/user9491246"))    
-   
-    mc.menuItem(parent = parent,
-                l='Coding questions',
-                ann = "Get help on stack overflow for your coding questions",
-                c=lambda *a: webbrowser.open("http://stackoverflow.com"))          
-    mc.menuItem(parent = parent,
-                l='Enviornment Info',
-                ann = "Get your maya/os enviorment info. Useful for bug reporting to tool makers",
-                c=lambda *a: cgmGen.report_enviornment())     
     
     
 def uiSection_hotkeys(parent):
@@ -800,7 +786,7 @@ def uiSection_riggingUtils(parent, selection = None):
     mc.menuItem(parent=_p,
                 l = 'DynParent Tool',
                 en=True,
-                c=cgmGen.Callback(DYNPARENTTOOL.ui),
+                c=cgmGen.Callback(TOOLCALLS.dynParentTool),
                 ann = "Tool for modifying and setting up dynamic parent groups")
     
     mc.menuItem(parent=_p,
@@ -949,13 +935,22 @@ def uiSection_rayCast(parent, selection = None):
 
     
 
-    
-    
-    
-   
+def uiFunc_createOneOfEach():
+    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)        
+    CURVES.create_oneOfEach(var_createSizeValue.value)
 
-    
-    
-    
-    
-    
+def uiFunc_createCurve():
+    reload(CURVES)
+    var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+    var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+    var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
+    var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
+    var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+    var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)        
+    CURVES.create_controlCurve(mc.ls(sl=True),
+                               var_curveCreateType.value,
+                               var_defaultCreateColor.value,
+                               var_createSizeMode.value,
+                               var_createSizeValue.value,
+                               var_createSizeMulti.value,
+                               SHARED._l_axis_by_string[var_createAimAxis.value])

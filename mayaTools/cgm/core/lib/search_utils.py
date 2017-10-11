@@ -430,7 +430,141 @@ def get_referencePrefix(node = None):
     return False
 
 
+def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=False):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    NOT DONE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ACKNOWLEDGEMENT:
+    Modified from Scott Englert's MEL script
 
+    DESCRIPTION:
+    Replacement for getAttr which get's message objects as well as parses double3 type
+    attributes to a list
+
+    ARGUMENTS:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    attrInfo(varies)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #
+    _str_func = 'seek_upStream'    
+    currentNode = startingNode
+    destNodeType = ''
+    timeOut = 0
+    # do a loop to keep doing down stream on the connections till the type
+    # of what we are searching for is found
+    _done = False
+    if mode == 'objType':
+        if endObjType == None:
+            raise ValueError,"Must have endObjType when objType mode is True"
+        else:
+            destNodeType = ''
+        
+    while not _done and timeOut < 50:
+        destNodeName = mc.listConnections(currentNode, scn = True, d=False, s= True)
+        if not destNodeName:
+            endNode = 'not found'
+            break
+        if getPlug:
+            destNodeNamePlug = mc.listConnections(currentNode, scn = True, p = True,d=False, s= True)
+            endNode = destNodeName[0]
+        else:
+            endNode = destNodeName[0]
+        # Get the Node Type
+        destNodeTypeBuffer = mc.ls(destNodeName[0], st = True)
+        destNodeType = destNodeTypeBuffer[1]
+        
+        if mode == 'objType' and destNodeType == endObjType:
+            _done = True
+        elif mode == 'isTransform' and is_transform(destNodeName[0]):
+            _done = True
+
+        if _done and getPlug:
+            return destNodeNamePlug[0]         
+
+        if destNodeType == 'pairBlend':
+            pairBlendInPlug = mc.listConnections(currentNode, scn = True, p = True,d=False, s= True)
+            print ('pairBlendInPlug is %s' %pairBlendInPlug)
+        else:
+            currentNode = destNodeName[0]
+            log.info("|{0}| >> Current: {1} | {2} | {3}".format(_str_func,timeOut,destNodeType,currentNode))
+        timeOut +=1
+    return endNode
+
+def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=False):
+    """
+    endObjType
+    isTransform
+    
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ACKNOWLEDGEMENT:
+    Pythonized from Scott Englert's MEL
+
+    DESCRIPTION:
+    Replacement for getAttr which get's message objects as well as parses double3 type
+    attributes to a list
+
+    ARGUMENTS:
+    obj(string)
+    attr(string)
+
+    RETURNS:
+    attrInfo(varies)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    #
+    _str_func = 'seek_downStream'
+    currentNode = startingNode
+    destNodeType = ''
+    timeOut = 0
+    # do a loop to keep doing down stream on the connections till the type
+    # of what we are searching for is found
+    _done = False
+    if mode == 'objType':
+        if endObjType == None:
+            raise ValueError,"Must have endObjType when objType mode is True"
+        else:
+            destNodeType = ''
+        
+    while not _done  and timeOut < 50:
+        if timeOut == 50:
+            log.warning("|{0}| >> downStream seek timed out".format(_str_func))
+            break
+        else:
+            destNodeName = mc.listConnections(currentNode, scn = True, s= False)
+            if not destNodeName:
+                log.warning("|{0}| >> Node not found: {1}".format(_str_func,destNodeName))
+                endNode = 'not found'
+                break
+            if getPlug:
+                destNodeNamePlug = mc.listConnections(currentNode, scn = True, p = True, s= False)
+                endNode = destNodeName[0]
+            else:
+                endNode = destNodeName[0]
+                
+            # Get the Node Type
+            destNodeTypeBuffer = mc.ls(destNodeName[0], st = True)
+            destNodeType = destNodeTypeBuffer[1]
+            
+            if mode == 'objType' and destNodeType == endObjType:
+                _done = True
+            elif mode == 'isTransform' and is_transform(destNodeName[0]):
+                _done = True
+
+            if _done and getPlug:
+                return destNodeNamePlug[0] 
+            
+            if destNodeType == 'pairBlend':
+                pairBlendInPlug = mc.listConnections(currentNode, scn = True, p = True, s= False)
+                print ('pairBlendInPlug is %s' %pairBlendInPlug)
+            else:
+                currentNode = destNodeName[0]
+                log.debug("|{0}| >> Current: {1} | {2} | {3}".format(_str_func,timeOut,destNodeType,currentNode))                
+            timeOut +=1
+    return endNode
 
     
     
