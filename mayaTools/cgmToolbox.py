@@ -543,7 +543,7 @@ def uiBuild_cgmMenu( *args ):
     
     mc.menuItem(p = menu, l='Rebuild',
                 ann='Rebuild the top menu',
-                c = lambda *a: mc.evalDeferred(uiBuild_cgmMenu,lp=0))
+                c = lambda *a: mc.evalDeferred(uiMainMenu_rebuild,lp=0))
 
 """
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

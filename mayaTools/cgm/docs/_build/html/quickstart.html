@@ -105,6 +105,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#active-development">Active Development</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#docs">Docs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bugs">Bugs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#features-updates">Features/Updates</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">2017</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">2016</a></li>
@@ -115,7 +116,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#release-notes">Release Notes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id3">10.11.2017</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#toolbox">Toolbox</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id4">MarkingMenu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#markingmenu">MarkingMenu</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#sdk">SDK</a></li>
 </ul>
 </li>
@@ -200,19 +201,7 @@
 <div class="section" id="what-s-new">
 <h1>What's new?<a class="headerlink" href="#what-s-new" title="Permalink to this headline">¶</a></h1>
 <p>We'll keep this page update with the most important bits of what's new and getting started with the tools.</p>
-<p>Last update: 09.14.2017</p>
-<p>Added Docs:</p>
-<ul class="simple">
-<li><a class="reference external" href="settools.html">Set Tools</a></li>
-<li><a class="reference external" href="attrtools.html">Attr Tools</a></li>
-<li><a class="reference external" href="meshtools.html">Mesh Tools</a></li>
-<li><a class="reference external" href="markingmenu.html">MarkingMenu</a></li>
-</ul>
-<p>New Tools:</p>
-<ul class="simple">
-<li>Set Tools 2.0</li>
-<li>Toolbox 2.0</li>
-</ul>
+<p>Last update: 10.11.2017</p>
 <div class="section" id="quick-start">
 <h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="requirments">
@@ -262,9 +251,26 @@
 </ul>
 </div></blockquote>
 </div>
+<div class="section" id="bugs">
+<h3>Bugs<a class="headerlink" href="#bugs" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt><cite>2017</cite></dt>
+<dd><ul class="first last">
+<li>General ui slow down - This seems to be an issue with 2017. Rebooting the computer resolves and sometimes force stopping Python. Continuing to investigate.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>dynParentTool crash - <code class="docutils literal"><span class="pre">Patch</span> <span class="pre">testing</span></code> - Potential fix in bugs branch we're testing. Close to final testing on this.</li>
+</ul>
+</div></blockquote>
+</div>
 <div class="section" id="features-updates">
 <h3>Features/Updates<a class="headerlink" href="#features-updates" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
+<li><strong>Toolbox</strong> - Continuing to flesh out the tools as we work through gigs.</li>
 <li><strong>MRS</strong> - Morpheus Rig System</li>
 <li><strong>Build Pulls</strong> - Working on a method to make getting update much easier</li>
 </ul>
@@ -296,9 +302,8 @@
 <p>Small sprint on getting the main menu working a bit faster and fixing a few bugs.</p>
 <div class="section" id="toolbox">
 <h4>Toolbox<a class="headerlink" href="#toolbox" title="Permalink to this headline">¶</a></h4>
+<p>Rework of cgmTop menu for speed. Previously, it was rebuilding everytime you moused over the menu. Now it does initially then on request via the <code class="docutils literal"><span class="pre">Rebuild</span></code> option.</p>
 <ul>
-<li><p class="first">Rework of cgmTop menu for speed. Previously, it was rebuilding everytime you moused over the menu. Now it does initially then on request via the <code class="docutils literal"><span class="pre">Rebuild</span></code> option.</p>
-</li>
 <li><p class="first">Moved module stuff around to clean things up and again try to get a bit more speed</p>
 </li>
 <li><p class="first">Create mid point mode - After doing some gig work, added the ability to create not just via object but by midpoint of objects or components</p>
@@ -310,8 +315,8 @@
 </li>
 </ul>
 </div>
-<div class="section" id="id4">
-<h4>MarkingMenu<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<div class="section" id="markingmenu">
+<h4>MarkingMenu<a class="headerlink" href="#markingmenu" title="Permalink to this headline">¶</a></h4>
 <p>For the sake of speed moving away from the all in one menu and instead providing access to important items and tools for more options. The marking menu option toggling was just too tedious.</p>
 <ul class="simple">
 <li>Added align options to snap marking menu. <code class="docutils literal"><span class="pre">Marking</span> <span class="pre">Menu</span> <span class="pre">&gt;</span> <span class="pre">Snap</span> <span class="pre">&gt;</span> <span class="pre">Point</span> <span class="pre">&gt;</span> <span class="pre">Along</span> <span class="pre">line</span> <span class="pre">(even/spaced)</span></code></li>
@@ -322,27 +327,29 @@
 <div class="section" id="sdk">
 <h4>SDK<a class="headerlink" href="#sdk" title="Permalink to this headline">¶</a></h4>
 <p>This took some rework of some core stuff and refactoring from non core libraries. Prompted by the last project Josh worked.</p>
-<ul class="simple">
-<li>Started <code class="docutils literal"><span class="pre">cgm.core.lib.sdk_utils</span></code> for this endeavour.</li>
-<li><dl class="first docutils">
-<dt>NEW Calls</dt>
-<dd><ul class="first last">
+<ul>
+<li><p class="first">Started <code class="docutils literal"><span class="pre">cgm.core.lib.sdk_utils</span></code> for this endeavour.</p>
+</li>
+<li><p class="first">NEW Calls</p>
+<blockquote>
+<div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">cgm.core.lib.search.seek_upStream/seek_downStream</span></code></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
-<li>New section in cgmToolbox</li>
-<li>Ammended top menu with new functions</li>
-<li>seShapeTaper - Moved from joints</li>
-<li><dl class="first docutils">
-<dt>NEW</dt>
-<dd><ul class="first last">
+<li><p class="first">New section in cgmToolbox</p>
+</li>
+<li><p class="first">Ammended top menu with new functions</p>
+</li>
+<li><p class="first">seShapeTaper - Moved from joints</p>
+</li>
+<li><p class="first">NEW Buttons</p>
+<blockquote>
+<div><ul class="simple">
 <li>Get Driven - Get objects driven by an sdk driver (usually an attribute) and select them</li>
 <li>Get Driven Plugs - Get plugs driven by an sdk driver</li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
 </ul>
 </div>

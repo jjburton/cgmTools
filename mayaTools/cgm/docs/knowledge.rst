@@ -125,13 +125,13 @@ https://wingware.com/doc/howtos/maya
 
 Getting things setup can be a little tedious.
 * Project Properties
-    * Python executable - Point to maya mayapy.exe. Example: ``c:\Program Files\Autodesk\Maya2017\bin\mayapy.exe``
+    * Python executable - Point to maya mayapy.exe. Example: `c:\Program Files\Autodesk\Maya2017\bin\mayapy.exe`
     * Python path - Set to custom
-        * Add repo. Example ``d:\repos\cgmTools\mayaTools``
+        * Add repo. Example `d:\repos\cgmTools\mayaTools`
         * Add pi helper path. Example ``
 * Preferences. edit>Preferences
     * Source Analysis - 
-        * Add pi helper path. ``d:\[your path]\pi-files``
+        * Add pi helper path. `d:\[your path]\pi-files`
 
 Sphinx
 --------
@@ -158,7 +158,6 @@ pprint
 pprint is a fantastic tool for logging data while working. It breaks out dict data in a readable format. Pretty sure maya started using it in 2017 or as results in the script editor got the same readabilty around that time.
 
 * ``pprint.pprint(vars())`` for example will print all active variables in the middle of a function without using some sort of editor to track it.
-
 
 
 Concepts

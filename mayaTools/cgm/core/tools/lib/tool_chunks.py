@@ -195,7 +195,7 @@ def uiSection_joints(parent = None):
     
 def uiSection_sdk(parent = None):
     _str_func = 'uiSection_sdk'
-    uiSDK = mc.menuItem(parent = parent, l='SDK',
+    uiSDK = mc.menuItem(parent = parent, l='SDK',tearOff =True,
                         ann = "Functions and tools for dealing with SDKs",                                                                                                                          
                         subMenu=True)
     
