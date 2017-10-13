@@ -56,7 +56,6 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -180,7 +179,10 @@ def uiSection_joints(parent = None):
                         ann = "Hide axis for all joints in {0}".format(ctxt),                                                
                         c=cgmGen.Callback(MMCONTEXT.set_attrs,None,'displayLocalAxis',0,ctxt,'joint'))
             
-
+    mc.menuItem(parent = uiJoints,
+                l='cgmJointTools',
+                c=lambda *a: TOOLCALLS.jointTools(),
+                ann="cgmJointTools Standalone")   
     mc.menuItem(parent = uiJoints,
                 l='cometJO',
                 c=lambda *a: mel.eval('cometJointOrient'),
@@ -799,14 +801,14 @@ def uiSection_riggingUtils(parent, selection = None):
     
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
-
+"""
 def call_optionVar_ui():
     reload(SNAPCALLS)    
     SNAPCALLS.ui_optionVars()
 def call_toolbox_ui():
     reload(TOOLBOX)
     TOOLBOX.ui()
-
+"""
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
         
@@ -954,3 +956,33 @@ def uiFunc_createCurve():
                                var_createSizeValue.value,
                                var_createSizeMulti.value,
                                SHARED._l_axis_by_string[var_createAimAxis.value])
+    
+    
+    
+#Option Menus -----------------------------------------------------
+def uiOptionMenu_contextTD(self, parent, callback = cgmGen.Callback):
+    uiMenu_context = mc.menuItem( parent = parent, l='Context:', subMenu=True)
+    
+    try:self.var_contextTD
+    except:self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')
+
+    try:#>>>
+        _str_section = 'Contextual TD mode'
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_contextTD.value
+
+        for i,item in enumerate(['selection','children','heirarchy','scene']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=uiMenu_context,collection = uiRC,
+                        label=item,
+                        #c = lambda *a:ui_CallAndKill(self.var_contextTD.setValue,item),
+                        c = callback(self.var_contextTD.setValue,item),                                  
+                        rb = _rb)                
+    except Exception,err:
+        log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
+        
+#Row Menus -----------------------------------------------------
+

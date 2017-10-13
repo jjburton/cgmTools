@@ -7,6 +7,8 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 
+
+Huge thank you to Michael Comet for the original cometJointOrient tool
 ================================================================
 """
 # From Python =============================================================
@@ -21,46 +23,43 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
+import maya.mel as mel
 
 import cgm.core.classes.GuiFactory as cgmUI
-from cgm.core import cgm_RigMeta as cgmRigMeta
 mUI = cgmUI.mUI
 
-from cgm.core.lib import shared_data as SHARED
-from cgm.core.lib import search_utils as SEARCH
-from cgm.core.lib import name_utils as NAMES
-import cgm.core.lib.position_utils as POS
-reload(POS)
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core.lib import attribute_utils as ATTR
-import cgm.core.lib.transform_utils as TRANS
-from cgm.core.lib import list_utils as LISTS
-from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
-from cgm.core.cgmPy import str_Utils as STRINGS
-from cgm.core.tools import attrTools as ATTRTOOLS
-from cgm.core.rigger.lib import spacePivot_utils as SPACEPIVOT
-from cgm.core.cgmPy import path_Utils as CGMPATH
-import cgm.core.lib.math_utils as MATH
-from cgm.lib import lists
-#>>> Root settings =============================================================
-__version__ = '0.08312017'
 
-__l_spaceModes = SHARED._d_spaceArgs.keys()
-__l_pivots = SHARED._d_pivotArgs.keys()
+import cgm.core.rig.joint_utils as JOINTS
+import cgm.core.lib.shared_data as SHARED
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.rigging_utils as RIGGING
+import cgm.core.tools.markingMenus.lib.contextual_utils as MMCONTEXT
+import cgm.core.lib.curve_Utils as CURVES
+import cgm.core.lib.transform_utils as TRANS
+import cgm.core.tools.lib.tool_chunks as UICHUNKS
+import cgm.core.lib.position_utils as POS
+reload(POS)
+reload(UICHUNKS)
+reload(CURVES)
+reload(JOINTS)
+#>>> Root settings =============================================================
+__version__ = '0.10132017'
+__toolname__ ='cgmJointTools'
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = 'cgmTransformTools_ui'    
-    WINDOW_TITLE = 'cgmTransformTools - {0}'.format(__version__)
+    WINDOW_NAME = '{0}_ui'.format(__toolname__)    
+    WINDOW_TITLE = '{1} - {0}'.format(__version__,__toolname__)
     DEFAULT_MENU = None
     RETAIN = True
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 425,350
-    TOOLNAME = 'transformTools.ui'
+    TOOLNAME = '{0}.ui'.format(__toolname__)
     
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
@@ -73,32 +72,26 @@ class ui(cgmUI.cgmGUI):
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
 
-        #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
-        #self.uiPopUpMenu_createShape = None
-        #self.uiPopUpMenu_color = None
-        #self.uiPopUpMenu_attr = None
-        #self.uiPopUpMenu_raycastCreate = None
-
-        #self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('rayCastFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
-
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
-        #self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGEN.Callback(self.buildMenu_buffer))
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
+        
+        UICHUNKS.uiOptionMenu_contextTD(self, self.uiMenu_FirstMenu)
+        
+        mc.menuItem(parent=self.uiMenu_FirstMenu, 
+                    l = 'Dat Preview',
+                    c=lambda *a:uiFunc_getCreateData(self,True))        
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
-
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -107,220 +100,373 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'build_layoutWrapper'
         #self._d_uiCheckBoxes = {}
     
-        #_MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
-        buildColumn_main(self,parent)
+        _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
+        _column = buildColumn_main(self,_MainForm,True)
 
-def buildColumn_main(self,parent):
+    
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _MainForm(edit = True,
+                  af = [(_column,"top",0),
+                        (_column,"left",0),
+                        (_column,"right",0),                        
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_column,"bottom",2,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])          
+        
+
+def buildColumn_main(self,parent, asScroll = False):
     """
     Trying to put all this in here so it's insertable in other uis
     
-    """
-    self._d_transformAttrFields = {}
-    self._d_transformRows = {}
-    self._d_transformCBs = {}
-    self._mTransformTarget = False
+    """   
+    if asScroll:
+        _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    else:
+        _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+        
+    self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')
+    self.var_jointAimAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultAimAxis', defaultValue = 2)
+    self.var_jointUpAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultUpAxis', defaultValue = 1)
     
-    _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    #Axis ==================================================================================================    
+    #>>>Axis Show Row ---------------------------------------------------------------------------------------
+    _row_axis = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent=_row_axis, 
+              ut = 'cgmUITemplate',                                                                              
+              l = '* Show',
+              ann = "Show the joint axis by current context",                                        
+              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
+              )               
+    mc.button(parent=_row_axis, 
+              ut = 'cgmUITemplate',                                                                              
+              l = '* Hide',
+              ann = "Hide the joint axis by current context",                                        
+              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
+              )     
+
+    _row_axis.layout()          
     
-    #>>>Objects Load Row ---------------------------------------------------------------------------------------
-    _row_objLoad = mUI.MelHSingleStretchLayout(_inside,ut='cgmUITemplate',padding = 5)        
-
-    mUI.MelSpacer(_row_objLoad,w=10)
-    mUI.MelLabel(_row_objLoad, 
-                 l='Source:')
-
-    uiTF_objLoad = mUI.MelLabel(_row_objLoad,ut='cgmUITemplate',l='',
-                                en=True)
-
-    #self.uiPopUpMenu_dynChild = mUI.MelPopupMenu(_utf_objLoad,button = 1)
-    #mc.menuItem(self.uiPopUpMenu_dynChild,l='Select',c=lambda *a:(self._mNode.select()))
-
-    self.uiTF_objLoad = uiTF_objLoad
-    cgmUI.add_Button(_row_objLoad,'<<',
-                     cgmGEN.Callback(uiFunc_load_selected,self),
-                     "Load first selected object.")  
-    cgmUI.add_Button(_row_objLoad,'Update',
-                     cgmGEN.Callback(uiFunc_updateFields,self),
-                     "Update with current values.")     
-    cgmUI.add_Button(_row_objLoad,'Ctxt',
-                     cgmGEN.Callback(uiFunc_getTargets,self),
-                     "Get Targets")    
-    _row_objLoad.setStretchWidget(uiTF_objLoad)
-    mUI.MelSpacer(_row_objLoad,w=10)
-    """
-    _row_objLoad.layout()
-
-    #>>>Report ---------------------------------------------------------------------------------------
-    _row_report = mUI.MelHLayout(_inside ,ut='cgmUIInstructionsTemplate',h=20)
-    self.uiField_report = mUI.MelLabel(_row_report,
-                                       bgc = SHARED._d_gui_state_colors.get('help'),
-                                       label = '...',
-                                       h=20)
-    _row_report.layout() """
     
-    #buildRow_space(self,_inside,'source',__l_spaceModes)
-    #buildRow_space(self,_inside,'targets',__l_spaceModes)
-    buildRow_lockSource(self,_inside)
-    
-    buildRow_tweak(self, _inside)
-    mc.setParent(_inside)    
-    cgmUI.add_SectionBreak()  
+    #>>>Aim mode -------------------------------------------------------------------------------------
+    _d = {'aim':self.var_jointAimAxis,
+          'up':self.var_jointUpAxis}
 
+    for k in _d.keys():
+        _var = _d[k]
+
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='{0}:'.format(k))
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        uiRC = mUI.MelRadioCollection()
+        _on = _var.value
+
+        for i,item in enumerate(SHARED._l_axis_by_string):
+            if i == _on:
+                _rb = True
+            else:_rb = False
+
+            uiRC.createButton(_row,label=item,sl=_rb,
+                              onCommand = cgmGEN.Callback(_var.setValue,i))
+
+            mUI.MelSpacer(_row,w=2)       
+        _row.layout()     
+        
+    buildRow_worldUp(self,_inside)
     mc.setParent(_inside)
-    mc.text('VALUES',align = 'center',bgc = cgmUI.guiBackgroundColor)
-    #cgmUI.add_Header('Values')
-    cgmUI.add_SectionBreak()
+    cgmUI.add_LineSubBreak()
+    buildRow_getVector(self,_inside)
+    #mUI.MelSeparator(_inside)
     
-    buildRow_vector(self,_inside,'translate')
-    buildRow_vector(self,_inside,'position')
-    buildRow_vector(self,_inside,'rotate')
-    buildRow_vector(self,_inside,'orient')        
-    buildRow_vector(self,_inside,'rotateAxis')
-    buildRow_vector(self,_inside,'jointOrient')    
-    buildRow_vector(self,_inside,'scale')
-    buildRow_vector(self,_inside,'scaleLossy',tweak=False)
-    buildRow_vector(self,_inside,'scalePivot',tweak=False)
     
-    uiFunc_load_selected(self)
+    #Create ==================================================================================================
+    mc.setParent(_inside)    
+    cgmUI.add_Header('Create')
     
-def buildRow_vector(self,parent,label='translate',tweak=True):
-    #>>>Vector -------------------------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
-    mUI.MelSpacer(_row ,w=5)                                              
-    mUI.MelLabel(_row ,l=label + ':')        
-    _row.setStretchWidget(mUI.MelSeparator(_row )) 
-    _base_str = 'uiff_{0}'.format(label)
+    #>>>Options Row ---------------------------------------------------------------------------------------
+    _row_createOptions = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row_createOptions,w=2)           
+    mUI.MelLabel(_row_createOptions,l='Resplit:')
     
-    self._d_transformAttrFields[label] = {}
-    self._d_transformRows[label] = _row
+    self.create_guiOptionVar('splitMode',defaultValue = 0) 
     
-    self._d_transformCBs[label] = mUI.MelCheckBox(_row,en=tweak,
-                                                  ann='Tweak the {0} value with relative buttons above'.format(label))
-    
-    for a in list('xyz'):
-        mUI.MelLabel(_row ,l=a)
-        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 )
-        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field
-        self._d_transformAttrFields[label][a.capitalize()] = _field
-        mc.button(parent=_row ,
-                  ut = 'cgmUITemplate',                                                                                                
-                  l = '>',
-                  c = cgmGEN.Callback(uiFunc_valuesSend,self,label,a.capitalize()),
-                  #c = lambda *a:uiFunc_valuesSend(self,label,a),
-                  #c = lambda *a:TOOLBOX.uiFunc_vectorMeasureToField(self),
-                  ann = "Send to targets")             
-
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '>>>',
-              c = cgmGEN.Callback(uiFunc_valuesSend,self,label,None),
-              #c = lambda *a:TOOLBOX.uiFunc_vectorMeasureToField(self),
-              ann = "Measures vector between selected objects/components")        
-    mUI.MelSpacer(_row ,w=5)                                              
-
-    _row.layout()
-    
-def buildRow_tweak(self,parent):
-    #>>>Vector -------------------------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
-    mUI.MelSpacer(_row ,w=5)                                              
-    mUI.MelLabel(_row ,l='Tweak Values:')        
-    _row.setStretchWidget(mUI.MelSeparator(_row )) 
-    _base_str = 'uiff_transformTweak'
-    
-    #self._d_transformAttrFields[label] = {}
-    #self._d_transformRows[label] = _row
-    
-    for a in list('xyz'):
-        mUI.MelLabel(_row ,l=a)
-        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 )
-        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field          
-
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '+',
-              c = cgmGEN.Callback(uiFunc_valuesTweak,self,'+'),
-              ann = "Adds value relatively to current") 
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '-',
-              c = cgmGEN.Callback(uiFunc_valuesTweak,self,'-'),
-              ann = "Subracts value relatively to current")         
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = 'Zero',
-              c = cgmGEN.Callback(uiFunc_valuesTweak,self,'zero'),
-              ann = "Zero out the fields. Uncheck all tweak check boxes") 
-    
-    mUI.MelSpacer(_row ,w=5)                                              
-
-    _row.layout() 
-    
-def buildRow_lockSource(self,parent):
-    
-    _plug = 'var_transformLockSource'
-    
-    self.__dict__[_plug] = cgmMeta.cgmOptionVar('cgmVar_transformLockSource', defaultValue = 1)        
-    
-    mPlug = self.__dict__[_plug]
-    
-    #>>>Row ====================================================================================
     uiRC = mUI.MelRadioCollection()
+    _on = self.var_splitMode.value
 
-    _row1 = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
-    mUI.MelSpacer(_row1,w=5)
-    mUI.MelLabel(_row1,l='Lock Source: ')
-    
-    _row1.setStretchWidget( mUI.MelSeparator(_row1) )
-
-    uiRC = mUI.MelRadioCollection()
-    _on = mPlug.value
-
-    for i,item in enumerate(['off','on']):
+    for i,item in enumerate(['none','linear','curve']):
         if i == _on:
             _rb = True
         else:_rb = False
 
-        uiRC.createButton(_row1,label=item,sl=_rb,
-                          ann = "When locked, the source object will not be affected by value changes via the ui",
-                          onCommand = cgmGEN.Callback(mPlug.setValue,i))
+        uiRC.createButton(_row_createOptions,label=item,sl=_rb,
+                          onCommand = cgmGEN.Callback(self.var_splitMode.setValue,i))
 
-        mUI.MelSpacer(_row1,w=2)    
+        mUI.MelSpacer(_row_createOptions,w=2)       
+    _row_createOptions.setStretchWidget( mUI.MelSeparator(_row_createOptions) )
 
-    _row1.layout()
+    self.uiIF_cnt = mUI.MelIntField(_row_createOptions ,  value = 5, ut='cgmUISubTemplate', w= 60 )
+    mUI.MelLabel(_row_createOptions,l='#')    
     
-def buildRow_space(self,parent,optionVarPrefix = 'source', options = __l_spaceModes):
+    mUI.MelSpacer(_row_createOptions,w=2)       
+
+    _row_createOptions.layout()              
     
-    _plug = 'var_{0}TransSpaceMode'.format(optionVarPrefix)
+    #>>>Create Buttons Row ---------------------------------------------------------------------------------------
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()    
+    _row_create = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row_create,w=2)
     
-    self.__dict__[_plug] = cgmMeta.cgmOptionVar('cgmVar_{0}TransSpaceMode'.format(optionVarPrefix), defaultValue = options[0])        
+    self.uiCB_orient = mUI.MelCheckBox(_row_create,en=True,l='Orient',
+                                       value =True,
+                                       ann='Orient created joints')
     
-    mPlug = self.__dict__[_plug]
+    self.uiCB_chain = mUI.MelCheckBox(_row_create,en=True,l='Chain',
+                                      value = True,
+                                      ann='Parent created joints as a chain')
     
-    #>>>Row ====================================================================================
-    uiRC = mUI.MelRadioCollection()
-
-    _row1 = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
-    mUI.MelSpacer(_row1,w=5)
-    mUI.MelLabel(_row1,l='{0} Space Mode'.format(optionVarPrefix.capitalize()))
+    self.uiCB_relative = mUI.MelCheckBox(_row_create,en=True,l='Relative',
+                                         value = False,
+                                         ann='Relative orient where the chain orientation is relative to the parent')
     
-    _row1.setStretchWidget( mUI.MelSeparator(_row1) )
+    _row_create.setStretchWidget( mUI.MelSeparator(_row_create) )
+    
+    #mUI.MelLabel(_row_create,l='From Selected:')    
+    mc.button(parent=_row_create, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Each',
+              c=cgmGEN.Callback(createJoints,self,'each'),
+              #ann = "Show the joint axis by current context",                                        
+              #c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
+              )
+    mc.button(parent=_row_create, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Mid',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Joint at mid',**{'create':'joint','midPoint':'True'}),         
+              ann = 'Create a joint at the mid point of selected',
+              )
+    mc.button(parent=_row_create, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Curve',
+              c=cgmGEN.Callback(createJoints,self,'curve'),
+              #ann = "Show the joint axis by current context",                                        
+              #c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
+              )
 
-    uiRC = mUI.MelRadioCollection()
-    _on = mPlug.value
+    mUI.MelSpacer(_row_create,w=2)    
+    _row_create.layout()              
+    
+    
+    
+    #Utilities ==================================================================================================
+    mc.setParent(_inside)    
+    cgmUI.add_Header('Utilities')
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()    
+    
+    _row_utils = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    
+    mc.button(parent = _row_utils,
+              ut = 'cgmUITemplate',                                                                                                
+              l='cometJO',
+              c=lambda *a: mel.eval('cometJointOrient'),
+              ann="General Joint orientation tool  by Michael Comet")   
+    mc.button(parent=_row_utils, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Freeze',
+              ann = "Freeze the joint orientation - our method as we don't like Maya's",                                        
+              c = cgmGEN.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
+              )
+    mc.button(parent = _row_utils,
+              ut = 'cgmUITemplate',                                                                                                
+              l='seShapeTaper',
+              ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
+              c=lambda *a: mel.eval('seShapeTaper'),)   
 
-    for i,item in enumerate(options):
-        if item == _on:
-            _rb = True
-        else:_rb = False
+    _row_utils.layout()
+    
+    
+    return _inside
 
-        uiRC.createButton(_row1,label=item,sl=_rb,
-                          onCommand = cgmGEN.Callback(mPlug.setValue,item))
 
-        mUI.MelSpacer(_row1,w=2)    
 
-    _row1.layout()
-     
+    mc.button(parent = _row_joints,
+              ut = 'cgmUITemplate',                                                                                                
+              l='cometJO',
+              c=lambda *a: mel.eval('cometJointOrient'),
+              ann="General Joint orientation tool  by Michael Comet")   
+    mc.button(parent=_row_joints, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Freeze',
+              ann = "Freeze the joint orientation - our method as we don't like Maya's",                                        
+              c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
+              )
+    mc.button(parent = _row_joints,
+              ut = 'cgmUITemplate',                                                                                                
+              l='seShapeTaper',
+              ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
+              c=lambda *a: mel.eval('seShapeTaper'),)   
+    
+    return _inside
+
+def createJoints(self, mode = 'each'):
+    _str_func = 'createJoints'
+    
+    _d = uiFunc_getCreateData(self)
+    
+    _sel = MMCONTEXT.get_list()
+    if not _sel:
+        return log.error("|{0}| >> Nothing selected".format(_str_func))
+    
+    if mode != 'curve' and _d['resplit'] and len(_sel) < 2:
+        return log.error("|{0}| >> Need more objects for resplitting 'each' mode. ".format(_str_func))
+        
+
+    pprint.pprint(_sel)
+    log.info("|{0}| >> mode: {1}".format(_str_func,mode))        
+    mc.select(cl=True)
+    if mode == 'curve':
+        for o in _sel:
+            mObj = cgmMeta.validateObjArg(o,'cgmObject')
+            for mShape in mObj.getShapes(asMeta=True):
+                _type = mShape.getMayaType() 
+                if _type == 'nurbsCurve':
+                    
+                    JOINTS.build_chain(curve=mShape.mNode,
+                                       axisAim=_d['aim'],axisUp=_d['up'],
+                                       worldUpAxis=_d['world'],count=_d['count'],splitMode='curveCast',
+                                       parent=_d['parent'],
+                                       orient=_d['orient'],
+                                       relativeOrient=_d['relativeOrient'])
+                else:
+                    log.warning("|{0}| >> shape: {1} | invalid type: {2}".format(_str_func,mShape.mNode,_type))        
+                    
+    elif mode == 'each':
+        #posList = [POS.get(o) for o in _sel]
+        _resplit = _d['resplit']
+        if not _resplit:
+            log.info("|{0}| >> No resplit...".format(_str_func))                                
+            JOINTS.build_chain(targetList=_sel,
+                               axisAim=_d['aim'],axisUp=_d['up'],
+                               worldUpAxis=_d['world'],
+                               parent=_d['parent'],
+                               orient=_d['orient'],
+                               relativeOrient=_d['relativeOrient'])
+        else:
+            log.info("|{0}| >> resplit...".format(_str_func))                    
+            _splitMode = ['linear','curve'][_d['resplit']-1]
+            JOINTS.build_chain(targetList=_sel,
+                               axisAim=_d['aim'],axisUp=_d['up'],
+                               worldUpAxis=_d['world'],count=_d['count'],
+                               splitMode=_splitMode,
+                               parent=_d['parent'],
+                               orient=_d['orient'],
+                               relativeOrient=_d['relativeOrient'])
+        
+    else:
+        raise ValueError,"Unknown mode: {0}".format(mode)
+    
+
+def uiFunc_getOrientData(self):
+    _d = {}
+    _d['aim'] = SHARED._l_axis_by_string[self.var_jointAimAxis.value]
+    _d['up'] = SHARED._l_axis_by_string[self.var_jointUpAxis.value]
+    
+    _d['world'] = [self.uiFF_worldUpX.getValue(),
+                   self.uiFF_worldUpY.getValue(),
+                   self.uiFF_worldUpZ.getValue()]
+    return _d
+
+def uiFunc_getCreateData(self,report=False):
+    _d = {}
+    _d['resplit'] = self.var_splitMode.value
+    _d['orient'] = self.uiCB_orient.getValue()
+    _d['parent'] = self.uiCB_chain.getValue()
+    _d['count'] = self.uiIF_cnt.getValue()
+    _d['relativeOrient'] = self.uiCB_relative.getValue()
+    _d.update(uiFunc_getOrientData(self))
+    if report:pprint.pprint(_d)
+    return _d
+
+    
+def buildRow_worldUp(self,parent):
+    #>>>Vector -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row ,w=5)                                              
+    mUI.MelLabel(_row ,l='World:')        
+    _row.setStretchWidget(mUI.MelSeparator(_row )) 
+    _base_str = 'uiFF_worldUp'
+    
+    for i,a in enumerate(list('xyz')):
+        #mUI.MelLabel(_row ,l=a)
+        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 )
+        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field          
+        if i == 1:
+            _field.setValue(1.0)
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'X',
+              c = cgmGEN.Callback(uiFunc_setWorldUp,self,1.0,0,0),
+              ann = "Adds value relatively to current") 
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Y',
+              c = cgmGEN.Callback(uiFunc_setWorldUp,self,0,1.0,0),
+              ann = "Subracts value relatively to current")         
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Z',
+              c = cgmGEN.Callback(uiFunc_setWorldUp,self,0,0,1.0),
+              ann = "Zero out the fields. Uncheck all tweak check boxes") 
+    mUI.MelSpacer(_row ,w=5)                                              
+    _row.layout() 
+    
+def buildRow_getVector(self,parent):
+    #>>>Match mode -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)                      
+    mUI.MelLabel(_row,l='Vector from selected:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    for i,item in enumerate(SHARED._l_axis_by_string):
+        mc.button(parent = _row,
+                  ut = 'cgmUITemplate',
+                  label=item,
+                  c = cgmGEN.Callback(uiFunc_getVectorOfSelected,self,item),
+                  ann='asdf')
+
+        mUI.MelSpacer(_row,w=2)           
+
+
+    _row.layout()   
+
+def uiFunc_getVectorOfSelected(self,axis = 'x+'):
+    _sel = MMCONTEXT.get_list(getTransform=True)
+    if not _sel:
+        return log.error('Nothing selected')
+    
+    vec = MATH.get_obj_vector(_sel[0],axis)
+    log.info("Found vector: {0}".format(vec))
+    
+    uiFunc_setWorldUp(self,vec[0],vec[1],vec[2])
+    
+def uiFunc_setWorldUp(self, x = None, y = None, z = None):
+    _base_str = 'uiFF_worldUp'
+    #mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 ).setV
+    for i,arg in enumerate([x,y,z]):
+        if arg is not None:
+            mField = self.__dict__['{0}{1}'.format(_base_str,'xyz'[i].capitalize())]
+            mField.setValue(arg)
+    
+    
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  
     #self._ml_ = []
@@ -340,251 +486,9 @@ def uiFunc_load_selected(self, bypassAttrCheck = False):
         log.warning("|{0}| >> Nothing selected.".format(_str_func))            
         uiFunc_clear_loaded(self)
 
-    uiFunc_updateFields(self)
+    #uiFunc_updateFields(self)
     #self.uiReport_do()
     #self.uiFunc_updateScrollAttrList()
-
-def uiFunc_updateFields(self):
-    _str_func = 'uiFunc_updateFields'
-    #_type = VALID.get_mayaType(_short)
-    
-    if not self._mTransformTarget:
-        return False
-    _short = self._mTransformTarget.mNode
-    
-    #_space = self.var_sourceTransSpaceMode.value
-    #log.info("|{0}| >> Getting data. Space: {1} ".format(_str_func, _space))
-    
-    #_pos = POS.get(_short,'rp',_space)
-    _info = POS.get_info(_short)
-    
-    pprint.pprint(_info)
-    #pprint.pprint(self._d_transformAttrFields)
-    _d_sectionToDatKey = {'rotate':'rotateLocal',
-                          'orient':'rotation'}
-    
-    for section in self._d_transformAttrFields.keys():
-        log.info("|{0}| >> On {1}".format(_str_func,section))
-        _s = section
-        if _s in ['translate','rotate','position','rotateAxis','scalePivot','orient']:
-            _k = _d_sectionToDatKey.get(_s,_s)
-            for i,v in enumerate(_info[_k]):
-                self._d_transformAttrFields[_s]['XYZ'[i]].setValue(v)   
-                
-        elif _s == 'jointOrient':
-            if ATTR.has_attr(_short,'jointOrient'):
-                self._d_transformRows[_s](edit=True, vis=True)
-                _v = ATTR.get(_short,'jointOrient')
-                log.info("|{0}| >> jointOrient: {1}".format(_str_func,_v))                
-                for i,v in enumerate(_v):
-                    self._d_transformAttrFields[_s]['XYZ'[i]].setValue(v)
-            else:
-                self._d_transformRows[_s](edit=True, vis=False)
-        elif _s == 'scale':
-            for i,v in enumerate(ATTR.get(_short,'scale')):
-                self._d_transformAttrFields[_s]['XYZ'[i]].setValue(v)  
-        elif _s == 'scaleLossy':
-            for i,v in enumerate(TRANS.scaleLossy_get(_short)):
-                self._d_transformAttrFields[_s]['XYZ'[i]].setValue(v)            
-        else:
-            log.info("|{0}| >> Missing query for {1}".format(_str_func,section))
-            
-             
-        
-def uiFunc_getTargets(self):
-    _str_func = 'uiFunc_getTargets'
-    _b_lockSource = cgmMeta.cgmOptionVar('cgmVar_transformLockSource', defaultValue = 1).getValue()
-    
-    _targets = mc.ls(sl=True)
-    _ml_targets = []
-    if _targets:
-        _ml_targets = cgmMeta.validateObjListArg(_targets,'cgmObject')
-        
-    if _b_lockSource and self._mTransformTarget:
-        log.info("|{0}| >> lock Source on. Checking list".format(_str_func))
-        if self._mTransformTarget in _ml_targets:
-            _ml_targets.remove(self._mTransformTarget)
-            log.info("|{0}| >> Removed source...".format(_str_func))            
-    elif not _b_lockSource and self._mTransformTarget:
-        if self._mTransformTarget not in _ml_targets:
-            _ml_targets.insert(0,self._mTransformTarget)
-    
-    if not _ml_targets:
-        log.info("|{0}| >> No targets selected".format(_str_func))                
-        
-    log.info("|{0}| >> targets...".format(_str_func))                
-    for mObj in _ml_targets:
-        print(mObj.mNode)
-    
-    return _ml_targets
-    #_mTransformTargetself._mTransformTarget
-    #pprint.pprint(vars())
-
-def uiFunc_valuesSend(self,section=None,key=None):
-    _str_func = 'uiFunc_valuesSend'
-    
-    _ml_targets = uiFunc_getTargets(self)
-    if not _ml_targets:
-        raise ValueError,"Must have targets"
-        
-    _d_fieldValues = {}
-    
-    #>>>Simple values
-    _s = section    
-    if not key:
-        for a in 'XYZ':
-            _v = self._d_transformAttrFields[_s][a].getValue()
-            _d_fieldValues[a]  = _v
-    else:
-        try:
-            _v = self._d_transformAttrFields[_s][key].getValue()
-            _d_fieldValues[key] = _v
-        
-        except Exception,err:
-            log.error("|{0}| >> Failed to get key data. Section: {0} | key: {1}...".format(_str_func,_s,key))                
-            log.error(err)   
-        
-    #log.warning("|{0}| >> Haven't setup for {1}...".format(_str_func,_s))   
-        
-    #if _s in ['translate','rotate','scale','jointOrient','rotateAxis']:
-    pprint.pprint(_d_fieldValues)
-    
-    if _s in ['translate','rotate','scale','jointOrient','rotateAxis']:
-        for a,v in _d_fieldValues.iteritems():
-            _a = _s + a
-            log.info("|{0}| >> Trying attr: {1} | v: {2}... ".format(_str_func,_a,v))                        
-            for mObj in _ml_targets:
-                if not ATTR.has_attr(mObj.mNode,_s):
-                    log.info("|{0}| >> Object lacks {2} attr : {1}... ".format(_str_func,mObj.mNode,_s))                                                        
-                    return
-                log.info("|{0}| >> Trying Object: {1}... ".format(_str_func,mObj.mNode))                                    
-                try:ATTR.set(mObj.mNode,_a,v)        
-                except Exception,err:
-                    log.error("|{0}| >> Failed to get set data. Object: {0} | a: {1} | v: {2}...".format(_str_func,mObj.mNode,_a,v))                
-                    log.error(err)
-    elif _s == 'position':
-        for mObj in _ml_targets:
-            log.info("|{0}| >> Trying Object: {1} | [{2}]... ".format(_str_func,mObj.mNode,_s)) 
-            pos = TRANS.position_get(mObj.mNode)
-            log.info("|{0}| >> pre pos: [{1}] ".format(_str_func,pos)) 
-            
-            for k,v in _d_fieldValues.iteritems():
-                pos['XYZ'.index(k)] = v
-            log.info("|{0}| >> pos pos: [{1}] ".format(_str_func,pos))   
-            try:
-                TRANS.position_set(mObj.mNode, pos)     
-            except Exception,err:
-                log.error("|{0}| >> Failed to get set data. Object: {0} | section: {2}...".format(_str_func,mObj.mNode,_s))                
-                log.error(err) 
-    elif _s == 'orient':
-        for mObj in _ml_targets:
-            log.info("|{0}| >> Trying Object: {1} | [{2}]... ".format(_str_func,mObj.mNode,_s)) 
-            val = TRANS.orient_get(mObj.mNode)
-            log.info("|{0}| >> pre val: [{1}] ".format(_str_func,val)) 
-        
-            for k,v in _d_fieldValues.iteritems():
-                val['XYZ'.index(k)] = v
-            log.info("|{0}| >> post val: [{1}] ".format(_str_func,val))   
-            try:
-                TRANS.orient_set(mObj.mNode, val)     
-            except Exception,err:
-                log.error("|{0}| >> Failed to get set data. Object: {0} | section: {2}...".format(_str_func,mObj.mNode,_s))                
-                log.error(err)         
-    elif _s == 'scaleLossy':
-        log.warning("|{0}| >> NOTE - Scale lossy is pushed to local scale on targets ".format(_str_func,mObj.mNode,_s))                     
-        for mObj in _ml_targets:
-            log.info("|{0}| >> Trying Object: {1} | [{2}]... ".format(_str_func,mObj.mNode,_s))
-            scale = TRANS.scaleLossy_get(mObj.mNode)
-            log.info("|{0}| >> pre scale: [{1}] ".format(_str_func,scale)) 
-        
-            for k,v in _d_fieldValues.iteritems():
-                scale['XYZ'.index(k)] = v
-            log.info("|{0}| >> post scale: [{1}] ".format(_str_func,scale))   
-            try:
-                TRANS.scaleLocal_set(mObj.mNode, scale)     
-            except Exception,err:
-                log.error("|{0}| >> Failed to get set data. Object: {0} | section: {1} ...".format(_str_func,mObj.mNode,_s))                
-                log.error(err)
-    elif _s == 'scalePivot':
-        for mObj in _ml_targets:
-            log.info("|{0}| >> Trying Object: {1} | [{2}]... ".format(_str_func,mObj.mNode,_s))
-            piv = TRANS.scalePivot_get(mObj.mNode)
-            #pos = TRANS.position_get(mObj.mNode)
-            log.info("|{0}| >> pre piv: [{1}] ".format(_str_func,piv)) 
-        
-            for k,v in _d_fieldValues.iteritems():
-                piv['XYZ'.index(k)] = v
-                
-            #piv = MATH.list_subtract(piv,pos)
-            log.info("|{0}| >> post piv: [{1}] ".format(_str_func,piv))   
-            try:
-                TRANS.scalePivot_set(mObj.mNode, piv)     
-            except Exception,err:
-                log.error("|{0}| >> Failed to get set data. Object: {0} | section: {1} ...".format(_str_func,mObj.mNode,_s))                
-                log.error(err)        
-    else:
-        log.warning("|{0}| >> Haven't setup for {1}...".format(_str_func,_s))   
-    
-    
-
-def uiFunc_valuesTweak(self,mode = '+'):
-    _str_func = 'uiFunc_valuesTweak'
-    
-    if mode == 'zero':
-        log.info("|{0}| >> Zeroing ".format(_str_func))           
-        for a in 'XYZ':
-            self.__dict__['uiff_transformTweak{0}'.format(a)].setValue(0)
-        for k,cb in self._d_transformCBs.iteritems():
-            cb.setValue(0)
-        return 
-    
-    _ml_targets = uiFunc_getTargets(self)
-    if not _ml_targets:
-        raise ValueError,"Must have targets"    
-
-    _l_toTweak = []
-    for k,cb in self._d_transformCBs.iteritems():
-        if cb.getValue():
-            _l_toTweak.append(k)
-            
-    _tweak = []
-    for a in 'XYZ':
-        _tweak.append(self.__dict__['uiff_transformTweak{0}'.format(a)].getValue())
-    
-    pprint.pprint([mode,_l_toTweak,_tweak])
-    
-    if mode == '+':
-        _tweak_call = MATH.list_add
-    else:
-        _tweak_call = MATH.list_subtract
-    
-    for mObj in _ml_targets:
-        for attr in _l_toTweak:
-            if attr in ['translate','rotate','scale','jointOrient','rotateAxis']:
-                _v = ATTR.get(mObj.mNode, attr)
-                log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
-                _v = _tweak_call(_v,_tweak)
-                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                                 
-                ATTR.set(mObj.mNode, attr,_v)
-               
-            elif attr == 'position':
-                _v = TRANS.position_get(mObj.mNode)
-                log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
-                _v = _tweak_call(_v,_tweak)
-                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                 
-                TRANS.position_set(mObj.mNode, _v)  
-            elif attr == 'orient':
-                _v = TRANS.orient_get(mObj.mNode)
-                log.info("|{0}| >> pre tweak: [{1}] ".format(_str_func,_v)) 
-                _v = _tweak_call(_v,_tweak)
-                log.info("|{0}| >> post tweak: [{1}] ".format(_str_func,_v))                                 
-                TRANS.orient_set(mObj.mNode, _v)                  
-            else:
-                log.warning("|{0}| >> Haven't setup for {1}...".format(_str_func,_s))           
-        
-        
-    
-    pass
 
 def uiFunc_clear_loaded(self):
     _str_func = 'uiFunc_clear_loaded'  
@@ -622,9 +526,6 @@ def uiFunc_updateTargetDisplay(self):
     self.uiTF_objLoad(edit=True, en=True)
     
     return
-    if self.uiPopUpMenu_dynChild:
-        self.uiPopUpMenu_dynChild.clear()
-        self.uiPopUpMenu_dynChild.delete()
-        self.uiPopUpMenu_dynChild = None
+
 
  

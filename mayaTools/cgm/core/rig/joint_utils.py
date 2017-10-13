@@ -46,7 +46,9 @@ import cgm.core.lib.curve_Utils as CURVES
 #>>> Utilities
 #===================================================================  
 
-def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0], baseName = None, asMeta = True):
+def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
+                worldUpAxis = [0,1,0], relativeOrient = True,
+                baseName = None, asMeta = True):
                 
     """
     Given a series of positions, or objects, or a curve and a mesh - loft retopology it
@@ -77,7 +79,9 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1
             mJnt.parent = _ml_joints[i-1]
             #...after our first object, we use our last object's up axis to be our new up vector.
             #...this keeps joint chains that twist around from flipping. Ideally...
-            _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
+            if relativeOrient:
+                _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
+        
         mDup = mJnt.doDuplicate(parentOnly = True)
         mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
 
@@ -238,7 +242,10 @@ def build_chain(posList = [],
                 axisUp = 'y+',
                 worldUpAxis = [0,1,0],
                 count = None,
-                splitMode = 'vectorCast',                   
+                splitMode = 'curve',
+                parent = False,
+                orient = True,
+                relativeOrient=True,
                 asMeta = True):
     """
     General build oriented skeleton from a position list, targets or curve
@@ -250,8 +257,8 @@ def build_chain(posList = [],
         worldUpAxis(vector) | World up direction for orientation
         count(int) | number of joints for splitting (None) is default which doesn't resplit
         splitMode(str)
-            vectorCast - Resplit along a vector from the first to last posList point
-            curveCast - Resplit along a curve going through all of our points
+            linear - Resplit along a vector from the first to last posList point
+            curve - Resplit along a curve going through all of our points
 
     :returns
         created(list)
@@ -268,25 +275,36 @@ def build_chain(posList = [],
     #>>Get positions ================================================================================
     if not posList and targetList:
         log.debug("|{0}| >> No posList provided, using targets...".format(_str_func))            
+        posList = []
         for t in targetList:
             posList.append(POS.get(t))
+            
+    if curve and not posList:
+        log.debug("|{0}| >> Generating posList from curve arg...".format(_str_func))                    
+        splitMode == 'curve'
+        posList = CURVES.returnSplitCurveList(curve,count)
         
     if count is not None:
         log.debug("|{0}| >> Resplit...".format(_str_func))    
-        
-        if curve:
-            splitMode == 'curveCast'
-            
-        if splitMode == 'vectorCast':
-            #_p_start = POS.get(_l_targets[0])
-            #_p_top = POS.get(_l_targets[1])    
-            posList = get_posList_fromStartEnd(posList[0],posList[-1],count)   
-        elif splitMode == 'curveCast':
-            _crv = CURVES.create_fromList(posList= posList)
-            posList = CURVES.returnSplitCurveList(_crv,_joints)
-            mc.delete(_crv)
-        else:
-            raise ValueError, "Unknown splitMode: {0}".format(splitMode)
+        if count != len(posList):
+            if splitMode == 'linear':
+                #_p_start = POS.get(_l_targets[0])
+                #_p_top = POS.get(_l_targets[1])    
+                #posList = get_posList_fromStartEnd(posList[0],posList[-1],count)
+                _crv = CURVES.create_fromList(posList= posList, linear=True)
+                posList = CURVES.returnSplitCurveList(_crv,count)
+                mc.delete(_crv)                
+            elif splitMode == 'curve':
+                if not curve:
+                    log.debug("|{0}| >> Making curve...".format(_str_func))                        
+                    _crv = CURVES.create_fromList(posList= posList)
+                    posList = CURVES.returnSplitCurveList(_crv,count)
+                    mc.delete(_crv)
+                else:
+                    posList = CURVES.returnSplitCurveList(curve,count)
+                    
+            else:
+                raise ValueError, "Unknown splitMode: {0}".format(splitMode)
     
     #>>Radius =======================================================================================
     _len = len(posList)
@@ -295,30 +313,33 @@ def build_chain(posList = [],
         _radius = _baseDist/4
 
     #>>Create joints =================================================================================
-    _ml_joints = []
+    ml_joints = []
 
     log.debug("|{0}| >> pos list...".format(_str_func)) 
     for i,p in enumerate(posList):
         log.debug("|{0}| >> {1}:{2}".format(_str_func,i,p)) 
 
-        _mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
-        _mJnt.displayLocalAxis = 1
-        _mJnt.radius = _radius
+        mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
+        mJnt.displayLocalAxis = 1
+        mJnt.radius = _radius
 
-        _ml_joints.append ( _mJnt )
+        ml_joints.append ( mJnt )
+        if not parent:
+            mJnt.parent=False
         """if i > 0:
             _mJnt.parent = _ml_joints[i-1]    
         else:
             _mJnt.parent = False"""
         
     #>>Orient chain...
-    if _len == 1:
-        log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
-    else:
-        orientChain(_ml_joints,axisAim,axisUp,worldUpAxis)
+    if orient:
+        if _len == 1:
+            log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
+        else:
+            orientChain(ml_joints,axisAim,axisUp,worldUpAxis,relativeOrient)
 
     if asMeta:
-        return _ml_joints
-    return [mJnt.mNode for mJnt in _ml_joints]
+        return ml_joints
+    return [mJnt.mNode for mJnt in ml_joints]
 
 

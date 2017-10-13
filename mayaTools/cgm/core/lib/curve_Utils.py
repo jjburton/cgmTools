@@ -621,7 +621,7 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
             
     return _res
 
-def create_fromList(targetList = None, posList = None):
+def create_fromList(targetList = None, posList = None, linear = False):
     """ 
     Create a curve from a target or pos list
 
@@ -636,9 +636,11 @@ def create_fromList(targetList = None, posList = None):
         posList = [POS.get(t) for t in targetList]
     elif posList is None:
         raise ValueError,"must have targetList or posList"
-    
-    knot_len = len(posList)+3-1
-    return mc.curve (d=3, ep = posList, k = [i for i in range(0,knot_len)], os=True) 
+    if linear:
+        return mc.curve (d=1, ep = posList, os=True) 
+    else:
+        knot_len = len(posList)+3-1
+        return mc.curve (d=3, ep = posList, k = [i for i in range(0,knot_len)], os=True) 
     
 def controlCurve_update(target = None):
     """
@@ -778,7 +780,7 @@ def returnSplitCurveList(*args, **kws):
                                           'help':"Maximum U value to use to start splitting"},
                                          {'kw':'reverseCurve',"default":False,
                                           'help':"Reverse the curve before split"},	                                 
-                                         {'kw':'rebuildSpans',"default":10,
+                                         {'kw':'rebuildSpans',"default":50,
                                           'help':"How many spans for the rebuild"}]	    
             self.__dataBind__(*args, **kws)
 
@@ -788,7 +790,7 @@ def returnSplitCurveList(*args, **kws):
             _str_funcName = self._str_funcCombined
             curve = self.d_kws['curve']
             points = self.d_kws['points']
-            mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
+            mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
             int_points = cgmValid.valueArg(self.d_kws['points'],minValue=1,calledFrom = _str_funcName)
             f_insetSplitFactor = cgmValid.valueArg(self.d_kws['insetSplitFactor'],calledFrom = _str_funcName)	
             f_startSplitFactor = cgmValid.valueArg(self.d_kws['startSplitFactor'],calledFrom = _str_funcName)		

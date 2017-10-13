@@ -33,6 +33,11 @@ def setTools():
     reload(SETTOOLS)
     SETTOOLS.ui()
 
+def jointTools():
+    import cgm.core.tools.jointTools as JOINTTOOLS
+    reload(JOINTTOOLS)
+    JOINTTOOLS.ui()
+
 def ngskin():
     try:
         from ngSkinTools.ui.mainwindow import MainWindow
