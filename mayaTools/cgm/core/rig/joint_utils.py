@@ -11,11 +11,13 @@ Website : http://www.cgmonks.com
 import copy
 import re
 import time
+import pprint
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -37,6 +39,8 @@ from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.curve_Utils as CURVES
+
 #!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #>>> Utilities
@@ -227,4 +231,94 @@ def freezeOrientation(targetJoints):
     #t1 = time.time()				
     return True
 
+def build_chain(posList = [],
+                targetList = [],
+                curve = None,
+                axisAim = 'z+',
+                axisUp = 'y+',
+                worldUpAxis = [0,1,0],
+                count = None,
+                splitMode = 'vectorCast',                   
+                asMeta = True):
+    """
+    General build oriented skeleton from a position list, targets or curve
+    
+    :parameters:
+        posList(list) | List of positions to build from
+        targetList(list) | List of targets to build from
+        curve(str) | Curve to split 
+        worldUpAxis(vector) | World up direction for orientation
+        count(int) | number of joints for splitting (None) is default which doesn't resplit
+        splitMode(str)
+            vectorCast - Resplit along a vector from the first to last posList point
+            curveCast - Resplit along a curve going through all of our points
+
+    :returns
+        created(list)
+    """
+    
+    _str_func = 'build_chain'
+    _axisAim = axisAim
+    _axisUp = axisUp
+    _axisWorldUp = worldUpAxis
+    _radius = 1    
+    mc.select(cl=True)
+    pprint.pprint(vars())
+    
+    #>>Get positions ================================================================================
+    if not posList and targetList:
+        log.debug("|{0}| >> No posList provided, using targets...".format(_str_func))            
+        for t in targetList:
+            posList.append(POS.get(t))
+        
+    if count is not None:
+        log.debug("|{0}| >> Resplit...".format(_str_func))    
+        
+        if curve:
+            splitMode == 'curveCast'
             
+        if splitMode == 'vectorCast':
+            #_p_start = POS.get(_l_targets[0])
+            #_p_top = POS.get(_l_targets[1])    
+            posList = get_posList_fromStartEnd(posList[0],posList[-1],count)   
+        elif splitMode == 'curveCast':
+            _crv = CURVES.create_fromList(posList= posList)
+            posList = CURVES.returnSplitCurveList(_crv,_joints)
+            mc.delete(_crv)
+        else:
+            raise ValueError, "Unknown splitMode: {0}".format(splitMode)
+    
+    #>>Radius =======================================================================================
+    _len = len(posList)
+    if _len > 1:    
+        _baseDist = DIST.get_distance_between_points(posList[0],posList[1])   
+        _radius = _baseDist/4
+
+    #>>Create joints =================================================================================
+    _ml_joints = []
+
+    log.debug("|{0}| >> pos list...".format(_str_func)) 
+    for i,p in enumerate(posList):
+        log.debug("|{0}| >> {1}:{2}".format(_str_func,i,p)) 
+
+        _mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
+        _mJnt.displayLocalAxis = 1
+        _mJnt.radius = _radius
+
+        _ml_joints.append ( _mJnt )
+        """if i > 0:
+            _mJnt.parent = _ml_joints[i-1]    
+        else:
+            _mJnt.parent = False"""
+        
+    #>>Orient chain...
+    if _len == 1:
+        log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
+    else:
+        orientChain(_ml_joints,axisAim,axisUp,worldUpAxis)
+
+    if asMeta:
+        return _ml_joints
+    return [mJnt.mNode for mJnt in _ml_joints]
+
+
