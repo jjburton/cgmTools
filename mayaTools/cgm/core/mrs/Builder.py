@@ -59,7 +59,7 @@ _d_blockTypes = {}
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Factory
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
-class go(object):
+class goAFLKSDJFL(object):
     def __init__(self, rigBlock = None, forceNew = True, autoBuild = True, ignoreRigCheck = False,
                  *a,**kws):
         """
@@ -1239,7 +1239,7 @@ class ui(cgmUI.cgmGUI):
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
     
-        _MainForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
+        _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
         
         ui_tabs = mUI.MelTabLayout( _MainForm,w=180 )
         

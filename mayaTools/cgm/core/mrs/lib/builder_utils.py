@@ -47,6 +47,7 @@ from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
+import cgm.core.classes.NodeFactory as NODEFACTORY
 
 
 
@@ -309,10 +310,6 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     mi_go._mi_rigNull.msgList_connect(ml_moduleJoints,'skinJoints')     
     """
 
-
-
-
-
     _ml_joints[0].addAttr('cgmName','box')
 
     for i,mJnt in enumerate(_ml_joints):
@@ -321,8 +318,8 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
 
 
     #>>HelperJoint setup???
-    
-    
+
+ 
 def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
     """
     Core rig block factory. Runs processes for rig blocks.

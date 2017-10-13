@@ -43,7 +43,7 @@ import cgm.core.lib.transform_utils as TRANS
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
-from cgm.core.lib import rigging_utils as RIGGING
+from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
@@ -181,6 +181,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
         else:
             blockType = _type
+            
         _mBlockModule = get_blockModule(blockType)
         
         if not _mBlockModule:
@@ -202,7 +203,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if 'define' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
             _mBlockModule.define(self)      
-        
+        self._blockModule = _mBlockModule
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
         return True
         
@@ -501,7 +502,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
     
     def getBlockModule(self):
         blockType = self.getMayaAttr('blockType')
-    
         return get_blockModule(blockType)
     
     p_blockModule = property(getBlockModule)
@@ -683,7 +683,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                                 _a = 's'+'xyz'[ii]
                                 if not self.isAttrConnected(_a):
                                     ATTR.set(_tmp_short,_a,v)   
-                            if _jointHelpers:
+                            if _jointHelpers and _jointHelpers[i]:
                                 mObj.jointHelper.translate = _jointHelpers[i]
                 if _d_template.get('rootOrientHelper'):
                     if self.getMessage('orientHelper'):
@@ -834,14 +834,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Function to call a blockModule function by string. For menus and other reasons
         """
         _blockModule = self.p_blockModule
-        
         return self.stringModuleCall(_blockModule,func,*args, **kws)
     
     def atBlockUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        
+        reload(BLOCKUTILS)
         return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)    
     
     def string_methodCall(self, func = 'getShortName', *args,**kws):
@@ -948,14 +947,15 @@ class handleFactory(object):
         #_crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
         #TRANS.snap(_crv, self._mTransform.mNode)
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-        RIGGING.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+        CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
         
         # CURVES.create_fromName('square', color = 'yellow', direction = 'y+', sizeMode = 'fixed', size = _size * .5)
         
         #self.color()
         
-        if not self._mTransform.hasAttr('cgmName'):
-            self._mTransform.doStore('cgmName',baseShape)
+        #if not self._mTransform.hasAttr('cgmName'):
+            #self._mTransform.doStore('cgmName',baseShape)
+            
         self._mTransform.doStore('cgmType','blockHandle')
         self._mTransform.doName()
         return True
@@ -995,7 +995,7 @@ class handleFactory(object):
             
         if target is None:
             target = self._mTransform.mNode
-        RIGGING.colorControl(target,_side,_controlType,transparent = True)
+        CORERIG.colorControl(target,_side,_controlType,transparent = True)
             
     
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
@@ -1032,8 +1032,11 @@ class handleFactory(object):
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
         
-        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
-        TRANS.snap(_crv, self._mTransform.mNode) 
+        if baseShape == 'self':
+            _crv = mc.duplicate( self._mTransform.getShapes()[0])[0]
+        else:
+            _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+            TRANS.snap(_crv, self._mTransform.mNode) 
         mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
         
         #...lossy
@@ -1067,7 +1070,7 @@ class handleFactory(object):
         for a,v in setAttrs.iteritems():
             ATTR.set(mOrientCurve.mNode, a, v)
             
-        RIGGING.match_transform(mOrientCurve.mNode, mHandle)
+        CORERIG.match_transform(mOrientCurve.mNode, mHandle)
         mOrientCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
 
         return mOrientCurve
@@ -1093,12 +1096,11 @@ class handleFactory(object):
         
         mJointCurve.p_parent = mHandle
         
-
-                    
-        RIGGING.match_transform(mJointCurve.mNode, mHandle)
+       
+        CORERIG.match_transform(mJointCurve.mNode, mHandle)
         
-        mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-                           etx = (True,True), ety = (True,True), etz = (True,True))        
+        #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
+        #                   etx = (True,True), ety = (True,True), etz = (True,True))        
 
         mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
         
@@ -1121,44 +1123,87 @@ class handleFactory(object):
         return mJointCurve
         
         
-    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
+    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+', rebuildHandle = True):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]   
         
-        self.cleanShapes()      
-        
-        _offsetSize = _baseSize * 1.3
-        _dist = _baseSize *.05
-        _mShapeDirection = VALID.simpleAxis(shapeDirection)
-        
-        #>>> make our offset shapes to control our handle
-        for i,p in enumerate(['upper','lower']):
-            mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
-            if i == 0:
-                _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
-            else:
-                _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
+
+        if baseShape is not 'self':
+            if rebuildHandle:
+                self.cleanShapes()      
+                _offsetSize = _baseSize * 1.3
+                _dist = _baseSize *.05
+                _mShapeDirection = VALID.simpleAxis(shapeDirection)     
                 
-            mCrv.p_position = _pos
-            RIGGING.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+                for i,p in enumerate(['upper','lower']):
+                    mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
+                    if i == 0:
+                        _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
+                    else:
+                        _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
+                        
+                    mCrv.p_position = _pos
+                    CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+                
+                    self.color(self._mTransform.mNode)
             
-        self.color(self._mTransform.mNode)
-        
-        #>>>make our loft curve
-        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-        mCrv.doStore('cgmName',self._mTransform.mNode)
-        mCrv.doStore('cgmType','loftCurve')
-        mCrv.doName()
-        mCrv.p_parent = self._mTransform
-        self.color(mCrv.mNode,controlType='sub')
-        
-        for s in mCrv.getShapes(asMeta=True):
-            s.overrideEnabled = 1
-            s.overrideDisplayType = 2
-        mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
+            #>>>make our loft curve
+            mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
+            mCrv.doStore('cgmName',self._mTransform.mNode)
+            mCrv.doStore('cgmType','loftCurve')
+            mCrv.doName()
+            mCrv.p_parent = self._mTransform
+            self.color(mCrv.mNode,controlType='sub')
             
-        return mCrv
+            for s in mCrv.getShapes(asMeta=True):
+                s.overrideEnabled = 1
+                s.overrideDisplayType = 2
+            mCrv.connectParentNode(self._mTransform,'handle','loftCurve')            
+            
+            return mCrv
+        
+        else:
+            _baseSize = DIST.get_createSize(self._mTransform.getShapes()[0])
+            _baseShape = 'self'
+            
+            _offsetSize = _baseSize * 1.3
+            _dist = _baseSize *.05
+            _mShapeDirection = VALID.simpleAxis(shapeDirection)               
+ 
+            mBaseCrv = self.buildBaseShape('self',_offsetSize,shapeDirection)
+            
+            #>>> make our offset shapes to control our handle
+            for i,p in enumerate(['upper','lower']):
+                mCrv = mBaseCrv.doDuplicate(po=False)
+                if baseShape == 'self':
+                    #mc.scale(_offsetSize,_offsetSize,_offsetSize, mCrv.mNode, absolute = True)
+                    #mc.xform(mCrv.mNode, scale = [_baseSize,_baseSize,_baseSize], worldSpace = True, relative = True)
+                    mCrv.scale = [1.25,1.25,1.25]
+                if i == 0:
+                    _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
+                else:
+                    _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
+                    
+                mCrv.p_position = _pos
+                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+                
+            self.color(self._mTransform.mNode)
+            
+            #>>>make our loft curve
+            mCrv = mBaseCrv
+            mCrv.doStore('cgmName',self._mTransform.mNode)
+            mCrv.doStore('cgmType','loftCurve')
+            mCrv.doName()
+            mCrv.p_parent = self._mTransform
+            self.color(mCrv.mNode,controlType='sub')
+            
+            for s in mCrv.getShapes(asMeta=True):
+                s.overrideEnabled = 1
+                s.overrideDisplayType = 2
+            mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
+                
+            return mCrv
             
             
             
@@ -1220,7 +1265,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
         #_crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
         #TRANS.snap(_crv, self.mNode)
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-        RIGGING.shapeParent_in_place(self.mNode,mCrv.mNode,False)
+        CORERIG.shapeParent_in_place(self.mNode,mCrv.mNode,False)
         
         # CURVES.create_fromName('square', color = 'yellow', direction = 'y+', sizeMode = 'fixed', size = _size * .5)
         
@@ -1254,7 +1299,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
             
         if target is None:
             target = self.mNode
-        RIGGING.colorControl(target,_side,_controlType,transparent = True)
+        CORERIG.colorControl(target,_side,_controlType,transparent = True)
             
     def template(self):
         #...build loftCurve, wire
@@ -1302,7 +1347,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
                 _pos = self.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
                 
             mCrv.p_position = _pos
-            RIGGING.shapeParent_in_place(self.mNode,mCrv.mNode,False)
+            CORERIG.shapeParent_in_place(self.mNode,mCrv.mNode,False)
             
         #>>>make our loft curve
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
@@ -1725,6 +1770,7 @@ class factory(object):
                     if t == 'string':
                         _l = True
                     else:_l = False
+                    
                     if forceReset:
                         _mBlock.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
                     else:
@@ -1733,6 +1779,7 @@ class factory(object):
                 log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
                 if not forceReset:                
                     raise Exception,err
+                
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'
         
@@ -2178,9 +2225,6 @@ class factory(object):
         """           
         _str_func = 'skeletonize'
         _blockType = self._mi_block.blockType
-        #>> Get positions -----------------------------------------------------------------------------------
-        _d_create = self.get_skeletonCreateDict(_blockType)
-        _mode = _d_create['mode']
         
         #>> If check for module,puppet -----------------------------------------------------------------------------------
         if not self._mi_module:
@@ -2198,7 +2242,20 @@ class factory(object):
             else:
                 return _bfr
             
-
+        # If our block odule has a call use that
+        _mod = get_modules_dict().get(_blockType,False)
+        if not _mod:
+            log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
+            return False  
+        if _mod.__dict__.get('build_skeleton'):
+            log.info("|{0}| >> Found build_skeletonc call in module. Using...".format(_str_func))            
+            return _mod.build_skeleton(self._mi_block)
+            
+        return False
+        #>> Get positions -----------------------------------------------------------------------------------
+        _d_create = self.get_skeletonCreateDict(_blockType)
+        _mode = _d_create['mode']
+            
         #Build skeleton -----------------------------------------------------------------------------------
         _ml_joints = BUILDERUTILS.build_skeleton(_d_create['positions'],worldUpAxis=_d_create['worldUpAxis'])
         
@@ -2478,9 +2535,9 @@ def get_modules_dat():
                             #if not is_buildable(module):
                                 #_l_unbuildable.append(name)
                         except Exception, e:
+                            log.warning("|{0}| >> Module failed: {1}".format(_str_func,key))                               
                             for arg in e.args:
                                 log.error(arg)
-                            raise RuntimeError,"Stop"  
                                           
                     else:
                         _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
@@ -2871,6 +2928,22 @@ class rigFactory(object):
         
         return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
         
+    def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
+        _str_func = 'fnc_connect_toRigGutsVis' 
+        mRigNull = self.d_module['mRigNull']
+        
+        if type(ml_objects) not in [list,tuple]:ml_objects = [ml_objects]
+        for mObj in ml_objects:
+            if doShapes:
+                for mShp in mObj.getShapes(asMeta=True):
+                    mShp.overrideEnabled = 1		
+                    if vis: cgmMeta.cgmAttr(mRigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideVisibility'))
+                    cgmMeta.cgmAttr(mRigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mShp.mNode,'overrideDisplayType'))    
+            else:
+                mObj.overrideEnabled = 1		
+                if vis: cgmMeta.cgmAttr(mRigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+                cgmMeta.cgmAttr(mRigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+
     def fnc_check_rigBlock(self):
         """
         Check the rig block data 
@@ -2905,7 +2978,7 @@ class rigFactory(object):
         self.d_block = _d    
         #cgmGEN.log_info_dict(_d,_str_func + " blockDat")   
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
-
+        self.buildModule = _buildModule
         return True
 
 
@@ -3233,9 +3306,9 @@ class rigFactory(object):
             else:
                 #Make it and link it
                 if _str_partType in ['eyelids']:
-                    buffer =  RIGGING.group_me(_mi_moduleParent.deformNull.mNode,False)			
+                    buffer =  CORERIG.group_me(_mi_moduleParent.deformNull.mNode,False)			
                 else:
-                    buffer =  RIGGING.group_me(_ml_skinJoints[0].mNode,False)
+                    buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
 
                 i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
                 i_grp.addAttr('cgmName',_str_partName,lock=True)
@@ -3252,7 +3325,7 @@ class rigFactory(object):
         if not self.mModule.getMessage('constrainNull'):
             #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
                 #Make it and link it
-            buffer =  RIGGING.group_me(self.mDeformNull.mNode,False)
+            buffer =  CORERIG.group_me(self.mDeformNull.mNode,False)
             i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
             i_grp.addAttr('cgmName',_str_partName,lock=True)
             i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
