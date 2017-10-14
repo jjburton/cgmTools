@@ -41,6 +41,7 @@ import cgm.core.lib.curve_Utils as CURVES
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.lib.position_utils as POS
+import cgm.core.lib.attribute_utils as ATTR
 reload(POS)
 reload(UICHUNKS)
 reload(CURVES)
@@ -138,13 +139,13 @@ def buildColumn_main(self,parent, asScroll = False):
     _row_axis = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent=_row_axis, 
               ut = 'cgmUITemplate',                                                                              
-              l = '* Show',
+              l = '* Show Axis',
               ann = "Show the joint axis by current context",                                        
               c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
               )               
     mc.button(parent=_row_axis, 
               ut = 'cgmUITemplate',                                                                              
-              l = '* Hide',
+              l = '* Hide Axis',
               ann = "Hide the joint axis by current context",                                        
               c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
               )     
@@ -271,6 +272,51 @@ def buildColumn_main(self,parent, asScroll = False):
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()    
     
+    
+    #Radius ----------------------------------------------------------------------------------------------
+    _row_radius = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l=' / 2 ',
+              c=lambda *a: radius_modify(self,'/',2),
+              ann="Contextual radius editing")
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l=' - 10',
+              c=lambda *a: radius_modify(self,'-',10),
+              ann="Contextual radius editing")
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l='- 1',
+              c=lambda *a: radius_modify(self,'-',1),
+              ann="Contextual radius editing")
+    
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l='Select',
+              c=lambda *a: contextual_select(self),
+              ann="Contextual joint selection")    
+ 
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l='+ 1',
+              c=lambda *a: radius_modify(self,'+',1),
+              ann="Contextual radius editing")
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l='+10',
+              c=lambda *a: radius_modify(self,'+',10),
+              ann="Contextual radius editing")
+    mc.button(parent = _row_radius,
+              ut = 'cgmUITemplate',                                                                                                
+              l='*2',
+              c=lambda *a: radius_modify(self,'*',2),
+              ann="Contextual radius editing")
+    _row_radius.layout()
+    
+    
+    
+    #Buttons ----------------------------------------------------------------------------------------------
     _row_utils = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     
     mc.button(parent = _row_utils,
@@ -289,7 +335,6 @@ def buildColumn_main(self,parent, asScroll = False):
               l='seShapeTaper',
               ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
               c=lambda *a: mel.eval('seShapeTaper'),)   
-
     _row_utils.layout()
     
     
@@ -316,6 +361,37 @@ def buildColumn_main(self,parent, asScroll = False):
     
     return _inside
 
+def contextual_select(self):
+    _str_func = 'contextual_select'    
+    
+    _sel = MMCONTEXT.get_list(self.var_contextTD.value,'joint')
+    if not _sel:
+        return log.error("|{0}| >> Nothing selected".format(_str_func))
+    mc.select(_sel)
+    return _sel
+
+def radius_modify(self,mode='+',factor=10):
+    _str_func = 'radius_modify'    
+    
+    _sel = MMCONTEXT.get_list(self.var_contextTD.value,'joint')
+    if not _sel:
+        return log.error("|{0}| >> Nothing selected".format(_str_func))
+    pprint.pprint(_sel)
+    
+    for j in _sel:
+        _r = ATTR.get(j,'radius')
+        if mode == '+':
+            _r = _r + factor
+        elif mode == '-':
+            _r = _r - factor
+        elif mode == '*':
+            _r = _r * factor
+        elif mode == '/':
+            _r = _r / factor
+            
+        ATTR.set(j,'radius',_r)
+        
+    
 def createJoints(self, mode = 'each'):
     _str_func = 'createJoints'
     
