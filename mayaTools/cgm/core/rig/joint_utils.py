@@ -45,7 +45,30 @@ import cgm.core.lib.curve_Utils as CURVES
 
 #>>> Utilities
 #===================================================================  
+def tweakOrient(joints = None, tweak = [0,0,0]):
+    """
+    Pythonification fo Michael Comet's function. Full acknoledgement.
+    
+    """
+    ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
 
+    for mJnt in ml_joints:
+        _short = mJnt.mNode
+        mc.xform(_short, r=True, os=True, ra= tweak)
+        
+        mc.joint(_short, e=True, zso=True)
+        mc.makeIdentity(_short, apply=True)
+        """   
+       // Now tweak each joint
+       for ($i=0; $i < $nJnt; ++$i)
+           {
+               // Adjust the rotation axis
+               xform -r -os -ra $rot[0] $rot[1] $rot[2] $joints[$i] ;
+   
+               // And now finish clearing out joint axis...
+               joint -e -zso $joints[$i] ;
+               makeIdentity -apply true $joints[$i] ;    """
+     
 def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], relativeOrient = True,
                 baseName = None, asMeta = True):
@@ -62,14 +85,35 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     """    
     _str_func = 'build_skeleton'
     
-    _ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
+    ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
     _axisAim = axisAim
     _axisUp = axisUp
     _axisWorldUp = worldUpAxis
-    _len = len(_ml_joints)
-    
-    for mJnt in _ml_joints:
+    _len = len(ml_joints)
+    _d_parents = {}
+    _d_children = {}
+    ml_roots = []
+    for mJnt in ml_joints:
+        _d_parents[mJnt] = mJnt.parent
+        _d_children[mJnt] = mJnt.getChildren(asMeta=True)
         mJnt.parent = False
+        if not _d_parents[mJnt]:
+            log.debug("|{0}| >> Root joint: {1}".format(_str_func,mJnt.mNode)) 
+            
+    pprint.pprint(vars())
+    return
+    for mJnt in ml_joints:
+        _short = mJnt.mNode
+        
+        if not _d_parents[mJnt]:
+            log.debug("{0} Root joint: {1}".format(i,_short))
+            
+            
+    
+    
+    
+    return
+    
     if baseName:
         _ml_joints[0].doStore('cgmName',baseName)
         

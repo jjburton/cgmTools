@@ -134,25 +134,10 @@ def buildColumn_main(self,parent, asScroll = False):
     self.var_jointAimAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultAimAxis', defaultValue = 2)
     self.var_jointUpAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultUpAxis', defaultValue = 1)
     
+    mc.setParent(_inside)    
+    cgmUI.add_Header('Orient')
     #Axis ==================================================================================================    
-    #>>>Axis Show Row ---------------------------------------------------------------------------------------
-    _row_axis = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-    mc.button(parent=_row_axis, 
-              ut = 'cgmUITemplate',                                                                              
-              l = '* Show Axis',
-              ann = "Show the joint axis by current context",                                        
-              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
-              )               
-    mc.button(parent=_row_axis, 
-              ut = 'cgmUITemplate',                                                                              
-              l = '* Hide Axis',
-              ann = "Hide the joint axis by current context",                                        
-              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
-              )     
 
-    _row_axis.layout()          
-    
-    
     #>>>Aim mode -------------------------------------------------------------------------------------
     _d = {'aim':self.var_jointAimAxis,
           'up':self.var_jointUpAxis}
@@ -186,6 +171,55 @@ def buildColumn_main(self,parent, asScroll = False):
     buildRow_getVector(self,_inside)
     #mUI.MelSeparator(_inside)
     
+    #>>Orient Row -------------------------------------------------------------------------------
+    _row_orient = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    mc.button(parent=_row_orient ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Orient Selected',
+              c = cgmGEN.Callback(orientJoints,self),
+              ann = "Zero out the fields. Uncheck all tweak check boxes")
+    _row_orient.layout()
+    mc.setParent(_inside)    
+    cgmUI.add_LineSubBreak()
+        
+    #>>>Tweak -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row ,w=5)
+    
+
+    
+    mUI.MelLabel(_row ,l='Tweak:')        
+    _row.setStretchWidget(mUI.MelSeparator(_row )) 
+    _base_str = 'uiFF_orientTweak'
+    
+    #self._d_transformAttrFields[label] = {}
+    #self._d_transformRows[label] = _row
+    
+    for a in list('xyz'):
+        mUI.MelLabel(_row ,l=a)
+        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 50 )
+        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field          
+
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = '+',
+              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'+'),
+              ann = "Adds value relatively to current") 
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = '-',
+              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'-'),
+              ann = "Subracts value relatively to current")         
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Zero',
+              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'zero'),
+              ann = "Zero out the fields. Uncheck all tweak check boxes") 
+    
+    mUI.MelSpacer(_row ,w=5)                                              
+    _row.layout()     
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
     
     #Create ==================================================================================================
     mc.setParent(_inside)    
@@ -242,7 +276,7 @@ def buildColumn_main(self,parent, asScroll = False):
     #mUI.MelLabel(_row_create,l='From Selected:')    
     mc.button(parent=_row_create, 
               ut = 'cgmUITemplate',                                                                              
-              l = 'Each',
+              l = 'From Selected',
               c=cgmGEN.Callback(createJoints,self,'each'),
               #ann = "Show the joint axis by current context",                                        
               #c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
@@ -273,6 +307,28 @@ def buildColumn_main(self,parent, asScroll = False):
     cgmUI.add_LineSubBreak()    
     
     
+    #>>>Axis Show Row ---------------------------------------------------------------------------------------
+    _row_axis = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent=_row_axis, 
+              ut = 'cgmUITemplate',                                                                              
+              l = '* Show Axis',
+              ann = "Show the joint axis by current context",                                        
+              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
+              )
+    mc.button(parent = _row_axis,
+              ut = 'cgmUITemplate',                                                                                                
+              l='Select',
+              c=lambda *a: contextual_select(self),
+              ann="Contextual joint selection")        
+    mc.button(parent=_row_axis, 
+              ut = 'cgmUITemplate',                                                                              
+              l = '* Hide Axis',
+              ann = "Hide the joint axis by current context",                                        
+              c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
+              )     
+
+    _row_axis.layout()          
+    
     #Radius ----------------------------------------------------------------------------------------------
     _row_radius = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent = _row_radius,
@@ -290,13 +346,6 @@ def buildColumn_main(self,parent, asScroll = False):
               l='- 1',
               c=lambda *a: radius_modify(self,'-',1),
               ann="Contextual radius editing")
-    
-    mc.button(parent = _row_radius,
-              ut = 'cgmUITemplate',                                                                                                
-              l='Select',
-              c=lambda *a: contextual_select(self),
-              ann="Contextual joint selection")    
- 
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
               l='+ 1',
@@ -341,32 +390,12 @@ def buildColumn_main(self,parent, asScroll = False):
     return _inside
 
 
-
-    mc.button(parent = _row_joints,
-              ut = 'cgmUITemplate',                                                                                                
-              l='cometJO',
-              c=lambda *a: mel.eval('cometJointOrient'),
-              ann="General Joint orientation tool  by Michael Comet")   
-    mc.button(parent=_row_joints, 
-              ut = 'cgmUITemplate',                                                                              
-              l = 'Freeze',
-              ann = "Freeze the joint orientation - our method as we don't like Maya's",                                        
-              c = cgmGen.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
-              )
-    mc.button(parent = _row_joints,
-              ut = 'cgmUITemplate',                                                                                                
-              l='seShapeTaper',
-              ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
-              c=lambda *a: mel.eval('seShapeTaper'),)   
-    
-    return _inside
-
 def contextual_select(self):
     _str_func = 'contextual_select'    
     
     _sel = MMCONTEXT.get_list(self.var_contextTD.value,'joint')
     if not _sel:
-        return log.error("|{0}| >> Nothing selected".format(_str_func))
+        return log.error("|{0}| >> Nothing in context: {1}".format(_str_func,self.var_contextTD.value))
     mc.select(_sel)
     return _sel
 
@@ -376,7 +405,6 @@ def radius_modify(self,mode='+',factor=10):
     _sel = MMCONTEXT.get_list(self.var_contextTD.value,'joint')
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
-    pprint.pprint(_sel)
     
     for j in _sel:
         _r = ATTR.get(j,'radius')
@@ -404,7 +432,6 @@ def createJoints(self, mode = 'each'):
     if mode != 'curve' and _d['resplit'] and len(_sel) < 2:
         return log.error("|{0}| >> Need more objects for resplitting 'each' mode. ".format(_str_func))
         
-
     pprint.pprint(_sel)
     log.info("|{0}| >> mode: {1}".format(_str_func,mode))        
     mc.select(cl=True)
@@ -448,6 +475,23 @@ def createJoints(self, mode = 'each'):
         
     else:
         raise ValueError,"Unknown mode: {0}".format(mode)
+
+def orientJoints(self):
+    _str_func = 'orientJoints'
+    
+    _d = uiFunc_getCreateData(self)
+    
+    _sel = MMCONTEXT.get_list()
+    if not _sel:
+        return log.error("|{0}| >> Nothing selected".format(_str_func))
+    
+        
+    pprint.pprint(_sel)
+    
+    JOINTS.orientChain(_sel,axisAim=_d['aim'],
+                       axisUp=_d['up'],
+                       worldUpAxis=_d['world'],
+                       relativeOrient=_d['relativeOrient'])
     
 
 def uiFunc_getOrientData(self):
