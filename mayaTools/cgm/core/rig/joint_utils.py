@@ -27,12 +27,13 @@ from maya import mel
 # From cgm ==============================================================
 import cgm.core.cgm_Meta as cgmMeta
 
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
+reload(DIST)
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR
@@ -40,6 +41,7 @@ from cgm.core.lib import name_utils as NAMES
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.curve_Utils as CURVES
+import cgm.core.lib.list_utils as LISTS
 
 #!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -68,7 +70,107 @@ def tweakOrient(joints = None, tweak = [0,0,0]):
                // And now finish clearing out joint axis...
                joint -e -zso $joints[$i] ;
                makeIdentity -apply true $joints[$i] ;    """
-     
+        
+def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
+                worldUpAxis = [0,1,0], planarMode = 'up', relativeOrient = True,
+                baseName = None, cleanUp = True, asMeta = True):
+                
+    """
+    Given a chain of joints, setup 
+
+    :parameters:
+        planarMode - up/out - What plane to use
+        
+    :returns
+        created(list)
+    """    
+    _str_func = 'orientPlane'
+    
+    ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
+    ml_joints = LISTS.get_noDuplicates(ml_joints)
+    
+    mAxis_aim = VALID.simpleAxis(axisAim)
+    mAxis_up = VALID.simpleAxis(axisUp)
+    str_aim = mAxis_aim.p_string
+    str_up = mAxis_up.p_string
+    ml_delete = []
+    
+    if str_aim == str_up:
+        raise ValueError,"axisAim and axisUp cannot be the same"
+    if len(ml_joints) > 3:
+        raise ValueError,"{0} > Need more than 3 joints".format(_str_func)
+    
+    #First setup a dup chain of first and end, orient those ----------------------------------------------------------------
+    log.debug("|{0}| >> Setup tmp chain...".format(_str_func))                     
+    
+    mStart = ml_joints[0].doDuplicate(parentOnly = True)
+    mEnd = ml_joints[-1].doDuplicate(parentOnly = True)
+    mEnd.parent = mStart
+    
+    orientChain([mStart,mEnd], axisAim, axisUp, worldUpAxis, relativeOrient)
+
+    #Setup Loft curves and plane ----------------------------------------------------------------
+    log.debug("|{0}| >> Setup curves...".format(_str_func))                     
+    
+    if planarMode == 'up':
+        crvUp = mAxis_up.p_string
+        crvDn = mAxis_up.inverse.p_string
+    else:
+        for a in 'xyz':
+            if a not in str_aim and a not in str_up:
+                mAxisCrv_tmp = VALID.simpleAxis(a+'+')
+                crvUp = mAxisCrv_tmp.p_string
+                crvDn = mAxisCrv_tmp.inverse.p_string
+        
+    d_distance = DIST.get_distance_between_targets([mStart.mNode,mEnd.mNode])
+    
+    l_crvs = []
+    for mObj in [mStart,mEnd]:
+        crv =   mc.curve (d=1, ep = [DIST.get_pos_by_axis_dist(mObj.mNode, crvUp, d_distance),
+                                     DIST.get_pos_by_axis_dist(mObj.mNode, crvDn, d_distance)],
+                               os=True)
+        log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+        l_crvs.append(crv)
+        
+    _res_body = mc.loft(l_crvs, o = True, d = 1, po = 1 )
+    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+    _tessellate = _inputs[0]
+    
+    _d = {'format':2,#General
+          'polygonType':1,#'quads'
+          }
+          
+    for a,v in _d.iteritems():
+        ATTR.set(_tessellate,a,v)    
+            
+    #Snap our joints ---------------------------------------------------------------------------------
+    for mJnt in ml_joints[1:-1]:
+        ml_children = mJnt.getChildren(asMeta=True)
+        for mChild in ml_children:
+            mChild.parent = False
+            
+        SNAP.go(mJnt, _res_body[0], rotation=False, pivot='closestPoint')
+
+        for mChild in ml_children:
+            mChild.parent = mJnt
+            
+    #Cleanup --------------------------------------------------------------------------------------------
+    if cleanUp:
+        mc.delete(_res_body + l_crvs)
+        mStart.delete()
+        
+    orientChain(ml_joints, axisAim, axisUp, worldUpAxis, relativeOrient)
+
+    return
+
+    l_start = []
+    l_end = []
+    
+    mStartCrv = mc.curve()
+    mc.curve (d=1, ep = posList, os=True)
+    #Snap interior joints to plane ----------------------------------------------------------------
+    
+
 def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], relativeOrient = True,
                 baseName = None, asMeta = True):
@@ -77,74 +179,136 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     Given a series of positions, or objects, or a curve and a mesh - loft retopology it
 
     :parameters:
-        targets(list) | List of curves to loft
-        name(str) | Base name for created objects
+
 
     :returns
         created(list)
     """    
-    _str_func = 'build_skeleton'
+    _str_func = 'orientChain'
+    if baseName:raise NotImplementedError,"Remove these calls"
     
+    def orientJoint(mJnt):
+        if mJnt not in ml_cull:
+            log.debug("|{0}| >> Aready done: {1}".format(_str_func,mJnt.mNode))                     
+            return 
+        
+        log.debug("|{0}| >> Orienting: {1}".format(_str_func,mJnt.mNode))
+        mParent = _d_parents[mJnt]
+        if mParent and mParent in ml_cull:
+            return
+            log.debug("|{0}| >> Orienting parent: {1}".format(_str_func,mParent.mNode))         
+            orientJoint(mParent)
+            
+        if mJnt in ml_world:
+            log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode))
+            try:
+                axisWorldOrient = SHARED._d_axisToJointOrient[str_aim][str_up]
+            except Exception,err:
+                log.error("{0}>> World axis query. {1} | {2}".format(_str_func, str_aim, str_up))
+                raise Exception,err
+            
+            log.debug("|{0}| >> World joint: {1} | {2}".format(_str_func,mJnt.mNode, axisWorldOrient))
+            mJnt.rotate = 0,0,0
+            mJnt.jointOrient = axisWorldOrient[0],axisWorldOrient[1],axisWorldOrient[2]
+            
+        elif mJnt not in ml_ends:
+            log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
+            mDup = mJnt.doDuplicate(parentOnly = True)
+            mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
+            
+            if relativeOrient and mParent:
+                _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)            
+            else:
+                _axisWorldUp = worldUpAxis
+    
+            SNAP.aim(mDup.mNode,_d_children[mJnt][0].mNode,
+                     mAxis_aim.p_vector,mAxis_up.p_vector,
+                     'vector',_axisWorldUp)
+            
+            mJnt.rotate = 0,0,0
+            mJnt.jointOrient = mDup.rotate
+            mDup.delete()            
+            
+        if mJnt in ml_cull:ml_cull.remove(mJnt)
+        return
+    
+    def reparent():
+        log.debug("|{0}| >> reparent...".format(_str_func))                 
+        for mJnt in ml_joints:
+            log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
+            
+            mJnt.parent = _d_parents[mJnt]
+            
+            for mChild in _d_children[mJnt]:
+                if mChild not in ml_joints:
+                    log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
+                    mChild.parent = mJnt
+            
+            if mJnt in ml_ends and mJnt not in ml_world:
+                log.debug("|{0}| >> End joint. No world...".format(_str_func))                                             
+                mJnt.jointOrient = 0,0,0                
+                        
     ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
-    _axisAim = axisAim
-    _axisUp = axisUp
+    ml_joints = LISTS.get_noDuplicates(ml_joints)
+    
+    mAxis_aim = VALID.simpleAxis(axisAim)
+    mAxis_up = VALID.simpleAxis(axisUp)
     _axisWorldUp = worldUpAxis
+    str_aim = mAxis_aim.p_string
+    str_up = mAxis_up.p_string
+    
+    if str_aim == str_up:
+        raise ValueError,"axisAim and axisUp cannot be the same"
+    
     _len = len(ml_joints)
     _d_parents = {}
     _d_children = {}
     ml_roots = []
+    ml_ends = []
+    ml_world =[]
+    ml_done = []
+    ml_cull = copy.copy(ml_joints)
+    
+    #First loop is logic check ---------------------------------------------------------
     for mJnt in ml_joints:
-        _d_parents[mJnt] = mJnt.parent
+        _d_parents[mJnt] = mJnt.getParent(asMeta=True)
         _d_children[mJnt] = mJnt.getChildren(asMeta=True)
-        mJnt.parent = False
         if not _d_parents[mJnt]:
             log.debug("|{0}| >> Root joint: {1}".format(_str_func,mJnt.mNode)) 
+            ml_roots.append(mJnt)
             
-    pprint.pprint(vars())
-    return
+        if not _d_children[mJnt]:
+            log.debug("|{0}| >> End joint: {1}".format(_str_func,mJnt.mNode)) 
+            ml_ends.append(mJnt)
+            if not _d_parents[mJnt]:
+                log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode)) 
+                ml_world.append(mJnt)
+
+                
     for mJnt in ml_joints:
-        _short = mJnt.mNode
-        
-        if not _d_parents[mJnt]:
-            log.debug("{0} Root joint: {1}".format(i,_short))
+        mJnt.parent = False
+        for mChild in _d_children[mJnt]:
+            if mChild not in ml_joints:
+                mChild.parent = False            
             
+    #pprint.pprint(vars())
+    _go = True
+    _cnt = 0
+    while ml_cull and _go and _cnt <= _len+1:
+        _cnt+=1
+        for mJnt in ml_cull:
+            try:            
+                orientJoint(mJnt)
+            except Exception,err:
+                log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
+                _go = False
+                reparent()
+                return False
             
-    
-    
-    
+    reparent()
+
     return
-    
-    if baseName:
-        _ml_joints[0].doStore('cgmName',baseName)
-        
-    #>>Orient chain...
-    for i,mJnt in enumerate(_ml_joints[:-1]):
-        if i > 0:
-            mJnt.parent = _ml_joints[i-1]
-            #...after our first object, we use our last object's up axis to be our new up vector.
-            #...this keeps joint chains that twist around from flipping. Ideally...
-            if relativeOrient:
-                _axisWorldUp = MATH.get_obj_vector(_ml_joints[i-1].mNode,'y+')
-        
-        mDup = mJnt.doDuplicate(parentOnly = True)
-        mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
-
-        SNAP.aim(mDup.mNode,_ml_joints[i+1].mNode,_axisAim,_axisUp,'vector',_axisWorldUp)
-        if baseName:
-            mJnt.doStore('cgmIterator',i)
-            mJnt.doName()
-
-        mJnt.rotate = 0,0,0
-        mJnt.jointOrient = mDup.rotate
-        mDup.delete()
-
-    #>>Last joint....        
-    if _len > 1:
-        _ml_joints[-1].parent = _ml_joints[-2]
-        _ml_joints[-1].jointOrient = 0,0,0    
-        if baseName:
-            _ml_joints[-1].doStore('cgmIterator',_len-1)
-            _ml_joints[-1].doName()   
+ 
             
 def freezeOrientation(targetJoints):
     """
@@ -303,6 +467,7 @@ def build_chain(posList = [],
         splitMode(str)
             linear - Resplit along a vector from the first to last posList point
             curve - Resplit along a curve going through all of our points
+            sub - Resplit adding the number of joints between our points
 
     :returns
         created(list)
@@ -329,8 +494,16 @@ def build_chain(posList = [],
         posList = CURVES.returnSplitCurveList(curve,count)
         
     if count is not None:
-        log.debug("|{0}| >> Resplit...".format(_str_func))    
-        if count != len(posList):
+        log.debug("|{0}| >> Resplit...".format(_str_func))
+        if splitMode == 'sub':
+            l_new = []
+            for i,p in enumerate(posList[:-1]):
+                #l_new.append(p)
+                l_new.extend(DIST.get_posList_fromStartEnd(p,posList[i+1], count +2) [:-1])
+            l_new.append(posList[-1])
+            posList = l_new        
+            
+        elif count != len(posList):
             if splitMode == 'linear':
                 #_p_start = POS.get(_l_targets[0])
                 #_p_top = POS.get(_l_targets[1])    
@@ -346,7 +519,7 @@ def build_chain(posList = [],
                     mc.delete(_crv)
                 else:
                     posList = CURVES.returnSplitCurveList(curve,count)
-                    
+           
             else:
                 raise ValueError, "Unknown splitMode: {0}".format(splitMode)
     

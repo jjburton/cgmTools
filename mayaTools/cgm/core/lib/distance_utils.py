@@ -379,7 +379,29 @@ def get_pos_by_axis_dist(obj, axis, distance = 1):
     _vector = MATHUTILS.get_obj_vector(obj,axis,False)
     return get_pos_by_vec_dist(POS.get(obj),_vector,distance)
     
+def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
+    _str_func = 'get_posList_fromStartEnd'
 
+    #>>Get positions ==================================================================================    
+    _l_pos = []
+
+    if split == 1:
+        _l_pos = [get_average_position([start,end])]
+    elif split == 2:
+        _l_pos = [start,end]
+    else:
+        _vec = MATHUTILS.get_vector_of_two_points(start, end)
+        _max = get_distance_between_points(start,end)
+
+        log.debug("|{0}| >> start: {1} | end: {2} | vector: {3}".format(_str_func,start,end,_vec))   
+
+        _split = _max/(split-1)
+        for i in range(split-1):
+            _p = get_pos_by_vec_dist(start, _vec, _split * i)
+            _l_pos.append( _p)
+        _l_pos.append(end)
+        _radius = _split/4    
+    return _l_pos
 
 def get_closest_point(source = None, targetSurface = None, loc = False):
     """

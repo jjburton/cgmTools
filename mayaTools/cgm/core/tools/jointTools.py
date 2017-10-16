@@ -136,8 +136,55 @@ def buildColumn_main(self,parent, asScroll = False):
     
     mc.setParent(_inside)    
     cgmUI.add_Header('Orient')
-    #Axis ==================================================================================================    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()    
+    #Orient ==================================================================================================    
+    
+    #>>>Tweak -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row ,w=5)
 
+    mUI.MelLabel(_row ,l='Tweak:')        
+    _row.setStretchWidget(mUI.MelSeparator(_row )) 
+    _base_str = 'uiFF_orientTweak'
+    
+    #self._d_transformAttrFields[label] = {}
+    #self._d_transformRows[label] = _row
+    
+    for a in list('xyz'):
+        mUI.MelLabel(_row ,l=a)
+        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 50 )
+        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field          
+
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = ' + ',
+              c = cgmGEN.Callback(uiFunc_tweak,self,'+'),
+              ann = "Adds value relatively to current") 
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = ' - ',
+              c = cgmGEN.Callback(uiFunc_tweak,self,'-'),
+              ann = "Subracts value relatively to current")         
+    mc.button(parent=_row ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Zero',
+              c = cgmGEN.Callback(uiFunc_tweak,self,'zero'),
+              ann = "Zero out the fields.") 
+    
+    mUI.MelSpacer(_row ,w=5)                                              
+    _row.layout()     
+    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    #mUI.MelSeparator(_inside)
+    
+    buildRow_worldUp(self,_inside)
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    buildRow_getVector(self,_inside)    
+    
+    
     #>>>Aim mode -------------------------------------------------------------------------------------
     _d = {'aim':self.var_jointAimAxis,
           'up':self.var_jointUpAxis}
@@ -165,10 +212,6 @@ def buildColumn_main(self,parent, asScroll = False):
             mUI.MelSpacer(_row,w=2)       
         _row.layout()     
         
-    buildRow_worldUp(self,_inside)
-    mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()
-    buildRow_getVector(self,_inside)
     #mUI.MelSeparator(_inside)
     
     #>>Orient Row -------------------------------------------------------------------------------
@@ -177,49 +220,29 @@ def buildColumn_main(self,parent, asScroll = False):
               ut = 'cgmUITemplate',                                                                                                
               l = 'Orient Selected',
               c = cgmGEN.Callback(orientJoints,self),
-              ann = "Zero out the fields. Uncheck all tweak check boxes")
+              ann = "Orient selected joints")
+    
+    mc.button(parent=_row_orient ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Plane Up',
+              c = cgmGEN.Callback(orientPlane,self,'up'),
+              ann = "Orient selected joints along up plane of joints. Most useful for fingers and things like that")
+    mc.button(parent=_row_orient ,
+              ut = 'cgmUITemplate',                                                                                                
+              l = 'Plane Out',
+              c = cgmGEN.Callback(orientPlane,self,'out'),
+              ann = "Orient selected joints along out plane of joints. Most useful for fingers and things like that")
+    
+    mc.button(parent=_row_orient, 
+              ut = 'cgmUITemplate',                                                                              
+              l = 'Freeze',
+              ann = "Freeze selected joint's orientation - our method as we don't like Maya's",                                        
+              c = cgmGEN.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
+              )    
     _row_orient.layout()
     mc.setParent(_inside)    
     cgmUI.add_LineSubBreak()
         
-    #>>>Tweak -------------------------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-    mUI.MelSpacer(_row ,w=5)
-    
-
-    
-    mUI.MelLabel(_row ,l='Tweak:')        
-    _row.setStretchWidget(mUI.MelSeparator(_row )) 
-    _base_str = 'uiFF_orientTweak'
-    
-    #self._d_transformAttrFields[label] = {}
-    #self._d_transformRows[label] = _row
-    
-    for a in list('xyz'):
-        mUI.MelLabel(_row ,l=a)
-        _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 50 )
-        self.__dict__['{0}{1}'.format(_base_str,a.capitalize())] = _field          
-
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '+',
-              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'+'),
-              ann = "Adds value relatively to current") 
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '-',
-              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'-'),
-              ann = "Subracts value relatively to current")         
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = 'Zero',
-              #c = cgmGEN.Callback(uiFunc_valuesTweak,self,'zero'),
-              ann = "Zero out the fields. Uncheck all tweak check boxes") 
-    
-    mUI.MelSpacer(_row ,w=5)                                              
-    _row.layout()     
-    mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()
     
     #Create ==================================================================================================
     mc.setParent(_inside)    
@@ -235,7 +258,7 @@ def buildColumn_main(self,parent, asScroll = False):
     uiRC = mUI.MelRadioCollection()
     _on = self.var_splitMode.value
 
-    for i,item in enumerate(['none','linear','curve']):
+    for i,item in enumerate(['none','linear','curve','sub']):
         if i == _on:
             _rb = True
         else:_rb = False
@@ -243,10 +266,10 @@ def buildColumn_main(self,parent, asScroll = False):
         uiRC.createButton(_row_createOptions,label=item,sl=_rb,
                           onCommand = cgmGEN.Callback(self.var_splitMode.setValue,i))
 
-        mUI.MelSpacer(_row_createOptions,w=2)       
+        #mUI.MelSpacer(_row_createOptions,w=2)       
     _row_createOptions.setStretchWidget( mUI.MelSeparator(_row_createOptions) )
 
-    self.uiIF_cnt = mUI.MelIntField(_row_createOptions ,  value = 5, ut='cgmUISubTemplate', w= 60 )
+    self.uiIF_cnt = mUI.MelIntField(_row_createOptions ,  value = 3, ut='cgmUISubTemplate', w= 30 )
     mUI.MelLabel(_row_createOptions,l='#')    
     
     mUI.MelSpacer(_row_createOptions,w=2)       
@@ -298,37 +321,30 @@ def buildColumn_main(self,parent, asScroll = False):
     mUI.MelSpacer(_row_create,w=2)    
     _row_create.layout()              
     
-    
-    
-    #Utilities ==================================================================================================
+    #Axis ==================================================================================================    
     mc.setParent(_inside)    
-    cgmUI.add_Header('Utilities')
+    cgmUI.add_Header('Axis')    
     mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()    
-    
+    cgmUI.add_LineSubBreak()
     
     #>>>Axis Show Row ---------------------------------------------------------------------------------------
     _row_axis = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent=_row_axis, 
               ut = 'cgmUITemplate',                                                                              
-              l = '* Show Axis',
+              l = '* Show',
               ann = "Show the joint axis by current context",                                        
               c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',1,self.var_contextTD.value,'joint',select=False),
               )
-    mc.button(parent = _row_axis,
-              ut = 'cgmUITemplate',                                                                                                
-              l='Select',
-              c=lambda *a: contextual_select(self),
-              ann="Contextual joint selection")        
+
     mc.button(parent=_row_axis, 
               ut = 'cgmUITemplate',                                                                              
-              l = '* Hide Axis',
+              l = '* Hide',
               ann = "Hide the joint axis by current context",                                        
               c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
               )     
 
     _row_axis.layout()          
-    
+
     #Radius ----------------------------------------------------------------------------------------------
     _row_radius = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent = _row_radius,
@@ -361,10 +377,17 @@ def buildColumn_main(self,parent, asScroll = False):
               l='*2',
               c=lambda *a: radius_modify(self,'*',2),
               ann="Contextual radius editing")
-    _row_radius.layout()
+    _row_radius.layout()    
     
     
     
+    #Utilities ==================================================================================================
+    mc.setParent(_inside)    
+    cgmUI.add_Header('Utilities')
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()    
+    
+  
     #Buttons ----------------------------------------------------------------------------------------------
     _row_utils = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     
@@ -373,12 +396,11 @@ def buildColumn_main(self,parent, asScroll = False):
               l='cometJO',
               c=lambda *a: mel.eval('cometJointOrient'),
               ann="General Joint orientation tool  by Michael Comet")   
-    mc.button(parent=_row_utils, 
-              ut = 'cgmUITemplate',                                                                              
-              l = 'Freeze',
-              ann = "Freeze the joint orientation - our method as we don't like Maya's",                                        
-              c = cgmGEN.Callback(MMCONTEXT.func_process, JOINTS.freezeOrientation, None, 'each','freezeOrientation',False,**{}),                                                                      
-              )
+    mc.button(parent = _row_utils,
+              ut = 'cgmUITemplate',                                                                                                
+              l='* Select',
+              c=lambda *a: contextual_select(self),
+              ann="Contextual joint selection")        
     mc.button(parent = _row_utils,
               ut = 'cgmUITemplate',                                                                                                
               l='seShapeTaper',
@@ -429,12 +451,22 @@ def createJoints(self, mode = 'each'):
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
     
-    if mode != 'curve' and _d['resplit'] and len(_sel) < 2:
-        return log.error("|{0}| >> Need more objects for resplitting 'each' mode. ".format(_str_func))
+    _resplit = _d['resplit']    
+    _splitMode = ['linear','curve','sub'][_d['resplit']-1]
+    
+    if mode != 'curve':
+        if _splitMode == 'sub':
+            if len(_sel) == 1:
+                _buffer = mc.listRelatives(_sel[0],type='joint')
+                if _buffer:
+                    _sel.append(_buffer[0])
+        elif len(_sel) < 2:
+            return log.error("|{0}| >> Need more objects for resplitting 'each' mode. ".format(_str_func))
         
-    pprint.pprint(_sel)
     log.info("|{0}| >> mode: {1}".format(_str_func,mode))        
     mc.select(cl=True)
+    pprint.pprint(_sel)
+    
     if mode == 'curve':
         for o in _sel:
             mObj = cgmMeta.validateObjArg(o,'cgmObject')
@@ -453,7 +485,6 @@ def createJoints(self, mode = 'each'):
                     
     elif mode == 'each':
         #posList = [POS.get(o) for o in _sel]
-        _resplit = _d['resplit']
         if not _resplit:
             log.info("|{0}| >> No resplit...".format(_str_func))                                
             JOINTS.build_chain(targetList=_sel,
@@ -464,10 +495,14 @@ def createJoints(self, mode = 'each'):
                                relativeOrient=_d['relativeOrient'])
         else:
             log.info("|{0}| >> resplit...".format(_str_func))                    
-            _splitMode = ['linear','curve'][_d['resplit']-1]
+            if _splitMode == 'sub':
+                count=_d['count']
+            else:
+                count = _d['count'] + len(_sel)
+                
             JOINTS.build_chain(targetList=_sel,
                                axisAim=_d['aim'],axisUp=_d['up'],
-                               worldUpAxis=_d['world'],count=_d['count'],
+                               worldUpAxis=_d['world'],count=count,
                                splitMode=_splitMode,
                                parent=_d['parent'],
                                orient=_d['orient'],
@@ -475,7 +510,9 @@ def createJoints(self, mode = 'each'):
         
     else:
         raise ValueError,"Unknown mode: {0}".format(mode)
-
+    mc.select(_sel)
+    
+    
 def orientJoints(self):
     _str_func = 'orientJoints'
     
@@ -485,14 +522,32 @@ def orientJoints(self):
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
     
-        
     pprint.pprint(_sel)
     
     JOINTS.orientChain(_sel,axisAim=_d['aim'],
                        axisUp=_d['up'],
                        worldUpAxis=_d['world'],
                        relativeOrient=_d['relativeOrient'])
+    mc.select(_sel)
+
+def orientPlane(self,planarMode = 'up'):
+    _str_func = 'orientPlane'
     
+    _d = uiFunc_getCreateData(self)
+    
+    _sel = MMCONTEXT.get_list()
+    if not _sel:
+        return log.error("|{0}| >> Nothing selected".format(_str_func))
+    
+    pprint.pprint(_sel)
+    
+    JOINTS.orientByPlane(_sel,axisAim=_d['aim'],
+                       axisUp=_d['up'],
+                       worldUpAxis=_d['world'],
+                       planarMode=planarMode,
+                       relativeOrient=_d['relativeOrient'])
+    mc.select(_sel)
+
 
 def uiFunc_getOrientData(self):
     _d = {}
@@ -534,17 +589,17 @@ def buildRow_worldUp(self,parent):
               ut = 'cgmUITemplate',                                                                                                
               l = 'X',
               c = cgmGEN.Callback(uiFunc_setWorldUp,self,1.0,0,0),
-              ann = "Adds value relatively to current") 
+              ann = "Set to X") 
     mc.button(parent=_row ,
               ut = 'cgmUITemplate',                                                                                                
               l = 'Y',
               c = cgmGEN.Callback(uiFunc_setWorldUp,self,0,1.0,0),
-              ann = "Subracts value relatively to current")         
+              ann = "Set to Y")         
     mc.button(parent=_row ,
               ut = 'cgmUITemplate',                                                                                                
               l = 'Z',
               c = cgmGEN.Callback(uiFunc_setWorldUp,self,0,0,1.0),
-              ann = "Zero out the fields. Uncheck all tweak check boxes") 
+              ann = "Set to Z")         
     mUI.MelSpacer(_row ,w=5)                                              
     _row.layout() 
     
@@ -553,7 +608,7 @@ def buildRow_getVector(self,parent):
     _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=5)                      
-    mUI.MelLabel(_row,l='Vector from selected:')
+    mUI.MelLabel(_row,l='Vector:')
     _row.setStretchWidget( mUI.MelSeparator(_row) )
     
     for i,item in enumerate(SHARED._l_axis_by_string):
@@ -561,19 +616,36 @@ def buildRow_getVector(self,parent):
                   ut = 'cgmUITemplate',
                   label=item,
                   c = cgmGEN.Callback(uiFunc_getVectorOfSelected,self,item),
-                  ann='asdf')
+                  ann='Get selected objects {0} vector'.format(item))
 
         mUI.MelSpacer(_row,w=2)           
+    mc.button(parent = _row,
+              ut = 'cgmUITemplate',
+              label='Between Sel',
+              c = cgmGEN.Callback(uiFunc_getVectorOfSelected,self,'between'),
+              ann='Get the vector between the first and last selected')
+    mUI.MelSpacer(_row,w=2)           
 
 
     _row.layout()   
 
 def uiFunc_getVectorOfSelected(self,axis = 'x+'):
-    _sel = MMCONTEXT.get_list(getTransform=True)
+    if axis == 'between':
+        _sel = MMCONTEXT.get_list()
+    else:
+        _sel = MMCONTEXT.get_list(getTransform=True)
     if not _sel:
         return log.error('Nothing selected')
     
-    vec = MATH.get_obj_vector(_sel[0],axis)
+    if axis == 'between':
+        if not len(_sel) >= 2:
+            raise ValueError,'Must have more than two objects selected for between mode'
+        try:vec = MATH.get_vector_of_two_points(POS.get(_sel[0]),POS.get(_sel[-1]))
+        except Exception,err:
+            log.error("Query fail: {0}".format(_sel))
+            raise Exception,err
+    else:
+        vec = MATH.get_obj_vector(_sel[0],axis)
     log.info("Found vector: {0}".format(vec))
     
     uiFunc_setWorldUp(self,vec[0],vec[1],vec[2])
@@ -585,7 +657,28 @@ def uiFunc_setWorldUp(self, x = None, y = None, z = None):
         if arg is not None:
             mField = self.__dict__['{0}{1}'.format(_base_str,'xyz'[i].capitalize())]
             mField.setValue(arg)
+            
+def uiFunc_tweak(self, mode = 'zero'):
+    _base_str = 'uiFF_orientTweak'
+    #mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 ).setV
     
+    _l = []
+    for i,arg in enumerate('xyz'):
+        if arg is not None:            
+            mField = self.__dict__['{0}{1}'.format(_base_str,'xyz'[i].capitalize())]
+            if mode == 'zero':
+                mField.setValue(0.0)
+            else:
+                if mode == '-':
+                    _l.append(-mField.getValue())                    
+                else:
+                    _l.append(mField.getValue())
+                
+    if mode != 'zero':
+        _sel = MMCONTEXT.get_list(mType='joint')
+        if not _sel:
+            return log.error('No joints selected') 
+        JOINTS.tweakOrient(_sel,_l)
     
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  
