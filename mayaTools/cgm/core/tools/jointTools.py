@@ -535,9 +535,9 @@ def createJoints(self, mode = 'each'):
         else:
             log.info("|{0}| >> resplit...".format(_str_func))                    
             if _splitMode == 'sub':
-                count=_d['count']
+                count=_d['count'] + len(_sel)
             else:
-                count = _d['count'] + len(_sel)
+                count = _d['count'] 
                 
             JOINTS.build_chain(targetList=_sel,
                                axisAim=_d['aim'],axisUp=_d['up'],
@@ -578,7 +578,7 @@ def orientPlane(self,planarMode = 'up'):
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
     
-    pprint.pprint(_sel)
+    #pprint.pprint(_sel)
     
     JOINTS.orientByPlane(_sel,axisAim=_d['aim'],
                        axisUp=_d['up'],

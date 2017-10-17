@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -42,6 +42,7 @@ import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.curve_Utils as CURVES
 import cgm.core.lib.list_utils as LISTS
+import cgm.core.classes.GuiFactory as cgmUI
 
 #!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -97,7 +98,7 @@ def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
     
     if str_aim == str_up:
         raise ValueError,"axisAim and axisUp cannot be the same"
-    if len(ml_joints) > 3:
+    if len(ml_joints) < 3:
         raise ValueError,"{0} > Need more than 3 joints".format(_str_func)
     
     #First setup a dup chain of first and end, orient those ----------------------------------------------------------------
@@ -296,13 +297,16 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     _cnt = 0
     while ml_cull and _go and _cnt <= _len+1:
         _cnt+=1
+        str_bar = cgmUI.doStartMayaProgressBar(_len,"Orienting")
         for mJnt in ml_cull:
             try:            
+                cgmUI.do
                 orientJoint(mJnt)
             except Exception,err:
                 log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
                 _go = False
                 reparent()
+                cgmUI.doEndMayaProgressBar(str_bar)
                 return False
             
     reparent()

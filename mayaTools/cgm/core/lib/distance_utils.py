@@ -247,7 +247,7 @@ def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point'
             if not res:
                 log.error("|{0}| >> {1} -- failed".format(_str_func,t))
             else:
-                log.info("|{0}| >> {1}: {2}".format(_str_func,t,res))
+                log.debug("|{0}| >> {1}: {2}".format(_str_func,t,res))
                 _l_pos.append(res[0])
                 _l_dist.append(res[1])
                 _l_shapes.append(res[2])
@@ -284,7 +284,7 @@ def get_distance_between_targets(targetList=None):
     
     for i,p in enumerate(l_pos[:-1]):
         d = get_distance_between_points(p,l_pos[i+1])
-        log.info("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
+        log.debug("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
         l_dist.append(d)
         
     return sum(l_dist)
