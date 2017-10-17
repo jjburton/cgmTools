@@ -42,12 +42,14 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.tools.lib.annotations as TOOLANNO
+
 reload(POS)
 reload(UICHUNKS)
 reload(CURVES)
 reload(JOINTS)
 #>>> Root settings =============================================================
-__version__ = '0.10132017'
+__version__ = '0.10162017'
 __toolname__ ='cgmJointTools'
 
 class ui(cgmUI.cgmGUI):
@@ -72,13 +74,37 @@ class ui(cgmUI.cgmGUI):
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
-
+        self.uiPopUpMenu_raycastCreate = None
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
-
+        
+    def uiPopup_createRayCast(self):
+        if self.uiPopUpMenu_raycastCreate:
+            self.uiPopUpMenu_raycastCreate.clear()
+            self.uiPopUpMenu_raycastCreate.delete()
+            self.uiPopUpMenu_raycastCreate = None
+    
+        self.uiPopUpMenu_raycastCreate = mUI.MelPopupMenu(self.uiField_rayCastCreate,button = 1)
+        _popUp = self.uiPopUpMenu_raycastCreate 
+    
+        mUI.MelMenuItem(_popUp,
+                        label = "Set Create Type",
+                        en=False)     
+        mUI.MelMenuItemDiv(_popUp)
+    
+        for m in  ['locator','joint','jointChain','curve','duplicate','vectorLine','data']:
+            mUI.MelMenuItem(_popUp,
+                            label = m,
+                            ann = "Create {0} by rayCasting".format(m),
+                            c=cgmGEN.Callback(self.cb_setRayCastCreate,m))
+    def cb_setRayCastCreate(self,m):
+        self.var_createRayCast.setValue(m)
+        self.uiField_rayCastCreate(edit=True,label=m)
+        return True
+    
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
@@ -321,6 +347,15 @@ def buildColumn_main(self,parent, asScroll = False):
     mUI.MelSpacer(_row_create,w=2)    
     _row_create.layout()              
     
+    if asScroll:
+        #Axis ==================================================================================================    
+        mc.setParent(_inside)    
+        cgmUI.add_Header('Raycast')    
+        mc.setParent(_inside)
+        cgmUI.add_LineSubBreak()
+        
+        UICHUNKS.uiChunk_rayCast(self,_inside)
+        
     #Axis ==================================================================================================    
     mc.setParent(_inside)    
     cgmUI.add_Header('Axis')    
@@ -343,9 +378,13 @@ def buildColumn_main(self,parent, asScroll = False):
               c= lambda *a:MMCONTEXT.set_attrs(self,'displayLocalAxis',0,self.var_contextTD.value,'joint',select=False),
               )     
 
-    _row_axis.layout()          
+    _row_axis.layout()            
 
-    #Radius ----------------------------------------------------------------------------------------------
+    #Axis ==================================================================================================    
+    mc.setParent(_inside)    
+    cgmUI.add_Header('Radius')    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
     _row_radius = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
