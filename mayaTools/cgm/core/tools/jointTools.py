@@ -160,6 +160,9 @@ def buildColumn_main(self,parent, asScroll = False):
     self.var_jointAimAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultAimAxis', defaultValue = 2)
     self.var_jointUpAxis = cgmMeta.cgmOptionVar('cgmVar_jointDefaultUpAxis', defaultValue = 1)
     
+    
+    self.uiPB_cgmJointTools = mc.progressBar(vis=False)
+    
     mc.setParent(_inside)    
     cgmUI.add_Header('Orient')
     mc.setParent(_inside)
@@ -518,6 +521,7 @@ def createJoints(self, mode = 'each'):
                                        worldUpAxis=_d['world'],count=_d['count'],splitMode='curveCast',
                                        parent=_d['parent'],
                                        orient=_d['orient'],
+                                       progressBar=self.uiPB_cgmJointTools,
                                        relativeOrient=_d['relativeOrient'])
                 else:
                     log.warning("|{0}| >> shape: {1} | invalid type: {2}".format(_str_func,mShape.mNode,_type))        
@@ -531,11 +535,12 @@ def createJoints(self, mode = 'each'):
                                worldUpAxis=_d['world'],
                                parent=_d['parent'],
                                orient=_d['orient'],
+                               progressBar=self.uiPB_cgmJointTools,                               
                                relativeOrient=_d['relativeOrient'])
         else:
             log.info("|{0}| >> resplit...".format(_str_func))                    
             if _splitMode == 'sub':
-                count=_d['count'] + len(_sel)
+                count=_d['count'] #+ len(_sel)
             else:
                 count = _d['count'] 
                 
@@ -545,6 +550,7 @@ def createJoints(self, mode = 'each'):
                                splitMode=_splitMode,
                                parent=_d['parent'],
                                orient=_d['orient'],
+                               progressBar=self.uiPB_cgmJointTools,                               
                                relativeOrient=_d['relativeOrient'])
         
     else:
@@ -566,6 +572,7 @@ def orientJoints(self):
     JOINTS.orientChain(_sel,axisAim=_d['aim'],
                        axisUp=_d['up'],
                        worldUpAxis=_d['world'],
+                       progressBar=self.uiPB_cgmJointTools,                                                      
                        relativeOrient=_d['relativeOrient'])
     mc.select(_sel)
 
@@ -584,6 +591,7 @@ def orientPlane(self,planarMode = 'up'):
                        axisUp=_d['up'],
                        worldUpAxis=_d['world'],
                        planarMode=planarMode,
+                       progressBar=self.uiPB_cgmJointTools,                                                      
                        relativeOrient=_d['relativeOrient'])
     mc.select(_sel)
 

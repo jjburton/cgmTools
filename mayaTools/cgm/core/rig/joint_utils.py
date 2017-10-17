@@ -74,6 +74,7 @@ def tweakOrient(joints = None, tweak = [0,0,0]):
         
 def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], planarMode = 'up', relativeOrient = True,
+                progressBar=None,
                 baseName = None, cleanUp = True, asMeta = True):
                 
     """
@@ -160,7 +161,7 @@ def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
         mc.delete(_res_body + l_crvs)
         mStart.delete()
         
-    orientChain(ml_joints, axisAim, axisUp, worldUpAxis, relativeOrient)
+    orientChain(ml_joints, axisAim, axisUp, worldUpAxis, relativeOrient,progressBar)
 
     return
 
@@ -171,9 +172,10 @@ def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
     mc.curve (d=1, ep = posList, os=True)
     #Snap interior joints to plane ----------------------------------------------------------------
     
-
+@cgmGEN.Timer
 def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], relativeOrient = True,
+                progressBar = None,
                 baseName = None, asMeta = True):
                 
     """
@@ -233,20 +235,25 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
         if mJnt in ml_cull:ml_cull.remove(mJnt)
         return
     
-    def reparent():
-        log.debug("|{0}| >> reparent...".format(_str_func))                 
+    def reparent(progressBar):
+        log.debug("|{0}| >> reparent...".format(_str_func))
+        
+        progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
+        
+        #log.info("|{0}| >> reparent progressBar:{1}".format(_str_func,format(progressBar)))
         for mJnt in ml_joints:
-            log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
+            #log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
+            cgmUI.progressBar_iter(progressBar,status='Reparenting: {0}'.format(mJnt.mNode))
             
             mJnt.parent = _d_parents[mJnt]
             
             for mChild in _d_children[mJnt]:
                 if mChild not in ml_joints:
-                    log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
+                    #log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
                     mChild.parent = mJnt
             
             if mJnt in ml_ends and mJnt not in ml_world:
-                log.debug("|{0}| >> End joint. No world...".format(_str_func))                                             
+                #log.debug("|{0}| >> End joint. No world...".format(_str_func))                                             
                 mJnt.jointOrient = 0,0,0                
                         
     ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
@@ -297,20 +304,22 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     _cnt = 0
     while ml_cull and _go and _cnt <= _len+1:
         _cnt+=1
-        str_bar = cgmUI.doStartMayaProgressBar(_len,"Orienting")
+        progressBar = cgmUI.progressBar_start(progressBar,stepMaxValue=_len)        
         for mJnt in ml_cull:
             try:            
-                cgmUI.do
+                cgmUI.progressBar_iter(progressBar,status='Orienting: {0}'.format(mJnt.mNode))
                 orientJoint(mJnt)
             except Exception,err:
                 log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
                 _go = False
-                reparent()
-                cgmUI.doEndMayaProgressBar(str_bar)
+                cgmUI.progressBar_end(progressBar)
+                reparent()                
                 return False
             
-    reparent()
-
+    reparent(progressBar)
+    try:cgmUI.progressBar_end(progressBar)
+    except:pass
+    
     return
  
             
@@ -457,6 +466,7 @@ def build_chain(posList = [],
                 splitMode = 'curve',
                 parent = False,
                 orient = True,
+                progressBar = None,                
                 relativeOrient=True,
                 asMeta = True):
     """
@@ -483,7 +493,7 @@ def build_chain(posList = [],
     _axisWorldUp = worldUpAxis
     _radius = 1    
     mc.select(cl=True)
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     #>>Get positions ================================================================================
     if not posList and targetList:
@@ -537,8 +547,12 @@ def build_chain(posList = [],
     ml_joints = []
 
     log.debug("|{0}| >> pos list...".format(_str_func)) 
+    
+    progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
+    
     for i,p in enumerate(posList):
         log.debug("|{0}| >> {1}:{2}".format(_str_func,i,p)) 
+        cgmUI.progressBar_iter(progressBar,status='Creating: {0}'.format(p))
 
         mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
         mJnt.displayLocalAxis = 1
@@ -551,13 +565,14 @@ def build_chain(posList = [],
             _mJnt.parent = _ml_joints[i-1]    
         else:
             _mJnt.parent = False"""
-        
+    
+    cgmUI.progressBar_end(progressBar)
     #>>Orient chain...
     if orient:
         if _len == 1:
             log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
         else:
-            orientChain(ml_joints,axisAim,axisUp,worldUpAxis,relativeOrient)
+            orientChain(ml_joints,axisAim,axisUp,worldUpAxis,relativeOrient,progressBar=progressBar)
 
     if asMeta:
         return ml_joints
