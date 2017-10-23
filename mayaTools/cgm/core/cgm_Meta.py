@@ -6605,7 +6605,14 @@ def asMeta(*args,**kws):
                 log.error("kw: {0}".format(items))	
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
         raise Exception,error
-createMetaNode = r9Meta.createMetaNode
+    
+try:
+    createMetaNode = r9Meta.createMetaNode
+except Exception,err:
+    log.error(" r9Meta.createMetaNode failed to link. You have an old red9 library in your pathing. Resolve for full functionality")
+    for arg in err.args:
+        log.error(arg)            
+    
 def createMetaNodeBAK(mType = None, *args, **kws):
     _str_func = 'createMetaNode'
     
