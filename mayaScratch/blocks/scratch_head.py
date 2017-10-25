@@ -91,6 +91,14 @@ b1 = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'head')
 _block = 'cube_head_block'
 b1 = cgmMeta.asMeta(_block)
 
+
+#>>>Skeleton ---------------------------------------------------------------------------------------
+b1.atBlockModule('build_skeleton')
+b1.atBlockUtils('skeleton_getCreateDict')
+
+
+
+#>>>Rig process
 b1.verify()
 rFac = RBLOCKS.rigFactory(_block)
 rFac.d_block['buildModule']

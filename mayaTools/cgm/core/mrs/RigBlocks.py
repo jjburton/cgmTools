@@ -767,7 +767,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
     p_blockState = property(getState,changeState)
     
     
-    
     #========================================================================================================     
     #>>> Skeleton and Mesh generation 
     #========================================================================================================      
@@ -780,6 +779,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if _call:
             log.debug("|{0}| >> blockModule check...".format(_str_func))                                
             return _call(self)
+        
+        mModule = self.moduleTarget
+        if not mModule:
+            raise ValueError,"No moduleTarget connected"
+        
+        mRigNull = mModule.rigNull
+        if not mRigNull:
+            raise ValueError,"No rigNull connected"
+        
+        if mRigNull.msgList_get('moduleJoints'):
+            return True
         return False
     
     def doSkeletonize(self):
@@ -2886,24 +2896,30 @@ class rigFactory(object):
         cgmGEN.log_info_dict(self.call_kws,_str_func)
 
         if not self.fnc_check_rigBlock():
+            pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> RigBlock checks failed. See warnings and errors.".format(_str_func)
         log.debug("|{0}| >> RigBlock check passed".format(_str_func) + cgmGEN._str_subLine)
 
         if not self.fnc_check_module():
+            pprint.pprint(self.__dict__)
             raise RuntimeError,"|{0}| >> Module checks failed. See warnings and errors.".format(_str_func)
         log.debug("|{0}| >> Module check passed...".format(_str_func)+ cgmGEN._str_subLine)
 
         if not self.fnc_rigNeed():
+            pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> No rig need see errors".format(_str_func)
         log.debug("|{0}| >> Rig needed...".format(_str_func)+ cgmGEN._str_subLine)
 
         if not self.fnc_bufferDat():
+            pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to buffer data. See warnings and errors.".format(_str_func)
 
         if not self.fnc_moduleRigChecks():
+            pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
 
         if not self.fnc_deformConstrainNulls():
+            pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to process deform/constrain. See warnings and errors.".format(_str_func)
                 
         self.fnc_processBuild(**kws)
@@ -2925,9 +2941,14 @@ class rigFactory(object):
         Function to call a blockModule function by string. For menus and other reasons
         """
         _blockModule = self.d_block['buildModule']
-        
         return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
-        
+    
+    def atBuilderUtils(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
+    
     def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
         _str_func = 'fnc_connect_toRigGutsVis' 
         mRigNull = self.d_module['mRigNull']
@@ -3028,7 +3049,7 @@ class rigFactory(object):
         if not _mModule.isSkeletonized():
             log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
             
-            self.d_block['mBlock'].atBlockModule('build_skeleton')
+            self.mBlock.atBlockModule('build_skeleton')
 
             if not _mModule.isSkeletonized():
                 log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
@@ -3219,7 +3240,7 @@ class rigFactory(object):
         _d['mMasterSettings'] = _d['mMasterControl'].controlSettings
         _d['mMasterDeformGroup'] = _mPuppet.masterNull.deformGroup
 
-        _d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
+        #_d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
 
         self.d_module.update(_d)
 

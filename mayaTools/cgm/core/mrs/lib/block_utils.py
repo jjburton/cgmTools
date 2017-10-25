@@ -573,7 +573,55 @@ def skeleton_getCreateDict(self):
     return _d_res
 
 
+def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False):
+    _str_func = 'skeleton_buildDuplicateChain'
+    
+    start = time.clock()
+    ml_source = cgmMeta.validateObjListArg(sourceJoints,mayaType=['joint'],noneValid=False)
+    
+    if connectToModule:
+        #mRigNull = self.moduleTarget.rigNull
+    
+        #Get our segment joints
+        if singleMode:
+            l_jointsExist = connectToModule.getMessage(connectAs)
+        else:
+            l_jointsExist = connectToModule.msgList_get(connectAs,asMeta = False, cull = True)
+        
+        if l_jointsExist:
+            log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
+            mc.delete(l_jointsExist)
 
+    l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
+    ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
+
+
+    for i,mJnt in enumerate(ml_joints):
+        mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        #l_joints[i] = mJnt.mNode
+        if connectToSource:
+            mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect	    
+        
+        if mJnt.hasAttr('scaleJoint'):
+            if mJnt.scaleJoint in ml_skinJoints:
+                int_index = ml_source.index(mJnt.scaleJoint)
+                mJnt.connectChildNode(ml_source[int_index],'scaleJoint','sourceJoint')#Connect
+
+
+    #Name loop
+    ml_joints[0].parent = False
+    for mJnt in ml_joints:
+        mJnt.doName()	
+        
+    if connectToModule:
+        if singleMode:
+            connectToModule.connectChildNode(ml_joints[0],connectAs,'rigNull')
+        else:
+            connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
+        
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    
+    return ml_joints
 
 
 def skeleton_connectToParent(self):

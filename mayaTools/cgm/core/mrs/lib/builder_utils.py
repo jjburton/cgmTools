@@ -555,5 +555,32 @@ def create_remesh(mesh = None, joints = None, curve=None, positions = None,
     #>>Cast our Loft curves
 
 
+def build_visSub(self):
+    _start = time.clock()    
+    _str_func = 'build_visSub'
+        
+    mSettings = self.mRigNull.settings
+    mMasterControl = self.d_module['mMasterControl']
+
+    #Add our attrs
+    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+    mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
+
+    #Get one of the drivers
+    if self.mModule.getAttr('cgmDirection') and self.mModule.cgmDirection.lower() in ['left','right']:
+        str_mainSubDriver = "%s.%sSubControls_out"%(mMasterControl.controlVis.getShortName(),
+                                                    mModule.cgmDirection)
+    else:
+        str_mainSubDriver = "%s.subControls_out"%(mMasterControl.controlVis.getShortName())
+
+    iVis = mMasterControl.controlVis
+    visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode,mPlug_result_moduleSubDriver.attr],
+               'drivers':[[iVis,"subControls_out"],[mSettings,mPlug_moduleSubDriver.attr]]}]
+    NODEFACTORY.build_mdNetwork(visArg)
+    
+    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
+    
+    return mPlug_result_moduleSubDriver    
+
 
     
