@@ -1000,12 +1000,12 @@ def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
         _kwString = ','.join(_l)  
 
     try:
-        mc.undoInfo(openChunk=True, chunkName=_str_func)        
+        #mc.undoInfo(openChunk=True, chunkName=_str_func)        
         log.debug("|{0}| >> On: {1}.{2}".format(_str_func,module.__name__, _short))     
         log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
         _res = getattr(module,func)(*args,**kws)
     except Exception,err:
-        mc.undoInfo(closeChunk=True, chunkName=_str_func)        
+        #mc.undoInfo(closeChunk=True, chunkName=_str_func)        
         log.error(_str_hardLine)
         log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
         log.error("Self: {0} | func: {1}".format(_short,func))
@@ -1024,7 +1024,7 @@ def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
             log.error(a)
         cgmExceptCB(Exception,err)
         raise Exception,err
-    mc.undoInfo(closeChunk=True, chunkName=_str_func)            
+    #mc.undoInfo(closeChunk=True, chunkName=_str_func)            
     return _res    
         
 #>>> Sub funcs ==============================================================================
