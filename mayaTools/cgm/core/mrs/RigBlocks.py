@@ -3037,7 +3037,7 @@ class rigFactory(object):
         else:
             _mDynSwitch = _mRigNull.dynSwitch  
         _d['mDynSwitch'] = _mDynSwitch"""
-
+        
         #>>Puppet -----------------------------------------------------------------------------------    
         BlockFactory.puppet_verify()
         _mPuppet = _mModule.modulePuppet
@@ -3233,7 +3233,7 @@ class rigFactory(object):
         #>MasterControl....
         if not _mPuppet.getMessage('masterControl'):
             log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
-            _mPuppet._verifyMasterControl(size = 5)
+            _mPuppet._verifyMasterControl(size = max(DIST.get_bb_size(self.mBlock.mNode)))
 
         _d['mMasterControl'] = _mPuppet.masterControl
         _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 

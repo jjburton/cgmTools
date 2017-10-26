@@ -49,7 +49,10 @@ from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.classes.NodeFactory as NODEFACTORY
 
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
+for m in BLOCKSHARE,:
+    reload(m)
 
 
 #Dave, here's the a few calls we need...
@@ -581,6 +584,39 @@ def build_visSub(self):
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
     
     return mPlug_result_moduleSubDriver    
+
+def register_mirrorIndices(self, ml_controls = []):
+    _start = time.clock()    
+    _str_func = 'register_mirrorIndices'
+    
+    mPuppet = self.mPuppet
+    direction = self.d_module['mirrorDirection']
+    
+    int_strt = mPuppet.get_nextMirrorIndex( direction )
+    ml_extraControls = []
+    for i,mCtrl in enumerate(ml_controls):
+        try:
+            for str_a in BLOCKSHARE.__l_moduleControlMsgListHooks__:
+                buffer = mCtrl.msgList_get(str_a)
+                if buffer:
+                    ml_extraControls.extend(buffer)
+                    log.info("Extra controls : {0}".format(buffer))
+        except Exception,error:
+            log.error("mCtrl failed to search for msgList : {0}".format(mCtrl))
+            log.error(error)
+            log.error(cgmGEN._str_subLine)
+    
+    ml_controls.extend(ml_extraControls)
+    
+    for i,mCtrl in enumerate(ml_controls):
+        mCtrl.addAttr('mirrorIndex', value = (int_strt + i))
+
+    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
+    
+    return ml_controls
+
+
+
 
 
     

@@ -607,7 +607,6 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
                 int_index = ml_source.index(mJnt.scaleJoint)
                 mJnt.connectChildNode(ml_source[int_index],'scaleJoint','sourceJoint')#Connect
 
-
     #Name loop
     ml_joints[0].parent = False
     for mJnt in ml_joints:
