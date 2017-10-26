@@ -591,10 +591,17 @@ def uiSection_dev(parent):
     mc.menuItem(parent = parent,
                 l='Load Morpheus Maker',
                 ann = "Attempt to load the Morpheus Maker - ALPHA",
-                c=lambda *a: load_MorpheusMaker())    
+                c=lambda *a: load_MorpheusMaker())
     
+    #>>Maya weirdness  -------------------------------------------------------------------------
+    _mayaOdd = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                           l='Maya Oddities')
+    mc.menuItem(parent = _mayaOdd,
+                l='End Maya Progress bar',
+                ann = "Sometimes the progress bar gets stuck. This closes it so you can get a cursor back.",
+                c=cgmGen.Callback(cgmUI.doEndMayaProgressBar))   
     
-    
+    #>>Unit testing -------------------------------------------------------------------------
     _unitTests = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                              l='Unittesting')
     
