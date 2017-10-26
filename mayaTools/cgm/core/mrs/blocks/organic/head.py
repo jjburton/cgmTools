@@ -873,7 +873,6 @@ def build_skeleton(self, forceNew = True):
         else:
             return _bfr
 
-    
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
 
     #>> Head ===================================================================================
@@ -883,8 +882,6 @@ def build_skeleton(self, forceNew = True):
     
     #...create ---------------------------------------------------------------------------
     mHead_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
-    mHead_jnt.displayLocalAxis = 1
-    mHead_jnt.radius = _radius
     
     self.copyAttrTo(_baseNameAttrs[0],mHead_jnt.mNode,'cgmName',driven='target')
     
@@ -902,27 +899,60 @@ def build_skeleton(self, forceNew = True):
     #...name ----------------------------------------------------------------------------
     mHead_jnt.doName()
     
-    
     if self.neckBuild:#...Neck =====================================================================
-        log.debug("|{0}| >> neckBuild...".format(_str_func))        
-        _d = self.atBlockUtils('skeleton_getCreateDict')
+        log.debug("|{0}| >> neckBuild...".format(_str_func))
+        if len(ml_prerigHandles) == 2 and self.neckJoints == 1:
+            log.debug("|{0}| >> Single neck joint...".format(_str_func))
+            p = POS.get( ml_prerigHandles[0].jointHelper.mNode )
+            
+            mBaseHelper = ml_prerigHandles[0].orientHelper
+            
+            #...create ---------------------------------------------------------------------------
+            mNeck_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
+            
+            self.copyAttrTo(_baseNameAttrs[1],mNeck_jnt.mNode,'cgmName',driven='target')
+            
+            #...orient ----------------------------------------------------------------------------
+            #cgmMeta.cgmObject().getAxisVector
+            TRANS.aim_atPoint(mNeck_jnt.mNode,
+                              mHead_jnt.p_position,
+                              'z+', 'y+', 'vector',
+                              vectorUp=mHeadHelper.getAxisVector('z-'))
+            JOINT.freezeOrientation(mNeck_jnt.mNode)
+            
+            mNeck_jnt.doName()
+            
+            mHead_jnt.p_parent = mNeck_jnt
+            ml_joints.append(mNeck_jnt)
+            
+        else:
+            log.debug("|{0}| >> Multiple neck joint...".format(_str_func))
+            
+            _d = self.atBlockUtils('skeleton_getCreateDict', self.neckJoints +1)
+            
+            mOrientHelper = ml_prerigHandles[0].orientHelper
+            
+            ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mOrientHelper.getAxisVector('z-'))
+            
+            self.copyAttrTo(_baseNameAttrs[1],ml_joints[0].mNode,'cgmName',driven='target')
+            
+            for i,mJnt in enumerate(ml_joints):
+                mJnt.addAttr('cgmIterator',i + 1)
+                mJnt.doName()        
+            
+            mHead_jnt.p_parent = ml_joints[-1]
+        ml_joints[0].parent = False
+    else:
+        mHead_jnt.parent = False
         
-        mOrientHelper = ml_prerigHandles[0].orientHelper
-        
-        log.debug("|{0}| >> Neck build....".format(_str_func))  
-        ml_joints = JOINT.build_chain(_d['positions'][:-1], worldUpAxis= mOrientHelper.getAxisVector('z-'))
-        
-        self.copyAttrTo(_baseNameAttrs[1],ml_joints[0].mNode,'cgmName',driven='target')
-        
-        for i,mJnt in enumerate(ml_joints):
-            mJnt.addAttr('cgmIterator',i)
-            mJnt.doName()        
-        
-        mHead_jnt.p_parent = ml_joints[-1]
-        mHead_jnt.radius = ml_joints[-1].radius * 5
-        #mHead_jnt.parent = False
-         
     ml_joints.append(mHead_jnt)
+    
+    for mJnt in ml_joints:
+        mJnt.displayLocalAxis = 1
+        mJnt.radius = _radius
+    if len(ml_joints) > 1:
+        mHead_jnt.radius = ml_joints[-1].radius * 5
+
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     
     return ml_joints
@@ -939,48 +969,67 @@ d_rotateOrders = {'head':'yxz'}
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
 def rig_skeleton(self):
     _short = self.d_block['shortName']
-
+    
     _str_func = '[{0}] > rig_skeleton'.format(_short)
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
         
+    mBlock = self.mBlock
+    
     ml_jointsToConnect = []
     ml_joints = self.d_joints['ml_moduleJoints']
     
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
     
-    if not self.mBlock.neckBuild:
-        log.info("|{0}| >> Head only...".format(_str_func))  
+    log.info("|{0}| >> Head...".format(_str_func))  
+    
+    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'rig', self.mRigNull,'rigJoints')
+    
+    if self.mBlock.headAim:
+        log.info("|{0}| >> Head IK...".format(_str_func))              
+        ml_fkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'fk', self.mRigNull, 'fkHeadJoint', singleMode = True )
+        ml_blendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'blend', self.mRigNull, 'blendHeadJoint', singleMode = True)
+        ml_aimJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'aim', self.mRigNull, 'aimHeadJoint', singleMode = True)
+        self.fnc_connect_toRigGutsVis( ml_fkJoints + ml_aimJoints )        
+    
+    if self.mBlock.neckBuild:
+        log.info("|{0}| >> Neck Build".format(_str_func))          
+        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'fk','fkJoints')
+        l_baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'baseNames')
         
-        ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'rig', self.mRigNull,'rigJoints')
-        #self.fnc_connect_toRigGutsVis( ml_rigJoints )
+        #We then need to name our core joints to pass forward:
+        mBlock.copyAttrTo(l_baseNameAttrs[0],ml_fkJoints[-1].mNode,'cgmName',driven='target')
+        mBlock.copyAttrTo(l_baseNameAttrs[1],ml_fkJoints[0].mNode,'cgmName',driven='target')
         
-        if self.mBlock.headAim:
-            log.info("|{0}| >> Head IK...".format(_str_func))              
-            ml_fkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'fk', self.mRigNull, 'fkHeadJoint', singleMode = True )
-            ml_blendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'blend', self.mRigNull, 'blendHeadJoint', singleMode = True)
-            ml_aimJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'aim', self.mRigNull, 'aimHeadJoint', singleMode = True)
-            self.fnc_connect_toRigGutsVis( ml_fkJoints + ml_aimJoints )        
-            
-    else:
-        log.info("|{0}| >> Head/Neck...".format(_str_func))          
-        ml_rigJoints = BLOCKUTILS.skeleton_buildRigChain(self.mBlock)
-        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'fk','fkJoints')    
+        if len(ml_fkJoints) > 2:
+            for i,mJnt in enumerate(ml_fkJoints[1:-1]):
+                mJnt.doStore('cgmIterator',i+1)
+            ml_fkJoints[0].doStore('cgmNameModifier','base')
         
-        if self.mBlock.buildIK:
+        for mJnt in ml_fkJoints:
+            mJnt.doName()
+                
+        
+        self.fnc_connect_toRigGutsVis( ml_fkJoints)
+        
+        if self.mBlock.neckIK:
             log.info("|{0}| >> buildIK on. Building blend and IK chains...".format(_str_func))  
             ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'blend','blendJoints')
             ml_ikJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'ik','ikJoints')
-
+            self.fnc_connect_toRigGutsVis( ml_blendJoints + ml_ikJoints)
+        
+        if mBlock.neckJoints > mBlock.neckControls:
+            log.info("|{0}| >> Handles necessary...".format(_str_func))
+            
+            ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
+            for i,mJnt in enumerate(ml_segmentHandles):
+                mJnt.parent = ml_blendJoints[i]
+            
+            
     #...connect... 
-    #ml_jointsToConnect.extend(ml_rigJoints)
-    #ml_jointsToConnect.extend(ml_ikJoints)    
-    #ml_jointsToConnect.extend(ml_blendJoints)
-
-    self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
-
+    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+    
     return
 
 def rig_shapes(self):
@@ -988,7 +1037,10 @@ def rig_shapes(self):
     _str_func = '[{0}] > rig_shapes'.format(_short)
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
-    mHelper = self.mBlock.jointHelper
+    
+    ml_prerigHandles = self.mBlock.atBlockUtils('prerig_getHandleTargets')
+    
+    mHeadHelper = ml_prerigHandles[-1]
     
     #l_toBuild = ['segmentFK_Loli','segmentIK']
     #mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
@@ -996,12 +1048,13 @@ def rig_shapes(self):
     #Get our base size from the block
     _size = DIST.get_size_byShapes(_short)
     _side = BLOCKUTILS.get_side(self.mBlock)
-    _ikPos = mHelper.getPositionByAxisDistance('z+', _size *2)
+    _ikPos = mHeadHelper.getPositionByAxisDistance('z+', _size *2)
     #mAttr_moduleName = cgmMeta.cgmAttr(self.mModule,'cgmName')
     _short_module = self.mModule.mNode
     
+    #Head=============================================================================================
     if self.mBlock.headAim:
-        #IK ----------------------------------------------------------------------------------
+        log.info("|{0}| >> Head aim...".format(_str_func))  
         ikCurve = CURVES.create_fromName('sphere',_size/2)
         mLookAt = cgmMeta.validateObjArg(ikCurve,'cgmObject',setClass=True)
         mLookAt.p_position = _ikPos
@@ -1019,13 +1072,13 @@ def rig_shapes(self):
     l_lolis = []
     l_starts = []
     for axis in ['x+','z-','x-']:
-        pos = mHelper.getPositionByAxisDistance(axis, _size * .75)
+        pos = mHeadHelper.getPositionByAxisDistance(axis, _size * .75)
         ball = CURVES.create_fromName('sphere',_size/6)
         mBall = cgmMeta.cgmObject(ball)
         mBall.p_position = pos
         mc.select(cl=True)
-        p_end = DIST.get_closest_point(mHelper.mNode, ball)[0]
-        p_start = mHelper.getPositionByAxisDistance(axis, _size * .25)
+        p_end = DIST.get_closest_point(mHeadHelper.mNode, ball)[0]
+        p_start = mHeadHelper.getPositionByAxisDistance(axis, _size * .25)
         l_starts.append(p_start)
         line = mc.curve (d=1, ep = [p_start,p_end], os=True)
         l_lolis.extend([ball,line])
@@ -1034,7 +1087,7 @@ def rig_shapes(self):
     #l_lolis.append(base)
     
     
-    mFK = mHelper.doCreateAt()
+    mFK = mHeadHelper.doCreateAt()
     CORERIG.shapeParent_in_place(mFK,l_lolis,False)
     mFK = cgmMeta.validateObjArg(mFK,'cgmObject',setClass=True)
     ATTR.copy_to(_short_module,'cgmName',mFK.mNode,driven='target')
@@ -1047,8 +1100,8 @@ def rig_shapes(self):
     self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
     
     #Settings -------------------------------------------------------------
-    pos = mHelper.getPositionByAxisDistance('z-', _size * .75)
-    vector = mHelper.getAxisVector('y+')
+    pos = mHeadHelper.getPositionByAxisDistance('z-', _size * .75)
+    vector = mHeadHelper.getAxisVector('y+')
     newPos = DIST.get_pos_by_vec_dist(pos,vector,_size * .5)
     
     settings = CURVES.create_fromName('gear',_size/3,'x+')
@@ -1064,8 +1117,15 @@ def rig_shapes(self):
     
     self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
     
-    if not self.mBlock.neckBuild:
-        pass
+    #Neck=============================================================================================    
+    if self.mBlock.neckBuild:
+        log.info("|{0}| >> Neck...".format(_str_func))
+        
+        #Root -------------------------------------------------------------------------------------------
+        
+        #FK ---------------------------------------------------------------------------------------------
+        for mHandle in ml_prerigHandles[:-1]:
+            pass
     
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
@@ -1075,7 +1135,6 @@ def rig_controls(self):
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
   
-    #mHelper = self.mBlock.jointHelper
     mRigNull = self.mRigNull
     ml_controlsAll = []#we'll append to this list and connect them all at the end
     

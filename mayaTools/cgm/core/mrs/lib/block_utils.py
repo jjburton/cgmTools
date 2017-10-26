@@ -45,7 +45,6 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import rigging_utils as RIGGING
 reload(RIGGING)
 import cgm.core.classes.NodeFactory as NODEFACTORY
-from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
@@ -466,12 +465,13 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
-def skeleton_getCreateDict(self):
+def skeleton_getCreateDict(self, count = None):
     """
     Data checker to see the skeleton create dict for a given blockType regardless of what's loaded
 
     :parameters:
         blockType(str) | rigBlock type
+        count(int) | Overload for count
 
     :returns
         dict
@@ -484,7 +484,6 @@ def skeleton_getCreateDict(self):
     if not _mod:
         log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
         return False       
-    
 
     #Validate mode data -------------------------------------------------------------------------
     try:_d_skeletonSetup = _mod.d_skeletonSetup
@@ -541,7 +540,10 @@ def skeleton_getCreateDict(self):
     log.debug("|{0}| >> axisWorldUp: {1}".format(_str_func,_axisWorldUp))  
     """
 
-    _joints = ATTR.get(_short,_countAttr)
+    if count:
+        _joints = count
+    else:
+        _joints = ATTR.get(_short,_countAttr)
 
     #...get our positional data
     _d_res = {}
@@ -659,52 +661,13 @@ def skeleton_buildRigChain(self):
     
     #Get our segment joints
     l_rigJointsExist = _mRigNull.msgList_get('rigJoints',asMeta = False, cull = True)
-    ml_skinJoints = _mRigNull.msgList_get('skinJoints')
+    ml_skinJoints = _mRigNull.msgList_get('moduleJoints')
     
     if l_rigJointsExist:
         log.info("|{0}| >> Deleting existing rig chain".format(_str_func))  
         mc.delete(l_rigJointsExist)
 
-    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _mRigNull.msgList_get('skinJoints')],po=True,ic=True,rc=True)
-    ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
-
-
-    for i,mJnt in enumerate(ml_rigJoints):
-        mJnt.addAttr('cgmTypeModifier','rig',attrType='string',lock=True)
-        l_rigJoints[i] = mJnt.mNode
-        mJnt.connectChildNode(ml_skinJoints[i].mNode,'skinJoint','rigJoint')#Connect	    
-        if mJnt.hasAttr('scaleJoint'):
-            if mJnt.scaleJoint in ml_skinJoints:
-                int_index = ml_skinJoints.index(mJnt.scaleJoint)
-                mJnt.connectChildNode(l_rigJoints[int_index],'scaleJoint','sourceJoint')#Connect
-        try:mJnt.delAttr('rigJoint')
-        except:pass
-
-    #Name loop
-    ml_rigJoints[0].parent = False
-    for mJnt in ml_rigJoints:
-        mJnt.doName()	
-        
-    _mRigNull.msgList_connect('rigJoints',ml_rigJoints,'rigNull')#connect	
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
-    
-    return ml_rigJoints
-
-def skeleton_buildRigChain2(self):
-    _short = self.mNode
-    _str_func = 'skeleton_buildRigChain [{0}]'.format(_short)
-    start = time.clock()	
-    _mRigNull = self.moduleTarget.rigNull
-    
-    #Get our segment joints
-    l_rigJointsExist = _mRigNull.msgList_get('rigJoints',asMeta = False, cull = True)
-    ml_skinJoints = _mRigNull.msgList_get('skinJoints')
-    
-    if l_rigJointsExist:
-        log.info("|{0}| >> Deleting existing rig chain".format(_str_func))  
-        mc.delete(l_rigJointsExist)
-
-    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _mRigNull.msgList_get('skinJoints')],po=True,ic=True,rc=True)
+    l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _mRigNull.msgList_get('moduleJoints')],po=True,ic=True,rc=True)
     ml_rigJoints = [cgmMeta.cgmObject(j) for j in l_rigJoints]
 
 
@@ -759,32 +722,76 @@ def skeleton_pushSettings(ml_chain, orientation = 'zyx', side = 'right',
             raise Exception,"Limit Buffer not implemented"
    
 
-
-def skeleton_buildHandleChain(self,typeModifier = 'handle',connectNodesAs = False): 
+def skeleton_getHandleChain(self, typeModifier = None):
+    """
+    Generate a handle chain of joints if none exists, otherwise return existing
+    """
     _short = self.mNode
-    _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
+    _str_func = 'skeleton_getHandleChain [{0}]'.format(_short)
     start = time.clock()	
     
-    _mModule = self.moduleTarget
-    _mRigNull = self.moduleTarget.rigNull
+    mRigNull = self.moduleTarget.rigNull
+    ml_fkJoints = mRigNull.msgList_get('fkJoints')
     
-    ml_handleJoints = _mModule.rig_getHandleJoints()
+    if not ml_fkJoints:
+        log.info("|{0}| >> Generating handleJoints".format(_str_func))
+        
+        ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
+        if not ml_prerigHandles:
+            raise ValueError,"No prerigHandles connected"
+        
+        mOrientHelper = ml_prerigHandles[0].orientHelper
+        _d = skeleton_getCreateDict(self)
+        pprint.pprint(_d)
+        ml_fkJoints = COREJOINTS.build_chain(targetList=_d['helpers']['targets'],
+                                           axisAim='z+',
+                                           axisUp='y+',
+                                           parent=True,
+                                           worldUpAxis= mOrientHelper.getAxisVector('z-'))
+        if typeModifier:
+            for mJnt in ml_fkJoints:
+                mJnt.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+                mJnt.addAttr('cgmType','frame',attrType='string',lock=True)                
+                mJnt.doName()
+                
+        ml_fkJoints[0].p_parent = False
+    else:
+        log.info("|{0}| >> Found fkJoints".format(_str_func))
+        
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    return ml_fkJoints
+
+
+def skeleton_buildHandleChain(self,typeModifier = 'handle',connectNodesAs = False,clearType = False): 
+    _short = self.mNode
+    _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
+    start = time.clock()
+    
+    mRigNull = self.moduleTarget.rigNull
+    ml_handleJoints = skeleton_getHandleChain(self,typeModifier)
     ml_handleChain = []
-
-    for i,mHandle in enumerate(ml_handleJoints):
-        mNew = mHandle.doDuplicate()
-        if ml_handleChain:mNew.parent = ml_handleChain[-1]#if we have data, parent to last
-        else:mNew.parent = False
-        mNew.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
-        mNew.doName()
-
-        ml_handleChain.append(mNew)
+    
+    if typeModifier and typeModifier.lower() not in ['fk']:
+        for i,mHandle in enumerate(ml_handleJoints):
+            mNew = mHandle.doDuplicate()
+            if ml_handleChain:mNew.parent = ml_handleChain[-1]#if we have data, parent to last
+            else:mNew.parent = False
+            if typeModifier or clearType:
+                if typeModifier:mNew.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+                if clearType:
+                    try:ATTR.delete(mNew.mNode, 'cgmType')
+                    except:pass
+                mNew.doName()
+            ml_handleChain.append(mNew)
+    else:
+        ml_handleChain = ml_handleJoints
 
     if connectNodesAs and type(connectNodesAs) in [str,unicode]:
         self.moduleTarget.rigNull.msgList_connect(connectNodesAs,ml_handleChain,'rigNull')#Push back
 
     log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
     return ml_handleChain
+
 
 def verify_dynSwitch(self):
     _short = self.mNode
@@ -797,6 +804,27 @@ def verify_dynSwitch(self):
     else:
         mDynSwitch = _mRigNull.dynSwitch 
         
-    return mDynSwitch    
+    return mDynSwitch
+
+
+def prerig_getHandleTargets(self):
+    """
+    
+    """
+    _short = self.mNode
+    _str_func = 'prerig_getHandleTargets [{0}]'.format(_short)
+    start = time.clock()
+    
+    ml_handles = self.msgList_get('prerigHandles',asMeta = True)
+    if not ml_handles:
+        raise ValueError,"No prerigHandles connected"
+    
+    for i,mHandle in enumerate(ml_handles):
+        if mHandle.getMessage('jointHelper'):
+            log.debug("|{0}| >> Found jointHelper on : {1}".format(_str_func, mHandle.mNode))                    
+            ml_handles[i] = mHandle.jointHelper
+            
+    log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    return ml_handles
         
 
