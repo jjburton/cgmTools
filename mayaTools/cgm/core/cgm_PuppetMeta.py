@@ -235,6 +235,7 @@ class cgmPuppet(cgmMeta.cgmNode):
                 mGroup.p_parent = self.getMessage('masterControl')[0]	    
             else:    
                 mGroup.p_parent = mMasterNull
+                
             ATTR.set_standardFlags(mGroup.mNode)
             
             if attr == 'worldSpaceObjects':
@@ -637,8 +638,9 @@ class cgmPuppet(cgmMeta.cgmNode):
         cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
         cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
 
-        self.masterNull.worldSpaceObjectsGroup.parent = mi_masterControl
-
+        try:self.masterNull.puppetSpaceObjectsGroup.parent = mi_masterControl
+        except:pass
+        
         return True
 
 
@@ -1564,7 +1566,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 
         #>>> Build the text curve if cgmName exists
         if self.hasAttr('cgmName'):
-            nameSize = max(DIST.get_bb_size(l_shapes[1]))
+            nameSize = DIST.get_size_byShapes(l_shapes[1])
             log.info(l_shapes[1])
             log.info(nameSize)
             _textCurve = CURVES.create_text(self.cgmName, font, size = nameSize * .8)

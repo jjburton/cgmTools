@@ -30,6 +30,7 @@ reload(cgmValid)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
 import cgm.core.lib.transform_utils as TRANS
+reload(TRANS)
 reload(RIGGING)
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import name_utils as NAMES
@@ -728,16 +729,16 @@ def create_text(text = 'test', font = 'arial', size = None, centerPivot = True):
     _curve = SHAPES.combine(_l_combine)
     _curve = TRANS.parent_set(_curve,False)
     mc.delete(textBuffer)
-    
-    if centerPivot:
-        TRANS.pivots_recenter(_curve)
-        TRANS.position_set(_curve,[0,0,0])
-        mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
         
     if size:
         TRANS.scale_to_size(_curve,size,'bb')
         mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
     
+    if centerPivot:
+        TRANS.pivots_recenter(_curve)
+        TRANS.position_set(_curve,[0,0,0])
+        mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
+
     return _curve
     
 

@@ -88,16 +88,28 @@ r9Meta.MetaClass(_block)
 RBLOCKS.cgmRigBlock(_block)
 
 b1 = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'head')
-_block = 'cube_head_block'
+_block = 'head_block'
 b1 = cgmMeta.asMeta(_block)
 
+
+#>>>Skeleton ---------------------------------------------------------------------------------------
+b1.atBlockModule('build_skeleton')
+b1.atBlockUtils('skeleton_getCreateDict')
+
+
+#>>>Rig process
 b1.verify()
-rFac = RBLOCKS.rigFactory(_block)
-rFac.d_block['buildModule']
-rFac.d_joints
-cgmGEN.log_info_dict(rFac.__dict__)
-rFac.buildModule.build_rigSkeleton(rFac)
-rFac.buildModule.build_shapes(rFac)
+mRigFac = RBLOCKS.rigFactory(b1)
+mRigFac.log_self()#>>uses pprint
+mRigFac.mRigNull.fkHeadJoint
+pprint.pprint(b1.__dict__)
+mRigFac.mRigNull.headFK.dynParentGroup
+mRigFac.atBlockModule('rig_skeleton')
+mRigFac.atBlockModule('rig_shapes')
+mRigFac.atBlockModule('rig_controls')
+mRigFac.atBlockModule('rig_neckSegment')
+mRigFac.atBlockModule('rig_frame')
+mRigFac.atBlockModule('rig_cleanUp')
 
 import cgm.core.lib.attribute_utils as ATTR
 ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')

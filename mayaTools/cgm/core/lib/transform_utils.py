@@ -501,12 +501,16 @@ def orientObject_set(node=None, new_rot = None):
     mc.xform (_node,  os=True, ro=new_rot, p = False) 
     
     
-def scale_to_size(node = None, size = 1.0, mode = 'shape'):
+def scale_to_size(node = None, size = 1.0, mode = 'bb'):
+    _str_func = 'scale_to_size'
     if mode == 'shape':
         currentSize = DIST.get_size_byShapes(node)
     else:
         boundingBoxSize =  DIST.get_bb_size(node)
+        log.info("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        
         currentSize = max(boundingBoxSize)
+    log.info('currentSize: {0}'.format(currentSize))
+    
     multiplier = size/currentSize
     mc.scale(multiplier,multiplier,multiplier, node, relative = True)
     #mc.makeIdentity(node,apply=True,scale=True)   
