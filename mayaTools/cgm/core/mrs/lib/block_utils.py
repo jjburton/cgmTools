@@ -757,9 +757,7 @@ def skeleton_pushSettings(ml_chain, orientation = 'zyx', side = 'right',
         if _limitBuffer:
             log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
             raise Exception,"Limit Buffer not implemented"
-   
-
-
+        
 def skeleton_buildHandleChain(self,typeModifier = 'handle',connectNodesAs = False): 
     _short = self.mNode
     _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
@@ -797,6 +795,8 @@ def verify_dynSwitch(self):
     else:
         mDynSwitch = _mRigNull.dynSwitch 
         
-    return mDynSwitch    
+    return mDynSwitch
+
+
         
 

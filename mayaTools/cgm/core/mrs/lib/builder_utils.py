@@ -59,24 +59,6 @@ for m in BLOCKSHARE,:
 #Here's some code examples when I initially looked at it...
 from cgm.core.cgmPy import os_Utils as cgmOS
 
-#Both of these should 'walk' the appropriate dirs to get their updated data. They'll be used for both ui and regular stuff
-def get_rigBlocks_dict():
-    """
-    This module needs to return a dict like this:
-    
-    {'blockName':moduleInstance(ex mrs.blocks.box),
-    }
-    """
-    pass
-def get_rigBLocks_byCategory():
-    """
-    This module needs to return a dict like this:
-    
-    {blocks:[box,bank,etc],
-     blocksSubdir:[1,2,3,etc]
-    }
-    """    
-    pass
 
 def get_scene_blocks():
     """
@@ -615,6 +597,65 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
+def shapes_fromCast(self, targets = None, mode = 'default', upVector = None):
+    _short = self.mBlock.mNode
+    _str_func = 'shapes_build ( {0} )'.format(_short)
+    start = time.clock()	
+    mRigNull = self.mRigNull
+    ml_shapes = []
+    
+    if upVector is None:
+        upVector = self.d_orientation['vectorUp']
+    
+    #Get our prerig handles if none provided
+    if targets is None:
+        ml_targets = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+        if not ml_targets:
+            raise ValueError,"No prerigHandles connected. NO targets offered"
+    else:
+        ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
+    
+    if mode == 'default':
+        #Get our cast mesh        
+        #mMesh = self.mBlock.getMessage('prerigLoftMesh', asMeta = True)[0]
+        #str_mesh = mMesh.mNode
+        
+        ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+        l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+        res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+        str_tmpMesh =res_body[0]        
+    
+        for mTar in ml_targets:
+            _d = RAYS.cast(str_tmpMesh, mTar.mNode, )
+            if not _d:
+                log.warning("|{0}| >> Failed to hit: {1} ...".format(_str_func,mTar.mNode))                
+                continue
+            dist = DIST.get_distance_between_points(_d['source'],_d['hit'])/4
+            
+            pprint.pprint(_d)
+            log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+            #cgmGEN.log_info_dict(_d,j)
+            v = _d['uvs'][str_tmpMesh][0][0]
+            log.debug("|{0}| >> v: {1} ...".format(_str_func,v))
+        
+            #>>For each v value, make a new curve -----------------------------------------------------------------        
+            baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
+            offsetCrv = mc.offsetCurve(baseCrv, distance = dist, ch=False )[0]
+            log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
+            mc.delete(baseCrv)
+            #mTrans = mTar.doCreateAt()
+            #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
+            ml_shapes.append(cgmMeta.validateObjArg(offsetCrv))
+        
+        mc.delete(str_tmpMesh)
+    else:
+        raise ValueError,"unknown mode: {0}".format(mode)
+    #Process
+    
+    
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    
+    return ml_shapes
 
 
 

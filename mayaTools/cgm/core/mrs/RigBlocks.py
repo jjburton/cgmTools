@@ -2947,6 +2947,7 @@ class rigFactory(object):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
+        reload(BUILDERUTILS)
         return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
     
     def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):

@@ -1064,8 +1064,10 @@ def rig_shapes(self):
     
     self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
     
-    if not self.mBlock.neckBuild:
-        pass
+    if self.mBlock.neckBuild:
+        ml_fk = self.mRigNull.msgList_get('fkJoints')
+        ml_neckShapes = self.atBuilderUtils('shapes_fromCast', ml_fk[:-1])
+        
     
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
