@@ -108,9 +108,25 @@ class ui(cgmUI.cgmGUI):
         #self._d_uiCheckBoxes = {}
     
         #_MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
-        buildColumn_main(self,parent)
-
-def buildColumn_main(self,parent):
+        _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
+        _column = buildColumn_main(self,_MainForm,True)
+    
+    
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _MainForm(edit = True,
+                  af = [(_column,"top",0),
+                        (_column,"left",0),
+                        (_column,"right",0),                        
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_column,"bottom",2,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])          
+        
+def buildColumn_main(self,parent,asScroll=False):
     """
     Trying to put all this in here so it's insertable in other uis
     
@@ -120,7 +136,11 @@ def buildColumn_main(self,parent):
     self._d_transformCBs = {}
     self._mTransformTarget = False
     
-    _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    if asScroll:
+        _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    else:
+        _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+        
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
     _row_objLoad = mUI.MelHSingleStretchLayout(_inside,ut='cgmUITemplate',padding = 5)        
@@ -182,7 +202,8 @@ def buildColumn_main(self,parent):
     buildRow_vector(self,_inside,'scalePivot',tweak=False)
     
     uiFunc_load_selected(self)
-    
+    return _inside
+
 def buildRow_vector(self,parent,label='translate',tweak=True):
     #>>>Vector -------------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)

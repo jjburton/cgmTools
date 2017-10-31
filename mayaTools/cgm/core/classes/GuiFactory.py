@@ -517,11 +517,20 @@ class cgmGUI(mUI.BaseMelWindow):
 
         MainForm = mUI.MelColumnLayout(parent)
         SetHeader = add_Header('HI')
+        
+        #self.uiROW_pb = mUI.MelHRowLayout(parent,vis=False)
+        #self.uiROW_pb.layout()
+        #progressBar_start('cgmUITESTProgressBar',hidden = True)
 
         self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
         add_Button(MainForm)
         add_Button(MainForm,'Debug test', lambda *a: self.do_DebugEchoTest())
         add_Button(MainForm,'Debug test 2', lambda *a: self.do_DebugEchoTest())
+        add_Button(MainForm,'Progress bar', lambda *a: progressBar_test(self.uiPB_test))
+        self.uiPB_test = mc.progressBar(vis=False)
+        
+        add_Button(MainForm,'Maya Progress bar', lambda *a: progressBar_test())
+        
         
         #add_Button(MainForm,'Reset', lambda *a: resetUI(self))
         #add_Button(MainForm,'Reload', lambda *a: reloadUI(self))
@@ -1369,14 +1378,82 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
                     isInterruptable=interruptableState,
                     status=statusMessage,
                     minValue = 0,
+                    step=1,
                     maxValue= stepMaxValue )
     return mayaMainProgressBar
 
 def doEndMayaProgressBar(mayaMainProgressBar = None):
     if mayaMainProgressBar is None:
-        mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
-        
+        mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar')
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
+    
+def progressBar_test(progressBar=None, cnt = 1000):
+    if not progressBar:
+        progressBar = doStartMayaProgressBar(stepMaxValue=cnt)
+    
+    mc.progressBar(progressBar,edit=True, vis=True)
+    for i in range(cnt):
+        progressBar_iter(progressBar,status='Cnt: {0}'.format(i))
+        
+    mc.progressBar(progressBar,edit=True, vis=False)
+    progressBar_end(progressBar)
+    
+def progressBar_start(progressBar = None,stepMaxValue = 100,
+                      statusMessage = 'Calculating....',interruptableState = False
+                      ):
+    if progressBar == None:
+        return doStartMayaProgressBar(stepMaxValue,statusMessage,interruptableState)
+        
+    elif mc.progressBar(progressBar, q=True, exists = True):
+        mc.progressBar( progressBar,
+                        edit=True,
+                        vis=True,
+                        beginProgress=True,
+                        isInterruptable=interruptableState,
+                        status=statusMessage,
+                        step=1,
+                        minValue = 0,
+                        maxValue= stepMaxValue )        
+        return progressBar
+    
+    return mc.progressBar( progressBar,
+                           beginProgress=True,
+                           isInterruptable=interruptableState,
+                           status=statusMessage,
+                           step=1,
+                           minValue = 0,
+                           vis=True,
+                           maxValue= stepMaxValue )
+
+def progressBar_iter(progressBar=None,**kws):
+    if not progressBar:
+        progressBar = progressBar_start(*kws)
+        
+    if 'step' not in kws.keys():kws['step'] = 1
+    if 'beginProgress' not in kws.keys():kws['beginProgress'] = 1
+    kws['edit'] = 1
+    
+    mc.progressBar(progressBar, **kws)
+
+def progressBar_end(progressBar):
+    mc.progressBar(progressBar, edit=True, vis=False)    
+    mc.progressBar(progressBar, edit=True, endProgress=True)
+    
+def progressBar_setMaxStepValue(progressBar=None,int_value = 100):
+    if not progressBar:progressBar = progressBar_start(*kws)    
+    mc.progressBar(progressBar,edit = True, progress = 0, maxValue = int_value)
+
+def progressBar_setMinStepValue(progressBar=None,int_value=100):
+    if not progressBar:progressBar = progressBar_start(*kws)    
+    mc.progressBar(progressBar,edit = True, minValue = int_value)
+    
+def progressBar_set(progressBar=None,**kws):
+    if not progressBar:progressBar = progressBar_start(*kws)    
+    if kws.get('status'):
+        str_bfr = kws.get('status')
+    if 'beginProgress' not in kws.keys():kws['beginProgress'] = 1
+    mc.progressBar(progressBar,edit = True,**kws)
+
 
 def log_selfReport(self):
     try:

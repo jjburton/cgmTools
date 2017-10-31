@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.08172017'
+__version__ = '0.1.10162017'
 
 import webbrowser
 
@@ -47,6 +47,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.transformTools as TT
+import cgm.core.tools.jointTools as JOINTTOOLS
 import cgm.core.lib.sdk_utils as SDK
 reload(SDK)
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
@@ -59,7 +60,7 @@ import cgm.core.lib.constraint_utils as CONSTRAINTS
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.skinDat as SKINDAT
-#import cgm.core.tools.lib.tool_chunks as UICHUNKS
+import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as LOADTOOL
 
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -199,7 +200,6 @@ class ui(cgmUI.cgmGUI):
         self.var_keyMode = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
         self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
-        self.var_createRayCast = cgmMeta.cgmOptionVar('cgmVar_createRayCast', defaultValue = 'locator')        
         self.var_attrCreateType = cgmMeta.cgmOptionVar('cgmVar_attrCreateType', defaultValue = 'float')        
         self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
         self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
@@ -212,7 +212,8 @@ class ui(cgmUI.cgmGUI):
         self.var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
         self.var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)
         self.var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 3)
-
+        
+        self.var_createRayCast = cgmMeta.cgmOptionVar('cgmVar_createRayCast', defaultValue = 'locator')        
         self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])            
         self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
         self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
@@ -235,16 +236,18 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
 
-        setupMenu = mc.optionVar( q='cgmVar_ToolboxMainMenu' )
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: mc.optionVar( iv=('cgmVar_ToolboxMainMenu', not setupMenu) ) )
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
-        
         try:
             installer = AutoStartInstaller()
+            setupMenu = mc.optionVar( q='cgmVar_ToolboxMainMenu' )
+            
+            mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Create cgm Tools Menu", cb=setupMenu, c=lambda *a: mc.optionVar( iv=('cgmVar_ToolboxMainMenu', not setupMenu) ) )
+            mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )            
             mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
         except:
             log.warning("Not loaded from cgm top menu. No autoinstaller options")
             
+        UICHUNKS.uiOptionMenu_contextTD(self, self.uiMenu_FirstMenu)
+
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
@@ -1175,8 +1178,20 @@ class ui(cgmUI.cgmGUI):
                                     useTemplate = 'cgmUIHeaderTemplate',
                                     expandCommand = lambda:self.var_transformFrameCollapse.setValue(0),
                                     collapseCommand = lambda:self.var_transformFrameCollapse.setValue(1)
-                                    )	
-        TT.buildColumn_main(self,_frame)   
+                                    )
+        TT.buildColumn_main(self,_frame)
+        
+    def buildSection_joint(self,parent,label='Joint'):
+        self.create_guiOptionVar('jointFrameCollapse',defaultValue = 0)         
+        _frame = mUI.MelFrameLayout(parent,label = label,vis=True,
+                                    collapse=self.var_jointFrameCollapse.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:self.var_jointFrameCollapse.setValue(0),
+                                    collapseCommand = lambda:self.var_jointFrameCollapse.setValue(1)
+                                    )
+        JOINTTOOLS.buildColumn_main(self,_frame)   
         
     def buildSection_rayCast(self,parent):
         _frame = mUI.MelFrameLayout(parent,label = 'Raycast',vis=True,
@@ -1872,7 +1887,7 @@ class ui(cgmUI.cgmGUI):
 
 
         #>>>Tools -------------------------------------------------------------------------------------  
-        self.buildRow_context(_column)                     
+        #self.buildRow_context(_column)                     
         
         self.buildSection_snap(_column)
         cgmUI.add_HeaderBreak()        
@@ -1881,8 +1896,11 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_HeaderBreak()   
 
         self.buildSection_rigging(_column)
-        
         cgmUI.add_SectionBreak()  
+        
+        self.buildSection_joint(_column)
+        cgmUI.add_SectionBreak()          
+        
         self.buildSection_transform(_column)
         cgmUI.add_SectionBreak()  
                 

@@ -545,6 +545,9 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(parent = parent, l='SetTools',
                     c=lambda *a:TOOLCALLS.setTools())
         
+        mc.menuItem(parent = parent, l='cgmJointTools',
+                    c=lambda *a:TOOLCALLS.jointTools())
+        
         mc.menuItem(parent = parent, l='DynParentTool',
                     c=lambda *a:TOOLCALLS.dynParentTool())
         

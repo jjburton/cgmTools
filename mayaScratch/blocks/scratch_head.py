@@ -87,15 +87,18 @@ from Red9.core import Red9_Meta as r9Meta
 r9Meta.MetaClass(_block)
 RBLOCKS.cgmRigBlock(_block)
 
+
+from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.mrs.RigBlocks as RBLOCKS
+RBLOCKS.get_modules_dat()#...also reloads
+
 b1 = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'head')
 _block = 'head_block'
 b1 = cgmMeta.asMeta(_block)
 
-
 #>>>Skeleton ---------------------------------------------------------------------------------------
 b1.atBlockModule('build_skeleton')
 b1.atBlockUtils('skeleton_getCreateDict')
-
 
 #>>>Rig process
 b1.verify()

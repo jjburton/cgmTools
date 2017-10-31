@@ -80,7 +80,7 @@ import copy
 
 from cgm.core.cgmPy import os_Utils as cgmOS
 reload(cgmOS)
-#@cgmGen.Timer
+@cgmGen.Timer
 def _reload():
     _str_func = '_reload'
     
@@ -119,14 +119,14 @@ def _reload():
         reload(morpheusRig_v2.core.morpheus_meta)
     except Exception,err:
         for arg in err.args:
-            log.warning(arg)
+            log.warning("Morpheus core load: {0}".format(arg))
         log.warning("|{0}| >> Morpheus Rig core not found.".format(_str_func))
                 
         
     Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix','remapValue','ramp',
                                                      'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
-    print('CGM Core Reloaded and META REGISTRY updated')     
+    print('CGM Core Reloaded and META REGISTRY updated')
     return
     _d_failed = {}
     _l_skip = []
