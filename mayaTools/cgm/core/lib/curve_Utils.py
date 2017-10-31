@@ -640,6 +640,21 @@ def create_fromList(targetList = None, posList = None):
     
     knot_len = len(posList)+3-1
     return mc.curve (d=3, ep = posList, k = [i for i in range(0,knot_len)], os=True) 
+
+def rebuild_linear(target = None):
+    _l_shapes_source = mc.listRelatives(target,shapes=True,fullPath=True)
+    
+    l_curves = []
+    for i,s in enumerate(_l_shapes_source):
+        l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten=True)
+        l_pos = []
+        for ep in l_ep_source:
+            l_pos.append(POS.get(ep))
+        knot_len = len(l_ep_source)
+        l_curves.append( mc.curve (d=1, ep = l_pos, k = [i for i in range(0,knot_len)], os=True))
+        
+    return l_curves
+
     
 def controlCurve_update(target = None):
     """

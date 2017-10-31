@@ -56,7 +56,6 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -803,9 +802,7 @@ from cgm.core.tools.lib import snap_calls as SNAPCALLS
 def call_optionVar_ui():
     reload(SNAPCALLS)    
     SNAPCALLS.ui_optionVars()
-def call_toolbox_ui():
-    reload(TOOLBOX)
-    TOOLBOX.ui()
+
 
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
