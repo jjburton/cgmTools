@@ -1401,6 +1401,8 @@ def progressBar_test(progressBar=None, cnt = 1000):
 def progressBar_start(progressBar = None,stepMaxValue = 100,
                       statusMessage = 'Calculating....',interruptableState = False
                       ):
+    if stepMaxValue < 1:
+        stepMaxValue = 1
     if progressBar == None:
         return doStartMayaProgressBar(stepMaxValue,statusMessage,interruptableState)
         
