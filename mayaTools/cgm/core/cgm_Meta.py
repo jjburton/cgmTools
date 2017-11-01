@@ -6822,22 +6822,29 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
         else:
             log.debug("No cached mClass or type")
             _change = True
-
-            if issubclass(type(_cached), mTypeClass ):
-                log.debug("subclass match")
-                _change = False
-                if setClass:
-                    log.debug("subclass match not good enough")
-                    _change = True
+            
+            try:
+                if issubclass(type(_cached), mTypeClass ):
+                    log.debug("subclass match")
+                    _change = False
+                    if setClass:
+                        log.debug("subclass match not good enough")
+                        _change = True
+            except Exception, err:
+                log.warning("cached subclass check failed | {0}".format(err))                
+                _change = True
 
         if _change:
             log.debug("..subclass check")
-            if issubclass(_cachedType, mTypeClass) and not setClass:
-                log.debug("...but is subclass")
-                _change = False
-            else:
-                log.debug("...not a subclass")			
-
+            try:
+                if issubclass(_cachedType, mTypeClass) and not setClass:
+                    log.debug("...but is subclass")
+                    _change = False
+                else:
+                    log.debug("...not a subclass")			
+            except Exception, err:
+                log.warning("Change cached subclass check failed | {0}".format(err))                
+                
         if not _change and not _redo:
             t2 = time.clock()
             log.debug("Cache good %0.6f"%(t2-t1))		    

@@ -719,14 +719,14 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
     return _res
 
 @cgmGeneral.Timer
-def create_text(text = 'test', font = 'arial', size = None, centerPivot = True):
+def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
     """
     Create a unified text curve
     
     :parameters
         text(str): Text we want
-        font(str): 
         size(float): If None, default maya size is passed
+        font(str): 
         centerPivot(bool): whether to recenter pivot and object to world
 
     :returns

@@ -794,7 +794,9 @@ def override_clear(target = None, pushToShapes = True):
         
             
 def getControlShader(direction = 'center', controlType = 'main', transparent = False):
-    _node = "cgmBlockShader_{0}{1}".format(direction,controlType.capitalize())
+    _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
+    if transparent:
+        _node = _node + '_trans'
     log.info(_node)
     _set = False
     if not mc.objExists(_node):
