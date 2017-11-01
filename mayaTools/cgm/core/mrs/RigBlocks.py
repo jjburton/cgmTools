@@ -2940,7 +2940,8 @@ class rigFactory(object):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _blockModule = self.d_block['buildModule']
+        _blockModule = reload(self.d_block['buildModule'])
+        self.d_block['buildModule'] = _blockModule
         return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
     
     def atBuilderUtils(self, func = '', *args,**kws):
@@ -3278,6 +3279,7 @@ class rigFactory(object):
 
         _mOrientation = VALID.simpleOrientation('zyx')#cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
         _d['str'] = _mOrientation.p_string
+        _d['mOrientation'] = _mOrientation
         _d['vectorAim'] = _mOrientation.p_aim.p_vector
         _d['vectorUp'] = _mOrientation.p_up.p_vector
         _d['vectorOut'] = _mOrientation.p_out.p_vector

@@ -362,7 +362,7 @@ def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
         _res = _res_body
     return _res[0]
 
-def build_jointProxyMesh(root,degree = 3, jointUp = 'y+'):
+def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     _str_func = 'build_jointProxyMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
@@ -411,7 +411,6 @@ def build_jointProxyMesh(root,degree = 3, jointUp = 'y+'):
     #...clean up 
     mc.delete(_l_newCurves + _res_body)
     #>>Parent to the joints ----------------------------------------------------------------- 
-    
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True ):
@@ -436,7 +435,6 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     if not targets:
         raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
     
-    
     mc.select(cl=True)
     log.debug("|{0}| >> targets: {1}".format(_str_func,targets))
     
@@ -444,40 +442,66 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     
     #>>Body -----------------------------------------------------------------
     _res_body = mc.loft(targets, o = True, d = degree, po = 1 )
+    mTarget1 = cgmMeta.cgmObject(targets[0])
+    l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
+    points = len(l_cvs)
+    
 
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
-    _d = {'format':2,#General
+    _d = {'format':1,#Fit
           'polygonType':1,#'quads',
+          'vNumber':points,
           'uNumber': 1 + divisions}
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
+    #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
+        
+    #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
+    
+    if merge:
+        #Get our merge distance
+        l_cvPoints = []
+        for p in l_cvs:
+            l_cvPoints.append(POS.get(p))
+        l_dist = []    
+        for i,p in enumerate(l_cvPoints[:-1]):
+            l_dist.append(DIST.get_distance_between_points(p,l_cvPoints[i+1]))
+    
+        f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .1        
+        
+        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )    
+        
     if cap:
-        _l_combine = [_res_body[0]]
+        mc.polyCloseBorder(_res_body[0] )
+        """_l_combine = [_res_body[0]]
         
         #>>Top bottom -----------------------------------------------------------------
-        for crv in targets[0],targets[-1]:
+        for i,crv in enumerate([targets[0],targets[-1]]):
             _res = mc.planarSrf(crv,po=1)
             _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
             _tessellate = _inputs[0]        
-            _d = {'format':2,#General
+            _d = {'format':1,#Fit
                   'polygonType':1,#'quads',
                   'vNumber':1,
                   'uNumber':1}
             for a,v in _d.iteritems():
                 ATTR.set(_tessellate,a,v)
             _l_combine.append(_res[0])
-            
-        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+            if i == 1:
+                pass
         
+        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+        """
         if merge:
-            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+            mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
             #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+        _res = _res_body
     else:
         _res = _res_body
-    mc.polySetToFaceNormal(_res[0],setUserNormal = True)
+    
     return _res[0]    
 
 def create_remesh(mesh = None, joints = None, curve=None, positions = None,
@@ -545,6 +569,8 @@ def build_visSub(self):
     _str_func = 'build_visSub'
         
     mSettings = self.mRigNull.settings
+    if not mSettings:
+        raise ValueError,"Not settings found"
     mMasterControl = self.d_module['mMasterControl']
 
     #Add our attrs
@@ -651,6 +677,80 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None):
     else:
         raise ValueError,"unknown mode: {0}".format(mode)
     #Process
+    
+    
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    
+    return ml_shapes
+
+def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
+    _short = self.mBlock.mNode
+    _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
+    start = time.clock()	
+    mRigNull = self.mRigNull
+    ml_shapes = []
+    
+    if upVector is None:
+        upVector = self.d_orientation['mOrientation'].p_up.p_string
+    
+    #Get our prerig handles if none provided
+    if targets is None:
+        ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
+        if not ml_targets:
+            raise ValueError,"No rigJoints connected. NO targets offered"
+    else:
+        ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
+    
+
+    ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+    l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+    res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+    mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
+    str_tmpMesh = mMesh_tmp.mNode
+    
+    #Process -----------------------------------------------------------------------------------
+    l_newCurves = []
+    str_meshShape = mMesh_tmp.getShapes()[0]
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    
+    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                          len(ml_targets))
+    log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))            
+
+    for i,mTar in enumerate(ml_targets):
+        j = mTar.mNode
+        _d = RAYS.cast(str_tmpMesh,j,upVector)
+        log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+        #cgmGEN.log_info_dict(_d,j)
+        if not _d:
+            log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))            
+            _v = l_failSafes[i]
+        else:
+            _v = _d['uvs'][str_tmpMesh][0][0]
+        log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+        
+        #>>For each v value, make a new curve -----------------------------------------------------------------        
+        #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+        crv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,_v), ch = 0, rn = 0, local = 0)
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
+        l_newCurves.append(crv[0])
+    
+    
+    #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
+    log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,l_newCurves))        
+    l_new = []
+    for i,c in enumerate(l_newCurves[:-1]):
+        _pair = [c,l_newCurves[i+1]]
+        _mesh = create_loftMesh(_pair, name="{0}_{1}".format('test',i), divisions=1)
+        RIGGING.match_transform(_mesh,ml_targets[i])
+        l_new.append(_mesh)
+    
+    #...clean up 
+    mc.delete(l_newCurves + [str_tmpMesh])
+    #>>Parent to the joints ----------------------------------------------------------------- 
+    return l_new
+    
     
     
     log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
