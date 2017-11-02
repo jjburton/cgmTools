@@ -1569,7 +1569,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
             nameSize = DIST.get_size_byShapes(l_shapes[1])
             log.info(l_shapes[1])
             log.info(nameSize)
-            _textCurve = CURVES.create_text(self.cgmName, font, size = nameSize * .8)
+            _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .8, font = font)
             ATTR.set(_textCurve,'rx',-90)
             RIG.override_color(_textCurve,'yellow')
             RIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
