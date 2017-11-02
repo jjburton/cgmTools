@@ -1296,15 +1296,32 @@ def rig_neckSegment(self):
         log.info("|{0}| >> No neck build optioned".format(_str_func))                      
         return True
     
-    log.info("|{0}| >> Neck build. Not done".format(_str_func))              
-    return False
-    
-
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
-  
-    #mHelper = self.mBlock.jointHelper
+    
+    mBlock = self.mBlock
     mRigNull = self.mRigNull
+    mRootParent = self.mDeformNull
+    mHeadFK = mRigNull.headFK
+    log.info("|{0}| >> Found headFK : {1}".format(_str_func, mHeadFK))
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
+    ml_rigJoints[0].parent = ml_blendJoints[0]
+    ml_rigJoints[-1].parent = mHeadFK
+    
+    #>> Neck build ======================================================================================
+    if mBlock.neckJoints > 1:
+        
+        if mBlock.neckControls == 1:
+            log.debug("|{0}| >> Simple neck segment...".format(_str_func))
+            
+            RIGCONSTRAINT.setup_linearSegment(ml_rigJoints)
+            
+        else:
+            log.debug("|{0}| >> Neck segment...".format(_str_func))    
+            
+
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
     
@@ -1313,9 +1330,13 @@ def rig_frame(self):
     _str_func = '[{0}] > rig_rigFrame'.format(_short)
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
-    mRigNull = self.mRigNull
     
+    mRigNull = self.mRigNull
     mRootParent = self.mDeformNull
+    mHeadFK = mRigNull.headFK
+    log.info("|{0}| >> Found headFK : {1}".format(_str_func, mHeadFK))
+    
+    ml_fkJoints = mRigNull.msgList_get('fkJoints')
     
     #>> Neck build ======================================================================================
     if self.mBlock.neckBuild:
@@ -1325,19 +1346,76 @@ def rig_frame(self):
             raise ValueError,"No rigRoot found"
         
         mRoot = mRigNull.rigRoot
+        mSettings = mRigNull.settings
         
         if self.mBlock.neckIK:
             log.debug("|{0}| >> Neck IK...".format(_str_func))
+            ml_ikJoints = mRigNull.msgList_get('ikJoints')
+            ml_blendJoints = mRigNull.msgList_get('blendJoints')
             
-    return
+            mPlug_FKIK = cgmMeta.cgmAttr(mHeadFK.mNode,'FKIK',attrType='float',lock=False,keyable=True)
+            
+            
+            #>>> Setup a vis blend result
+            mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+            mPlug_IKon = cgmMeta.cgmAttr(mSettings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+        
+            NODEFACTORY.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
+                                                 mPlug_IKon.p_combinedName,
+                                                 mPlug_FKon.p_combinedName)
+              
+            mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))
+            #mPlug_IKon.doConnectOut("%s.visibility"%ikGroup)            
+            
+            
+            # Create head position driver ------------------------------------------------
+            mHeadDriver = mHeadFK.doCreateAt()
+            mHeadDriver.rename('headBlendDriver')
+            mHeadDriver.parent = mRoot
+            
+            mHeadFKDriver = mHeadFK.doCreateAt()
+            mHeadFKDriver.rename('headFKDriver')
+            mHeadFKDriver.parent = ml_fkJoints[-1]
+            
+            mHeadFK.connectChildNode(mHeadDriver.mNode, 'blendDriver')
+            
+            
+            RIGCONSTRAINT.blendChainsBy(mHeadFKDriver.mNode,
+                                        mHeadFK.masterGroup.mNode,
+                                        mHeadDriver.mNode,
+                                        driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])            
+            
+            # Neck controls --------------------------------------------------------------
+            if self.mBlock.neckControls == 1:
+                log.debug("|{0}| >> Single joint IK...".format(_str_func))
+                mc.aimConstraint(mHeadFK.mNode,
+                                 ml_ikJoints[0].mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mRoot.mNode,
+                                 worldUpType = 'objectRotation' )
+                mc.pointConstraint(mHeadFK.mNode,
+                                   ml_ikJoints[-1].mNode,
+                                   maintainOffset = True)
+                
+                
+            else:
+                raise ValueError,"Not implemented"
+            
+            #Parent --------------------------------------------------            
+            ml_blendJoints[0].parent = mRoot
+            ml_ikJoints[0].parent = mRoot
+
+            #Setup blend ----------------------------------------------------------------------------------
+            RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+                                        driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])            
+            
     
     #>> headFK ========================================================================================
     if not mRigNull.getMessage('headFK'):
         raise ValueError,"No headFK found"
-    
-    mHeadFK = mRigNull.headFK
-    log.info("|{0}| >> Found headFK : {1}".format(_str_func, mHeadFK))
-    
     
     if self.mBlock.headAim:
         log.info("|{0}| >> HeadAim setup...".format(_str_func))
@@ -1381,14 +1459,13 @@ def rig_frame(self):
         mc.orientConstraint(mHeadBlendJoint.mNode,
                             mHeadFK_aimFollowGroup.mNode,
                             maintainOffset = False)"""
-        
-        
     else:
         log.info("|{0}| >> NO Head IK setup...".format(_str_func))
         
-    ml_rigJoints = mRigNull.msgList_get('rigJoints')
-    ml_rigJoints[0].parent = mHeadFK
-        
+    ##ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ##ml_rigJoints[-1].parent = mHeadFK
+    ##ml_rigJoints[0].parent = ml_blendJoints[0]
+    
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
 def rig_cleanUp(self):
@@ -1604,7 +1681,6 @@ def build_proxyMesh(self, forceNew = True):
         ATTR.connect("{0}.geoLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode
-            print(str_shape)
             mShape.overrideEnabled = 0
             #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
             ATTR.connect("{0}.geoLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
