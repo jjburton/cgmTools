@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -51,7 +51,7 @@ import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
-for m in BLOCKSHARE,:
+for m in BLOCKSHARE,MATH,DIST:
     reload(m)
 
 
@@ -562,8 +562,7 @@ def create_remesh(mesh = None, joints = None, curve=None, positions = None,
     
     
     #>>Cast our Loft curves
-
-
+    
 def build_visSub(self):
     _start = time.clock()    
     _str_func = 'build_visSub'
@@ -591,7 +590,7 @@ def build_visSub(self):
     
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
     
-    return mPlug_result_moduleSubDriver    
+    return mPlug_result_moduleSubDriver
 
 def register_mirrorIndices(self, ml_controls = []):
     _start = time.clock()    
@@ -623,7 +622,25 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
-def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uValues = []):
+def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uValues = [], offset = None, size = None):
+    """
+    :parameters:
+        self(RigBlocks.rigFactory)
+        targets(list) - targets for most modes. If none provided. Looks for prerig handles
+        mode - 
+            default
+            segmentHandle
+        
+        upVector - If none provided, uses from rigFactory 
+        uValues - percent based values to generate curves on nurbs loft
+        offset(float) - If none, uses internal data to guess
+        size(float) - Used for various modes. Most will guess if none provided
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
     _short = self.mBlock.mNode
     _str_func = 'shapes_build ( {0} )'.format(_short)
     start = time.clock()	
@@ -657,9 +674,10 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
                 if not _d:
                     log.warning("|{0}| >> Failed to hit: {1} ...".format(_str_func,mTar.mNode))                
                     continue
-                dist = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
+                if offset is None:
+                    offset = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
                 
-                pprint.pprint(_d)
+                #pprint.pprint(_d)
                 log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                 #cgmGEN.log_info_dict(_d,j)
                 v = _d['uvs'][str_tmpMesh][0][0]
@@ -667,7 +685,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
                 baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
-                offsetCrv = mc.offsetCurve(baseCrv, distance = dist, ch=False )[0]
+                offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]
                 log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
                 mc.delete(baseCrv)
                 #mTrans = mTar.doCreateAt()
@@ -684,20 +702,22 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
             maxU = ATTR.get(str_meshShape,'maxValueU')
             f_factor = (maxU-minU)/(20)
             
-            dist = DIST.get_distance_between_targets([ml_targets[0].mNode, ml_targets[-1]]) / 50
-            
+            if offset is None:
+                offset = DIST.get_distance_between_targets([ml_targets[0].mNode, ml_targets[-1]]) / 25
+                
             for u in uValues:
+                uValue = MATH.Lerp(minU,maxU,u)
                 if u < minU or u > maxU:
-                    raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(u,minU,maxU)
+                    raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(uValue,minU,maxU)
                 
                 l_mainCurves = []
-                for i,v in enumerate([u+f_factor, u, u-f_factor]):
+                for i,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
                     baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
                     mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 1, spans = 12, kr = 2)
                     if i == 1:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = dist * 2, ch=False )[0]                        
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]                        
                     else:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = dist, ch=False )[0]
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset * .9, ch=False )[0]
                     l_mainCurves.append(offsetCrv)
                     mc.delete(baseCrv)
                 
@@ -730,12 +750,26 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
                     
                 for crv in l_mainCurves[1:]:
                     RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
-                
+                    
+                ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
                 
                 
                 
             
         mc.delete(str_tmpMesh)
+    elif mode == 'direct':
+        if size == None:
+            log.debug("|{0}| >> Guessing size".format(_str_func))
+            size = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_targets],average=True) * .75
+
+        for mTar in ml_targets:
+            crv = CURVES.create_controlCurve(mTar.mNode, 'cube',
+                                             sizeMode= 'fixed',
+                                             size = size)
+
+            ml_shapes.append(cgmMeta.validateObjArg(crv))
+        
+            
     else:
         raise ValueError,"unknown mode: {0}".format(mode)
     #Process

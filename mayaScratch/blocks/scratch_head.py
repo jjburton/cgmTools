@@ -108,6 +108,10 @@ mRigFac.mRigNull.fkHeadJoint
 pprint.pprint(b1.__dict__)
 mRigFac.mRigNull.headFK.dynParentGroup
 mRigFac.atBlockModule('rig_skeleton')
+
+mRigFac.atBlockModule('build_proxyMesh', False)#must have rig joints
+
+
 mRigFac.atBlockModule('rig_shapes')
 mRigFac.atBlockModule('rig_controls')
 mRigFac.atBlockModule('rig_neckSegment')
@@ -116,3 +120,5 @@ mRigFac.atBlockModule('rig_cleanUp')
 
 import cgm.core.lib.attribute_utils as ATTR
 ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
+
+mRigFac.atBuilderUtils('shapes_fromCast',mode ='segmentHandle',uValues = [.2])

@@ -575,7 +575,7 @@ def skeleton_getCreateDict(self, count = None):
     return _d_res
 
 
-def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False):
+def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None):
     _str_func = 'skeleton_buildDuplicateChain'
     
     start = time.clock()
@@ -599,7 +599,11 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
 
 
     for i,mJnt in enumerate(ml_joints):
-        mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        if modifier is not None:
+            mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        if cgmType is not None:
+            mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
+            
         #l_joints[i] = mJnt.mNode
         if connectToSource:
             mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect	    
@@ -620,7 +624,7 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
         
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     
     return ml_joints
 
