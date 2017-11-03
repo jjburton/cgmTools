@@ -2414,7 +2414,7 @@ def convert_type(node = None, attr = None, attrType = None):
         mc.setAttr(_combined,lock = True)     
     return True
 
-def reorder(node = None, attrs = None, direction = 0):
+def reorder(node = None, attrs = None, direction = 0,top = False):
     """   
     :Acknowledgement:
     Thank you to - http://www.the-area.com/forum/autodesk-maya/mel/how-can-we-reorder-an-attribute-in-the-channel-box/
@@ -2444,7 +2444,14 @@ def reorder(node = None, attrs = None, direction = 0):
             _to_move.append(a)
 
     log.info(_to_move)
-    _to_move = lists.reorderListInPlace(_to_move,attrs,direction)
+    if top:
+        attrs.reverse()
+        for a in attrs:
+            if a in _to_move:
+                _to_move.remove(a)
+                _to_move.insert(0,a)
+    else:
+        _to_move = lists.reorderListInPlace(_to_move,attrs,direction)
     log.info(_to_move)
     
     #To reorder, we need delete and undo in the order we want

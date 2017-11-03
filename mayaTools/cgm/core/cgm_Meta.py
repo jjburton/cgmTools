@@ -33,7 +33,7 @@ from cgm.core.lib import nameTools
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import transform_utils as TRANS
-
+import cgm.core.lib.snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
@@ -3762,8 +3762,9 @@ class cgmControl(cgmObject):
 
     def _verifyAimable(self):
         try:
-            self.addAttr('axisAim', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = True, lock = False, hidden = False) 
-            self.addAttr('axisUp', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = True, lock = False, hidden = False) 
+            SNAP.verify_aimAttrs(self.mNode)
+            #self.addAttr('axisAim', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = True, lock = False, hidden = False) 
+            #self.addAttr('axisUp', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = True, lock = False, hidden = False) 
             #self.addAttr('axisOut', attrType='enum', enumName = 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = True, lock = False, hidden = False) 
             return True
         except StandardError,error:

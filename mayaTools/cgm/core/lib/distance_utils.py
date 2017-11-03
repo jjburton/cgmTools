@@ -11,6 +11,7 @@ Website : http://www.cgmonks.com
 import copy
 import re
 from math import sqrt,pow
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -268,7 +269,7 @@ def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point'
             return _l_shapes[_idx]
         return _l_pos[_idx]
         
-def get_distance_between_targets(targetList=None):
+def get_distance_between_targets(targetList=None, average = False):
     """
     """
     _str_func = 'get_distance_between_targets'
@@ -287,6 +288,10 @@ def get_distance_between_targets(targetList=None):
         log.debug("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
         l_dist.append(d)
         
+    if average:
+        
+        return sum(l_dist)/len(l_dist)
+    
     return sum(l_dist)
 
 def get_vector_between_targets(targetList=None):
