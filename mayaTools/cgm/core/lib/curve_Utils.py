@@ -1115,7 +1115,7 @@ def getUParamOnCurve(obj = None, crv = None):
     log.info(">>> %s >> "%_str_funcName + "="*75)
     mi_obj = cgmValid.objString(obj)
     mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
-    mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0],mayaType='shape')
+    mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0])
     pos = mc.xform(mi_obj,q=True, t=True, ws=True)
     point = OpenMaya.MPoint(pos[0],pos[1],pos[2])
     #object.__getattribute__(self, "_MObject")
@@ -1145,7 +1145,7 @@ def getUParamOnCurveFromObj(obj = None, crv = None):
     log.info(">>> %s >> "%_str_funcName + "="*75)
     mi_obj = cgmValid.objString(obj)
     mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
-    mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0],mayaType='shape')
+    mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0])
     
     _node = mc.createNode ('nearestPointOnCurve', n = 'TESTING')
     _loc = mc.spaceLocator()[0]

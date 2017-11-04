@@ -579,16 +579,18 @@ class cgmPuppet(cgmMeta.cgmNode):
         i_settings = mi_masterControl.controlSettings
         str_nodeShort = str(i_settings.getShortName())
         #Skeleton/geo settings
-        for attr in ['skeleton','geo',]:
+        for attr in ['skeleton','geo','proxy']:
             i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
             nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
             nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 
         #Geotype
-        i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
-        for i,attr in enumerate(['reg','proxy']):
-            nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
-
+        #i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+        #for i,attr in enumerate(['reg','proxy']):
+        #    nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
+        
+        
+        
         #Divider
         i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
 
