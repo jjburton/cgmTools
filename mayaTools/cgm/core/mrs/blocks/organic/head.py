@@ -678,11 +678,14 @@ def prerig(self):
         
         #>>Loft Mesh ==================================================================================================
         targets = [mObj.loftCurve.mNode for mObj in ml_handles]        
+
         BLOCKUTILS.create_prerigLoftMesh(self,targets,
                                          mPrerigNull,
                                          'loftSplit',
                                          'neckControls',
-                                         baseName = _l_baseNames[1] )        
+                                         polyType='nurbs',
+                                         baseName = _l_baseNames[1] )     
+        
         for t in targets:
             ATTR.set(t,'v',0)        
         
@@ -975,10 +978,11 @@ def rig_skeleton(self):
     _start = time.clock()
         
     mBlock = self.mBlock
-    
+    mRigNull = self.mRigNull
     ml_jointsToConnect = []
     ml_jointsToHide = []
-    ml_joints = self.d_joints['ml_moduleJoints']
+    ml_joints = mRigNull.msgList_get('moduleJoints')
+    self.d_joints['ml_moduleJoints'] = ml_joints
     
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
@@ -1041,6 +1045,7 @@ def rig_skeleton(self):
             mJnt.drawStyle =2
         except:
             mJnt.radius = .00001
+            
     #...connect... 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
@@ -1054,9 +1059,8 @@ def rig_shapes(self):
     _start = time.clock()
     
     ml_prerigHandles = self.mBlock.atBlockUtils('prerig_getHandleTargets')
-    
     mHeadHelper = ml_prerigHandles[-1]
-    
+    mBlock = self.mBlock
     #l_toBuild = ['segmentFK_Loli','segmentIK']
     #mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
     
@@ -1069,7 +1073,7 @@ def rig_shapes(self):
     ml_joints = self.d_joints['ml_moduleJoints']
     
     #Head=============================================================================================
-    if self.mBlock.headAim:
+    if mBlock.headAim:
         log.info("|{0}| >> Head aim...".format(_str_func))  
         ikCurve = CURVES.create_fromName('sphere2',_size/2)
         textCrv = CURVES.create_text('head',_size/2)
@@ -1139,31 +1143,39 @@ def rig_shapes(self):
     """
     self.mRigNull.connectChildNode(mFK,'settings','rigNull')#Connect
     
+    #Direct Controls =============================================================================
+    ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
+    
+    if len(ml_rigJoints) < 3:
+        d_direct = {'size':_size/3}
+    else:
+        d_direct = {'size':None}
+        
+    ml_directShapes = self.atBuilderUtils('shapes_fromCast',
+                                          ml_rigJoints,
+                                          mode ='direct',**d_direct)
+                                                                                                                                                            #offset = 3
+
+    for i,mCrv in enumerate(ml_directShapes):
+        CORERIG.colorControl(mCrv.mNode,_side,'sub')
+        CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
+        for mShape in ml_rigJoints[i].getShapes(asMeta=True):
+            mShape.doName()
+
+    for mJnt in ml_rigJoints:
+        try:
+            mJnt.drawStyle =2
+        except:
+            mJnt.radius = .00001    
+    
     #Neck=============================================================================================    
     if self.mBlock.neckBuild:
         log.debug("|{0}| >> Neck...".format(_str_func))
         
-        #Segment Joints ----------------------------------------------------------------------------------
-        ml_segmentJoints = self.mRigNull.msgList_get('segmentJoints')
-        if ml_segmentJoints:
-            log.info("|{0}| >> Segment joints found. setting up direct...".format(_str_func))
-            ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
-            ml_directShapes = self.atBuilderUtils('shapes_fromCast',
-                                                  ml_rigJoints,
-                                                  mode ='direct')
-                                                  #offset = 3
-                                                  
-            for i,mCrv in enumerate(ml_directShapes):
-                CORERIG.colorControl(mCrv.mNode,_side,'sub')
-                CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
-                for mShape in ml_rigJoints[i].getShapes(asMeta=True):
-                    mShape.doName()
-                    
-            for mJnt in ml_rigJoints:
-                try:
-                    mJnt.drawStyle =2
-                except:
-                    mJnt.radius = .00001
+        #Direct Controls ----------------------------------------------------------------------------------
+        #ml_segmentJoints = self.mRigNull.msgList_get('segmentJoints')
+        #if ml_segmentJoints:
+            #log.info("|{0}| >> Segment joints found. setting up direct...".format(_str_func))
         
         #Handle Joints ----------------------------------------------------------------------------------
         ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
@@ -1229,19 +1241,20 @@ def rig_controls(self):
     mRootParent = self.mDeformNull
     mSettings = mRigNull.settings
     
-    # Drivers ==============================================================================================
-    if self.mBlock.headAim:        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
-    
-    if self.mBlock.neckIK:
-        if self.mBlock.neckBuild:
+    # Drivers ==============================================================================================    
+
+    if self.mBlock.neckBuild:
+        if self.mBlock.neckIK:
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
     
         #>> vis Drivers ================================================================================================	
         mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)    
-        mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+        mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     
+    if self.mBlock.headAim:        
+        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+        
     
     #>> Neck build ======================================================================================
     if self.mBlock.neckBuild:
@@ -1357,26 +1370,23 @@ def rig_controls(self):
         
             
     #>> Direct Controls ========================================================================================
-    ml_segmentJoints = self.mRigNull.msgList_get('segmentJoints')
-    if ml_segmentJoints:
-        log.info("|{0}| >> Segment joints found. setting up direct...".format(_str_func))
-        ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
-        ml_controlsAll.extend(ml_rigJoints)
-        
-        for i,mObj in enumerate(ml_rigJoints):
-            d_buffer = MODULECONTROL.register(mObj,
-                                              typeModifier='direct',
-                                              mirrorSide= self.d_module['mirrorDirection'],
-                                              mirrorAxis="translateX,rotateY,rotateZ",
-                                              makeAimable = False)
+    ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
+    ml_controlsAll.extend(ml_rigJoints)
     
-            mObj = d_buffer['instance']
-            ATTR.set_hidden(mObj.mNode,'radius',True)        
-            if mObj.hasAttr('cgmIterator'):
-                ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
-                
-            for mShape in mObj.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+    for i,mObj in enumerate(ml_rigJoints):
+        d_buffer = MODULECONTROL.register(mObj,
+                                          typeModifier='direct',
+                                          mirrorSide= self.d_module['mirrorDirection'],
+                                          mirrorAxis="translateX,rotateY,rotateZ",
+                                          makeAimable = False)
+
+        mObj = d_buffer['instance']
+        ATTR.set_hidden(mObj.mNode,'radius',True)        
+        if mObj.hasAttr('cgmIterator'):
+            ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
+            
+        for mShape in mObj.getShapes(asMeta=True):
+            ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
 
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
@@ -1404,7 +1414,7 @@ def rig_controls(self):
 
 
 
-def rig_neckSegment(self):
+def rig_segments(self):
     _short = self.d_block['shortName']
     _str_func = '[{0}] > rig_neckSegment'.format(_short)
     
@@ -1605,7 +1615,19 @@ def rig_frame(self):
                                      upVector = self.d_orientation['vectorUp'],
                                      worldUpVector = self.d_orientation['vectorOut'],
                                      worldUpObject = ml_blendJoints[0].mNode,
-                                     worldUpType = 'objectRotation' )                
+                                     worldUpType = 'objectRotation' )
+                    
+                if self.mBlock.neckJoints == 1:
+                    ml_rigJoints[0].masterGroup.parent = ml_blendJoints[0]
+                    
+                    mc.aimConstraint(mHeadFK.mNode,
+                                     ml_rigJoints[0].masterGroup.mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorOut'],
+                                     worldUpObject = ml_blendJoints[0].mNode,
+                                     worldUpType = 'objectRotation' )                    
                 
             else:
                 raise ValueError,"Not implemented"
@@ -1841,19 +1863,19 @@ def build_proxyMesh(self, forceNew = True):
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
         ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
-        ATTR.connect("{0}.geoLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode
             mShape.overrideEnabled = 0
             #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
-            ATTR.connect("{0}.geoLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
         
     mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
 
 __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_shapes',
                        'rig_controls',
-                       'rig_neckSegment',
+                       'rig_segments',
                        'rig_frame',
                        'rig_cleanUp ']
 

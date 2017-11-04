@@ -51,7 +51,7 @@ import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
-for m in BLOCKSHARE,MATH,DIST:
+for m in BLOCKSHARE,MATH,DIST,RAYS:
     reload(m)
 
 
@@ -573,7 +573,8 @@ def build_visSub(self):
     mMasterControl = self.d_module['mMasterControl']
 
     #Add our attrs
-    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    #mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
     mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
 
     #Get one of the drivers
@@ -622,7 +623,7 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
-def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uValues = [], offset = None, size = None):
+def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None):
     """
     :parameters:
         self(RigBlocks.rigFactory)
@@ -649,7 +650,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
     
     if upVector is None:
         upVector = self.d_orientation['vectorUp']
-    
+    if aimVector is None:
+        aimVector = self.d_orientation['vectorAim']
+            
     #Get our prerig handles if none provided
     if targets is None:
         ml_targets = self.mBlock.msgList_get('prerigHandles',asMeta = True)
@@ -664,24 +667,27 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
         #str_mesh = mMesh.mNode
         
         ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
-        l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
-        res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
-        str_tmpMesh =res_body[0]        
+        #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+        #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+        str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]
+        #str_tmpMesh =res_body[0]        
 
         if mode == 'default':
+            axis = VALID.simpleAxis(aimVector).p_string
             for mTar in ml_targets:
-                _d = RAYS.cast(str_tmpMesh, mTar.mNode, )
+                _d = RAYS.cast(str_tmpMesh, mTar.mNode, axis = axis)
+                
                 if not _d:
                     log.warning("|{0}| >> Failed to hit: {1} ...".format(_str_func,mTar.mNode))                
                     continue
                 if offset is None:
                     offset = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
                 
-                #pprint.pprint(_d)
+                pprint.pprint(_d)
                 log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                 #cgmGEN.log_info_dict(_d,j)
-                v = _d['uvs'][str_tmpMesh][0][0]
-                log.debug("|{0}| >> v: {1} ...".format(_str_func,v))
+                v = _d['uvsRaw'][str_tmpMesh][0][0]
+                log.info("|{0}| >> v: {1} ...".format(_str_func,v))
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
                 baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
@@ -691,6 +697,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
                 #mTrans = mTar.doCreateAt()
                 #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
                 ml_shapes.append(cgmMeta.validateObjArg(offsetCrv))
+                
         elif mode == 'segmentHandle':
             if not uValues: raise ValueError,"Must have uValues with segmentHandle mode"
             
@@ -756,7 +763,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', upVector = None, uVa
                 
                 
             
-        mc.delete(str_tmpMesh)
+        ##mc.delete(str_tmpMesh)
     elif mode == 'direct':
         if size == None:
             log.debug("|{0}| >> Guessing size".format(_str_func))
