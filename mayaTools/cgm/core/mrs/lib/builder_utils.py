@@ -671,22 +671,30 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
         str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]
         #str_tmpMesh =res_body[0]        
+        mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+        str_meshShape = mMesh_tmp.getShapes()[0]        
+        minU = ATTR.get(str_meshShape,'minValueU')
+        maxU = ATTR.get(str_meshShape,'maxValueU')
+        
+        l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                              len(ml_targets))
 
         if mode == 'default':
             axis = VALID.simpleAxis(aimVector).p_string
-            for mTar in ml_targets:
+            for i,mTar in enumerate(ml_targets):
+                log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))                
                 _d = RAYS.cast(str_tmpMesh, mTar.mNode, axis = axis)
                 
                 if not _d:
-                    log.warning("|{0}| >> Failed to hit: {1} ...".format(_str_func,mTar.mNode))                
-                    continue
+                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,mTar))            
+                    v = l_failSafes[i]
+                else:
+                    v = _d['uvsRaw'][str_tmpMesh][0][0]
+                
                 if offset is None:
                     offset = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
                 
-                pprint.pprint(_d)
-                log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                 #cgmGEN.log_info_dict(_d,j)
-                v = _d['uvsRaw'][str_tmpMesh][0][0]
                 log.info("|{0}| >> v: {1} ...".format(_str_func,v))
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
@@ -807,9 +815,11 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
 
     ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
     l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
-    res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
-    mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
-    str_tmpMesh = mMesh_tmp.mNode
+    #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+    #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
+    #str_tmpMesh = mMesh_tmp.mNode
+    str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]    
+    mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
     
     #Process -----------------------------------------------------------------------------------
     l_newCurves = []
@@ -830,7 +840,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
             log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))            
             _v = l_failSafes[i]
         else:
-            _v = _d['uvs'][str_tmpMesh][0][0]
+            _v = _d['uvsRaw'][str_tmpMesh][0][0]
         log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
         
         #>>For each v value, make a new curve -----------------------------------------------------------------        
@@ -850,7 +860,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
         l_new.append(_mesh)
     
     #...clean up 
-    mc.delete(l_newCurves + [str_tmpMesh])
+    mc.delete(l_newCurves)# + [str_tmpMesh]
     #>>Parent to the joints ----------------------------------------------------------------- 
     return l_new
     

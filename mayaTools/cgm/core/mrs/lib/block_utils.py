@@ -581,10 +581,18 @@ def skeleton_getCreateDict(self, count = None):
     return _d_res
 
 
-def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None):
+def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = []):
     _str_func = 'skeleton_buildDuplicateChain'
     
     start = time.clock()
+    
+    if indices:
+        log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
+        l_buffer = []
+        for i in indices:
+            l_buffer.append(sourceJoints[i])
+        sourceJoints = l_buffer    
+    
     ml_source = cgmMeta.validateObjListArg(sourceJoints,mayaType=['joint'],noneValid=False)
     
     if connectToModule:
@@ -601,6 +609,7 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
             mc.delete(l_jointsExist)
 
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
+    
     ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
 
 
