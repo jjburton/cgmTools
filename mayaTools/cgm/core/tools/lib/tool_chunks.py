@@ -689,6 +689,33 @@ def ut_limbOLD():
     reload(testCGM)
     testCGM.ut_cgmLimb()
     
+def uiSection_createFromSel(parent, selection = None):
+    _str_func = 'uiSection_createFromSel'  
+    
+    mc.menuItem(parent=parent,
+                    l = 'Transform',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}),          
+                    rp = "N")        
+    mc.menuItem(parent=parent,
+                l = 'Joint',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'),          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_joint_at,'Create Joint'),
+                rp = "NW")   
+    mc.menuItem(parent=parent,
+                l = 'Locator',
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'),                          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
+                rp = "S")      
+    mc.menuItem(parent=parent,
+                l = 'Curve',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}),                          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
+                rp = "S")  
+    mc.menuItem(parent=parent,
+                l = 'Linear Curve',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}),                          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
+                rp = "S")      
     
 def uiSection_riggingUtils(parent, selection = None):
     _str_func = 'uiSection_riggingUtils'  
@@ -733,7 +760,11 @@ def uiSection_riggingUtils(parent, selection = None):
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}),                          
                 #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
                 rp = "S")  
-     
+    mc.menuItem(parent=_create,
+                l = 'Linear Curve',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}),                          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
+                rp = "S")  
     
     
     #Group stuff -------------------------------------------------------------------------------------------
