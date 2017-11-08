@@ -48,7 +48,9 @@ from cgm.lib import (modules,
                      attributes,
                      search,
                      curves)
-
+for m in DIST,RIG:
+    reload(m)
+    
 cgmModuleTypes = mFactory.__l_modulesClasses__
 __l_faceModuleTypes__ = mFactory.__l_faceModules__
 _l_moduleStates = mFactory._l_moduleStates
@@ -1467,7 +1469,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
         if len(_shapes)<3:
             self.rebuildControlCurve(**kws)
         #======================
-        _size = DIST.get_size_byShapes(self.mNode)
+        _size = DIST.get_bb_size(self.mNode,True,True)
         _controlVis = self.getMessage('controlVis')
         _controlSettings = self.getMessage('controlSettings')
         
@@ -1543,7 +1545,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
         #>>> Figure out the control size 	
         if size == None:#
             if l_shapes:
-                size = DIST.get_size_byShapes(self.mNode)
+                size = DIST.get_bb_size(self.mNode,True,True)
             else:
                 size = 10
         #>>> Figure out font	
@@ -1568,7 +1570,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
 
         #>>> Build the text curve if cgmName exists
         if self.hasAttr('cgmName'):
-            nameSize = DIST.get_size_byShapes(l_shapes[1])
+            nameSize = DIST.get_bb_size(l_shapes[1],True,True)
             log.info(l_shapes[1])
             log.info(nameSize)
             _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .8, font = font)

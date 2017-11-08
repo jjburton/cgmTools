@@ -55,6 +55,7 @@ from cgm.tools import attrTools
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
+reload(TOOLCALLS)
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 reload(UISNAPCALLS)
 import cgm.core.tools.lib.annotations as TOOLANNO
@@ -556,7 +557,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         
         mc.menuItem(parent = parent,
                     l='MRS - WIP',
-                    c=lambda *a: mc.evalDeferred(RBUILDER.ui))                   
+                    c=lambda *a: mc.evalDeferred(TOOLCALLS.mrsUI))                   
         
         #UICHUNKS.uiSection_arrange(parent,self._len_sel, self._b_sel_pair)
         #UICHUNKS.uiSection_shapes(parent,self._l_sel,self._b_sel_pair)

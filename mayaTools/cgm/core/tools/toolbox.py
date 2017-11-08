@@ -681,7 +681,7 @@ class ui(cgmUI.cgmGUI):
                   l = 'Combine',
                   ut = 'cgmUITemplate',
                   ann = "Combine selected shapes to the last transform",  
-                  c = lambda *a:MMCONTEXT.func_process(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, None,'toFrom', **{'keepSource':False}),
+                  c = lambda *a:MMCONTEXT.func_process( RIGGING.shapeParent_in_place, None, 'eachToLast', 'shapeParentAllToLast', **{'keepSource':False}),
                   )           
 
 
@@ -1569,6 +1569,10 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                                        
                   l = 'Crv',
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))                          
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'CrvLin',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curveLinear'}))                          
 
         mUI.MelSpacer(_row_create,w=5)                                              
         _row_create.layout()  
