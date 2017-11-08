@@ -138,12 +138,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>> Initialization Procedure ================== 
         if self.__justCreatedState__ or _doVerify:
+            kw_name = kws.get('name',None)
+            if kw_name:
+                self.addAttr('cgmName',kw_name)
+            else:
+                self.addAttr('cgmName',attrType='string')
+                
             log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
             if self.isReferenced():
                 log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
                 return
             elif not self.verify(blockType):
                 raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+            
+            #Name -----------------------------------------------
             
             #>>>Auto flags...
             _blockModule = get_blockModule(self.blockType)
@@ -223,8 +231,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if self.hasAttr(a):
                 _d['cgmName'] = ATTR.get(_short,a)
 
-        _d['cgmTypeModifier'] = ATTR.get(_short,'blockType')
-        _d['cgmType'] = 'block'
+        _blockType = ATTR.get(_short,'blockType')
+        _d['cgmType'] = _blockType + 'Block'
         
         if self.getMayaAttr('position'):
             _d['cgmPosition'] = self.getEnumValueString('position')
@@ -553,7 +561,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
               }   
         
         if self.getShapes():
-            _d["size"] = DIST.get_size_byShapes(self),
+            _d["size"] = DIST.get_bb_size(self.mNode,True,True),
         else:
             _d['size'] = self.baseSize
             
@@ -1086,7 +1094,7 @@ class handleFactory(object):
         return mOrientCurve
     
     
-    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-'):
+    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', loftHelper = True, lockChannels = ['rotate','scale']):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
@@ -1114,20 +1122,22 @@ class handleFactory(object):
 
         mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
         
-        mJointCurve.setAttrFlags(['rotate','scale'])
         
-        #...loft curve -------------------------------------------------------------------------------------
-        mLoft = self.buildBaseShape('square',_baseSize*.5,'y+')
-        mLoft.doStore('cgmName',mJointCurve.mNode)
-        mLoft.doStore('cgmType','loftCurve')
-        mLoft.doName()
-        mLoft.p_parent = mJointCurve
-        self.color(mLoft.mNode,controlType='sub')
+        mJointCurve.setAttrFlags(lockChannels)
         
-        for s in mLoft.getShapes(asMeta=True):
-            s.overrideEnabled = 1
-            s.overrideDisplayType = 2
-        mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
+        
+        if loftHelper:#...loft curve -------------------------------------------------------------------------------------
+            mLoft = self.buildBaseShape('square',_baseSize*.5,'y+')
+            mLoft.doStore('cgmName',mJointCurve.mNode)
+            mLoft.doStore('cgmType','loftCurve')
+            mLoft.doName()
+            mLoft.p_parent = mJointCurve
+            self.color(mLoft.mNode,controlType='sub')
+            
+            for s in mLoft.getShapes(asMeta=True):
+                s.overrideEnabled = 1
+                s.overrideDisplayType = 2
+            mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
         
 
         return mJointCurve

@@ -30,6 +30,7 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 reload(ATTR)
 import cgm.core.lib.distance_utils as DIST
+import cgm.core.lib.rigging_utils as CORERIG
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -38,9 +39,10 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 __version__ = 'alpha.06142017'
 __autoTemplate__ = True
+__menuVisible__ = True
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
-l_attrsStandard = ['proxyType','hasRootJoint','moduleTarget']
+l_attrsStandard = ['hasRootJoint','moduleTarget']
 
 d_attrsToMake = {'puppetName':'string',
                  'rootJoint':'messageSimple'}
@@ -49,8 +51,7 @@ d_defaultSettings = {'version':__version__,
                      'puppetName':'NotBatman',
                      'hasRootJoint':True, 
                      'baseSize':10,
-                     'attachPoint':'end',
-                     'proxyType':1}
+                     'attachPoint':'end'}
 
 
 #=============================================================================================================
@@ -68,11 +69,27 @@ def define(self):
 #>> Template
 #=============================================================================================================
 def template(self):
-    _crv = CURVES.create_controlCurve(self.mNode,shape='circleArrow',direction = 'y+', sizeMode = 'fixed', size = self.baseSize)
-    RIG.shapeParent_in_place(self.mNode,_crv,False)
+    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = self.baseSize)
+    CORERIG.colorControl(_crv,'center','main',transparent = False) 
+    
+    mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+    l_offsetCrvs = []
+    for shape in mCrv.getShapes():
+        offsetShape = mc.offsetCurve(shape, distance = 1, ch=False )[0]
+        CORERIG.colorControl(offsetShape,'center','sub',transparent = False) 
+        l_offsetCrvs.append(offsetShape)
+        
+    for s in [_crv] + l_offsetCrvs:
+        RIG.shapeParent_in_place(self.mNode,s,False)
+        
+    #RIG.shapeParent_in_place(self.mNode,_crv,False)
+    
+    
     return True
 
 def templateDelete(self):
+    self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
+    
     pass#...handled in generic callmc.delete(self.getShapes())
 
 def is_template(self):
@@ -115,7 +132,7 @@ def is_prerig(self):
 #=============================================================================================================
 def rig(self):
     #
-    self.moduleTarget._verifyMasterControl(size = DIST.get_size_byShapes(self,'max'))
+    self.moduleTarget._verifyMasterControl(size = DIST.get_bb_size(self.mNode,True,True))
     
     if self.hasRootJoint:
         if not is_skeletonized(self):
@@ -157,7 +174,7 @@ def is_rig(self):
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
-def skeletonize(self):
+def build_skeleton(self):
     #    
     if is_skeletonized(self):
         return True
@@ -169,7 +186,6 @@ def skeletonize(self):
         mJoint.doStore('cgmTypeModifier','root')
         mJoint.doName()
         return mJoint.mNode
-        #self.msgList_connect('modul')
         
 def is_skeletonized(self):
     if self.hasRootJoint:

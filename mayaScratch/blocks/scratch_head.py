@@ -122,3 +122,22 @@ import cgm.core.lib.attribute_utils as ATTR
 ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
 
 mRigFac.atBuilderUtils('shapes_fromCast',mode ='segmentHandle',uValues = [.2])
+
+
+
+import cgm.core.rig.ik_utils as IK
+_d = {'jointList' : [u'neck_base_ik_frame',
+                     u'neck_base_ik_1_frame',
+                     u'neck_base_ik_2_frame',
+                     u'head_base_ik_frame'],
+      'useCurve' : None,
+      'orientation' : 'zyx',
+      'secondaryAxis' : 'y+',
+      'baseName' : None,
+      'stretchBy' : 'translate',
+      'advancedTwistSetup' : True,
+      'extendTwistToEnd' : False,
+      'reorient' : False,
+      'moduleInstance' : None,
+      'parentGutsTo' : None}
+IK.spline(**_d)

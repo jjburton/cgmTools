@@ -216,7 +216,7 @@ def template(self):
         mGeoProxies = self.doCreateAt()
         mGeoProxies.rename("proxyGeo")
         mGeoProxies.parent = mTemplateNull
-        _bb = DIST.get_size_byShapes(self.mNode,'bb')
+        #_bb = DIST.get_bb_size(self.mNode,'bb')
         
         ATTR.connect(self.mNode + '.headRotate', mGeoProxies.mNode + '.rotate')
         
@@ -457,7 +457,7 @@ def prerig(self):
     
 
     if not self.neckBuild:
-        _size = DIST.get_size_byShapes(self.mNode)
+        _size = DIST.get_bb_size(self.mNode,True,True)
         _sizeSub = _size * .2   
         
         log.info("|{0}| >> [{1}]  NO NECK | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
@@ -478,7 +478,7 @@ def prerig(self):
         mStartHandle = ml_templateHandles[0]    
         mEndHandle = ml_templateHandles[-1]
         
-        _size = DIST.get_size_byShapes(mStartHandle.loftCurve.mNode)
+        _size = DIST.get_bb_size(mStartHandle.loftCurve.mNode,True,True)
         _sizeSub = _size * .2    
         
         ml_handles = [mStartHandle]
@@ -1062,7 +1062,7 @@ def rig_shapes(self):
     #mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
     
     #Get our base size from the block
-    _size = DIST.get_size_byShapes(_short)
+    _size = DIST.get_bb_size(_short,True,True)
     _side = BLOCKUTILS.get_side(self.mBlock)
     _ikPos = mHeadHelper.getPositionByAxisDistance('z+', _size *2)
     _short_module = self.mModule.mNode
@@ -1200,7 +1200,7 @@ def rig_shapes(self):
         #Root -------------------------------------------------------------------------------------------
         #Grab template handle root - use for sizing, make ball
         mNeckBaseHandle = self.mBlock.msgList_get('templateHandles')[0]
-        size_neck = DIST.get_size_byShapes(mNeckBaseHandle.mNode) /2
+        size_neck = DIST.get_bb_size(mNeckBaseHandle.mNode,True,True) /2
         
         mRoot = ml_joints[0].doCreateAt()
         mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', size_neck),'cgmObject',setClass=True)

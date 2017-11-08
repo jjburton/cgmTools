@@ -586,7 +586,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = 'ALPHA 0.06122017'
+__version__ = 'ALPHA 0.11082017'
 
 
 class ui(cgmUI.cgmGUI):
@@ -711,24 +711,41 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))          
   
                     
-    def buildMenu_add( self, *args, **kws):
+    def buildMenu_add( self, force=False, *args, **kws):
+        if self.uiMenu_add and force is not True:
+            return
+        
         self.uiMenu_add.clear()   
         
-        _d = RIGBLOCKS.get_modules_dat()
+        _d = RIGBLOCKS.get_modules_dat()#...refresh data
             
         for b in _d[1]['blocks']:
-            mUI.MelMenuItem(self.uiMenu_add, l=b,
-                            c=cgmGEN.Callback(self.uiFunc_block_build,b)) 
+            if _d[0][b].__dict__.get('__menuVisible__'):
+                mUI.MelMenuItem(self.uiMenu_add, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_build,b))
+        
+        d_sections = {}
         for c in _d[1].keys():
+            d_sections[c] = []
             if c == 'blocks':continue
-
-            _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
-                                    l=c)
             for b in _d[1][c]:
-                mUI.MelMenuItem(_sub, l=b,
-                                c=cgmGEN.Callback(self.uiFunc_block_build,b),                                    
-                                )
-                
+                if _d[0][b].__dict__.get('__menuVisible__'):
+                    d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
+                    
+        for s in d_sections.keys():
+            if d_sections[s]:
+                _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
+                                        l=s)                
+                for option in d_sections[s]:
+                    mUI.MelMenuItem(_sub, l=option[0],
+                                    c=option[1],
+                                    )
+
+        mUI.MelMenuItemDiv(self.uiMenu_add)
+        mUI.MelMenuItem(self.uiMenu_add, l='Rebuild',
+                        c=cgmGEN.Callback(self.buildMenu_add,True))        
+        log.info("Add menu rebuilt")
+
     def uiUpdate_building(self):
         _str_func = 'uiUpdate_building'   
         
@@ -1100,7 +1117,7 @@ class ui(cgmUI.cgmGUI):
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
                 elif _type in ['string'] and '_' in a and not a.endswith('dict'):
                     _l_attrs.append(a)
-                elif a in ['puppetName']:
+                elif a in ['puppetName','cgmName']:
                     _l_attrs.append(a)
             except: pass
     
@@ -1539,7 +1556,8 @@ class ui(cgmUI.cgmGUI):
 
         return
 
-   
+
+
 
 
 
