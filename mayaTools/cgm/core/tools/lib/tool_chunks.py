@@ -693,29 +693,42 @@ def uiSection_createFromSel(parent, selection = None):
     _str_func = 'uiSection_createFromSel'  
     
     mc.menuItem(parent=parent,
-                    l = 'Transform',
-                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}),          
-                    rp = "N")        
+                    l = 'Null',
+                    ann='Create a null at the selected component or transform',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}))        
+    mc.menuItem(parent=parent,
+                    l = 'Null [ mid ]',
+                    ann='Create a null at the selected component or transform midpoint',                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
+    
+    
     mc.menuItem(parent=parent,
                 l = 'Joint',
-                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'),          
-                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_joint_at,'Create Joint'),
-                rp = "NW")   
+                ann='Create a joint at the selected component or transform',                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'))
+    mc.menuItem(parent=parent,
+                l = 'Joint [ mid ]',
+                ann='Create a joint at the selected component or transform midpoint',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Joint at mid',**{'create':'joint','midPoint':'True'}))         
+    
     mc.menuItem(parent=parent,
                 l = 'Locator',
-                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'),                          
-                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
-                rp = "S")      
+                ann='Create a locator at the selected component or transform',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))
     mc.menuItem(parent=parent,
-                l = 'Curve',
-                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}),                          
-                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
-                rp = "S")  
+                l = 'Locator [ mid ]',
+                ann='Create a joint at the selected component or transform midpoint',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','Create Loc at mid',**{'mode':'midPoint'}))           
+
+    
     mc.menuItem(parent=parent,
-                l = 'Linear Curve',
-                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}),                          
-                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
-                rp = "S")      
+                l = 'Curve [ Cubic ]',
+                ann='Create a cubic curve from eps of the selected components or transforms',                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))
+    mc.menuItem(parent=parent,
+                l = 'Curve [ Linear ]',
+                ann='Create a linear curve from eps of the selected components or transforms',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}))
     
 def uiSection_riggingUtils(parent, selection = None):
     _str_func = 'uiSection_riggingUtils'  

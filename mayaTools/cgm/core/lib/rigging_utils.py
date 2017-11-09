@@ -509,7 +509,7 @@ def create_at(obj = None, create = 'null',midPoint = False):
         mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
         mc.xform(_created, ws=True, ro= objRot,p=False)
         if objRotAxis:
-            mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+            mc.xform(_created, ws=True, ra= objRotAxis,p=False)
         
     elif _create in ['curve','curveLinear']:
         l_pos = []

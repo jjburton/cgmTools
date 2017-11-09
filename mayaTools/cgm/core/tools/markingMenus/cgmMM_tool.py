@@ -891,12 +891,19 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
                     c = lambda *a:self.button_action_per_sel(RIGGING.create_joint_at,'Create Joint'),
                     rp = "NW")   
-        mc.menuItem(parent=_r,
-                    en = self._b_sel,
-                    l = 'Curve',
-                    #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
+        
+        _crv = mc.menuItem(parent=_r,subMenu = True,
+                                   l = 'Curve: ',#'Control Curve',
+                                   en = self._b_sel_pair,
+                                   rp = "S")        
+        mc.menuItem(parent=_crv,
+                    l = 'Cubic',
                     c = lambda *a:self.bc_create_curve(),
                     rp = "S")
+        mc.menuItem(parent=_crv,
+                    l = 'Linear',
+                    c = lambda *a:self.bc_create_curve(linear=True),
+                    rp = "SE")
         
         _control = mc.menuItem(parent=_r,subMenu = True,
                                l = 'Control: {0}'.format(self.var_curveCreateType.value),#'Control Curve',
@@ -1332,8 +1339,13 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             self._l_res.append(_res)
         mc.select(self._l_res)
         
-    def bc_create_curve(self, calling = None):
+    def bc_create_curve(self, calling = None, linear = False):
         _str_func = 'bc_create_curve'
+        if linear:
+            curveBuffer = RIGGING.create_at(self._l_sel, 'curveLinear')            
+        else:
+            curveBuffer = RIGGING.create_at(self._l_sel, 'curve')
+        """    
         l_pos = []
         for i,o in enumerate(self._l_sel):
             p = POS.get(o)
@@ -1344,7 +1356,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             raise ValueError,"Must have more than one position to create curve"
         
         knot_len = len(l_pos)+3-1		
-        curveBuffer = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  
+        curveBuffer = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  """
         log.info("|{0}| >> created: {1}".format(_str_func,curveBuffer))         
         mc.select(curveBuffer)
 
