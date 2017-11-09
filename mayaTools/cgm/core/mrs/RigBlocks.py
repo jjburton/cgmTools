@@ -3061,9 +3061,7 @@ class rigFactory(object):
         if not _mModule.isSkeletonized():
             log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
             
-            self.mBlock.atBlockModule('build_skeleton')
-
-            if not _mModule.isSkeletonized():
+            if not self.mBlock.atBlockModule('build_skeleton'):
                 log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
                 _res = False
 
@@ -3265,19 +3263,19 @@ class rigFactory(object):
 
         _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
         if not _d['ml_moduleJoints']:
-            log.warning("|{0}| >> No module joints found".format(_str_func))                    
-            return False
-
-        _d['l_moduleJoints'] = []
-
-        for mJnt in _d['ml_moduleJoints']:
-            _d['l_moduleJoints'].append(mJnt.p_nameShort)
-            ATTR.set(mJnt.mNode,'displayLocalAxis',0)
-
-        _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
-        if not _d['ml_skinJoints']:
-            log.warning("|{0}| >> No skin joints found".format(_str_func))                    
-            return False      
+            log.warning("|{0}| >> No module joints found".format(_str_func))
+            _d['ml_skinJoints'] = False
+        else:
+            _d['l_moduleJoints'] = []
+    
+            for mJnt in _d['ml_moduleJoints']:
+                _d['l_moduleJoints'].append(mJnt.p_nameShort)
+                ATTR.set(mJnt.mNode,'displayLocalAxis',0)
+    
+            _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
+            if not _d['ml_skinJoints']:
+                log.warning("|{0}| >> No skin joints found".format(_str_func))                    
+                return False      
 
 
         self.d_joints = _d
