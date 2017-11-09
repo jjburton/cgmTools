@@ -60,6 +60,7 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.skinDat as SKINDAT
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
+reload(UICHUNKS)
 import cgm.core.tools.lib.tool_calls as LOADTOOL
 
 from cgm.lib.ml import (ml_breakdownDragger,
