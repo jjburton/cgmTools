@@ -504,7 +504,7 @@ def orientObject_set(node=None, new_rot = None):
 def scale_to_size(node = None, size = 1.0, mode = 'bb'):
     _str_func = 'scale_to_size'
     if mode == 'shape':
-        currentSize = DIST.get_size_byShapes(node)
+        currentSize = DIST.get_bb_size(node,True,True)
     else:
         boundingBoxSize =  DIST.get_bb_size(node)
         log.info("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        

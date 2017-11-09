@@ -131,12 +131,14 @@ def cast(mesh = None, obj = None, axis = 'z+',
     log.debug("|{0}| >> Source:{1} | Vector:{2}".format(_str_func,startPoint,vector))
     _d_meshPos = {}
     _d_meshUV = {}
+    _d_meshUVRaw = {}
     _d_meshNormal = {}
     for m in _mesh:
         _b = {}
         if not _d_meshUV.get(m):_d_meshUV[m] = []
         if not _d_meshPos.get(m):_d_meshPos[m] = []
-        if not _d_meshNormal.get(m):_d_meshNormal[m] = []        
+        if not _d_meshNormal.get(m):_d_meshNormal[m] = []
+        if not _d_meshUVRaw.get(m):_d_meshUVRaw[m] = []        
         if firstHit:
             try:_b = findMeshIntersection(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))
@@ -144,8 +146,10 @@ def cast(mesh = None, obj = None, axis = 'z+',
                 h = _b['hit']
 
                 _uv = _b.get('uv',None)
+                _uvRaw = _b.get('uvRaw',None)
                 _normal = _b.get('normal',False)
                 _d_meshUV[m].append(_uv)
+                _d_meshUVRaw[m].append(_uvRaw)
                 _d_meshPos[m].append(h)	
                 _d_meshNormal[m].append(_normal)
                 if not _uv:
@@ -159,6 +163,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
             if _b:
                 _uvs = _b.get('uvs',None)
+                _uvsRaw = _b.get('uvsRaw',None)
                 _normals =_b.get('normals',False)
 
                 if not _uvs:
@@ -168,7 +173,10 @@ def cast(mesh = None, obj = None, axis = 'z+',
 
                 for i,h in enumerate(_b['hits']):
                     _uv = _uvs[i]
+                    _uvRaw = _uvsRaw[i]
                     _d_meshUV[m].append(_uv)
+                    _d_meshUVRaw[m].append(_uvRaw)
+                    
                     _d_meshPos[m].append(h)		
                     _d_meshNormal[m].append(_normals[i])
                     if offsetMode == 'vectorDistance':
@@ -187,7 +195,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
     _near = distance.returnClosestPoint(startPoint, _l_posBuffer)
     _furthest = distance.returnFurthestPoint(startPoint,_l_posBuffer)
 
-    _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
+    _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'uvsRaw':_d_meshUVRaw, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
     
     if locDat:
         for k in ['source','near','far']:
@@ -507,7 +515,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
                     vRaw = mPoint_v.value()
                     __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
 
-                    d_return['l_rawUV'] = [uRaw,vRaw]
+                    d_return['uvRaw'] = [uRaw,vRaw]
                     d_return['uv'] = __d['uv']
             except Exception,err:raise Exception,"Uv Processing failure |{0}".format(err) 
 

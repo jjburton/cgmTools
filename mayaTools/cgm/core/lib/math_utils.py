@@ -493,6 +493,107 @@ def normalizeListToSum(L, normalizeTo=1.0):
     """
     return [float(i)/normalizeTo for i in [float(i)/sum(L) for i in L]]
 
+def get_splitValueList(minU = 0,
+                       maxU = 1,
+                       points = 3,
+                       cullStartEnd = False,
+                       startSplitFactor = None,
+                       insetSplitFactor = None):
+    """
+    Function for parsing up a line of values (like a curve.u list or a surface.uv list  
+    
+    :parameters:
+        minU(float) - Minimum value to use to start splitting
+        maxU(float) - Maximum value to use to start splitting
+        points(int) - Number of points to generate values for
+        cullStartEnd() - If you want the start and end culled from the list
+        startSplitFactor() - inset factor for subsequent splits after then ends
+        insetSplitFactor() - Multiplier for pushing splits one way or another on a curve
+
+    :returns
+        values(list)
+    """         
+    _str_func = 'get_splitValueList'
+    
+    if insetSplitFactor is not None or startSplitFactor is not None:
+        if not is_float_equivalent(minU,0):
+            raise StandardError,"Min U must be 0 when insetSplitFactor or startSplitFactor are used"
+    
+    #>>> Divide stuff
+    #==========================	
+    l_spanUPositions = []    
+    l_uValues = [minU]
+    
+    minU = float(minU)
+    maxU = float(maxU)
+    
+    log.debug("%s >> maxU : %s"%(_str_func,maxU)) 
+
+    if startSplitFactor is not None:
+        if points < 5:
+            raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
+        log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))  
+        #Figure out our u's
+        f_base = startSplitFactor * maxU 
+        l_uValues.append( f_base )
+        f_len = maxU - (f_base *2)	
+        int_toMake = points-4
+        f_factor = f_len/(int_toMake+1)
+        log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
+        log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
+        log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
+        log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+        for i in range(1,points-3):
+            l_uValues.append(((i*f_factor + f_base)))
+        l_uValues.append(maxU - f_base)
+        l_uValues.append(maxU)
+        log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
+
+    elif insetSplitFactor is not None:
+        log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
+        #Figure out our u's
+
+        f_base = insetSplitFactor * maxU 
+        f_len = maxU - (f_base *2)	
+        f_factor = f_len/(points-1)
+
+        #f_base = (maxU - minU) * insetSplitFactor
+        #f_len = (maxU - f_base) - (minU + f_base)
+        #f_factor = f_len/(points-1)
+        log.debug("%s >> f_base : %s"%(_str_func,f_base)) 					    
+        log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
+        log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+        for i in range(1,points-1):
+            l_uValues.append(((i*f_factor)+f_base))
+        l_uValues.append(maxU)
+        log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))
+
+    else:
+        #Figure out our u's
+        log.debug("|{0}| >> Regular mode. Points: {1}".format(_str_func,points))
+        
+        if points == 1:
+            l_uValues = [((maxU - minU)/2)+minU]
+        elif points == 2:
+            l_uValues = [minU,maxU]
+        elif points == 3:            
+            l_uValues.append(((maxU - minU)/2)+minU)
+            l_uValues.append(maxU)
+        else:
+            f_factor = (maxU-minU)/(points-1)
+            log.debug("%s >> maxU : %s"%(_str_func,maxU)) 
+            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+            for i in range(1,points-1):
+                l_uValues.append((i*f_factor)+minU)
+            l_uValues.append(maxU)
+        log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
+
+    if cullStartEnd and len(l_uValues)>3:
+        l_uValues = l_uValues[1:-1]
+
+    return l_uValues
+    
+
 
 def list_subtract(l1,l2):
     """ 

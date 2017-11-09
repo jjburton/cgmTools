@@ -48,7 +48,9 @@ from cgm.lib import (modules,
                      attributes,
                      search,
                      curves)
-
+for m in DIST,RIG:
+    reload(m)
+    
 cgmModuleTypes = mFactory.__l_modulesClasses__
 __l_faceModuleTypes__ = mFactory.__l_faceModules__
 _l_moduleStates = mFactory._l_moduleStates
@@ -579,16 +581,18 @@ class cgmPuppet(cgmMeta.cgmNode):
         i_settings = mi_masterControl.controlSettings
         str_nodeShort = str(i_settings.getShortName())
         #Skeleton/geo settings
-        for attr in ['skeleton','geo',]:
+        for attr in ['skeleton','geo','proxy']:
             i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
             nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
             nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
 
         #Geotype
-        i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
-        for i,attr in enumerate(['reg','proxy']):
-            nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
-
+        #i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+        #for i,attr in enumerate(['reg','proxy']):
+        #    nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
+        
+        
+        
         #Divider
         i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
 
@@ -1465,7 +1469,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
         if len(_shapes)<3:
             self.rebuildControlCurve(**kws)
         #======================
-        _size = DIST.get_size_byShapes(self.mNode)
+        _size = DIST.get_bb_size(self.mNode,True,True)
         _controlVis = self.getMessage('controlVis')
         _controlSettings = self.getMessage('controlSettings')
         
@@ -1541,7 +1545,7 @@ class cgmMasterControl(cgmMeta.cgmObject):
         #>>> Figure out the control size 	
         if size == None:#
             if l_shapes:
-                size = DIST.get_size_byShapes(self.mNode)
+                size = DIST.get_bb_size(self.mNode,True,True)
             else:
                 size = 10
         #>>> Figure out font	
@@ -1566,10 +1570,10 @@ class cgmMasterControl(cgmMeta.cgmObject):
 
         #>>> Build the text curve if cgmName exists
         if self.hasAttr('cgmName'):
-            nameSize = DIST.get_size_byShapes(l_shapes[1])
+            nameSize = DIST.get_bb_size(l_shapes[1],True,True)
             log.info(l_shapes[1])
             log.info(nameSize)
-            _textCurve = CURVES.create_text(self.cgmName, font, size = nameSize * .8)
+            _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .8, font = font)
             ATTR.set(_textCurve,'rx',-90)
             RIG.override_color(_textCurve,'yellow')
             RIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)

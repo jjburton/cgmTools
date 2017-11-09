@@ -260,6 +260,7 @@ def is_prerig(self, msgLinks = [], msgLists = [] ):
 
 def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                           uAttr = 'neckControls', uAttr2 = 'loftSplit',
+                          polyType = 'mesh',
                           baseName = 'test'):
     
     _str_func = 'create_preRigLoftMesh'
@@ -269,20 +270,24 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
         _side = self.getEnumValueString('side')  
             
     
-    _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
-    mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-    _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
-
-    _tessellate = _inputs[0]
-    _loftNode = _inputs[1]
-
-    log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
-    _d = {'format':2,#General
-          'polygonType':1,#'quads',
-          'uNumber': 1 + len(targets)}
-
-    for a,v in _d.iteritems():
-        ATTR.set(_tessellate,a,v)    
+    if polyType == 'mesh':
+        _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
+        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+        _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
+    
+        _tessellate = _inputs[0]
+        _loftNode = _inputs[1]
+    
+        log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+        _d = {'format':2,#General
+              'polygonType':1,#'quads',
+              'uNumber': 1 + len(targets)}
+    
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)    
+    else:
+        _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
+        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
 
     mLoft.overrideEnabled = 1
     mLoft.overrideDisplayType = 2
@@ -297,38 +302,39 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
     #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
     #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
 
-    mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
 
     #Color our stuff...
-    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = False)
+    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
 
     mLoft.inheritsTransform = 0
     for s in mLoft.getShapes(asMeta=True):
         s.overrideDisplayType = 2    
-
-    #...wire some controls
-    _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
-                                                   self.getMayaAttrString(uAttr,'short'))
-
-    NODEFACTORY.argsToNodes(_arg).doBuild()
-    #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
-    _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
-                                                          self.getMayaAttrString('loftDegree','short'))
-
-    NODEFACTORY.argsToNodes(_arg).doBuild()    
-
-    ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
-    ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
-
-    ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
-    #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
-
+        
+    if polyType == 'mesh':
+        #...wire some controls
+        _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
+                                                       self.getMayaAttrString(uAttr,'short'))
     
-    for n in _tessellate,_loftNode:
-        mObj = cgmMeta.validateObjArg(n)
-        mObj.doStore('cgmName',self.mNode)
-        mObj.doStore('cgmTypeModifier','prerigMesh')
-        mObj.doName()            
+        NODEFACTORY.argsToNodes(_arg).doBuild()
+        #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+        _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
+                                                              self.getMayaAttrString('loftDegree','short'))
+    
+        NODEFACTORY.argsToNodes(_arg).doBuild()    
+    
+        ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
+        ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
+    
+        ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
+        #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
+    
+        
+        for n in _tessellate,_loftNode:
+            mObj = cgmMeta.validateObjArg(n)
+            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmTypeModifier','prerigMesh')
+            mObj.doName()            
 
     self.connectChildNode(mLoft.mNode, 'prerigLoftMesh', 'block')    
     return mLoft
@@ -575,10 +581,18 @@ def skeleton_getCreateDict(self, count = None):
     return _d_res
 
 
-def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False):
+def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = []):
     _str_func = 'skeleton_buildDuplicateChain'
     
     start = time.clock()
+    
+    if indices:
+        log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
+        l_buffer = []
+        for i in indices:
+            l_buffer.append(sourceJoints[i])
+        sourceJoints = l_buffer    
+    
     ml_source = cgmMeta.validateObjListArg(sourceJoints,mayaType=['joint'],noneValid=False)
     
     if connectToModule:
@@ -595,11 +609,16 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
             mc.delete(l_jointsExist)
 
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
+    
     ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
 
 
     for i,mJnt in enumerate(ml_joints):
-        mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        if modifier is not None:
+            mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        if cgmType is not None:
+            mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
+            
         #l_joints[i] = mJnt.mNode
         if connectToSource:
             mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect	    
@@ -620,7 +639,7 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
         
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     
     return ml_joints
 

@@ -50,6 +50,7 @@ import cgm.core.tools.transformTools as TT
 import cgm.core.tools.jointTools as JOINTTOOLS
 import cgm.core.lib.sdk_utils as SDK
 reload(SDK)
+from cgm.core.tools.lib import tool_chunks as UICHUNKS
 
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.setTools as SETTOOLS
@@ -447,13 +448,14 @@ class ui(cgmUI.cgmGUI):
         _row_curveCreate = mUI.MelHLayout(_shape_inside,ut='cgmUISubTemplate',padding = 5)   
 
         cgmUI.add_Button(_row_curveCreate,'Create',
-                         lambda *a:uiFunc_createCurve(),
+                         lambda *a:UICHUNKS.uiFunc_createCurve(),
+                         #lambda *a:uiFunc_createCurve(),
                          'Create control curves from stored optionVars. Shape: {0} | Color: {1} | Direction: {2}'.format(self.var_curveCreateType.value,
                                                                                                                          self.var_defaultCreateColor.value,
                                                                                                                          SHARED._l_axis_by_string[self.var_createAimAxis.value]))                    
         #mUI.MelSpacer(_row_curveCreate,w=10)                                              
         cgmUI.add_Button(_row_curveCreate,'One of each',
-                         lambda *a:uiFunc_createOneOfEach(),
+                         lambda *a:UICHUNKS.uiFunc_createOneOfEach(),
                          'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )       
 
         _row_curveCreate.layout()  
@@ -680,7 +682,7 @@ class ui(cgmUI.cgmGUI):
                   l = 'Combine',
                   ut = 'cgmUITemplate',
                   ann = "Combine selected shapes to the last transform",  
-                  c = lambda *a:MMCONTEXT.func_process(MMCONTEXT.func_enumrate_all_to_last, RIGGING.shapeParent_in_place, None,'toFrom', **{'keepSource':False}),
+                  c = lambda *a:MMCONTEXT.func_process( RIGGING.shapeParent_in_place, None, 'eachToLast', 'shapeParentAllToLast', **{'keepSource':False}),
                   )           
 
 
@@ -1568,6 +1570,10 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                                        
                   l = 'Crv',
                   c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))                          
+        mc.button(parent=_row_create,
+                  ut = 'cgmUITemplate',                                        
+                  l = 'CrvLin',
+                  c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curveLinear'}))                          
 
         mUI.MelSpacer(_row_create,w=5)                                              
         _row_create.layout()  

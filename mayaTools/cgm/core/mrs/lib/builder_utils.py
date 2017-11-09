@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -48,10 +48,10 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.classes.NodeFactory as NODEFACTORY
-
+import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
-for m in BLOCKSHARE,:
+for m in BLOCKSHARE,MATH,DIST,RAYS:
     reload(m)
 
 
@@ -59,24 +59,6 @@ for m in BLOCKSHARE,:
 #Here's some code examples when I initially looked at it...
 from cgm.core.cgmPy import os_Utils as cgmOS
 
-#Both of these should 'walk' the appropriate dirs to get their updated data. They'll be used for both ui and regular stuff
-def get_rigBlocks_dict():
-    """
-    This module needs to return a dict like this:
-    
-    {'blockName':moduleInstance(ex mrs.blocks.box),
-    }
-    """
-    pass
-def get_rigBLocks_byCategory():
-    """
-    This module needs to return a dict like this:
-    
-    {blocks:[box,bank,etc],
-     blocksSubdir:[1,2,3,etc]
-    }
-    """    
-    pass
 
 def get_scene_blocks():
     """
@@ -380,7 +362,7 @@ def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
         _res = _res_body
     return _res[0]
 
-def build_jointProxyMesh(root,degree = 3, jointUp = 'y+'):
+def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     _str_func = 'build_jointProxyMesh'
     
     _l_targets = ATTR.msgList_get(root,'loftTargets')
@@ -429,7 +411,6 @@ def build_jointProxyMesh(root,degree = 3, jointUp = 'y+'):
     #...clean up 
     mc.delete(_l_newCurves + _res_body)
     #>>Parent to the joints ----------------------------------------------------------------- 
-    
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True ):
@@ -454,7 +435,6 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     if not targets:
         raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
     
-    
     mc.select(cl=True)
     log.debug("|{0}| >> targets: {1}".format(_str_func,targets))
     
@@ -462,40 +442,66 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     
     #>>Body -----------------------------------------------------------------
     _res_body = mc.loft(targets, o = True, d = degree, po = 1 )
+    mTarget1 = cgmMeta.cgmObject(targets[0])
+    l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
+    points = len(l_cvs)
+    
 
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
-    _d = {'format':2,#General
+    _d = {'format':1,#Fit
           'polygonType':1,#'quads',
+          'vNumber':points,
           'uNumber': 1 + divisions}
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
+    #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
+        
+    #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
+    
+    if merge:
+        #Get our merge distance
+        l_cvPoints = []
+        for p in l_cvs:
+            l_cvPoints.append(POS.get(p))
+        l_dist = []    
+        for i,p in enumerate(l_cvPoints[:-1]):
+            l_dist.append(DIST.get_distance_between_points(p,l_cvPoints[i+1]))
+    
+        f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .1        
+        
+        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )    
+        
     if cap:
-        _l_combine = [_res_body[0]]
+        mc.polyCloseBorder(_res_body[0] )
+        """_l_combine = [_res_body[0]]
         
         #>>Top bottom -----------------------------------------------------------------
-        for crv in targets[0],targets[-1]:
+        for i,crv in enumerate([targets[0],targets[-1]]):
             _res = mc.planarSrf(crv,po=1)
             _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
             _tessellate = _inputs[0]        
-            _d = {'format':2,#General
+            _d = {'format':1,#Fit
                   'polygonType':1,#'quads',
                   'vNumber':1,
                   'uNumber':1}
             for a,v in _d.iteritems():
                 ATTR.set(_tessellate,a,v)
             _l_combine.append(_res[0])
-            
-        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+            if i == 1:
+                pass
         
+        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+        """
         if merge:
-            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+            mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
             #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+        _res = _res_body
     else:
         _res = _res_body
-    mc.polySetToFaceNormal(_res[0],setUserNormal = True)
+    
     return _res[0]    
 
 def create_remesh(mesh = None, joints = None, curve=None, positions = None,
@@ -556,17 +562,19 @@ def create_remesh(mesh = None, joints = None, curve=None, positions = None,
     
     
     #>>Cast our Loft curves
-
-
+    
 def build_visSub(self):
     _start = time.clock()    
     _str_func = 'build_visSub'
         
     mSettings = self.mRigNull.settings
+    if not mSettings:
+        raise ValueError,"Not settings found"
     mMasterControl = self.d_module['mMasterControl']
 
     #Add our attrs
-    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    #mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
     mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub_out', defaultValue = 1, attrType = 'int', keyable = False,hidden = True,lock=True)
 
     #Get one of the drivers
@@ -583,7 +591,7 @@ def build_visSub(self):
     
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
     
-    return mPlug_result_moduleSubDriver    
+    return mPlug_result_moduleSubDriver
 
 def register_mirrorIndices(self, ml_controls = []):
     _start = time.clock()    
@@ -615,6 +623,252 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
+def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None):
+    """
+    :parameters:
+        self(RigBlocks.rigFactory)
+        targets(list) - targets for most modes. If none provided. Looks for prerig handles
+        mode - 
+            default
+            segmentHandle
+        
+        upVector - If none provided, uses from rigFactory 
+        uValues - percent based values to generate curves on nurbs loft
+        offset(float) - If none, uses internal data to guess
+        size(float) - Used for various modes. Most will guess if none provided
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _short = self.mBlock.mNode
+    _str_func = 'shapes_build ( {0} )'.format(_short)
+    start = time.clock()	
+    mRigNull = self.mRigNull
+    ml_shapes = []
+    
+    if upVector is None:
+        upVector = self.d_orientation['vectorUp']
+    if aimVector is None:
+        aimVector = self.d_orientation['vectorAim']
+            
+    #Get our prerig handles if none provided
+    if targets is None:
+        ml_targets = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+        if not ml_targets:
+            raise ValueError,"No prerigHandles connected. NO targets offered"
+    else:
+        ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
+    
+    if mode in ['default','segmentHandle']:
+        #Get our cast mesh        
+        #mMesh = self.mBlock.getMessage('prerigLoftMesh', asMeta = True)[0]
+        #str_mesh = mMesh.mNode
+        
+        ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+        #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+        #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+        str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]
+        #str_tmpMesh =res_body[0]        
+        mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+        str_meshShape = mMesh_tmp.getShapes()[0]        
+        minU = ATTR.get(str_meshShape,'minValueU')
+        maxU = ATTR.get(str_meshShape,'maxValueU')
+        
+        l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                              len(ml_targets))
+
+        if mode == 'default':
+            axis = VALID.simpleAxis(aimVector).p_string
+            for i,mTar in enumerate(ml_targets):
+                log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))                
+                _d = RAYS.cast(str_tmpMesh, mTar.mNode, axis = axis)
+                
+                if not _d:
+                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,mTar))            
+                    v = l_failSafes[i]
+                else:
+                    v = _d['uvsRaw'][str_tmpMesh][0][0]
+                
+                if offset is None:
+                    offset = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
+                
+                #cgmGEN.log_info_dict(_d,j)
+                log.info("|{0}| >> v: {1} ...".format(_str_func,v))
+            
+                #>>For each v value, make a new curve -----------------------------------------------------------------        
+                baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
+                offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]
+                log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
+                mc.delete(baseCrv)
+                #mTrans = mTar.doCreateAt()
+                #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
+                ml_shapes.append(cgmMeta.validateObjArg(offsetCrv))
+                
+        elif mode == 'segmentHandle':
+            if not uValues: raise ValueError,"Must have uValues with segmentHandle mode"
+            
+            mMesh_tmp = cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+            str_tmpMesh = mMesh_tmp.mNode
+            str_meshShape = mMesh_tmp.getShapes()[0]             
+            
+            minU = ATTR.get(str_meshShape,'minValueU')
+            maxU = ATTR.get(str_meshShape,'maxValueU')
+            f_factor = (maxU-minU)/(20)
+            
+            if offset is None:
+                offset = DIST.get_distance_between_targets([ml_targets[0].mNode, ml_targets[-1]]) / 25
+                
+            for u in uValues:
+                uValue = MATH.Lerp(minU,maxU,u)
+                if u < minU or u > maxU:
+                    raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(uValue,minU,maxU)
+                
+                l_mainCurves = []
+                for i,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
+                    baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
+                    mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 1, spans = 12, kr = 2)
+                    if i == 1:
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]                        
+                    else:
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset * .9, ch=False )[0]
+                    l_mainCurves.append(offsetCrv)
+                    mc.delete(baseCrv)
+                
+                l_crvPos = []
+                points = 7
+                d_crvPos = {}
+                for crv in l_mainCurves:
+                    mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                    mShape = mCrv.getShapes(asMeta=True)[0]
+                    
+                    minU_shape = mShape.minValue
+                    maxU_shape = mShape.maxValue# - 1# not sure on this
+                    l_v = MATH.get_splitValueList(minU_shape,maxU_shape, points)
+                    #pprint.pprint(l_v)
+                    log.debug("|{0}| >> crv {1} splitList {2} ...".format(_str_func,crv,l_v))
+                    for i,v in enumerate(l_v):
+                        if not d_crvPos.get(i):
+                            d_crvPos[i] = []
+                        #print "{0}.u[{1}]".format(mCrv.mNode, v)
+                        pos = POS.get("{0}.u[{1}]".format(mCrv.mNode, v))
+                        #if pos not in d_crvPos[i]:
+                        d_crvPos[i].append( pos )
+
+                        
+                for i in range(points):
+                    crv_connect = CURVES.create_fromList(posList=d_crvPos[i])
+                    #for p in d_crvPos[i]:
+                        #LOC.create(position=p)
+                    l_mainCurves.append(crv_connect)
+                    
+                for crv in l_mainCurves[1:]:
+                    RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                    
+                ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
+                
+                
+                
+            
+        ##mc.delete(str_tmpMesh)
+    elif mode == 'direct':
+        if size == None:
+            log.debug("|{0}| >> Guessing size".format(_str_func))
+            size = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_targets],average=True) * .75
+
+        for mTar in ml_targets:
+            crv = CURVES.create_controlCurve(mTar.mNode, 'cube',
+                                             sizeMode= 'fixed',
+                                             size = size)
+
+            ml_shapes.append(cgmMeta.validateObjArg(crv))
+        
+            
+    else:
+        raise ValueError,"unknown mode: {0}".format(mode)
+    #Process
+    
+    
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    
+    return ml_shapes
+
+def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
+    _short = self.mBlock.mNode
+    _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
+    start = time.clock()	
+    mRigNull = self.mRigNull
+    ml_shapes = []
+    
+    if upVector is None:
+        upVector = self.d_orientation['mOrientation'].p_up.p_string
+    
+    #Get our prerig handles if none provided
+    if targets is None:
+        ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
+        if not ml_targets:
+            raise ValueError,"No rigJoints connected. NO targets offered"
+    else:
+        ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
+    
+
+    ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+    l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+    #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+    #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
+    #str_tmpMesh = mMesh_tmp.mNode
+    str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]    
+    mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+    
+    #Process -----------------------------------------------------------------------------------
+    l_newCurves = []
+    str_meshShape = mMesh_tmp.getShapes()[0]
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    
+    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                          len(ml_targets))
+    log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))            
+
+    for i,mTar in enumerate(ml_targets):
+        j = mTar.mNode
+        _d = RAYS.cast(str_tmpMesh,j,upVector)
+        log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+        #cgmGEN.log_info_dict(_d,j)
+        if not _d:
+            log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))            
+            _v = l_failSafes[i]
+        else:
+            _v = _d['uvsRaw'][str_tmpMesh][0][0]
+        log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+        
+        #>>For each v value, make a new curve -----------------------------------------------------------------        
+        #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+        crv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,_v), ch = 0, rn = 0, local = 0)
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
+        l_newCurves.append(crv[0])
+    
+    
+    #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
+    log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,l_newCurves))        
+    l_new = []
+    for i,c in enumerate(l_newCurves[:-1]):
+        _pair = [c,l_newCurves[i+1]]
+        _mesh = create_loftMesh(_pair, name="{0}_{1}".format('test',i), divisions=1)
+        RIGGING.match_transform(_mesh,ml_targets[i])
+        l_new.append(_mesh)
+    
+    #...clean up 
+    mc.delete(l_newCurves)# + [str_tmpMesh]
+    #>>Parent to the joints ----------------------------------------------------------------- 
+    return l_new
+    
+    
+    
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    
+    return ml_shapes
 
 
 

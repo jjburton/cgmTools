@@ -504,7 +504,11 @@ def uiBuild_cgmMenu( *args ):
     #>>Snap ----------------------------------------------------------------------
     _snap = mc.menuItem(p=menu,l='Snap',subMenu = True, tearOff = True)  
     UICHUNKS.uiSection_snap(_snap)
-
+    
+    _create = mc.menuItem(p=menu,l='Create',subMenu = True, tearOff = True,
+                          ann= 'Create objects from selected objects or components')  
+    UICHUNKS.uiSection_createFromSel(_create)
+        
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_selection(_td)
@@ -541,6 +545,7 @@ def uiBuild_cgmMenu( *args ):
     cgmUI.uiSection_help(_help)
     
     
+    mUI.MelMenuItemDiv(menu)    
     mc.menuItem(p = menu, l='Rebuild',
                 ann='Rebuild the top menu',
                 c = lambda *a: mc.evalDeferred(uiMainMenu_rebuild,lp=0))

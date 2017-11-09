@@ -11,6 +11,7 @@ Website : http://www.cgmonks.com
 import copy
 import re
 from math import sqrt,pow
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -41,23 +42,50 @@ reload(MATHUTILS)
 from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
-def get_bb_size(arg = None):
+def get_bb_size(arg = None, shapes = False, mode = None):
     """
     Get the bb size of a given arg
     
     :parameters:
         arg(str/list): Object(s) to check
-
+        shapes(bool): Only check dag node shapes
+        mode(varied): 
+            True/'max': Only return max value
+            'min': Only min
 
     :returns
         boundingBox size(list)
     """   
     _str_func = 'get_bb_size'
-    _arg = VALID.stringListArg(arg,False,_str_func)   
-    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
+    #_arg = VALID.stringListArg(arg,False,_str_func)   
     
-    _box = mc.exactWorldBoundingBox(_arg)
-    return [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+    if shapes:
+        log.debug("|{0}| >> shapes mode ".format(_str_func))        
+        arg = VALID.listArg(arg)
+        l_use = []
+        for o in arg:
+            log.debug("|{0}| >> o: '{1}' ".format(_str_func,o))
+            l_shapes = mc.listRelatives(o,s=True) or []
+            if l_shapes: l_use.extend(l_shapes)
+            else:
+                l_use.append(o)
+        arg = l_use
+        
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,arg))
+    _box = mc.exactWorldBoundingBox(arg)
+    _res = [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
+    
+    if mode is None:
+        return _res
+    elif mode in [True, 'max']:
+        return max(_res)
+    elif mode in ['min']:
+        return min(_res)
+    else:
+        log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
+    return _res
+    
+
 
 def get_size_byShapes(arg, mode = 'max'):
     _str_func = 'get_sizeByShapes'
@@ -116,7 +144,7 @@ def get_createSize(arg = None, mode = None):
     _arg = VALID.objString(arg,noneValid=False,calledFrom=_str_func)
     log.debug("|{0}| >> arg: '{1}' ".format(_str_func,_arg))    
     
-    _bb_max = max(get_bb_size(_arg))
+    _bb_max = get_bb_size(_arg,True,True)
     log.debug("|{0}| >> bbSize: {1} ".format(_str_func,_bb_max))  
     if not MATHUTILS.is_float_equivalent(_bb_max,0.000) and not _bb_max == -2e+20:
         return _bb_max
@@ -268,7 +296,7 @@ def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point'
             return _l_shapes[_idx]
         return _l_pos[_idx]
         
-def get_distance_between_targets(targetList=None):
+def get_distance_between_targets(targetList=None, average = False):
     """
     """
     _str_func = 'get_distance_between_targets'
@@ -287,6 +315,10 @@ def get_distance_between_targets(targetList=None):
         log.debug("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
         l_dist.append(d)
         
+    if average:
+        
+        return sum(l_dist)/len(l_dist)
+    
     return sum(l_dist)
 
 def get_vector_between_targets(targetList=None):

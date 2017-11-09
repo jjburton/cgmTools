@@ -52,7 +52,6 @@ reload(ATTRTOOLS)
 #import cgm.core.tools.setTools as SETTOOLS
 #reload(SETTOOLS)
 from cgm.core.tools import locinator as LOCINATOR
-import cgm.core.tools.lib.annotations as TOOLANNO
 
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
@@ -69,8 +68,6 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_convertRotationOrder,
                         ml_copyAnim)
 
-import cgm.core.classes.GuiFactory as cgmUI
-mUI = cgmUI.mUI
 
 _2016 = False
 if cgmGen.__mayaVersion__ >=2016:
@@ -182,10 +179,7 @@ def uiSection_joints(parent = None):
                         ann = "Hide axis for all joints in {0}".format(ctxt),                                                
                         c=cgmGen.Callback(MMCONTEXT.set_attrs,None,'displayLocalAxis',0,ctxt,'joint'))
             
-    mc.menuItem(parent = uiJoints,
-                l='cgmJointTools',
-                c=lambda *a: TOOLCALLS.jointTools(),
-                ann="cgmJointTools Standalone")   
+
     mc.menuItem(parent = uiJoints,
                 l='cometJO',
                 c=lambda *a: mel.eval('cometJointOrient'),
@@ -702,6 +696,46 @@ def ut_limbOLD():
     reload(testCGM)
     testCGM.ut_cgmLimb()
     
+def uiSection_createFromSel(parent, selection = None):
+    _str_func = 'uiSection_createFromSel'  
+    
+    mc.menuItem(parent=parent,
+                    l = 'Null',
+                    ann='Create a null at the selected component or transform',
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}))        
+    mc.menuItem(parent=parent,
+                    l = 'Null [ mid ]',
+                    ann='Create a null at the selected component or transform midpoint',                    
+                    c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Tranform at mid',**{'create':'null','midPoint':'True'}))    
+    
+    
+    mc.menuItem(parent=parent,
+                l = 'Joint',
+                ann='Create a joint at the selected component or transform',                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_joint_at, None,'each','Create Joint'))
+    mc.menuItem(parent=parent,
+                l = 'Joint [ mid ]',
+                ann='Create a joint at the selected component or transform midpoint',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Joint at mid',**{'create':'joint','midPoint':'True'}))         
+    
+    mc.menuItem(parent=parent,
+                l = 'Locator',
+                ann='Create a locator at the selected component or transform',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))
+    mc.menuItem(parent=parent,
+                l = 'Locator [ mid ]',
+                ann='Create a joint at the selected component or transform midpoint',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','Create Loc at mid',**{'mode':'midPoint'}))           
+
+    
+    mc.menuItem(parent=parent,
+                l = 'Curve [ Cubic ]',
+                ann='Create a cubic curve from eps of the selected components or transforms',                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}))
+    mc.menuItem(parent=parent,
+                l = 'Curve [ Linear ]',
+                ann='Create a linear curve from eps of the selected components or transforms',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}))
     
 def uiSection_riggingUtils(parent, selection = None):
     _str_func = 'uiSection_riggingUtils'  
@@ -746,7 +780,11 @@ def uiSection_riggingUtils(parent, selection = None):
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Curve',**{'create':'curve'}),                          
                 #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
                 rp = "S")  
-     
+    mc.menuItem(parent=_create,
+                l = 'Linear Curve',
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}),                          
+                #c = cgmGen.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
+                rp = "S")  
     
     
     #Group stuff -------------------------------------------------------------------------------------------
@@ -811,14 +849,12 @@ def uiSection_riggingUtils(parent, selection = None):
     
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
-"""
+
 def call_optionVar_ui():
     reload(SNAPCALLS)    
     SNAPCALLS.ui_optionVars()
-def call_toolbox_ui():
-    reload(TOOLBOX)
-    TOOLBOX.ui()
-"""
+
+
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
         

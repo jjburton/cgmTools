@@ -33,7 +33,7 @@ from cgm.core.lib import nameTools
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import transform_utils as TRANS
-
+import cgm.core.lib.snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
@@ -3762,8 +3762,9 @@ class cgmControl(cgmObject):
 
     def _verifyAimable(self):
         try:
-            self.addAttr('axisAim', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = True, lock = False, hidden = False) 
-            self.addAttr('axisUp', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = True, lock = False, hidden = False) 
+            SNAP.verify_aimAttrs(self.mNode)
+            #self.addAttr('axisAim', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=2, keyable = True, lock = False, hidden = False) 
+            #self.addAttr('axisUp', attrType='enum',enumName = 'x+:y+:z+:x-:y-:z-',initialValue=1, keyable = True, lock = False, hidden = False) 
             #self.addAttr('axisOut', attrType='enum', enumName = 'x+:y+:z+:x-:y-:z-',initialValue=0, keyable = True, lock = False, hidden = False) 
             return True
         except StandardError,error:
@@ -6822,22 +6823,29 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
         else:
             log.debug("No cached mClass or type")
             _change = True
-
-            if issubclass(type(_cached), mTypeClass ):
-                log.debug("subclass match")
-                _change = False
-                if setClass:
-                    log.debug("subclass match not good enough")
-                    _change = True
+            
+            try:
+                if issubclass(type(_cached), mTypeClass ):
+                    log.debug("subclass match")
+                    _change = False
+                    if setClass:
+                        log.debug("subclass match not good enough")
+                        _change = True
+            except Exception, err:
+                log.warning("cached subclass check failed | {0}".format(err))                
+                _change = True
 
         if _change:
             log.debug("..subclass check")
-            if issubclass(_cachedType, mTypeClass) and not setClass:
-                log.debug("...but is subclass")
-                _change = False
-            else:
-                log.debug("...not a subclass")			
-
+            try:
+                if issubclass(_cachedType, mTypeClass) and not setClass:
+                    log.debug("...but is subclass")
+                    _change = False
+                else:
+                    log.debug("...not a subclass")			
+            except Exception, err:
+                log.warning("Change cached subclass check failed | {0}".format(err))                
+                
         if not _change and not _redo:
             t2 = time.clock()
             log.debug("Cache good %0.6f"%(t2-t1))		    

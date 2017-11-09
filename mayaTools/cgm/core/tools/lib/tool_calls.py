@@ -16,7 +16,11 @@ def cgmMeshTools( *a ):
     from cgm.core.tools import meshTools
     reload(meshTools)
     cgmMeshToolsWin = meshTools.run()
-
+    
+def mrsUI():
+    import cgm.core.mrs.Builder as MRSBUILDER
+    reload(MRSBUILDER)
+    MRSBUILDER.ui()
 
 def locinator( *a ):
     from cgm.core.tools import locinator as LOCINATOR

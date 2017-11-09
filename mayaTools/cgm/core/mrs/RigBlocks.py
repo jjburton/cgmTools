@@ -138,12 +138,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>> Initialization Procedure ================== 
         if self.__justCreatedState__ or _doVerify:
+            kw_name = kws.get('name',None)
+            if kw_name:
+                self.addAttr('cgmName',kw_name)
+            else:
+                self.addAttr('cgmName',attrType='string')
+                
             log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
             if self.isReferenced():
                 log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
                 return
             elif not self.verify(blockType):
                 raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+            
+            #Name -----------------------------------------------
             
             #>>>Auto flags...
             _blockModule = get_blockModule(self.blockType)
@@ -223,8 +231,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if self.hasAttr(a):
                 _d['cgmName'] = ATTR.get(_short,a)
 
-        _d['cgmTypeModifier'] = ATTR.get(_short,'blockType')
-        _d['cgmType'] = 'block'
+        _blockType = ATTR.get(_short,'blockType')
+        _d['cgmType'] = _blockType + 'Block'
         
         if self.getMayaAttr('position'):
             _d['cgmPosition'] = self.getEnumValueString('position')
@@ -553,7 +561,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
               }   
         
         if self.getShapes():
-            _d["size"] = DIST.get_size_byShapes(self),
+            _d["size"] = DIST.get_bb_size(self.mNode,True,True),
         else:
             _d['size'] = self.baseSize
             
@@ -1086,7 +1094,7 @@ class handleFactory(object):
         return mOrientCurve
     
     
-    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-'):
+    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', loftHelper = True, lockChannels = ['rotate','scale']):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
@@ -1114,20 +1122,22 @@ class handleFactory(object):
 
         mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
         
-        mJointCurve.setAttrFlags(['rotate','scale'])
         
-        #...loft curve -------------------------------------------------------------------------------------
-        mLoft = self.buildBaseShape('square',_baseSize*.5,'y+')
-        mLoft.doStore('cgmName',mJointCurve.mNode)
-        mLoft.doStore('cgmType','loftCurve')
-        mLoft.doName()
-        mLoft.p_parent = mJointCurve
-        self.color(mLoft.mNode,controlType='sub')
+        mJointCurve.setAttrFlags(lockChannels)
         
-        for s in mLoft.getShapes(asMeta=True):
-            s.overrideEnabled = 1
-            s.overrideDisplayType = 2
-        mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
+        
+        if loftHelper:#...loft curve -------------------------------------------------------------------------------------
+            mLoft = self.buildBaseShape('square',_baseSize*.5,'y+')
+            mLoft.doStore('cgmName',mJointCurve.mNode)
+            mLoft.doStore('cgmType','loftCurve')
+            mLoft.doName()
+            mLoft.p_parent = mJointCurve
+            self.color(mLoft.mNode,controlType='sub')
+            
+            for s in mLoft.getShapes(asMeta=True):
+                s.overrideEnabled = 1
+                s.overrideDisplayType = 2
+            mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
         
 
         return mJointCurve
@@ -2940,13 +2950,15 @@ class rigFactory(object):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _blockModule = self.d_block['buildModule']
+        _blockModule = reload(self.d_block['buildModule'])
+        self.d_block['buildModule'] = _blockModule
         return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
     
     def atBuilderUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
+        reload(BUILDERUTILS)
         return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
     
     def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
@@ -3049,9 +3061,7 @@ class rigFactory(object):
         if not _mModule.isSkeletonized():
             log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
             
-            self.mBlock.atBlockModule('build_skeleton')
-
-            if not _mModule.isSkeletonized():
+            if not self.mBlock.atBlockModule('build_skeleton'):
                 log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
                 _res = False
 
@@ -3253,19 +3263,19 @@ class rigFactory(object):
 
         _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
         if not _d['ml_moduleJoints']:
-            log.warning("|{0}| >> No module joints found".format(_str_func))                    
-            return False
-
-        _d['l_moduleJoints'] = []
-
-        for mJnt in _d['ml_moduleJoints']:
-            _d['l_moduleJoints'].append(mJnt.p_nameShort)
-            ATTR.set(mJnt.mNode,'displayLocalAxis',0)
-
-        _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
-        if not _d['ml_skinJoints']:
-            log.warning("|{0}| >> No skin joints found".format(_str_func))                    
-            return False      
+            log.warning("|{0}| >> No module joints found".format(_str_func))
+            _d['ml_skinJoints'] = False
+        else:
+            _d['l_moduleJoints'] = []
+    
+            for mJnt in _d['ml_moduleJoints']:
+                _d['l_moduleJoints'].append(mJnt.p_nameShort)
+                ATTR.set(mJnt.mNode,'displayLocalAxis',0)
+    
+            _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
+            if not _d['ml_skinJoints']:
+                log.warning("|{0}| >> No skin joints found".format(_str_func))                    
+                return False      
 
 
         self.d_joints = _d
@@ -3277,6 +3287,7 @@ class rigFactory(object):
 
         _mOrientation = VALID.simpleOrientation('zyx')#cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
         _d['str'] = _mOrientation.p_string
+        _d['mOrientation'] = _mOrientation
         _d['vectorAim'] = _mOrientation.p_aim.p_vector
         _d['vectorUp'] = _mOrientation.p_up.p_vector
         _d['vectorOut'] = _mOrientation.p_out.p_vector

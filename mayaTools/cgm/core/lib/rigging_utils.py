@@ -509,9 +509,9 @@ def create_at(obj = None, create = 'null',midPoint = False):
         mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
         mc.xform(_created, ws=True, ro= objRot,p=False)
         if objRotAxis:
-            mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
+            mc.xform(_created, ws=True, ra= objRotAxis,p=False)
         
-    elif _create == 'curve':
+    elif _create in ['curve','curveLinear']:
         l_pos = []
         #_sel = mc.ls(sl=True,flatten=True)
         for i,o in enumerate(obj):
@@ -521,9 +521,12 @@ def create_at(obj = None, create = 'null',midPoint = False):
     
         if len(l_pos) <= 1:
             raise ValueError,"Must have more than one position to create curve"
-    
-        knot_len = len(l_pos)+3-1		
-        _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)  
+        if _create == 'curve':
+            knot_len = len(l_pos)+3-1		
+            _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
+        else:
+            _created = mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True)
+            
         log.debug("|{0}| >> created: {1}".format(_str_func,_created))  
         
     elif _create == 'locator':
@@ -794,7 +797,9 @@ def override_clear(target = None, pushToShapes = True):
         
             
 def getControlShader(direction = 'center', controlType = 'main', transparent = False):
-    _node = "cgmBlockShader_{0}{1}".format(direction,controlType.capitalize())
+    _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
+    if transparent:
+        _node = _node + '_trans'
     log.info(_node)
     _set = False
     if not mc.objExists(_node):

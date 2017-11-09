@@ -37,7 +37,7 @@ from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.distance_utils as DIST
-
+reload(CURVES)
 def spline(jointList = None,
            useCurve = None,
            orientation = 'zyx',
@@ -396,11 +396,11 @@ def spline(jointList = None,
         raise Exception,err"""
 
     #SplineIK Twist =======================================================================================
-    #d_twistReturn = rig_Utils.IKHandle_addSplineIKTwist(mIKHandle.mNode,b_advancedTwistSetup)
-    #mPlug_twistStart = d_twistReturn['mi_plug_start']
-    #mPlug_twistEnd = d_twistReturn['mi_plug_end']
-    #_res['mPlug_twistStart'] = mPlug_twistStart
-    #_res['mPlug_twistEnd'] = mPlug_twistEnd
+    d_twistReturn = rig_Utils.IKHandle_addSplineIKTwist(mIKHandle.mNode,b_advancedTwistSetup)
+    mPlug_twistStart = d_twistReturn['mi_plug_start']
+    mPlug_twistEnd = d_twistReturn['mi_plug_end']
+    _res['mPlug_twistStart'] = mPlug_twistStart
+    _res['mPlug_twistEnd'] = mPlug_twistEnd
     return _res
 
 
@@ -625,3 +625,149 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
         mPlug_twistType.twistType = 'linear'	
         mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
     return d_return
+
+
+
+
+def buildFKIK(fkJoints = None,
+              ikJoints = None,
+              blendJoints = None,
+              settings = None,
+              orientation = 'zyx',
+              ikControl = None,
+              ikMid = None,
+              mirrorDirection = 'Left',
+              globalScalePlug = 'PLACER.scaleY',
+              fkGroup = None,
+              ikGroup = None):
+
+    ml_blendJoints = cgmMeta.validateObjListArg(blendJoints,'cgmObject')
+    ml_fkJoints = cgmMeta.validateObjListArg(fkJoints,'cgmObject')
+    ml_ikJoints = cgmMeta.validateObjListArg(ikJoints,'cgmObject')
+
+    mi_settings = cgmMeta.validateObjArg(settings,'cgmObject')
+
+    aimVector = VALID.simpleAxis("%s+"%orientation[0]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[0])
+    upVector = VALID.simpleAxis("%s+"%orientation[1]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[1])
+    outVector = VALID.simpleAxis("%s+"%orientation[2]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[2])
+
+
+    mi_controlIK = cgmMeta.validateObjArg(ikControl,'cgmObject')
+    mi_controlMidIK = cgmMeta.validateObjArg(ikMid,'cgmObject')
+    mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
+
+
+    #for more stable ik, we're gonna lock off the lower channels degrees of freedom
+    for chain in [ml_ikJoints]:
+        for axis in orientation[:2]:
+            for i_j in chain[1:]:
+                ATTR.set(i_j.mNode,"jointType%s"%axis.upper(),1)
+
+
+    ml_toParentChains = []
+    ml_fkAttachJoints = []   
+    """
+    self.ml_toParentChains = []
+    self.ml_fkAttachJoints = []
+    if self._go._str_mirrorDirection == 'Right':#mirror control setup
+        self.ml_fkAttachJoints = self._go._i_rigNull.msgList_get('fkAttachJoints')
+        self.ml_toParentChains.append(self.ml_fkAttachJoints)
+
+    self.ml_toParentChains.extend([self.ml_ikJoints,self.ml_blendJoints])
+    for chain in self.ml_toParentChains:
+        chain[0].parent = self._go._i_constrainNull.mNode"""
+
+
+
+    #def build_fkJointLength(self):      
+    #for i,i_jnt in enumerate(self.ml_fkJoints[:-1]):
+    #    rUtils.addJointLengthAttr(i_jnt,orientation=self._go._jointOrientation)
+
+    #def build_pvIK(self):
+    mPlug_globalScale = cgmMeta.validateAttrArg(globalScalePlug)['mi_plug']
+
+
+    #Create no flip arm IK
+    #We're gonna use the no flip stuff for the most part
+    d_armPVReturn = rUtils.IKHandle_create(ml_ikJoints[0].mNode,ml_ikJoints[ikLen - 1].mNode,nameSuffix = 'PV',
+                                           rpHandle=True, controlObject=mi_controlIK, addLengthMulti=True,
+                                           globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',
+                                           )	
+
+    mi_armIKHandlePV = d_armPVReturn['mi_handle']
+    ml_distHandlesPV = d_armPVReturn['ml_distHandles']
+    mi_rpHandlePV = d_armPVReturn['mi_rpHandle']
+    mPlug_lockMid = d_armPVReturn['mPlug_lockMid']
+
+
+
+    mi_armIKHandlePV.parent = mi_controlIK.mNode#armIK to ball		
+    ml_distHandlesPV[-1].parent = mi_controlIK.mNode#arm distance handle to ball	
+    ml_distHandlesPV[0].parent = mi_settings#hip distance handle to deform group
+    ml_distHandlesPV[1].parent = mi_controlMidIK.mNode#elbow distance handle to midIK
+    mi_rpHandlePV.parent = mi_controlMidIK
+
+
+    #RP handle	
+    #mi_rpHandlePV.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])
+    mi_rpHandlePV.addAttr('cgmName','elbowPoleVector',attrType = 'string')
+    mi_rpHandlePV.doName()
+
+    #Mid fix
+    #=========================================================================================			
+    mc.move(0,0,-25,mi_controlMidIK.mNode,r=True, rpr = True, ws = True, wd = True)#move out the midControl to fix the twist from
+
+    #>>> Fix our ik_handle twist at the end of all of the parenting
+    #rUtils.IKHandle_fixTwist(mi_armIKHandlePV)#Fix the twist
+
+    log.info("rUtils.IKHandle_fixTwist('%s')"%mi_armIKHandlePV.getShortName())
+    #Register our snap to point before we move it back
+    i_ikMidMatch = RIGMETA.cgmDynamicMatch(dynObject=mi_controlMidIK,
+                                           dynPrefix = "FKtoIK",
+                                           dynMatchTargets=ml_blendJoints[1]) 	
+    #>>> Reset the translations
+    mi_controlMidIK.translate = [0,0,0]
+
+    #Move the lock mid and add the toggle so it only works with show elbow on
+    #mPlug_lockMid.doTransferTo(mi_controlMidIK.mNode)#move the lock mid	
+
+    #Parent constain the ik wrist joint to the ik wrist
+    #=========================================================================================				
+    mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[ikLen-1].mNode, maintainOffset = True)	
+
+    #Blend stuff
+    #-------------------------------------------------------------------------------------
+    mPlug_FKIK = cgmMeta.cgmAttr(mi_settings.mNode,'blend_FKIK',attrType='float',lock=False,keyable=True)
+
+    if ml_fkAttachJoints:
+        ml_fkUse = ml_fkAttachJoints
+        for i,mJoint in enumerate(ml_fkAttachJoints):
+            mc.pointConstraint(ml_fkJoints[i].mNode,mJoint.mNode,maintainOffset = False)
+            #Connect inversed aim and up
+            NodeF.connectNegativeAttrs(ml_fkJoints[i].mNode, mJoint.mNode,
+                                       ["r%s"%orientation[0],"r%s"%orientation[1]]).go()
+            cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"r%s"%orientation[2]).doConnectOut("%s.r%s"%(mJoint.mNode,orientation[2]))
+    else:
+        ml_fkUse = ml_fkJoints
+
+    rUtils.connectBlendChainByConstraint(ml_fkUse,ml_ikJoints,ml_blendJoints,
+                                         driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
+
+
+    #>>> Settings - constrain
+    #mc.parentConstraint(self.ml_blendJoints[0].mNode, self.mi_settings.masterGroup.mNode, maintainOffset = True)
+
+    #>>> Setup a vis blend result
+    mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+    mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+
+    NodeF.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
+                                   mPlug_IKon.p_combinedName,
+                                   mPlug_FKon.p_combinedName)
+
+    mPlug_FKon.doConnectOut("%s.visibility"%fkGroup)
+    mPlug_IKon.doConnectOut("%s.visibility"%ikGroup)	
+
+
+    pprint.pprint(vars())
+    return True   
