@@ -29,13 +29,15 @@ CURVES.create_controlCurve(b1.mNode, 'circle')
 b1.atBlockModule('build_skeleton')
 b1.atBlockUtils('skeleton_getCreateDict')
 
-#>>>Rig process
+#>>>Rig process ----------------------------------------------------------------
 b1.verify()
+
 mRigFac = RBLOCKS.rigFactory(b1)
 mRigFac.log_self()#>>uses pprint
 mRigFac.mRigNull.fkHeadJoint
 pprint.pprint(b1.__dict__)
 mRigFac.mRigNull.headFK.dynParentGroup
+
 mRigFac.atBlockModule('rig_skeleton')
 
 mRigFac.atBlockModule('build_proxyMesh', False)#must have rig joints
