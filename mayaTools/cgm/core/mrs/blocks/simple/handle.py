@@ -647,14 +647,13 @@ def rig_frame(self):
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
-    
-    mRootParent = self.mDeformNull
-    
     mHandle = mRigNull.handle        
     log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
     
+    #Changing targets - these change based on how the setup rolls through
     mDirectDriver = mHandle
     mAimDriver = mHandle
+    mRootParent = self.mDeformNull
     
     #Pivot Setup ========================================================================================
     if mBlock.getMessage('pivotHelper'):
@@ -725,8 +724,9 @@ def rig_cleanUp(self):
     log.info("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
     
+    mBlock = self.mBlock
     mRigNull = self.mRigNull
-    mHeadFK = mRigNull.headFK
+    mHandle = mRigNull.handle            
     mSettings = mRigNull.settings
     
     
@@ -736,83 +736,105 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     
+    
     #>>  Parent and constraining joints and rig parts =======================================================
-    mSettings.masterGroup.parent = mHeadFK
+    #>>>> mSettings.masterGroup.parent = mHandle
     
     #>>  DynParentGroups - Register parents for various controls ============================================
-
-    #...head -----------------------------------------------------------------------------------
-    ml_headDynParents = []
-    ml_baseHeadDynParents = []
+    ml_baseDynParents_start = []
+    ml_baseDynParents_end = []
     
-    #ml_headDynParents = [ml_controlsFK[0]]
+    #Start parents....
     if mModuleParent:
         mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('handleIK'):
-            ml_baseHeadDynParents.append( mi_parentRigNull.handleIK )	    
         if mi_parentRigNull.getMessage('cog'):
-            ml_baseHeadDynParents.append( mi_parentRigNull.cog )
-    ml_baseHeadDynParents.append(mMasterNull.puppetSpaceObjectsGroup)
+            ml_baseDynParents_start.append( mi_parentRigNull.cog )    
     
-  
+    #End parents....
+    ml_baseDynParents_end.append(mMasterNull.puppetSpaceObjectsGroup)
+    ml_baseDynParents_end.append(mMasterNull.worldSpaceObjectsGroup)
     
-    ml_headDynParents = copy.copy(ml_baseHeadDynParents)
-    ml_headDynParents.extend(mHeadFK.msgList_get('spacePivots',asMeta = True))
-    ml_headDynParents.append(mMasterNull.worldSpaceObjectsGroup)
     
-    mBlendDriver =  mHeadFK.getMessage('blendDriver',asMeta=True)
+    #...Handle -----------------------------------------------------------------------------------
+    ml_baseHandleDynParents = []
+
+    #ml_baseDynParents = [ml_controlsFK[0]]
+
+    ml_baseHandleDynParents = copy.copy(ml_baseDynParents_start)
+    ml_baseHandleDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
+    ml_baseHandleDynParents.extend(ml_baseDynParents_end)
+    
+    """
+    mBlendDriver =  mHandle.getMessage('blendDriver',asMeta=True)
     if mBlendDriver:
         mBlendDriver = mBlendDriver[0]
-        ml_headDynParents.insert(0, mBlendDriver)  
+        ml_baseDynParents.insert(0, mBlendDriver)  
         mBlendDriver.addAttr('cgmAlias','neckDriver')
-    #pprint.pprint(ml_headDynParents)
-
+    """
+    
     #Add our parents
-    mDynGroup = mHeadFK.dynParentGroup
+    mDynGroup = mHandle.dynParentGroup
     log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    mDynGroup.dynMode = 2
+    mDynGroup.dynMode = 0
 
-    for o in ml_headDynParents:
+    for o in ml_baseHandleDynParents:
         mDynGroup.addDynParent(o)
     mDynGroup.rebuild()
 
-    mDynGroup.dynFollow.parent = mMasterDeformGroup
+    #mDynGroup.dynFollow.parent = mMasterDeformGroup
     
-    #...headLookat ---------------------------------------------------------------------------------------
-    if self.mBlock.headAim:
-        log.info("|{0}| >> HeadAim setup...".format(_str_func))
+    #Direct ---------------------------------------------------------------------------------------------
+    for mControl in mRigNull.msgList_get('rigJoints'):
+        _short_direct = mControl.p_nameBase
+        if mControl.getMessage('dynParentGroup'):
+            log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
+            ml_directHandleDynParents = copy.copy(ml_baseDynParents_start)
+            ml_directHandleDynParents.extend(ml_baseDynParents_end)
+            
+            mDriver = mControl.masterGroup.getParent(asMeta=True)
+            if mDriver:
+                ml_directHandleDynParents.insert(0, mDriver)
+                if not mDriver.hasAttr('cgmAlias'):
+                    mDriver.addAttr('cgmAlias',_short_direct + '_driver')
+                
+            mDynGroup = mControl.dynParentGroup
+            log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+            mDynGroup.dynMode = 0
+        
+            for o in ml_directHandleDynParents:
+                mDynGroup.addDynParent(o)
+            mDynGroup.rebuild()        
+
+    
+    #...look at ------------------------------------------------------------------------------------------
+    if mRigNull.getMessage('lookAtHandle'):
+        log.info("|{0}| >> LookAt setup...".format(_str_func))
         
         mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
         
-        #mHeadFKJoint = mRigNull.getMessage('fkHeadJoint', asMeta=True)[0]
-        #mHeadAimJoint = mRigNull.getMessage('aimHeadJoint', asMeta=True)[0]
-        #mHeadBlendJoint = mRigNull.getMessage('blendHeadJoint', asMeta=True)[0]
-        #mHeadFKDynParentGroup = mHeadFK.dynParentGroup
-        
-        mHeadLookAt = mRigNull.headLookAt        
+
+        mHeadLookAt = mRigNull.lookAtHandle        
         mHeadLookAt.setAttrFlags(attrs='v')
         
         #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseHeadDynParents)
+        ml_headLookAtDynParents = copy.copy(ml_baseDynParents_start)
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
-        ml_headLookAtDynParents.append(mMasterNull.worldSpaceObjectsGroup)    
+        ml_headLookAtDynParents.extend(ml_baseDynParents_end)
         
-        ml_headDynParents.insert(0, mHeadFK)
-        #mHeadFK.masterGroup.addAttr('cgmAlias','headRoot')
+        ml_headLookAtDynParents.insert(0, mHandle)
+        #mHandle.masterGroup.addAttr('cgmAlias','headRoot')
         
         #Add our parents...
         mDynGroup = mHeadLookAt.dynParentGroup
         log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
     
-        for o in ml_headDynParents:
+        for o in ml_headLookAtDynParents:
             mDynGroup.addDynParent(o)
         mDynGroup.rebuild()
         
-    
-        
+
     #>>  Lock and hide ======================================================================================
-    
-    
+
     #>>  Attribute defaults =================================================================================
     
     mRigNull.version = self.d_block['buildVersion']
@@ -820,48 +842,7 @@ def rig_cleanUp(self):
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
 
-    #>>  Parent and constraining joints and rig parts =======================================================
 
-    #>>  DynParentGroups - Register parents for various controls ============================================
-    #>>  Lock and hide ======================================================================================
-    #>>  Attribute defaults =================================================================================
-    
-"""def rig(self):    
-    if self.hasRootJoint:
-        mJoint = self.doCreateAt('joint')
-        mJoint.parent = self.moduleTarget.masterNull.skeletonGroup
-        mJoint.connectParentNode(self,'module','rootJoint')
-    raise NotImplementedError,"Not done."
-
-def rigDelete(self):
-    try:self.moduleTarget.masterControl.delete()
-    except Exception,err:
-        for a in err:
-            print a
-    return True
-
-def is_rig(self):
-    _str_func = 'is_rig'
-    _l_missing = []
-
-    _d_links = {'moduleTarget' : ['masterControl']}
-
-    for plug,l_links in _d_links.iteritems():
-        _mPlug = self.getMessage(plug,asMeta=True)
-        if not _mPlug:
-            _l_missing.append("{0} : {1}".format(plug,l_links))
-            continue
-        for l in l_links:
-            if not _mPlug[0].getMessage(l):
-                _l_missing.append(_mPlug[0].p_nameBase + '.' + l)
-
-
-    if _l_missing:
-        log.info("|{0}| >> Missing...".format(_str_func))  
-        for l in _l_missing:
-            log.info("|{0}| >> {1}".format(_str_func,l))  
-        return False
-    return True"""
 
 def build_proxyMesh(self, forceNew = True):
     """
@@ -874,7 +855,7 @@ def build_proxyMesh(self, forceNew = True):
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
-    mHeadFK = mRigNull.headFK
+    mHandle = mRigNull.headFK
     mSettings = mRigNull.settings
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
     _side = BLOCKUTILS.get_side(self.mBlock)
