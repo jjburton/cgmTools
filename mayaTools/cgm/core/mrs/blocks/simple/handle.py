@@ -508,6 +508,9 @@ def rig_shapes(self):
             
     #Pivots =======================================================================================
     if mBlock.getMessage('pivotHelper'):
+        mBlock.atBlockUtils('pivots_buildShapes', mBlock.pivotHelper, mRigNull)
+        
+        """
         log.info("|{0}| >> Pivot helper found".format(_str_func))
         mPivotHelper = mBlock.pivotHelper
         for a in 'center','front','back','left','right':
@@ -516,7 +519,7 @@ def rig_shapes(self):
                 log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
                 mPivot = mPivotHelper.getMessage(str_a,asMeta=True)[0].doDuplicate(po=False)
                 mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect    
-                mPivot.parent = False
+                mPivot.parent = False"""
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
@@ -664,9 +667,15 @@ def rig_frame(self):
         mPivotResultDriver.addAttr('cgmType','driver')
         mPivotResultDriver.doName()
         
-        mAimDriver = mPivotResultDriver
+        mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
         
-    
+        mAimDriver = mPivotResultDriver
+        mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
+ 
+        mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
+                            front = None, back = None)#front, back to clear the toe, heel defaults
+        
+
     #Aim ========================================================================================
     if self.mBlock.addAim:
         log.info("|{0}| >> Aim setup...".format(_str_func))
@@ -706,7 +715,7 @@ def rig_frame(self):
     else:
         log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
     
-    
+
     #Direct  ===================================================================================
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     
@@ -822,6 +831,13 @@ def rig_cleanUp(self):
         ml_headLookAtDynParents.extend(ml_baseDynParents_end)
         
         ml_headLookAtDynParents.insert(0, mHandle)
+        
+        
+        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
+        if mPivotResultDriver:
+            ml_headLookAtDynParents.insert(0, mPivotResultDriver)
+
+            
         #mHandle.masterGroup.addAttr('cgmAlias','headRoot')
         
         #Add our parents...

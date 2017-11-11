@@ -858,7 +858,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        reload(BLOCKUTILS)
         return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)    
     
     def string_methodCall(self, func = 'getShortName', *args,**kws):
