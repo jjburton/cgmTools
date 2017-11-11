@@ -1056,8 +1056,11 @@ def myFirstFuncCls(*args, **kws):
             raise ValueError, "no"
     return fncWrap(*args, **kws).go()
 
+
+
 def cgmExceptCB(etype, value, tb = None, detail=2, processed = False):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+    
     if detail == None:
         if mel.eval('stackTrace -q -state;') == 1:
             detail = 2
@@ -1075,7 +1078,12 @@ def cgmExceptCB(etype, value, tb = None, detail=2, processed = False):
             if item[4] is not None:
                 for line in item[4]:
                     print ' ' + line.lstrip()
+    
+    print(_str_headerDiv + " Error log " + _str_headerDiv + _str_subLine)		
+    for i,a in enumerate(value.args):
+        print(" {0} : {1}".format(i,a))
     print _str_hardBreak
+    raise etype,value
     
     
 def cgmExceptCB2(etype, value, tb = None, detail=2, processed = False):
