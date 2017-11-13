@@ -232,6 +232,7 @@ def set_local(obj = None, pos = None):
         
     return set(VALID.mNodeString(obj), pos, 'local')
 
+
 def get_bb_center(obj = None, asEuclid =False):
     """
     Get the bb center of a given arg
@@ -244,42 +245,124 @@ def get_bb_center(obj = None, asEuclid =False):
         boundingBox size(list)
     """   
     _str_func = 'get_bb_center'
-    #_arg = VALID.stringListArg(obj,False,_str_func) 
-    _arg = VALID.mNodeStringList(obj)
-    log.debug("|{0}| >> obj: '{1}' ".format(_str_func,_arg))   
+    log.debug("|{0}| >> Change this call to get_bb_pos mode center".format(_str_func))
+    return get_bb_pos(obj,mode='center', asEuclid=asEuclid)
+
+def get_bb_pos(arg = None, shapes = False, mode = 'center', mark = False, asEuclid = False):
+    """
+    Get points relative to a bounding box where z is forward
     
-    _box = mc.exactWorldBoundingBox(_arg)
-    
-    _res = [((_box[0] + _box[3])/2),((_box[4] + _box[1])/2), ((_box[5] + _box[2])/2)]
-    
+    :parameters:
+        arg(str/list): Object(s) to check
+        shapes(bool): Only check dag node shapes
+        mode(varied): 
+            center
+            bottom
+            top
+            left
+            right
+            front
+            back
+        mark(bool): whether to add a locator at the position for testing
+        asEuclid(bool) - whether to return as Vector or not
+
+    :returns
+        boundingBox size(list)
+    """   
+    _str_func = 'get_bb_pos'
+    #_arg = VALID.stringListArg(arg,False,_str_func)
+    _sel = mc.ls(sl=True)
+    bb_raw = get_bb_size(arg, shapes, mode = 'raw')
+    _mode = mode.lower()
+    if _mode == 'center':
+        log.debug("|{0}| >> Center mode".format(_str_func))
+        _res = [((bb_raw[0] + bb_raw[3])/2),((bb_raw[4] + bb_raw[1])/2), ((bb_raw[5] + bb_raw[2])/2)]
+    elif _mode in ['bottom','y-']:
+        log.debug("|{0}| >> Bottom mode".format(_str_func))
+        _res = [((bb_raw[0] + bb_raw[3])/2), bb_raw[1], ((bb_raw[5] + bb_raw[2])/2)]
+    elif _mode in ['top','y+']:
+        log.debug("|{0}| >> Top mode".format(_str_func))
+        _res = [((bb_raw[0] + bb_raw[3])/2), bb_raw[4], ((bb_raw[5] + bb_raw[2])/2)]
+    elif _mode  in ['front','z+']:
+        log.debug("|{0}| >> Front mode".format(_str_func))
+        _res = [((bb_raw[0] + bb_raw[3])/2),((bb_raw[4] + bb_raw[1])/2), bb_raw[5]]
+    elif _mode in ['back','z-']:
+        log.debug("|{0}| >> Back mode".format(_str_func))        
+        _res = [((bb_raw[0] + bb_raw[3])/2),((bb_raw[4] + bb_raw[1])/2), bb_raw[2]]
+    elif _mode  in ['left','y+']:
+        log.debug("|{0}| >> Left mode".format(_str_func))
+        _res = [bb_raw[3] ,((bb_raw[4] + bb_raw[1])/2), ((bb_raw[5] + bb_raw[2])/2)]        
+    elif _mode  in ['right','y+']:
+        log.debug("|{0}| >> Right mode".format(_str_func))
+        _res = [bb_raw[0] ,((bb_raw[4] + bb_raw[1])/2), ((bb_raw[5] + bb_raw[2])/2)]                
+    else:
+        raise ValueError,"|{0}| >> Unknown mode: {1}".format(_str_func,_mode)
+
+            
+    if mark:
+        _size = get_bb_size(arg, shapes)
+        _loc = mc.spaceLocator()[0]
+        ATTR.set(_loc,'scale', [v/4 for v in _size])        
+        mc.move (_res[0],_res[1],_res[2], _loc, ws=True)        
+        mc.rename(_loc, '{0}_loc'.format(_mode))
+    if _sel:
+        mc.select(_sel)
     if asEuclid:
         log.debug("|{0}| >> asEuclid...".format(_str_func))             
         return EUCLID.Vector3(_res[0], _res[1], _res[2])
     return _res
 
-def get_bb_size(obj = None,asEuclid = False):
+
+def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
     """
     Get the bb size of a given arg
     
     :parameters:
         arg(str/list): Object(s) to check
-        asEuclid(bool) - whether to return as Vector or not
+        shapes(bool): Only check dag node shapes
+        mode(varied): 
+            True/'max': Only return max value
+            'min': Only min
 
     :returns
-        boundingBox size(list/Vector3)
+        boundingBox size(list)
     """   
     _str_func = 'get_bb_size'
     #_arg = VALID.stringListArg(arg,False,_str_func)   
-    _arg = VALID.mNodeString(obj)
     
-    log.debug("|{0}| >> obj: '{1}' ".format(_str_func,_arg))    
+    if shapes:
+        log.debug("|{0}| >> shapes mode ".format(_str_func))        
+        arg = VALID.listArg(arg)
+        l_use = []
+        for o in arg:
+            log.debug("|{0}| >> o: '{1}' ".format(_str_func,o))
+            l_shapes = mc.listRelatives(o,s=True) or []
+            if l_shapes: l_use.extend(l_shapes)
+            else:
+                l_use.append(o)
+        arg = l_use
+        
+    log.debug("|{0}| >> arg: '{1}' ".format(_str_func,arg))
+    _box = mc.exactWorldBoundingBox(arg)
     
-    _box = mc.exactWorldBoundingBox(_arg)
-    
+    if mode == 'raw':
+        if asEuclid:
+            log.debug("|{0}| >> asEuclid...".format(_str_func))             
+            return EUCLID.Vector3(_box[0], _box[1], _box[2])                
+        return _box
     _res = [(_box[3] - _box[0]), (_box[4] - _box[1]), (_box[5] - _box[2])]
-    if asEuclid:
-        log.debug("|{0}| >> asEuclid...".format(_str_func))             
-        return EUCLID.Vector3(_res[0], _res[1], _res[2])
+    
+    if mode is None:
+        if asEuclid:
+            log.debug("|{0}| >> asEuclid...".format(_str_func))             
+            return EUCLID.Vector3(_res[0], _res[1], _res[2])        
+        return _res
+    elif mode in [True, 'max']:
+        return max(_res)
+    elif mode in ['min']:
+        return min(_res)
+    else:
+        log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
     return _res    
 
 def get_uv_position(mesh, uvValue,asEuclid = False):

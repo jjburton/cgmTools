@@ -56,6 +56,7 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
+reload(UISNAPCALLS)
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.lib.ml import (ml_breakdownDragger,
@@ -859,8 +860,13 @@ def uiSection_snap(parent, selection = None ):
     mc.menuItem(parent=parent,
                 l = 'Point - closest',
                 c = lambda *a:SNAPCALLS.snap_action(selection,'closestPoint'),
-                ann = "Closest point on target")    
-
+                ann = "Closest point on target")
+    
+    mc.menuItem(parent=parent,
+                l = 'Point - ground (WIP)',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'ground'),
+                ann = "Snaps selected to the ground plane")
+    
     mc.menuItem(parent=parent,
                 l = 'Parent',
                 c = lambda *a:SNAPCALLS.snap_action(selection,'parent'),

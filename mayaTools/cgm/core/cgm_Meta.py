@@ -1142,26 +1142,28 @@ class cgmNode(r9Meta.MetaClass):
             _kwString = ','.join(_l)  
             
         try:
+            reload(module)
             log.debug("|{0}| >> On: {1}.{2}".format(_str_func,module.__name__, _short))     
             log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
             _res = getattr(module,func)(*args,**kws)
         except Exception,err:
-            log.error(cgmGEN._str_hardLine)
-            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
-            log.error("Node: {0} | func: {1}".format(_short,func))
-            log.error("Module: {0} ".format(module))            
+            print(cgmGEN._str_hardLine)
+            print("  |{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            print("  Node: {0}".format(_short))
+            print("  Module: {0} ".format(module))            
+            print("  Func: {0} ".format(func))            
             
             if args:
-                log.error("Args...")
+                print(cgmGEN._str_headerDiv + "  Args...")
                 for a in args:
-                    log.error("      {0}".format(a))
+                    print("      {0}".format(a))
             if kws:
-                log.error(" KWS...".format(_str_func))
+                print(cgmGEN._str_headerDiv + "  KWS...".format(_str_func))
                 for k,v in kws.iteritems():
-                    log.error("      {0} : {1}".format(k,v))   
-            log.error("Errors...")
-            for a in err.args:
-                log.error(a)
+                    print("      {0} : {1}".format(k,v))   
+            #print(cgmGEN._str_baseStart + "  Errors...")
+            #for a in err.args:
+                #log.error(a)
             cgmGEN.cgmExceptCB(Exception,err)
             raise Exception,err
         return _res    
@@ -6597,6 +6599,8 @@ def asMeta(*args,**kws):
             return validateObjListArg(*args,**kws)
         return validateObjArg(*args,**kws)
     except Exception,error:
+        cgmGEN.cgmExceptCB(Exception,error)
+        """
         log.error("cgmMeta.asMeta failure... --------------------------------------------------")
         if args:
             for i,arg in enumerate(args):
@@ -6605,6 +6609,7 @@ def asMeta(*args,**kws):
             for items in kws.items():
                 log.error("kw: {0}".format(items))	
         log.error("...cgmMeta.asMeta failure --------------------------------------------------")
+        """
         raise Exception,error
     
 try:

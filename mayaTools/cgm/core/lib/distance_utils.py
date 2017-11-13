@@ -42,7 +42,9 @@ reload(MATHUTILS)
 from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
-def get_bb_size(arg = None, shapes = False, mode = None):
+get_bb_size = POS.get_bb_size
+
+def get_bb_sizeOLD(arg = None, shapes = False, mode = None):
     """
     Get the bb size of a given arg
     
@@ -84,7 +86,6 @@ def get_bb_size(arg = None, shapes = False, mode = None):
     else:
         log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
     return _res
-    
 
 
 def get_size_byShapes(arg, mode = 'max'):

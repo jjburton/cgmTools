@@ -83,7 +83,8 @@ def go(obj = None, target = None,
         if _pivot == 'sp':
             kws_move['spr'] = True
         else:
-            kws_move['rpr'] = True        
+            kws_move['rpr'] = True
+            
         if _pivot == 'closestPoint':
             log.debug("|{0}|...closestPoint...".format(_str_func))        
             _targetType = SEARCH.get_mayaType(_target)
@@ -126,7 +127,6 @@ def go(obj = None, target = None,
         mc.xform(obj,sp = mc.xform(_target, q=True, sp=True,**kws), p=True, **kws)
         
 
-    
     return
     pos = infoDict['position']
     
@@ -139,6 +139,15 @@ def go(obj = None, target = None,
     mc.xform(_target, rp=infoDict['position'], ws = True, p=True)        
     mc.xform(_target, sp=infoDict['scalePivot'], ws = True, p=True)    
     
+def to_ground(obj=None):
+    _str_func = 'snap_to_ground'    
+    _obj = VALID.mNodeString(obj)
+    
+    p_bottom = POS.get_bb_pos(_obj,True,'bottom')
+    p_pivot = POS.get(_obj)
+    
+    p_pivot[1] = p_pivot[1] - p_bottom[1] 
+    POS.set(_obj,p_pivot)
     
 def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = False):
     """
