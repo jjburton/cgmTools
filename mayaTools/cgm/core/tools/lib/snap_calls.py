@@ -82,7 +82,8 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast')
             
         if selectionMode == 'eachToNext':
             SNAP.aim(objects[-1],objects[-2],VALID.simpleAxis(aim_axis).inverse.p_string, up_axis, var_aimMode.value)
-            
+    elif snapMode == 'ground':
+        MMCONTEXT.func_process(SNAP.to_ground, objects ,'each', 'Snap')
     else:
         kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
