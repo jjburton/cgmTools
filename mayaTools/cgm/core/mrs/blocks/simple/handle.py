@@ -673,7 +673,7 @@ def rig_frame(self):
         mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
  
         mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
-                            front = None, back = None)#front, back to clear the toe, heel defaults
+                            front = 'front', back = 'back')#front, back to clear the toe, heel defaults
         
 
     #Aim ========================================================================================
@@ -911,9 +911,8 @@ def build_proxyMesh(self, forceNew = True):
 __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_shapes',
                        'rig_controls',
-                       'rig_segments',
                        'rig_frame',
-                       'rig_cleanUp ']
+                       'rig_cleanUp']
 
 
 

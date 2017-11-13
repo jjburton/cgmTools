@@ -3398,7 +3398,9 @@ class rigFactory(object):
         _start = time.clock()        
 
         try:
-            _l_buildOrder = self.d_block['buildModule'].__l_buildOrder__
+            _l_buildOrder = self.d_block['buildModule'].__dict__.get('__l_rigBuildOrder__')
+            if not _l_buildOrder:
+                raise ValueError,"No build order found"
             _len = len(_l_buildOrder)
 
             if not _len:
@@ -3408,34 +3410,37 @@ class rigFactory(object):
             mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
 
             for i,fnc in enumerate(_l_buildOrder):
-                try:	
-                    #str_name = d_build[k].get('name','noName')
-                    #func_current = d_build[k].get('function')
-                    #_str_subFunc = str_name
-                    _str_subFunc = fnc.__name__
+                #str_name = d_build[k].get('name','noName')
+                #func_current = d_build[k].get('function')
+                #_str_subFunc = str_name
+                #_str_subFunc = fnc.__name__
 
-                    mc.progressBar(mayaMainProgressBar, edit=True,
-                                   status = "|{0}| >>Rigging>> step: {1}...".format(_str_func,_str_subFunc), progress=i+1)    
-                    fnc(self)
-
-                    if buildTo is not None:
-                        _Break = False
-                        if VALID.stringArg(buildTo):
-                            if buildTo.lower() == _str_subFunc:
-                                _Break = True
-                        elif buildTo == i:
+                mc.progressBar(mayaMainProgressBar, edit=True,
+                               status = "|{0}| >>Rigging>> step: {1}...".format(_str_func,fnc), progress=i+1)    
+                
+                getattr(self.d_block['buildModule'],fnc)(self)
+                
+                if buildTo is not None:
+                    _Break = False
+                    if VALID.stringArg(buildTo):
+                        if buildTo == fnc:
                             _Break = True
+                    elif buildTo == i:
+                        _Break = True
 
-                        if _Break:
-                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
-                            break
-                except Exception,err:
-                    raise Exception,"Fail step: {0} | err: [{1}]".format(fnc.__name__,err)  
+                    if _Break:
+                        log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
+                        break
+
 
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
-            CGMUI.doEndMayaProgressBar()#Close out this progress bar    		
-            raise Exception,"|{0}| >> err: {1}".format(_str_func,err)        
+            CGMUI.doEndMayaProgressBar()#Close out this progress bar
+            cgmGEN.cgmExceptCB(Exception,err)
+            
+            raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
+        
+        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
 
     def build_rigJoints(self):
         _str_func = 'build_rigJoints'  
