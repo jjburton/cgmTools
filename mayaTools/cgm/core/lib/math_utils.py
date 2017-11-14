@@ -594,7 +594,6 @@ def get_splitValueList(minU = 0,
     return l_uValues
     
 
-
 def list_subtract(l1,l2):
     """ 
     """
@@ -624,3 +623,12 @@ def list_mult(l1,l2):
     for i,x in enumerate(l1):
         l_return.append( x*l2[i])
     return l_return
+
+def average(*args):
+    """ 
+    """
+    if VALID.isListArg(args[0]):
+        l=args[0]
+    else:
+        l = [a for a in args]
+    return sum(l)/len(l)

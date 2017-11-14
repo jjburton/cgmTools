@@ -610,21 +610,24 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
     if _l_res:
         _res = SHAPES.combine(_l_res)
         
+    if size is not None:
+        if cgmValid.isListArg(size):
+            TRANS.scale_to_boundingBox(_res,size)
+        else:
+            if absoluteSize:
+                _f_current = DIST.get_bb_size(_res,True,True)
+                multiplier = size/_f_current
+                mc.scale(multiplier,multiplier,multiplier, _res,relative = True)
+                
+            else:
+                mc.scale(size,size,size,_res,os=True)
+        mc.makeIdentity(_res, apply=True,s=1)    
+
     _d_directionRotates = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
     _r_factor = _d_directionRotates.get(direction)
     mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res, ws=True)
     mc.makeIdentity(_res, apply=True,r =1, n= 1)
-    if size is not None:
-        if absoluteSize:
-            _f_current = DIST.get_bb_size(_res,True,True)
-            multiplier = size/_f_current
-            mc.scale(multiplier,multiplier,multiplier, _res,relative = True)
-            mc.makeIdentity(_res,apply=True,scale=True)            
-            
-        else:
-            mc.scale(size,size,size,_res,os=True)
-            mc.makeIdentity(_res, apply=True,s=1)    
-            
+
     return _res
 
 def create_fromList(targetList = None, posList = None):

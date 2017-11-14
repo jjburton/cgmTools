@@ -121,4 +121,50 @@ def get_refPrefix(node = None):
     return False
 
     
+d_functionStringSwaps = {'.':'_attr_', ' ':'',',':'_',
+                         '+':'_add_','-':'_minus_','><':'_avg_',#pma                                                 
+                         '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
+                         '*':'_multBy_','/':'_divBy_','^':'_pow_',}
 
+def clean(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """, noNumberStart = True,
+          functionSwap = False, replaceChar = '', cleanDoubles = True, stripTailing=True):
+    """
+    Modified from Hamish MacKenzie's zoo one
+
+    :parameters:
+    arg(str) - String to clean
+    invalidChars(str) - Sequence of characters to remove
+    	noNumberStart(bool) - remove numbers at start
+    	functionSwap(bool) - whether to replace functions with string from dict
+    	replaceChar(str) - Character to use to replace with
+    	cleanDoubles(bool) - remove doubles
+    	stripTrailing(bool) - remove trailing '_'
+
+    returns l_pos
+    """
+    _str_funcName = 'clean'
+    try:
+        str_Clean = arg
+
+        for char in invalidChars:
+            if functionSwap and char in d_functionStringSwaps.keys():
+                str_Clean = str_Clean.replace( char, d_functionStringSwaps.get(char) )
+            else:
+                str_Clean = str_Clean.replace( char, replaceChar )
+
+        if noNumberStart:
+            for n in range(10):		
+                while str_Clean.startswith( str(n) ):
+                    log.debug("Cleaning : %s"%str(n))
+                    str_Clean = str_Clean[ 1: ]	
+        if cleanDoubles and replaceChar:
+            doubleChar = replaceChar + replaceChar
+            while doubleChar in cleanStr:
+                str_Clean = str_Clean.replace( doubleChar, replaceChar )
+
+        if stripTailing:
+            while str_Clean.endswith( '_' ):
+                str_Clean = str_Clean[ :-1 ]
+        return str_Clean		
+    except Exception,err:
+        cgmGeneral.cgmExceptCB(Exception,err,fncDat=vars())

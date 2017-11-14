@@ -1065,10 +1065,12 @@ def testException(message = 'cat'):
     except Exception,err:
         cgmExceptCB(Exception,err,fncDat=vars())
 
-def cgmExceptCB(etype = None, value = None, tb = None, detail=2, fncDat = None, processed = False):
+def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
     
-    
+    if localDat is None:
+        localDat = kws.get('fncDat',None)
+        
     if detail == None:
         if mel.eval('stackTrace -q -state;') == 1:
             detail = 2
@@ -1091,9 +1093,9 @@ def cgmExceptCB(etype = None, value = None, tb = None, detail=2, fncDat = None, 
         print(_str_headerDiv + " Error log " + _str_headerDiv + _str_subLine)		        
         for i,a in enumerate(value.args):
             print(" {0} : {1}".format(i,a))
-    if fncDat:
-        print(_str_headerDiv + " Vars " + _str_headerDiv + _str_subLine)		
-        pprint.pprint(fncDat)
+    if localDat:
+        print(_str_headerDiv + " Local " + _str_headerDiv + _str_subLine)		
+        pprint.pprint(localDat)
     print _str_hardBreak
     if etype:raise etype,value
     

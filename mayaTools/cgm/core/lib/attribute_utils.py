@@ -39,7 +39,8 @@ _d_attrTypes = {'message':('message','msg'),
                 'short':('short','shrt'),
                 'bool':('bool','b','boolean'),
                 'enum':('enum','options','e'),
-                'double3':('vector','vec','v','double3','d3'),
+                'double3':('double3','d3'),
+                'float3':('vector','vec'),
                 'multi':('multi','m')}
 
 attrCompatibilityDict = {'message':('message'),
@@ -879,6 +880,7 @@ def validate_attrTypeName(attrType):
     """         
     _str_func = 'validate_attrTypeName'    
     for option in _d_attrTypes.keys():
+        if attrType == option:return option
         if attrType in _d_attrTypes.get(option): 
             return option
     #log.debug("|{0}| >> Invalid type: {1}".format(_str_func,attrType))
@@ -1289,12 +1291,16 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
             enumOptions = '%s' %(':'.join(enumOptions))
         mc.addAttr (_node,ln = _attr, at = 'enum', en=enumOptions,*a, **kws)
         mc.setAttr ((_node+'.'+_attr),e=True,keyable=True)
-
     elif _type == 'bool':
         mc.addAttr (_node, ln = _attr,  at = 'bool',*a, **kws)
         mc.setAttr ((_node+'.'+_attr), edit = True, channelBox = True)
     elif _type == 'message':
         mc.addAttr (_node, ln = _attr, at = 'message',*a, **kws )
+    elif _type == 'float3':
+        mc.addAttr (_node, ln=_attr, at= 'float3',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'float',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'float',*a, **kws)
+        mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'float',*a, **kws)        
     else:
         raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
         #return False

@@ -23,7 +23,13 @@ reload(CURVES)
 CURVES.create_fromName('squareOpen', size = 1)
 CURVES.create_controlCurve(b1.mNode, 'circle')
 
-
+#>>>Get Call size
+RBLOCKS.get_callSize()
+RBLOCKS.get_callSize('bb')
+RBLOCKS.get_callSize('bb')
+RBLOCKS.get_callSize(3)
+RBLOCKS.get_callSize([1,2,3])
+RBLOCKS.get_callSize(None)
 
 #>>>Skeleton ---------------------------------------------------------------------------------------
 b1.atBlockModule('build_skeleton')
@@ -51,3 +57,5 @@ mRigFac.atBlockModule('rig_cleanUp')
 
 import cgm.core.lib.attribute_utils as ATTR
 ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
+
+b1.atBlockUtils('pivots_setup', pivotResult = 'pivotResult_driver')
