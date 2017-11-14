@@ -24,6 +24,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+import cgm.core.cgm_General as cgmGEN
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import rigging_utils as RIG
 from cgm.core.lib import snap_utils as SNAP
@@ -31,6 +32,7 @@ from cgm.core.lib import attribute_utils as ATTR
 reload(ATTR)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
+import cgm.core.lib.math_utils as MATH
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -40,9 +42,10 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.06142017'
 __autoTemplate__ = True
 __menuVisible__ = True
+__baseSize__ = 10,10,10
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
-l_attrsStandard = ['hasRootJoint','moduleTarget']
+l_attrsStandard = ['hasRootJoint','moduleTarget','baseSize']
 
 d_attrsToMake = {'puppetName':'string',
                  'rootJoint':'messageSimple'}
@@ -50,7 +53,6 @@ d_attrsToMake = {'puppetName':'string',
 d_defaultSettings = {'version':__version__,
                      'puppetName':'NotBatman',
                      'hasRootJoint':True, 
-                     'baseSize':10,
                      'attachPoint':'end'}
 
 
@@ -69,7 +71,8 @@ def define(self):
 #>> Template
 #=============================================================================================================
 def template(self):
-    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = self.baseSize)
+    _size = MATH.average(self.baseSize) * 1.5
+    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = _size)
     CORERIG.colorControl(_crv,'center','main',transparent = False) 
     
     mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
@@ -132,21 +135,23 @@ def is_prerig(self):
 #=============================================================================================================
 def rig(self):
     #
-    self.moduleTarget._verifyMasterControl(size = DIST.get_bb_size(self.mNode,True,True))
+    self.moduleTarget._verifyMasterControl(size = DIST.get_bb_size(self.mNode,True,'max') * 1.5)
     
     if self.hasRootJoint:
         if not is_skeletonized(self):
-            skeletonize(self)
+            build_skeleton(self)
             
         mJoint = self.getMessage('rootJoint', asMeta = True)[0]
         log.info(mJoint)
-        mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup  
+        mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup
+    self.template = 1
 
 def rigDelete(self):
+    self.template = 0
     try:self.moduleTarget.masterControl.delete()
     except Exception,err:
-        for a in err:
-            print a
+        cgmGEN.cgmExceptCB(Exception,err)
+        raise Exception,err
     return True
             
 def is_rig(self):

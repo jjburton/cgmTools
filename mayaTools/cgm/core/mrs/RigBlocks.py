@@ -83,9 +83,63 @@ d_attrstoMake = {'version':'string',#Attributes to be initialzed for any module
                  'blockDat':'string',#...for pickle? 
                  'blockParent':'messageSimple',
                  'blockMirror':'messageSimple'}
-d_defaultAttrSettings = {'blockState':'define',
-                         'baseSize':1.0}
+d_defaultAttrSettings = {'blockState':'define'}
 
+def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
+    """
+    Get size for block creation by mode
+    
+    :parameters:
+        arg(str/list): Object(s) to check
+        mode(varied): 
+            selection - bounding box of only shapes of obj
+            boundingBox - full child bounding box
+            None - if blockModule, checks for default size
+            default - failsafe
+
+    :returns
+        boundingBox size(list)
+    """  
+    _str_func = 'get_callSize'
+    def floatValues(arg):
+        return [float(v) for v in arg]
+        
+    if mode is None:
+        log.info("|{0}| >>  mode is None...".format(_str_func))
+        if blockType:
+            blockModule = get_blockModule(blockType)
+            return floatValues(getattr(blockModule, '__baseSize__', default))
+        return floatValues(default)
+        
+        
+    if arg is None and mode is None:
+        _sel = mc.ls(sl=True)
+        if not _sel:
+            raise ValueError,"|{0}| >> No obj arg and no selection".format(_str_func)
+        arg = _sel[0]
+        
+    if VALID.isListArg(mode) and len(mode)==3:
+        for v in mode:
+            if not VALID.valueArg(v):
+                raise ValueError,"|{0}| >> Bad list value arg | arg: {1}".format(_str_func, mode)
+        return floatValues(mode)
+    
+    if VALID.valueArg(mode):
+        return floatValues([mode,mode,mode])
+                
+    
+    mode = mode.lower()
+    log.info("|{0}| >>  mode: {1} | arg: '{2}'".format(_str_func,mode,arg))        
+    if mode == 'selection':
+        size = POS.get_bb_size(arg, True)
+        #if rigBlock:
+            #log.info("|{0}| >>  Created from obj. Tagging. | {1}".format(_str_func,arg))        
+            #rigBlock.connectChildNode(arg,'sourceObj')#Connect
+    elif mode in ['boundingbox','bb']:
+        size = POS.get_bb_size(arg, False)
+
+    return floatValues(size)
+        
 class cgmRigBlock(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
     _l_controlLinks = []
@@ -101,13 +155,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
         name = treated as a base name
 
         """
-        _str_func = "cgmRigBlock.__init__"   
+        _str_func = "cgmRigBlock.__init__"
+                
         
         if node is None and blockType is None:
             raise ValueError,"|{0}| >> Must have either a node or a blockType specified.".format(_str_func)
         
         if blockType and not is_buildable(blockType):
             log.warning("|{0}| >> Unbuildable blockType specified".format(_str_func))
+        
+        #Only check this with a no node call for speed
+        _callSize = None
+        if node is None:_callSize = get_callSize(kws.get('size',None))
+        
+        log.info("|{0}| >> size: {1}".format(_str_func, _callSize))
             
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
@@ -118,63 +179,70 @@ class cgmRigBlock(cgmMeta.cgmControl):
             except Exception,err:
                 log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
                 for arg in err.args:
-                    log.error(arg)                  
+                    log.error(arg)
+                    
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
             log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
             return
         #====================================================================================	
+        
+        if _callSize is None:
+            _callSize = get_callSize(kws.get('size',None))
 
         #====================================================================================
         #Keywords - need to set after the super call
         #==============         
         _doVerify = kws.get('doVerify',False) or False
         self._factory = factory(self.mNode)
-        
         self._callKWS = kws
         self._blockModule = None
+        self._callSize = _callSize
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
-
         #>>> Initialization Procedure ================== 
-        if self.__justCreatedState__ or _doVerify:
-            kw_name = kws.get('name',None)
-            if kw_name:
-                self.addAttr('cgmName',kw_name)
-            else:
-                self.addAttr('cgmName',attrType='string')
+        try:
+            if self.__justCreatedState__ or _doVerify:
+                kw_name = kws.get('name',None)
+                if kw_name:
+                    self.addAttr('cgmName',kw_name)
+                    if blockType == 'master':
+                        self.addAttr('puppetName',kw_name)
+                else:
+                    self.addAttr('cgmName',attrType='string')
+                    
+                    
+                log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
+                if self.isReferenced():
+                    log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                    return
+                elif not self.verify(blockType):
+                    raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
                 
-            log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
-            if self.isReferenced():
-                log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
-                return
-            elif not self.verify(blockType):
-                raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-            
-            #Name -----------------------------------------------
-            
-            #>>>Auto flags...
-            _blockModule = get_blockModule(self.blockType)
-            if _blockModule.__dict__.get('__autoTemplate__'):
-                log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
-                try:
-                    self.p_blockState = 'template'
-                except Exception,err:
-                    for arg in err.args:
-                        log.error(arg)  
+                #Name -----------------------------------------------
+                
+                #>>>Auto flags...
+                #Template
+                _blockModule = get_blockModule(self.blockType)
+                if _blockModule.__dict__.get('__autoTemplate__'):
+                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
+                    try:
+                        self.p_blockState = 'template'
+                    except Exception,err:
+                        for arg in err.args:
+                            log.error(arg)
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
+            raise Exception,err
                         
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
                         
- 
     def verify(self, blockType = None, size = None):
         """ 
 
         """
         _str_func = '[{0}] verify'.format(self.p_nameShort)
         
-        if size == None:
-            size = self._callKWS.get('size')
-            
         _start = time.clock()
 
         if self.isReferenced():
@@ -204,14 +272,21 @@ class cgmRigBlock(cgmMeta.cgmControl):
         self._factory.verify(blockType)    
         
         #>>> Base shapes --------------------------------------------------------------------------------
-        if size:
-            self.baseSize = size
-            
+        #_size = self._callKWS.get('size')
+        #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
+        #get_callSize(self._callKWS.get('size'), blockModule=_mBlockModule, rigBlock = self)
+        try:self.baseSize = self._callSize
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
+        
+        
         _mBlockModule = get_blockModule(self.blockType)
         if 'define' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
             _mBlockModule.define(self)      
         self._blockModule = _mBlockModule
+        
+        self.doName()
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
         return True
         
@@ -561,7 +636,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
               }   
         
         if self.getShapes():
-            _d["size"] = DIST.get_bb_size(self.mNode,True,True),
+            _d["size"] = DIST.get_bb_size(self.mNode,True),
         else:
             _d['size'] = self.baseSize
             
@@ -771,7 +846,15 @@ class cgmRigBlock(cgmMeta.cgmControl):
     
 
     def changeState(self, state = None, children = True):
-        return self._factory.changeState(state)    
+        _str_func = '[{0}]changeState'.format(self.mNode)
+        start = time.clock()
+
+        _res = self._factory.changeState(state)
+        log.info("{0} >> Time >> = {1} seconds ".format(_str_func, "%0.3f"%(time.clock()-start)) + "-"*75)
+        
+        #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
+        return _res
+    
     p_blockState = property(getState,changeState)
     
     
@@ -931,7 +1014,7 @@ class handleFactory(object):
 
         self._mTransform = None
         self._baseShape = baseShape
-        self._baseSize = baseSize
+        self._baseSize = get_callSize(baseSize)
         
         #if node is None:
             #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
@@ -944,7 +1027,11 @@ class handleFactory(object):
             raise ValueError,"must be a transform"
         
         self._mTransform = cgmMeta.validateObjArg(arg,'cgmObject')
-        
+        if not self._mTransform.hasAttr('baseSize'):
+            ATTR.add(self._mTransform.mNode,'baseSize','float3')
+            self._mTransform.baseSize = 1.0,1.0,1.0
+            ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
+                        
     def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
         self.cleanShapes()
         
@@ -956,13 +1043,12 @@ class handleFactory(object):
         SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
         
         if baseSize is not None:
-            self._mTransform.doStore('baseSize',baseSize)
+            baseSize = get_callSize(baseSize)
+            self._mTransform.baseSize = baseSize
         
         _baseSize = self._mTransform.baseSize
         
         _baseShape = self._mTransform.getMayaAttr('baseShape') 
-        #_crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
-        #TRANS.snap(_crv, self._mTransform.mNode)
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
         CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
         
@@ -1035,11 +1121,11 @@ class handleFactory(object):
             _baseShape = 'square'
             
         if baseSize is not None:
-            _baseSize = baseSize
+            _baseSize = get_callSize(baseSize)
         elif self._mTransform.hasAttr('baseSize'):
             _baseSize = self._mTransform.baseSize
         else:
-            _baseSize = 1.0
+            _baseSize = [1.0,1.0,1.0]
             
         return [_baseShape,_baseSize]
         
@@ -1048,6 +1134,9 @@ class handleFactory(object):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
+        
+        if _baseShape not in ['sphere']:
+            _baseSize = [_baseSize[0],_baseSize[1],None]
         
         if baseShape == 'self':
             _crv = mc.duplicate( self._mTransform.getShapes()[0])[0]
@@ -1469,7 +1558,6 @@ class factory(object):
             log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
             return False
 
-        
         try:d_attrsFromModule = _mod.d_attrsToMake
         except:d_attrsFromModule = {}
         
@@ -1750,12 +1838,12 @@ class factory(object):
 
         _mBlock = self._mi_block
         _str_func = '[{0}] factory.verify'.format(_mBlock.p_nameShort)
-
+        _short = _mBlock.mNode
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node. Cannot verify"
         
         if blockType == None:
-            blockType = ATTR.get(_mBlock.mNode,'blockType')
+            blockType = ATTR.get(_short,'blockType')
         if not blockType:
             raise ValueError,"No blockType specified or found."
 
@@ -1784,7 +1872,10 @@ class factory(object):
                         _mBlock.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
                 elif t == 'stringDatList':
                     mc.select(cl=True)
-                    ATTR.datList_connect(_mBlock.mNode, a, v, mode='string')
+                    ATTR.datList_connect(_short, a, v, mode='string')
+                elif t == 'float3':
+                    ATTR.add(_short, a, attrType='float3', keyable = True)
+                    if v:ATTR.set(_short,a,v)
                 else:
                     if t == 'string':
                         _l = True
@@ -1802,8 +1893,6 @@ class factory(object):
         _mBlock.addAttr('blockType', value = blockType,lock=True)	
         #_mBlock.blockState = 'base'
         
-        _mBlock.doName()
-
         return True
     #========================================================================================================     
     #>>> States 
@@ -1819,7 +1908,7 @@ class factory(object):
         :returns
             success(bool)
         """        
-
+        
         if self._mi_block is None:
             raise ValueError,"No root loaded."
 
@@ -2555,8 +2644,7 @@ def get_modules_dat():
                                 #_l_unbuildable.append(name)
                         except Exception, e:
                             log.warning("|{0}| >> Module failed: {1}".format(_str_func,key))                               
-                            for arg in e.args:
-                                log.error(arg)
+                            cgmGEN.cgmExceptCB(Exception,e,fncDat=vars())
                                           
                     else:
                         _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
@@ -3242,7 +3330,7 @@ class rigFactory(object):
         #>MasterControl....
         if not _mPuppet.getMessage('masterControl'):
             log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
-            _mPuppet._verifyMasterControl(size = max(DIST.get_bb_size(self.mBlock.mNode)))
+            _mPuppet._verifyMasterControl(size = max(DIST.get_bb_size(self.mBlock.mNode)) * 2)
 
         _d['mMasterControl'] = _mPuppet.masterControl
         _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 

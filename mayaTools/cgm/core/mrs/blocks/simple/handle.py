@@ -50,9 +50,11 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.11062017'
-__autoTemplate__ = True
+__autoTemplate__ = False
 __component__ = True
 __menuVisible__ = True
+__baseSize__ = 10,10,10
+
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
 l_attrsStandard = ['side',
@@ -61,11 +63,7 @@ l_attrsStandard = ['side',
                    'hasJoint',
                    'basicShape',
                    'addAim',
-                   'addPivotLeft',
-                   'addPivotRight',
-                   'addPivotCenter',
-                   'addPivotFront',
-                   'addPivotBack',
+                   'addPivot',
                    'moduleTarget']
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
@@ -77,18 +75,11 @@ d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
 d_defaultSettings = {'version':__version__,
                      'hasRootJoint':False,
                      'hasJoint':True,
-                     'baseSize':10,#cm
                      'basicShape':5,
                      'addAim':True,
-                     'addPivotLeft':True,
-                     'addPivotRight':True,
-                     'addPivotCenter':True,
-                     'addPivotFront':True,
-                     'addPivotBack':True,
                      'shapeDirection':2,
                      'axisAim':2,
                      'axisUp':4,
-                     
                      'attachPoint':'end',
                      'proxyType':1}
 
