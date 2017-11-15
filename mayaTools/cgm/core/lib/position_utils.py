@@ -336,7 +336,7 @@ def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
         l_use = []
         for o in arg:
             log.debug("|{0}| >> o: '{1}' ".format(_str_func,o))
-            l_shapes = mc.listRelatives(o,s=True) or []
+            l_shapes = mc.listRelatives(o,s=True,fullPath = True) or []
             if l_shapes: l_use.extend(l_shapes)
             else:
                 l_use.append(o)

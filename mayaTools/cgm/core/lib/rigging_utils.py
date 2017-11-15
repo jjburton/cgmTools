@@ -342,6 +342,11 @@ def shapeParent_in_place_NEW(obj = None, shapeSource = None, keepSource = True, 
             log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
     return True
 
+def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFirst = False):
+    for o in targets[:-1]:
+        shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
+    return targets[-1]
+
 def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
@@ -458,9 +463,69 @@ def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, repl
             if not keepSource:
                 mc.delete(c)
         except Exception,err:
-            log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
+            cgmGen.cgmExceptCB(Exception,err,localDat=vars())
     return True
 
+_d_proxyCreate = {'cube':'nurbsCube',
+                  'sphere':'sphere',
+                  'cylinder':'cylinder',
+                  'prism':'polyPrism',
+                  'cone':'cone',
+                  'torus':'torus'}
+
+def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=True):
+    try:
+        #cube:sphere:cylinder:cone:torus
+        _str_func = 'create_proxyGeo'
+        
+        _proxyShape = _d_proxyCreate.get(proxyShape,proxyShape)
+        _call = getattr(mc,_proxyShape,None)
+        if not _call:
+            raise ValueError,"Failed to find maya.cmds call {0}".format(_proxyShape)
+        #if proxyShape not in _d_create.keys():
+            #raise ValueError,"Unknown shape: {0}".format(proxyShape)
+        
+        _kws = {'ch':ch}
+        
+        
+        if proxyShape in ['cube']:
+            _kws['width'] = size[0]
+            _kws['ch'] = False
+        if proxyShape in ['cylinder','sphere','cone','cylinder','torus']:
+            _kws['radius'] =  max(size)/2.0
+            _kws['axis'] = VALID.simpleAxis(direction).p_vector
+
+        _res = _call(**_kws )
+        
+        if size is not None:
+            if VALID.isListArg(size):
+                TRANS.scale_to_boundingBox(_res[0],size)
+            else:
+                if absoluteSize:
+                    _f_current = DIST.get_bb_size(_res[0],True,True)
+                    multiplier = size/_f_current
+                    mc.scale(multiplier,multiplier,multiplier, _res[0],relative = True)
+                    
+                else:
+                    mc.scale(size,size,size,_res[0],os=True)
+            #mc.makeIdentity(_res[0], apply=True,s=1)    
+        """
+        if proxyShape == 'cube':
+            _d_directionXRotates = {'x+':[0,0,0],'x-':[0,180,0],'y+':[0,0,90],'y-':[0,0,-90],'z+':[0,-90,0],'z-':[0,90,0]}
+            _r_factor = _d_directionXRotates.get(direction)
+            mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res[0], ws=True)"""
+            #mc.makeIdentity(_res[0], apply=True,r =1, n= 1)        
+        
+        if proxyShape == 'cube':
+            _children = TRANS.children_get(_res[0])
+            for i,c in enumerate(_children):
+                _children[i] = TRANS.parent_set(c,False)
+            combineShapes(_children + [_res[0]],keepSource=False,replaceShapes=False)
+        
+        return _res
+    except Exception,err:
+        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+    
 def create_at(obj = None, create = 'null',midPoint = False):
     """
     Create a null matching a given obj

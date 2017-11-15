@@ -537,7 +537,7 @@ class cgmNode(r9Meta.MetaClass):
                 NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)	  
             return self.mNode
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
+            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
             
     def getNameDict(self):
         reload(nameTools)
