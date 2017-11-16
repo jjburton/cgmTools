@@ -231,7 +231,7 @@ class cgmPuppet(cgmMeta.cgmNode):
 
             # Few Case things
             #==============            
-            if attr == 'geo':
+            if attr in ['geo','parts']:
                 mGroup.p_parent = mMasterNull.noTransformGroup
             elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
                 mGroup.p_parent = self.getMessage('masterControl')[0]	    
@@ -258,8 +258,7 @@ class cgmPuppet(cgmMeta.cgmNode):
             mSet.connectParentNode(self.mNode,'puppet','puppetSet')
 
         ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
-        #cgmMeta.cgmAttr(self,'cgmName').doCopyTo(i_selectSet.mNode,connectTargetToSource =True)
-        mSet.doName()		    
+        mSet.doName()
 
 
 

@@ -343,11 +343,14 @@ def shapeParent_in_place_NEW(obj = None, shapeSource = None, keepSource = True, 
     return True
 
 def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFirst = False):
-    for o in targets[:-1]:
-        shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
-    return targets[-1]
+    try:
+        for o in targets[:-1]:
+            shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
+        return targets[-1]
+    except Exception,err:
+        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
 
-def shapeParent_in_place(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
+def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
 
@@ -883,7 +886,7 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
             ATTR.set(_node,'ambientColorR',_rgb[0])
             ATTR.set(_node,'ambientColorG',_rgb[1])
             ATTR.set(_node,'ambientColorB',_rgb[2])        
-            ATTR.set(_node,'transparency',.8)
+            ATTR.set(_node,'transparency',.9)
             ATTR.set(_node,'incandescence',0)
       
     if not _set:

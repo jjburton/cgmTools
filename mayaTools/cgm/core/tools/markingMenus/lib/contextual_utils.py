@@ -299,90 +299,93 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
         info(dict)
         
         iterTo
-    """   
-    if calledFrom is not None:_str_func = "{0}".format(calledFrom)
-    else:_str_func = "func_process"
+    """
+    try:
+        if calledFrom is not None:_str_func = "{0}".format(calledFrom)
+        else:_str_func = "func_process"
+        
+        if objects == None:
+            if context == None:
+                context = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection').value    
+                objects = get_list(context,mType,getTransform)
+            else:
+                objects = get_list(context,mType,getTransform)
     
-    if objects == None:
-        if context == None:
-            context = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection').value    
-            objects = get_list(context,mType,getTransform)
-        else:
-            objects = get_list(context,mType,getTransform)
-
-    
-    log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
-    log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
-    log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
-    log.debug("|{0}| >> objects: {1}".format(_str_func, objects)) 
-    
-    if not objects:
-        log.warning("|{0}| >> No targets specified. func: {1}".format(_str_func, func.__name__))         
-        return False
-    
-    
-    if processMode in ['each']:
-        for i,o in enumerate(objects):
-            log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
-            
-            if processMode == 'each':
-                _res = func(o,**kws)    
+        
+        log.debug("|{0}| >> func: {1}".format(_str_func, func.__name__)) 
+        log.debug("|{0}| >> mode: {1}".format(_str_func, processMode) )
+        log.debug("|{0}| >> kws: {1}".format(_str_func, kws))  
+        log.debug("|{0}| >> objects: {1}".format(_str_func, objects)) 
+        
+        if not objects:
+            log.warning("|{0}| >> No targets specified. func: {1}".format(_str_func, func.__name__))         
+            return False
+        
+        
+        if processMode in ['each']:
+            for i,o in enumerate(objects):
+                log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
                 
-            if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
-            
-    elif processMode in ['eachToNext','fromPreviousEach','eachToLast']:
-        for i,o in enumerate(objects[:-1]):
-            log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
-            try:
-                if processMode == 'eachToNext':
-                    _res = func(o,objects[i+1],**kws)
-                elif processMode == 'fromPreviousEach':
-                    _res = func(objects[-1],o,**kws)
-                elif processMode == 'eachToLast':
-                    _res = func(o,objects[-1],**kws)
+                if processMode == 'each':
+                    _res = func(o,**kws)    
+                    
+                if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
                 
-                if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-                
-            except Exception,err:
-                log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
-    elif processMode in ['firstToEach','eachToFirst','eachToPrevious','previousToEach']:
-            for i,o in enumerate(objects[1:]):
+        elif processMode in ['eachToNext','fromPreviousEach','eachToLast']:
+            for i,o in enumerate(objects[:-1]):
                 log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
                 try:
-                    if processMode == 'firstToEach':
-                        _res = func(objects[0],o,**kws)
-                    elif processMode == 'eachToFirst':
-                        _res = func(o,objects[0],**kws) 
-                        
-                    elif processMode == 'eachToPrevious':
-                        log.debug("|{0}| >> {1} < {2}".format(_str_func,o,objects[i-1]))  
-                        _res = func(o,objects[i],**kws)     
-                    elif processMode == 'previousToEach':
-                        _res = func(objects[i],o,**kws)                       
+                    if processMode == 'eachToNext':
+                        _res = func(o,objects[i+1],**kws)
+                    elif processMode == 'fromPreviousEach':
+                        _res = func(objects[-1],o,**kws)
+                    elif processMode == 'eachToLast':
+                        _res = func(o,objects[-1],**kws)
+                    
                     if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-                        
+                    
                 except Exception,err:
-                    log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
-    elif processMode in ['lastFromRest','restFromLast','firstToRest','restFromFirst','all']:
-        if processMode == 'lastFromRest':
-            _res = func(objects[-1],objects[:-1],**kws)  
-        elif processMode == 'restFromLast':
-            _res = func(objects[:-1],objects[-1],**kws)   
-        elif processMode == 'all':
-            _res = func(objects,**kws)   
-        elif processMode == 'firstToRest':
-            _res = func(objects[0],objects[1:],**kws)
-        elif processMode == 'restFromFirst':
-            _res = func(objects[1:],objects[0],**kws)               
-        if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-            
-    else:
-        raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
-    
-    if not noSelect:
-        try:mc.select(objects)
-        except:pass
-            
+                    log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
+        elif processMode in ['firstToEach','eachToFirst','eachToPrevious','previousToEach']:
+                for i,o in enumerate(objects[1:]):
+                    log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
+                    try:
+                        if processMode == 'firstToEach':
+                            _res = func(objects[0],o,**kws)
+                        elif processMode == 'eachToFirst':
+                            _res = func(o,objects[0],**kws) 
+                            
+                        elif processMode == 'eachToPrevious':
+                            log.debug("|{0}| >> {1} < {2}".format(_str_func,o,objects[i-1]))  
+                            _res = func(o,objects[i],**kws)     
+                        elif processMode == 'previousToEach':
+                            _res = func(objects[i],o,**kws)                       
+                        if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
+                            
+                    except Exception,err:
+                        log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
+        elif processMode in ['lastFromRest','restFromLast','firstToRest','restFromFirst','all']:
+            if processMode == 'lastFromRest':
+                _res = func(objects[-1],objects[:-1],**kws)  
+            elif processMode == 'restFromLast':
+                _res = func(objects[:-1],objects[-1],**kws)   
+            elif processMode == 'all':
+                _res = func(objects,**kws)   
+            elif processMode == 'firstToRest':
+                _res = func(objects[0],objects[1:],**kws)
+            elif processMode == 'restFromFirst':
+                _res = func(objects[1:],objects[0],**kws)               
+            if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
+                
+        else:
+            raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
+        
+        if not noSelect:
+            try:mc.select(objects)
+            except:pass
+    except Exception,err:
+        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+        
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """
     

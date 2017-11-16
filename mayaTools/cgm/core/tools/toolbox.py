@@ -682,7 +682,7 @@ class ui(cgmUI.cgmGUI):
                   l = 'Combine',
                   ut = 'cgmUITemplate',
                   ann = "Combine selected shapes to the last transform",  
-                  c = lambda *a:MMCONTEXT.func_process( RIGGING.shapeParent_in_place, None, 'eachToLast', 'shapeParentAllToLast', **{'keepSource':False}),
+                  c = lambda *a:MMCONTEXT.func_process( RIGGING.combineShapes, None, 'all', 'shapeParentAllToLast', **{'keepSource':False}),
                   )           
 
 

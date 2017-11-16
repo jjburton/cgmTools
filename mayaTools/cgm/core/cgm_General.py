@@ -1023,7 +1023,7 @@ def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
         log.error("Errors...")
         for a in err.args:
             log.error(a)
-        cgmExceptCB(Exception,err)
+        #cgmExceptCB(Exception,err)
         raise Exception,err
     #mc.undoInfo(closeChunk=True, chunkName=_str_func)            
     return _res    
