@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -589,7 +589,7 @@ def build_visSub(self):
                'drivers':[[iVis,"subControls_out"],[mSettings,mPlug_moduleSubDriver.attr]]}]
     NODEFACTORY.build_mdNetwork(visArg)
     
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
     
     return mPlug_result_moduleSubDriver
 
@@ -619,7 +619,7 @@ def register_mirrorIndices(self, ml_controls = []):
     for i,mCtrl in enumerate(ml_controls):
         mCtrl.addAttr('mirrorIndex', value = (int_strt + i))
 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))   
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
     
     return ml_controls
 
@@ -644,7 +644,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
     """
     _short = self.mBlock.mNode
     _str_func = 'shapes_build ( {0} )'.format(_short)
-    start = time.clock()	
+    _start = time.clock()	
     mRigNull = self.mRigNull
     ml_shapes = []
     
@@ -790,14 +790,14 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
     #Process
     
     
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
     
     return ml_shapes
 
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     _short = self.mBlock.mNode
     _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
-    start = time.clock()	
+    _start = time.clock()	
     mRigNull = self.mRigNull
     ml_shapes = []
     
@@ -866,9 +866,36 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     
     
     
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-_start)) + "-"*75)	
     
     return ml_shapes
+
+
+def joints_connectToParent(self):
+    _start = time.clock()    
+    _str_func = 'joints_connectToParent'
+        
+    mRigNull = self.mRigNull
+    mMasterControl = self.d_module.get('mMasterControl',False)
+    mMasterNull = self.d_module.get('mMasterNull',False)
+    mSkeletonGroup = mMasterNull.skeletonGroup
+    mModuleParent = self.d_module.get('mModuleParent',False)
+
+    ml_joints = mRigNull.msgList_get('moduleJoints')
+    if not ml_joints:
+        raise ValueError,"|{0}| >> No moduleJoints found".format(_str_func)
+    
+    if mModuleParent:
+        log.debug("|{0}| >> ModuleParent setup...".format(_str_func))
+        
+    else:
+        log.debug("|{0}| >> Root Mode...".format(_str_func))        
+        ml_joints[0].p_parent = mSkeletonGroup
+        
+    
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
+
+
 
 
 

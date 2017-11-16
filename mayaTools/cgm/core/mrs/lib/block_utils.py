@@ -1001,9 +1001,26 @@ def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent ( {0} )'.format(_short)
     
     mModule = self.moduleTarget
-    
     l_moduleJoints = mModule.rigNull.msgList_get('moduleJoints',asMeta = False)
-
+    
+    if not mModule.moduleParent:
+        log.info("|{0}| >> No moduleParent".format(_str_func))
+        ml_parentBlocks = self.getBlockParents()
+        
+        if ml_parentBlocks:
+            if ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
+                log.info("|{0}| >> Root joint on master found".format(_str_func))           
+                TRANS.parent_set(l_moduleJoints[0], ml_parentBlocks[0].moduleTarget.getMessage('rootJoint')[0])
+                return True
+    raise ValueError,"Finish this..."
+    
+    return
+    ml_parentBlocks = self.getParentBlocks()
+    if ml_parentBlocks and ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
+        log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
+        
+        
+        
     if not mModule.getMessage('moduleParent'):
         log.info("|{0}| >> No moduleParent. Checking puppet".format(_str_func))  
         TRANS.parent_set(l_moduleJoints[0], mModule.modulePuppet.masterNull.skeletonGroup.mNode)

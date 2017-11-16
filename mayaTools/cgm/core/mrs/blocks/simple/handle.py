@@ -31,17 +31,20 @@ r9Meta.cleanCache()#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEMP!!!!!!!!!
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_General as cgmGEN
 
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import rigging_utils as CORERIG
+import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
-
+import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.rig.joint_utils as JOINTS
+import cgm.core.lib.list_utils as LISTS
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
@@ -50,7 +53,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.11062017'
-__autoTemplate__ = False
+__autoTemplate__ = True
 __component__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
@@ -59,11 +62,15 @@ __baseSize__ = 10,10,10
 #>>>Attrs ----------------------------------------------------------------------------------------------------
 l_attrsStandard = ['side',
                    'position',
-                   'hasRootJoint',
                    'hasJoint',
                    'basicShape',
+                   'attachPoint',
                    'addAim',
+                   'proxyShape',
                    'addPivot',
+                   'addCog',
+                   'addScalePivot',
+                   'proxy',
                    'moduleTarget']
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
@@ -73,7 +80,6 @@ d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
                  'rootJoint':'messageSimple'}
 
 d_defaultSettings = {'version':__version__,
-                     'hasRootJoint':False,
                      'hasJoint':True,
                      'basicShape':5,
                      'addAim':True,
@@ -81,6 +87,7 @@ d_defaultSettings = {'version':__version__,
                      'axisAim':2,
                      'axisUp':4,
                      'attachPoint':'end',
+                     'proxy':1,
                      'proxyType':1}
 
 
@@ -91,6 +98,8 @@ def define(self):
     _short = self.mNode
     self.translate = 0,0,0
     self.rotate = 0,0,0
+    
+
     #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
     #self.doConnectOut('sy',['sx','sz'])
     #ATTR.set_alias(_short,'sy','blockScale')
@@ -99,21 +108,54 @@ def define(self):
 #>> Template
 #=============================================================================================================
 def template(self):
-    _crv = CURVES.create_controlCurve(self.mNode, shape=self.getEnumValueString('basicShape'),
-                                      direction = self.getEnumValueString('shapeDirection'),
-                                      sizeMode = 'fixed', size = self.baseSize)
-    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-    
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')
+    try:
+        _short = self.mNode
+        _shape = self.getEnumValueString('basicShape')
+        _size = self.baseSize
+        mHandleFactory = self.asHandleFactory(_short)
         
-    CORERIG.colorControl(self.mNode,_side,'main',transparent = False) 
-    
-    self.msgList_connect('templateHandles',[self.mNode])
+        #Create temple Null  ==================================================================================
+        mTemplateNull = BLOCKUTILS.templateNull_verify(self)        
+        
+        #Base shape ===========================================================================================
+        if _shape in ['circle','square']:
+            _size = [v for v in self.baseSize[:-1]] + [None]
+            
+        _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
+                                          direction = self.getEnumValueString('shapeDirection'),
+                                          sizeMode = 'fixed', size = _size)
+        CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+        
+        _side = 'center'
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')
+            
+        CORERIG.colorControl(self.mNode,_side,'main',transparent = False) 
+        
+        #Proxy geo ==================================================================================
+        attr = 'proxy'
+        #self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+        NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
+        NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
+        
+        mProxy = mHandleFactory.addProxyHelper()
+        mProxy.p_parent = mTemplateNull
+        
+        mProxy.overrideEnabled = 1
+        ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mProxy.mNode) )        
+        for mShape in mProxy.getShapes(asMeta=1):
+            str_shape = mShape.mNode
+            mShape.overrideEnabled = 0
+            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
+            
+        
+        self.msgList_connect('templateHandles',[self.mNode])
 
-    return True
-
+        return True
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        
 def templateDelete(self):
     return BLOCKUTILS.templateDelete(self)
 
@@ -127,95 +169,110 @@ def is_template(self):
 #=============================================================================================================
 def prerig(self):
     #self._factory.puppet_verify()
-    _str_func = 'prerig'
-    _short = self.p_nameShort
-    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
-    _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
-    
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')
-
-    self._factory.module_verify()  
-    ml_templateHandles = self.msgList_get('templateHandles')
-    
-    #Create preRig Null  ==================================================================================
-    mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
-    
-    if self.hasJoint:
-        _size = DIST.get_bb_size(self.mNode,True,True)
-        _sizeSub = _size * .2   
-    
-        log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
-    
-        #Joint Helper ==========================================================================================
-        mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
-        ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
-                               lock=False, visible=True,keyable=False)
-    
-        self.msgList_connect('jointHelpers',[mJointHelper.mNode])
-        self.msgList_connect('prerigHandles',[self.mNode])
+    try:
+        _str_func = 'prerig'
+        _short = self.p_nameShort
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
+        _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
         
-    #Pivot Helpers ==========================================================================================
-    ml_pivots = []
-    mPivotRootHandle = False
-    self_pos = self.p_position
-    self_upVector = self.getAxisVector('y+')
-    for a in ['addPivotBack','addPivotFront','addPivotLeft','addPivotRight','addPivotCenter']:
-        d_pivotDirections = {'back':'z-',
-                             'front':'z+',
-                             'left':'x+',
-                             'right':'x-'}
-
-        if self.getAttr(a):
-            _strPivot = a.split('addPivot')[-1]
-            _strPivot = _strPivot[0].lower() + _strPivot[1:]
-            log.info("|{0}| >> Adding addPivot helper: {1}".format(_str_func,_strPivot))
+        _side = 'center'
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')
+    
+        self._factory.module_verify()  
+        ml_templateHandles = self.msgList_get('templateHandles')
+        mHandleFactory = self.asHandleFactory(_short)
+        
+        #Create preRig Null  ==================================================================================
+        mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
+        
+        if self.hasJoint:
+            _size = DIST.get_bb_size(self.mNode,True,True)
+            _sizeSub = _size * .2   
+        
+            log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+        
+            #Joint Helper ==========================================================================================
+            mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
+            ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
+                                   lock=False, visible=True,keyable=False)
+        
+            self.msgList_connect('jointHelpers',[mJointHelper.mNode])
+            self.msgList_connect('prerigHandles',[self.mNode])
             
-            if _strPivot == 'center':
-                pivot = CURVES.create_controlCurve(self.mNode, shape='circle',
-                                                   direction = 'y+',
-                                                   sizeMode = 'fixed',
-                                                   size = _sizeSub)
-                mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                mPivot.addAttr('cgmName',_strPivot)
-                ml_pivots.append(mPivot)
-            else:
-                mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
-                _inverse = mAxis.inverse.p_string
-                pivot = CURVES.create_controlCurve(self.mNode, shape='hinge',
-                                                   direction = _inverse,
-                                                   sizeMode = 'fixed', size = _sizeSub)
-                mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                mPivot.addAttr('cgmName',_strPivot)
+        
+        #Helpers=====================================================================================
+        if self.addPivot:
+            mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
+        if self.addScalePivot:
+            mHandleFactory.addScalePivotHelper().p_parent = mPrerigNull
+        if self.addCog:
+            mHandleFactory.addCogHelper().p_parent = mPrerigNull
+        #mHandleFactory.addJointHelper()
+        #mHandleFactory.addOrientHelper()    
+        
+        return
+        #Pivot Helpers ==========================================================================================
+        ml_pivots = []
+        mPivotRootHandle = False
+        self_pos = self.p_position
+        self_upVector = self.getAxisVector('y+')
+        for a in ['addPivotBack','addPivotFront','addPivotLeft','addPivotRight','addPivotCenter']:
+            d_pivotDirections = {'back':'z-',
+                                 'front':'z+',
+                                 'left':'x+',
+                                 'right':'x-'}
+    
+            if self.getAttr(a):
+                _strPivot = a.split('addPivot')[-1]
+                _strPivot = _strPivot[0].lower() + _strPivot[1:]
+                log.info("|{0}| >> Adding addPivot helper: {1}".format(_str_func,_strPivot))
                 
-                mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
-                SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, 'y+', mode='vector', vectorUp = self_upVector)
+                if _strPivot == 'center':
+                    pivot = CURVES.create_controlCurve(self.mNode, shape='circle',
+                                                       direction = 'y+',
+                                                       sizeMode = 'fixed',
+                                                       size = _sizeSub)
+                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
+                    mPivot.addAttr('cgmName',_strPivot)
+                    ml_pivots.append(mPivot)
+                else:
+                    mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
+                    _inverse = mAxis.inverse.p_string
+                    pivot = CURVES.create_controlCurve(self.mNode, shape='hinge',
+                                                       direction = _inverse,
+                                                       sizeMode = 'fixed', size = _sizeSub)
+                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
+                    mPivot.addAttr('cgmName',_strPivot)
+                    
+                    mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
+                    SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, 'y+', mode='vector', vectorUp = self_upVector)
+                
+                    ml_pivots.append(mPivot)
             
-                ml_pivots.append(mPivot)
-        
-                if not mPivotRootHandle:
-                    pivotHandle = CURVES.create_controlCurve(self.mNode, shape='squareOpen',
-                                                             direction = 'y+',
-                                                             sizeMode = 'fixed', size = _size * 1.25)
-                    mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-                    mPivotRootHandle.addAttr('cgmName','base')
-                    mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-                    mPivotRootHandle.doName()
-                    
-                    CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub',transparent = False) 
-                    
-                    mPivotRootHandle.parent = mPrerigNull
-                    self.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-                    
-    for mPivot in ml_pivots:
-        mPivot.addAttr('cgmType','pivotHelper')            
-        mPivot.doName()
-        
-        CORERIG.colorControl(mPivot.mNode,_side,'sub',transparent = False) 
-        mPivot.parent = mPivotRootHandle
-        mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
-
+                    if not mPivotRootHandle:
+                        pivotHandle = CURVES.create_controlCurve(self.mNode, shape='squareOpen',
+                                                                 direction = 'y+',
+                                                                 sizeMode = 'fixed', size = _size * 1.25)
+                        mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
+                        mPivotRootHandle.addAttr('cgmName','base')
+                        mPivotRootHandle.addAttr('cgmType','pivotHelper')            
+                        mPivotRootHandle.doName()
+                        
+                        CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub',transparent = False) 
+                        
+                        mPivotRootHandle.parent = mPrerigNull
+                        self.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
+                        
+        for mPivot in ml_pivots:
+            mPivot.addAttr('cgmType','pivotHelper')            
+            mPivot.doName()
+            
+            CORERIG.colorControl(mPivot.mNode,_side,'sub',transparent = False) 
+            mPivot.parent = mPivotRootHandle
+            mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 
 def prerigDelete(self):
@@ -332,8 +389,11 @@ def build_skeleton(self, forceNew = True):
 
     self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
     mJoint.doName()
-    
+
     mRigNull.msgList_connect('moduleJoints', [mJoint])
+    
+    self.atBlockUtils('skeleton_connectToParent')
+    
     return mJoint.mNode        
     
 
@@ -410,9 +470,9 @@ def rig_skeleton(self):
             mJnt.radius = .00001
             
     #...connect... 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
-    
+    BUILDERUTILS.joints_connectToParent(self)
+    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     return
 
 def rig_shapes(self):
@@ -459,8 +519,17 @@ def rig_shapes(self):
         
 
     #Control ----------------------------------------------------------------------------------
-    log.info("|{0}| >> Main control shape...".format(_str_func))      
-    mControl = mBlock.doCreateAt()
+    log.info("|{0}| >> Main control shape...".format(_str_func))
+    if mBlock.addCog and mBlock.getMessage('cogHelper'):
+        log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
+        mControl = mBlock.cogHelper.doCreateAt()
+    else:
+        mControl = mBlock.doCreateAt()
+        
+    if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
+        log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+        TRANS.scalePivot_set(mControl.mNode, mBlock.scalePivotHelper.p_position)
+        
     CORERIG.shapeParent_in_place(mControl,self.mBlock.mNode,True)
     mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
     ATTR.copy_to(_short_module,'cgmName',mControl.mNode,driven='target')
@@ -538,8 +607,6 @@ def rig_controls(self):
     if self.mBlock.addAim:        
         mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
     
-
-
     #mHandle ========================================================================================
     log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))    
     _d = MODULECONTROL.register(mHandle,
@@ -634,89 +701,93 @@ def rig_controls(self):
 
 
 def rig_frame(self):
-    _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_rigFrame'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    try:
+        _short = self.d_block['shortName']
+        _str_func = '[{0}] > rig_rigFrame'.format(_short)
+        log.info("|{0}| >> ...".format(_str_func))  
+        _start = time.clock()
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        mHandle = mRigNull.handle        
+        log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
+        
+        #Changing targets - these change based on how the setup rolls through
+        mDirectDriver = mHandle
+        mAimDriver = mHandle
+        mRootParent = self.mDeformNull
+        
+        #Pivot Setup ========================================================================================
+        if mBlock.getMessage('pivotHelper'):
+            log.info("|{0}| >> Pivot setup...".format(_str_func))
+            
+            mPivotResultDriver = mHandle.doCreateAt()
+            mPivotResultDriver.addAttr('cgmName','pivotResult')
+            mPivotResultDriver.addAttr('cgmType','driver')
+            mPivotResultDriver.doName()
+            
+            mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
+            
+            mAimDriver = mPivotResultDriver
+            mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
+     
+            mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
+                                front = 'front', back = 'back')#front, back to clear the toe, heel defaults
+            
     
-    mBlock = self.mBlock
-    mRigNull = self.mRigNull
-    mHandle = mRigNull.handle        
-    log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
+        #Aim ========================================================================================
+        if self.mBlock.addAim:
+            log.info("|{0}| >> Aim setup...".format(_str_func))
+            mSettings = mRigNull.settings
+            
+            mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
+            
+            mAimFKJoint = mRigNull.getMessage('aimFKJoint', asMeta=True)[0]
+            mAimIKJoint = mRigNull.getMessage('aimIKJoint', asMeta=True)[0]
+            mAimBlendJoint = mRigNull.getMessage('aimBlendJoint', asMeta=True)[0]
+            
+            mDirectDriver = mAimBlendJoint
+            mAimLookAt = mRigNull.lookAtHandle
+            
+            ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mAimLookAt.mNode))
+            
+            #Setup Aim -------------------------------------------------------------------------------------
+            mc.aimConstraint(mAimLookAt.mNode,
+                             mAimIKJoint.mNode,
+                             maintainOffset = False, weight = 1,
+                             aimVector = self.d_orientation['vectorAim'],
+                             upVector = self.d_orientation['vectorUp'],
+                             worldUpVector = self.d_orientation['vectorUp'],
+                             worldUpObject = mAimDriver.mNode,
+                             worldUpType = 'objectRotation' )
     
-    #Changing targets - these change based on how the setup rolls through
-    mDirectDriver = mHandle
-    mAimDriver = mHandle
-    mRootParent = self.mDeformNull
+            #Setup blend ----------------------------------------------------------------------------------
+            RIGCONSTRAINT.blendChainsBy(mAimFKJoint,mAimIKJoint,mAimBlendJoint,
+                                        driver = mPlug_aim.p_combinedName,l_constraints=['orient'])
+            
+            #Parent pass ---------------------------------------------------------------------------------
+            mAimLookAt.masterGroup.parent = mAimDriver
+            
+            for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
+                mObj.parent = mAimDriver
     
-    #Pivot Setup ========================================================================================
-    if mBlock.getMessage('pivotHelper'):
-        log.info("|{0}| >> Pivot setup...".format(_str_func))
+        else:
+            log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
         
-        mPivotResultDriver = mHandle.doCreateAt()
-        mPivotResultDriver.addAttr('cgmName','pivotResult')
-        mPivotResultDriver.addAttr('cgmType','driver')
-        mPivotResultDriver.doName()
-        
-        mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
-        
-        mAimDriver = mPivotResultDriver
-        mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
- 
-        mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
-                            front = 'front', back = 'back')#front, back to clear the toe, heel defaults
-        
-
-    #Aim ========================================================================================
-    if self.mBlock.addAim:
-        log.info("|{0}| >> Aim setup...".format(_str_func))
-        mSettings = mRigNull.settings
-        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
-        
-        mAimFKJoint = mRigNull.getMessage('aimFKJoint', asMeta=True)[0]
-        mAimIKJoint = mRigNull.getMessage('aimIKJoint', asMeta=True)[0]
-        mAimBlendJoint = mRigNull.getMessage('aimBlendJoint', asMeta=True)[0]
-        
-        mDirectDriver = mAimBlendJoint
-        mAimLookAt = mRigNull.lookAtHandle
-        
-        ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mAimLookAt.mNode))
-        
-        #Setup Aim -------------------------------------------------------------------------------------
-        mc.aimConstraint(mAimLookAt.mNode,
-                         mAimIKJoint.mNode,
-                         maintainOffset = False, weight = 1,
-                         aimVector = self.d_orientation['vectorAim'],
-                         upVector = self.d_orientation['vectorUp'],
-                         worldUpVector = self.d_orientation['vectorUp'],
-                         worldUpObject = mAimDriver.mNode,
-                         worldUpType = 'objectRotation' )
-
-        #Setup blend ----------------------------------------------------------------------------------
-        RIGCONSTRAINT.blendChainsBy(mAimFKJoint,mAimIKJoint,mAimBlendJoint,
-                                    driver = mPlug_aim.p_combinedName,l_constraints=['orient'])
-        
-        #Parent pass ---------------------------------------------------------------------------------
-        mAimLookAt.masterGroup.parent = mAimDriver
-        
-        for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
-            mObj.parent = mAimDriver
-
-    else:
-        log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
     
-
-    #Direct  ===================================================================================
-    ml_rigJoints = mRigNull.msgList_get('rigJoints')
-    
-    #Parent the direct control to the 
-    if ml_rigJoints[0].getMessage('masterGroup'):
-        ml_rigJoints[0].masterGroup.parent = mDirectDriver
-    else:
-        ml_rigJoints[0].parent = mDirectDriver
+        #Direct  ===================================================================================
+        ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+        #Parent the direct control to the 
+        if ml_rigJoints[0].getMessage('masterGroup'):
+            ml_rigJoints[0].masterGroup.parent = mDirectDriver
+        else:
+            ml_rigJoints[0].parent = mDirectDriver
+            
+        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        raise Exception,err
     
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
@@ -759,11 +830,17 @@ def rig_cleanUp(self):
     ml_baseHandleDynParents = []
 
     #ml_baseDynParents = [ml_controlsFK[0]]
-
+    _moveStart = False
+    if not ml_baseDynParents_start:
+        _moveStart = True
+        
     ml_baseHandleDynParents = copy.copy(ml_baseDynParents_start)
     ml_baseHandleDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     ml_baseHandleDynParents.extend(ml_baseDynParents_end)
     
+    if _moveStart:
+        mPuppetSpace = ml_baseHandleDynParents.pop(-2)
+        ml_baseHandleDynParents.insert(0,mPuppetSpace)
     """
     mBlendDriver =  mHandle.getMessage('blendDriver',asMeta=True)
     if mBlendDriver:
@@ -862,10 +939,8 @@ def build_proxyMesh(self, forceNew = True):
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
-    mHandle = mRigNull.headFK
+    mHandle = mRigNull.handle
     mSettings = mRigNull.settings
-    mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-    _side = BLOCKUTILS.get_side(self.mBlock)
     
     
     #>> If proxyMesh there, delete ----------------------------------------------------------------------------------- 
@@ -879,10 +954,16 @@ def build_proxyMesh(self, forceNew = True):
             return _bfr
     
     #>> Build bbProxy -----------------------------------------------------------------------------
-    
-    
+    if mBlock.getMessage('proxyHelper'):
+        mDup = mBlock.proxyHelper.doDuplicate(po=False)
+        mDup.p_parent = mRigNull.msgList_get('rigJoints')[0]
+        
+        ml_proxy = [mDup]
     #Connect to setup ------------------------------------------------------------------------------------
-    for mProxy in ml_neckProxy + ml_headStuff:
+    mPuppetSettings = self.d_module['mMasterControl'].controlSettings
+    _side = BLOCKUTILS.get_side(self.mBlock)
+    
+    for mProxy in ml_proxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
         
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
@@ -894,10 +975,9 @@ def build_proxyMesh(self, forceNew = True):
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode
             mShape.overrideEnabled = 0
-            #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
         
-    mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
+    mRigNull.msgList_connect('proxyMesh', ml_proxy)
 
 __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_shapes',
