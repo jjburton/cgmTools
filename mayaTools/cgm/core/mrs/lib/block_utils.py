@@ -16,7 +16,7 @@ import copy
 import time
 import os
 import pprint
-
+import sys
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
@@ -52,11 +52,47 @@ from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 
+#=============================================================================================================
+#>> Queries
+#=============================================================================================================
 def get_side(self):
     _side = 'center' 
     if self.getMayaAttr('side'):
         _side = self.getEnumValueString('side') 
     return _side
+def test(self):
+    return cgmGEN.queryCode()
+
+def get_infoBlock_report(self):
+    """
+    Get a report of data 
+
+    :returns
+        list
+    """
+    try:
+        _str_func = 'get_infoBlock_report'
+    
+        _short = self.p_nameShort
+        mBlockModule = self.p_blockModule
+        
+        _res = []
+        
+        _res.append("blockParent : {0}".format(self.getBlockParent(False)))
+        _res.append("blockChildren : {0}".format(len(self.getBlockChildren(False))))
+        for msg in 'blockMirror','moduleTarget':
+            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))          
+    
+        _res.append("       version: {0}".format(ATTR.get(_short,'version')))
+        _res.append("module version: {0}".format(mBlockModule.__version__))
+    
+        for a in 'side','position':
+            if ATTR.get(_short,a):
+                _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
+        return _res
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
 
 #=============================================================================================================
 #>> define
@@ -73,14 +109,17 @@ def is_template(self):
     return True
 
 def templateDelete(self,msgLinks = []):
-    _str_func = 'templateDelete'    
-    log.info("|{0}| >> ...".format(_str_func))                            
-    for link in msgLinks:
-        if self.getMessage(link):
-            log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
-            mc.delete(self.getMessage(link))
-    return True
-
+    try:
+        _str_func = 'templateDelete'    
+        log.info("|{0}| >> ...".format(_str_func))                            
+        for link in msgLinks:
+            if self.getMessage(link):
+                log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
+                mc.delete(self.getMessage(link))
+        return True
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def templateNull_verify(self):
     if not self.getMessage('templateNull'):
         str_templateNull = RIGGING.create_at(self.mNode)
@@ -98,104 +137,111 @@ def templateNull_verify(self):
 
 def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTemplateNull = None,
                             uAttr = 'neckControls',baseName = 'test'):
+    try:
+        _str_func = 'create_templateLoft'
+        
+        _side = 'center'
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')  
+                
+        _res_body = mc.loft(targets, o = True, d = 3, po = 1, name = baseName )
+        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
     
-    _str_func = 'create_templateLoft'
+        _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
+        _tessellate = _inputs[0]
+        _loftNode = _inputs[1]
     
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')  
-            
-    _res_body = mc.loft(targets, o = True, d = 3, po = 1, name = baseName )
-    mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-
-    _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
-    _tessellate = _inputs[0]
-    _loftNode = _inputs[1]
-
-
-    _d = {'format':2,#General
-          'polygonType':1,#'quads',
-          'uNumber': 1 + ATTR.get(self.mNode, uAttr)}
-
-    for a,v in _d.iteritems():
-        ATTR.set(_tessellate,a,v)    
-
-    mLoft.overrideEnabled = 1
-    mLoft.overrideDisplayType = 2
-    _arg = "{0}.numberOfControlsOut = {1} + 1".format(mBaseLoftCurve.p_nameShort,
-                                                      self.getMayaAttrString(uAttr,'short'))
-
-    NODEFACTORY.argsToNodes(_arg).doBuild()
-
-    ATTR.connect("{0}.numberOfControlsOut".format(mBaseLoftCurve.mNode), "{0}.uNumber".format(_tessellate))
-    ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
-
-    mLoft.p_parent = mTemplateNull
-    mLoft.resetAttrs()
-
-    mLoft.doStore('cgmName',self.mNode)
-    mLoft.doStore('cgmType','controlsApprox')
-    mLoft.doName()
-
-    for n in _tessellate,_loftNode:
-        mObj = cgmMeta.validateObjArg(n)
-        mObj.doStore('cgmName',self.mNode)
-        mObj.doStore('cgmTypeModifier','controlsApprox')
-        mObj.doName()            
-
-
-    #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
-    #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
-
-    mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
-
-    #Color our stuff...
-    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-
-    mLoft.inheritsTransform = 0
-    for s in mLoft.getShapes(asMeta=True):
-        s.overrideDisplayType = 2   
-
-    self.connectChildNode(mLoft.mNode, 'templateLoftMesh', 'block')    
-    return mLoft
-
+    
+        _d = {'format':2,#General
+              'polygonType':1,#'quads',
+              'uNumber': 1 + ATTR.get(self.mNode, uAttr)}
+    
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)    
+    
+        mLoft.overrideEnabled = 1
+        mLoft.overrideDisplayType = 2
+        _arg = "{0}.numberOfControlsOut = {1} + 1".format(mBaseLoftCurve.p_nameShort,
+                                                          self.getMayaAttrString(uAttr,'short'))
+    
+        NODEFACTORY.argsToNodes(_arg).doBuild()
+    
+        ATTR.connect("{0}.numberOfControlsOut".format(mBaseLoftCurve.mNode), "{0}.uNumber".format(_tessellate))
+        ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
+    
+        mLoft.p_parent = mTemplateNull
+        mLoft.resetAttrs()
+    
+        mLoft.doStore('cgmName',self.mNode)
+        mLoft.doStore('cgmType','controlsApprox')
+        mLoft.doName()
+    
+        for n in _tessellate,_loftNode:
+            mObj = cgmMeta.validateObjArg(n)
+            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmTypeModifier','controlsApprox')
+            mObj.doName()            
+    
+    
+        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+        #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
+    
+        mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    
+        #Color our stuff...
+        RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
+    
+        mLoft.inheritsTransform = 0
+        for s in mLoft.getShapes(asMeta=True):
+            s.overrideDisplayType = 2   
+    
+        self.connectChildNode(mLoft.mNode, 'templateLoftMesh', 'block')    
+        return mLoft
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
 def noTransformNull_verify(self):
-    if not self.getMessage('noTransformNull'):
-        str_prerigNull = mc.group(em=True)
-        mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
-        mNoTransformNull.connectParentNode(self, 'rigBlock','noTransformNull') 
-        mNoTransformNull.doStore('cgmName', self.mNode)
-        mNoTransformNull.doStore('cgmType','noTransformNull')
-        mNoTransformNull.doName()
-
-
-        #mNoTransformNull.p_parent = self.prerigNull
-        #mNoTransformNull.resetAttrs()
-        #mNoTransformNull.setAttrFlags()
-        #mNoTransformNull.inheritsTransform = False
-    else:
-        mNoTransformNull = self.noTransformNull    
-
-    return mNoTransformNull    
-
-def prerigNull_verify(self):
-    if not self.getMessage('prerigNull'):
-        str_prerigNull = RIGGING.create_at(self.mNode)
-        mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
-        mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
-        mPrerigNull.doStore('cgmName', self.mNode)
-        mPrerigNull.doStore('cgmType','prerigNull')
-        mPrerigNull.doName()
-        mPrerigNull.p_parent = self
-        mPrerigNull.setAttrFlags()
-    else:
-        mPrerigNull = self.prerigNull    
+    try:
+        if not self.getMessage('noTransformNull'):
+            str_prerigNull = mc.group(em=True)
+            mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
+            mNoTransformNull.connectParentNode(self, 'rigBlock','noTransformNull') 
+            mNoTransformNull.doStore('cgmName', self.mNode)
+            mNoTransformNull.doStore('cgmType','noTransformNull')
+            mNoTransformNull.doName()
+    
+    
+            #mNoTransformNull.p_parent = self.prerigNull
+            #mNoTransformNull.resetAttrs()
+            #mNoTransformNull.setAttrFlags()
+            #mNoTransformNull.inheritsTransform = False
+        else:
+            mNoTransformNull = self.noTransformNull    
+    
+        return mNoTransformNull    
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
         
-    return mPrerigNull
-
+def prerigNull_verify(self):
+    try:
+        if not self.getMessage('prerigNull'):
+            str_prerigNull = RIGGING.create_at(self.mNode)
+            mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
+            mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
+            mPrerigNull.doStore('cgmName', self.mNode)
+            mPrerigNull.doStore('cgmType','prerigNull')
+            mPrerigNull.doName()
+            mPrerigNull.p_parent = self
+            mPrerigNull.setAttrFlags()
+        else:
+            mPrerigNull = self.prerigNull    
+            
+        return mPrerigNull
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def prerig_simple(self):
     _str_func = 'prerig'
     
@@ -218,127 +264,135 @@ def prerig_simple(self):
     return True
 
 def prerig_delete(self ,msgLists = [], templateHandles = True):
-    _str_func = 'prerig_delete'    
-    self.moduleTarget.delete()
-    self.prerigNull.delete()
-    if self.getMessage('noTransformNull'):
-        self.noTransformNull.delete()
-    if templateHandles:
-        for mHandle in [self] + self.msgList_get('templateHandles'):
-            try:mHandle.jointHelper.delete()
-            except:pass    
-    
-    for l in msgLists:
-        _buffer = self.msgList_get(l,asMeta=False)
-        if not _buffer:
-            log.info("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
-        else:
-            mc.delete(_buffer)
-    
-    return True   
+    try:
+        _str_func = 'prerig_delete'    
+        self.moduleTarget.delete()
+        self.prerigNull.delete()
+        if self.getMessage('noTransformNull'):
+            self.noTransformNull.delete()
+        if templateHandles:
+            for mHandle in [self] + self.msgList_get('templateHandles'):
+                try:mHandle.jointHelper.delete()
+                except:pass    
+        
+        for l in msgLists:
+            _buffer = self.msgList_get(l,asMeta=False)
+            if not _buffer:
+                log.info("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
+            else:
+                mc.delete(_buffer)
+        
+        return True   
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def is_prerig(self, msgLinks = [], msgLists = [] ):
-    _str_func = 'is_prerig'
-    _l_missing = []
-
-    _d_links = {self : ['moduleTarget','prerigNull']}
-
-    for l in msgLinks:
-        if not self.getMessage(l):
-            _l_missing.append(self.p_nameBase + '.' + l)
-            
-    for l in msgLists:
-        if not self.msgList_exists(l):
-            _l_missing.append(self.p_nameBase + '.[msgList]' + l)
-
-    if _l_missing:
-        log.info("|{0}| >> Missing...".format(_str_func))  
-        for l in _l_missing:
-            log.info("|{0}| >> {1}".format(_str_func,l))  
-        return False
-    return True
-
+    try:
+        _str_func = 'is_prerig'
+        _l_missing = []
+    
+        _d_links = {self : ['moduleTarget','prerigNull']}
+    
+        for l in msgLinks:
+            if not self.getMessage(l):
+                _l_missing.append(self.p_nameBase + '.' + l)
+                
+        for l in msgLists:
+            if not self.msgList_exists(l):
+                _l_missing.append(self.p_nameBase + '.[msgList]' + l)
+    
+        if _l_missing:
+            log.info("|{0}| >> Missing...".format(_str_func))  
+            for l in _l_missing:
+                log.info("|{0}| >> {1}".format(_str_func,l))  
+            return False
+        return True
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                           uAttr = 'neckControls', uAttr2 = 'loftSplit',
                           polyType = 'mesh',
                           baseName = 'test'):
+    try:
+        _str_func = 'create_preRigLoftMesh'
+        
+        _side = 'center'
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')  
+                
+        
+        if polyType == 'mesh':
+            _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
+            mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
+        
+            _tessellate = _inputs[0]
+            _loftNode = _inputs[1]
+        
+            log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'uNumber': 1 + len(targets)}
+        
+            for a,v in _d.iteritems():
+                ATTR.set(_tessellate,a,v)    
+        else:
+            _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
+            mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
     
-    _str_func = 'create_preRigLoftMesh'
+        mLoft.overrideEnabled = 1
+        mLoft.overrideDisplayType = 2
     
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')  
+        mLoft.p_parent = mPrerigNull
+        mLoft.resetAttrs()
+    
+        mLoft.doStore('cgmName',self.mNode)
+        mLoft.doStore('cgmType','shapeApprox')
+        mLoft.doName()
+    
+        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+        #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
+    
+        #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    
+        #Color our stuff...
+        RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
+    
+        mLoft.inheritsTransform = 0
+        for s in mLoft.getShapes(asMeta=True):
+            s.overrideDisplayType = 2    
             
-    
-    if polyType == 'mesh':
-        _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
-        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-        _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
-    
-        _tessellate = _inputs[0]
-        _loftNode = _inputs[1]
-    
-        log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
-        _d = {'format':2,#General
-              'polygonType':1,#'quads',
-              'uNumber': 1 + len(targets)}
-    
-        for a,v in _d.iteritems():
-            ATTR.set(_tessellate,a,v)    
-    else:
-        _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
-        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
-
-    mLoft.overrideEnabled = 1
-    mLoft.overrideDisplayType = 2
-
-    mLoft.p_parent = mPrerigNull
-    mLoft.resetAttrs()
-
-    mLoft.doStore('cgmName',self.mNode)
-    mLoft.doStore('cgmType','shapeApprox')
-    mLoft.doName()
-
-    #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
-    #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
-
-    #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
-
-    #Color our stuff...
-    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-
-    mLoft.inheritsTransform = 0
-    for s in mLoft.getShapes(asMeta=True):
-        s.overrideDisplayType = 2    
+        if polyType == 'mesh':
+            #...wire some controls
+            _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
+                                                           self.getMayaAttrString(uAttr,'short'))
         
-    if polyType == 'mesh':
-        #...wire some controls
-        _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
-                                                       self.getMayaAttrString(uAttr,'short'))
-    
-        NODEFACTORY.argsToNodes(_arg).doBuild()
-        #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
-        _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
-                                                              self.getMayaAttrString('loftDegree','short'))
-    
-        NODEFACTORY.argsToNodes(_arg).doBuild()    
-    
-        ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
-        ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
-    
-        ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
-        #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
-    
+            NODEFACTORY.argsToNodes(_arg).doBuild()
+            #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+            _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
+                                                                  self.getMayaAttrString('loftDegree','short'))
         
-        for n in _tessellate,_loftNode:
-            mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self.mNode)
-            mObj.doStore('cgmTypeModifier','prerigMesh')
-            mObj.doName()            
-
-    self.connectChildNode(mLoft.mNode, 'prerigLoftMesh', 'block')    
-    return mLoft
-
+            NODEFACTORY.argsToNodes(_arg).doBuild()    
+        
+            ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
+            ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
+        
+            ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
+            #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
+        
+            
+            for n in _tessellate,_loftNode:
+                mObj = cgmMeta.validateObjArg(n)
+                mObj.doStore('cgmName',self.mNode)
+                mObj.doStore('cgmTypeModifier','prerigMesh')
+                mObj.doName()            
+    
+        self.connectChildNode(mLoft.mNode, 'prerigLoftMesh', 'block')    
+        return mLoft
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def create_jointLoft(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
@@ -1012,9 +1066,7 @@ def skeleton_connectToParent(self):
                 log.info("|{0}| >> Root joint on master found".format(_str_func))           
                 TRANS.parent_set(l_moduleJoints[0], ml_parentBlocks[0].moduleTarget.getMessage('rootJoint')[0])
                 return True
-    raise ValueError,"Finish this..."
-    
-    return
+    return True
     ml_parentBlocks = self.getParentBlocks()
     if ml_parentBlocks and ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
         log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  

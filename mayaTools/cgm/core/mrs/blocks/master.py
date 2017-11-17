@@ -240,6 +240,8 @@ def rig_cleanUp(self):
     
     
     #mRigNull.version = self.d_block['buildVersion']
+    #mRigNull.version = __version__
+    mBlock.blockState = 'rig'
     
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
@@ -376,7 +378,8 @@ def skeletonDelete(self):
         log.warning("MUST ACCOUNT FOR CHILD JOINTS")
         mc.delete(self.getMessage('rootJoint'))
     return True
-            
+
+__l_rigBuildOrder__ = ['rig_cleanUp']
 
 
 

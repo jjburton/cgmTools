@@ -188,9 +188,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
-            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            log.info('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
             return
         #====================================================================================	
+        #for a in 'p_blockState','testinasdfasdfasdf':
+            #if a not in self.UNMANAGED:
+                #self.UNMANAGED.append(a) 	
+
 
         if _callSize is None:
             _callSize = get_callSize(kws.get('size',None))
@@ -222,7 +226,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     return
                 elif not self.verify(blockType):
                     raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-
+                
                 #Name -----------------------------------------------
 
                 #>>>Auto flags...
@@ -274,7 +278,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>> Attributes --------------------------------------------------------------------------------
         self._factory.verify(blockType)    
-
+        
         #>>> Base shapes --------------------------------------------------------------------------------
         #_size = self._callKWS.get('size')
         #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
@@ -1901,8 +1905,8 @@ class factory(object):
             for l in _l_msgLinks:
                 _d[l] = 'messageSimple'
 
-        cgmGEN.walk_dat(_d,_str_func + " '{0}' attributes to verify".format(blockType))
-        cgmGEN.walk_dat(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
+        #cgmGEN.walk_dat(_d,_str_func + " '{0}' attributes to verify".format(blockType))
+        #cgmGEN.walk_dat(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
 
         self._d_attrsToVerify = _d
         self._d_attrToVerifyDefaults = d_defaultSettings
@@ -1997,56 +2001,6 @@ class factory(object):
             raise ValueError,"|{0}| >> See missing links above...".format(_str_func,_l_missing)
 
         return True
-
-    def get_infoBlock_report(self):
-        """
-        Get a report of data 
-
-        :returns
-            list
-        """
-        _str_func = 'get_infoBlock_report'
-
-        if self._mi_block is None:
-            raise ValueError,"|{0}| >> No root loaded.".format(_str_func) 
-
-        _d = get_modules_dict()   
-        _blockType = self._mi_block.blockType
-        _mBlock = self._mi_block
-        if _blockType not in _d.keys():
-            log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,_blockType))        
-            return False        
-
-        _mod = _d.get(_blockType,False)
-
-        _short = self._mi_block.p_nameShort
-
-        _res = []
-
-        #_res.append("{0} : {1}".format('blockType',_blockType))
-        #_res.append("{0} : {1}".format('blockState',ATTR.get(_short,'blockState')))
-
-        _res.append("blockParent : {0}".format(_mBlock.getBlockParent(False)))
-        _res.append("blockChildren : {0}".format(len(_mBlock.getBlockChildren(False))))
-        for msg in 'blockMirror','moduleTarget':
-            _res.append("{0} : {1}".format(msg,ATTR.get(_short,msg)))          
-        _res.append("skeletonized : {0}".format(_mBlock.isSkeletonized()))
-        #_res.append("blockChildren : {0}".format(_mBlock.getBlockChildren(False)))
-
-        _res.append("       version: {0}".format(ATTR.get(_short,'version')))
-        _res.append("module version: {0}".format(_mod.__version__))
-
-        for a in 'side','position':
-            if ATTR.get(_short,a):
-                _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
-
-
-        #Msg checks        
-        #for link in  
-        #Module data
-
-        return _res
-
 
     def get_skeletonCreateDict(self,blockType = None):
         """
@@ -2214,7 +2168,7 @@ class factory(object):
     #>>> States 
     #========================================================================================================  
 
-    def changeState(self, state = None, rebuildFrom = None, forceNew = False):
+    def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         """
         Change the state of a loaded rigBlock
 
@@ -2281,7 +2235,7 @@ class factory(object):
             for doState in doStates:
                 #if doState in d_upStateFunctions.keys():
                 log.debug("|{0}| >> Up to: {1} ....".format(_str_func, doState))
-                if not d_upStateFunctions[doState]():
+                if not d_upStateFunctions[doState](**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False
                 elif _mBlock.p_blockState != doState:
@@ -2301,7 +2255,7 @@ class factory(object):
 
             for doState in doStates:
                 log.debug("|{0}| >> Down to: {1} ....".format(_str_func, doState))
-                if not d_downStateFunctions[doState]():
+                if not d_downStateFunctions[doState](**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False 
                 elif _mBlock.p_blockState != doState:
@@ -2460,12 +2414,12 @@ class factory(object):
 
         return True
 
-    def rig(self):
+    def rig(self,**kws):
         #Master control
         if self._mi_block is None:
             raise ValueError,"No root loaded."
         _mBlock = self._mi_block
-
+        _short = _mBlock.mNode
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
 
@@ -2481,13 +2435,13 @@ class factory(object):
 
         #>>>Meat ------------------------------------------------------------------------------------
         _mBlock.blockState = 'prerig>rig'#...buffering that we're in process
-        _mBlockModule = get_blockModule(_mBlock.blockType)
+        _BlockModule= _mBlock.p_blockModule
+        
+        
+        rigFactory(_mBlock,autoBuild=True,**kws)
 
-        if 'rig' in _mBlockModule.__dict__.keys():
-            log.debug("|{0}| >> BlockModule rig call found...".format(_str_func))            
-            _mBlockModule.rig(_mBlock)
-
-        _mBlock.blockState = 'rig'#...yes now in this state
+        #cgmRigBlock(_short).blockState = 'rig'
+        #_mBlock.blockState = 'rig'#...yes now in this state
         return True
 
     def rigDelete(self):
@@ -3090,8 +3044,8 @@ _l_requiredModuleDat = ['__version__',
 _d_requiredModuleDat = {'define':['__version__'],
                         'template':['template','is_template','templateDelete'],
                         'prerig':['prerig','is_prerig','prerigDelete'],
-                        'rig':['rig','is_rig','rigDelete']}
-
+                        'rig':['is_rig','rigDelete']}
+_d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
 
 def get_blockModule_status2(blockType):
     """
@@ -3119,6 +3073,36 @@ def get_blockModule_status2(blockType):
 
     return _res
 
+
+def valid_blockModule_rigBuildOrder(blockType):
+    _str_func = 'get_blockModule_status'
+    
+    _BlockModule = get_blockModule(blockType)
+    reload(_BlockModule)
+    try:
+        _blockType = _BlockModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False    
+    
+    
+    _status = True
+    _l_buildOrder = getattr(_BlockModule,'__l_rigBuildOrder__',[])
+    if _l_buildOrder:
+        for i,step in enumerate(_l_buildOrder):
+            if not getattr(_BlockModule,step,False):
+                _status = False
+                print("|{0}| >> [{1}] FAIL. Missing rig step {2} call: {3}".format(_str_func,_blockType,i,step))
+    elif getattr(_BlockModule,'rig',[]):
+        log.info("|{0}| >> BlockModule rig call found...".format(_str_func))
+    else:
+        _status = False
+
+    if _status:
+        print("|{0}| >> [{1}] Pass: valid rig build order ".format(_str_func,_blockType))                            
+        return _l_buildOrder
+    return False
+
 def get_blockModule_status(blockModule, state = None):
     """
     Function to check if a blockModule is buildable by state or given a state if that one is okay
@@ -3130,7 +3114,6 @@ def get_blockModule_status(blockModule, state = None):
 
     if VALID.stringArg(blockModule):
         _buildModule = get_blockModule(blockModule)
-
     else:
         _buildModule = blockModule
 
@@ -3144,14 +3127,18 @@ def get_blockModule_status(blockModule, state = None):
         _res = {}        
         for state in ['define','template','prerig','rig']:
             l_tests = _d_requiredModuleDat[state]
+            l_functionTests = _d_requiredModuleDatCalls.get(state,[])            
             _good = True
-            print("|{0}| >> [{1}]{2}".format(_str_func,_blockType,state) + cgmGEN._str_subLine)            
+            print("|{0}| >> [{1}]{2}".format(_str_func,_blockType,state.capitalize()) + cgmGEN._str_subLine)            
             for test in l_tests:
                 if not getattr(_buildModule, test, False):
-                    print("|{0}| >> [{1}] {2}: Fail".format(_str_func,_blockType,test))
+                    print("|{0}| >> [{1}] FAIL: {2}".format(_str_func,_blockType,test))
                     _good = False  
                 else:
-                    print("|{0}| >> [{1}] {2}: Pass".format(_str_func,_blockType,test))                    
+                    print("|{0}| >> [{1}] Pass: {2}".format(_str_func,_blockType,test))
+            for test in l_functionTests:
+                if not test(_buildModule):
+                    _good = False                 
             _res[state] = _good
 
             if state == 'define':
@@ -3159,11 +3146,16 @@ def get_blockModule_status(blockModule, state = None):
 
     else:
         l_tests = _d_requiredModuleDat[state]
+        l_functionTests = _d_requiredModuleDatCalls.get(state,[])
         _res = True
         for test in l_tests:
             if not getattr(_buildModule, test, False):
                 print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
-                _res = False   
+                _res = False
+        for test in l_functionTests:
+            if not test(_buildModule):
+                #print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
+                _res = False                
 
         if state == 'define':
             print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.__dict__.get('__version__',False)))                    
@@ -3305,6 +3297,7 @@ class rigFactory(object):
         if kws:#...intial population
             self.call_kws = kws
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
+            
 
         self.call_kws['forceNew'] = forceNew
         self.call_kws['rigBlock'] = rigBlock
@@ -3312,33 +3305,30 @@ class rigFactory(object):
         self.call_kws['ignoreRigCheck'] = ignoreRigCheck
         cgmGEN.log_info_dict(self.call_kws,_str_func)
 
-        if not self.fnc_check_rigBlock():
-            pprint.pprint(self.__dict__)            
-            raise RuntimeError,"|{0}| >> RigBlock checks failed. See warnings and errors.".format(_str_func)
-        log.debug("|{0}| >> RigBlock check passed".format(_str_func) + cgmGEN._str_subLine)
-
-        if not self.fnc_check_module():
-            pprint.pprint(self.__dict__)
-            raise RuntimeError,"|{0}| >> Module checks failed. See warnings and errors.".format(_str_func)
-        log.debug("|{0}| >> Module check passed...".format(_str_func)+ cgmGEN._str_subLine)
-
-        if not self.fnc_rigNeed():
-            pprint.pprint(self.__dict__)            
-            raise RuntimeError,"|{0}| >> No rig need see errors".format(_str_func)
-        log.debug("|{0}| >> Rig needed...".format(_str_func)+ cgmGEN._str_subLine)
-
-        if not self.fnc_bufferDat():
-            pprint.pprint(self.__dict__)            
-            raise RuntimeError,"|{0}| >> Failed to buffer data. See warnings and errors.".format(_str_func)
-
+        try:self.fnc_check_rigBlock()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+            
+        try:self.fnc_check_module()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+    
+        try:self.fnc_rigNeed()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+            
+        try:self.fnc_bufferDat()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+            
         if not self.fnc_moduleRigChecks():
             pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
-
-        if not self.fnc_deformConstrainNulls():
-            pprint.pprint(self.__dict__)            
-            raise RuntimeError,"|{0}| >> Failed to process deform/constrain. See warnings and errors.".format(_str_func)
-
+        
+        try:self.fnc_deformConstrainNulls()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+            
         self.fnc_processBuild(**kws)
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
@@ -3396,8 +3386,7 @@ class rigFactory(object):
         _start = time.clock()
 
         if not self.call_kws['rigBlock']:
-            log.error("|{0}| >> No rigBlock stored in call kws".format(_str_func))
-            return False
+            raise RuntimeError,'No rigBlock stored in call kws'
 
         BlockFactory = factory(self.call_kws['rigBlock'])
         BlockFactory.verify()
@@ -3416,11 +3405,19 @@ class rigFactory(object):
             return False
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
-
+        
+        
+        #Build order --------------------------------------------------------------------------------
+        _d['buildOrder'] = valid_blockModule_rigBuildOrder(_buildModule)
+        if not _d['buildOrder']:
+            raise RuntimeError,'Failed to validate build order'
+        
         self.d_block = _d    
-        #cgmGEN.log_info_dict(_d,_str_func + " blockDat")   
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        
         self.buildModule = _buildModule
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
+        log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
+        
         return True
 
 
@@ -3482,8 +3479,8 @@ class rigFactory(object):
                     _res = False
 
         self.d_module = _d    
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
-        #cgmGEN.log_info_dict(_d,_str_func + " moduleDat")    
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
+        log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res    
 
 
@@ -3532,8 +3529,8 @@ class rigFactory(object):
         #>>> Object Set -----------------------------------------------------------------------------------
         self.mModule.__verifyObjectSet__()
 
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
-
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
+        log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
 
     def fnc_rigNeed(self):
@@ -3541,51 +3538,48 @@ class rigFactory(object):
         Function to check if a go instance needs to be rigged
 
         """
-        try:
-            _str_func = 'fnc_rigNeed'  
-    
-            _mModule = self.d_module.get('mModule')
-            _mModuleParent = self.d_module.get('mModuleParent')
-            _version = self.d_module.get('version')
-            _buildVersion = self.d_block.get('buildVersion')
-            _buildModule = self.buildModule
-            _blockType = self.mBlock.blockType
-            
-            _d_callKWS = self.call_kws
-    
-            if _blockType == 'master':
-                _b_rigged = True
-            else:
-                if _mModuleParent:
-                    _str_moduleParent = _mModuleParent.getShortName()
-                    if not _mModuleParent.isRigged():
-                        log.warning("|{0}| >> [{1}] ModuleParent not rigged".format(_str_func,_str_moduleParent))            
-                        return False
+        _str_func = 'fnc_rigNeed'  
+
+        _mModule = self.d_module.get('mModule')
+        _mModuleParent = self.d_module.get('mModuleParent')
+        _version = self.d_module.get('version')
+        _buildVersion = self.d_block.get('buildVersion')
+        _buildModule = self.buildModule
+        _blockType = self.mBlock.blockType
         
-                _b_rigged = _mModule.isRigged()
-                
-            log.debug("|{0}| >> Rigged: {1}".format(_str_func,_b_rigged))            
-    
-            if _b_rigged and not _d_callKWS['forceNew'] and _d_callKWS['ignoreRigCheck'] is not True:
-                log.warning("|{0}| >> Already rigged and not forceNew".format(_str_func))                    
-                return False
-    
-            self.b_outOfDate = False
-            if _version != _buildVersion:
-                self.b_outOfDate = True
-                log.warning("|{0}| >> Versions don't match: rigNull: {1} | buildModule: {2}".format(_str_func,_version,_buildVersion))                            
-            else:
-                if _d_callKWS['forceNew'] and _b_rigged:
-                    log.warning("|{0}| >> Force new and is rigged. Deleting rig...NOT IMPLEMENTED".format(_str_func))                    
-                    #_mModule.rigDelete()
-                else:
-                    log.info("|{0}| >> Up to date.".format(_str_func))                    
+        _d_callKWS = self.call_kws
+
+        if _blockType == 'master':
+            _b_rigged = True
+        else:
+            if _mModuleParent:
+                _str_moduleParent = _mModuleParent.getShortName()
+                if not _mModuleParent.isRigged():
+                    log.warning("|{0}| >> [{1}] ModuleParent not rigged".format(_str_func,_str_moduleParent))            
                     return False
     
-            return True
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
-            raise Exception,err
+            _b_rigged = _mModule.isRigged()
+            
+        log.debug("|{0}| >> Rigged: {1}".format(_str_func,_b_rigged))            
+
+        if _b_rigged and not _d_callKWS['forceNew'] and _d_callKWS['ignoreRigCheck'] is not True:
+            log.warning("|{0}| >> Already rigged and not forceNew".format(_str_func))                    
+            return False
+
+        self.b_outOfDate = False
+        if _version != _buildVersion:
+            self.b_outOfDate = True
+            log.warning("|{0}| >> Versions don't match: rigNull: {1} | buildModule: {2}".format(_str_func,_version,_buildVersion))                            
+        else:
+            if _d_callKWS['forceNew'] and _b_rigged:
+                log.warning("|{0}| >> Force new and is rigged. Deleting rig...NOT IMPLEMENTED".format(_str_func))                    
+                #_mModule.rigDelete()
+            else:
+                log.info("|{0}| >> Up to date.".format(_str_func))                    
+                return False
+
+        return True
+
         
     def fnc_atModule(self,func = '',*args,**kws):
         _str_func = 'fnc_atModule'
@@ -3738,7 +3732,7 @@ class rigFactory(object):
     
             return True
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
+            cgmGEN.cgmExceptCB(Exception,err,localDat==vars())
             raise Exception,err
 
 
@@ -3879,7 +3873,7 @@ class rigFactory(object):
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
 

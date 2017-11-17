@@ -52,12 +52,16 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.11062017'
+__version__ = 'alpha.11162017'
 __autoTemplate__ = True
 __component__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
-
+__l_rigBuildOrder__ = ['rig_skeleton',
+                       'rig_shapes',
+                       'rig_controls',
+                       'rig_frame',
+                       'rig_cleanUp']
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
 l_attrsStandard = ['side',
@@ -310,19 +314,8 @@ def is_prerig(self):
 #=============================================================================================================
 #>> rig
 #=============================================================================================================
-def rig(self):
-    #
-    self.moduleTarget._verifyMasterControl(size = DIST.get_bb_size(self,True,True))
-    
-    if self.hasRootJoint:
-        if not is_skeletonized(self):
-            skeletonize(self)
-            
-        mJoint = self.getMessage('rootJoint', asMeta = True)[0]
-        log.info(mJoint)
-        mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup  
-
 def rigDelete(self):
+    return
     try:self.moduleTarget.masterControl.delete()
     except Exception,err:
         for a in err:
@@ -330,26 +323,29 @@ def rigDelete(self):
     return True
             
 def is_rig(self):
-    _str_func = 'is_rig'
-    _l_missing = []
+    try:
+        _str_func = 'is_rig'
+        _l_missing = []
+        
+        _d_links = {'moduleTarget' : ['constrainNull']}
+        
+        for plug,l_links in _d_links.iteritems():
+            _mPlug = self.getMessage(plug,asMeta=True)
+            if not _mPlug:
+                _l_missing.append("{0} : {1}".format(plug,l_links))
+                continue
+            for l in l_links:
+                if not _mPlug[0].getMessage(l):
+                    _l_missing.append(plug + '.' + l)
     
-    _d_links = {'moduleTarget' : ['masterControl']}
-    
-    for plug,l_links in _d_links.iteritems():
-        _mPlug = self.getMessage(plug,asMeta=True)
-        if not _mPlug:
-            _l_missing.append("{0} : {1}".format(plug,l_links))
-            continue
-        for l in l_links:
-            if not _mPlug[0].getMessage(l):
-                _l_missing.append(plug.p_nameBase + '.' + l)
-
-    if _l_missing:
-        log.info("|{0}| >> Missing...".format(_str_func))  
-        for l in _l_missing:
-            log.info("|{0}| >> {1}".format(_str_func,l))  
-        return False
-    return True
+        if _l_missing:
+            log.info("|{0}| >> Missing...".format(_str_func))  
+            for l in _l_missing:
+                log.info("|{0}| >> {1}".format(_str_func,l))  
+            return False
+        return True
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 #=============================================================================================================
 #>> Skeleton
@@ -921,8 +917,9 @@ def rig_cleanUp(self):
 
     #>>  Attribute defaults =================================================================================
     
-    mRigNull.version = self.d_block['buildVersion']
-    
+    #Final close out stuff....move to 
+    mRigNull.version = __version__
+    mBlock.blockState = 'rig'
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
 
@@ -979,11 +976,7 @@ def build_proxyMesh(self, forceNew = True):
         
     mRigNull.msgList_connect('proxyMesh', ml_proxy)
 
-__l_rigBuildOrder__ = ['rig_skeleton',
-                       'rig_shapes',
-                       'rig_controls',
-                       'rig_frame',
-                       'rig_cleanUp']
+
 
 
 
