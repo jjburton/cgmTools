@@ -1219,9 +1219,7 @@ def func_getTraceString(func):
         
     except Exception,error:
         log.debug('function class inspect failure: %s'%error)
-        
-    func_snapShot(vars())
-    
+            
     return '.'.join(_l_join)
 def Timer2(func):
     '''
@@ -1388,8 +1386,9 @@ def Func(func):
     return wrapper
 
 @Timer
-def testTimer(length = 1.2):
-    time.sleep(float(length))   # delays for 5 seconds. You can Also Use Float Value.
+def testTimer(sleep = .5):
+    log.info("Sleep time: {0}".format(sleep))
+    time.sleep(float(sleep))   # delays for 5 seconds. You can Also Use Float Value.
     return True
 
 def Timer(func):
@@ -1399,7 +1398,7 @@ def Timer(func):
     def wrapper(*args, **kws):
         res=None
         err=None
-        try:_str_func = func.__name__
+        try:_str_func = func_getTraceString(func)
         except:_str_func = func
     
         try:
