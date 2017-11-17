@@ -796,7 +796,7 @@ def walk_dat(arg = None, tag = None, counter = 0):
     if isinstance(arg,dict):
         l_keys = arg.keys()
         if counter == 0:
-            print('> {0} '.format(tag) + _str_hardLine)			                
+            print('> {0} '.format(tag) + _str_subLine)			                
         elif len(l_keys)<2:
             print('-'* counter + '> {0} '.format(tag))		            
         else:
@@ -1186,7 +1186,7 @@ def funcClassWrap(funcClass):
         return res
     return wrapper  
 
-def Timer(func):
+def Timer2(func):
     '''
     Simple timer decorator 
     -- Taken from red9 and modified. Orignal props to our pal Mark Jackson
@@ -1318,3 +1318,193 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
 
 def doEndMayaProgressBar(mayaMainProgressBar):
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
+    
+from functools import wraps
+def Func(func):
+    '''
+    '''
+    @wraps(func)
+    def wrapper(*args, **kws):
+        res=None
+        err=None
+        try:
+            res=func(*args, **kws)
+        except Exception, error:
+            err = error
+        finally:
+            if err:
+                #print(_str_headerDiv + " cgmGen.func Log " + _str_headerDiv + _str_hardBreak)		                
+                
+                try:print("Func: {0}".format(func.__name__))
+                except:print("Func: {0}".format(func))                
+                if args:
+                    print(_str_headerDiv + " Args " + _str_headerDiv + _str_subLine)		        
+                    for i, arg in enumerate(args):
+                        print("    arg {0}: {1}".format(i, arg))
+                if kws:
+                    print(_str_headerDiv + " Kws... " + _str_headerDiv + _str_subLine)		        
+                    for items in kws.items():
+                        print("    kw: {0}".format(items))   
+                traceback = sys.exc_info()[2]  # get the full traceback
+                cgmException(Exception,err,traceback)
+            return res
+    return wrapper
+
+def Timer(func):
+    '''
+    '''
+    @wraps(func)
+    def wrapper(*args, **kws):
+        res=None
+        err=None
+        try:_str_func = func.__name__
+        except:_str_func = func
+    
+        try:
+            t1 = time.time()
+            res=func(*args,**kws) 
+            print("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%( time.clock()-t1 ))) 
+            
+        except Exception, error:
+            err = error
+        finally:
+            if err:
+                #print(_str_headerDiv + " cgmGen.func Log " + _str_headerDiv + _str_subLine)		                
+                try:print("Func: {0}".format(func.__name__))
+                except:print("Func: {0}".format(func))                
+                if args:
+                    print(_str_headerDiv + " Args " + _str_headerDiv + _str_subLine)		        
+                    for i, arg in enumerate(args):
+                        print("    arg {0}: {1}".format(i, arg))
+                if kws:
+                    print(_str_headerDiv + " Kws... " + _str_headerDiv + _str_subLine)		        
+                    for items in kws.items():
+                        print("    kw: {0}".format(items))   
+                        
+                traceback = sys.exc_info()[2]  # get the full traceback
+                cgmException(Exception,err,None,traceback)
+            return res
+    return wrapper
+@Func
+def testFunc(*args,**kws):
+    raise Exception,'test'
+
+def getModule(arg):
+    mod = inspect.getmodule(arg)
+    #log.debug("mod: %s"%mod)
+    print mod
+    print mod.__name__
+    print mod.__name__.split('.')[-1]
+    functionTrace+='%s >> ' % mod.__name__.split('.')[-1]
+    
+def whoami():
+    import sys
+    return sys._getframe(1).f_code.co_name
+def queryCode(v=1):
+    import sys
+    print 'name'
+    pprint.pprint( sys._getframe(v).f_code.co_name)
+    print 'varnames'
+    pprint.pprint (sys._getframe(v).f_code.co_varnames)
+    print 'filename'
+    pprint.pprint(sys._getframe(v).f_code.co_filename)
+    print 'flags'
+    pprint.pprint(sys._getframe(v).f_code.co_flags)
+    print 'names'
+    pprint.pprint(sys._getframe(v).f_code.co_names)
+    print 'locals'
+    pprint.pprint(sys._getframe(v).f_code.co_nlocals)
+    print 'cell vars'
+    pprint.pprint(sys._getframe(v).f_code.co_cellvars)
+    print 'free vars'
+    pprint.pprint(sys._getframe(v).f_code.co_freevars)
+    print 'constants'
+    pprint.pprint(sys._getframe(v).f_code.co_consts)      
+def callersname():
+    import sys
+    return sys._getframe(2).f_code.co_name
+
+def cgmExceptionBAK(etype = None, value = None, localDat = None, func = None, module = None, tb = None):
+    #if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+
+    print _str_hardLine
+    if module:
+        print(_str_headerDiv + " Module: {0} ".format(module) + _str_headerDiv )		        
+    if func:
+        print(_str_headerDiv + " Func: {0} ".format(func) + _str_headerDiv )		    
+    
+    if localDat:
+        print _str_subLine        
+        print(_str_headerDiv + " Local " + _str_headerDiv )		
+        pprint.pprint(localDat)
+    print _str_subLine
+    #print "caller: " + callersname()
+
+    if etype:raise etype,value
+
+def func_snapShot(dat = None):
+    import sys    
+    if dat is None:        
+        print("[ {0} ]snapShot || No dat provided".format(sys._getframe(1).f_code.co_name))
+        return
+    print _str_hardLine
+    print(_str_headerDiv + " call: {0}   ".format(sys._getframe(1).f_code.co_name) + _str_headerDiv + _str_subLine)		
+    print(_str_headerDiv + " file: {0}".format(sys._getframe(1).f_code.co_filename))
+    
+    print(_str_headerDiv + " local dat...")
+    #sys._getframe(1).f_code.co_name
+    pprint.pprint(dat)
+    print("..." + _str_headerDiv)
+    print _str_hardLine
+    
+    
+def testExceptionNested(*args,**kws):
+    try:
+        hi = 'mike'
+        _nestedDictTest = {1:2,3:4}
+        return testException()
+    except Exception,err:cgmException(Exception,err)
+def testException(*args,**kws):
+    try:
+        bye = 'fred'
+        _l = range(12)
+        raise ValueError,"Bob's not home"
+    except Exception,err:cgmException(Exception,err)
+
+def cgmException(etype = None, value = None, tb = None):
+    if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
+
+    try:db_file = tb.tb_frame.f_code.co_filename
+    except:db_file = "<maya console>"
+    
+    print(_str_headerDiv + " {0}   ".format(tb.tb_frame.f_code.co_name) + _str_headerDiv + _str_subLine)		
+    print(" file: {0}".format(db_file))
+    
+    _d = tb.tb_frame.f_locals
+
+    if 'args' in _d.keys():
+        _args = _d.pop('args')
+        if _args:
+            print("  Args...")
+            for a in _args:
+                print("      {0}".format(a))
+    if 'kws' in _d.keys():
+        _kws = _d.pop('kws')
+        if _kws:
+            print("  KWS...")
+            for k,v in _kws.iteritems():
+                print("      {0} : {1}".format(k,v))
+            
+    print("  Local dat...")
+    pprint.pprint(_d)
+    #pprint.pprint(tb.tb_frame.f_locals)
+    
+    print("..." + _str_headerDiv)
+    """
+    if value:
+        print(_str_headerDiv + " Error log " + _str_headerDiv + _str_subLine)		        
+        for i,a in enumerate(value.args):
+            print(" {0} : {1}".format(i,a))
+            """
+    if etype:raise etype,value,tb
+
