@@ -27,7 +27,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #=========================================================================
 
 #Strings settings
@@ -1184,8 +1184,45 @@ def funcClassWrap(funcClass):
 
         log.info("%s >> Time >> = %0.3f seconds " % (_str_funcName,(t2-t1)) + _str_subLine)		
         return res
-    return wrapper  
+    return wrapper
 
+def func_getTraceString(func):
+    str_func = None
+    str_module = None
+    _l_join = []
+    try:
+        #module if found
+        mod = inspect.getmodule(func)
+        #log.debug("mod: %s"%mod)            
+        #functionTrace+='%s >> ' % mod.__name__#.split('.')[-1]
+        str_module = mod.__name__#.split('.')[-1]
+        _l_join.append(str_module)
+    except:pass
+    
+    try:
+        #class function is part of, if found
+        mClass = False
+        mNode = False
+        try:
+            mClass = func.__self__.mClass
+            mNode = func.__self__.mNode
+        except:pass
+        
+        cls = func.__class__
+        clsType = type(cls)
+        clsString = func.__class__.__name__  
+        str_func = func.__name__
+        
+        if mClass:_l_join.append(mClass)
+        if mNode: _l_join.append("('{0}')".format(mNode))
+        _l_join.append(str_func)
+        
+    except Exception,error:
+        log.debug('function class inspect failure: %s'%error)
+        
+    func_snapShot(vars())
+    
+    return '.'.join(_l_join)
 def Timer2(func):
     '''
     Simple timer decorator 
@@ -1350,6 +1387,11 @@ def Func(func):
             return res
     return wrapper
 
+@Timer
+def testTimer(length = 1.2):
+    time.sleep(float(length))   # delays for 5 seconds. You can Also Use Float Value.
+    return True
+
 def Timer(func):
     '''
     '''
@@ -1363,7 +1405,8 @@ def Timer(func):
         try:
             t1 = time.time()
             res=func(*args,**kws) 
-            print("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%( time.clock()-t1 ))) 
+            t2 = time.time()            
+            print("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 ))) 
             
         except Exception, error:
             err = error
@@ -1382,7 +1425,7 @@ def Timer(func):
                         print("    kw: {0}".format(items))   
                         
                 traceback = sys.exc_info()[2]  # get the full traceback
-                cgmException(Exception,err,None,traceback)
+                cgmException(Exception,err,traceback)
             return res
     return wrapper
 @Func

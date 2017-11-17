@@ -1001,3 +1001,29 @@ def uiFunc_createCurve():
                                var_createSizeValue.value,
                                var_createSizeMulti.value,
                                SHARED._l_axis_by_string[var_createAimAxis.value])
+    
+    
+#Option Menus -----------------------------------------------------
+def uiOptionMenu_contextTD(self, parent, callback = cgmGen.Callback):
+    uiMenu_context = mc.menuItem( parent = parent, l='Context:', subMenu=True)
+    
+    try:self.var_contextTD
+    except:self.var_contextTD = cgmMeta.cgmOptionVar('cgmVar_contextTD', defaultValue = 'selection')
+
+    try:#>>>
+        _str_section = 'Contextual TD mode'
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_contextTD.value
+
+        for i,item in enumerate(['selection','children','heirarchy','scene']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=uiMenu_context,collection = uiRC,
+                        label=item,
+                        #c = lambda *a:ui_CallAndKill(self.var_contextTD.setValue,item),
+                        c = callback(self.var_contextTD.setValue,item),                                  
+                        rb = _rb)                
+    except Exception,err:
+        log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
