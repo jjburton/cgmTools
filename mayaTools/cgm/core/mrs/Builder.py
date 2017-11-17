@@ -220,6 +220,7 @@ class ui(cgmUI.cgmGUI):
                                     )
 
         mUI.MelMenuItemDiv(self.uiMenu_add)
+        uiOptionMenu_blockSizeMode(self, self.uiMenu_add)
         mUI.MelMenuItem(self.uiMenu_add, l='Rebuild',
                         c=cgmGEN.Callback(self.buildMenu_add,True))        
         log.info("Add menu rebuilt")
@@ -1034,8 +1035,29 @@ class ui(cgmUI.cgmGUI):
 
 
 
+def uiOptionMenu_blockSizeMode(self, parent, callback = cgmGEN.Callback):
+    uiMenu = mc.menuItem( parent = parent, l='Create Mode:', subMenu=True)
+    
+    try:self.var_rigBlockCreateSizeMode
+    except:self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
 
+    try:#>>>
+        _str_section = 'Contextual TD mode'
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_rigBlockCreateSizeMode.value
 
+        for i,item in enumerate(['selection','default']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=uiMenu,collection = uiRC,
+                        label=item,
+                        c = callback(self.var_rigBlockCreateSizeMode.setValue,item),                                  
+                        rb = _rb)                
+    except Exception,err:
+        log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
+        cgmGEN.cgmException(Exception,err)
 
                         
     

@@ -3045,7 +3045,7 @@ _d_requiredModuleDat = {'define':['__version__'],
                         'template':['template','is_template','templateDelete'],
                         'prerig':['prerig','is_prerig','prerigDelete'],
                         'rig':['is_rig','rigDelete']}
-_d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
+_d_requiredModuleDatCalls = {'rig':['valid_blockModule_rigBuildOrder']}
 
 def get_blockModule_status2(blockType):
     """
@@ -3137,7 +3137,7 @@ def get_blockModule_status(blockModule, state = None):
                 else:
                     print("|{0}| >> [{1}] Pass: {2}".format(_str_func,_blockType,test))
             for test in l_functionTests:
-                if not test(_buildModule):
+                if not getattr(test,_buildModule):
                     _good = False                 
             _res[state] = _good
 
@@ -3153,7 +3153,7 @@ def get_blockModule_status(blockModule, state = None):
                 print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
                 _res = False
         for test in l_functionTests:
-            if not test(_buildModule):
+            if not getattr(test,_buildModule):
                 #print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
                 _res = False                
 
@@ -3268,6 +3268,7 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
 
 
 class rigFactory(object):
+    @cgmGEN.Timer    
     def __init__(self, rigBlock = None, forceNew = True, autoBuild = False, ignoreRigCheck = False,
                  *a,**kws):
         """
@@ -3376,6 +3377,7 @@ class rigFactory(object):
                 if vis: cgmMeta.cgmAttr(mRigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
                 cgmMeta.cgmAttr(mRigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
 
+    @cgmGEN.Timer
     def fnc_check_rigBlock(self):
         """
         Check the rig block data 
@@ -3383,7 +3385,6 @@ class rigFactory(object):
         _str_func = 'fnc_check_rigBlock' 
         _d = {}
         _res = True
-        _start = time.clock()
 
         if not self.call_kws['rigBlock']:
             raise RuntimeError,'No rigBlock stored in call kws'
@@ -3415,12 +3416,11 @@ class rigFactory(object):
         self.d_block = _d    
         
         self.buildModule = _buildModule
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         
         return True
 
-
+    @cgmGEN.Timer
     def fnc_check_module(self):
         _str_func = 'fnc_check_module'  
         _res = True
@@ -3430,7 +3430,6 @@ class rigFactory(object):
         if BlockFactory._mi_block.blockType in ['master']:
             _hasModule = False
 
-        _start = time.clock()
 
         #>>Module -----------------------------------------------------------------------------------  
         _d = {}    
@@ -3479,18 +3478,16 @@ class rigFactory(object):
                     _res = False
 
         self.d_module = _d    
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res    
 
-
+    @cgmGEN.Timer
     def fnc_moduleRigChecks(self):
         """
         Verify the module's rig visibility toggles and object set
         """
         _str_func = 'fnc_moduleRigChecks'  
         _res = True
-        _start = time.clock()
 
         _blockType = self.mBlock.blockType
         
@@ -3529,10 +3526,10 @@ class rigFactory(object):
         #>>> Object Set -----------------------------------------------------------------------------------
         self.mModule.__verifyObjectSet__()
 
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                        
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
-
+    
+    @cgmGEN.Timer
     def fnc_rigNeed(self):
         """
         Function to check if a go instance needs to be rigged
@@ -3580,7 +3577,7 @@ class rigFactory(object):
 
         return True
 
-        
+    @cgmGEN.Timer
     def fnc_atModule(self,func = '',*args,**kws):
         _str_func = 'fnc_atModule'
         _res = None
@@ -3627,11 +3624,13 @@ class rigFactory(object):
             #cgmGEN.log_info_dict(self.__dict__,'rigFactory')
 
             raise Exception,err
-        return _res     
+        return _res
 
+    @cgmGEN.Timer
     def log_self(self):
         pprint.pprint(self.__dict__)
 
+    @cgmGEN.Timer
     def fnc_bufferDat(self):
         """
         Function to check if a go instance needs to be rigged
