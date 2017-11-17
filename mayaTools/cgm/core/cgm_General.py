@@ -1385,12 +1385,6 @@ def Func(func):
             return res
     return wrapper
 
-@Timer
-def testTimer(sleep = .5):
-    log.info("Sleep time: {0}".format(sleep))
-    time.sleep(float(sleep))   # delays for 5 seconds. You can Also Use Float Value.
-    return True
-
 def Timer(func):
     '''
     '''
@@ -1427,6 +1421,14 @@ def Timer(func):
                 cgmException(Exception,err,traceback)
             return res
     return wrapper
+
+@Timer
+def testTimer(sleep = .5):
+    log.info("Sleep time: {0}".format(sleep))
+    time.sleep(float(sleep))   # delays for 5 seconds. You can Also Use Float Value.
+    return True
+
+
 @Func
 def testFunc(*args,**kws):
     raise Exception,'test'
