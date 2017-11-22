@@ -9,9 +9,10 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.02262017'
+__version__ = '0.1.11222017'
 
 import webbrowser
+import copy
 
 import logging
 logging.basicConfig()
@@ -857,15 +858,11 @@ def uiSection_snap(parent, selection = None ):
                 l = 'Point',
                 c = lambda *a:SNAPCALLS.snap_action(selection,'point'),
                 ann = "Point snap in a from:to selection")
-    mc.menuItem(parent=parent,
-                l = 'Point - closest',
-                c = lambda *a:SNAPCALLS.snap_action(selection,'closestPoint'),
-                ann = "Closest point on target")
     
-    mc.menuItem(parent=parent,
-                l = 'Point - ground (WIP)',
-                c = lambda *a:SNAPCALLS.snap_action(selection,'ground'),
-                ann = "Snaps selected to the ground plane")
+    _pointSpecial = mc.menuItem(parent=parent,subMenu = True,tearOff=True,
+                                l = 'Point Special',
+                                ann = "asdfasdf")   
+    
     
     mc.menuItem(parent=parent,
                 l = 'Parent',
@@ -876,6 +873,37 @@ def uiSection_snap(parent, selection = None ):
                 c = lambda *a:SNAPCALLS.snap_action(selection,'orient'),
                 ann = "Orient snap in a from:to selection")
     
+    #>>Point Special ----------------------------------------------------------------------------------------
+    mc.menuItem(parent=_pointSpecial,
+                l = 'Closest',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'closestPoint'),
+                ann = "Closest point on target")
+
+    mc.menuItem(parent=_pointSpecial,
+                l = 'Ground (WIP)',
+                c = lambda *a:SNAPCALLS.snap_action(selection,'ground'),
+                ann = "Snaps selected to the ground plane")
+    
+    
+    for m in ['boundingBox','axisBox','castFar','castNear','castCenter']:
+        mc.menuItem(parent=_pointSpecial,subMenu = True,
+                    l = m)
+        l_use = copy.copy(SHARED._l_axis_by_string)
+        if m in ['boundingBox']:
+            l_use.insert(0,'center')
+        elif m in ['castCenter']:
+            l_use = l_use[:3]
+        for a in l_use:
+            mc.menuItem(l = a,
+                        c = cgmGen.Callback(SNAPCALLS.snap_action,selection,m,**{'mode':a}),
+                        ann = "Selection to the last's {0} {1} pos".format(m,a))
+            
+        for a in l_use:
+                mc.menuItem(l = a + " Each",
+                            c = cgmGen.Callback(SNAPCALLS.snap_action,selection,m,'each',**{'mode':a}),
+                            ann = "Selection to each obj's {0} {1} pos".format(m,a))
+                
+            
     #>>Aim ----------------------------------------------------------------------------------------
     mc.menuItem(parent=parent,
                 l = 'Aim',

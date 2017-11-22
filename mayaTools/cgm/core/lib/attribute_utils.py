@@ -80,8 +80,35 @@ d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
 
 #>>> Utilities
 #===================================================================
+def reset(node, attrs = None):
+    """   
+    Reset specified attributes to their default values
 
+    :parameters:
+        node(str) -- 
+        attrs(str/list) -- attributes to reset
 
+    :returns
+        list of reset attrs(list)
+    """
+    try:
+        node = VALID.mNodeString(node)
+    
+        if attrs == None:
+            attrs = mc.listAttr(node, keyable=True, unlocked=True) or False
+        else:
+            attrs = VALID.listArg(attrs)
+        _reset = []
+        for attr in attrs:
+            try:
+                default = mc.attributeQuery(attr, listDefault=True, node=node)[0]
+                set(node,attr,default)
+                _reset.append(attr)
+            except Exception,err:
+                log.error("{0}.{1} resetAttrs | error: {2}".format(node, attr,err))   	
+        return _reset
+    except Exception,err:cgmGeneral.cgmExceptCB(Exception,err,localDat=vars())
+        
 def get_nameNice_string(attr):
     """
     Convert a long name to what an assumed nice name of that attribute would be. Mainly for ui checking to see if to show
@@ -3477,6 +3504,8 @@ def OLDrepairMessageToReferencedTarget(obj,attr):
                 return matchObj
     log.warning("No message connections and reference found")
     return False
+
+
 
 
 

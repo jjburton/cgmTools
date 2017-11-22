@@ -133,7 +133,6 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
 
 
     mode = mode.lower()
-    log.info("|{0}| >>  mode: {1} | arg: '{2}'".format(_str_func,mode,arg))        
     if mode == 'selection':
         size = POS.get_bb_size(arg, True)
         #if rigBlock:
@@ -142,7 +141,9 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
     elif mode in ['boundingbox','bb']:
         size = POS.get_bb_size(arg, False)
 
-    return floatValues(size)
+    _res = floatValues(size)
+    log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
+    return floatValues(_res)
 
 class cgmRigBlock(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
@@ -170,7 +171,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #Only check this with a no node call for speed
         _callSize = None
-        if node is None:_callSize = get_callSize(kws.get('size',None))
+        _sel = None
+        _size = kws.get('size',None)        
+        if node is None:
+            _sel = mc.ls(sl=1)            
+            _callSize = get_callSize(_size)
 
         log.debug("|{0}| >> size: {1}".format(_str_func, _callSize))
 
@@ -195,10 +200,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #if a not in self.UNMANAGED:
                 #self.UNMANAGED.append(a) 	
 
-
-        if _callSize is None:
-            _callSize = get_callSize(kws.get('size',None))
-
+            
         #====================================================================================
         #Keywords - need to set after the super call
         #==============         
@@ -239,9 +241,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     except Exception,err:
                         for arg in err.args:
                             log.error(arg)
+                            
+                #Snap with selection mode --------------------------------------
+                if _size in ['selection']:
+                    log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
+                    if _sel:
+                        log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
+                        self.doSnapTo(_sel[0])
+                cgmGEN.func_snapShot(vars())
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
-            raise Exception,err
+            cgmGEN.cgmExceptCB(Exception,err)
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 

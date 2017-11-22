@@ -21,8 +21,10 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import name_utils as NAMES
+import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.shape_utils as SHAPE
 reload(DIST)
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.lib import locators
 from cgm.lib import dictionary
 from cgm.lib import search
@@ -31,7 +33,7 @@ from cgm.lib import lists
 from cgm.lib import distance
 from cgm.lib import attributes
 import os
-#CANNOT IMPORT: LOC
+#CANNOT IMPORT: LOC, SNAP
 
 #========================================================================
 import logging
@@ -43,6 +45,119 @@ log.setLevel(logging.INFO)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Functions
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def get_eligibleMesh():
+    _str_func = ''
+    _res = []
+    for l in mc.ls(type='mesh',visible = True, long=True), mc.ls(type='nurbsSurface',long=True, visible = True):
+        for o in l:
+            _mesh =  SHAPE.get_nonintermediate(o)
+            _type = VALID.get_mayaType(_mesh)
+            if _type in ['mesh','nurbsSurface']:
+                _res.append( _mesh )#...this accounts for deformed mesh 
+            else:
+                log.debug("|{0}| >> Inelibible: {1} | {2}".format(_str_func,_type,_mesh))
+    return _res
+
+def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = True, maxDistance = 1000, asEuclid = False):
+    """
+    Get the 
+
+    :parameters:
+        arg(str/list): Object(s) to check
+        axis(str): 
+        mode(varied): 
+            center
+            far
+            near
+        mark(bool): whether to add a locator at the position for testing
+        asEuclid(bool) - whether to return as Vector or not
+
+    :returns
+        boundingBox size(list)
+    """   
+    try:
+        _str_func = 'get_cast_pos'
+        _sel = mc.ls(sl=True)
+
+        if obj is None:
+            obj = _sel[0]
+
+        if shapes is None:
+            shapes = get_eligibleMesh()
+            for s in TRANS.shapes_get(obj):
+                if s in shapes:
+                    shapes.remove(s)
+        else:
+            _shapesArg = VALID.listArg(shapes)
+            shapes = []
+            for o in _shapesArg:
+                if VALID.is_shape(o):
+                    shapes.append(o)                
+                else:
+                    shapes.extend(TRANS.shapes_get(o))
+
+        mAxis = VALID.simpleAxis(axis)
+        posBase = POS.get(obj)
+
+        if len(axis) == 1:
+            log.debug("|{0}| >> Single axis arg...".format(_str_func))
+
+        if mode in ['center','centerFar','centerNear']:
+            _subMode = 'far'
+            if 'near' in mode.lower():
+                _subMode = 'near'
+            l_hits = []
+            for s in shapes:
+                log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
+                _d_resForward = cast(s,obj,mAxis.p_string, maxDistance=maxDistance,firstHit=False)
+                _d_resBack = cast(s,obj,mAxis.inverse.p_string, maxDistance=maxDistance,firstHit=False)
+
+                p1 = _d_resForward.get(_subMode)
+                p2 = _d_resBack.get(_subMode)
+                l_hits.append(DIST.get_average_position([p1,p2]))
+            if len(l_hits)>1:
+                _res = DIST.get_average_position(l_hits)
+            else:
+                _res = l_hits[0]
+
+        elif mode in ['near','far']:
+            l_hits = []
+            l_distances = []
+            for s in shapes:
+                log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
+                _d_res = cast(s,obj,mAxis.p_string, maxDistance=maxDistance,firstHit=False)
+                p = _d_res.get(mode,None)
+                if p:
+                    l_hits.append(p)
+                    l_distances.append(DIST.get_distance_between_points(posBase,p))
+                else:
+                    log.debug("|{0}| >> Failed to hit: {1}".format(_str_func,s))                    
+            if not l_distances:
+                raise ValueError,"Nothing hit."
+            if mode == 'near':
+                modeIdx = l_distances.index( min(l_distances) )
+            else:
+                modeIdx = l_distances.index( max(l_distances) )
+            _res = l_hits[modeIdx]
+
+        #cgmGEN.func_snapShot(vars())
+
+        if mark:
+            #_size = get_bb_size(arg, shapes)
+            _loc = mc.spaceLocator()[0]
+            #ATTR.set(_loc,'scale', [v/4 for v in _size])        
+            mc.move (_res[0],_res[1],_res[2], _loc, ws=True)        
+            mc.rename(_loc, '{0}_loc'.format(mode))
+        if _sel:
+            mc.select(_sel)
+        if asEuclid:
+            log.debug("|{0}| >> asEuclid...".format(_str_func))             
+            return EUCLID.Vector3(_res[0], _res[1], _res[2])
+        return _res
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+
 def cast(mesh = None, obj = None, axis = 'z+',
          startPoint = None, vector = None,
          maxDistance = 1000, firstHit = True,
@@ -80,8 +195,10 @@ def cast(mesh = None, obj = None, axis = 'z+',
         mc.move (position[0],position[1],position[2], _loc, ws=True)
         return _loc
 
-    
+
     _str_func = 'cast'
+    if mesh is None:
+        mesh = get_eligibleMesh()
     _meshArg = VALID.listArg(mesh)
     _mesh =  []
     for m in _meshArg:
@@ -99,7 +216,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
 
     if not startPoint:
         startPoint = POS.get(obj,pivot='rp',space='ws')
-    
+
     _castPoint = MATH.get_space_value(startPoint,'apiSpace')#...must convert value to apiSpace
 
     if not vector:
@@ -163,7 +280,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
             except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
             if _b:
                 _uvs = _b.get('uvs',None)
-                _uvsRaw = _b.get('uvsRaw',None)
+                _uvsRaw = _b.get('uvsRaw',[])
                 _normals =_b.get('normals',False)
 
                 if not _uvs:
@@ -173,10 +290,14 @@ def cast(mesh = None, obj = None, axis = 'z+',
 
                 for i,h in enumerate(_b['hits']):
                     _uv = _uvs[i]
-                    _uvRaw = _uvsRaw[i]
                     _d_meshUV[m].append(_uv)
+
+                    if _uvsRaw:
+                        _uvRaw = _uvsRaw[i]
+                    else:
+                        _uvRaw = None
                     _d_meshUVRaw[m].append(_uvRaw)
-                    
+
                     _d_meshPos[m].append(h)		
                     _d_meshNormal[m].append(_normals[i])
                     if offsetMode == 'vectorDistance':
@@ -196,7 +317,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
     _furthest = distance.returnFurthestPoint(startPoint,_l_posBuffer)
 
     _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'uvsRaw':_d_meshUVRaw, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
-    
+
     if locDat:
         for k in ['source','near','far']:
             if _d.get(k):
@@ -205,11 +326,11 @@ def cast(mesh = None, obj = None, axis = 'z+',
             for i,p in enumerate(_d['meshHits'][m]):
                 _dist = DIST.get_distance_between_points(_d['source'],p) / 3
                 mc.rename( simpleLoc(position = p), 'cast_hit_{0}_{1}_loc'.format(NAMES.get_base(m),i))
-                
+
                 _p = DIST.get_pos_by_vec_dist(p, _d['meshNormals'][m][i], _dist)
                 mc.rename( simpleLoc(position = _p), 'cast_normalOffset_{0}_{1}_loc'.format(NAMES.get_base(m),i))
-            
-            
+
+
 
     if firstHit:
         _d['hit'] = _near
@@ -350,7 +471,7 @@ def findMeshIntersection(mesh, raySource, rayDir, maxDistance = 1000, tolerance 
     Return the closest point on a surface from a raySource and rayDir. Can't process uv point for surfaces yet
     Thanks to Deane @ https://groups.google.com/forum/?fromgroups#!topic/python_inside_maya/n6aJq27fg0o%5B1-25%5D
     Thanks to Samaneh Momtazmand for doing the r&d to get this working with surfaces
-    
+
     Note -- result hit points will be converted from apiSpace to maya space
 
     :parameters:
@@ -546,7 +667,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
     -2016 OM2 - when casting at poly edge, fails
     -2016 OM2 - nurbsSurface UV returns a different rawUV than 1. 1 Normalizes as expected, 2's does not.
     -2016 OM2 - nurbsSurface normal returns junk and broken
-    
+
     Note -- result hit points will be converted from apiSpace to maya space
 
 
@@ -570,7 +691,7 @@ def findMeshIntersections(mesh, raySource, rayDir, maxDistance = 1000, tolerance
         _str_func = 'findMeshIntersections'
 
         _b_OpenMaya_2 = False
-        if cgmGeneral.__mayaVersion__ >= 2012:
+        if cgmGEN.__mayaVersion__ >= 2012:
             _b_OpenMaya_2 = True
 
         """if VALID.isListArg(mesh):
@@ -638,7 +759,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
             if _str_objType not in ['mesh','nurbsSurface']:
                 raise ValueError,"Object type not supported | type: {0}".format(_str_objType)
 
-            
+
             mPoint_raySource = OM2.MFloatPoint(raySource[0], raySource[1], raySource[2])
             #Convert the 'rayDir' parameter into an MVector.`
             mVec_rayDirection = OM2.MFloatVector(rayDir[0], rayDir[1], rayDir[2])

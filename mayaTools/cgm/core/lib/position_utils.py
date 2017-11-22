@@ -289,10 +289,10 @@ def get_bb_pos(arg = None, shapes = False, mode = 'center', mark = False, asEucl
     elif _mode in ['back','z-']:
         log.debug("|{0}| >> Back mode".format(_str_func))        
         _res = [((bb_raw[0] + bb_raw[3])/2),((bb_raw[4] + bb_raw[1])/2), bb_raw[2]]
-    elif _mode  in ['left','y+']:
+    elif _mode  in ['left','x+']:
         log.debug("|{0}| >> Left mode".format(_str_func))
         _res = [bb_raw[3] ,((bb_raw[4] + bb_raw[1])/2), ((bb_raw[5] + bb_raw[2])/2)]        
-    elif _mode  in ['right','y+']:
+    elif _mode  in ['right','x-']:
         log.debug("|{0}| >> Right mode".format(_str_func))
         _res = [bb_raw[0] ,((bb_raw[4] + bb_raw[1])/2), ((bb_raw[5] + bb_raw[2])/2)]                
     else:
@@ -529,3 +529,6 @@ def get_midPointDict(sourceList,forceBBCenter = False):
     _d_info['position'] = MATH.get_average_pos(_l_pos)
     _d_info['rotation'] = MATH.get_average_pos(_l_rot)
     return _d_info 
+
+
+#Closest ===================================================================================================

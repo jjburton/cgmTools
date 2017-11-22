@@ -52,6 +52,7 @@ from cgm.core.mrs import RigBlocks as RIGBLOCKS
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
+import cgm.core.tools.lib.tool_chunks as UICHUNKS
 
 _d_blockTypes = {}
 
@@ -110,6 +111,8 @@ class ui(cgmUI.cgmGUI):
             
             self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0) 
             self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
+            try:self.var_rigBlockCreateSizeMode
+            except:self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
             
             
     def build_menus(self):
@@ -117,7 +120,9 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         #self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
         #self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)         
+        
     
     def buildMenu_block( self, *args, **kws):
         self.uiMenu_block.clear()  
@@ -188,9 +193,23 @@ class ui(cgmUI.cgmGUI):
                         ann = _d_ui_annotations.get('DeleteSkeleton',"NEED load DeleteSkeleton"),
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))          
   
-                    
+    
+    def buildMenu_snap( self, force=False, *args, **kws):
+        if self.uiMenu_snap and force is not True:
+            return
+        self.uiMenu_snap.clear()
+        
+        UICHUNKS.uiSection_snap(self.uiMenu_snap)
+            
+        mUI.MelMenuItemDiv(self.uiMenu_snap)
+        
+        mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
+                        c=cgmGEN.Callback(self.buildMenu_snap,True))
+        log.info("Snap menu rebuilt")
+            
     def buildMenu_add( self, force=False, *args, **kws):
         if self.uiMenu_add and force is not True:
+            log.info("No load...")
             return
         
         self.uiMenu_add.clear()   
@@ -200,7 +219,8 @@ class ui(cgmUI.cgmGUI):
         for b in _d[1]['blocks']:
             if _d[0][b].__dict__.get('__menuVisible__'):
                 mUI.MelMenuItem(self.uiMenu_add, l=b,
-                                c=cgmGEN.Callback(self.uiFunc_block_build,b))
+                                c=cgmGEN.Callback(self.uiFunc_block_build,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_build))
         
         d_sections = {}
         for c in _d[1].keys():
@@ -217,12 +237,13 @@ class ui(cgmUI.cgmGUI):
                 for option in d_sections[s]:
                     mUI.MelMenuItem(_sub, l=option[0],
                                     c=option[1],
+                                    ann="{0} : {1}".format(option[0], option[1])
                                     )
 
         mUI.MelMenuItemDiv(self.uiMenu_add)
-        uiOptionMenu_blockSizeMode(self, self.uiMenu_add)
+        uiOptionMenu_blockSizeMode(self, self.uiMenu_add)        
         mUI.MelMenuItem(self.uiMenu_add, l='Rebuild',
-                        c=cgmGEN.Callback(self.buildMenu_add,True))        
+                        c=cgmGEN.Callback(self.buildMenu_add,True))
         log.info("Add menu rebuilt")
 
     def uiUpdate_building(self):
@@ -239,15 +260,19 @@ class ui(cgmUI.cgmGUI):
         #_mBlock = self._ml_blocks[_index]
         mActiveBlock = None
         if self._blockCurrent:
-            mActiveBlock = self._blockCurrent.mNode      
+            mActiveBlock = self._blockCurrent.mNode
+            
+        _sizeMode = self.var_rigBlockCreateSizeMode.value
+        if _sizeMode == 'selection' and not mc.ls(sl=True):
+            log.info("|{0}| >> Must have selection for size mode: {1}.".format(_str_func,_sizeMode))        
+            return False
         
-        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, blockParent = mActiveBlock)
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, size = _sizeMode, blockParent = mActiveBlock)
         #self._blockFactory.create_rigBlock(blockType)
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
         self.uiUpdate_building()
-        
         self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
        
     def uiFunc_blockManange_fromScrollList(self,**kws):          
@@ -474,10 +499,10 @@ class ui(cgmUI.cgmGUI):
         if not _ml:
             self.uiFunc_block_clearActive()
             return
-        
-
                 
-        if index:
+        if index is not None:
+            if index in self._ml_blocks:
+                index = self._ml_blocks.index(index)
             if index not in range(len(_ml)):
                 log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
                 return
@@ -661,10 +686,11 @@ class ui(cgmUI.cgmGUI):
         
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
-    
+        mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
+                         c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )      
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("https://docs.google.com/document/d/1ztN9wZfYunvGlao2iRL5WSc9oJTN021Bk6LNZqhbrL8/edit?usp=sharing");',                        
+                    c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   

@@ -15,7 +15,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -29,6 +29,7 @@ from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.cgm_General as cgmGEN
 
 def get_list(context = 'selection', mType = None, getTransform = False):
     """
@@ -384,7 +385,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             try:mc.select(objects)
             except:pass
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """

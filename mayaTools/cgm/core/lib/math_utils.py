@@ -608,7 +608,7 @@ def list_add(l1,l2):
     """ 
     """
     if len(l1)!=len(l2):
-        raise ValueError,"list_subtract>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
+        raise ValueError,"list_add>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
     l_return = []
     for i,x in enumerate(l1):
         l_return.append( x+l2[i])
@@ -618,10 +618,20 @@ def list_mult(l1,l2):
     """ 
     """
     if len(l1)!=len(l2):
-        raise ValueError,"list_subtract>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
+        raise ValueError,"list_mult>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
     l_return = []
     for i,x in enumerate(l1):
         l_return.append( x*l2[i])
+    return l_return
+
+def list_div(l1,l2):
+    """ 
+    """
+    if len(l1)!=len(l2):
+        raise ValueError,"list_div>>> lists must be same length! l1: %s | l2: %s"%(l1,l2)
+    l_return = []
+    for i,x in enumerate(l1):
+        l_return.append( x/l2[i])
     return l_return
 
 def average(*args):

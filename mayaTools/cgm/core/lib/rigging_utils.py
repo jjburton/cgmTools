@@ -30,13 +30,14 @@ from cgm.lib import search
 from cgm.lib import rigging
 from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
 from cgm.core.lib import attribute_utils as ATTR
+reload(ATTR)
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
-
+import cgm.core.lib.position_utils as POS
 #NO DIST
 
 #>>> Utilities
@@ -286,62 +287,6 @@ def copy_pivot(obj = None, source = None, rotatePivot = True, scalePivot = True)
 parent_get = TRANS.parent_get
 parent_set = TRANS.parent_set
 
-def shapeParent_in_place_NEW(obj = None, shapeSource = None, keepSource = True, replaceShapes = False, snapFirst = False):
-    """
-    Shape parent a curve in place to a obj transform
-    
-    NOTE - 03.02.2017 - This doesn't always work, need to delve into why
-
-    :parameters:
-        obj(str): Object to modify
-        shapeSource(str): Curve to shape parent
-        keepSource(bool): Keep the curve shapeParented as well
-        replaceShapes(bool): Whether to remove the obj's original shapes or not
-        snapFirst(bool): whether to snap source to obj before transfer
-
-    :returns
-        success(bool)
-    """   
-    _str_func = 'shapeParent_in_place'
-    
-    l_shapes = VALID.listArg(shapeSource)
-    
-    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
-    
-    if replaceShapes:
-        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
-        if _l_objShapes:
-            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
-            mc.delete(_l_objShapes)
-    
-    mc.select (cl=True)
-    for c in l_shapes:
-        try:
-            _shapeCheck = SEARCH.is_shape(c)
-            if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
-                raise ValueError,"Has no shapes"
-            if coreNames.get_long(obj) == coreNames.get_long(c):
-                raise ValueError,"Cannot parentShape self"
-            
-            
-            if _shapeCheck:
-                _dup_curve = duplicate_shape(c)[0]
-                if snapFirst:
-                    SNAP.go(_dup_curve,obj)                    
-            else:
-                _dup_curve =  mc.duplicate(c)[0]
-                if snapFirst:
-                    SNAP.go(_dup_curve,obj)                
-                            
-            shape = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
-            mc.parent (shape,obj,add=True,shape=True)
-            mc.delete(_dup_curve)
-            if not keepSource:
-                mc.delete(c)
-        except Exception,err:
-            log.error("|{0}| >> obj:{1} failed to parentShape {2} >> err: {3}".format(_str_func,obj,c,err))  
-    return True
-
 def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFirst = False):
     try:
         for o in targets[:-1]:
@@ -469,6 +414,133 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             cgmGen.cgmExceptCB(Exception,err,localDat=vars())
     return True
 
+def create_axisProxy(obj=None):
+    """
+    Make a local axis box around a given object so that you can then 
+    
+    """
+    try:
+        _str_func = 'create_axisProxy'
+        _dag = VALID.getTransform(obj)
+        if not _dag:
+            raise ValueError,"Must have a dag node. Obj: {0}".format(obj)
+        if VALID.is_shape(obj):
+            l_shapes = [obj]
+        else:
+            l_shapes = TRANS.shapes_get(_dag)
+        
+        _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
+        _dup = TRANS.parent_set(_dup,False)
+        
+        #Get some values...
+        t = ATTR.get(_dup,'translate')
+        r = ATTR.get(_dup,'rotate')
+        s = ATTR.get(_dup,'scale')
+        o = TRANS.orient_get(_dup)
+        shear = ATTR.get(_dup,'shear')
+        _scaleLossy = TRANS.scaleLossy_get(_dag)
+        
+        #Reset our stuff before we make our bb...
+        ATTR.reset(_dup,['t','r','s','shear'])        
+        _size = POS.get_bb_size(_dup,True)
+        import cgm.core.lib.math_utils as COREMATH
+        reload(COREMATH)
+        #_proxy = create_proxyGeo('cube',COREMATH.list_div(_scaleLossy,_size))
+        _proxy = create_proxyGeo('cube',_size)
+        mc.makeIdentity(_proxy, apply=True, scale=True)
+        
+        
+        #Now Put it back
+        _dup = TRANS.parent_set(_dup, TRANS.parents_get(_dag))
+        _parent = TRANS.parent_get(_dag)
+        _proxy = TRANS.parent_set(_proxy, _dup)
+        
+        #_dup = TRANS.parent_set(_dup, TRANS.parents_get(_dag))
+        SNAP.go(_dup,_dag)
+        #ATTR.set(_dup,'s',(0,0,0))
+        ATTR.reset(_dup,['s','shear'])
+
+
+        ATTR.reset(_proxy,['t','r','s','shear'])
+        _proxy = TRANS.parent_set(_proxy, _dag)
+        ATTR.reset(_proxy,['t','r','s','shear'])
+
+
+        #cgmGen.func_snapShot(vars())
+        
+        _proxy = TRANS.parent_set(_proxy, False)
+        mc.delete(_dup)
+        
+        return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+    
+def create_localAxisProxyBAK(obj=None):
+    """
+    Make a local axis box around a given object so that you can then 
+    
+    """
+    try:
+        _str_func = 'create_localAxisProxy'
+        _dag = VALID.getTransform(obj)
+        if not _dag:
+            raise ValueError,"Must have a dag node"
+        l_shapes = TRANS.shapes_get(_dag)
+        
+        _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
+        #_dup = TRANS.parent_set(_dup,False)
+        
+        #Get some values...
+        t = ATTR.get(_dup,'translate')
+        r = ATTR.get(_dup,'rotate')
+        s = ATTR.get(_dup,'scale')
+        o = TRANS.orient_get(_dup)
+        shear = ATTR.get(_dup,'shear')
+        _scaleLossy = TRANS.scaleLossy_get(_dag)
+        
+        #Reset our stuff before we make our bb...
+        TRANS.orient_set(_dup,(0,0,0))
+        ATTR.set(_dup,'scale',[1,1,1])
+        _size = POS.get_bb_size(_dup,True)
+        import cgm.core.lib.math_utils as COREMATH
+        reload(COREMATH)
+        #_proxy = create_proxyGeo('cube',COREMATH.list_div(_scaleLossy,_size))
+        _proxy = create_proxyGeo('cube',_size)
+        mc.makeIdentity(_proxy, apply=True, scale=True)
+        return
+        #mc.xform(_proxy, scale = _size, worldSpace = True, absolute = True)
+        
+        #Parent it to the dup...
+        _proxy = TRANS.parent_set(_proxy, _dup)
+        ATTR.reset(_proxy,['t','r','shear'])
+        
+        #_dup = TRANS.parent_set(_dup, TRANS.parents_get(_dag))
+        SNAP.go(_dup,_dag)
+        ATTR.set(_dup,'shear',shear)
+        #TRANS.scaleLocal_set(_dup, s)
+        
+        #mc.delete(_dup)
+        #_scaleLossy = TRANS.scaleLossy_get(_dag)
+        #import cgm.core.lib.math_utils as COREMATH
+        #TRANS.scaleLocal_set(_dup, COREMATH.list_mult([-1.0,-1.0,-1.0],_scaleLossy,))
+        #proxy = TRANS.parent_set(_proxy, False)
+        cgmGen.func_snapShot(vars())
+        
+        #ATTR.set(_dup,'translate',t)
+        #ATTR.set(_dup,'rotate',r)
+        #SNAP.go(_proxy[0],_dag)
+        #ATTR.set(_proxy[0],'scale',_scaleLossy)
+        
+        #TRANS.scaleLocal_set(_dup,[1,1,1])
+        #ATTR.set(_dup,'shear',[0,0,0])
+        
+        #_proxy = TRANS.parent_set(_proxy, False)        
+        #TRANS.scaleLocal_set(_proxy,_scaleLossy)
+        #ATTR.set(_dup,'scale',s)
+
+        return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+    
+        
 _d_proxyCreate = {'cube':'nurbsCube',
                   'sphere':'sphere',
                   'cylinder':'cylinder',
@@ -1015,3 +1087,5 @@ def mirror(obj = None, mode = ''):
     except Exception,err:
         _mirrorable = is_mirrorable(obj)
         log.error("|{0}| >> failure. obj: {1} | mirrorable: {2} | mode: {3} | err: {4}".format(_str_func,obj,_mirrorable,mode,err))
+
+
