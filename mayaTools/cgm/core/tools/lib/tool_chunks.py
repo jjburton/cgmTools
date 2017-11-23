@@ -35,6 +35,7 @@ from cgm.core.lib import rigging_utils as RIGGING
 #reload(RIGGING)
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import curve_Utils as CURVES
+import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.locator_utils as LOC
 from cgm.core.tools import meshTools
 reload(meshTools)
@@ -717,12 +718,55 @@ def uiSection_createFromSel(parent, selection = None):
                 l = 'Locator',
                 ann='Create a locator at the selected component or transform',                                
                 c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))
-    mc.menuItem(parent=parent,
-                l = 'Locator [ mid ]',
-                ann='Create a joint at the selected component or transform midpoint',                                
+    
+    _locSub = mc.menuItem(parent=parent,subMenu=True,tearOff =True, 
+                          l = 'Loc - Special')
+
+    mc.menuItem(parent=_locSub,
+                l = 'Mid',
+                ann='Create a loc at the selected component or transform midpoint',                                
                 c = cgmGen.Callback(MMCONTEXT.func_process, LOC.create, None,'all','Create Loc at mid',**{'mode':'midPoint'}))           
+    mc.menuItem(parent=_locSub,
+                l = 'Ground Pos',
+                ann='Create a loc at ground pos of the selected',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, SNAPCALLS.get_special_pos,
+                                    None,'each','Create Loc at ground pos of selected',
+                                    **{'arg':'groundPos',
+                                       'mark':True}))               
 
     
+    for m in ['boundingBox','axisBox','castFar','castNear','castCenter','castAllNear','castAllFar']:
+
+            l_use = copy.copy(SHARED._l_axis_by_string)
+            if m in ['boundingBox']:
+                l_use.insert(0,'center')
+            elif m in ['castCenter']:
+                l_use = l_use[:3]
+                
+            label_section = m
+            if m in ['castFar','castNear','castCenter']:
+                label_section = m + ' self'
+            mc.menuItem(parent=_locSub,subMenu = True,
+                        l = label_section)
+            for a in l_use:
+                mc.menuItem(l = a,
+                            c = cgmGen.Callback(MMCONTEXT.func_process, SNAPCALLS.get_special_pos,
+                                                None,'each','Create Loc at mid',
+                                                **{'arg':m,
+                                                   'mode':a,
+                                                   'mark':True}),           
+                            ann = "Selection to the last's {0} {1} pos".format(m,a))
+            if m in ['castFar','castNear','castCenter']:
+                mc.menuItem(parent=_locSub,subMenu = True,
+                            l = m)            
+                for a in l_use:
+                    mc.menuItem(l = a,
+                                c = cgmGen.Callback(MMCONTEXT.func_process, SNAPCALLS.get_special_pos,
+                                                    None,'all','Create Loc at mid',
+                                                    **{'arg':m,
+                                                       'mode':a,
+                                                       'mark':True}),           
+                                ann = "Selection to the last's {0} {1} pos".format(m,a))    
     mc.menuItem(parent=parent,
                 l = 'Curve [ Cubic ]',
                 ann='Create a cubic curve from eps of the selected components or transforms',                
@@ -731,6 +775,10 @@ def uiSection_createFromSel(parent, selection = None):
                 l = 'Curve [ Linear ]',
                 ann='Create a linear curve from eps of the selected components or transforms',                                
                 c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}))
+    mc.menuItem(parent=parent,
+                l = 'Axis Box',
+                ann='Create an axis box proxy from selected',                                
+                c = cgmGen.Callback(MMCONTEXT.func_process, RIGGING.create_axisProxy, None,'each','Create axix Proxy'))
     
 def uiSection_riggingUtils(parent, selection = None):
     _str_func = 'uiSection_riggingUtils'  

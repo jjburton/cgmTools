@@ -78,7 +78,8 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
     try:
         _str_func = 'get_cast_pos'
         _sel = mc.ls(sl=True)
-
+        _res = None
+        
         if obj is None:
             obj = _sel[0]
 

@@ -760,11 +760,14 @@ class ui(TOOLBOX.ui):
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
-                         c = lambda *a:self.do_dock())        
-
+                         c = lambda *a:self.do_dock())
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Rebuild Main Menu",
+                                 c = lambda *a:uiMainMenu_rebuild())
+        
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
-
+        
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))   

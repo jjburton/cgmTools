@@ -325,7 +325,7 @@ def get_special_pos(targets = None,
     elif _arg.startswith('castAll'):
         _type =  _arg.split('castAll')[-1].lower()
         log.info("|{0}| >> castAll mode: {1} | {2}".format(_str_func,mode,_type))
-        pos = RAYS.get_cast_pos(_targets[-1],mode,_type, None, mark=False, maxDistance=100000)
+        pos = RAYS.get_cast_pos(_targets[0],mode,_type, None, mark=False, maxDistance=100000)
         l_res.append(pos)        
     elif _arg.startswith('cast'):
         _type =  _arg.split('cast')[-1].lower()
