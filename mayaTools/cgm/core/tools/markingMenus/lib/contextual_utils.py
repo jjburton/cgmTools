@@ -30,7 +30,7 @@ from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgm_General as cgmGEN
-
+import cgm.core.lib.list_utils as LISTS
 def get_list(context = 'selection', mType = None, getTransform = False):
     """
     Get contextual data for updating a transform
@@ -293,6 +293,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             restFromLast - objects[:-1],objects[-1]
             firstToRest - objects[0],objects[1:]
             restFromFirst - objects[1:],objects[0]
+            eachToNextReverse
         calledFrom - String for debugging/
         kws(dict) -- pass through
 
@@ -377,7 +378,15 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             elif processMode == 'restFromFirst':
                 _res = func(objects[1:],objects[0],**kws)               
             if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-                
+        elif processMode in ['eachToNextReverse']:
+            reload(LISTS)
+            l_sets = LISTS.get_listPairs(objects)
+            l_sets.reverse()
+            for i,pair in enumerate(l_sets):
+                log.debug("|{0}| >> {1} : {2}".format(_str_func,i,pair))  
+                _res = func(pair[0],pair[1],**kws)
+                    
+                if _res:print( "|{0}| >> {1}".format( _str_func, _res ))            
         else:
             raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
         

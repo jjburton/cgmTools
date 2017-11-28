@@ -553,7 +553,10 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     c=lambda *a:TOOLCALLS.dynParentTool())
         
         mc.menuItem(parent = parent, l='AttrTools',
-                    c=lambda *a:TOOLCALLS.attrTools())        
+                    c=lambda *a:TOOLCALLS.attrTools())
+        
+        mc.menuItem(parent = parent, l='cgmSnap',
+                    c=lambda *a:TOOLCALLS.cgmSnapTools())
         
         mc.menuItem(parent = parent,
                     l='MRS - WIP',

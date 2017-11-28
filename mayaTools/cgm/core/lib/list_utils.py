@@ -55,4 +55,24 @@ def get_chunks(l, n):
     """       
     return [l[i:i+n] for i in range(0, len(l), n)]
 
+def get_listPairs(dataList):
+    """
+    DESCRIPTION:
+    Takes a datalist and parses it to pairs. For example [dog,cat,pig,monkey] would be
+    [[dog,cat],[cat,pig],[pig,monkey]]
 
+    ARGUMENTS:
+    dataList(list)
+
+    RETURNS:
+    nestedPairList(List)
+    """    
+    nestedPairList = []
+    dataAListIter = iter(dataList)
+    cnt = 1
+    for itemA in dataList[:-1]:
+        itemB = dataList[cnt]
+        nestedPairList.append([itemA, itemB])
+        cnt +=1
+
+    return nestedPairList

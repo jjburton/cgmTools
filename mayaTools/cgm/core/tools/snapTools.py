@@ -247,6 +247,11 @@ def buildSection_advancedSnap(self,parent):
               c= lambda *a:uiFunc_snap(self),
               ann = "Snap via the ui settings")
     mc.button(parent=_row,
+              l = 'Seq',
+              ut = 'cgmUITemplate',                                    
+              c= lambda *a:uiFunc_snapOrdered(self),
+              ann = "Snap from each to next. Processes pairs in reverse order for dependencies")    
+    mc.button(parent=_row,
               l = 'Query',
               ut = 'cgmUITemplate',
               c= lambda *a:uiQuery_advancedSnap(self),
@@ -596,6 +601,25 @@ def uiFunc_snap(self):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def uiFunc_snapOrdered(self):
+    try:
+        _d = uiQuery_advancedSnap(self)
+        _sel = _d.pop('sl')
+        if not _sel:
+            return log.error("Nothing selected")
+        
+        #if len(_sel) == 1:
+        #    targets = None
+        #else:
+        #    targets = _sel[1:]
+        #obj = _sel[0]
+        #SNAPCALLS.snap( obj,targets, **_d)
+        targets = _sel
+        #targets.reverse()
+        reload(MMCONTEXT)
+        MMCONTEXT.func_process(SNAPCALLS.snap,targets,'eachToNextReverse',**_d)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
         
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  
