@@ -1166,6 +1166,7 @@ def kw_fromDict(arg = None ,d = None, indexCallable = False, returnIndex = False
             
     if not noneValid:
         raise ValueError,"{0}: Invalid arg | arg: {1} | options: {2}".format(_str_func, arg, d)
+    return arg
 
 def kw_fromList(arg = None ,l = None, indexCallable = False, returnIndex = False, noneValid = False, calledFrom = None):
     """

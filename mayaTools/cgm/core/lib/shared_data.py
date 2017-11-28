@@ -39,7 +39,12 @@ _d_node_to_suffix = {'follicle':'foll','curveInfo':'crvInfo','condition':'condNo
 _d_rotateOrder_to_index = {'xyz':0,'yzx':1 ,'zxy':2 ,'xzy':3 ,'yxz':4,'zyx':5,'none':6}
 _d_rotateOrder_from_index = {0: 'xyz', 1: 'yzx', 2: 'zxy', 3: 'xzy', 4: 'yxz', 5: 'zyx', 6: 'none'}
 
-_d_pivotArgs = {'rp':['rp','r','rotate','rotatePivot','pivot'],'sp':['scale','s','scalePivot'],'local':['l','translate'],'boundingBox':['bb','bbCenter'],'closestPoint':['cpos','closest','closestPoint']}
+_d_pivotArgs = {'rp':['rp','r','rotate','rotatePivot','pivot'],
+                'sp':['scale','s','scalePivot'],
+                'local':['l','translate'],
+                'boundingBox':['bb','bbCenter'],
+                'axisBox':['ab'],
+                'closestPoint':['cpos','closest','closestPoint']}
 _d_spaceArgs = {'object':['os','objectSpace','o'],'world':['w','worldSpace','ws'],'local':['l','translate']}
 
 

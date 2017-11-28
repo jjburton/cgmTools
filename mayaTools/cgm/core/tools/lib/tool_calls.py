@@ -1,7 +1,7 @@
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+import cgm.core.cgm_General as cgmGEN
 def red9( *a ):
     import Red9
     reload(Red9)
@@ -21,8 +21,16 @@ def mrsUI():
     import cgm.core.mrs.Builder as MRSBUILDER
     reload(MRSBUILDER)
     MRSBUILDER.ui()
-
-def locinator( *a ):
+    
+def cgmSnapTools():
+    try:
+        import cgm.core.tools.snapTools as SNAP
+        reload(SNAP)
+        SNAP.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+    
+def locinator():
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)
     LOCINATOR.ui()

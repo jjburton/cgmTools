@@ -10,9 +10,11 @@ Website : http://www.cgmonks.com
 This is for more advanced snapping functionality.
 ================================================================
 """
-__version__ = '0.2.11212017'
+__version__ = '0.2.11262017'
 
 import webbrowser
+import copy
+import pprint
 
 import logging
 logging.basicConfig()
@@ -260,107 +262,6 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
     cgmDrag.clickMesh(**kws)
     return
 
-def get_special_pos(targets = None,
-                    arg = 'rp',
-                    mode = 'center',
-                    mark=True):
-    """
-    This had to move here fore import loop considerations
-
-    :parameters:
-        obj(str): Object to modify
-        target(str): Object to snap to
-        sourceObject(str): object to copy from
-        arg
-            rp
-            sp
-            boundingBoxEach
-            boundingBoxAll - all targets bounding box cumulative
-            localAxisBox
-            castFar
-            castNear
-            groundPos
-        mode - Relative to 
-            center
-            front
-            x
-
-    :returns
-        success(bool)
-    """   
-    _str_func = 'get_special_pos'
-    _sel = mc.ls(sl=True)
-    
-    targets = VALID.listArg(targets)
-    _targets = VALID.mNodeStringList(targets)
-    
-    if not _targets:
-        raise ValueError,"Must have targets!"
-
-    _arg = VALID.kw_fromDict(arg, SHARED._d_pivotArgs, noneValid=True,calledFrom= __name__ + _str_func + ">> validate pivot")
-    if _arg is None:
-        _arg = arg
-    if _arg == 'cast':
-        _arg = 'castNear'
-        
-    l_nameBuild = ['_'.join([NAMES.get_base(o) for o in _targets]),_arg,mode]
-    l_res = []
-    if _arg in ['rp','sp']:
-        for t in _targets:
-            l_res.append(POS.get(t,_arg,'world'))
-    elif _arg == 'boundingBox':
-        l_res.append( POS.get_bb_pos( _targets, False, mode))
-    elif _arg == 'boundingBoxShapes':
-        l_res.append( POS.get_bb_pos( _targets, True, mode))        
-    elif _arg == 'boundingBoxEach':
-        for t in _targets:
-            l_res.append(POS.get_bb_pos( t, False, mode))
-    elif _arg == 'boundingBoxEachShapes':
-        for t in _targets:
-            l_res.append(POS.get_bb_pos( t, True, mode))
-    elif _arg == 'groundPos':
-        for t in targets:
-            pos = TRANS.position_get(t)
-            l_res.append([pos[0],0.0,pos[2]])
-    elif _arg.startswith('castAll'):
-        _type =  _arg.split('castAll')[-1].lower()
-        log.info("|{0}| >> castAll mode: {1} | {2}".format(_str_func,mode,_type))
-        pos = RAYS.get_cast_pos(_targets[0],mode,_type, None, mark=False, maxDistance=100000)
-        l_res.append(pos)        
-    elif _arg.startswith('cast'):
-        _type =  _arg.split('cast')[-1].lower()
-        log.info("|{0}| >> cast mode: {1} | {2}".format(_str_func,mode,_type))
-        if len(_targets)>1:
-            log.info("|{0}| >> more than one target...".format(_str_func))            
-            pos = RAYS.get_cast_pos(_targets[0],mode,_type, _targets[1:],mark=False, maxDistance=100000)
-        else:
-            pos = RAYS.get_cast_pos(_targets[0],mode,_type, _targets,mark=False, maxDistance=100000)            
-        l_res.append(pos)
-    elif _arg == 'axisBox':
-        log.warning("|{0}| >> axisBox mode is still wip".format(_str_func))
-        for t in targets:
-            _proxy = CORERIG.create_axisProxy(t)
-            pos = RAYS.get_cast_pos(t,mode,'near', _proxy, mark=False, maxDistance=100000)
-            l_res.append(pos)
-            mc.delete(_proxy)
-    else:
-        raise ValueError,"|{0}| >> Unknown mode: {1}".format(_str_func,_arg)
-
-    #cgmGEN.func_snapShot(vars())
-
-    if len(l_res)>1:
-        _res = DIST.get_average_position(l_res)
-    else:
-        _res = l_res[0]
-
-    if mark:
-        _loc = mc.spaceLocator()[0]
-        mc.move (_res[0],_res[1],_res[2], _loc, ws=True)        
-        mc.rename(_loc, '{0}_loc'.format('_'.join(l_nameBuild)))
-    if _sel:
-        mc.select(_sel)
-    return _res
-
 
 def specialSnap(obj = None, targets = None,
                 arg = 'axisBox',
@@ -427,3 +328,311 @@ def specialSnap(obj = None, targets = None,
             
         POS.set(_obj,p)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+
+def snap(obj = None, targets = None,
+         position = True, rotation = True, rotateAxis = False, rotateOrder = False,
+         rotatePivot = False, scalePivot = False,
+         objPivot = 'rp', objMode = None, objLoc = False,
+         targetPivot = 'rp', targetMode = None, targetLoc = False,
+         queryMode = False, space = 'w',mark = False,**kws):
+    """
+    Core snap functionality.
+
+
+    :parameters:
+        obj(str): Object to modify
+        target(str): Objects to snap to
+        objPivot
+        targetPivot
+        objMode =
+        targetMode
+
+        position
+        rotation
+        rotateAxis
+        rotateOrder
+        scalePivot
+        space
+        mark
+
+
+    :returns
+        success(bool)
+    """   
+    try:
+        _str_func = 'snap'
+
+        try:obj = obj.mNode
+        except:pass    
+
+        _obj = VALID.mNodeString(obj)
+        if targets is None:
+            log.debug("|{0}| >> self target... ".format(_str_func))                                        
+            _targets = [_obj]
+        else:
+            _targets = VALID.mNodeStringList(targets)
+        reload(VALID)
+        _pivotObj = VALID.kw_fromDict(objPivot, SHARED._d_pivotArgs, noneValid=True)
+        _pivotTar = VALID.kw_fromDict(targetPivot, SHARED._d_pivotArgs, noneValid=True)
+
+        _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom= __name__ + _str_func + ">> validate space")  
+        log.debug("|{0}| >> obj: {1}({2}-{3}) | target:({4}-{5})({6}) | space: {7}".format(_str_func,_obj,_pivotObj,objMode,
+                                                                                           _pivotTar,targetMode,_targets,_space))             
+        log.debug("|{0}| >> position: {1} | rotation:{2} | rotateAxis: {3} | rotateOrder: {4}".format(_str_func,position,rotation,rotateAxis,rotateOrder))             
+
+        kws_xform = {'ws':False,'os':False}
+        if _space == 'world':
+            kws_xform['ws']=True
+        else:kws_xform['os']=True  
+
+        #Mode type defaults...
+        if objMode is None:
+            if _pivotObj is 'boundingBox':
+                objMode = 'center'
+            elif _pivotObj in ['castCenter','castFar','castNear','axisBox']:
+                objMode = 'z+'            
+        if targetMode is None:
+            if _pivotTar is 'boundingBox':
+                targetMode = 'center'
+            elif _pivotTar in ['castCenter','castFar','castNear','axisBox']:
+                targetMode = 'z+'
+
+        if _pivotTar in ['castFar','castAllFar','castNear','castAllNear']:
+            if targetMode == 'center':
+                log.debug("|{0}| >> Center target mode invalid with {1}. Changing to 'z+' ".format(_str_func,_pivotTar))                
+                targetMode = 'z+'
+
+        #cgmGEN.func_snapShot(vars())
+
+        if position or objLoc or targetLoc or rotatePivot or scalePivot:
+            kws_xform_move = copy.copy(kws_xform)
+            if _pivotTar == 'sp':
+                kws_xform_move['spr'] = True
+            else:
+                kws_xform_move['rpr'] = True
+
+            #>>>Target pos ------------------------------------------------------------------------------
+            log.debug("|{0}| >> Position True. Getting target pivot pos {1} ".format(_str_func,_pivotTar))
+            l_nameBuild = ['_'.join([NAMES.get_base(o) for o in _targets]),_pivotTar]
+            if targetMode and _pivotTar not in ['sp','rp','closestPoint','groundPos']:
+                l_nameBuild.append(targetMode)
+
+            l_pos = []
+            if _pivotTar in ['sp','rp']:
+                log.debug("|{0}| >> xform query... ".format(_str_func))
+                for t in _targets:
+                    l_pos.append(POS.get(t,_pivotTar,_space))
+                pos_target  = DIST.get_average_position(l_pos)                                
+            elif _pivotTar == 'closestPoint':
+                log.debug("|{0}|...closestPoint...".format(_str_func))        
+                pos_target = DIST.get_by_dist(_obj,_targets,resMode='pointOnSurface')
+            else:
+                log.debug("|{0}| >> special query... ".format(_str_func))
+                _targetsSpecial = copy.copy(_targets)
+                if _pivotTar not in ['axisBox','groundPos','castCenter']:
+                    _targetsSpecial.insert(0,_obj)
+                pos_target = get_special_pos(_targetsSpecial, _pivotTar, targetMode)
+
+            if not pos_target:
+                return log.error("No position detected")
+            if targetLoc:
+                _loc = mc.spaceLocator()[0]
+                mc.move (pos_target[0],pos_target[1],pos_target[2], _loc, ws=True)        
+                mc.rename(_loc, '{0}_loc'.format('_'.join(l_nameBuild)))
+
+            log.debug("|{0}| >> Target pivot: {1}".format(_str_func, pos_target))
+
+            #>>>Obj piv ------------------------------------------------------------------------------
+            log.debug("|{0}| >> Getting obj pivot pos {1} ".format(_str_func,_pivotObj))
+            l_nameBuild = [NAMES.get_base(_obj),_pivotObj]
+            if objMode and _pivotObj not in ['sp','rp','closestPoint','groundPos']:
+                l_nameBuild.append(objMode)
+
+            l_pos = []
+            if _pivotObj in ['sp','rp']:
+                log.debug("|{0}| >> xform query... ".format(_str_func))
+                pos_obj = POS.get(_obj,_pivotObj,_space)
+            elif _pivotObj == 'closestPoint':
+                log.debug("|{0}|...closestPoint...".format(_str_func))
+                pos_obj = DIST.get_by_dist(_targets[0], _obj,resMode='pointOnSurface')
+            else:
+                log.debug("|{0}| >> special query... ".format(_str_func))
+                pos_obj = get_special_pos(_obj, _pivotObj, objMode)
+
+            if objLoc:
+                _loc = mc.spaceLocator()[0]
+                mc.move (pos_obj[0],pos_obj[1],pos_obj[2], _loc, ws=True)        
+                mc.rename(_loc, '{0}_loc'.format('_'.join(l_nameBuild)))
+
+            log.debug("|{0}| >> Obj pivot: {1}".format(_str_func, pos_obj))
+
+
+            if queryMode:
+                pprint.pprint(vars())
+                log.warning("|{0}| >> Query mode. No snap".format(_str_func))
+                mc.select([_obj] + _targets)
+                return True
+
+            #>>>Obj piv ------------------------------------------------------------------------------
+            if position:
+                log.debug("|{0}| >> Positioning... ".format(_str_func))
+                if _pivotObj == 'rp':
+                    POS.set(_obj, pos_target)
+                else:
+                    p_start = TRANS.position_get(_obj)
+                    _vector_to_objPivot = COREMATH.get_vector_of_two_points(p_start, pos_obj)
+                    _dist_base = DIST.get_distance_between_points(p_start, pos_obj)#...get our base distance
+                    p_result = DIST.get_pos_by_vec_dist(pos_target,_vector_to_objPivot,-_dist_base)
+
+                    cgmGEN.func_snapShot(vars())
+                    POS.set(_obj,p_result)
+
+
+        if rotateAxis:
+            log.debug("|{0}|...rotateAxis...".format(_str_func))        
+            mc.xform(obj,ra = mc.xform(_targets[0], q=True, ra=True, **kws_xform), p=True, **kws_xform)    
+        if rotateOrder:
+            log.debug("|{0}|...rotateOrder...".format(_str_func))
+            mc.xform(obj,roo = mc.xform(_targets[0], q=True, roo=True), p=True)
+        if rotation:
+            log.debug("|{0}|...rotation...".format(_str_func))
+            _t_ro = ATTR.get_enumValueString(_targets[0],'rotateOrder')
+            _obj_ro = ATTR.get_enumValueString(obj,'rotateOrder')
+            if _t_ro != _obj_ro:
+                #Creating a loc to get our target space rotateOrder into new space
+                log.debug("|{0}|...rotateOrders don't match...".format(_str_func))
+                _loc = mc.spaceLocator(n='tmp_roTranslation')[0]
+                ATTR.set(_loc,'rotateOrder',_t_ro)
+                rot = mc.xform (_targets[0], q=True, ro=True, **kws_xform )   
+                mc.xform(_loc, ro = rot, **kws_xform)
+                mc.xform(_loc, roo = _obj_ro, p=True)
+                rot = mc.xform (_loc, q=True, ro=True, **kws_xform )   
+                mc.delete(_loc)
+            else:
+                rot = mc.xform (_targets[0], q=True, ro=True, **kws_xform )
+            mc.xform(_obj, ro = rot, **kws_xform)
+        if rotatePivot:
+            log.debug("|{0}|...rotatePivot...".format(_str_func))
+            mc.xform(obj,rp = pos_target, p=True, **kws_xform)
+        if scalePivot:
+            log.debug("|{0}|...scalePivot...".format(_str_func))
+            mc.xform(obj,sp = pos_target, p=True, **kws_xform)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+
+def get_special_pos(targets = None,
+                    arg = 'rp',
+                    mode = None,
+                    mark=False):
+    """
+    This had to move here for import loop considerations
+
+    :parameters:
+        obj(str): Object to modify
+        target(str): Object to snap to
+        sourceObject(str): object to copy from
+        arg
+            rp
+            sp
+            boundingBoxEach
+            boundingBoxAll - all targets bounding box cumulative
+            localAxisBox
+            castFar
+            castNear
+            groundPos
+        mode - Relative to 
+            center
+            front
+            x
+
+    :returns
+        success(bool)
+    """ 
+    try:
+        _str_func = 'get_special_pos'
+        _sel = mc.ls(sl=True) or []
+
+        targets = VALID.listArg(targets)
+        _targets = VALID.mNodeStringList(targets)
+
+        if not _targets:
+            raise ValueError,"Must have targets!"
+
+        _arg = VALID.kw_fromDict(arg, SHARED._d_pivotArgs, noneValid=True,calledFrom= __name__ + _str_func + ">> validate pivot")
+        if _arg is None:
+            _arg = arg
+
+        if _arg == 'cast':
+            _arg = 'castNear'
+
+        if mode is None:
+            if _arg in ['boundingBox']:
+                mode = 'center'
+            else:
+                mode = 'z+'
+
+        l_nameBuild = ['_'.join([NAMES.get_base(o) for o in _targets]),_arg]
+        if mode:
+            l_nameBuild.append(mode)
+        l_res = []
+        if _arg in ['rp','sp']:
+            for t in _targets:
+                l_res.append(POS.get(t,_arg,'world'))
+        elif _arg == 'boundingBox':
+            l_res.append( POS.get_bb_pos( _targets, False, mode))
+        elif _arg == 'boundingBoxShapes':
+            l_res.append( POS.get_bb_pos( _targets, True, mode))        
+        elif _arg == 'boundingBoxEach':
+            for t in _targets:
+                l_res.append(POS.get_bb_pos( t, False, mode))
+        elif _arg == 'boundingBoxEachShapes':
+            for t in _targets:
+                l_res.append(POS.get_bb_pos( t, True, mode))
+        elif _arg == 'groundPos':
+            for t in targets:
+                pos = TRANS.position_get(t)
+                l_res.append([pos[0],0.0,pos[2]])
+        elif _arg.startswith('castAll'):
+            _type =  _arg.split('castAll')[-1].lower()
+            log.info("|{0}| >> castAll mode: {1} | {2}".format(_str_func,mode,_type))
+            pos = RAYS.get_cast_pos(_targets[0],mode,_type, None, mark=False, maxDistance=100000)
+            l_res.append(pos)        
+        elif _arg.startswith('cast'):
+            _type =  _arg.split('cast')[-1].lower()
+            log.info("|{0}| >> cast mode: {1} | {2}".format(_str_func,mode,_type))
+            if len(_targets)>1:
+                log.info("|{0}| >> more than one target...".format(_str_func))            
+                pos = RAYS.get_cast_pos(_targets[0],mode,_type, _targets[1:],mark=False, maxDistance=100000)
+            else:
+                pos = RAYS.get_cast_pos(_targets[0],mode,_type, _targets,mark=False, maxDistance=100000)            
+            if not pos:
+                return False
+            l_res.append(pos)
+        elif _arg == 'axisBox':
+            log.warning("|{0}| >> axisBox mode is still wip".format(_str_func))
+            for t in targets:
+                _proxy = CORERIG.create_axisProxy(t)
+                #Start point is bb center because rp can sometimes be in odd places and we care about the axisBox
+                pos = RAYS.get_cast_pos(t, mode,'near', _proxy, startPoint= POS.get(_proxy,'bb') ,mark=False, maxDistance=100000)
+                l_res.append(pos)
+                mc.delete(_proxy)
+        else:
+            raise ValueError,"|{0}| >> Unknown mode: {1}".format(_str_func,_arg)
+
+        #cgmGEN.func_snapShot(vars())
+
+        if len(l_res)>1:
+            _res = DIST.get_average_position(l_res)
+        else:
+            _res = l_res[0]
+
+        if mark:
+            _loc = mc.spaceLocator()[0]
+            mc.move (_res[0],_res[1],_res[2], _loc, ws=True)        
+            mc.rename(_loc, '{0}_loc'.format('_'.join(l_nameBuild)))
+        if _sel and not mark:
+            mc.select(_sel)
+        return _res
+    except Exception,err:cgmGEN.cgmException(Exception,err)

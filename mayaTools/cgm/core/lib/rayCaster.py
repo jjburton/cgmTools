@@ -58,7 +58,7 @@ def get_eligibleMesh():
                 log.debug("|{0}| >> Inelibible: {1} | {2}".format(_str_func,_type,_mesh))
     return _res
 
-def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = True, maxDistance = 1000, asEuclid = False):
+def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = True, startPoint = None, maxDistance = 1000, asEuclid = False):
     """
     Get the 
 
@@ -110,9 +110,11 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
             l_hits = []
             for s in shapes:
                 log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
-                _d_resForward = cast(s,obj,mAxis.p_string, maxDistance=maxDistance,firstHit=False)
-                _d_resBack = cast(s,obj,mAxis.inverse.p_string, maxDistance=maxDistance,firstHit=False)
-
+                _d_resForward = cast(s,obj,mAxis.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False)
+                _d_resBack = cast(s,obj,mAxis.inverse.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False)
+                if not _d_resForward:
+                    log.warning("|{0}| >> Failed to hit: {1}".format(_str_func,s))                                        
+                    return False
                 p1 = _d_resForward.get(_subMode)
                 p2 = _d_resBack.get(_subMode)
                 l_hits.append(DIST.get_average_position([p1,p2]))
@@ -126,7 +128,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
             l_distances = []
             for s in shapes:
                 log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
-                _d_res = cast(s,obj,mAxis.p_string, maxDistance=maxDistance,firstHit=False)
+                _d_res = cast(s,obj,mAxis.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False)
                 p = _d_res.get(mode,None)
                 if p:
                     l_hits.append(p)
@@ -134,7 +136,8 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
                 else:
                     log.debug("|{0}| >> Failed to hit: {1}".format(_str_func,s))                    
             if not l_distances:
-                raise ValueError,"Nothing hit."
+                log.debug("|{0}| >> Nothing hit".format(_str_func))                                    
+                return False#raise ValueError,"Nothing hit."
             if mode == 'near':
                 modeIdx = l_distances.index( min(l_distances) )
             else:

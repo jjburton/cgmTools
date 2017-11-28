@@ -44,15 +44,11 @@ import cgm.core.lib.sdk_utils as SDK
 reload(SDK)
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
 reload(TOOLCALLS)
+import cgm.core.classes.GuiFactory as cgmUI
 
 from cgm.core.tools import attrTools as ATTRTOOLS
 reload(ATTRTOOLS)
 
-#from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-#reload(DYNPARENTTOOL)
-
-#import cgm.core.tools.setTools as SETTOOLS
-#reload(SETTOOLS)
 from cgm.core.tools import locinator as LOCINATOR
 
 from cgm.core.lib import attribute_utils as ATTRS
@@ -1016,6 +1012,11 @@ def uiSection_snap(parent, selection = None ):
                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
                 ann = "Layout on line from first to last item closest as possible to original position")   
     
+    #cgmUI.mUI.MelSeparator(parent)
+    mc.menuItem(parent=parent,
+                l = 'Snap UI',
+                c = cgmGen.Callback(TOOLCALLS.cgmSnapTools),                                               
+                ann = "Open snap tools")    
     return
 
 
@@ -1103,3 +1104,47 @@ def uiOptionMenu_contextTD(self, parent, callback = cgmGen.Callback):
                         rb = _rb)                
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
+        
+def uiOptionMenu_buffers(self, callback = cgmGen.Callback):
+    try:self.uiMenuBuffers = None
+    except:pass
+    
+    self.uiMenu_Buffers.clear()  
+
+    uiMenu = self.uiMenu_Buffers
+    
+    try:self.var_rayCastTargetsBuffer
+    except:self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])            
+    try:self.var_locinatorTargetsBuffer
+    except:self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
+
+
+    _d = {'RayCast':self.var_rayCastTargetsBuffer,
+          'Match':self.var_locinatorTargetsBuffer}
+
+    for k in _d.keys():
+        var = _d[k]
+        _ui = mc.menuItem(p=uiMenu, subMenu = True,
+                          l = k)
+
+        mc.menuItem(p=_ui, l="Define",
+                    c= cgmGen.Callback(cgmUI.varBuffer_define,self,var))                                
+
+        mc.menuItem(p=_ui, l="Add Selected",
+                    c= cgmGen.Callback(cgmUI.varBuffer_add,self,var))        
+
+        mc.menuItem(p=_ui, l="Remove Selected",
+                    c= cgmGen.Callback(cgmUI.varBuffer_remove,self,var))        
+
+
+        mc.menuItem(p=_ui,l='----------------',en=False)
+        mc.menuItem(p=_ui, l="Report",
+                    c= cgmGen.Callback(var.report))        
+        mc.menuItem(p=_ui, l="Select Members",
+                    c= cgmGen.Callback(var.select))        
+        mc.menuItem(p=_ui, l="Clear",
+                    c= cgmGen.Callback(var.clear))  
+
+    #mc.menuItem(p=uiMenu, l="--------------",en=False)
+    #mc.menuItem(p=uiMenu, l="Reload",
+    #            c= cgmGen.Callback(ui))

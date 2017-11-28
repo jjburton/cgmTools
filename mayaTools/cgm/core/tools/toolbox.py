@@ -63,6 +63,7 @@ import cgm.core.lib.skinDat as SKINDAT
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 reload(UICHUNKS)
 import cgm.core.tools.lib.tool_calls as LOADTOOL
+import cgm.core.tools.snapTools as SNAPTOOLS
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
@@ -225,7 +226,7 @@ class ui(cgmUI.cgmGUI):
         self.var_matchModeMove = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1)
         self.var_matchModeRotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1)
         #self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
-        self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)    
+        self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)
         self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
 
     def build_menus(self):
@@ -264,7 +265,7 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_help(self):
         self.uiMenu_Help.clear()
         
-        cgmUI.uiSection_help(self.uiMenu_Help)        
+        cgmUI.uiSection_help(self.uiMenu_Help)
         
     def buildMenu_buffer(self):
         self.uiMenu_Buffers.clear()  
@@ -299,7 +300,7 @@ class ui(cgmUI.cgmGUI):
 
         mc.menuItem(p=uiMenu, l="--------------",en=False)
         mc.menuItem(p=uiMenu, l="Reload",
-                    c= cgmGen.Callback(ui))          
+                    c= cgmGen.Callback(ui))
 
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -906,7 +907,7 @@ class ui(cgmUI.cgmGUI):
 
             mUI.MelSpacer(_row,w=2)       
 
-        _row.layout()        
+        _row.layout()
 
     def buildRow_context(self,parent):
         #>>>Match mode -------------------------------------------------------------------------------------
@@ -1760,8 +1761,9 @@ class ui(cgmUI.cgmGUI):
         #>>>Shape Creation ====================================================================================
         mc.setParent(_column)
 
-        self.buildSection_snap(_column)
-        self.buildSection_aim(_column)
+        SNAPTOOLS.buildSection_snap(self,_column)
+        SNAPTOOLS.buildSection_aim(self,_column)
+        SNAPTOOLS.buildSection_advancedSnap(self,_column)
 
         mc.button(parent = _column,
                   ut = 'cgmUITemplate',                                                                                                
@@ -1894,11 +1896,14 @@ class ui(cgmUI.cgmGUI):
         #>>>Tools -------------------------------------------------------------------------------------  
         #self.buildRow_context(_column)                     
         
-        self.buildSection_snap(_column)
+        SNAPTOOLS.buildSection_snap(self,_column)
         cgmUI.add_HeaderBreak()        
         
-        self.buildSection_aim(_column)
-        cgmUI.add_HeaderBreak()   
+        SNAPTOOLS.buildSection_aim(self,_column)
+        cgmUI.add_HeaderBreak()
+        
+        SNAPTOOLS.buildSection_advancedSnap(self,_column)
+        cgmUI.add_HeaderBreak()           
 
         self.buildSection_rigging(_column)
         cgmUI.add_SectionBreak()  
