@@ -34,6 +34,7 @@ from cgm.core.tools import locinator as LOCINATOR
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.cgmPy import validateArgs as VALID
+import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.position_utils as POS
 import cgm.core.classes.GuiFactory as cgmUI
@@ -430,7 +431,7 @@ def snap(obj = None, targets = None,
             else:
                 log.debug("|{0}| >> special query... ".format(_str_func))
                 _targetsSpecial = copy.copy(_targets)
-                if _pivotTar not in ['axisBox','groundPos','castCenter']:
+                if _pivotTar not in ['axisBox','groundPos','castCenter','boundingBox']:
                     _targetsSpecial.insert(0,_obj)
                 pos_target = get_special_pos(_targetsSpecial, _pivotTar, targetMode)
 
@@ -478,7 +479,8 @@ def snap(obj = None, targets = None,
             if position:
                 log.debug("|{0}| >> Positioning... ".format(_str_func))
                 if _pivotObj == 'rp':
-                    POS.set(_obj, pos_target)
+                    TRANS.position_set(obj,pos_target)
+                    #POS.set(_obj, pos_target)
                 else:
                     p_start = TRANS.position_get(_obj)
                     _vector_to_objPivot = COREMATH.get_vector_of_two_points(p_start, pos_obj)

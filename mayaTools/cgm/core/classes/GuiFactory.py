@@ -334,6 +334,12 @@ class cgmGUI(mUI.BaseMelWindow):
         self.__dict__['var_DebugMode'] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
         if fullName not in self.l_optionVars:
             self.l_optionVars.append(fullName)
+            
+    def set_optionVar(self, optionVar, value = None, uiObject = None):
+        if uiObject is not None:
+            value = uiObject.getValue()
+        optionVar.setValue(value)
+        
     #=========================================================================
     # Menu Building
     #=========================================================================

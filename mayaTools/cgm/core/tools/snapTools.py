@@ -18,7 +18,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 import maya.cmds as mc
 
@@ -48,8 +48,8 @@ reload(RAYS)
 reload(UICHUNKS)
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 0.11262017'
-__toolname__ ='snapTools'
+__version__ = 'Alpha - 0.11282017'
+__toolname__ ='cgmSnap'
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -162,19 +162,43 @@ def buildSection_advancedSnap(self,parent):
     _l_pivotArgs = ['rp','sp','closestPoint','boundingBox','axisBox','groundPos','castCenter','castFar','castNear','castAllFar','castAllNear']
     _l_pivotModes = ['center'] + SHARED._l_axis_by_string
     
-    #Object ----------------------------------------------------------------------------------
+    #Object Pivot ----------------------------------------------------------------------------------
+    _plug = 'cgmVar_snapAdvanced_' + 'objectPivot'
+    try:self.__dict__[_plug]
+    except:
+        _default = 'rp'
+        log.debug("{0}:{1}".format(_plug,_default))
+        self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+
+
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mUI.MelSpacer(_row,w=10)    
     mUI.MelLabel(_row, label = 'Obj Piv:')
-    
-    self.uiSelector_objPivot = mUI.MelObjectMenu(_row)
+    #cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i)
+    self.uiSelector_objPivot = mUI.MelOptionMenu(_row)
     for a in _l_pivotArgs:
         self.uiSelector_objPivot.append(a)
+        
+    self.uiSelector_objPivot(edit=True,
+                             value = self.__dict__[_plug].getValue(),
+                             cc = cgmGEN.Callback(self.set_optionVar, self.__dict__[_plug], None, self.uiSelector_objPivot))
+
+    #Object Mode----------------------------------------------------------------------------------
+    _plug = 'cgmVar_snapAdvanced_' + 'objectMode'
+    try:self.__dict__[_plug]
+    except:
+        _default = 'center'
+        log.debug("{0}:{1}".format(_plug,_default))
+        self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
             
     mUI.MelLabel(_row, label = 'Mode:')
-    self.uiSelector_objMode = mUI.MelObjectMenu(_row)
+    self.uiSelector_objMode = mUI.MelOptionMenu(_row)
     for a in _l_pivotModes:
         self.uiSelector_objMode.append(a)
+    self.uiSelector_objMode(edit=True,
+                             value = self.__dict__[_plug].getValue(),
+                             cc = cgmGEN.Callback(self.set_optionVar, self.__dict__[_plug], None, self.uiSelector_objMode))
+
         
     _row.setStretchWidget(mUI.MelSeparator(_row))
 
@@ -186,19 +210,44 @@ def buildSection_advancedSnap(self,parent):
     mUI.MelSpacer(_row,w=10)
     _row.layout()
     
-    #Target ----------------------------------------------------------------------------------
+    #Object Pivot ----------------------------------------------------------------------------------
+    _plug = 'cgmVar_snapAdvanced_' + 'targetPivot'
+    try:self.__dict__[_plug]
+    except:
+        _default = 'rp'
+        log.debug("{0}:{1}".format(_plug,_default))
+        self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+    
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mUI.MelSpacer(_row,w=10)
 
     mUI.MelLabel(_row, label = 'Tar Piv:')
-    self.uiSelector_targetPivot = mUI.MelObjectMenu(_row)
+    self.uiSelector_targetPivot = mUI.MelOptionMenu(_row)
     for a in _l_pivotArgs:
         self.uiSelector_targetPivot.append(a)
+    self.uiSelector_targetPivot(edit=True,
+                             value = self.__dict__[_plug].getValue(),
+                             cc = cgmGEN.Callback(self.set_optionVar, self.__dict__[_plug], None, self.uiSelector_targetPivot))
+
+        
+    #Object Pivot ----------------------------------------------------------------------------------
+    _plug = 'cgmVar_snapAdvanced_' + 'targetMode'
+    try:self.__dict__[_plug]
+    except:
+        _default = 'center'
+        log.debug("{0}:{1}".format(_plug,_default))
+        self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
         
     mUI.MelLabel(_row, label = 'Mode:')
-    self.uiSelector_targetMode = mUI.MelObjectMenu(_row)
+    self.uiSelector_targetMode = mUI.MelOptionMenu(_row)
     for a in _l_pivotModes:
         self.uiSelector_targetMode.append(a)
+        
+    self.uiSelector_targetMode(edit=True,
+                             value = self.__dict__[_plug].getValue(),
+                             cc = cgmGEN.Callback(self.set_optionVar, self.__dict__[_plug], None, self.uiSelector_targetMode))
+
+        
         
     _row.setStretchWidget(mUI.MelSeparator(_row))
         

@@ -32,14 +32,14 @@ def returnListChunks(l, n):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     SOURCE:
     http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python/312644#312644
-    
+
     DESCRIPTION:
     Spits a list into chunks
-    
+
     ARGUMENTS:
     l(list) ex [1,2,3,4,5,6]
     n(int) - to split by
-    
+
     RETURNS:
     splitList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -51,15 +51,15 @@ def reorderListInPlace(l, subL, direction = 0):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     SOURCE:
     Got the original idea from Hamish McKenzie for reordering attributes. Reworked a little
-    
+
     DESCRIPTION:
     Returns a reordered list from a sublist of options and a direction
-    
+
     ARGUMENTS:
     l(list) ex [1,2,3,4,5,6]
     subL(list) must be list within list
     direction(int) - 0 for down, 1 for up
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -81,7 +81,7 @@ def reorderListInPlace(l, subL, direction = 0):
             else:
                 log.info ("List is already in order. No change.")
         else:
-           log.info("'%s' not in the target list. Try again..."%i)
+            log.info("'%s' not in the target list. Try again..."%i)
     return returnList 
 
 
@@ -93,7 +93,7 @@ def returnSplitList(listToSplit, mode=0, popMid = False):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a list sundered in TWO
-    
+
     ARGUMENTS:
     listToSplit(list) ex [1,2,3,4,5,6]
     mode(int) - OPTIONAL - 0 - split is default and favors the front 
@@ -101,7 +101,7 @@ def returnSplitList(listToSplit, mode=0, popMid = False):
                            1 - favors the rear
                                [1,2,3,4],[4,5,6]
     popMid(bool) -- whether to pull the mddle option
-    
+
     RETURNS:
     splitList
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -109,7 +109,7 @@ def returnSplitList(listToSplit, mode=0, popMid = False):
     _str_funcName = 'returnSplitList'
     log.info(">>> %s >> "%_str_funcName + "="*75) 
     if not len(listToSplit)>=3:
-	raise StandardError,"%s >>> list length must be 3 or greater. len : %s | list: %s"%(_str_funcName,len(listToSplit),listToSplit)
+        raise StandardError,"%s >>> list length must be 3 or greater. len : %s | list: %s"%(_str_funcName,len(listToSplit),listToSplit)
     # if even...
     if len(listToSplit)%2==0:
         if mode == 0:
@@ -142,10 +142,10 @@ def returnFirstMidLastList(list):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns the first middle and last items of a list of items for constraint purposes
-    
+
     ARGUMENTS:
     list(list)
-    
+
     RETURNS:
     bufferList(list) 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -155,18 +155,18 @@ def returnFirstMidLastList(list):
     bufferList.append(list[int(round((len(list))*1/2))])
     bufferList.append(list[-1])
     return bufferList
-    
+
 def returnFactoredConstraintList(listToFactor, factor):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Takes a list and factors it out for constraining purposes
     ex - returnFactoredConstraintList(testList, 3)
-    
+
     ARGUMENTS:
     listToFactor(list) - ex testList = [0,1,2,3,4,5,6,7]
     factor(int)
-    
+
     RETURNS:
     culledList(list) - ex - [[[0, 1, 2], [2, 3, 4]], [4, 5, 6, 7]]
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -186,7 +186,7 @@ def returnFactoredConstraintList(listToFactor, factor):
                     keepSplittingList.append(sublist)
             else:
                 culledList.append(list)                       
-    
+
     else:
         return culledList
     if len(keepSplittingList) > 0:
@@ -204,20 +204,20 @@ def returnFactoredConstraintList(listToFactor, factor):
                     keepSplittingList.remove(list)
                     culledList.append(list)
             loopCnt -=1
-    
+
     return culledList
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def parseListToPairs(dataList):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
- 	Takes a datalist and parses it to pairs. For example [dog,cat,pig,monkey] would be
- 	[[dog,cat],[cat,pig],[pig,monkey]]
-    
+    Takes a datalist and parses it to pairs. For example [dog,cat,pig,monkey] would be
+    [[dog,cat],[cat,pig],[pig,monkey]]
+
     ARGUMENTS:
     dataList(list)
-    
+
     RETURNS:
     nestedPairList(List)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
@@ -231,7 +231,7 @@ def parseListToPairs(dataList):
         cnt +=1
 
     return nestedPairList
-    
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Duplicates/Matching
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -240,11 +240,11 @@ def returnPosListNoDuplicates(posSearchList,decimalPlaces=4):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Removes duplicates from a list of positions with a variance ot decimal places to check
-    
+
     ARGUMENTS:
     posSearchList(list)
     decimalPlaces(int) - the number of decimal places to check
-    
+
     RETURNS:
     newList(list) - list with no duplicates
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -275,10 +275,10 @@ def returnMatchList(list1,list2):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a list of matches
-    
+
     ARGUMENTS:
     searchList(list)
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -298,11 +298,11 @@ def returnMissingList(baseList,searchList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a list of items not found
-    
+
     ARGUMENTS:
     baseList(list)
     searchList(list)
-    
+
     RETURNS:
     missingList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -319,11 +319,11 @@ def returnDifference(baseList,newList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a list new stuff
-    
+
     ARGUMENTS:
     baseList(list)
     newList(list)
-    
+
     RETURNS:
     missingList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -340,10 +340,10 @@ def returnListNoDuplicates(searchList):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Removes duplicates from a list
-    
+
     ARGUMENTS:
     searchList(list)
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -360,11 +360,11 @@ def removeMatchedIndexEntries(searchList,searchTerm):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Removes duplicates from a list
-    
+
     ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -381,11 +381,11 @@ def returnMatchedIndexEntries(searchList,searchTerm):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
     Returns a list of 
-    
+
     ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -403,11 +403,11 @@ def returnMatchedStrippedEndList(searchList,searchTerms = ['left','right']):
     DESCRIPTION:
     Look through a list for match terms like ['left','right'] and returns a
     nested pairs list
-    
+
     ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -439,11 +439,11 @@ def returnReplacedNameList(searchList,replaceWith = {'left':'right'}):
     DESCRIPTION:
     Look through a list for match terms like ['left','right'] and returns a
     nested pairs list
-    
+
     ARGUMENTS:
     searchList(list) - should be a nested list
     searchTerm(string) - what you wanna look for
-    
+
     RETURNS:
     newList(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -461,8 +461,8 @@ def cvListSimplifier(listToSimplify,mode):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
- 	Simplifies a cv list. In a semi intelligent manner
-    
+    Simplifies a cv list. In a semi intelligent manner
+
     ARGUMENTS:
     listToSimplify(list) - list or nested list of cv stuff
     mode -  0 - mid only
@@ -472,7 +472,7 @@ def cvListSimplifier(listToSimplify,mode):
             4 - evens only
             5 - all exceipt start and end anchors
             6 - all
-    
+
     RETURNS:
     newList(List)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
