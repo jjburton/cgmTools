@@ -48,11 +48,12 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         obj - transform to attach
         targetShape(str) - Curve, Nurbs, Mesh
         connectBy(str)
-            parent
-            parentGroup
-            conPointGroup
-            conPointOrientGroup
-            conParentGroup
+            parent - parent to track transform
+            parentGroup - parent to group and have group follow
+            conPointGroup - pointConstrain group
+            conPointOrientGroup - point/orient constrain group
+            conParentGroup - parent Constrain group
+            None - just the tracker nodes
     :returns:
         resulting dat
 
@@ -63,7 +64,6 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         targetShape = VALID.mNodeString(targetShape)
         
         #Get our data...
-        mLoc = mObj.doLoc()
         d_closest = DIST.get_closest_point_data(targetShape,
                                                 mObj.mNode)
     
@@ -80,6 +80,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         
             #> Name...
             i_follicleTrans.doStore('cgmName',mObj.mNode)
+            i_follicleTrans.doStore('cgmTypeModifier','surfaceTrack')            
             i_follicleTrans.doName()
             _trackTransform = i_follicleTrans.mNode
             
@@ -90,7 +91,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             else:
                 i_follicleShape.parameterU = d_closest['normalizedU']
                 i_follicleShape.parameterV = d_closest['normalizedV']
-            _res = l_follicleInfo
+            _res = [i_follicleTrans.mNode, i_follicleShape.mNode]
         else:
             log.debug("|{0}| >> Curve mode...".format(_str_func))
             #d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
@@ -107,13 +108,15 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             _trackTransform = mTrack.mNode
             
             mc.connectAttr("%s.position"%mPOCI.mNode,"%s.t"%_trackTransform)
-            mPOCI.doStore('cgmName',mObj.mNode)
+            mPOCI.doStore('cgmName',mObj.mNode)            
             mPOCI.doName()            
             _res = [mTrack.mNode, mPOCI.mNode]
             
-        if connectBy == 'parent':
+        if connectBy is None:
+            return _res 
+            
+        elif connectBy == 'parent':
             mObj.p_parent = _trackTransform
-            mLoc.delete()
             return _res
         
         elif connectBy == 'parentGroup':
@@ -121,16 +124,16 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             #_grp = TRANS.group_me(obj,True)
             #TRANS.parent_set(_grp,_trackTransform)
             mGroup.p_parent = _trackTransform
-            mLoc.delete()
             return _res + [mGroup.mNode]        
         elif connectBy == 'conPointGroup':
+            mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
-            #_loc = TRANS.parent_set(_loc,_trackTransform)
             mGroup = mObj.doGroup(asMeta=True)
             mc.pointConstraint(mLoc.mNode,mGroup.mNode)
             return _res + [mGroup.mNode]        
             
         elif connectBy == 'conPointOrientGroup':
+            mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
             
@@ -139,6 +142,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             return _res + [mGroup.mNode]        
             
         elif connectBy == 'conParentGroup':
+            mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
             mc.parentConstraint(mLoc.mNode,mGroup.mNode)

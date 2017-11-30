@@ -37,6 +37,7 @@ from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.distance_utils as DIST
+import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
 reload(CURVES)
 
 def spline(jointList = None,
@@ -831,6 +832,7 @@ def ribbon(jointList = None,
            orientation = 'zyx',
            secondaryAxis = 'y+',
            baseName = None,
+           connectBy = 'constraint',
            stretchBy = 'translate',
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
@@ -952,37 +954,22 @@ def ribbon(jointList = None,
         import cgm.core.lib.node_utils as NODES
         
         for i,mJnt in enumerate(ml_joints):
-            p = mJnt.p_position
-            d_closest = DIST.get_closest_point_data(mControlSurface.mNode,
-                                                    l_joints[i])
-            
-            log.debug("|{0}| >> jnt: {1} | {2}".format(_str_func,mJnt.mNode, d_closest))
-            
-            #>>> Follicle =======================================================
-            l_follicleInfo = NODES.createFollicleOnMesh(mControlSurface.mNode)
-            i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
-            i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
-            
-            #> Name...
-            i_follicleTrans.doStore('cgmName',mJnt.mNode)
-            i_follicleTrans.doName()
-            
-            #>Set follicle value...
-            i_follicleShape.parameterU = d_closest['normalizedU']
-            i_follicleShape.parameterV = d_closest['normalizedV']
+            follicle,shape = RIGCONSTRAINTS.attach_toShape(mJnt.mNode, mControlSurface.mNode, None)
+            mFollicle = cgmMeta.asMeta(follicle)
+            mFollShape = cgmMeta.asMeta(shape)
+
+            ml_follicleShapes.append(mFollicle)
+            ml_follicleTransforms.append(mFollShape)
     
-            ml_follicleShapes.append(i_follicleShape)
-            ml_follicleTransforms.append(i_follicleTrans)
-    
-            i_follicleTrans.parent = mi_grp.mNode
+            mFollicle.parent = mi_grp.mNode
     
             if mi_module:#if we have a module, connect vis
-                i_follicleTrans.overrideEnabled = 1
-                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideVisibility'))
-                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_follicleTrans.mNode,'overrideDisplayType'))    
+                mFollicle.overrideEnabled = 1
+                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
+                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
             
             #Simple contrain
-            mc.parentConstraint([i_follicleTrans.mNode], mJnt.mNode, maintainOffset=True)
+            mc.parentConstraint([mFollicle.mNode], mJnt.mNode, maintainOffset=True)
             
             """
             if mJnt != ml_joints[-1]:
