@@ -116,7 +116,7 @@ def create(name = None, nodeType = None):
         return mc.createNode (nodeType,name= (name+'_'+_suffix),)
     
 
-def createFollicleOnMesh(mesh, name = 'follicle'):
+def createFollicleOnMesh(targetSurface, name = 'follicle'):
     """
     Creates named follicle node on a mesh
     
@@ -127,22 +127,35 @@ def createFollicleOnMesh(mesh, name = 'follicle'):
     Returns
     [follicleNode,follicleTransform]
     """
-    assert mc.objExists(mesh),"'%s' doesn't exist!"%mesh
+    
+    if SEARCH.is_shape(targetSurface):
+        l_shapes = [targetSurface]
+    else:
+        l_shapes = mc.listRelatives(targetSurface, s=True)
+
+    if not l_shapes:
+        raise ValueError,"Must have shapes to check."
+
+
+    _shape = l_shapes[0]
+    _type = VALID.get_mayaType(_shape)    
+    
     #objType = search.returnObjectType(mesh)
     #assert objType in ['mesh','nurbsSurface'],("'%s' isn't a mesh"%mesh)
         
-    follicleNode = createNamedNode((name),'follicle')
+    follicleNode = create((name),'follicle')
     
     """ make the closest point node """
     #closestPointNode = createNamedNode((targetObj+'_to_'+mesh),'closestPointOnMesh')
-    controlSurface = mc.listRelatives(mesh,shapes=True)[0]
+    #controlSurface = mc.listRelatives(_shape,shapes=True)[0]
     follicleTransform = mc.listRelatives(follicleNode,p=True)[0]
     
-    attributes.doConnectAttr((controlSurface+'.worldMatrix[0]'),(follicleNode+'.inputWorldMatrix'))#surface to follicle node 
-    if objType == 'mesh': 
-        attributes.doConnectAttr((controlSurface+'.outMesh'),(follicleNode+'.inputMesh'))    #surface mesh to follicle input mesh
+    attributes.doConnectAttr((_shape+'.worldMatrix[0]'),(follicleNode+'.inputWorldMatrix'))#surface to follicle node 
+    
+    if _type == 'mesh': 
+        attributes.doConnectAttr((_shape+'.outMesh'),(follicleNode+'.inputMesh'))    #surface mesh to follicle input mesh
     else:
-        attributes.doConnectAttr((controlSurface+'.local'),(follicleNode+'.inputSurface'))    #surface mesh to follicle input mesh
+        attributes.doConnectAttr((_shape+'.local'),(follicleNode+'.inputSurface'))    #surface mesh to follicle input mesh
         
     attributes.doConnectAttr((follicleNode+'.outTranslate'),(follicleTransform+'.translate'))
     attributes.doConnectAttr((follicleNode+'.outRotate'),(follicleTransform+'.rotate'))    

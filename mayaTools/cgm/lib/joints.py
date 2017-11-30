@@ -1342,14 +1342,15 @@ def makeJointControlSurface(startJoint,controlJointList,outChannel,name):
     controlJointGroups = []
     """ Makes some transform groups for our groups"""
     for cntrl in controlJointList:
-        controlJointGroups.append (groupMeObject (cntrl))
+        controlJointGroups.append (rigging.groupMeObject (cntrl))
         """ Get joint list """
     for jnt in (mc.listRelatives (startJoint, ad = True, type = 'joint')):
         childrenBuffer.append (jnt)
     childrenBuffer.reverse ()
     heirarchyJoints += childrenBuffer
     """ return a good length for out loft curves """
-    length = (distance.returnDistanceBetweenObjects (heirarchyJoints[0], heirarchyJoints[-1])/2)
+    length = (distance.returnDistanceBetweenObjects (heirarchyJoints[0], heirarchyJoints[-1])/len(
+                                                                                                 heirarchyJoints))
     loftCurveList = []
     crvPosBuffer = []
     crvPosBuffer.append ([0,0,0])
@@ -1443,7 +1444,7 @@ def makeJointControlSurface(startJoint,controlJointList,outChannel,name):
     midGrpObject = distance.returnClosestObject (controlJointList[int(len(controlJointList)/2)], posGroups)
     midControlJointGrpObject = distance.returnClosestObject (controlJointList[int(len(controlJointList)/2)], controlJointGroups)
     """ setup inter-control constraints, 3 locator setup """
-    constraintPointLocBuffer = locMeObject(midSnapPointObject)
+    constraintPointLocBuffer = rigging.locMeObjectStandAlone(midSnapPointObject)
     constraintPointLoc = mc.rename (constraintPointLocBuffer,('gut_ctrl_grp_point'))
     constraintAimLocBuffer = mc.duplicate (constraintPointLoc)
     constraintAimLoc = mc.rename (constraintAimLocBuffer,('gut_ctrl_grp_aimAt'))

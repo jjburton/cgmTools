@@ -31,6 +31,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 reload(SEARCH)
+import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
@@ -542,97 +543,119 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         _loc = mc.spaceLocator(n='get_closest_point_loc')[0]
         POS.set(_loc,_pos) 
         
-    return _pos, _l_res_distances[_idx], _shapes[_idx] 
+    return _pos, _l_res_distances[_idx], _shapes[_idx]
 
 
-def create_closest_point_node(source = None, targetSurface = None):
+def create_closest_point_node(source = None, targetSurface = None, singleReturn = False):
     """
     Create a closest point on surface node and wire it
     
     :parameters:
         source(str/vector) -- source point or object
         targetSurface -- surface to check transform, nurbsSurface, curve, mesh supported
-
+        singleReturn - only return single return if we have
     :returns
         node(list)
-    """         
-    _str_func = 'create_closest_point_node'
-    _transform = False
+    """
+    try:
+        _str_func = 'create_closest_point_node'
+        _transform = False
+        
+        if VALID.vectorArg(source) is not False:
+            _transform = mc.spaceLocator(n='closest_point_source_loc')[0]   
+            POS.set(_transform,source)  
+        elif mc.objExists(source):
+            if SEARCH.is_transform(source):
+                _transform = source
+            elif VALID.is_component(source):
+                _transform = mc.spaceLocator(n='{0}_loc'.format(NAMES.get_base(source)))[0]
+                POS.set(_transform, POS.get(source))
+            else:
+                _transform = SEARCH.get_transform(source)
     
-    if VALID.vectorArg(source) is not False:
-        _transform = mc.spaceLocator(n='closest_point_source_loc')[0]   
-        POS.set(_transform,source)  
-    elif mc.objExists(source):
-        if SEARCH.is_transform(source):
-            _transform = source
-        elif VALID.is_component(source):
-            _transform = mc.spaceLocator(n='{0}_loc'.format(NAMES.get_base(source)))[0]
-            POS.set(_transform, POS.get(source))
+        if not _transform:raise ValueError,"Must have a transform"
+        
+        if SEARCH.is_shape(targetSurface):
+            l_shapes = [targetSurface]
         else:
-            _transform = SEARCH.get_transform(source)
-
-    if not _transform:raise ValueError,"Must have a transform"
-    
-    if SEARCH.is_shape(targetSurface):
-        _shapes = [targetSurface]
-    else:
-        _shapes = mc.listRelatives(targetSurface, s=True)
-    
-    if not _shapes:
-        raise ValueError,"Must have shapes to check."
-    
-    _nodes = []
-    _locs = []
-    for s in _shapes:    
-        _type = VALID.get_mayaType(s)
+            l_shapes = mc.listRelatives(targetSurface, s=True)
         
-        if _type not in ['mesh','nurbsSurface','nurbsCurve']:
-            log.error("|{0}| >> Unsupported target surface type. Skipping: {0} |{1}".format(_str_func,s,_type))
-            continue
+        if not l_shapes:
+            raise ValueError,"Must have shapes to check."
         
-        _res_loc = mc.spaceLocator(n='{0}_to_{1}_result_loc'.format(NAMES.get_base(source), NAMES.get_base(s)))[0]
-        _locs.append(_res_loc)
+        _nodes = []
+        _locs = []
+        _types = []
+        _shapes = []
         
-        if _type == 'mesh':
-            _node = mc.createNode ('closestPointOnMesh')
-            _node = mc.rename(_node, "{0}_to_{1}_closePntMeshNode".format(NAMES.get_base(source), NAMES.get_base(s)))
-            attributes.doConnectAttr((_transform+'.translate'),(_node+'.inPosition'))
-            attributes.doConnectAttr((s+'.worldMesh'),(_node+'.inMesh'))
-            attributes.doConnectAttr((s+'.worldMatrix'),(_node+'.inputMatrix'))
+        for s in l_shapes:    
+            _type = VALID.get_mayaType(s)
             
-            _pos = attributes.doGetAttr(_node,'position')
-            attributes.doConnectAttr ((_node+'.position'),(_res_loc+'.translate'))  
+            if _type not in ['mesh','nurbsSurface','nurbsCurve']:
+                log.error("|{0}| >> Unsupported target surface type. Skipping: {0} |{1}".format(_str_func,s,_type))
+                continue
             
-            _nodes.append(_node)
+            _res_loc = mc.spaceLocator(n='{0}_to_{1}_result_loc'.format(NAMES.get_base(source), NAMES.get_base(s)))[0]
+            _locs.append(_res_loc)
+            _types.append(_type)
+            _shapes.append(s)
             
-        elif _type == 'nurbsSurface':
-            closestPointNode = mc.createNode ('closestPointOnSurface')
-            closestPointNode = mc.rename(closestPointNode, "{0}_to_{1}_closePntSurfNode".format(NAMES.get_base(source), NAMES.get_base(s)))
-            
-            mc.connectAttr ((_transform+'.translate'),(closestPointNode+'.inPosition'))
-            
-            #attributes.doSetAttr(closestPointNode,'inPositionX',_point[0])
-            #attributes.doSetAttr(closestPointNode,'inPositionY',_point[1])
-            #attributes.doSetAttr(closestPointNode,'inPositionZ',_point[2])  
-            
-            attributes.doConnectAttr((s +'.worldSpace'),(closestPointNode+'.inputSurface'))
-            
-            attributes.doConnectAttr ((closestPointNode+'.position'),(_res_loc+'.translate'))  
-            _nodes.append(closestPointNode)
-            
-        elif _type == 'nurbsCurve':
-            _node = mc.createNode ('nearestPointOnCurve')
-            _node = mc.rename(_node, "{0}_to_{1}_nearPntCurveNode".format(NAMES.get_base(source), NAMES.get_base(s)))
-            
-            p = []
-            distances = []
-            mc.connectAttr ((_transform+'.translate'),(_node+'.inPosition'))
-            mc.connectAttr ((s+'.worldSpace'),(_node+'.inputCurve'))
-            
-            attributes.doConnectAttr ((_node+'.position'),(_res_loc+'.translate'))  
-            _nodes.append(_node)
-    return _locs, _nodes
-            
+            if _type == 'mesh':
+                _node = mc.createNode ('closestPointOnMesh')
+                _node = mc.rename(_node, "{0}_to_{1}_closePntMeshNode".format(NAMES.get_base(source), NAMES.get_base(s)))
+                attributes.doConnectAttr((_transform+'.translate'),(_node+'.inPosition'))
+                attributes.doConnectAttr((s+'.worldMesh'),(_node+'.inMesh'))
+                attributes.doConnectAttr((s+'.worldMatrix'),(_node+'.inputMatrix'))
+                
+                _pos = attributes.doGetAttr(_node,'position')
+                attributes.doConnectAttr ((_node+'.position'),(_res_loc+'.translate'))  
+                
+                _nodes.append(_node)
+                
+            elif _type == 'nurbsSurface':
+                closestPointNode = mc.createNode ('closestPointOnSurface')
+                closestPointNode = mc.rename(closestPointNode, "{0}_to_{1}_closePntSurfNode".format(NAMES.get_base(source), NAMES.get_base(s)))
+                
+                mc.connectAttr ((_transform+'.translate'),(closestPointNode+'.inPosition'))
+                
+                #attributes.doSetAttr(closestPointNode,'inPositionX',_point[0])
+                #attributes.doSetAttr(closestPointNode,'inPositionY',_point[1])
+                #attributes.doSetAttr(closestPointNode,'inPositionZ',_point[2])  
+                
+                attributes.doConnectAttr((s +'.worldSpace'),(closestPointNode+'.inputSurface'))
+                
+                attributes.doConnectAttr ((closestPointNode+'.position'),(_res_loc+'.translate'))  
+                _nodes.append(closestPointNode)
+                
+            elif _type == 'nurbsCurve':
+                _node = mc.createNode ('nearestPointOnCurve')
+                _node = mc.rename(_node, "{0}_to_{1}_nearPntCurveNode".format(NAMES.get_base(source), NAMES.get_base(s)))
+                
+                p = []
+                distances = []
+                mc.connectAttr ((_transform+'.translate'),(_node+'.inPosition'))
+                mc.connectAttr ((s+'.worldSpace'),(_node+'.inputCurve'))
+                
+                attributes.doConnectAttr ((_node+'.position'),(_res_loc+'.translate'))  
+                _nodes.append(_node)
+                
+        if not singleReturn:
+            return _locs, _nodes, _shapes, _types
+        
+        _l_distances = []
+        pos_base = POS.get(_transform)
+        for i,n in enumerate(_nodes):
+            p2 = POS.get(_locs[i])
+            _l_distances.append(get_distance_between_points(pos_base, p2))
+        closest = min(_l_distances)
+        _idx = _l_distances.index(closest)
+        
+        for i,n in enumerate(_nodes):
+            if i != _idx:
+                mc.delete(n, _locs[i])
+        
+        return _locs[_idx], _nodes[_idx], _shapes[_idx], _types[_idx]
+    except Exception,err:cgmGen.cgmException(Exception,err)
 
 
     
@@ -710,6 +733,70 @@ def get_closest_point_data_from_mesh(mesh = None, targetObj = None, targetPoint 
 
     mc.delete([_node,_loc])
     return _res
+
+def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint = None):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Returns pertinent info of the closest point of a mesh to a target object -
+    position, normal, parameterU,parameterV,closestFaceIndex,closestVertexIndex
+
+    ARGUMENTS:
+    targetObj(string)
+    mesh(string)
+
+    RETURNS:
+    closestPointInfo(dict)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    try:
+        _str_func = 'get_closest_point_data'
+        
+        _point = False
+        if targetObj is not None:
+            _point = POS.get(targetObj)
+        elif targetPoint:
+            _point = targetPoint
+        if not _point:raise ValueError,"Must have point of reference"
+        
+        _loc = mc.spaceLocator()[0]
+        POS.set(_loc,_point)  
+        
+        _created = create_closest_point_node(_loc, targetSurface,singleReturn=True)
+            
+        _node = _created[1]
+        _shape = _created[2]
+        _type = _created[3]
+        
+        
+
+        #_norm = get_normalized_uv(_shape, _u,_v)
+        _res = {}
+        
+        _res['shape'] = _shape
+        _res['type'] = _type
+        _res['position']=attributes.doGetAttr(_node,'position')
+        _res['normal']=attributes.doGetAttr(_node,'normal')
+        
+        if _type == 'nurbsCurve':
+            _res['parameter']= ATTR.get(_node,'parameter')
+        else:
+            _u = mc.getAttr(_node+'.parameterU')
+            _v = mc.getAttr(_node+'.parameterV')
+            _res['parameterU']= _u
+            _res['parameterV']= _v
+            
+            if _type == 'nurbsSurface':
+                _norm = get_normalized_uv(_shape, _u,_v)
+                _res['normUV'] = _norm['uv']
+                _res['normalizedU'] = _norm['uValue']
+                _res['normalizedV'] = _norm['vValue']
+            else:
+                _res['closestFaceIndex']=mc.getAttr(_node+'.closestFaceIndex')
+                _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
+        mc.delete([_loc],_created[0],_node)
+        return _res
+    except Exception,err:cgmGen.cgmException(Exception,err)
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
     _str_func = 'get_normalizedWeightsByDistance'

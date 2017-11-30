@@ -38,6 +38,118 @@ import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.constraint_utils as CONSTRAINT
+import cgm.core.lib.shape_utils as SHAPES
+import cgm.core.lib.node_utils as NODES
+import cgm.core.lib.transform_utils as TRANS
+
+def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
+    """
+    :parameters:
+        obj - transform to attach
+        targetShape(str) - Curve, Nurbs, Mesh
+        connectBy(str)
+            parent
+            parentGroup
+            conPointGroup
+            conPointOrientGroup
+            conParentGroup
+    :returns:
+        resulting dat
+
+    """   
+    try:
+        _str_func = 'attach_toShape'
+        mObj = cgmMeta.validateObjArg(obj,'cgmObject')
+        targetShape = VALID.mNodeString(targetShape)
+        
+        #Get our data...
+        mLoc = mObj.doLoc()
+        d_closest = DIST.get_closest_point_data(targetShape,
+                                                mObj.mNode)
+    
+        log.debug("|{0}| >> jnt: {1} | {2}".format(_str_func,mObj.mNode, d_closest))
+        pprint.pprint(d_closest)
+        
+        if d_closest['type'] in ['mesh','nurbsSurface']:
+            log.debug("|{0}| >> Follicle mode...".format(_str_func))
+            _shape = SHAPES.get_nonintermediate(d_closest['shape'] )
+            l_follicleInfo = NODES.createFollicleOnMesh( _shape )
+            
+            i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
+            i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
+        
+            #> Name...
+            i_follicleTrans.doStore('cgmName',mObj.mNode)
+            i_follicleTrans.doName()
+            _trackTransform = i_follicleTrans.mNode
+            
+            #>Set follicle value...
+            if d_closest['type'] == 'mesh':
+                i_follicleShape.parameterU = d_closest['parameterU']
+                i_follicleShape.parameterV = d_closest['parameterV']
+            else:
+                i_follicleShape.parameterU = d_closest['normalizedU']
+                i_follicleShape.parameterV = d_closest['normalizedV']
+            _res = l_follicleInfo
+        else:
+            log.debug("|{0}| >> Curve mode...".format(_str_func))
+            #d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
+            _shape = SHAPES.get_nonintermediate(d_closest['shape'] )            
+            mPOCI = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
+            mc.connectAttr("%s.worldSpace"%_shape,"%s.inputCurve"%mPOCI.mNode)
+            mPOCI.parameter = d_closest['parameter']
+            
+            mTrack = mObj.doCreateAt()
+            mTrack.doStore('cgmName',mObj.mNode)
+            mTrack.doStore('cgmType','surfaceTrack')
+            mTrack.doName()
+            
+            _trackTransform = mTrack.mNode
+            
+            mc.connectAttr("%s.position"%mPOCI.mNode,"%s.t"%_trackTransform)
+            mPOCI.doStore('cgmName',mObj.mNode)
+            mPOCI.doName()            
+            _res = [mTrack.mNode, mPOCI.mNode]
+            
+        if connectBy == 'parent':
+            mObj.p_parent = _trackTransform
+            mLoc.delete()
+            return _res
+        
+        elif connectBy == 'parentGroup':
+            mGroup = mObj.doGroup(asMeta=True)
+            #_grp = TRANS.group_me(obj,True)
+            #TRANS.parent_set(_grp,_trackTransform)
+            mGroup.p_parent = _trackTransform
+            mLoc.delete()
+            return _res + [mGroup.mNode]        
+        elif connectBy == 'conPointGroup':
+            mLoc.p_parent = _trackTransform
+            #_loc = TRANS.parent_set(_loc,_trackTransform)
+            mGroup = mObj.doGroup(asMeta=True)
+            mc.pointConstraint(mLoc.mNode,mGroup.mNode)
+            return _res + [mGroup.mNode]        
+            
+        elif connectBy == 'conPointOrientGroup':
+            mLoc.p_parent = _trackTransform
+            mGroup = mObj.doGroup(asMeta=True)
+            
+            mc.pointConstraint(mLoc.mNode,mGroup.mNode)
+            mc.orientConstraint(mLoc.mNode,mGroup.mNode)
+            return _res + [mGroup.mNode]        
+            
+        elif connectBy == 'conParentGroup':
+            mLoc.p_parent = _trackTransform
+            mGroup = mObj.doGroup(asMeta=True)
+            mc.parentConstraint(mLoc.mNode,mGroup.mNode)
+            return _res + [mGroup.mNode]        
+            
+        else:
+            raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)  
+        
+        #pprint.pprint(vars())
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
 
 def setup_linearSegment(joints = [], skip = ['y','x'],
                         ):

@@ -51,7 +51,7 @@ import cgm.core.tools.jointTools as JOINTTOOLS
 import cgm.core.lib.sdk_utils as SDK
 reload(SDK)
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
-
+import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.setTools as SETTOOLS
 import cgm.core.lib.distance_utils as DIST
@@ -64,7 +64,7 @@ import cgm.core.tools.lib.tool_chunks as UICHUNKS
 reload(UICHUNKS)
 import cgm.core.tools.lib.tool_calls as LOADTOOL
 import cgm.core.tools.snapTools as SNAPTOOLS
-
+reload(SNAPTOOLS)
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
                         ml_deleteKey,
@@ -801,6 +801,30 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   ann = "Get targets of contraints",                                                                                                                       
                   c = cgmGen.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_targets, None, 'each','Get targets',True,**{'select':True}))           
+
+        mUI.MelSpacer(_row,w=5)                      
+        _row.layout()
+        
+    def buildRow_attachBy(self,parent):
+        #>>>Match mode -------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l='Attach by:')
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        d_modes = {'parent':'prnt',
+                   'parentGroup':'prntGrp',
+                   'conPointGroup':'pntCon',
+                   'conPointOrientGroup':'pntOrntCon',
+                   'conParentGroup':'prntCon'}
+        
+        for m,l in d_modes.iteritems():
+            mc.button(parent=_row,
+                      l= l,
+                      ut = 'cgmUITemplate',
+                      ann = "Attach each to last by {0}".format(m),
+                      c = cgmGen.Callback(MMCONTEXT.func_process, RIGCONSTRAINTS.attach_toShape, None,'eachToLast',**{'connectBy':m}))
 
         mUI.MelSpacer(_row,w=5)                      
         _row.layout()   
@@ -1747,6 +1771,7 @@ class ui(cgmUI.cgmGUI):
         self.buildRow_mesh(_inside)
         self.buildRow_skin(_inside)
         self.buildRow_constraints(_inside)
+        self.buildRow_attachBy(_inside)
         self.buildRow_skinDat(_inside)
         self.buildRow_SDK(_inside)
         

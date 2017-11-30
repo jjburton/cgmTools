@@ -46,52 +46,7 @@ from cgm.lib import (distance,
                      cgmMath)
 
 #>>> Utilities
-#===================================================================
-def simple_surfaceAttach(obj = None, targetSurface = None, connectBy = 'parent'):
-    """
-    
-    """   
-    _str_func = 'simple_surfaceAttach'
-    obj = VALID.mNodeString(obj)
-    targetSurface = VALID.mNodeString(targetSurface)
-    
-    #Get our data...
-    _loc = LOC.create(obj)
-    _dat = DIST.get_closest_point_data_from_mesh(targetSurface, _loc)
-    
-    #Make a follicle...
-    _follicle = NODES.add_follicle(_dat['shape'],NAMES.base(obj))
-    _follicle[1] = mc.rename(_follicle[1], NAMES.base(obj)+'_follTrans')
-    attributes.doSetAttr(_follicle[0],'parameterU',_dat['parameterU'])
-    attributes.doSetAttr(_follicle[0],'parameterV',_dat['parameterV'])   
-    
-    pprint.pprint(vars())
-    
-    
-    if connectBy == 'parent':
-        _grp = TRANS.group_me(obj,True)
-        TRANS.parent_set(_grp,_follicle[0])
-        
-        mc.delete(_loc)
-        return _follicle + [_grp]
-    elif connectBy == 'pointGroup':
-        _loc = TRANS.parent_set(_loc,_follicle[0])
-        _grp = TRANS.group_me(obj,True)        
-        mc.pointConstraint(_loc,_grp)
-    elif connectBy == 'pointOrientGroup':
-        _loc = TRANS.parent_set(_loc,_follicle[0])
-        _grp = TRANS.group_me(obj,True)        
-        mc.pointConstraint(_loc,_grp)
-        mc.orientConstraint(_loc,_grp)
-    else:
-        raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)  
-    
-    pprint.pprint(vars())
-    
-    
-    
-
-
+#===================================================================   
 def attachObjToSurface(*args,**kws):
     """
     objToAttach = None

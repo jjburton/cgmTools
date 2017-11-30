@@ -175,7 +175,7 @@ def buildSection_advancedSnap(self,parent):
     mUI.MelSpacer(_row,w=10)    
     mUI.MelLabel(_row, label = 'Obj Piv:')
     #cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i)
-    self.uiSelector_objPivot = mUI.MelOptionMenu(_row)
+    self.uiSelector_objPivot = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
     for a in _l_pivotArgs:
         self.uiSelector_objPivot.append(a)
         
@@ -192,7 +192,7 @@ def buildSection_advancedSnap(self,parent):
         self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
             
     mUI.MelLabel(_row, label = 'Mode:')
-    self.uiSelector_objMode = mUI.MelOptionMenu(_row)
+    self.uiSelector_objMode = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
     for a in _l_pivotModes:
         self.uiSelector_objMode.append(a)
     self.uiSelector_objMode(edit=True,
@@ -222,7 +222,7 @@ def buildSection_advancedSnap(self,parent):
     mUI.MelSpacer(_row,w=10)
 
     mUI.MelLabel(_row, label = 'Tar Piv:')
-    self.uiSelector_targetPivot = mUI.MelOptionMenu(_row)
+    self.uiSelector_targetPivot = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
     for a in _l_pivotArgs:
         self.uiSelector_targetPivot.append(a)
     self.uiSelector_targetPivot(edit=True,
@@ -239,7 +239,7 @@ def buildSection_advancedSnap(self,parent):
         self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
         
     mUI.MelLabel(_row, label = 'Mode:')
-    self.uiSelector_targetMode = mUI.MelOptionMenu(_row)
+    self.uiSelector_targetMode = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
     for a in _l_pivotModes:
         self.uiSelector_targetMode.append(a)
         
