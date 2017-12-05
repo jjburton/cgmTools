@@ -365,6 +365,64 @@ def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
         log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
     return _res    
 
+def get_axisBox_size(arg = None, children = False, mode = None, asEuclid = False):
+    """
+    Get the bb size of a given arg
+    
+    :parameters:
+        arg(str/list): Object(s) to check
+        shapes(bool): Only check dag node shapes
+        mode(varied): 
+            True/'max': Only return max value
+            'min': Only min
+
+    :returns
+        boundingBox size(list)
+    """   
+    _str_func = 'get_axisBox_size'
+    #_arg = VALID.stringListArg(arg,False,_str_func)   
+    try:
+        log.debug("|{0}| >> shapes mode ".format(_str_func))        
+        arg = VALID.listArg(arg)
+        
+        _dag = VALID.getTransform(arg[0])
+        if not _dag:
+            raise ValueError,"Must have a dag node. Obj: {0}".format(_dag)
+        if VALID.is_shape(_dag):
+            l_shapes = [_dag]
+        else:
+            l_shapes = mc.listRelatives(_dag, s=True, fullPath = True) or []
+        
+        _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
+        if not children:
+            for o in mc.listRelatives (_dup, children = True,type='transform',fullPath=True) or []:
+                mc.delete(o)
+        try:_dup =  mc.parent(_dup, world = True)[0]
+        except:pass
+        
+        #Reset our stuff before we make our bb...
+        ATTR.reset(_dup,['t','r','shear'])        
+        _size = get_bb_size(_dup,True)
+
+        mc.delete(_dup)
+        
+        _res = _size
+        
+        if mode is None:
+            if asEuclid:
+                log.debug("|{0}| >> asEuclid...".format(_str_func))             
+                return EUCLID.Vector3(_res[0], _res[1], _res[2])        
+            return _res
+        elif mode in [True, 'max']:
+            return max(_res)
+        elif mode in ['min']:
+            return min(_res)
+        else:
+            log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
+        return _res            
+    except Exception,err:
+        cgmGen.cgmExceptCB(Exception,err)
+
 def get_uv_position(mesh, uvValue,asEuclid = False):
     """
     Get a uv position in world space. UV should be normalized.

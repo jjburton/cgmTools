@@ -153,7 +153,6 @@ def template(self):
             mShape.overrideEnabled = 0
             ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
             
-        
         self.msgList_connect('templateHandles',[self.mNode])
 
         return True
@@ -202,10 +201,11 @@ def prerig(self):
                                    lock=False, visible=True,keyable=False)
         
             self.msgList_connect('jointHelpers',[mJointHelper.mNode])
-            self.msgList_connect('prerigHandles',[self.mNode])
             
         
         #Helpers=====================================================================================
+        self.msgList_connect('prerigHandles',[self.mNode])
+        
         if self.addPivot:
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
         if self.addScalePivot:
@@ -391,28 +391,14 @@ def build_skeleton(self, forceNew = True):
     self.atBlockUtils('skeleton_connectToParent')
     
     return mJoint.mNode        
-    
 
-def skeletonize(self):
-    #    
-    if is_skeletonized(self):
-        return True
-    
-    if self.hasRootJoint:
-        mJoint = self.doCreateAt('joint')
-        mJoint.connectParentNode(self,'module','rootJoint')
-        self.copyAttrTo('puppetName',mJoint.mNode,'cgmName',driven='target')
-        mJoint.doStore('cgmTypeModifier','root')
-        mJoint.doName()
-        return mJoint.mNode
-        #self.msgList_connect('modul')
-    return True
         
 def is_skeletonized(self):
-    if self.hasRootJoint:
-        if not self.getMessage('rootJoint'):
-            return False
-    return True
+    if self.getMessage('moduleTarget'):
+        if self.moduleTarget.getMessage('rigNull'):
+            if self.moduleTarget.rigNull.msgList_get('moduleJoints'):
+                return True
+    return False
 
 def skeletonDelete(self):
     if is_skeletonized(self):

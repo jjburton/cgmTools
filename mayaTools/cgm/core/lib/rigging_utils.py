@@ -38,6 +38,8 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.position_utils as POS
+import cgm.core.lib.math_utils as COREMATH
+reload(COREMATH)
 #NO DIST
 
 #>>> Utilities
@@ -443,8 +445,7 @@ def create_axisProxy(obj=None):
         #Reset our stuff before we make our bb...
         ATTR.reset(_dup,['t','r','s','shear'])        
         _size = POS.get_bb_size(_dup,True)
-        import cgm.core.lib.math_utils as COREMATH
-        reload(COREMATH)
+
         #_proxy = create_proxyGeo('cube',COREMATH.list_div(_scaleLossy,_size))
         _proxy = create_proxyGeo('cube',_size)
         mc.makeIdentity(_proxy, apply=True, scale=True)
@@ -465,14 +466,14 @@ def create_axisProxy(obj=None):
         _proxy = TRANS.parent_set(_proxy, _dag)
         ATTR.reset(_proxy,['t','r','s','shear'])
 
-
         #cgmGen.func_snapShot(vars())
         
         _proxy = TRANS.parent_set(_proxy, False)
         mc.delete(_dup)
         
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:
+        cgmGen.cgmExceptCB(Exception,err)
     
 def create_localAxisProxyBAK(obj=None):
     """

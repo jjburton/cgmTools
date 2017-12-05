@@ -30,6 +30,7 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import rigging_utils as RIG
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
+import cgm.core.lib.transform_utils as TRANS
 reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 
@@ -68,7 +69,7 @@ def define(self):
     _short = self.mNode
     self.translate = 0,0,0
     self.rotate = 0,0,0
-    self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
+    self.setAttrFlags(attrs=['sx','sz'])
     self.doConnectOut('sy',['sx','sz'])
     ATTR.set_alias(_short,'sy','blockScale')
     
@@ -76,26 +77,26 @@ def define(self):
 #>> Template
 #=============================================================================================================
 def template(self):
-    _average = MATH.average(self.baseSize)
+    _average = MATH.average([self.baseSize[0],self.baseSize[2]])
     _size = _average * 1.5
     _offsetSize = _average * .1
     log.info(_size)
-    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = _size)
-    CORERIG.colorControl(_crv,'center','main',transparent = False) 
+
+    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = 1)    
+    TRANS.scale_to_boundingBox(_crv, [self.baseSize[0],None,self.baseSize[2]])
+    
+    CORERIG.colorControl(_crv,'center','sub',transparent = False) 
     
     mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
     l_offsetCrvs = []
     for shape in mCrv.getShapes():
-        offsetShape = mc.offsetCurve(shape, distance = _offsetSize, ch=False )[0]
-        CORERIG.colorControl(offsetShape,'center','sub',transparent = False) 
+        offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+        CORERIG.colorControl(offsetShape,'center','main',transparent = False) 
         l_offsetCrvs.append(offsetShape)
         
     for s in [_crv] + l_offsetCrvs:
         RIG.shapeParent_in_place(self.mNode,s,False)
         
-    #RIG.shapeParent_in_place(self.mNode,_crv,False)
-    
-    
     return True
 
 def templateDelete(self):
@@ -116,12 +117,19 @@ def prerig(self):
     #Create preRig Null  ==================================================================================
     mPrerigNull = self.atBlockUtils('prerigNull_verify')
     mHandleFactory = self.asHandleFactory(self.mNode)
+    ml_handles = [self.mNode]
     
     #Helpers=====================================================================================
+    self.msgList_connect('prerigHandles',[self.mNode])
+    
     if self.addMotionJoint:
-        mHandleFactory.addRootMotionHelper().p_parent = mPrerigNull
+        mMotionJoint = mHandleFactory.addRootMotionHelper()
+        mMotionJoint.p_parent = mPrerigNull
+        
+        
 
 def prerigDelete(self):
+    self.atBlockUtils('prerig_delete',templateHandles=True)
     try:self.moduleTarget.masterNull.delete()
     except Exception,err:
         for a in err:

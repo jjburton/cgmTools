@@ -134,7 +134,9 @@ class ui(cgmUI.cgmGUI):
         _d_ui_annotations = {'select':"Select rigBlocks in maya from ui. Context: {0}".format(_str_context),
                              'rebuild':"Rebuild blocks from define state. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
-                             'select':"Select the contextual blocks. Context: {0}".format(_str_context),
+                             'Buildable Status': "Get the block modules buildable status. Context: {0}".format(_str_context),
+                             'Verify Proxy Geo':"Verify the proxy geo of blocks. Context: {0}".format(_str_context),
+                             'Get blockDat':"Get block dat. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
                              'select':"Select the contextual blocks. Context: {0}".format(_str_context),
@@ -159,10 +161,21 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'rebuild'))        
         mUI.MelMenuItem(self.uiMenu_block, l="Verify",
                         ann = _d_ui_annotations.get('verify',"NEED verify"),
-                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'verify'))        
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'verify'))
+        mUI.MelMenuItem(self.uiMenu_block, l="Buildable?",
+                        ann = _d_ui_annotations.get('Buildable Status',"Nope"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'getModuleStatus'))
         mUI.MelMenuItem(self.uiMenu_block, l="Visualize Heirarchy",
-                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'VISUALIZEHEIRARCHY'))        
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'VISUALIZEHEIRARCHY'))
+        
+        mUI.MelMenuItem(self.uiMenu_block, l="Verify Proxy Mesh",
+                        ann = _d_ui_annotations.get('Verify Proxy Geo',"Nope"),
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'verify_proxyMesh'))
+        
+        
         _mBlockDat = mUI.MelMenuItem(self.uiMenu_block, l="BlockDat",subMenu=True)
+        
+
         mUI.MelMenuItem(self.uiMenu_block, l="Report",
                         en=False)       
         
@@ -181,9 +194,12 @@ class ui(cgmUI.cgmGUI):
                         en=False,
                         ann = self._d_ui_annotations.get('copy blockDat') + _str_context,
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'loadBlockDat'))  
+        mUI.MelMenuItem(_mBlockDat, l="Query",
+                        ann = self._d_ui_annotations.get('Get blockDat','nope') + _str_context,
+                        c = cgmGEN.Callback(self.uiFunc_contextualCall,'getBlockDat'))  
         mUI.MelMenuItem(_mBlockDat, l="Reset",
                         c = cgmGEN.Callback(self.uiFunc_contextualCall,'resetBlockDat'), 
-                        ann = self._d_ui_annotations.get('reset blockDat') + _str_context)        
+                        ann = self._d_ui_annotations.get('reset blockDat') + _str_context)
           
         #>>Skeleton -----------------------------------------------------------------------
         mUI.MelMenuItem(_mSkeleton, l="Generate",
@@ -264,11 +280,12 @@ class ui(cgmUI.cgmGUI):
             
         _sizeMode = self.var_rigBlockCreateSizeMode.value
         if _sizeMode == 'selection' and not mc.ls(sl=True):
-            log.info("|{0}| >> Must have selection for size mode: {1}.".format(_str_func,_sizeMode))        
-            return False
+            #if blockType not in ['master']:
+                #log.info("|{0}| >> Must have selection for size mode: {1}.".format(_str_func,_sizeMode))        
+                #return False
+            _sizeMode = None
         
         _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, size = _sizeMode, blockParent = mActiveBlock)
-        #self._blockFactory.create_rigBlock(blockType)
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         

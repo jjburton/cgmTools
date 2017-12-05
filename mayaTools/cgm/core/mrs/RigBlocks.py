@@ -60,7 +60,7 @@ from cgm.core.lib import nameTools
 reload(BLOCKSHARE)
 from cgm.core.classes import GuiFactory as CGMUI
 reload(CGMUI)
-
+import cgm.core.tools.lib.snap_calls as SNAPCALLS
 get_from_scene = BLOCKGEN.get_from_scene
 
 #from cgm.core.lib import nameTools
@@ -100,50 +100,53 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
     :returns
         boundingBox size(list)
     """  
-    _str_func = 'get_callSize'
-    def floatValues(arg):
-        return [float(v) for v in arg]
+    try:
+        _str_func = 'get_callSize'
+        def floatValues(arg):
+            return [float(v) for v in arg]
 
-    if mode is None:
-        log.debug("|{0}| >>  mode is None...".format(_str_func))
-        if blockType:
-            blockModule = get_blockModule(blockType)
-            return floatValues(getattr(blockModule, '__baseSize__', default))
-        return floatValues(default)
+        if mode is None:
+            log.debug("|{0}| >>  mode is None...".format(_str_func))
+            if blockType:
+                blockModule = get_blockModule(blockType)
+                return floatValues(getattr(blockModule, '__baseSize__', default))
+            return floatValues(default)
 
-    if mode in ['selection','bb']:
-        arg =  mc.ls(sl=True)
-        #if mode == 'selection':
-            #arg = arg[0]
+        if mode in ['selection','bb']:
+            arg =  mc.ls(sl=True)
+            #if mode == 'selection':
+                #arg = arg[0]
 
-    if arg is None and mode is None:
-        _sel = mc.ls(sl=True)
-        if not _sel:
-            raise ValueError,"|{0}| >> No obj arg and no selection".format(_str_func)
-        arg = _sel[0]
+        if arg is None and mode is None:
+            _sel = mc.ls(sl=True)
+            if not _sel:
+                raise ValueError,"|{0}| >> No obj arg and no selection".format(_str_func)
+            arg = _sel[0]
 
-    if VALID.isListArg(mode) and len(mode)==3:
-        for v in mode:
-            if not VALID.valueArg(v):
-                raise ValueError,"|{0}| >> Bad list value arg | arg: {1}".format(_str_func, mode)
-        return floatValues(mode)
+        if VALID.isListArg(mode) and len(mode)==3:
+            for v in mode:
+                if not VALID.valueArg(v):
+                    raise ValueError,"|{0}| >> Bad list value arg | arg: {1}".format(_str_func, mode)
+            return floatValues(mode)
 
-    if VALID.valueArg(mode):
-        return floatValues([mode,mode,mode])
+        if VALID.valueArg(mode):
+            return floatValues([mode,mode,mode])
 
 
-    mode = mode.lower()
-    if mode == 'selection':
-        size = POS.get_bb_size(arg, True)
-        #if rigBlock:
-            #log.info("|{0}| >>  Created from obj. Tagging. | {1}".format(_str_func,arg))        
-            #rigBlock.connectChildNode(arg,'sourceObj')#Connect
-    elif mode in ['boundingbox','bb']:
-        size = POS.get_bb_size(arg, False)
+        mode = mode.lower()
+        if mode == 'selection':
+            size = POS.get_axisBox_size(arg,True)
+            #if rigBlock:
+                #log.info("|{0}| >>  Created from obj. Tagging. | {1}".format(_str_func,arg))        
+                #rigBlock.connectChildNode(arg,'sourceObj')#Connect
+        elif mode in ['boundingbox','bb']:
+            size = POS.get_bb_size(arg, False)
 
-    _res = floatValues(size)
-    log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
-    return floatValues(_res)
+        _res = floatValues(size)
+        log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
+        return floatValues(_res)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 class cgmRigBlock(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
@@ -172,10 +175,19 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #Only check this with a no node call for speed
         _callSize = None
         _sel = None
-        _size = kws.get('size',None)        
+        _size = kws.get('size',None)
+        _side =  kws.get('side')        
         if node is None:
             _sel = mc.ls(sl=1)            
             _callSize = get_callSize(_size)
+
+            if  _sel:
+                pos_target = TRANS.position_get(_sel[0])
+                log.debug("|{0}| >> pos_target: {1}".format(_str_func,pos_target))                                
+                if pos_target[0] >= .05:
+                    _side = 'left'
+                elif pos_target[0] <= -.05:
+                    _side = 'right'            
 
         log.debug("|{0}| >> size: {1}".format(_str_func, _callSize))
 
@@ -200,7 +212,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #if a not in self.UNMANAGED:
                 #self.UNMANAGED.append(a) 	
 
-            
+
         #====================================================================================
         #Keywords - need to set after the super call
         #==============         
@@ -226,9 +238,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 if self.isReferenced():
                     log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
                     return
-                elif not self.verify(blockType):
+                elif not self.verify(blockType,side= _side):
                     raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-                
+
                 #Name -----------------------------------------------
 
                 #>>>Auto flags...
@@ -241,20 +253,23 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     except Exception,err:
                         for arg in err.args:
                             log.error(arg)
-                            
+
                 #Snap with selection mode --------------------------------------
                 if _size in ['selection']:
                     log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
                     if _sel:
-                        log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
-                        self.doSnapTo(_sel[0])
+                        if  blockType in ['master']:
+                            SNAPCALLS.snap(self.mNode,_sel[0],rotation=False,targetPivot='groundPos')
+                        else:
+                            log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
+                            self.doSnapTo(_sel[0])
                 cgmGEN.func_snapShot(vars())
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
-    def verify(self, blockType = None, size = None):
+    def verify(self, blockType = None, size = None, side = None):
         """ 
 
         """
@@ -287,7 +302,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #>>> Attributes --------------------------------------------------------------------------------
         self._factory.verify(blockType)    
-        
+
+        _side = side
+        if _side is not None and self._callKWS.get('side'):
+            _side = self._callKWS.get('side')
+
+        if _side is not None:
+            try: ATTR.set(self.mNode,'side',_side)
+            except Exception,err:
+                log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
+
+
         #>>> Base shapes --------------------------------------------------------------------------------
         #_size = self._callKWS.get('size')
         #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
@@ -555,16 +580,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _short = self.p_nameShort        
         _str_func = '[{0}] getBlockDat_prerigControls'.format(_short)
 
-        _ml_rigHandles = self.msgList_get('rigHandles',asMeta = True)
-        if not _ml_rigHandles:
+        _ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
+        if not _ml_prerigHandles:
             return False
 
-        _ml_controls = [self] + _ml_rigHandles
+        _ml_controls = [self] + _ml_prerigHandles
 
         _l_orientHelpers = []
         _l_jointHelpers = []
 
-        for i,mObj in enumerate(_ml_rigHandles):
+        for i,mObj in enumerate(_ml_prerigHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
                 _l_orientHelpers.append(mObj.orientHelper.rotate)
@@ -575,9 +600,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
             else:
                 _l_jointHelpers.append(False)
 
-        _d = {'positions':[mObj.p_position for mObj in _ml_rigHandles],
-              'orientations':[mObj.p_orient for mObj in _ml_rigHandles],
-              'scales':[mObj.scale for mObj in _ml_rigHandles],
+        _d = {'positions':[mObj.p_position for mObj in _ml_prerigHandles],
+              'orientations':[mObj.p_orient for mObj in _ml_prerigHandles],
+              'scales':[mObj.scale for mObj in _ml_prerigHandles],
               'jointHelpers':_l_jointHelpers,
               'orientHelpers':_l_orientHelpers}
 
@@ -610,72 +635,74 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Carry from Bokser stuff...
         """
-        _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
-        _ml_controls = self.getControls(True)
-        _short = self.p_nameShort
-        _blockState_int = self.getState(False)
-        #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
-        _d = {#"name":_short, 
-              "blockType":self.blockType,
-              "blockState":self.p_blockState,
-              "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
-              #"part":self.part,
-              ##"blockPosition":self.getEnumValueString('position'),
-              ##"blockDirection":self.getEnumValueString('side'),
-              ###"attachPoint":self.getEnumValueString('attachPoint'),
-              #"_rig":self._rig.name if self._rig else None, 
-              #"_template":self._template.name if self._template else None, 
-              #"_controls":self._controls.name if self._controls else None, 
-              #"_attach":self._attach.name if self._attach else None, 
-              #"_noTouch":self._noTouch.name if self._noTouch else None, 
-              #"controls":[mObj.mNode for mObj in _ml_controls],
-              "positions":[mObj.p_position for mObj in _ml_controls],
-              "orientations":[mObj.p_orient for mObj in _ml_controls],
-              "scale":[mObj.scale for mObj in _ml_controls],
-              "isSkeletonized":self.isSkeletonized(),
-              #...these will be indexed against the number of handles
-              #"templatePositions":[x.name for x in self.templatePositions or []], 
-              #"templateOrientation":[x.name for x in self.templateOrientation or []], 
-              #"templateNodes":[x.name for x in self.templateNodes or []], 
-              #"controls":[x.name for x in self.controls or []], 
-              #"rigJoints":[x.name for x in self.rigJoints or []], 
-              #"skinJoints":[x.name for x in self.skinJoints or []], 
-              #"ikJoints":[x.name for x in self.ikJoints or []], 
-              #"fkJoints":[x.name for x in self.fkJoints or []], 
-              #"ikControls":[x.name for x in self.ikControls or []], 
-              #"fkControls":[x.name for x in self.fkControls or []], 
-              #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
-              #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
-              #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
-              #"attachPoints":[x.name for x in self.attachPoints or []],
-              "version":self.version, 
-              "ud":{}
-              }   
+        try:
+            _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
+            _ml_controls = self.getControls(True)
+            _short = self.p_nameShort
+            _blockState_int = self.getState(False)
+            #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
+            _d = {#"name":_short, 
+                  "blockType":self.blockType,
+                  "blockState":self.p_blockState,
+                  "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
+                  #"part":self.part,
+                  ##"blockPosition":self.getEnumValueString('position'),
+                  ##"blockDirection":self.getEnumValueString('side'),
+                  ###"attachPoint":self.getEnumValueString('attachPoint'),
+                  #"_rig":self._rig.name if self._rig else None, 
+                  #"_template":self._template.name if self._template else None, 
+                  #"_controls":self._controls.name if self._controls else None, 
+                  #"_attach":self._attach.name if self._attach else None, 
+                  #"_noTouch":self._noTouch.name if self._noTouch else None, 
+                  #"controls":[mObj.mNode for mObj in _ml_controls],
+                  "positions":[mObj.p_position for mObj in _ml_controls],
+                  "orientations":[mObj.p_orient for mObj in _ml_controls],
+                  "scale":[mObj.scale for mObj in _ml_controls],
+                  "isSkeletonized":self.isSkeletonized(),
+                  #...these will be indexed against the number of handles
+                  #"templatePositions":[x.name for x in self.templatePositions or []], 
+                  #"templateOrientation":[x.name for x in self.templateOrientation or []], 
+                  #"templateNodes":[x.name for x in self.templateNodes or []], 
+                  #"controls":[x.name for x in self.controls or []], 
+                  #"rigJoints":[x.name for x in self.rigJoints or []], 
+                  #"skinJoints":[x.name for x in self.skinJoints or []], 
+                  #"ikJoints":[x.name for x in self.ikJoints or []], 
+                  #"fkJoints":[x.name for x in self.fkJoints or []], 
+                  #"ikControls":[x.name for x in self.ikControls or []], 
+                  #"fkControls":[x.name for x in self.fkControls or []], 
+                  #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
+                  #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
+                  #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
+                  #"attachPoints":[x.name for x in self.attachPoints or []],
+                  "version":self.version, 
+                  "ud":{}
+                  }   
 
-        if self.getShapes():
-            _d["size"] = DIST.get_bb_size(self.mNode,True),
-        else:
-            _d['size'] = self.baseSize
+            if self.getShapes():
+                _d["size"] = POS.get_axisBox_size(self.mNode,False),
+            else:
+                _d['size'] = self.baseSize
 
-        if _blockState_int >= 1:
-            _d['template'] = self.getBlockDat_templateControls()
+            if _blockState_int >= 1:
+                _d['template'] = self.getBlockDat_templateControls()
 
-        #if _blockState_int >= 2:
-            #_d['prerig'] = self.getBlockDat_prerigControls() 
+            #if _blockState_int >= 2:
+                #_d['prerig'] = self.getBlockDat_prerigControls() 
 
-        for a in self.getAttrs(ud=True):
-            if a not in _l_udMask:
-                _type = ATTR.get_type(_short,a)
-                if _type in ['message']:
-                    continue
-                elif _type == 'enum':
-                    _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
-                else:
-                    _d['ud'][a] = ATTR.get(_short,a)
+            for a in self.getAttrs(ud=True):
+                if a not in _l_udMask:
+                    _type = ATTR.get_type(_short,a)
+                    if _type in ['message']:
+                        continue
+                    elif _type == 'enum':
+                        _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
+                    else:
+                        _d['ud'][a] = ATTR.get(_short,a)
 
-        if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
-        return _d
-
+            if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
+            return _d
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat()
 
@@ -927,6 +954,125 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================     
     #>>> Mirror 
     #========================================================================================================      
+    @staticmethod
+    def MirrorBlock( block = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
+        try:
+            '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+            _str_func = 'MirrorBlock'
+    
+            if not block or not mirrorBlock:
+                log.warning("|{0}| >> Must have block and mirror block".format(_str_func))                                            
+                return
+    
+            if mirrorBlock.blockType != block.blockType:
+                log.warning("|{0}| >> Blocktypes must match. | {1} != {2}".format(_str_func,block.blockType,mirrorBlock.blockType,))                                                        
+                return
+            
+            rootTransform = block
+            rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
+            #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
+            
+            print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
+            
+            
+            if mirrorBlock:
+                print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
+                
+                _blockState = block.getState(False)
+                _mirrorState = mirrorBlock.getState(False)
+                if _blockState > _mirrorState or _blockState < _mirrorState:
+                    print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
+                else:
+                    print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
+                    
+                #if block.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
+                    #print "Can only mirror blocks in Template state"
+                    #return
+                
+                cgmGEN.func_snapShot(vars())
+                return
+            
+                currentTemplateObjects = block.templatePositions
+                templateHeirarchyDict = {}
+                for i,p in enumerate(currentTemplateObjects):
+                    templateHeirarchyDict[i] = p.fullPath.count('|')
+    
+                templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
+    
+                for x in range(2):
+                    # do this twice in case there are any stragglers 
+                    for i in templateObjectsSortedByHeirarchy:
+                        index = i[0]
+                        #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
+    
+                        # reflect rotation
+                        reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+                        reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+                        mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+    
+                    for i in templateObjectsSortedByHeirarchy:
+                        index = i[0]
+                        wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+    
+                        #print "wanted position:", wantedPos
+                        mirrorBlock.templatePositions[index].position = wantedPos
+    
+                        if block.templatePositions[index].type == "joint":
+                            #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
+                            mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
+    
+                        wantedScale = block.templatePositions[index].localScale
+                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
+                            mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
+                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
+                            mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
+                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
+                            mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
+    
+                for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
+                    mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
+                    if attr == "reverseUp":
+                        mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )
+                    if attr == "reverseForward":
+                        mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )	
+    
+            # mirror child blocks
+            for attachPoint in block.attachPoints:
+                for child in attachPoint.children:
+                    childBlock = Block.LoadRigBlock( child )
+                    if childBlock:
+                        Block.MirrorBlockPush(childBlock)
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
+    @staticmethod
+    def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
+        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+
+        for blockName in mc.ls(sl=True):
+            currentBlock = Block.LoadRigBlock( GetNodeType(blockName) )
+            if currentBlock:
+                Block.MirrorBlock(currentBlock)
+
+    @staticmethod
+    def MirrorBlockPush( block, reflectionVector = MATH.Vector3(1,0,0) ):
+        '''Mirrors the given block to the corresponding block on the other side'''
+
+        mirrorBlock = block.GetMirrorBlock()
+
+        Block.MirrorBlock(block, mirrorBlock, reflectionVector)
+
+    @staticmethod
+    def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
+        '''Mirrors the given block using the mirrorBlock's template positions'''
+
+        mirrorBlock = block.GetMirrorBlock()
+
+        Block.MirrorBlock(mirrorBlock, block, reflectionVector)
+
+
+
+
+
     #========================================================================================================     
     #>>> Utilities 
     #========================================================================================================      
@@ -958,7 +1104,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)    
+        return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
+
 
     def string_methodCall(self, func = 'getShortName', *args,**kws):
         """
@@ -1008,6 +1155,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         print res
         return res
+
+    def verify_proxyMesh(self, forceNew = True):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _str_func = 'verify_proxyMesh'        
+        if self.getState() != 'rig':
+            log.error("|{0}| >> Block must be rigged. {1}".format(_str_func, self.mNode))            
+            return False
+        mRigFac = rigFactory(self, autoBuild = False)
+        return mRigFac.atBlockModule('build_proxyMesh', forceNew)
 
 
 class handleFactory(object):
@@ -1136,9 +1294,10 @@ class handleFactory(object):
             _baseShape = self._mTransform.baseShape
         else:
             _baseShape = 'square'
-
         if baseSize is not None:
             _baseSize = get_callSize(baseSize)
+        elif self._mTransform.getShapes():
+            _baseSize = POS.get_axisBox_size(self._mTransform.mNode,False)
         elif self._mTransform.hasAttr('baseSize'):
             _baseSize = self._mTransform.baseSize
         else:
@@ -1176,7 +1335,7 @@ class handleFactory(object):
         if mHandle.getMayaAttr('side'):
             _side = mHandle.getEnumValueString('side')
         return _side
-    
+
     def addPivotSetupHelper(self,baseShape=None, baseSize = None, upAxis = 'y+', setAttrs = {}):
         try:
             _str_func = 'addPivotSetupHelper'
@@ -1188,7 +1347,7 @@ class handleFactory(object):
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
 
-            _bbsize = DIST.get_bb_size(mHandle.mNode,True)
+            _bbsize = POS.get_axisBox_size(mHandle.mNode,False)
             _size = MATH.average(_bbsize)
             _sizeSub = _size * .2
 
@@ -1206,12 +1365,12 @@ class handleFactory(object):
                                  'front':'z+',
                                  'left':'x+',
                                  'right':'x-'}        
+            _axisBox = False
 
             for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
                 _strPivot = a.split('pivot')[-1]
                 _strPivot = _strPivot[0].lower() + _strPivot[1:]
                 log.info("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
-
                 if _strPivot == 'center':
                     pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                        direction = upAxis,
@@ -1221,6 +1380,9 @@ class handleFactory(object):
                     mPivot.addAttr('cgmName',_strPivot)
                     ml_pivots.append(mPivot)
                 else:
+                    if not _axisBox:
+                        _axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+
                     mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
                     _inverse = mAxis.inverse.p_string
                     pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
@@ -1229,7 +1391,9 @@ class handleFactory(object):
                     mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                     mPivot.addAttr('cgmName',_strPivot)
 
-                    mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
+                    #mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
+                    SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
+
                     SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
 
                     ml_pivots.append(mPivot)
@@ -1250,7 +1414,10 @@ class handleFactory(object):
 
                         if mHandle.hasAttr('addPivot'):
                             mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
+                        self._mTransform.msgList_append('prerigHandles',mPivotRootHandle)
 
+            if _axisBox:
+                mc.delete(_axisBox)
             for mPivot in ml_pivots:
                 mPivot.addAttr('cgmType','pivotHelper')            
                 mPivot.doName()
@@ -1258,6 +1425,10 @@ class handleFactory(object):
                 CORERIG.colorControl(mPivot.mNode,_side,'sub') 
                 mPivot.parent = mPivotRootHandle
                 mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
+                self._mTransform.msgList_append('prerigHandles',mPivot)
+
+            if self._mTransform.getShapes():
+                SNAPCALLS.snap(mPivotRootHandle.mNode,self._mTransform.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
 
             return mPivotRootHandle
         except Exception,err:
@@ -1299,11 +1470,12 @@ class handleFactory(object):
         if mHandle.hasAttr('addScalePivot'):
             mHandle.doConnectOut('addScalePivot',"{0}.v".format(mCurve.mNode))
 
+        self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
         return mCurve    
 
     def get_subSize(self,mult = .2):
         mHandle = self._mTransform        
-        _bbsize = DIST.get_bb_size(mHandle.mNode,True)
+        _bbsize = POS.get_axisBox_size(mHandle.mNode)
         _size = MATH.average(_bbsize)
         _sizeSub = _size * mult
         return _sizeSub
@@ -1328,7 +1500,7 @@ class handleFactory(object):
             _sizeByBB = [_sizeSub, _sizeSub * .5, _sizeSub]
             self_pos = mHandle.p_position
             self_upVector = mHandle.getAxisVector(upAxis)
-            
+
             #helper ======================================================================================
             d_shapeDirections = {'back':'z-',
                                  'front':'z+',
@@ -1352,7 +1524,7 @@ class handleFactory(object):
                 #mCurve.scaleZ = .75
             mCurve = cgmMeta.validateObjArg(CORERIG.combineShapes([mObj.mNode for mObj in ml_shapes],keepSource=False),
                                             'cgmObject',setClass=True)
-            
+
 
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
@@ -1372,96 +1544,98 @@ class handleFactory(object):
             if mHandle.hasAttr('addCog'):
                 mHandle.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
 
+            self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
+
             return mCurve    
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
-            
+
     def setAttrs_fromDict(self, setAttrs={}):
         try:
             mHandle = self._mTransform   
             _short = mHandle.mNode
-            
+
             for a,v in setAttrs.iteritems():
                 ATTR.set(_short, a, v)
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
-            
+
     def addOrientHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', setAttrs = {}):
         try:
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
-    
+
             mHandle = self._mTransform
             _short = mHandle.mNode
             _bfr = mHandle.getMessage('orientHelper')
             if _bfr:
                 mc.delete(_bfr)
-    
+
             _size = MATH.average(_baseSize[:1])
-    
+
             #Orientation helper ======================================================================================
             _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .75)
             mCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
-            
-            
+
+
             mCurve.p_position = DIST.get_pos_by_axis_dist(_short,shapeDirection, _size/1.75)
-            
+
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')        
             mCurve.doStore('cgmType','orientHandle')
             mCurve.doName()    
-    
+
             mCurve.p_parent = mHandle
-    
+
             for a,v in setAttrs.iteritems():
                 ATTR.set(mCurve.mNode, a, v)
-    
+
             CORERIG.match_transform(mCurve.mNode, mHandle)
             mCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
-    
+
             return mCurve
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
-            
+
     def addProxyHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
         try:
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
             _side = self.get_side()
-            
+            cgmGEN.func_snapShot(vars())
             mHandle = self._mTransform
             _short = mHandle.mNode
             _bfr = mHandle.getMessage('proxyHelper')
-            
+
             if _bfr:
                 mc.delete(_bfr)
-    
+
             _proxyShape = mHandle.getEnumValueString('proxyShape')
-            
+
             #Orientation helper ======================================================================================
             _proxy = CORERIG.create_proxyGeo(_proxyShape, _baseSize, shapeDirection)
             mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
-            
+
             mProxy.doSnapTo(mHandle)
-            
+
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
             mProxy.doStore('cgmType','proxyHelper')
             mProxy.doName()    
-    
+
             mProxy.p_parent = mHandle
-            
+
             self.setAttrs_fromDict(setAttrs)
-            
+
             CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
 
             mProxy.connectParentNode(mHandle.mNode,'handle','proxyHelper')
-            
+
             if mHandle.hasAttr('proxyVis'):
                 mHandle.doConnectOut('proxyVis',"{0}.v".format(mProxy.mNode))
-                
+
             return mProxy
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
@@ -1471,37 +1645,38 @@ class handleFactory(object):
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
-    
+
             mHandle = self._mTransform
             _bfr = mHandle.getMessage('rootMotionHelper')
             if _bfr:
                 mc.delete(_bfr)
-                
-            _size = MATH.average(_baseSize[:1]) * .3
-    
-    
+
+            _size = MATH.average(_baseSize[:1]) * .1
+
+
             #helper ======================================================================================
             _str_curve = CURVES.create_controlCurve(mHandle.mNode, baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
-            
+
             mCurve = cgmMeta.validateObjArg(_str_curve, mType = 'cgmObject',setClass=True)
-            
-            
+
+
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
             mCurve.doStore('cgmType','rootMotionHelper')
             mCurve.doName()    
-    
+
             mCurve.p_parent = mHandle
-    
-    
+
+
             CORERIG.match_transform(mCurve.mNode, mHandle)
-    
+
 
             mCurve.connectParentNode(mHandle.mNode,'handle','rootMotionHelper')   
             if mHandle.hasAttr('addMotionJoint'):
                 mHandle.doConnectOut('addMotionJoint',"{0}.v".format(mCurve.mNode))
                 ATTR.set_standardFlags(mCurve.mNode,['v'])
-    
+
+            self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
             return mCurve
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
@@ -1511,36 +1686,37 @@ class handleFactory(object):
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
-    
+
             mHandle = self._mTransform
             _bfr = mHandle.getMessage('jointHelper')
             if _bfr:
                 mc.delete(_bfr)
-                
+
             _size = MATH.average(_baseSize[:1]) * .3
-    
-    
+
+
             #Joint helper ======================================================================================
             _jointHelper = CURVES.create_controlCurve(mHandle.mNode,'sphere',  direction= shapeDirection, sizeMode = 'fixed', size = _size)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-    
+
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
             mJointCurve.doStore('cgmType','jointHandle')
             mJointCurve.doName()    
-    
+
             mJointCurve.p_parent = mHandle
-    
-    
+
+            self.color(mJointCurve.mNode)
+
             CORERIG.match_transform(mJointCurve.mNode, mHandle)
-    
+
             #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
             #                   etx = (True,True), ety = (True,True), etz = (True,True))        
-    
+
             mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
-    
+
             mJointCurve.setAttrFlags(lockChannels)
-    
+
             if loftHelper:#...loft curve -------------------------------------------------------------------------------------
                 mLoft = self.buildBaseShape('square',_size*.5,'y+')
                 mLoft.doStore('cgmName',mJointCurve.mNode)
@@ -1548,7 +1724,7 @@ class handleFactory(object):
                 mLoft.doName()
                 mLoft.p_parent = mJointCurve
                 self.color(mLoft.mNode,controlType='sub')
-    
+
                 for s in mLoft.getShapes(asMeta=True):
                     s.overrideEnabled = 1
                     s.overrideDisplayType = 2
@@ -2445,8 +2621,8 @@ class factory(object):
         #>>>Meat ------------------------------------------------------------------------------------
         _mBlock.blockState = 'prerig>rig'#...buffering that we're in process
         _BlockModule= _mBlock.p_blockModule
-        
-        
+
+
         rigFactory(_mBlock,autoBuild=True,**kws)
 
         #cgmRigBlock(_short).blockState = 'rig'
@@ -3045,6 +3221,35 @@ def is_blockModule_valid(blockType):
     return _res
 
 
+def valid_blockModule_rigBuildOrder(blockType):
+    _str_func = 'get_blockModule_status'
+
+    _BlockModule = get_blockModule(blockType)
+    reload(_BlockModule)
+    try:
+        _blockType = _BlockModule.__name__.split('.')[-1]
+    except:
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        return False    
+
+
+    _status = True
+    _l_buildOrder = getattr(_BlockModule,'__l_rigBuildOrder__',[])
+    if _l_buildOrder:
+        for i,step in enumerate(_l_buildOrder):
+            if not getattr(_BlockModule,step,False):
+                _status = False
+                print("|{0}| >> [{1}] FAIL. Missing rig step {2} call: {3}".format(_str_func,_blockType,i,step))
+    elif getattr(_BlockModule,'rig',[]):
+        log.info("|{0}| >> BlockModule rig call found...".format(_str_func))
+    else:
+        _status = False
+
+    if _status:
+        print("|{0}| >> [{1}] Pass: valid rig build order ".format(_str_func,_blockType))                            
+        return _l_buildOrder
+    return False
+
 _l_requiredModuleDat = ['__version__',
                         'template','is_template','templateDelete',
                         'prerig','is_prerig','prerigDelete',
@@ -3054,7 +3259,7 @@ _d_requiredModuleDat = {'define':['__version__'],
                         'template':['template','is_template','templateDelete'],
                         'prerig':['prerig','is_prerig','prerigDelete'],
                         'rig':['is_rig','rigDelete']}
-_d_requiredModuleDatCalls = {'rig':['valid_blockModule_rigBuildOrder']}
+_d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
 
 def get_blockModule_status2(blockType):
     """
@@ -3083,34 +3288,7 @@ def get_blockModule_status2(blockType):
     return _res
 
 
-def valid_blockModule_rigBuildOrder(blockType):
-    _str_func = 'get_blockModule_status'
-    
-    _BlockModule = get_blockModule(blockType)
-    reload(_BlockModule)
-    try:
-        _blockType = _BlockModule.__name__.split('.')[-1]
-    except:
-        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
-        return False    
-    
-    
-    _status = True
-    _l_buildOrder = getattr(_BlockModule,'__l_rigBuildOrder__',[])
-    if _l_buildOrder:
-        for i,step in enumerate(_l_buildOrder):
-            if not getattr(_BlockModule,step,False):
-                _status = False
-                print("|{0}| >> [{1}] FAIL. Missing rig step {2} call: {3}".format(_str_func,_blockType,i,step))
-    elif getattr(_BlockModule,'rig',[]):
-        log.info("|{0}| >> BlockModule rig call found...".format(_str_func))
-    else:
-        _status = False
 
-    if _status:
-        print("|{0}| >> [{1}] Pass: valid rig build order ".format(_str_func,_blockType))                            
-        return _l_buildOrder
-    return False
 
 def get_blockModule_status(blockModule, state = None):
     """
@@ -3140,14 +3318,20 @@ def get_blockModule_status(blockModule, state = None):
             _good = True
             print("|{0}| >> [{1}]{2}".format(_str_func,_blockType,state.capitalize()) + cgmGEN._str_subLine)            
             for test in l_tests:
-                if not getattr(_buildModule, test, False):
-                    print("|{0}| >> [{1}] FAIL: {2}".format(_str_func,_blockType,test))
-                    _good = False  
-                else:
-                    print("|{0}| >> [{1}] Pass: {2}".format(_str_func,_blockType,test))
+                try:
+                    if not getattr(_buildModule, test, False):
+                        print("|{0}| >> [{1}] FAIL: {2}".format(_str_func,_blockType,test))
+                        _good = False  
+                    else:
+                        print("|{0}| >> [{1}] Pass: {2}".format(_str_func,_blockType,test))
+                except Exception,err:
+                    print("|{0}| >> [{1}] FAIL: {2} | {3}".format(_str_func,_blockType,test,err))
             for test in l_functionTests:
-                if not getattr(test,_buildModule):
-                    _good = False                 
+                try:
+                    if not test(_blockType):
+                        _good = False
+                except Exception,err:
+                    print("|{0}| >> [{1}] FAIL: {2} | {3}".format(_str_func,_blockType,test,err))   
             _res[state] = _good
 
             if state == 'define':
@@ -3162,10 +3346,12 @@ def get_blockModule_status(blockModule, state = None):
                 print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
                 _res = False
         for test in l_functionTests:
-            if not getattr(test,_buildModule):
-                #print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
-                _res = False                
-
+            try:
+                if not test(_blockType):
+                    #print("|{0}| >> [{1}] Missing {3} data: {2}".format(_str_func,_blockType,test,state))
+                    _res = False                
+            except Exception,err:
+                print("|{0}| >> [{1}] FAIL: {2} | {3}".format(_str_func,_blockType,test,err))   
         if state == 'define':
             print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.__dict__.get('__version__',False)))                    
 
@@ -3307,7 +3493,7 @@ class rigFactory(object):
         if kws:#...intial population
             self.call_kws = kws
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
-            
+
 
         self.call_kws['forceNew'] = forceNew
         self.call_kws['rigBlock'] = rigBlock
@@ -3318,27 +3504,27 @@ class rigFactory(object):
         try:self.fnc_check_rigBlock()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-            
+
         try:self.fnc_check_module()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-    
+
         try:self.fnc_rigNeed()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-            
+
         try:self.fnc_bufferDat()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-            
+
         if not self.fnc_moduleRigChecks():
             pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
-        
+
         try:self.fnc_deformConstrainNulls()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-            
+
         self.fnc_processBuild(**kws)
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
@@ -3415,18 +3601,18 @@ class rigFactory(object):
             return False
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
-        
-        
+
+
         #Build order --------------------------------------------------------------------------------
         _d['buildOrder'] = valid_blockModule_rigBuildOrder(_buildModule)
         if not _d['buildOrder']:
             raise RuntimeError,'Failed to validate build order'
-        
+
         self.d_block = _d    
-        
+
         self.buildModule = _buildModule
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
-        
+
         return True
 
     @cgmGEN.Timer
@@ -3442,23 +3628,23 @@ class rigFactory(object):
 
         #>>Module -----------------------------------------------------------------------------------  
         _d = {}    
-        
+
         if _hasModule:
             BlockFactory.module_verify()
             _mModule = BlockFactory._mi_module
             self.mModule = _mModule
-    
+
             _mRigNull = _mModule.rigNull
             _d['mModule'] = _mModule
             _d['mRigNull'] = _mRigNull
             self.mRigNull = _mRigNull
             _d['shortName'] = _mModule.getShortName()
             _d['version'] = _mModule.rigNull.version
-    
+
             _d['mModuleParent'] = False
             if _mModule.getMessage('moduleParent'):
                 _d['mModuleParent'] = _mModule.moduleParent
-    
+
             """
             if not _mRigNull.getMessage('dynSwitch'):
                 _mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=_mRigNull.mNode)
@@ -3472,16 +3658,16 @@ class rigFactory(object):
             _mPuppet = _mModule.modulePuppet
         else:
             _mPuppet = self.mBlock.moduleTarget
-            
+
         self.mPuppet = _mPuppet
 
         _d['mPuppet'] = _mPuppet
         _mPuppet.__verifyGroups__()
-        
+
         if _hasModule:
             if not _mModule.isSkeletonized():
                 log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
-    
+
                 if not self.mBlock.atBlockModule('build_skeleton'):
                     log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
                     _res = False
@@ -3499,7 +3685,7 @@ class rigFactory(object):
         _res = True
 
         _blockType = self.mBlock.blockType
-        
+
         if _blockType in ['master']:
             self.mPuppet.__verifyObjectSet__()            
             return True
@@ -3537,7 +3723,7 @@ class rigFactory(object):
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
-    
+
     @cgmGEN.Timer
     def fnc_rigNeed(self):
         """
@@ -3552,7 +3738,7 @@ class rigFactory(object):
         _buildVersion = self.d_block.get('buildVersion')
         _buildModule = self.buildModule
         _blockType = self.mBlock.blockType
-        
+
         _d_callKWS = self.call_kws
 
         if _blockType == 'master':
@@ -3563,9 +3749,9 @@ class rigFactory(object):
                 if not _mModuleParent.isRigged():
                     log.warning("|{0}| >> [{1}] ModuleParent not rigged".format(_str_func,_str_moduleParent))            
                     return False
-    
+
             _b_rigged = _mModule.isRigged()
-            
+
         log.debug("|{0}| >> Rigged: {1}".format(_str_func,_b_rigged))            
 
         if _b_rigged and not _d_callKWS['forceNew'] and _d_callKWS['ignoreRigCheck'] is not True:
@@ -3647,7 +3833,7 @@ class rigFactory(object):
         """
         try:
             _str_func = 'fnc_bufferDat'  
-    
+
             _mModule = self.d_module.get('mModule')    
             _mModuleParent = self.d_module.get('mModuleParent')
             _mPuppet = self.d_module.get('mPuppet')
@@ -3655,7 +3841,7 @@ class rigFactory(object):
             _version = self.d_module.get('version')
             _buildVersion = self.d_block.get('buildVersion')
             _blockType = self.mBlock.blockType
-    
+
             _d_callKWS = self.call_kws
 
             #>>Module dat ------------------------------------------------------------------------------
@@ -3663,39 +3849,39 @@ class rigFactory(object):
             if _mModule:
                 _d['partName'] = _mModule.getPartNameBase()
                 _d['partType'] = _mModule.moduleType.lower() or False
-        
+
                 _d['l_moduleColors'] = _mModule.getModuleColors() 
                 _d['l_coreNames'] = []#...need to do this
                 self.mTemplateNull = _mModule.templateNull
                 _d['mTemplateNull'] = self.mTemplateNull
                 _d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
                 _d['direction'] = _mModule.getAttr('cgmDirection')
-        
+
                 _d['mirrorDirection'] = _mModule.get_mirrorSideAsString()
             else:
                 _d['mirrorDirection'] = 'Centre'
-                
+
             _d['f_skinOffset'] = _mPuppet.getAttr('skinDepth') or 1
             _d['mMasterNull'] = _mPuppet.masterNull
-    
+
             #>MasterControl....
             if not _mPuppet.getMessage('masterControl'):
                 log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
-                _mPuppet._verifyMasterControl(size = DIST.get_bb_size(self.mBlock.mNode,True,'max') * 1.5)
-    
+                _mPuppet._verifyMasterControl(size = max(POS.get_axisBox_size(self.mBlock.mNode)) * 1.5)
+
             _d['mMasterControl'] = _mPuppet.masterControl
             _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
             _d['mMasterSettings'] = _d['mMasterControl'].controlSettings
             _d['mMasterDeformGroup'] = _mPuppet.masterNull.deformGroup
-    
+
             #_d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
-    
+
             self.d_module.update(_d)
-    
+
             #cgmGEN.log_info_dict(self._d_module,_str_func + " moduleDat")      
             log.info(cgmGEN._str_subLine)
-    
-    
+
+
             #>>Joint dat ------------------------------------------------------------------------------
             _d = {}
             if _mModule:
@@ -3705,39 +3891,39 @@ class rigFactory(object):
                     _d['ml_skinJoints'] = False
                 else:
                     _d['l_moduleJoints'] = []
-        
+
                     for mJnt in _d['ml_moduleJoints']:
                         _d['l_moduleJoints'].append(mJnt.p_nameShort)
                         ATTR.set(mJnt.mNode,'displayLocalAxis',0)
-        
+
                     _d['ml_skinJoints'] = _mModule.rig_getSkinJoints()
                     if not _d['ml_skinJoints']:
                         log.warning("|{0}| >> No skin joints found".format(_str_func))                    
                         return False      
-    
-    
+
+
             self.d_joints = _d
             #cgmGEN.log_info_dict(self.d_joints,_str_func + " jointsDat")      
             #log.info(cgmGEN._str_subLine)    
-    
+
             #>>Orientation dat ------------------------------------------------------------------------------
             _d = {}
-    
+
             _mOrientation = VALID.simpleOrientation('zyx')#cgmValid.simpleOrientation(str(modules.returnSettingsData('jointOrientation')) or 'zyx')
             _d['str'] = _mOrientation.p_string
             _d['mOrientation'] = _mOrientation
             _d['vectorAim'] = _mOrientation.p_aim.p_vector
             _d['vectorUp'] = _mOrientation.p_up.p_vector
             _d['vectorOut'] = _mOrientation.p_out.p_vector
-    
+
             _d['vectorAimNeg'] = _mOrientation.p_aimNegative.p_vector
             _d['vectorUpNeg'] = _mOrientation.p_upNegative.p_vector
             _d['vectorOutNeg'] = _mOrientation.p_outNegative.p_vector    
-    
+
             self.d_orientation = _d
             #cgmGEN.log_info_dict(self.d_orientation,_str_func + " orientationDat")      
             #log.info(cgmGEN._str_subLine)    
-    
+
             return True
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat==vars())
@@ -3753,7 +3939,7 @@ class rigFactory(object):
         _start = time.clock()
 
         _blockType = self.mBlock.blockType
-        
+
         if _blockType in ['master']:
             return True
 
