@@ -62,6 +62,17 @@ d_defaultSettings = {'version':__version__,
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format
 #cgmRigamathig
+
+def uiBuilderMenu(self,parent = None):
+    uiMenu = mc.menuItem( parent = parent, l='Master:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(uiMenu,
+                ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),                                                    
+                c = cgmGEN.Callback(resize_masterShape,self),
+                label = "Resize")            
+    
+    
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -76,6 +87,48 @@ def define(self):
 #=============================================================================================================
 #>> Template
 #=============================================================================================================
+def resize_masterShape(self):
+    try:
+        
+        _short = self.p_nameShort        
+        _str_func = '[{0}] resize_masterShape'.format(_short)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        if not self.getBlockChildren():
+            log.warning("|{0}| >> Must have blockChildren to resize by this call".format(_str_func))        
+            return False
+        
+        mc.delete(self.getShapes())
+    
+        _bb = TRANS.bbSize_get(self.mNode,False)
+        _average = MATH.average([_bb[0],_bb[2]])
+        _size = _average * 1.5
+        _offsetSize = _average * .1    
+    
+        _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1)    
+        TRANS.scale_to_boundingBox(_crv, [_bb[0],None,_bb[2]])
+    
+        CORERIG.colorControl(_crv,'center','sub') 
+    
+        mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+        l_offsetCrvs = []
+        for shape in mCrv.getShapes():
+            offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+            CORERIG.colorControl(offsetShape,'center','main',transparent = False) 
+            l_offsetCrvs.append(offsetShape)
+    
+        RIG.combineShapes(l_offsetCrvs + [_crv], False)
+        SNAP.go(_crv,self.mNode)    
+    
+        RIG.shapeParent_in_place(self.mNode,_crv,False)
+    
+        self.baseSize = _bb
+        return True
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+    
+
 def template(self):
     _average = MATH.average([self.baseSize[0],self.baseSize[2]])
     _size = _average * 1.5
@@ -125,7 +178,6 @@ def prerig(self):
     if self.addMotionJoint:
         mMotionJoint = mHandleFactory.addRootMotionHelper()
         mMotionJoint.p_parent = mPrerigNull
-        
         
 
 def prerigDelete(self):

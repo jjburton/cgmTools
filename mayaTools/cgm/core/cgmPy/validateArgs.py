@@ -1008,6 +1008,20 @@ class simpleAxis(object):
         return self.__v_axis
     
     @property
+    def p_values(self):
+        return self.__v_axis[0],self.__v_axis[1],self.__v_axis[2]
+    
+    @property
+    def x(self):
+        return self.__v_axis[0]
+    @property
+    def y(self):
+        return self.__v_axis[1]
+    @property
+    def z(self):
+        return self.__v_axis[2]
+    
+    @property
     def inverse(self):
         """
         Returns an inverted instance of itself. z+ --> z-

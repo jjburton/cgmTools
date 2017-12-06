@@ -60,6 +60,13 @@ def get_side(self):
     if self.getMayaAttr('side'):
         _side = self.getEnumValueString('side') 
     return _side
+
+def get_sideMirror(self):
+    _side = get_side(self)
+    if _side == 'left':return 'right'
+    elif _side == 'right':return 'left'
+    return False
+
 def test(self):
     return cgmGEN.queryCode()
 
@@ -1267,4 +1274,744 @@ def prerig_getHandleTargets(self):
     log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     return ml_handles
         
+#=============================================================================================================
+#>> Mirror/Duplicate
+#=============================================================================================================
+def duplicate(self):
+    """
+    Call to duplicate a block module and load data
+    """
+    try:
+        _str_func = 'blockDuplicate'
+        mDup = cgmMeta.createMetaNode('cgmRigBlock',blockType = self.blockType, autoTemplate=False)
+        
+        mDup.loadBlockDat(self.getBlockDat())
+        mDup.doName()
+        return mDup
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def blockMirror_create(self, forceNew = False):
+    """
+    Call to duplicate a block module and load data
+    """
+    try:
+        _str_func = 'blockMirror_create'
+        _side = get_sideMirror(self)
+        _blockType = self.blockType
+        if not _side:
+            log.error("|{0}| >> Block is not sided. Can't create mirror".format(_str_func, self.mNode))                    
+            return False
+        if self.getMessage('blockMirror'):
+            mMirror = self.blockMirror
+            log.debug("|{0}| >> blockMirror found {1} ".format(_str_func, mMirror))
+            if not forceNew:
+                return mMirror
+            log.debug("|{0}| >> focing new... ".format(_str_func, mMirror))            
+            mMirror.delete()
+            
+        log.debug("|{0}| >> Creating mirror block. {1} | {2}".format(_str_func, _blockType, _side))
+        
+        mMirror = cgmMeta.createMetaNode('cgmRigBlock',blockType = self.blockType, side = _side, autoTemplate=False)
+        
+        blockDat = self.getBlockDat()
+        blockDat['ud']['side'] = get_sideMirror(self)        
+        blockDat_load(mMirror, blockDat, mirror = False)
+        controls_mirror(self,mMirror)
+        
+        mMirror.p_blockParent = self.p_blockParent
+        self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
+        
+        return mMirror
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def blockMirror_go(self, mode = 'push',autoCreate = False):
+    """
+    Call to duplicate a block module and load data
+    """
+    try:
+        _str_func = 'blockMirror_go'
+        _short = self.p_nameShort
+        if not self.getMessage('blockMirror'):
+            log.error("|{0}| >> [{1}] No block mirror found".format(_str_func, _short))                                
+            return False
+        
+        mMirror = self.blockMirror
+        
+        if mode == 'push':
+            controls_mirror(self,mMirror)
+        else:
+            controls_mirror(mMirror,self)
+        
+        
+        return mMirror
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+def blockDat_mirror(self, reflectionVector = MATH.Vector3(1,0,0) ):
+    try:
+        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+        _str_func = 'MirrorBlock'
 
+        if not self or not mirrorBlock:
+            log.warning("|{0}| >> Must have rootBlock and mirror block".format(_str_func))                                            
+            return
+
+        if mirrorBlock.blockType != self.blockType:
+            log.warning("|{0}| >> Blocktypes must match. | {1} != {2}".format(_str_func,block.blockType,mirrorBlock.blockType,))                                                        
+            return
+
+        rootTransform = self
+        rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
+        #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
+
+        print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
+
+
+        if mirrorBlock:
+            print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
+
+            _blockState = rootBlock.getState(False)
+            _mirrorState = mirrorBlock.getState(False)
+            if _blockState > _mirrorState or _blockState < _mirrorState:
+                print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
+            else:
+                print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
+
+            #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
+                #print "Can only mirror blocks in Template state"
+                #return
+
+            cgmGEN.func_snapShot(vars())
+            return
+
+            currentTemplateObjects = block.templatePositions
+            templateHeirarchyDict = {}
+            for i,p in enumerate(currentTemplateObjects):
+                templateHeirarchyDict[i] = p.fullPath.count('|')
+
+            templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
+
+            for x in range(2):
+                # do this twice in case there are any stragglers 
+                for i in templateObjectsSortedByHeirarchy:
+                    index = i[0]
+                    #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
+
+                    # reflect rotation
+                    reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+                    reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+                    mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+
+                for i in templateObjectsSortedByHeirarchy:
+                    index = i[0]
+                    wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+
+                    #print "wanted position:", wantedPos
+                    mirrorBlock.templatePositions[index].position = wantedPos
+
+                    if block.templatePositions[index].type == "joint":
+                        #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
+                        mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
+
+                    wantedScale = block.templatePositions[index].localScale
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
+
+            for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
+                mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
+                if attr == "reverseUp":
+                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )
+                if attr == "reverseForward":
+                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )	
+
+        # mirror child blocks
+        for attachPoint in block.attachPoints:
+            for child in attachPoint.children:
+                childBlock = Block.LoadRigBlock( child )
+                if childBlock:
+                    Block.MirrorBlockPush(childBlock)
+    except Exception,err:
+        cgmGEN.cgm
+        
+def mirror_blockDat(self = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
+    try:
+        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+        _str_func = 'MirrorBlock'
+
+        if not self or not mirrorBlock:
+            log.warning("|{0}| >> Must have rootBlock and mirror block".format(_str_func))                                            
+            return
+
+        if mirrorBlock.blockType != self.blockType:
+            log.warning("|{0}| >> Blocktypes must match. | {1} != {2}".format(_str_func,block.blockType,mirrorBlock.blockType,))                                                        
+            return
+
+        rootTransform = self
+        rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
+        #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
+
+        print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
+
+
+        if mirrorBlock:
+            print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
+
+            _blockState = rootBlock.getState(False)
+            _mirrorState = mirrorBlock.getState(False)
+            if _blockState > _mirrorState or _blockState < _mirrorState:
+                print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
+            else:
+                print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
+
+            #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
+                #print "Can only mirror blocks in Template state"
+                #return
+
+            cgmGEN.func_snapShot(vars())
+            return
+
+            currentTemplateObjects = block.templatePositions
+            templateHeirarchyDict = {}
+            for i,p in enumerate(currentTemplateObjects):
+                templateHeirarchyDict[i] = p.fullPath.count('|')
+
+            templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
+
+            for x in range(2):
+                # do this twice in case there are any stragglers 
+                for i in templateObjectsSortedByHeirarchy:
+                    index = i[0]
+                    #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
+
+                    # reflect rotation
+                    reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+                    reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+                    mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+
+                for i in templateObjectsSortedByHeirarchy:
+                    index = i[0]
+                    wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+
+                    #print "wanted position:", wantedPos
+                    mirrorBlock.templatePositions[index].position = wantedPos
+
+                    if block.templatePositions[index].type == "joint":
+                        #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
+                        mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
+
+                    wantedScale = block.templatePositions[index].localScale
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
+                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
+                        mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
+
+            for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
+                mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
+                if attr == "reverseUp":
+                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )
+                if attr == "reverseForward":
+                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )	
+
+        # mirror child blocks
+        for attachPoint in block.attachPoints:
+            for child in attachPoint.children:
+                childBlock = Block.LoadRigBlock( child )
+                if childBlock:
+                    Block.MirrorBlockPush(childBlock)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
+    '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+
+    for blockName in mc.ls(sl=True):
+        currentBlock = Block.LoadRigBlock( GetNodeType(blockName) )
+        if currentBlock:
+            Block.MirrorBlock(currentBlock)
+
+def MirrorBlockPush( block, reflectionVector = MATH.Vector3(1,0,0) ):
+    '''Mirrors the given block to the corresponding block on the other side'''
+
+    mirrorBlock = block.GetMirrorBlock()
+
+    Block.MirrorBlock(block, mirrorBlock, reflectionVector)
+
+def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
+    '''Mirrors the given block using the mirrorBlock's template positions'''
+
+    mirrorBlock = block.GetMirrorBlock()
+
+    Block.MirrorBlock(mirrorBlock, block, reflectionVector)
+    
+#=============================================================================================================
+#>> blockDat
+#=============================================================================================================
+def blockDat_get(self,report = True):
+    """
+    Carry from Bokser stuff...
+    """
+    try:
+        _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
+        _ml_controls = self.getControls(True)
+        _short = self.p_nameShort
+        _blockState_int = self.getState(False)
+        #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
+        _d = {#"name":_short, 
+              "blockType":self.blockType,
+              "blockState":self.p_blockState,
+              "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
+              #"part":self.part,
+              ##"blockPosition":self.getEnumValueString('position'),
+              ##"blockDirection":self.getEnumValueString('side'),
+              ###"attachPoint":self.getEnumValueString('attachPoint'),
+              #"_rig":self._rig.name if self._rig else None, 
+              #"_template":self._template.name if self._template else None, 
+              #"_controls":self._controls.name if self._controls else None, 
+              #"_attach":self._attach.name if self._attach else None, 
+              #"_noTouch":self._noTouch.name if self._noTouch else None, 
+              #"controls":[mObj.mNode for mObj in _ml_controls],
+              "positions":[mObj.p_position for mObj in _ml_controls],
+              "orientations":[mObj.p_orient for mObj in _ml_controls],
+              "scale":[mObj.scale for mObj in _ml_controls],
+              "isSkeletonized":self.isSkeletonized(),
+              #...these will be indexed against the number of handles
+              #"templatePositions":[x.name for x in self.templatePositions or []], 
+              #"templateOrientation":[x.name for x in self.templateOrientation or []], 
+              #"templateNodes":[x.name for x in self.templateNodes or []], 
+              #"controls":[x.name for x in self.controls or []], 
+              #"rigJoints":[x.name for x in self.rigJoints or []], 
+              #"skinJoints":[x.name for x in self.skinJoints or []], 
+              #"ikJoints":[x.name for x in self.ikJoints or []], 
+              #"fkJoints":[x.name for x in self.fkJoints or []], 
+              #"ikControls":[x.name for x in self.ikControls or []], 
+              #"fkControls":[x.name for x in self.fkControls or []], 
+              #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
+              #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
+              #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
+              #"attachPoints":[x.name for x in self.attachPoints or []],
+              "version":self.version, 
+              "ud":{}
+              }   
+
+        if self.getShapes():
+            _d["size"] = POS.get_axisBox_size(self.mNode,False),
+        else:
+            _d['size'] = self.baseSize
+
+        if _blockState_int >= 1:
+            _d['template'] = self.getBlockDat_templateControls()
+
+        #if _blockState_int >= 2:
+            #_d['prerig'] = self.getBlockDat_prerigControls() 
+
+        for a in self.getAttrs(ud=True):
+            if a not in _l_udMask:
+                _type = ATTR.get_type(_short,a)
+                if _type in ['message']:
+                    continue
+                elif _type == 'enum':
+                    _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
+                else:
+                    _d['ud'][a] = ATTR.get(_short,a)
+
+        if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
+        return _d
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def blockDat_save(self):
+    self.blockDat = self.getBlockDat()
+
+def blockDat_reset(self):
+    #This needs more work.
+    self._factory.verify(self.blockType, forceReset=True) 
+
+def blockDat_load(self, blockDat = None, mirror=False, reflectionVector = MATH.Vector3(1,0,0)):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] loadBlockDat'.format(_short)
+    ml_processed = []
+    
+    def mirrorHandle(mObj,pos=None,orient=None):
+        """
+        if no values passed, use current
+        """
+        if mObj in ml_processed:
+            log.debug("|{0}| >> Obj [{1}] {2} already processed".format(_str_func, i, mObj.p_nameShort))                            
+            return
+        log.debug("|{0}| >> Obj [{1}] {2}".format(_str_func, i, mObj.p_nameShort))            
+
+        if pos:
+            posBase = mObj.p_positionEuclid
+            #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
+            posNew = mObj.p_positionEuclid.reflect(rootReflectionVector)
+            #posNew = MATH.Vector3(pos[0],pos[1],pos[2]).reflect(rootReflectionVector)
+            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
+            mObj.p_positionEuclid = posNew
+        
+        if orient:
+            reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,-1,0)).reflect( rootReflectionVector )
+            reflectAimPoint = DIST.get_pos_by_vec_dist(mObj.p_position, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
+            log.debug("|{0}| >> Mirror rot [{1}] | aim: {2} | up: {3} | point: {4}".format(_str_func, i, reflectAim,reflectUp,reflectAimPoint))
+            
+            #mObj.LookRotation( reflectAim, reflectUp )
+            SNAP.aim_atPoint(mObj.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
+            #reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            #reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+            #mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+            
+    
+    if blockDat is None:
+        log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+        blockDat = self.blockDat
+
+    if not issubclass(type(blockDat),dict):
+        raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
+    
+
+    _blockType = blockDat.get('blockType')
+    if _blockType != self.blockType:
+        raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
+    
+    log.debug("|{0}| >> blockDat looks good...".format(_str_func))    
+    
+    if mirror:
+        #rootReflectionVector = TRANS.transformDirection(_short,reflectionVector).normalized()
+        rootReflectionVector = reflectionVector
+        log.debug("|{0}| >> Mirror mode. Relect: {1}".format(_str_func,rootReflectionVector))    
+        
+    
+    #.>>>..UD ====================================================================================
+    log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
+    _ud = blockDat.get('ud')
+    if not blockDat.get('ud'):
+        raise ValueError,"|{0}| >> No ud data found".format(_str_func) 
+    for a,v in _ud.iteritems():
+        _current = ATTR.get(_short,a)
+        if _current != v:
+            try:
+                if ATTR.get_type(_short,a) in ['message']:
+                    log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                else:
+                    log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    ATTR.set(_short,a,v)
+            except Exception,err:
+                log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                r9Meta.printMetaCacheRegistry()                
+                for arg in err.args:
+                    log.error(arg)                      
+
+    #>>State ====================================================================================
+    log.debug("|{0}| >> State".format(_str_func) + '-'*80)
+    _state = blockDat.get('blockState')
+    _current = self.getState()
+    if _state != _current:
+        log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current,_state)) 
+        self.p_blockState = _state
+
+    #>>Controls ====================================================================================
+    log.debug("|{0}| >> Controls".format(_str_func)+ '-'*80)
+    _pos = blockDat.get('positions')
+    _orients = blockDat.get('orientations')
+    _scale = blockDat.get('scale')
+    
+
+    _ml_controls = self.getControls(True)
+    if len(_ml_controls) != len(_pos):
+        log.error("|{0}| >> Control dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_controls),len(_pos))) 
+    else:
+        log.debug("|{0}| >> loading Controls...".format(_str_func))
+        for i,mObj in enumerate(_ml_controls):
+            if mObj in ml_processed:
+                log.debug("|{0}| >> Obj [{1}] {2} already processed".format(_str_func, i, mObj.p_nameShort))                            
+                continue
+            
+            log.debug("|{0}| >> Obj [{1}] {2}".format(_str_func, i, mObj.p_nameShort))
+            pos = _pos[i]
+            orient = _orients[i]
+            
+            mObj.p_position = pos
+            mObj.p_orient = orient
+            if mirror:
+                mirrorHandle(mObj,pos,orient)
+            
+            ml_processed.append(mObj)
+                
+            """
+            posBase = mObj.p_positionEuclid
+            #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
+            posNew = mObj.p_positionEuclid.reflect(rootReflectionVector)
+            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
+            mObj.p_positionEuclid = posNew
+            
+            reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,-1,0)).reflect( rootReflectionVector )
+            reflectAimPoint = DIST.get_pos_by_vec_dist(mObj.p_position, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
+            log.debug("|{0}| >> Mirror rot [{1}] | aim: {2} | up: {3} | point: {4}".format(_str_func, i, reflectAim,reflectUp,reflectAimPoint))
+            
+            #mObj.LookRotation( reflectAim, reflectUp )
+            SNAP.aim_atPoint(mObj.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
+            #reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            #reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+            #mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+            """
+                
+                
+            
+#(block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+            
+            for ii,v in enumerate(_scale[i]):
+                _a = 's'+'xyz'[ii]
+                if not self.isAttrConnected(_a):
+                    ATTR.set(_short,_a,v)
+    
+    #>>Template Controls ====================================================================================
+    _int_state = self.getState(False)
+    if _int_state > 0:
+        log.info("|{0}| >> template dat....".format(_str_func))             
+        _d_template = blockDat.get('template',False)
+        if not _d_template:
+            log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+        else:
+            if _int_state == 1:
+                _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)            
+            else:
+                _ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+
+
+            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+            if not _ml_templateHandles:
+                log.error("|{0}| >> No template handles found".format(_str_func))
+            else:
+                _posTempl = _d_template.get('positions')
+                _orientsTempl = _d_template.get('orientations')
+                _scaleTempl = _d_template.get('scales')
+                _jointHelpers = _d_template.get('jointHelpers')
+
+                if len(_ml_templateHandles) != len(_posTempl):
+                    log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                else:
+                    for i,mObj in enumerate(_ml_templateHandles):
+                        if mObj in ml_processed:
+                            log.debug("|{0}| >> Obj [{1}] {2} already processed".format(_str_func, i, mObj.p_nameShort))                            
+                            continue
+                        
+                        log.debug ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                        mObj.p_position = _posTempl[i]
+                        mObj.p_orient = _orientsTempl[i]
+                        
+                        _tmp_short = mObj.mNode
+                        for ii,v in enumerate(_scaleTempl[i]):
+                            _a = 's'+'xyz'[ii]
+                            if not self.isAttrConnected(_a):
+                                ATTR.set(_tmp_short,_a,v)   
+                        if _jointHelpers and _jointHelpers[i]:
+                            mObj.jointHelper.translate = _jointHelpers[i]
+                            
+            if _d_template.get('rootOrientHelper'):
+                if self.getMessage('orientHelper'):
+                    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                else:
+                    log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+
+
+
+    #>>Generators ====================================================================================
+    log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
+    _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.deleteSkeleton]}
+
+    for k,calls in _d.iteritems():
+        _block = bool(blockDat.get(k))
+        _current = calls[0]()
+        if _state != _current:
+            log.debug("|{0}| >> {1} States don't match. self: {2} | blockDat: {3}".format(_str_func,k,_current,_block)) 
+            if _block == False:
+                calls[2]()                         
+            else:
+                calls[1]()     
+    return True
+
+
+#=============================================================================================================
+#>> Controls query
+#=============================================================================================================
+def controls_get(self,template = True, prerig= True):
+    try:
+        
+        _short = self.p_nameShort        
+        _str_func = '[{0}] controls_get'.format(_short)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        def addMObj(mObj):
+            if mObj in ml_controls:
+                log.debug("|{0}| >> Already stored: {1} ".format(_str_func,mObj))                    
+                return
+            ml_controls.append(mObj)
+            
+        
+        ml_controls = [self]
+        
+        if self.getMessage('orientHelper'):
+            ml_controls.append(self.orientHelper)
+            
+        if template:
+            log.debug("|{0}| >> template pass...".format(_str_func))            
+            ml_handles = self.msgList_get('templateHandles',asMeta = True)
+            for mObj in ml_handles:
+                addMObj(mObj)
+                
+                if mObj.getMessage('orientHelper'):
+                    addMObj(mObj.orientHelper)
+
+                if mObj.getMessage('jointHelper'):
+                    addMObj(mObj.jointHelper)
+                
+        if prerig:
+            log.debug("|{0}| >> Prerig pass...".format(_str_func))                        
+            ml_handles = self.msgList_get('prerigHandles',asMeta = True)
+            for mObj in ml_handles:
+                addMObj(mObj)
+
+        return ml_controls
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def controls_mirror(blockSource, blockMirror = None, mirrorMode = 'push', reflectionVector = MATH.Vector3(1,0,0), template = True, prerig= True, ):
+    try:
+        _short = blockSource.p_nameShort        
+        _str_func = '[{0}] controls_mirror'.format(_short)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        ml_controls = controls_get(blockSource, template, prerig)
+        int_lenSource = len(ml_controls)
+        if blockMirror is None:
+            log.debug("|{0}| >> Self mirror....".format(_str_func))
+            ml_targetControls = ml_controls
+        else:
+            log.debug("|{0}| >> Mirror Target: {1}....".format(_str_func,blockMirror.p_nameShort))
+            ml_targetControls = controls_get(blockMirror,template,prerig)
+            int_lenTarget = len(ml_targetControls)
+            if int_lenTarget!=int_lenSource:
+                raise ValueError,"Control list lengths do not match."
+        
+        l_dat = []
+        
+        if not ml_controls:
+            raise ValueError,"No controls"
+        
+        #Root ----------------------------------------------------------------------------------
+        log.debug("|{0}| >> root dat...".format(_str_func))
+        
+        mRoot = ml_controls[0]
+        
+        rootReflectionVector = reflectionVector
+        log.debug("|{0}| >> root Reflect: {1}".format(_str_func,reflectionVector))
+        
+        posBase = mRoot.p_positionEuclid
+        posNew = mRoot.p_positionEuclid.reflect(reflectionVector)
+        log.debug("|{0}| >> Root base: {1} | result: {2}".format(_str_func, posBase,posNew))
+        #mRoot.p_positionEuclid = posNew
+        
+        reflectAim = mRoot.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
+        reflectUp  = mRoot.getTransformDirection( MATH.Vector3(0,-1,0)).reflect( reflectionVector )
+        reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
+        log.debug("|{0}| >> Root rot: aim: {1} | up: {2} | point: {3}".format(_str_func, reflectAim,reflectUp,reflectAimPoint))
+
+        #SNAP.aim_atPoint(mRoot.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
+        
+        
+        
+        #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
+        l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim,'scale':mRoot.scale})
+        
+
+        #Other controls ------------------------------------------------------------------------
+        #rootReflectionVector = TRANS.transformDirection(_short,reflectionVector).normalized()
+        #log.debug("|{0}| >> reg Reflect: {1}".format(_str_func,rootReflectionVector))
+        log.debug("|{0}| >> control dat...".format(_str_func))
+        
+        for i,mObj in enumerate(ml_controls[1:]):
+            log.debug("|{0}| >> Get mObj: {1}".format(_str_func,mObj.p_nameShort))
+            
+            posBase = mObj.p_positionEuclid
+            #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
+            posNew = mObj.p_positionEuclid.reflect(reflectionVector)            
+            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
+            #mObj.p_positionEuclid = posNew
+        
+            reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
+            reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
+            #reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            #reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+            reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
+            log.debug("|{0}| >> Mirror rot [{1}] | aim: {2} | up: {3} | point: {4}".format(_str_func, i, reflectAim,reflectUp,reflectAimPoint))
+    
+            #mObj.LookRotation( reflectAim, reflectUp )
+            #SNAP.aim_atPoint(mObj.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
+            #reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            #reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+            #mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )            
+            #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
+            l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim, 'scale':mObj.scale})
+            
+        
+        log.debug("|{0}| >> remap pass values...".format(_str_func))
+        md_remap = {}
+        for i,mObj in enumerate(ml_targetControls):
+            if 'pivotHelper' in mObj.p_nameShort:
+                if not md_remap.get('pivotHelper'):
+                    md_remap['pivotHelper'] = {}
+                    
+                _cgmName = mObj.cgmName
+                if _cgmName == 'left':
+                    md_remap['pivotHelper']['right'] = i
+                elif _cgmName == 'right':
+                    md_remap['pivotHelper']['left'] = i
+
+        log.debug("|{0}| >> push values...".format(_str_func))
+        for i,mObj in enumerate(ml_targetControls):
+            _dat = l_dat[i]
+            
+            if 'pivotHelper' in mObj.p_nameShort:
+                _cgmName = mObj.cgmName
+                
+                if _cgmName in ['left','right']:
+                    _dat = l_dat[ md_remap['pivotHelper'][_cgmName] ]
+
+            log.debug("|{0}| >> Push mObj: {1}".format(_str_func,mObj.p_nameShort))            
+            mObj.p_positionEuclid = _dat['pos']
+            SNAP.aim_atPoint(mObj.mNode,_dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
+            
+            try:mObj.scale = _dat['scale']
+            except Exception,err:log.debug("|{0}| >> scale err: {1}".format(_str_func,err))            
+            """
+        if md_pivots:
+            log.debug("|{0}| >> Pivot remap...".format(_str_func))
+            md_pivots['left'].cgmName = 'right'
+            md_pivots['left'].doName()
+            md_pivots['right'].cgmName = 'left'
+            md_pivots['right'].doName()
+            
+            md_pivots['base'].connectChildNode(md_pivots['right'],'pivotLeft')#Connect    
+            md_pivots['base'].connectChildNode(md_pivots['left'],'pivotRight')#Connect    
+            """
+            
+        return l_dat,md_remap
+    
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def controlsRig_reset(self):
+    try:
+        
+        _short = self.p_nameShort        
+        _str_func = '[{0}] controlsRig_reset'.format(_short)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        self.moduleTarget.rigNull.moduleSet.reset()
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)

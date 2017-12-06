@@ -690,6 +690,7 @@ class cgmNode(r9Meta.MetaClass):
             return POS.get(self.getComponent(),*a,**kws)        
         return TRANS.position_get(self.mNode, *a,**kws)
     
+    
     def getPositionOLD(self,space = 'world'):
         if self.isComponent():
             return POS.get(self.getComponent())
@@ -2881,10 +2882,14 @@ class cgmObject(cgmNode):
     """def getPosition(self,*a,**kws):
         return TRANS.position_get(self, *a,**kws)"""
     def setPosition(self,*a,**kws):
-        return TRANS.position_set(self, *a,**kws)  
- 
-    p_position = property(cgmNode.getPosition,setPosition)
+        return TRANS.position_set(self, *a,**kws)
     
+    def getPositionAsEuclid(self,*a,**kws):
+        kws['asEuclid'] = True
+        return self.getPosition(*a,**kws)
+    
+    p_position = property(cgmNode.getPosition,setPosition)
+    p_positionEuclid = property(getPositionAsEuclid,setPosition)
     
     #...rot ------------------------------------------------------------------------------
     def getOrient(self,*a,**kws):

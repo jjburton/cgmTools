@@ -153,7 +153,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     _l_controlLinks = []
     _l_controlmsgLists = []
 
-    def __init__(self, node = None, blockType = None, blockParent = None, *args,**kws):
+    def __init__(self, node = None, blockType = None, blockParent = None, autoTemplate = True, *args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
         our modular rigger.
@@ -169,8 +169,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if node is None and blockType is None:
             raise ValueError,"|{0}| >> Must have either a node or a blockType specified.".format(_str_func)
 
-        if blockType and not is_buildable(blockType):
-            log.warning("|{0}| >> Unbuildable blockType specified".format(_str_func))
+        #if blockType and not is_buildable(blockType):
+            #log.warning("|{0}| >> Unbuildable blockType specified".format(_str_func))
 
         #Only check this with a no node call for speed
         _callSize = None
@@ -246,7 +246,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #>>>Auto flags...
                 #Template
                 _blockModule = get_blockModule(self.blockType)
-                if _blockModule.__dict__.get('__autoTemplate__'):
+                if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
                     log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
                     try:
                         self.p_blockState = 'template'
@@ -703,6 +703,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _d
         except Exception,err:
             cgmGEN.cgmException(Exception,err)
+            
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat()
 
@@ -955,20 +956,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #>>> Mirror 
     #========================================================================================================      
     @staticmethod
-    def MirrorBlock( block = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
+    def MirrorBlock(rootBlock = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
         try:
             '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
             _str_func = 'MirrorBlock'
     
-            if not block or not mirrorBlock:
-                log.warning("|{0}| >> Must have block and mirror block".format(_str_func))                                            
+            if not rootBlock or not mirrorBlock:
+                log.warning("|{0}| >> Must have rootBlock and mirror block".format(_str_func))                                            
                 return
     
-            if mirrorBlock.blockType != block.blockType:
+            if mirrorBlock.blockType != rootBlock.blockType:
                 log.warning("|{0}| >> Blocktypes must match. | {1} != {2}".format(_str_func,block.blockType,mirrorBlock.blockType,))                                                        
                 return
             
-            rootTransform = block
+            rootTransform = rootBlock
             rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
             #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
             
@@ -978,14 +979,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if mirrorBlock:
                 print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
                 
-                _blockState = block.getState(False)
+                _blockState = rootBlock.getState(False)
                 _mirrorState = mirrorBlock.getState(False)
                 if _blockState > _mirrorState or _blockState < _mirrorState:
                     print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
                 else:
                     print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
                     
-                #if block.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
+                #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
                     #print "Can only mirror blocks in Template state"
                     #return
                 
@@ -1164,9 +1165,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if self.getState() != 'rig':
             log.error("|{0}| >> Block must be rigged. {1}".format(_str_func, self.mNode))            
             return False
+        
         mRigFac = rigFactory(self, autoBuild = False)
         return mRigFac.atBlockModule('build_proxyMesh', forceNew)
-
+    
 
 class handleFactory(object):
     _l_controlLinks = []
@@ -3174,26 +3176,19 @@ def is_buildable(blockModule):
     if VALID.stringArg(blockModule):
         _d = get_modules_dict()
         _buildModule = _d.get(blockModule,False)
-
     else:
         _buildModule = blockModule
     try:
         _blockType = _buildModule.__name__.split('.')[-1]
     except:
-        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,_buildModule))        
+        log.error("|{0}| >> [{1}] | Failed to query name. Probably not a module".format(_str_func,blockModule))        
         return False
-
-    _keys = _buildModule.__dict__.keys()
-    _l_missing = []
-    for a in BLOCKSHARE._l_requiredModuleDat:
-        if a not in _keys:
-            _l_missing.append(a)
-            _res = False
-
-    if _l_missing:
-        log.warning("|{0}| >> [{1}] Missing data...".format(_str_func,_blockType))
-        for i,a in enumerate(_l_missing):
-            log.warning("|{0}| >> {1} : {2}".format(_str_func,i,a))    
+    
+    _d = get_blockModule_status(_blockType)
+    for k,v in _d.iteritems():
+        if not v:
+            return False
+    
     if _res:return _buildModule
     return _res
 
@@ -3260,34 +3255,6 @@ _d_requiredModuleDat = {'define':['__version__'],
                         'prerig':['prerig','is_prerig','prerigDelete'],
                         'rig':['is_rig','rigDelete']}
 _d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
-
-def get_blockModule_status2(blockType):
-    """
-    Function to check if a given blockType  is defineable, prerigable
-
-    """      
-    _str_func = 'get_blockModule_status'
-    _res = {}
-
-    _buildModule = get_blockModule(blockType)
-    if not _buildModule:
-        return False    
-
-    for state in ['define','template','prerig','rig']:
-        l_tests = _d_requiredModuleDat[state]
-        _good = True
-        for test in l_tests:
-            if not getattr(_buildModule, test, False):
-                log.warning("|{0}| >> [{1}] Missing data: {2}".format(_str_func,_blockType,a))
-                _good = False  
-        _res[state] = _good
-
-        if state == 'define':
-            print("|{0}| >> [{1}] version: {2}".format(_str_func,_blockType,_buildModule.get('__version__',False)))            
-
-    return _res
-
-
 
 
 def get_blockModule_status(blockModule, state = None):

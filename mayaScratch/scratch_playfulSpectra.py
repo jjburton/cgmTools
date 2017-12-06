@@ -3,6 +3,34 @@ cgmMeta.core._reload()
 import cgm.core.lib.attribute_utils as ATTR
 import maya.cmds as mc
 
+#===================================================================================================
+# >> AbyssCrabLarge
+#===================================================================================================
+import cgm.projects.specpl as SPECTRA
+reload(SPECTRA)
+
+mObjs = cgmMeta.validateObjListArg(mc.ls(sl=1))
+for i,mObj in enumerate(mObjs):
+    if i < 9:
+        _v = "0{0}".format(i+1)
+    else:
+        _v = "{0}".format(i+1)
+    mObj.rename("tail_{0}_segHandle".format(_v))
+    
+SPECTRA.createAndContrainRigFromSkinJoints(mc.ls(sl=True))
+import cgm.core.rig.ik_utils as IK
+_d = {'jointList':[u'tail_01_rig',
+                   u'tail_02_rig',
+                   u'tail_03_rig',
+                   u'tail_04_rig',
+                   u'tail_05_rig',
+                   u'tail_06_rig',
+                   u'tail_07_rig',
+                   u'tail_08_rig',
+                   u'tail_09_rig',
+                   u'tail_10_rig']}
+reload(IK)
+IK.ribbon(**_d)
 
 #===================================================================================================
 # >> Guardian fix
@@ -10,6 +38,10 @@ import maya.cmds as mc
 import cgm.core.classes.NodeFactory as NODEF
 arg = "neck1_c.rx = clamp(0,head.maxRoll, head.rx)"
 NODEF.argsToNodes(arg).doBuild()
+
+
+
+
 
 #===================================================================================================
 # >> Abyss work

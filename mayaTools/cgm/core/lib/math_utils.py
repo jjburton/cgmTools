@@ -26,6 +26,7 @@ import euclid as EUCLID
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
+import cgm.core.cgm_General as cgmGEN
 
 #DO NOT IMPORT: DIST
 '''
@@ -382,101 +383,102 @@ def transform_direction(obj, v):
     return result_vector
 
 def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
-    # get the full axis vectors
-    aim = aim.normalized()
-    up = up.normalized()
-    right = up.cross(aim).normalized()
-    up = aim.cross(right).normalized()
-
-    wantedAim = None
-    wantedUp = None
-
-    # wanted aim
-    if aimAxis == "z+":
-        wantedAim = aim
-    elif aimAxis == "z-":
-        wantedAim = -aim
-    elif aimAxis == "x+":
-        if upAxis == "y+":
-            wantedAim = -right
-        elif upAxis == "y-":
-            wantedAim = right
-        elif upAxis == "z+":
-            wantedAim = up
-        elif upAxis == "z-":
-            wantedAim = -up
-    elif aimAxis == "x-":
-        if upAxis == "y+":
-            wantedAim = right
-        elif upAxis == "y-":
-            wantedAim = -right
-        elif upAxis == "z+":
-            wantedAim = up
-        elif upAxis == "z-":
-            wantedAim = -up
-    elif aimAxis == "y+":
-        if upAxis == "x+":
-            wantedAim = right
-        elif upAxis == "x-":
-            wantedAim = -right
-        elif upAxis == "z+":
-            wantedAim = up
-        elif upAxis == "z-":
-            wantedAim = -up
-    elif aimAxis == "y-":
-        if upAxis == "x+":
-            wantedAim = -right
-        elif upAxis == "x-":
-            wantedAim = right
-        elif upAxis == "z+":
-            wantedAim = up
-        elif upAxis == "z-":
-            wantedAim = -up
-
-    # wanted up
-    if upAxis == "y+":
-        wantedUp = up
-    elif upAxis == "y-":
-        wantedUp = -up
-    elif upAxis == "z+":
-        if aimAxis == "x+":
-            wantedUp = right
-        elif aimAxis == "x-":
-            wantedUp = -right
-        elif aimAxis == "y+":
-            wantedUp = aim
-        elif aimAxis == "y-":
-            wantedUp = -aim
-    elif upAxis == "z-":
-        if aimAxis == "x+":
-            wantedUp = -right
-        elif aimAxis == "x-":
-            wantedUp = right
-        elif aimAxis == "y+":
-            wantedUp = aim
-        elif aimAxis == "y-":
-            wantedUp = -aim
-    elif upAxis == "x+":
-        if aimAxis == "y+":
-            wantedUp = aim
-        elif aimAxis == "y-":
-            wantedUp = -aim
-        elif aimAxis == "z+":
-            wantedUp = -right
+    try:
+        reload(VALID)
+        aim = aim.normalized()
+        up = up.normalized()
+        right = up.cross(aim).normalized()
+        up = aim.cross(right).normalized()
+        
+        wantedAim = None
+        wantedUp = None
+    
+        # wanted aim
+        if aimAxis == "z+":
+            wantedAim = aim
         elif aimAxis == "z-":
-            wantedUp = right
-    elif upAxis == "x-":
-        if aimAxis == "y+":
-            wantedUp = aim
+            wantedAim = -aim
+        elif aimAxis == "x+":
+            if upAxis == "y+":
+                wantedAim = -right
+            elif upAxis == "y-":
+                wantedAim = right
+            elif upAxis == "z+":
+                wantedAim = up
+            elif upAxis == "z-":
+                wantedAim = -up
+        elif aimAxis == "x-":
+            if upAxis == "y+":
+                wantedAim = right
+            elif upAxis == "y-":
+                wantedAim = -right
+            elif upAxis == "z+":
+                wantedAim = up
+            elif upAxis == "z-":
+                wantedAim = -up
+        elif aimAxis == "y+":
+            if upAxis == "x+":
+                wantedAim = right
+            elif upAxis == "x-":
+                wantedAim = -right
+            elif upAxis == "z+":
+                wantedAim = up
+            elif upAxis == "z-":
+                wantedAim = -up
         elif aimAxis == "y-":
-            wantedUp = -aim
-        elif aimAxis == "z+":
-            wantedUp = right
-        elif aimAxis == "z-":
-            wantedUp = -right
-
-    return wantedAim, wantedUp
-
+            if upAxis == "x+":
+                wantedAim = -right
+            elif upAxis == "x-":
+                wantedAim = right
+            elif upAxis == "z+":
+                wantedAim = up
+            elif upAxis == "z-":
+                wantedAim = -up
+    
+        # wanted up
+        if upAxis == "y+":
+            wantedUp = up
+        elif upAxis == "y-":
+            wantedUp = -up
+        elif upAxis == "z+":
+            if aimAxis == "x+":
+                wantedUp = right
+            elif aimAxis == "x-":
+                wantedUp = -right
+            elif aimAxis == "y+":
+                wantedUp = aim
+            elif aimAxis == "y-":
+                wantedUp = -aim
+        elif upAxis == "z-":
+            if aimAxis == "x+":
+                wantedUp = -right
+            elif aimAxis == "x-":
+                wantedUp = right
+            elif aimAxis == "y+":
+                wantedUp = aim
+            elif aimAxis == "y-":
+                wantedUp = -aim
+        elif upAxis == "x+":
+            if aimAxis == "y+":
+                wantedUp = aim
+            elif aimAxis == "y-":
+                wantedUp = -aim
+            elif aimAxis == "z+":
+                wantedUp = -right
+            elif aimAxis == "z-":
+                wantedUp = right
+        elif upAxis == "x-":
+            if aimAxis == "y+":
+                wantedUp = aim
+            elif aimAxis == "y-":
+                wantedUp = -aim
+            elif aimAxis == "z+":
+                wantedUp = right
+            elif aimAxis == "z-":
+                wantedUp = -right
+    
+        return wantedAim, wantedUp
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def normalizeList(L, normalizeTo=1):
     '''normalize values of a list to make its max = normalizeTo'''

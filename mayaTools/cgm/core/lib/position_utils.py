@@ -61,96 +61,98 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
     :returns
         success(bool)
     """
-    _str_func = 'get_pos'
-    _obj = VALID.mNodeString(obj)
-    _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
-    _targets = VALID.stringListArg(targets, noneValid=True,calledFrom=_str_func)    
-    _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
-    _mode = VALID.kw_fromDict(mode,_d_pos_modes,noneValid=False,calledFrom=_str_func)
-    _res = False
+    try:
+        _str_func = 'get_pos'
+        _obj = VALID.mNodeString(obj)
+        _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
+        _targets = VALID.stringListArg(targets, noneValid=True,calledFrom=_str_func)    
+        _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
+        _mode = VALID.kw_fromDict(mode,_d_pos_modes,noneValid=False,calledFrom=_str_func)
+        _res = False
+        
+        if _pivot == 'boundingBox':
+            log.debug("|{0}|...boundingBox pivot...".format(_str_func))                
+            _res = get_bb_center(_obj)
+            if MATH.is_vector_equivalent(_res,[0,0,0]) and not mc.listRelatives(_obj,s=True):
+                _pivot = 'rp'
+                log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
+              
+        if '[' in _obj:
+            log.debug("|{0}| >> component mode...".format(_str_func))        
+            if ":" in _obj:
+                raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
+            #_cType = VALID.get_mayaType(_obj)
+            _l_comp = VALID.get_component(_obj)
+            _root = _l_comp[1]
+            _cType = _l_comp[3]
+            if not VALID.is_shape(_root):
+                _shapes = mc.listRelatives (_root, s=True, fullPath=True) or []
+                if len(_shapes) > 1:
+                    log.warning("|{0}| >>More than one shape found. To be more accurate, specify: {1} | shapes: {2}".format(_str_func,_obj,_shapes))
+                _root = _shapes[0]
+                
+            _OBJ = '.'.join([_root,_l_comp[0]])
+            
+            log.debug("|{0}| >> obj: {1}({6}) | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_OBJ,_cType,_pivot,_space,_mode,_obj)) 
+            
+            kws_pp = {'world':False,'local':False}
+            if _space == 'world':kws_pp['world'] = True
+            else: kws_pp['local'] = True      
+                        
+            if _cType == 'polyVertex':
+                _res = mc.pointPosition(_OBJ,**kws_pp)
+            elif _cType == 'polyEdge':
+                mc.select(cl=True)
+                mc.select(_OBJ)
+                mel.eval("PolySelectConvert 3")
+                edgeVerts = mc.ls(sl=True,fl=True)
+                posList = []
+                for vert in edgeVerts:
+                    posList.append(mc.pointPosition(vert,**kws_pp))
+                _res = MATH.get_average_pos(posList)
+            elif _cType == 'polyFace':
+                mc.select(cl=True)
+                mc.select(_OBJ)
+                mel.eval("PolySelectConvert 3")
+                edgeVerts = mc.ls(sl=True,fl=True)
+                posList = []
+                for vert in edgeVerts:
+                    posList.append(mc.pointPosition(vert,**kws_pp))
+                _res = MATH.get_average_pos(posList)
+            elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
+                _res = mc.pointPosition (_OBJ,**kws_pp)
+                #_res =  mc.pointPosition(_OBJ)            
+            else:
+                raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
     
-    if _pivot == 'boundingBox':
-        log.debug("|{0}|...boundingBox pivot...".format(_str_func))                
-        _res = get_bb_center(_obj)
-        if MATH.is_vector_equivalent(_res,[0,0,0]) and not mc.listRelatives(_obj,s=True):
-            _pivot = 'rp'
-            log.warning("|{0}|...boundingBox pivot is zero, using rp....".format(_str_func))                
-          
-    if '[' in _obj:
-        log.debug("|{0}| >> component mode...".format(_str_func))        
-        if ":" in _obj:
-            raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
-        #_cType = VALID.get_mayaType(_obj)
-        _l_comp = VALID.get_component(_obj)
-        _root = _l_comp[1]
-        _cType = _l_comp[3]
-        if not VALID.is_shape(_root):
-            _shapes = mc.listRelatives (_root, s=True, fullPath=True) or []
-            if len(_shapes) > 1:
-                log.warning("|{0}| >>More than one shape found. To be more accurate, specify: {1} | shapes: {2}".format(_str_func,_obj,_shapes))
-            _root = _shapes[0]
-            
-        _OBJ = '.'.join([_root,_l_comp[0]])
-        
-        log.debug("|{0}| >> obj: {1}({6}) | type: {2} | pivot: {3} | space: {4} | mode: {5}".format(_str_func,_OBJ,_cType,_pivot,_space,_mode,_obj)) 
-        
-        kws_pp = {'world':False,'local':False}
-        if _space == 'world':kws_pp['world'] = True
-        else: kws_pp['local'] = True      
-                    
-        if _cType == 'polyVertex':
-            _res = mc.pointPosition(_OBJ,**kws_pp)
-        elif _cType == 'polyEdge':
-            mc.select(cl=True)
-            mc.select(_OBJ)
-            mel.eval("PolySelectConvert 3")
-            edgeVerts = mc.ls(sl=True,fl=True)
-            posList = []
-            for vert in edgeVerts:
-                posList.append(mc.pointPosition(vert,**kws_pp))
-            _res = MATH.get_average_pos(posList)
-        elif _cType == 'polyFace':
-            mc.select(cl=True)
-            mc.select(_OBJ)
-            mel.eval("PolySelectConvert 3")
-            edgeVerts = mc.ls(sl=True,fl=True)
-            posList = []
-            for vert in edgeVerts:
-                posList.append(mc.pointPosition(vert,**kws_pp))
-            _res = MATH.get_average_pos(posList)
-        elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
-            _res = mc.pointPosition (_OBJ,**kws_pp)
-            #_res =  mc.pointPosition(_OBJ)            
         else:
-            raise RuntimeError,"|{0}| >> Shouldn't have gotten here. Need another check for component type. '{1}'".format(_str_func,_cType)
-
-    else:
-        log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4} | asEuclid: {5}".format(_str_func,_obj,_pivot,_space,_mode,asEuclid))             
-        if _space == 'local' or _pivot == 'local':
-            _res  = ATTR.get(_obj,'translate')            
-        #elif _pivot == 'local':
-            #if _space == 'world':
-            #    _res = mc.xform(_obj, q=True, rp = True, ws=True )
-            #else:
-            #    _res = ATTR.get(_obj,'translate')            
-        else:
-            kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
-            if _pivot == 'rp':kws['rp'] = True
-            else: kws['sp'] = True
+            log.debug("|{0}| >> obj: {1} | pivot: {2} | space: {3} | mode: {4} | asEuclid: {5}".format(_str_func,_obj,_pivot,_space,_mode,asEuclid))             
+            if _space == 'local' or _pivot == 'local':
+                _res  = ATTR.get(_obj,'translate')            
+            #elif _pivot == 'local':
+                #if _space == 'world':
+                #    _res = mc.xform(_obj, q=True, rp = True, ws=True )
+                #else:
+                #    _res = ATTR.get(_obj,'translate')            
+            else:
+                kws = {'q':True,'rp':False,'sp':False,'os':False,'ws':False}
+                if _pivot == 'rp':kws['rp'] = True
+                else: kws['sp'] = True
+                
+                if _space == 'object':kws['os']=True
+                else:kws['ws']=True
+                
+                log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
             
-            if _space == 'object':kws['os']=True
-            else:kws['ws']=True
-            
-            log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+                _res = mc.xform(_obj,**kws )
         
-            _res = mc.xform(_obj,**kws )
-    
-    if _res is not None:
-        if asEuclid:
-            log.debug("|{0}| >> asEuclid...".format(_str_func))             
-            return EUCLID.Vector3(_res[0], _res[1], _res[2])
-        return _res
-    raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
+        if _res is not None:
+            if asEuclid:
+                log.debug("|{0}| >> asEuclid...".format(_str_func))             
+                return EUCLID.Vector3(_res[0], _res[1], _res[2])
+            return _res
+        raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
+    except Exception,err:cgmGen.cgmException(Exception,err)
     
 def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
     """
@@ -164,44 +166,46 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
         space(str): World,Object
     :returns
         success(bool)
-    """   
-    _str_func = 'set_pos'
-    _obj = VALID.mNodeString(obj)
-    _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
-    _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
-    
-    try:pos = [pos.x,pos.y,pos.z]
-    except:pass
-    _pos = pos
-              
-    if VALID.is_component(_obj):
-        kws = {'ws':False,'os':False, 'r':relative}
-        if _space == 'object':
-            kws['os']=True
-            #kws['rpr'] = False
-        else:kws['ws']=True
+    """
+    try:
+        _str_func = 'set_pos'
+        _obj = VALID.mNodeString(obj)
+        _pivot = VALID.kw_fromDict(pivot, SHARED._d_pivotArgs, noneValid=False,calledFrom=_str_func)
+        _space = VALID.kw_fromDict(space,SHARED._d_spaceArgs,noneValid=False,calledFrom=_str_func)
         
-        log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
-    
-        return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )        
-    else:
-        log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
-        if _space == 'local' or _pivot == 'local':
-            ATTR.set(_obj,'translate',pos) 
-        else:
-            kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':relative}
-            
-            if _pivot == 'rp':kws['rpr'] = True
-            else: kws['spr'] = True
-            
+        try:pos = [pos.x,pos.y,pos.z]
+        except:pass
+        _pos = pos
+                  
+        if VALID.is_component(_obj):
+            kws = {'ws':False,'os':False, 'r':relative}
             if _space == 'object':
                 kws['os']=True
-                kws['rpr'] = False
+                #kws['rpr'] = False
             else:kws['ws']=True
             
             log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
         
-            return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
+            return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )        
+        else:
+            log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
+            if _space == 'local' or _pivot == 'local':
+                ATTR.set(_obj,'translate',pos) 
+            else:
+                kws = {'rpr':False,'spr':False,'os':False,'ws':False,'r':relative}
+                
+                if _pivot == 'rp':kws['rpr'] = True
+                else: kws['spr'] = True
+                
+                if _space == 'object':
+                    kws['os']=True
+                    kws['rpr'] = False
+                else:kws['ws']=True
+                
+                log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
+            
+                return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
+    except Exception,err:cgmGen.cgmException(Exception,err)
     
 def get_local(obj = None, asEuclid = False):
     """

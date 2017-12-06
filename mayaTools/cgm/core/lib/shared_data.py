@@ -136,9 +136,9 @@ _d_colors_to_RGB = {'red':[1,0,0],'redDark':[.5,0,0],'redLight':[1,.2,.2],'redBl
                     'orange':[1,.27,0],'orangeDark':[.65,.1,0],'orangeLight':[1,.5,.2],'orangeBlack':[.2,.02,0],'orangeWhite':[1,.6,.1],                    
                     'yellow':[1,1,0],'yellowDark':[.882,.815,.121],'yellowLight':[1,.8,.1],'yellowBlack':[.25,.25,0],'yellowWhite':[1,1,.7],
                     'green':[0,.4,0],'greenDark':[0,.25,0],'greenLight':[0,1,0],'greenBlack':[0,.129,0],'greenWhite':[.667,1,.667],                                        
-                    'blue':[0,0,1],'blueDark':[0,.05,.4],'blueLight':[.06,.275,1],'blueBlack':[0,0,.25],'blueWhite':[.5,.5,1],
+                    'blue':[0,0,1],'blueDark':[0,.05,.4],'blueLight':[.06,.275,1],'blueBlack':[0,0,.25],'blueWhite':[.634,.79,.98],
                     'purple':[.22,0,.44],'purpleDark':[.22,0,.44],'purpleLight':[.5,0,1],'purpleBlack':[.05,0,.1],'purpleWhite':[.8,.6,1],
-                    'teal':[0,1,.5],
+                    'teal':[0,1,.5],'blueSky':[.392,.789,1.0],'blueSkyDark':[0.0,.535,1.0],'blueSkyLight':[0.0,.535,1.0],
                     'white':[1,1,1],'black':[0,0,0],
                     'gray':[.5,.5,.5],'gray25':[.25,.25,.25],'gray75':[.75,.75,.75],
                     }

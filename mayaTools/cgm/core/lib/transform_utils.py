@@ -1188,8 +1188,6 @@ def transformInversePoint(node = None, v = None):
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) 
 
 
-
-
 #Matrix stuff ============================================================================================  
 def worldMatrix_get(node = None, asEuclid = False):
     """

@@ -173,6 +173,11 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
     
     _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
     
+    try:position = position.x,position.y,position.z
+    except:pass
+    try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
+    except:pass
+    
     log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))  
     
     if not ignoreAimAttrs:
@@ -339,6 +344,8 @@ def aim(obj = None, target = None, aimAxis = "z+", upAxis = "y+",mode = 'local',
     aim_atPoint(_obj, targetPos, aimAxis, upAxis, mode,vectorUp)
 
     return True
+
+
 
 def matchTarget_set(obj = None, target = None):
     """

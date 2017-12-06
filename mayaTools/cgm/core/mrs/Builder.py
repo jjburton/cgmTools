@@ -291,7 +291,26 @@ class ui(cgmUI.cgmGUI):
         
         self.uiUpdate_building()
         self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
-       
+        
+    def uiFunc_block_mirror_create(self, mBlock = None, forceNew = False):
+        _str_func = 'uiFunc_block_mirror_create'
+        
+        #index = _indices[0]
+        #_mBlock = self._ml_blocks[_index]
+        mActiveBlock = None
+        if self._blockCurrent:
+            mActiveBlock = self._blockCurrent.mNode
+            
+
+        mMirror = mBlock.atBlockUtils('blockMirror_create',forceNew)
+        
+        log.info("|{0}| >> mMirror: {1}.".format(_str_func,mMirror.mNode))        
+        
+        self.uiUpdate_building()
+        _idx = self._ml_blocks.index(mMirror)
+        self.uiFunc_block_setActive(_idx)
+        self.uiScrollList_blocks.selectByIdx(_idx)
+        
     def uiFunc_blockManange_fromScrollList(self,**kws):          
         _str_func = 'uiFunc_blockManange_fromScrollList'
         _indices = self.uiScrollList_blocks.getSelectedIdxs()
@@ -378,6 +397,8 @@ class ui(cgmUI.cgmGUI):
         _ml = self._ml_blocks
         _index = _indices[0]
         _mBlock = _ml[_index]
+        _blockState = _mBlock.p_blockState
+        _short = _mBlock.p_nameShort
         
         if _mBlock.mNode == None:
             log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
@@ -396,6 +417,12 @@ class ui(cgmUI.cgmGUI):
         if _mActiveBlock:
             _b_active = True
             
+        #>>>Special menu ---------------------------------------------------------------------------------------
+        try:
+            _mBlock.p_blockModule.uiBuilderMenu(_mBlock,_popUp)
+            #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
+        except:pass
+        
         #>>>Heirarchy ------------------------------------------------------------------------------------------
         _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = "Parent")
@@ -409,13 +436,43 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
                         label = "Clear")            
         
+        #>>Mirror -----------------------------------------------------------------------------------------------
+        _mirror = mUI.MelMenuItem(_popUp, subMenu = True,
+                                  label = "Mirror",
+                                  en=True,)   
+    
+        mUI.MelMenuItem(_mirror,
+                        label = 'Verify',
+                        ann = '[{0}] Create or load mirror block'.format(_short),                                                    
+                        #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
+                        c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,False) )    
+        mUI.MelMenuItem(_mirror,
+                        label = 'Rebuild',
+                        ann = '[{0}] Rebuild mirror block from scratch'.format(_short),                                                    
+                        #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
+                        c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,True) )  
+        
+        _l_mirror = [#['Create','blockMirror_create', {}],
+                     #['Recreate','blockMirror_create', {'forceNew':True}],
+                     ['Push','blockMirror_go', {'mode':'push'}],
+                     ['Pull','blockMirror_go', {'mode':'pull'}]]
+        for mirrorDat in _l_mirror:
+            mUI.MelMenuItem(_mirror,
+                            label = mirrorDat[0],
+                            ann = '[{0}] {1} block controls'.format(_short,mirrorDat[0]),                                                    
+                            #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
+                            c=cgmGEN.Callback( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
+
+        
         #>>Utilities ------------------------------------------------------------------------------------------       
         mUI.MelMenuItem(_popUp,
                         label = "Select",
                         en=True,
+                        ann = '[{0}] Select the block'.format(_short),                        
                         c=cgmGEN.Callback(_mBlock.select))            
         mUI.MelMenuItem(_popUp,
                         label = "Verify",
+                        ann = '[{0}] Verify the block'.format(_short),                        
                         en=True,
                         c=cgmGEN.Callback(_mBlock.verify))   
         
@@ -433,8 +490,30 @@ class ui(cgmUI.cgmGUI):
         for q,d_kws in _d_queries.iteritems():
             mUI.MelMenuItem(_queries,
                             label = q,
-                            c=cgmGEN.Callback( _mBlock.string_methodCall, q, **d_kws) )             
+                            ann = '[{0}] {1}'.format(_short,q),                            
+                            c=cgmGEN.Callback( _mBlock.string_methodCall, q, **d_kws) )
+            
+
+        #>>Rig processes -----------------------------------------------------------------------------------------------
+        mUI.MelMenuItemDiv(_popUp)
+        _b_rigged=False
+        if _blockState == 'rig':
+            _b_rigged = True
+        _rigMenu = mUI.MelMenuItem(_popUp, subMenu = True,
+                                   en=_b_rigged,
+                                   label = "Rig")
+        if _b_rigged:
+            mUI.MelMenuItem(_rigMenu,
+                            label = 'Verify Proxy',
+                            ann = '[{0}] Verify a proxy mesh on the block. Warning - resetting rig positions is necessary'.format(_short),
+                            c=cgmGEN.Callback( _mBlock.verify_proxyMesh,True ))
+            mUI.MelMenuItem(_rigMenu,
+                            label = 'Reset Rig controls',
+                            ann = '[{0}] Reset rig controls'.format(_short),
+                            c=cgmGEN.Callback( _mBlock.atBlockUtils, 'controlsRig_reset' ))        
         
+
+            
         return
         #>>Context ============================================================================================
         _menu_context = mUI.MelMenuItem(_popUp,subMenu=True,
@@ -588,6 +667,10 @@ class ui(cgmUI.cgmGUI):
             field.setValue(ATTR.get_enumValueString(obj,attr))            
         else:
             field.setValue(ATTR.get(obj,attr))
+        
+    def uiCallback_withUpdate(self,func,*args,**kws):
+        func(*args,**kws)
+        self.uiUpdate_building()
         
     def uiCallback_blockDatButton(self,func,*args,**kws):
         func(*args,**kws)
