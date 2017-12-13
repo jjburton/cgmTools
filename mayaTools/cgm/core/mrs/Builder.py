@@ -53,7 +53,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
-
+import cgm.core.tools.toolbox as TOOLBOX
 _d_blockTypes = {}
 
 
@@ -866,12 +866,15 @@ class ui(cgmUI.cgmGUI):
         uiTab_setup = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         self.uiTab_setup = uiTab_setup
         
-        uiTab_utils = mUI.MelColumnLayout( ui_tabs )
+        uiTab_utils = mUI.MelFormLayout( ui_tabs )
         
         for i,tab in enumerate(['Setup','Utils']):
             ui_tabs.setLabel(i,tab)
             
         self.buildTab_setup(uiTab_setup)
+        reload(TOOLBOX)
+        TOOLBOX.buildTab_td(self,uiTab_utils)
+
         #self.buildTab_create(uiTab_create)
         #self.buildTab_update(uiTab_update)
     
