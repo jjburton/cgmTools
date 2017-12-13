@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 # From cgm ==============================================================
@@ -104,34 +104,49 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
         _str_func = 'get_callSize'
         def floatValues(arg):
             return [float(v) for v in arg]
+        _sel = mc.ls(sl=True)
 
         if mode is None:
             log.debug("|{0}| >>  mode is None...".format(_str_func))
-            if blockType:
-                blockModule = get_blockModule(blockType)
-                return floatValues(getattr(blockModule, '__baseSize__', default))
-            return floatValues(default)
-
-        if mode in ['selection','bb']:
-            arg =  mc.ls(sl=True)
-            #if mode == 'selection':
+            if not arg:
+                if blockType:
+                    blockModule = get_blockModule(blockType)
+                    return floatValues(getattr(blockModule, '__baseSize__', default))
+                return floatValues(default)
+            else:
+                mode = 'bb'
                 #arg = arg[0]
 
         if arg is None and mode is None:
-            _sel = mc.ls(sl=True)
             if not _sel:
                 raise ValueError,"|{0}| >> No obj arg and no selection".format(_str_func)
             arg = _sel[0]
 
-        if VALID.isListArg(mode) and len(mode)==3:
-            for v in mode:
-                if not VALID.valueArg(v):
-                    raise ValueError,"|{0}| >> Bad list value arg | arg: {1}".format(_str_func, mode)
-            return floatValues(mode)
-
+    
+        if mode in ['selection','bb']:
+            arg =  _sel
+            #if mode == 'selection':
+            if not arg:
+                raise ValueError,"|{0}| >> No obj arg and no selection".format(_str_func)
+            
+        #Checking mode for values, strings and the like --------------------------------------------------
         if VALID.valueArg(mode):
             return floatValues([mode,mode,mode])
-
+        elif VALID.objString(mode,noneValid=True):
+            arg = mode
+            mode = 'selection'
+        if VALID.isListArg(mode):
+            if len(mode)==3:
+                _valueList = True
+                for v in mode:
+                    if not VALID.valueArg(v):
+                        _valueList = False
+                        break
+                if _valueList:
+                    return floatValues(mode)
+                
+            arg = VALID.objStringList(mode)
+            mode = 'selection'
 
         mode = mode.lower()
         if mode == 'selection':
@@ -176,7 +191,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _callSize = None
         _sel = None
         _size = kws.get('size',None)
-        _side =  kws.get('side')        
+        _side =  kws.get('side')
+        
         if node is None:
             _sel = mc.ls(sl=1)            
             _callSize = get_callSize(_size)
@@ -263,7 +279,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         else:
                             log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
                             self.doSnapTo(_sel[0])
-                cgmGEN.func_snapShot(vars())
+                #cgmGEN.func_snapShot(vars())
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
 
@@ -990,7 +1006,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     #print "Can only mirror blocks in Template state"
                     #return
                 
-                cgmGEN.func_snapShot(vars())
+                #cgmGEN.func_snapShot(vars())
                 return
             
                 currentTemplateObjects = block.templatePositions
@@ -1200,8 +1216,8 @@ class handleFactory(object):
             self.setHandle(node)
 
     def setHandle(self,arg = None):
-        if not VALID.is_transform(arg):
-            raise ValueError,"must be a transform"
+        #if not VALID.is_transform(arg):
+            #raise ValueError,"must be a transform"
 
         self._mTransform = cgmMeta.validateObjArg(arg,'cgmObject')
         if not self._mTransform.hasAttr('baseSize'):
@@ -1259,23 +1275,56 @@ class handleFactory(object):
         _baseSize = self._mTransform.baseSize * _maxLossy    
         return _baseSize
 
-    def color(self, target = None, side = None, controlType = None):
+    def color(self, target = None, side = None, controlType = None, transparent = None):
+        _str_func = 'handleFactory.color'
+        log.info("|{0}| >> ".format(_str_func)+ '-'*80)
+        _targets = VALID.listArg(target)
+        log.info("|{0}| >> target: [{1}]".format(_str_func, _targets))
+        
         mTransform = self._mTransform
-        _side = 'center'
-        _controlType = 'main'        
-
-        if mTransform.getMessage('rigBlock'):
-            pass
+        if side is None:
+            _side = self.get_side()
         else:
-            if mTransform.hasAttr('side'):
-                _bfr = mTransform.getEnumValueString('side')
-                if _bfr in ['left','right','center']:
-                    _side = _bfr
-
-
-        if target is None:
-            target = self._mTransform.mNode
-        CORERIG.colorControl(target,_side,_controlType,transparent = True)
+            log.info("|{0}| >> arg side: {1}".format(_str_func, side))            
+            _side = side
+            
+        if transparent is None:
+            _transparent = True
+        else:
+            log.info("|{0}| >> arg transparent: {1}".format(_str_func, transparent))            
+            _transparent = transparent
+                
+        if controlType is None:
+            _controlType = 'main'        
+        else:
+            log.info("|{0}| >> arg controlType: {1}".format(_str_func, controlType))                        
+            _controlType = controlType
+        
+        for t in _targets:
+            if t is None:
+                t = self._mTransform.mNode
+                
+            if VALID.is_shape(t):
+                _shapes = [t]
+            else:
+                _shapes = TRANS.shapes_get(t)
+            
+            for s in _shapes:
+                _useType = _controlType
+                if controlType is not None:
+                    log.info("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
+                    ATTR.store_info(s,'cgmControlType',controlType)
+                    
+                if transparent is not None and VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                    log.info("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
+                    ATTR.store_info(s,'cgmControlTransparent',transparent)
+                    
+                if ATTR.has_attr(s,'cgmControlType'):
+                    _useType = ATTR.get(s,'cgmControlType')
+                    log.info("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
+                log.info("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
+                    
+                CORERIG.colorControl(s,_side,_useType,transparent = _transparent)
 
 
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
@@ -1606,7 +1655,7 @@ class handleFactory(object):
             _baseShape = _baseDat[0]
             _baseSize = _baseDat[1]
             _side = self.get_side()
-            cgmGEN.func_snapShot(vars())
+            #cgmGEN.func_snapShot(vars())
             mHandle = self._mTransform
             _short = mHandle.mNode
             _bfr = mHandle.getMessage('proxyHelper')
@@ -1817,8 +1866,6 @@ class handleFactory(object):
             mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
 
             return mCrv
-
-
 
 
 class cgmRigBlockHandle(cgmMeta.cgmControl):
@@ -2980,7 +3027,7 @@ class factory(object):
         mi_puppet = False
         if self._mi_block.blockType == 'master':
             if not _mBlock.getMessage('moduleTarget'):
-                mi_puppet = PUPPETMETA.cgmPuppet(name = _mBlock.puppetName)
+                mi_puppet = cgmRigPuppet(name = _mBlock.puppetName)
                 ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
             else:
                 mi_puppet = _mBlock.moduleTarget
@@ -3000,7 +3047,7 @@ class factory(object):
                         log.debug("|{0}| >> Found puppet on blockParent: {1}".format(_str_func,mBlockParent))                                                
                         mi_puppet = mBlockParent.moduleTarget
                 if not mi_puppet:
-                    mi_puppet = PUPPETMETA.cgmPuppet(name = mi_module.getNameAlias())
+                    mi_puppet = cgmRigPuppet(name = mi_module.getNameAlias())
 
             if mi_module.getMessage('moduleMirror'):
                 mi_puppet.connectModule(mi_module.moduleMirror)            
@@ -3629,7 +3676,7 @@ class rigFactory(object):
         self.mPuppet = _mPuppet
 
         _d['mPuppet'] = _mPuppet
-        _mPuppet.__verifyGroups__()
+        _mPuppet.verify_groups()
 
         if _hasModule:
             if not _mModule.isSkeletonized():
@@ -3654,7 +3701,7 @@ class rigFactory(object):
         _blockType = self.mBlock.blockType
 
         if _blockType in ['master']:
-            self.mPuppet.__verifyObjectSet__()            
+            self.mPuppet.verify_objectSet()            
             return True
 
         #>>Connect switches ----------------------------------------------------------------------------------- 
@@ -3686,7 +3733,7 @@ class rigFactory(object):
 
 
         #>>> Object Set -----------------------------------------------------------------------------------
-        self.mModule.__verifyObjectSet__()
+        self.mModule.verify_objectSet()
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
@@ -3834,7 +3881,7 @@ class rigFactory(object):
             #>MasterControl....
             if not _mPuppet.getMessage('masterControl'):
                 log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
-                _mPuppet._verifyMasterControl(size = max(POS.get_axisBox_size(self.mBlock.mNode)) * 1.5)
+                _mPuppet.verify_masterControl(size = max(POS.get_axisBox_size(self.mBlock.mNode)) * 1.5)
 
             _d['mMasterControl'] = _mPuppet.masterControl
             _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
@@ -4078,6 +4125,916 @@ class rigFactory(object):
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
         return ml_rigJoints
+
+#========================================================================================================
+# Rig Meta Classes...
+#========================================================================================================
+class cgmRigPuppet(cgmMeta.cgmNode):
+    def __init__(self, node = None, name = None, initializeOnly = False, doVerify = False, *args,**kws):
+        try:
+            _str_func = 'cgmRigPuppet.__init__'
+            log.debug("|{0}| >> node:{1} | name: {2}...".format(_str_func,node,name)+ '-'*80)
+            
+            
+            if node:
+                _buffer = ATTR.get_message(node,'puppet')
+                if _buffer:
+                    log.info("|{0}| >> Passed masterNull [{1}]. Using puppet [{2}]".format(_str_func,node,_buffer[0]))                
+                    node = _buffer[0]
+        
+            super(cgmRigPuppet, self).__init__(node = node, name = name, nodeType = 'network') 
+    
+            #====================================================================================	
+            #>>> TO USE Cached instance ---------------------------------------------------------
+            if self.cached:
+                log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+                return
+            #====================================================================================
+    
+            #self.UNMANAGED.extend(['i_masterNull','_UTILS'])
+            #for a in 'i_masterNull','_UTILS':
+            #    if a not in self.UNMANAGED:
+            #        self.UNMANAGED.append(a) 	
+            #self._UTILS = pFactory
+    
+            if self.__justCreatedState__ or doVerify:
+                if self.isReferenced():
+                    log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                    return
+                elif not self.__verify__(name,**kws):
+                    raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    #====================================================================================
+    def __verify__(self,name = None):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+        RETURNS:
+        success(bool)
+        """
+        try:
+            _short = self.p_nameShort
+            _str_func = "cgmRigPuppet.__verify__({0})".format(_short)
+            log.debug("|{0}| >> ...".format(_str_func))
+    
+            #============== 
+            #Puppet Network Node ================================================================
+            self.addAttr('mClass', initialValue='cgmRigPuppet',lock=True)  
+            if name is not None and name:
+                self.addAttr('cgmName',name, attrType='string', lock = True)
+            self.addAttr('cgmType','puppetNetwork')
+            self.addAttr('version',initialValue = 1.0, lock=True)  
+            self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+            self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
+            self.addAttr('moduleChildren',attrType = 'message',lock=True) 
+            self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
+    
+            #Settings ============================================================================
+            #defaultFont = modules.returnSettingsData('defaultTextFont')
+            defaultFont = BLOCKSHARE.str_defaultFont
+            self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
+            self.addAttr('axisAim',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=2) 
+            self.addAttr('axisUp',enumName = 'x+:y+:z+:x-:y-:z-', attrType = 'enum',initialValue=1) 
+            self.addAttr('axisOut',enumName = 'x+:y+:z+:x-:y-:z-',attrType = 'enum',initialValue=0) 
+            self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
+    
+            self.doName()
+    
+            #MasterNull ===========================================================================
+            self.verify_masterNull()
+
+                
+            if self.masterNull.getShortName() != self.cgmName:
+                self.masterNull.doName()
+                if self.masterNull.getShortName() != self.cgmName:
+                    log.warning("Master Null name still doesn't match what it should be.")
+            
+            ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+            #self.verify_groups()
+    
+    
+            #Quick select sets ================================================================
+            self.verify_objectSet()
+    
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # Groups
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            self.verify_groups()
+    
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    def atFactory(self, func = 'get_report', *args,**kws):
+        """
+        Function to call a self function by string. For menus and other reasons
+        """
+        try:
+            _str_func = 'cgmRigPuppet.atFactory'
+            log.debug("|{0}| >> ...".format(_str_func))            
+            _short = self.p_nameShort
+            _res = None
+            
+            if not args:
+                _str_args = ''
+                args = [self]
+            else:
+                _str_args = ','.join(str(a) for a in args) + ','
+                args = [self] + [a for a in args]
+            if not kws:
+                kws = {}
+                _kwString = ''  
+            else:
+                _l = []
+                for k,v in kws.iteritems():
+                    _l.append("{0}={1}".format(k,v))
+                _kwString = ','.join(_l)  
+            try:
+                log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
+                log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+                _res = getattr(pFactory,func)(*args,**kws)
+            except Exception,err:
+                log.error(cgmGEN._str_hardLine)
+                log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+                log.error("Node: {0} | func: {1}".format(_short,func))            
+                if args:
+                    log.error("Args...")
+                    for a in args:
+                        log.error("      {0}".format(a))
+                if kws:
+                    log.error(" KWS...".format(_str_func))
+                    for k,v in kws.iteritems():
+                        log.error("      {0} : {1}".format(k,v))   
+                log.error("Errors...")
+                for a in err.args:
+                    log.error(a)
+                log.error(cgmGEN._str_subLine)
+                raise Exception,err
+            return _res
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    def changeName(self,name = ''):
+        try:
+            _str_func = 'cgmRigPuppet.changeName'
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            if name == self.cgmName:
+                log.error("Puppet already named '%s'"%self.cgmName)
+                return
+            if name != '' and type(name) is str:
+                log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
+                self.cgmName = name
+                self.__verify__()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def verify_masterNull(self,**kws):
+        try:
+            _str_func = 'cgmRigPuppet.verify_masterNull'
+            log.debug("|{0}| >> ...".format(_str_func))
+    
+            if not self.getMessage('masterNull'):
+                mMasterNull = cgmMeta.cgmObject()
+            else:
+                mMasterNull = self.masterNull
+                
+            ATTR.copy_to(self.mNode,'cgmName',mMasterNull.mNode,driven='target')
+            mMasterNull.addAttr('puppet',attrType = 'messageSimple')
+            if not mMasterNull.connectParentNode(self.mNode,'puppet','masterNull'):
+                raise StandardError,"Failed to connect masterNull to puppet network!"
+    
+            mMasterNull.addAttr('mClass',value = 'cgmMasterNull',lock=True)
+            mMasterNull.addAttr('cgmName',initialValue = '',lock=True)
+            mMasterNull.addAttr('cgmType',initialValue = 'ignore',lock=True)
+            mMasterNull.addAttr('cgmModuleType',value = 'master',lock=True)   
+            mMasterNull.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
+            mMasterNull.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
+            mMasterNull.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
+            mMasterNull.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
+    
+            #See if it's named properly. Need to loop back after scene stuff is querying properly
+            mMasterNull.doName()
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    #=================================================================================================
+    # Puppet Utilities
+    #=================================================================================================
+    def verify_groups(self):
+        try:
+            _str_func = "cgmRigPuppet.verify_groups".format()
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            mMasterNull = self.masterNull
+            
+            if not mMasterNull:
+                raise ValueError, "No masterNull"
+            
+            for attr in 'deform','noTransform','geo','parts','worldSpaceObjects','puppetSpaceObjects':
+                _link = attr+'Group'
+                mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
+                if mGroup:mGroup = mGroup[0]
+                                                    
+                if not mGroup:
+                    mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
+                    mGroup.doName()
+                    mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
+                    
+                log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
+    
+                # Few Case things
+                #==============            
+                if attr in ['geo','parts']:
+                    mGroup.p_parent = mMasterNull.noTransformGroup
+                elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
+                    mGroup.p_parent = self.getMessage('masterControl')[0]	    
+                else:    
+                    mGroup.p_parent = mMasterNull
+                    
+                ATTR.set_standardFlags(mGroup.mNode)
+                
+                if attr == 'worldSpaceObjects':
+                    mGroup.addAttr('cgmAlias','world')
+                elif attr == 'puppetSpaceObjects':
+                    mGroup.addAttr('cgmAlias','puppet')
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+    def verify_objectSet(self):
+        try:
+            _str_func = "cgmRigPuppet.verify_objectSet"
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            #Quick select sets ================================================================
+            mSet = self.getMessage('puppetSet',asMeta=True)
+            if mSet:
+                mSet = mSet[0]
+            else:#
+                mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+                mSet.connectParentNode(self.mNode,'puppet','puppetSet')
+    
+            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            mSet.doName()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    """
+    def doName(self,sceneUnique=False,nameChildren=False,**kws):
+        #if not self.getTransform() and self.__justCreatedState__:
+            #log.error("Naming just created nodes, causes recursive issues. Name after creation")
+            #return False
+        if self.isReferenced():
+            log.error("'%s' is referenced. Cannot change name"%self.mNode)
+            return False
+        mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))"""
+
+    def delete(self):
+        """
+        Delete the Puppet
+        """
+        try:
+            _str_func = "cgmRigPuppet.delete"
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            mc.delete(self.masterNull.mNode)
+            #mc.delete(self.mNode)
+            del(self)
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def addModule(self,mClass = 'cgmModule',**kws):
+        """
+        Create and connect a new module
+
+        moduleType(string) - type of module to create
+
+        p = cgmPM.cgmRigPuppet(name='Morpheus')
+        p.addModule(mClass = 'cgmLimb',mType = 'torso')
+        p.addModule(mClass = 'cgmLimb',mType = 'neck', moduleParent = 'spine_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'head', moduleParent = 'neck_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'arm',direction = 'left', moduleParent = 'spine_part')
+        """
+        try:
+            _str_func = "cgmRigPuppet.addModule"
+            log.debug("|{0}| >> ...".format(_str_func))            
+
+            if mClass == 'cgmModule':
+                tmpModule = cgmModule(**kws)   
+            elif mClass == 'cgmLimb':
+                tmpModule = cgmLimb(**kws)
+            else:
+                log.warning("'%s' is not a known module type. Cannot initialize"%mClass)
+                return False
+    
+            self.connectModule(tmpModule)
+            return tmpModule
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    ##@r9General.Timer
+    def connectModule(self,module,force = True,**kws):
+        """
+        Connects a module to a puppet
+
+        module(string)
+        """
+        try:
+            _str_func = "cgmRigPuppet.connectModule"
+            log.debug("|{0}| >> ...".format(_str_func))
+    
+            #See if it's connected
+            #If exists, connect
+            #Get instance
+            #==============	
+            buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
+            #self.i_masterNull = self.masterNull
+    
+            try:
+                module.mNode#see if we have an instance
+                if module.mNode in buffer and force != True:
+                    #log.warning("'%s' already connnected to '%s'"%(module.getShortName(),self.i_masterNull.getShortName()))
+                    return False 	    
+            except:
+                if mc.objExists(module):
+                    if mc.ls(module,long=True)[0] in buffer and force != True:
+                        #log.warning("'%s' already connnected to '%s'"%(module,self.i_masterNull.getShortName()))
+                        return False
+    
+                    module = r9Meta.MetaClass(module)#initialize
+    
+                else:
+                    log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
+                    return False	
+    
+            #Logic checks
+            #==============	
+            if not module.hasAttr('mClass'):
+                log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+                return False
+    
+            elif module.mClass not in cgmModuleTypes:
+                log.warning("'%s' is not a recognized module type"%module.mClass)
+                return False
+    
+            #Connect
+            #==============	
+            else:
+                #if log.getEffectiveLevel() == 10:log.debug("Current children: %s"%self.getMessage('moduleChildren'))
+                #if log.getEffectiveLevel() == 10:log.debug("Adding '%s'!"%module.getShortName())    
+    
+                buffer.append(module.mNode)
+                self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
+                module.modulePuppet = self.mNode
+                #del self.moduleChildren
+                #self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect	    
+                #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
+    
+            #module.parent = self.i_partsGroup.mNode
+            module.doParent(self.masterNull.partsGroup.mNode)
+    
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def getGeo(self):
+        return pFactory.getGeo(self)
+
+    def getUnifiedGeo(self,*args,**kws):
+        kws['mPuppet'] = self	
+        return pFactory.getUnifiedGeo(*args,**kws)
+
+    def getModuleFromDict(self,*args,**kws):
+        """
+        Pass a check dict of attributes and arguments. If that module is found, it returns it.
+        checkDict = {'moduleType':'torso',etc}
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModuleFromDict(*args,**kws)
+
+    def getModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModules(*args,**kws)   
+
+    def getOrderedModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self		
+        return pFactory.getOrderedModules(*args,**kws)
+
+    def get_mirrorIndexDict(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_mirrorIndexDict(*args,**kws)
+
+    def state_set(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.setState)
+        """
+        kws['mPuppet'] = self	
+        return pFactory.state_set(*args,**kws)
+
+    def get_nextMirrorIndex(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_nextMirrorIndex(*args,**kws) 
+
+    def gatherModules(self,*args,**kws):
+        """
+        Gathers all connected module children to the puppet
+        """
+        kws['mPuppet'] = self
+        return pFactory.gatherModules(*args,**kws)    
+
+    def getState(self,*args,**kws):
+        """
+        Returns puppet state. That is the minimum state of it's modules
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getState(*args,**kws) 
+
+    #>>> Animation
+    #========================================================================
+    def animSetAttr(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.animSetAttr(*args,**kws) 
+
+        #return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    def controlSettings_setModuleAttrs(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.controlSettings_setModuleAttrs(*args,**kws)     
+
+    def toggle_subVis(self):
+        try:
+            self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls
+        except:pass
+
+    def anim_key(self,**kws):
+        _str_func = "%s.animKey()"%self.p_nameShort  
+        start = time.clock()
+        b_return = None
+        _l_callSelection = mc.ls(sl=True) or []
+        try:
+            try:buffer = self.puppetSet.getList()
+            except:buffer = []
+            if buffer:
+                mc.select(buffer)
+                mc.setKeyframe(**kws)
+                b_return =  True
+            b_return = False
+            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
+            if _l_callSelection:mc.select(_l_callSelection)                	    
+            return b_return
+        except Exception,error:
+            log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
+            return False
+
+    def mirrorMe(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorMe(*args,**kws)
+
+    def mirror_do(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirror_do(*args,**kws)
+
+    def mirrorSetup_verify(self,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorSetup_verify(**kws)   
+
+    def anim_reset(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.animReset(*args,**kws)
+
+    def anim_select(self):
+        _str_func = "%s.anim_select()"%self.p_nameShort  
+        start = time.clock()
+        try:self.puppetSet.select()
+        except:pass
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
+        return buffer
+
+    def isCustomizable(self):
+        return False 
+
+    def isTemplated(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isTemplated(*args,**kws)
+
+    def templateSettings_call(self,*args,**kws):
+        '''
+        Call for doing multiple functions with templateSettings.
+
+        :parameters:
+            mode | string
+        reset:reset controls
+        store:store data to modules
+        load:load data from modules
+        query:get current data
+        export:export to a pose file
+        import:import from a  pose file
+            filepath | string/None -- if None specified, user will be prompted
+        '''
+        kws['mPuppet'] = self			
+        return pFactory.templateSettings_call(*args,**kws)
+
+    def isSized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSized(*args,**kws)
+    
+    def isSkeletonized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSkeletonized(*args,**kws)
+    
+    def verify_masterControl(self,**kws):
+        """ 
+        """
+        try:
+            _str_func = "cgmRigPuppet.verify_masterControl"
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            self.verify_groups()#...make sure everythign is there
+            
+            # Master Curve
+            #==================================================================
+            masterControl = attributes.returnMessageObject(self.mNode,'masterControl')
+            if mc.objExists( masterControl ):
+                mi_masterControl = self.masterControl
+            else:
+                #Get size
+                if not kws.get('size'):
+                    if self.getGeo():
+                        averageBBSize = distance.returnBoundingBoxSizeToAverage(self.masterNull.geoGroup.mNode)
+                        kws['size'] = averageBBSize * .75
+                    elif len(self.moduleChildren) == 1 and self.moduleChildren[0].getMessage('helper'):
+                        averageBBSize = distance.returnBoundingBoxSizeToAverage(self.moduleChildren[0].getMessage('helper'))		
+                        kws['size'] = averageBBSize * 1.5
+                    elif 'size' not in kws.keys():kws['size'] = 50
+                mi_masterControl = cgmMasterControl(puppet = self,**kws)#Create and initialize
+                mi_masterControl.__verify__()
+            mi_masterControl.parent = self.masterNull.mNode
+            mi_masterControl.doName()
+            
+    
+            # Vis setup
+            # Setup the vis network
+            #====================================================================
+            try:
+                if not mi_masterControl.hasAttr('controlVis') or not mi_masterControl.getMessage('controlVis'):
+                    log.error("This is an old master control or the vis control has been deleted. rebuild")
+                else:
+                    iVis = mi_masterControl.controlVis
+                    visControls = 'left','right','sub','main'
+                    visArg = [{'result':[iVis,'leftSubControls_out'],'drivers':[[iVis,'left'],[iVis,'subControls'],[iVis,'controls']]},
+                              {'result':[iVis,'rightSubControls_out'],'drivers':[[iVis,'right'],[iVis,'subControls'],[iVis,'controls']]},
+                              {'result':[iVis,'subControls_out'],'drivers':[[iVis,'subControls'],[iVis,'controls']]},		      
+                              {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
+                              {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
+                              ]
+                    nodeF.build_mdNetwork(visArg)
+            except Exception,err:
+                log.error("{0} >> visNetwork fail! {1}".format(_str_func,err))
+                raise StandardError,err 	
+    
+            # Settings setup
+            # Setup the settings network
+            #====================================================================	
+            i_settings = mi_masterControl.controlSettings
+            str_nodeShort = str(i_settings.getShortName())
+            #Skeleton/geo settings
+            for attr in ['skeleton','geo','proxy']:
+                i_settings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+                nodeF.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+                nodeF.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_nodeShort,attr,str_nodeShort,attr)).doBuild()
+    
+            #Geotype
+            #i_settings.addAttr('geoType',enumName = 'reg:proxy', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+            #for i,attr in enumerate(['reg','proxy']):
+            #    nodeF.argsToNodes("%s.%sVis = if %s.geoType == %s:1 else 0"%(str_nodeShort,attr,str_nodeShort,i)).doBuild()    
+            
+            
+            
+            #Divider
+            i_settings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+    
+            #i_settings.addAttr('templateVis',attrType = 'float',lock=True,hidden = True)
+            #i_settings.addAttr('templateLock',attrType = 'float',lock=True,hidden = True)	
+            #i_settings.addAttr('templateStuff',enumName = 'off:on', defaultValue = 0, attrType = 'enum',keyable = False,hidden = False)
+            #nodeF.argsToNodes("%s.templateVis = if %s.templateStuff > 0"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()
+            #nodeF.argsToNodes("%s.templateLock = if %s.templateStuff == 1:0 else 2"%(i_settings.getShortName(),i_settings.getShortName())).doBuild()	
+    
+    
+            #>>> Deform group
+            #=====================================================================	
+            if self.masterNull.getMessage('deformGroup'):
+                self.masterNull.deformGroup.parent = mi_masterControl.mNode
+    
+            mi_masterControl.addAttr('cgmAlias','world',lock = True)
+    
+    
+            #>>> Skeleton Group
+            #=====================================================================	
+            if not self.masterNull.getMessage('skeletonGroup'):
+                #Make it and link it
+                #i_grp = mi_masterControl.doDuplicateTransform()
+                mGrp = cgmMeta.createMetaNode('cgmObject')
+                mGrp.doSnapTo(mi_masterControl.mNode)
+                
+                #mGrp.doRemove('cgmName')
+                mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+                mGrp.parent = mi_masterControl.mNode
+                self.masterNull.connectChildNode(mGrp,'skeletonGroup','module')
+    
+                mGrp.doName()
+            else:
+                mGrp = self.masterNull.skeletonGroup
+    
+    
+            #Verify the connections
+            mGrp.overrideEnabled = 1             
+            cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideVisibility'))    
+            cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideDisplayType'))    
+    
+    
+            #>>>Connect some flags
+            #=====================================================================
+            i_geoGroup = self.masterNull.geoGroup
+            i_geoGroup.overrideEnabled = 1		
+            cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
+    
+            try:self.masterNull.puppetSpaceObjectsGroup.parent = mi_masterControl
+            except:pass
+            
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+class cgmRigMaster(cgmMeta.cgmObject):
+    """
+    Make a master control curve
+    """
+    def __init__(self,*args,**kws):
+        try:
+            _str_func = 'cgmRigMaster.__init__'
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)        
+    
+            _size = kws.get('size',None)
+            _sel = mc.ls(sl=1) or None
+            _callSize = get_callSize(_size,_sel)
+            log.debug("|{0}| >> call size: {1}".format(_str_func,_callSize))            
+            kws['size'] = _callSize#...push back new value
+            
+    
+            super(cgmRigMaster, self).__init__(*args,**kws)
+            
+            #====================================================================================	
+            #>>> TO USE Cached instance ---------------------------------------------------------
+            if self.cached:
+                log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+                return
+            #====================================================================================
+
+            doVerify = kws.get('doVerify') or False
+            
+            if self.__justCreatedState__ or doVerify:
+                if not self.__verify__(*args,**kws):
+                    raise StandardError,"Failed to verify!"	
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    @cgmGEN.Timer
+    def __verify__(self,*args,**kws):
+        try:
+            _str_func = 'cgmRigMaster.__verify__'
+            _short = self.mNode
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)                
+            
+            puppet = kws.pop('puppet',False)
+            if puppet and not self.isReferenced():
+                ATTR.copy_to(puppet.mNode,'cgmName',self.mNode,driven='target')
+                self.connectParentNode(puppet,'puppet','masterControl')
+            else:
+                self.addAttr('cgmName','MasterControl')
+    
+            #Check for shapes, if not, build
+            #self.color =  modules.returnSettingsData('colorMaster',True)
+    
+            #>>> Attributes -------------------------------------------------
+            if kws and 'name' in kws.keys():
+                self.addAttr('cgmName', kws.get('name'), attrType = 'string')
+    
+            self.addAttr('cgmType','controlMaster',attrType = 'string')
+
+            self.addAttr('controlVis', attrType = 'messageSimple',lock=True)
+            self.addAttr('visControl', attrType = 'bool',keyable = False,initialValue= 1)
+    
+            self.addAttr('controlSettings', attrType = 'messageSimple',lock=True)
+            self.addAttr('settingsControl', attrType = 'bool',keyable = False,initialValue= 1)
+    
+            #Connect and Lock the scale stuff------------------------------------
+            self.setAttrFlags(attrs=['sx','sz'])
+            self.doConnectOut('sy',['sx','sz'])
+            ATTR.set_alias(_short,'sy','blockScale')            
+            
+            
+            #=====================================================================
+            #>>> Curves!
+            #=====================================================================
+            #>>> Master curves
+            _shapes = self.getShapes()
+            if len(_shapes)<3:
+                self.rebuildMasterShapes(**kws)
+
+            self.doName()
+    
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    ##@r9General.Timer
+    def rebuildMasterShapes(self,**kws):
+        """
+        Rebuild the master control curve
+        """
+        try:
+            _str_func = 'cgmRigMaster.rebuildControlCurve'
+            _short = self.mNode
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+            
+            l_shapes = self.getShapes()
+            #self.color =  modules.returnSettingsData('colorMaster',True)
+            
+            #>>> Figure out the control size 	
+            font = kws.get('font',None)
+            
+            size = get_callSize(kws.get('size',[10,10,10]))
+    
+                    
+            log.debug("|{0}| >> size: {1}".format(_str_func,size))
+            
+            _average = MATH.average([size[0],size[2]])
+            _size = _average * 1.5
+            _offsetSize = _average * .1
+            
+            mc.delete(l_shapes)
+            
+            mHandleFactory = handleFactory(_short)
+            
+                    
+            #>>> Figure out font------------------------------------------------------------------
+            if font == None:#
+                if kws and 'font' in kws.keys():font = kws.get('font')		
+                else:font = 'arial'
+                
+            #>>> Main shape ----------------------------------------------------------------------
+            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1)    
+            TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
+        
+            mHandleFactory.color(_crv,'center','sub',transparent = False)
+        
+            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+            l_offsetCrvs = []
+            for shape in mCrv.getShapes():
+                offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+                mHandleFactory.color(offsetShape,'center','main',transparent = False)
+                l_offsetCrvs.append(offsetShape)
+        
+            CORERIG.combineShapes(l_offsetCrvs + [_crv], False)
+            SNAP.go(_crv,self.mNode)    
+            CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+            
+            #>>> Name Curve ----------------------------------------------------------------------
+            if self.hasAttr('cgmName'):
+                log.debug("|{0}| >> Making name curve...".format(_str_func))                
+                nameSize = size[0]
+                _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
+                #TRANS.scale_to_boundingBox(_textCurve, [None,None,size[2]*.95])
+                
+                ATTR.set(_textCurve,'rx',-90)
+                mHandleFactory.color(_textCurve,'center','main',transparent = False)
+                
+                CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
+                
+            
+            #>> Helpers -----------------------------------------------------------------------------
+            #======================
+            _d = {'controlVis':['eye','x-','visControl'],
+                  'controlSettings':['gear','x+','settingsControl']}
+            
+            _subSize = _offsetSize * 2
+            
+            pos_zForward = self.getPositionByAxisDistance('z+',(size[2]*.5) + (_offsetSize * 2.5))
+            vec_xNeg = self.getAxisVector('x-')
+            
+            #cgmGEN.func_snapShot(vars())
+            
+            for k in _d.keys():
+                #Make our node ------------------------------------------
+                mHelper = self.getMessageAsMeta(k)
+                newShape = CURVES.create_fromName(_d[k][0],_subSize,'y+')
+
+                if not mHelper:
+                    log.debug("|{0}| >> Creating: {1}".format(_str_func,k))
+                    mHelper = cgmMeta.createMetaNode('cgmObject')
+                    mHelper.p_parent = self.mNode
+                    mHelper.rename(_d[k][2])
+                    
+                    ATTR.connect("{0}.{1}".format(self.mNode,_d[k][2]),"{0}.v".format(mHelper.mNode))
+                    
+                    if k == 'controlVis':
+                        mHelper.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
+                        mHelper.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
+                
+                        self.controlVis = mHelper.mNode
+                
+                    elif k == 'controlSettings':
+                        self.controlSettings = mHelper.mNode                    
+                
+                else:
+                    log.debug("|{0}| >> Recreating shapes: {1}".format(_str_func,k))
+                    mc.delete(mHelper.getShapes())
+                    
+                SNAP.go(newShape,mHelper.mNode)
+                CORERIG.shapeParent_in_place(mHelper.mNode,newShape,keepSource=False)
+                
+                mHelper.setAttrFlags(attrs=['t'],lock=False)
+                mHandleFactory.color(mHelper.mNode,'center','sub',transparent = False)
+                
+                vec_use = self.getAxisVector(_d[k][1])
+                pos = DIST.get_pos_by_vec_dist(pos_zForward,vec_use, size[0]*.5)
+                
+                mHelper.p_position = pos
+                mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
+                
+
+                
+
+                
+                
+
+            return True
+        
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    def rebuildControlCurveBAK(self,**kws):
+        """
+        Rebuild the master control curve
+        """
+        try:
+            _str_func = 'cgmRigMaster.rebuildControlCurve'
+            _short = self.mNode
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+            
+            l_shapes = self.getShapes()
+            #self.color =  modules.returnSettingsData('colorMaster',True)
+            
+            #>>> Figure out the control size 	
+            size = kws.get('size',None)
+            font = kws.get('font',None)
+            if size == None:#
+                if l_shapes:
+                    size = DIST.get_bb_size(self.mNode,True,True)
+                else:
+                    size = [10,10,10]
+                    
+            log.debug("|{0}| >> size: {1}".format(_str_func,size))
+            
+            
+                    
+            #>>> Figure out font	
+            if font == None:#
+                if kws and 'font' in kws.keys():font = kws.get('font')		
+                else:font = 'arial'
+                
+            #>>> Delete shapes
+            if l_shapes:
+                mc.delete(l_shapes)
+    
+            #>>> Build the new
+            mCrv = cgmMeta.validateObjArg(CURVES.create_fromName('masterAnim',[size[0],None,size[2]],'z+'),'cgmObject',setClass=True)
+            CORERIG.shapeParent_in_place(self.mNode,mCrv.mNode,keepSource=False)       
+            l_shapes = self.getShapes(fullPath=True)
+            CORERIG.override_color(l_shapes[0],'yellow')
+            CORERIG.override_color(l_shapes[1],'white')        
+            
+            #i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
+            #curves.setCurveColorByName( i_o.mNode,self.color[0] )
+            #curves.setCurveColorByName( i_o.getShapes()[1],self.color[1] )
+    
+            #>>> Build the text curve if cgmName exists
+            if self.hasAttr('cgmName'):
+                nameSize = DIST.get_bb_size(l_shapes[1],True,True)
+                log.info(l_shapes[1])
+                log.info(nameSize)
+                _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .8, font = font)
+                ATTR.set(_textCurve,'rx',-90)
+                CORERIG.override_color(_textCurve,'yellow')
+                CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
+    
+    
+            self.doName()    
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
 
 
 

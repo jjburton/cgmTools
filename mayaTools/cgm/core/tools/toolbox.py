@@ -1000,7 +1000,7 @@ class ui(cgmUI.cgmGUI):
         
         i = 0
         for side in ['left','center','right']:
-            for typ in ['main','sub','direct']:
+            for typ in ['main','sub','aux']:
                 colorName = SHARED._d_side_colors[side][typ]
                 colorBuffer = SHARED._d_colors_to_RGB.get(colorName,[0,0,0])
                 mc.canvas(('%s%i' %('colorCanvas_',i)),rgb=colorBuffer, 

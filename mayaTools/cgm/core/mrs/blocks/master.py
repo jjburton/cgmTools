@@ -72,7 +72,6 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(resize_masterShape,self),
                 label = "Resize")            
     
-    
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -98,6 +97,7 @@ def resize_masterShape(self):
             log.warning("|{0}| >> Must have blockChildren to resize by this call".format(_str_func))        
             return False
         
+        mHandleFactory = self.asHandleFactory(_short)
         mc.delete(self.getShapes())
     
         _bb = TRANS.bbSize_get(self.mNode,False)
@@ -108,13 +108,13 @@ def resize_masterShape(self):
         _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1)    
         TRANS.scale_to_boundingBox(_crv, [_bb[0],None,_bb[2]])
     
-        CORERIG.colorControl(_crv,'center','sub') 
+        mHandleFactory.color(_crv,'center','sub',transparent = False)
     
         mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
         l_offsetCrvs = []
         for shape in mCrv.getShapes():
             offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
-            CORERIG.colorControl(offsetShape,'center','main',transparent = False) 
+            mHandleFactory.color(offsetShape,'center','main',transparent = False)
             l_offsetCrvs.append(offsetShape)
     
         RIG.combineShapes(l_offsetCrvs + [_crv], False)
@@ -124,27 +124,34 @@ def resize_masterShape(self):
     
         self.baseSize = _bb
         return True
+    
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
     
-
 def template(self):
+    _short = self.mNode    
+    _str_func = '[{0}] template'.format(_short)
+    log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+
     _average = MATH.average([self.baseSize[0],self.baseSize[2]])
     _size = _average * 1.5
     _offsetSize = _average * .1
     log.info(_size)
+    
+    mHandleFactory = self.asHandleFactory(_short)
 
     _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = 1)    
     TRANS.scale_to_boundingBox(_crv, [self.baseSize[0],None,self.baseSize[2]])
     
-    CORERIG.colorControl(_crv,'center','sub',transparent = False) 
+    mHandleFactory.color(_crv,'center','sub',transparent = False)
     
     mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
     l_offsetCrvs = []
     for shape in mCrv.getShapes():
         offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
-        CORERIG.colorControl(offsetShape,'center','main',transparent = False) 
+        mHandleFactory.color(offsetShape,'center','main',transparent = False)
+        
         l_offsetCrvs.append(offsetShape)
         
     for s in [_crv] + l_offsetCrvs:
@@ -154,13 +161,13 @@ def template(self):
 
 def templateDelete(self):
     self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
-    
     pass#...handled in generic callmc.delete(self.getShapes())
 
 def is_template(self):
     if self.getShapes():
         return True
     return False
+
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================

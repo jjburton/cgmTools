@@ -100,6 +100,17 @@ def get_infoBlock_report(self):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
+#=============================================================================================================
+#>> Utilities
+#=============================================================================================================
+def get_blockGroup(self):
+    if not mc.objExists('cgmBlocksGroup'):
+        mGroup = cgmMeta.cgmObject(name = 'cgmBlocksGroup')
+    else: 
+        mGroup = cgmMeta.validateObjArg('cgmBlocksGroup','cgmObject')
+    mGroup.setAttrFlags(attrs=['t','r','s'])
+        
+    return mGroup
 
 #=============================================================================================================
 #>> define

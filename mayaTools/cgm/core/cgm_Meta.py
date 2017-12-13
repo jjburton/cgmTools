@@ -6635,7 +6635,7 @@ except Exception,err:
     for arg in err.args:
         log.error(arg)            
     
-def createMetaNodeBAK(mType = None, *args, **kws):
+def createMetaNode(mType = None, *args, **kws):
     _str_func = 'createMetaNode'
     
     _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
@@ -6666,8 +6666,7 @@ def createMetaNodeBAK(mType = None, *args, **kws):
                 
         for arg in err.args:
             log.error(arg)            
-        raise Exception,err
-        
+        cgmGEN.cgmException(Exception,err)
     
     
     

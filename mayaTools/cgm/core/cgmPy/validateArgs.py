@@ -624,9 +624,13 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
         arg = arg[0]  
     
     if not isinstance(arg, basestring):
+        if noneValid:
+            return False
         raise TypeError('{0}: arg must be string'.format(_str_func))
 
     if len(mc.ls(arg)) > 1:
+        if noneValid:
+            return False
         raise NameError("{1}: More than one object is named '{0}'".format(arg,_str_func))
 
     if result is None and not mc.objExists(arg):

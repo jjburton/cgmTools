@@ -166,22 +166,22 @@ _d_colorsByIndexSets = {'red':['pink','redBright','redDark'],
 #We have our main dicts which use rgb and a corresponding setup for old stuff...
 _d_side_colors = {'left':{'main':'blue',
                           'sub':'blueWhite',
-                          'direct':'blueDark'},
+                          'aux':'blueDark'},
                   'right':{'main':'red',
                            'sub':'redWhite',
-                           'direct':'redDark'},
+                           'aux':'redDark'},
                   'center':{'main':'yellow',
                             'sub':'yellowWhite',
-                            'direct':'yellowDark'}}
+                            'aux':'yellowDark'}}
 _d_side_colors_index = {'left':{'main':'blueBright',
                                 'sub':'blueSky',
-                                'direct':'blueDark'},
+                                'aux':'blueDark'},
                         'right':{'main':'redBright',
                                  'sub':'pink',
-                                 'direct':'redDark'},
+                                 'aux':'redDark'},
                         'center':{'main':'yellow',
                                   'sub':'yellowBright',
-                                  'direct':'peach'}}
+                                  'aux':'peach'}}
 
 #>>> Gui
 #===================================================================
