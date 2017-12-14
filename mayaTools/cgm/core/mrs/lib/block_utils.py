@@ -67,6 +67,68 @@ def get_sideMirror(self):
     elif _side == 'right':return 'left'
     return False
 
+def set_nameTag(self,nameTag = None):
+    try:
+        _short = self.p_nameShort
+        _str_func = '[{0}] setName'.format(_short)
+        
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        
+        if nameTag is None:
+            log.debug("|{0}| >> getting value by ui prompt".format(_str_func))
+            _cgmName = self.getMayaAttr('cgmName')
+            _title = 'Set name tag...'
+            result = mc.promptDialog(title=_title,
+                                     message='Block: {0} | Current: {1}'.format(_short,_cgmName),
+                                     button=['OK', 'Cancel'],
+                                     text = _cgmName,
+                                     defaultButton='OK',
+                                     cancelButton='Cancel',
+                                     dismissString='Cancel')
+            if result == 'OK':
+                nameTag =  mc.promptDialog(query=True, text=True)
+                log.debug("|{0}| >> from prompt: {1}".format(_str_func,nameTag))
+            else:
+                log.error("|{0}| >> Change cancelled".format(_str_func)+ '-'*80)
+                return False
+            
+        self.cgmName = nameTag
+        self.doName()
+            
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
+def color(self):
+    try:
+        _short = self.p_nameShort
+        _str_func = '[{0}] color'.format(_short)
+        
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        
+        _side = get_side(self)
+        log.debug("|{0}| >> side: {1}".format(_str_func,_side))
+        
+        mHandleFactory = self.asHandleFactory(self.mNode)
+        
+        ml_controls = controls_get(self)
+        
+        for a in ['proxyHelper']:
+            if self.getMessage(a):
+                ml_controls.extend(self.getMessage(a,asMeta=True))
+        
+        for mHandle in ml_controls:
+            for mShape in mHandle.getShapes(asMeta=True):
+                if VALID.get_mayaType(mShape.mNode) in ['mesh','nurbsSurface']:
+                    mHandleFactory.color(mShape.mNode)
+                elif mShape.overrideEnabled:
+                    log.debug("|{0}| >> shape: {1}".format(_str_func,mShape))
+                    mHandleFactory.color(mShape.mNode)
+                    
+       
+            
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+
 def test(self):
     return cgmGEN.queryCode()
 
@@ -1576,7 +1638,7 @@ def blockDat_get(self,report = True):
         _d = {#"name":_short, 
               "blockType":self.blockType,
               "blockState":self.p_blockState,
-              "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
+              "baseName":self.getMayaAttr('cgmName'), 
               #"part":self.part,
               ##"blockPosition":self.getEnumValueString('position'),
               ##"blockDirection":self.getEnumValueString('side'),

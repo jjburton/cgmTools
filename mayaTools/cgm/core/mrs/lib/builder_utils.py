@@ -600,7 +600,7 @@ def register_mirrorIndices(self, ml_controls = []):
     mPuppet = self.mPuppet
     direction = self.d_module['mirrorDirection']
     
-    int_strt = mPuppet.get_nextMirrorIndex( direction )
+    int_strt = mPuppet.atUtils( 'mirror_getNextIndex', direction )
     ml_extraControls = []
     for i,mCtrl in enumerate(ml_controls):
         try:

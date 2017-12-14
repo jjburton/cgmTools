@@ -22,7 +22,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -274,6 +274,8 @@ class ui(cgmUI.cgmGUI):
         
         #index = _indices[0]
         #_mBlock = self._ml_blocks[_index]
+        _sel = mc.ls(sl=1) or []
+        
         mActiveBlock = None
         if self._blockCurrent:
             mActiveBlock = self._blockCurrent.mNode
@@ -292,6 +294,11 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_building()
         self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
         
+        if _sel:
+            mc.select(_sel)
+        else:
+            _mBlock.select()
+        
     def uiFunc_block_mirror_create(self, mBlock = None, forceNew = False):
         _str_func = 'uiFunc_block_mirror_create'
         
@@ -304,6 +311,8 @@ class ui(cgmUI.cgmGUI):
 
         mMirror = mBlock.atBlockUtils('blockMirror_create',forceNew)
         
+        if not mMirror:
+            return False
         log.info("|{0}| >> mMirror: {1}.".format(_str_func,mMirror.mNode))        
         
         self.uiUpdate_building()
@@ -344,6 +353,8 @@ class ui(cgmUI.cgmGUI):
                 _mBlock.p_blockParent = _mActiveBlock
             elif  _mode == 'clearParentBlock':
                 _mBlock.p_blockParent = False
+            else:
+                raise ValueError,"Mode not setup: {0}".format(_mode)
 
                 
                 
@@ -390,11 +401,11 @@ class ui(cgmUI.cgmGUI):
             self.uiPopUpMenu_blocks = None        
 
         _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
-        #log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
-    
-        if not _indices:
+        _ml = self.get_blockList()
+        
+        if not _indices or not _ml:
+            self.uiUpdate_scrollList_blocks()
             return
-        _ml = self._ml_blocks
         _index = _indices[0]
         _mBlock = _ml[_index]
         _blockState = _mBlock.p_blockState
@@ -469,12 +480,29 @@ class ui(cgmUI.cgmGUI):
                         label = "Select",
                         en=True,
                         ann = '[{0}] Select the block'.format(_short),                        
-                        c=cgmGEN.Callback(_mBlock.select))            
+                        c=cgmGEN.Callback(_mBlock.select))
+        
+        mUI.MelMenuItem(_popUp,
+                        label ='Set Name',
+                        ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
+                        c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
+        
+        mUI.MelMenuItem(_popUp,
+                        label = "Recolor",
+                        en=True,
+                        ann = '[{0}] Recolor the block'.format(_short),                        
+                        c=cgmGEN.Callback(_mBlock.atBlockUtils,'color'))
+        
         mUI.MelMenuItem(_popUp,
                         label = "Verify",
                         ann = '[{0}] Verify the block'.format(_short),                        
                         en=True,
-                        c=cgmGEN.Callback(_mBlock.verify))   
+                        c=uiCallback_withUpdate(self,_mBlock,_mBlock.verify))
+        mUI.MelMenuItem(_popUp,
+                        label = "Delete",
+                        ann = '[{0}] delete the block'.format(_short),                        
+                        en=True,
+                        c=uiCallback_withUpdate(self,_mBlock,_mBlock.delete))           
         
         #>>Queries -----------------------------------------------------------------------------------------------
         _queries = mUI.MelMenuItem(_popUp, subMenu = True,
@@ -562,9 +590,15 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'aliasClear'}))
     
         mUI.MelMenuItem(_popUp,
+                        label ='Set Name',
+                        ann = 'Specify the name for the current block. Current: {0}'.format(_mActiveBlock.cgmName),
+                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'setName'}))
+        
+        mUI.MelMenuItem(_popUp,
                         label ='Select',
                         ann = 'Select specified indice parents',
-                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'select'}))  
+                        c = cgmGEN.Callback(self.uiFunc_parentManage_fromScrollList,**{'mode':'select'}))
+        
         mUI.MelMenuItem(_popUp,
                         label ='Move Up',
                         ann = 'Move selected up in list',
@@ -586,79 +620,113 @@ class ui(cgmUI.cgmGUI):
         self.uiFrame_blockAttrs.clear()
         self.uiFrame_blockInfo.clear()
         
-        
+    def get_blockList(self):
+        _str_func = 'get_blockList'        
+        l = []
+        if self._blockCurrent and self._blockCurrent.mNode == None:
+            self._blockCurrent = False
+            log.debug("|{0}| >> Current no longer exists | {1} ".format(_str_func,self._blockCurrent))
+            
+        for mBlock in self._ml_blocks:
+            if mBlock.mNode is not None:
+                l.append(mBlock)
+            else:
+                log.debug("|{0}| >>Dead node | {1} ".format(_str_func,mBlock))
+            
+        self._ml_blocks = l
+        return self._ml_blocks
+                
     def uiFunc_block_setActive(self, index = None):
-        _str_func = 'uiFunc_block_setActive'
-          
-        
-        _ml = self._ml_blocks
-        if not _ml:
-            self.uiFunc_block_clearActive()
-            return
-                
-        if index is not None:
-            if index in self._ml_blocks:
-                index = self._ml_blocks.index(index)
-            if index not in range(len(_ml)):
-                log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
-                return
-        else:
-            _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
-            #log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
-        
-            if not _indices:
-                log.warning("|{0}| >> Nothing selected".format(_str_func))                    
+        try:
+            _str_func = 'uiFunc_block_setActive'
+            
+            
+            _ml = self.get_blockList()
+            if not _ml:
+                self.uiFunc_block_clearActive()
                 return
             
-            index = _indices[0]
-        
-        if _ml[index].mNode == None:
-            log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, index))            
-            self.uiUpdate_scrollList_blocks()                    
-            return
-        
-        log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
-        
-        self._blockFactory.set_rigBlock( _ml[index] )
-        self._blockCurrent = _ml[index]
-        _short = self._blockCurrent.p_nameShort
-        
-        #>>>Inspector ======================================================================================
-        #>>>Report -----------------------------------------------------------------------------------------
-        
-        _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType]
-        
-        if ATTR.get(_short,'side'):
-            _l_report.append( ATTR.get_enumValueString(_short,'side'))
-        
-        if self._blockCurrent.isReferenced():
-            _l_report.insert(0,"Referenced!")
+            """
+            try:_blockCurrent = self._blockCurrent
+            except:
+                log.debug("|{0}| >> Current no longer exists. Reloading...".format(_str_func))                
+                self.uiUpdate_scrollList_blocks()
+                return"""
             
-        #self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
-        self.uiField_report(edit=True, label = '[ ' + '{0}'.format(' ] [ '.join(_l_report))+ ' ]')
-        
-        #>>>Settings ----------------------------------------------------------------------------------------
-        self.uiUpdate_blockDat()#<<< build our blockDat frame
+            _idx_current = None
+            if self._blockCurrent and self._blockCurrent.mNode:
+                _idx_current = _ml.index(self._blockCurrent)
+    
+            log.debug("|{0}| >> Current: {1}".format(_str_func, _idx_current))    
+            
+    
+            if index is not None:
+                if index in self._ml_blocks:
+                    index = self._ml_blocks.index(index)
+                if index not in range(len(_ml)):
+                    log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
+                    return
+            else:
+                _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
+                log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
+            
+                if not _indices:
+                    log.warning("|{0}| >> Nothing selected".format(_str_func))                    
+                    
+                    if _idx_current is not None:
+                        log.debug("|{0}| >> Using Current: {1}".format(_str_func, _idx_current))                        
+                        index = _idx_current
                 
-        #>>>Info ----------------------------------------------------------------------------------------
-        self.uiFrame_blockInfo.clear()
-        
-        for l in self._blockCurrent.atBlockUtils('get_infoBlock_report'):
-            mUI.MelLabel(self.uiFrame_blockInfo,l=l)
+                if not index:
+                    index = _indices[0]
             
-        #>>>Attrs ----------------------------------------------------------------------------------------
-        self.uiFrame_blockAttrs.clear()
-        
-        for a in self._blockCurrent.getAttrs(ud=True):
-            if a in ['blockDat']:
-                continue
-            if a not in ['attributeAliasList']:
-                if ATTR.get_type(_short,a) == 'enum':
-                    mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                   
-                else:
-                    mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
-        
-         
+            if _ml[index].mNode == None:
+                log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, index))            
+                self.uiUpdate_scrollList_blocks()                    
+                return
+            
+            log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
+            
+            self._blockFactory.set_rigBlock( _ml[index] )
+            self._blockCurrent = _ml[index]
+            _short = self._blockCurrent.p_nameShort
+            
+            #>>>Inspector ======================================================================================
+            #>>>Report -----------------------------------------------------------------------------------------
+            
+            _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort), self._blockCurrent.blockType]
+            
+            if ATTR.get(_short,'side'):
+                _l_report.append( ATTR.get_enumValueString(_short,'side'))
+            
+            if self._blockCurrent.isReferenced():
+                _l_report.insert(0,"Referenced!")
+                
+            #self.uiField_inspector(edit=True, label = '{0}'.format(' | '.join(_l_report)))
+            self.uiField_report(edit=True, label = '[ ' + '{0}'.format(' ] [ '.join(_l_report))+ ' ]')
+            
+            #>>>Settings ----------------------------------------------------------------------------------------
+            self.uiUpdate_blockDat()#<<< build our blockDat frame
+                    
+            #>>>Info ----------------------------------------------------------------------------------------
+            self.uiFrame_blockInfo.clear()
+            
+            for l in self._blockCurrent.atBlockUtils('get_infoBlock_report'):
+                mUI.MelLabel(self.uiFrame_blockInfo,l=l)
+                
+            #>>>Attrs ----------------------------------------------------------------------------------------
+            self.uiFrame_blockAttrs.clear()
+            
+            for a in self._blockCurrent.getAttrs(ud=True):
+                if a in ['blockDat']:
+                    continue
+                if a not in ['attributeAliasList']:
+                    if ATTR.get_type(_short,a) == 'enum':
+                        mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                   
+                    else:
+                        mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+             
     def uiCallback_setAttrFromField(self, obj, attr, attrType, field):
         _v = field.getValue()
         ATTR.set(obj,attr,_v)
@@ -667,11 +735,7 @@ class ui(cgmUI.cgmGUI):
             field.setValue(ATTR.get_enumValueString(obj,attr))            
         else:
             field.setValue(ATTR.get(obj,attr))
-        
-    def uiCallback_withUpdate(self,func,*args,**kws):
-        func(*args,**kws)
-        self.uiUpdate_building()
-        
+
     def uiCallback_blockDatButton(self,func,*args,**kws):
         func(*args,**kws)
         self.uiUpdate_blockDat()
@@ -719,8 +783,8 @@ class ui(cgmUI.cgmGUI):
                                 mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
                 elif _type in ['string'] and '_' in a and not a.endswith('dict'):
                     _l_attrs.append(a)
-                elif a in ['puppetName','cgmName']:
-                    _l_attrs.append(a)
+                #elif a in ['puppetName','cgmName']:
+                #    _l_attrs.append(a)
             except: pass
     
         _sidePadding = 25
@@ -1192,4 +1256,35 @@ def uiOptionMenu_blockSizeMode(self, parent, callback = cgmGEN.Callback):
     
 
 
-
+class uiCallback_withUpdate(object):
+    '''
+    '''
+    def __init__( self, ui, mBlock, func, *a, **kw ):
+        self._func = func
+        self._args = a
+        self._kwargs = kw
+        self._ui = ui
+        self._mBlock = mBlock
+    def __call__( self, *args ):
+        try:self._func( *self._args, **self._kwargs )
+        except Exception,err:
+            try:log.info("Func: {0}".format(self._func.__name__))
+            except:log.info("Func: {0}".format(self._func))
+            if self._ui:
+                log.info("ui: {0}".format(self._ui))
+                
+            if self._args:
+                log.info("args: {0}".format(self._args))
+            if self._kwargs:
+                log.info("kws: {0}".format(self._kwargs))
+            for a in err.args:
+                log.info(a)
+                
+            cgmGEN.cgmExceptCB(Exception,err)
+            raise Exception,err
+        
+        if self._mBlock == self._ui._blockCurrent:
+            log.debug("|{0}| resetting active block".format('uiCallback_withUpdate'))            
+            self._ui.uiFunc_block_setActive()
+        else:
+            self._ui.uiUpdate_building()

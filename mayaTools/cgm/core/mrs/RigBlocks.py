@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 # From cgm ==============================================================
@@ -55,6 +55,9 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
+import cgm.core.mrs.lib.module_utils as MODULEUTILS
+
 reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
 reload(BLOCKSHARE)
@@ -231,7 +234,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #====================================================================================
         #Keywords - need to set after the super call
-        #==============         
+        #=====================================================================================         
         _doVerify = kws.get('doVerify',False) or False
         self._factory = factory(self.mNode)
         self._callKWS = kws
@@ -289,65 +292,68 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """ 
 
         """
-        _str_func = '[{0}] verify'.format(self.p_nameShort)
+        try:
+            _str_func = '[{0}] verify'.format(self.p_nameShort)
+    
+            _start = time.clock()
+    
+            if self.isReferenced():
+                raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
+    
+            #if blockType and not is_blockType_valid(blockType):
+                #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
+    
+            _type = self.getMayaAttr('blockType')
+            if blockType is not None:
+                if _type is not None and _type != blockType:
+                    raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+            else:
+                blockType = _type
+    
+            _mBlockModule = get_blockModule(blockType)
+    
+            if not _mBlockModule:
+                log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
+                return False
+    
+            #if 'build_rigBlock' not in _module.__dict__.keys():
+                #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
+                #return False
+    
+            #>>> Attributes --------------------------------------------------------------------------------
+            self._factory.verify(blockType)    
+    
+            _side = side
+            try:
+                if _side is not None and self._callKWS.get('side'):
+                    _side = self._callKWS.get('side')
+            except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
 
-        _start = time.clock()
-
-        if self.isReferenced():
-            raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
-
-        #if blockType and not is_blockType_valid(blockType):
-            #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
-
-        _type = self.getMayaAttr('blockType')
-        if blockType is not None:
-            if _type is not None and _type != blockType:
-                raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-        else:
-            blockType = _type
-
-        _mBlockModule = get_blockModule(blockType)
-
-        if not _mBlockModule:
-            log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
-            return False
-
-        #if 'build_rigBlock' not in _module.__dict__.keys():
-            #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
-            #return False
-
-        #>>> Attributes --------------------------------------------------------------------------------
-        self._factory.verify(blockType)    
-
-        _side = side
-        if _side is not None and self._callKWS.get('side'):
-            _side = self._callKWS.get('side')
-
-        if _side is not None:
-            try: ATTR.set(self.mNode,'side',_side)
-            except Exception,err:
-                log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
-
-
-        #>>> Base shapes --------------------------------------------------------------------------------
-        #_size = self._callKWS.get('size')
-        #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
-        #get_callSize(self._callKWS.get('size'), blockModule=_mBlockModule, rigBlock = self)
-        try:self.baseSize = self._callSize
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,fncDat=vars())
-
-
-        _mBlockModule = get_blockModule(self.blockType)
-        if 'define' in _mBlockModule.__dict__.keys():
-            log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-            _mBlockModule.define(self)      
-        self._blockModule = _mBlockModule
-
-        self.doName()
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
-        return True
-
+    
+            if _side is not None:
+                try: ATTR.set(self.mNode,'side',_side)
+                except Exception,err:
+                    log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
+    
+    
+            #>>> Base shapes --------------------------------------------------------------------------------
+            #_size = self._callKWS.get('size')
+            #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
+            #get_callSize(self._callKWS.get('size'), blockModule=_mBlockModule, rigBlock = self)
+            try:self.baseSize = self._callSize
+            except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
+    
+    
+            _mBlockModule = get_blockModule(self.blockType)
+            if 'define' in _mBlockModule.__dict__.keys():
+                log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+                _mBlockModule.define(self)      
+            self._blockModule = _mBlockModule
+    
+            self.doName()
+            log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
 
     def doName(self, *a, **kws):
         """
@@ -360,7 +366,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #Get Raw name
         _d = nameTools.returnObjectGeneratedNameDict(_short)
 
-        for a in 'puppetName','baseName':
+        for a in 'cgmName','baseName','puppetName',:
             if self.hasAttr(a):
                 _d['cgmName'] = ATTR.get(_short,a)
 
@@ -660,7 +666,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             _d = {#"name":_short, 
                   "blockType":self.blockType,
                   "blockState":self.p_blockState,
-                  "baseName":self.getMayaAttr('puppetName') or self.getMayaAttr('baseName'), 
+                  "baseName":self.getMayaAttr('baseName'), 
                   #"part":self.part,
                   ##"blockPosition":self.getEnumValueString('position'),
                   ##"blockDirection":self.getEnumValueString('side'),
@@ -1659,7 +1665,7 @@ class handleFactory(object):
             mHandle = self._mTransform
             _short = mHandle.mNode
             _bfr = mHandle.getMessage('proxyHelper')
-
+            
             if _bfr:
                 mc.delete(_bfr)
 
@@ -1670,6 +1676,7 @@ class handleFactory(object):
             mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
 
             mProxy.doSnapTo(mHandle)
+            SNAPCALLS.snap(mProxy.mNode,mHandle.mNode, objPivot='boundingBox',objMode='y-',targetPivot='boundingBox',targetMode='y-')
 
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
@@ -2968,7 +2975,7 @@ class factory(object):
             mModule = PUPPETMETA.cgmModule(**_kws)
 
         ATTR.set_message(_mBlock.mNode, 'moduleTarget', mModule.mNode,simple = True)
-        ATTR.set_message(mModule.mNode, 'rigHelper', _mBlock.mNode,simple = True)
+        ATTR.set_message(mModule.mNode, 'rigBlock', _mBlock.mNode,simple = True)
 
         ATTR.set(mModule.mNode,'moduleType',_kws['name'],lock=True)
         self._mi_module = mModule
@@ -3027,8 +3034,10 @@ class factory(object):
         mi_puppet = False
         if self._mi_block.blockType == 'master':
             if not _mBlock.getMessage('moduleTarget'):
-                mi_puppet = cgmRigPuppet(name = _mBlock.puppetName)
-                ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
+                mi_puppet = cgmRigPuppet(name = _mBlock.cgmName)
+                #ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
+                _mBlock.moduleTarget = mi_puppet.mNode
+                ATTR.set_message(mi_puppet.mNode, 'rigBlock', _mBlock.mNode,simple = True)
             else:
                 mi_puppet = _mBlock.moduleTarget
             mi_puppet.__verify__()
@@ -3053,7 +3062,6 @@ class factory(object):
                 mi_puppet.connectModule(mi_module.moduleMirror)            
 
             mi_puppet.connectModule(mi_module)	
-
             mi_puppet.gatherModules()#Gather any modules in the chain
 
         self._mi_puppet = mi_puppet
@@ -3881,7 +3889,8 @@ class rigFactory(object):
             #>MasterControl....
             if not _mPuppet.getMessage('masterControl'):
                 log.info("|{0}| >> Creating masterControl...".format(_str_func))                    
-                _mPuppet.verify_masterControl(size = max(POS.get_axisBox_size(self.mBlock.mNode)) * 1.5)
+                #_mPuppet.verify_masterControl(size = max(POS.get_axisBox_size(self.mBlock.mNode)) * 1.5)
+                _mPuppet.verify_masterControl()
 
             _d['mMasterControl'] = _mPuppet.masterControl
             _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
@@ -4179,8 +4188,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             _str_func = "cgmRigPuppet.__verify__({0})".format(_short)
             log.debug("|{0}| >> ...".format(_str_func))
     
-            #============== 
-            #Puppet Network Node ================================================================
+            #Puppet Network Node 
+            #---------------------------------------------------------------------------
             self.addAttr('mClass', initialValue='cgmRigPuppet',lock=True)  
             if name is not None and name:
                 self.addAttr('cgmName',name, attrType='string', lock = True)
@@ -4191,7 +4200,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             self.addAttr('moduleChildren',attrType = 'message',lock=True) 
             self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
     
-            #Settings ============================================================================
+            #Settings 
+            #---------------------------------------------------------------------------
             #defaultFont = modules.returnSettingsData('defaultTextFont')
             defaultFont = BLOCKSHARE.str_defaultFont
             self.addAttr('font',attrType = 'string',initialValue=defaultFont,lock=True)   
@@ -4202,7 +4212,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
     
             self.doName()
     
-            #MasterNull ===========================================================================
+            #MasterNull 
+            #---------------------------------------------------------------------------
             self.verify_masterNull()
 
                 
@@ -4215,16 +4226,155 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             #self.verify_groups()
     
     
-            #Quick select sets ================================================================
+            #Quick select sets
+            #---------------------------------------------------------------------------
             self.verify_objectSet()
     
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             # Groups
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+            #---------------------------------------------------------------------------
             self.verify_groups()
     
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    def atUtils(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
+    
+    
+    def changeName(self,name = ''):
+        try:
+            _str_func = 'cgmRigPuppet.changeName'
+            log.debug("|{0}| >> ...".format(_str_func))
+
+            if name == self.cgmName:
+                log.error("Puppet already named '%s'"%self.cgmName)
+                return
+            if name != '' and type(name) is str:
+                log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
+                self.cgmName = name
+                self.__verify__()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def verify_masterNull(self,**kws):
+        try:
+            _str_func = 'cgmRigPuppet.verify_masterNull'
+            log.debug("|{0}| >> ...".format(_str_func))
+
+            if not self.getMessage('masterNull'):
+                mMasterNull = cgmMeta.cgmObject()
+            else:
+                mMasterNull = self.masterNull
+
+            ATTR.copy_to(self.mNode,'cgmName',mMasterNull.mNode,driven='target')
+            mMasterNull.addAttr('puppet',attrType = 'messageSimple')
+            if not mMasterNull.connectParentNode(self.mNode,'puppet','masterNull'):
+                raise StandardError,"Failed to connect masterNull to puppet network!"
+
+            mMasterNull.addAttr('mClass',value = 'cgmMasterNull',lock=True)
+            mMasterNull.addAttr('cgmName',initialValue = '',lock=True)
+            mMasterNull.addAttr('cgmType',initialValue = 'ignore',lock=True)
+            mMasterNull.addAttr('cgmModuleType',value = 'master',lock=True)   
+            mMasterNull.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
+            mMasterNull.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
+            mMasterNull.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
+            mMasterNull.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
+
+            #See if it's named properly. Need to loop back after scene stuff is querying properly
+            mMasterNull.doName()
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    #=================================================================================================
+    # Puppet Utilities
+    #=================================================================================================
+    def verify_groups(self):
+        try:
+            _str_func = "cgmRigPuppet.verify_groups".format()
+            log.debug("|{0}| >> ...".format(_str_func))
+
+            mMasterNull = self.masterNull
+
+            if not mMasterNull:
+                raise ValueError, "No masterNull"
+
+            for attr in 'deform','noTransform','geo','parts','worldSpaceObjects','puppetSpaceObjects':
+                _link = attr+'Group'
+                mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
+                if mGroup:mGroup = mGroup[0]
+
+                if not mGroup:
+                    mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
+                    mGroup.doName()
+                    mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
+
+                log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
+
+                # Few Case things
+                #==============            
+                if attr in ['geo','parts']:
+                    mGroup.p_parent = mMasterNull.noTransformGroup
+                elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
+                    mGroup.p_parent = self.getMessage('masterControl')[0]	    
+                else:    
+                    mGroup.p_parent = mMasterNull
+
+                ATTR.set_standardFlags(mGroup.mNode)
+
+                if attr == 'worldSpaceObjects':
+                    mGroup.addAttr('cgmAlias','world')
+                elif attr == 'puppetSpaceObjects':
+                    mGroup.addAttr('cgmAlias','puppet')
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+    def verify_objectSet(self):
+        try:
+            _str_func = "cgmRigPuppet.verify_objectSet"
+            log.debug("|{0}| >> ...".format(_str_func))
+
+            #Quick select sets ================================================================
+            mSet = self.getMessage('puppetSet',asMeta=True)
+            if mSet:
+                mSet = mSet[0]
+            else:#
+                mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+                mSet.connectParentNode(self.mNode,'puppet','puppetSet')
+
+            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            mSet.doName()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+        """
+    def doName(self,sceneUnique=False,nameChildren=False,**kws):
+        #if not self.getTransform() and self.__justCreatedState__:
+            #log.error("Naming just created nodes, causes recursive issues. Name after creation")
+            #return False
+        if self.isReferenced():
+            log.error("'%s' is referenced. Cannot change name"%self.mNode)
+            return False
+        mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))"""
+
+    def delete(self):
+        """
+        Delete the Puppet
+        """
+        try:
+            _str_func = "cgmRigPuppet.delete"
+            log.debug("|{0}| >> ...".format(_str_func))
+
+            mc.delete(self.masterNull.mNode)
+            mc.delete(self.mNode)
+            #del(self)
+        except Exception,err:cgmGEN.cgmException(Exception,err)    
+
+    #=====================================================================================================
+    #=====================================================================================================
+    #>>>OLD STUFF=========================================================================================
+    #=====================================================================================================
+    #=====================================================================================================
     
     def atFactory(self, func = 'get_report', *args,**kws):
         """
@@ -4274,131 +4424,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             return _res
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
-    def changeName(self,name = ''):
-        try:
-            _str_func = 'cgmRigPuppet.changeName'
-            log.debug("|{0}| >> ...".format(_str_func))
-            
-            if name == self.cgmName:
-                log.error("Puppet already named '%s'"%self.cgmName)
-                return
-            if name != '' and type(name) is str:
-                log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
-                self.cgmName = name
-                self.__verify__()
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-    def verify_masterNull(self,**kws):
-        try:
-            _str_func = 'cgmRigPuppet.verify_masterNull'
-            log.debug("|{0}| >> ...".format(_str_func))
-    
-            if not self.getMessage('masterNull'):
-                mMasterNull = cgmMeta.cgmObject()
-            else:
-                mMasterNull = self.masterNull
-                
-            ATTR.copy_to(self.mNode,'cgmName',mMasterNull.mNode,driven='target')
-            mMasterNull.addAttr('puppet',attrType = 'messageSimple')
-            if not mMasterNull.connectParentNode(self.mNode,'puppet','masterNull'):
-                raise StandardError,"Failed to connect masterNull to puppet network!"
-    
-            mMasterNull.addAttr('mClass',value = 'cgmMasterNull',lock=True)
-            mMasterNull.addAttr('cgmName',initialValue = '',lock=True)
-            mMasterNull.addAttr('cgmType',initialValue = 'ignore',lock=True)
-            mMasterNull.addAttr('cgmModuleType',value = 'master',lock=True)   
-            mMasterNull.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
-            mMasterNull.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
-            mMasterNull.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
-            mMasterNull.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
-    
-            #See if it's named properly. Need to loop back after scene stuff is querying properly
-            mMasterNull.doName()
-            return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-    #=================================================================================================
-    # Puppet Utilities
-    #=================================================================================================
-    def verify_groups(self):
-        try:
-            _str_func = "cgmRigPuppet.verify_groups".format()
-            log.debug("|{0}| >> ...".format(_str_func))
-            
-            mMasterNull = self.masterNull
-            
-            if not mMasterNull:
-                raise ValueError, "No masterNull"
-            
-            for attr in 'deform','noTransform','geo','parts','worldSpaceObjects','puppetSpaceObjects':
-                _link = attr+'Group'
-                mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
-                if mGroup:mGroup = mGroup[0]
-                                                    
-                if not mGroup:
-                    mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
-                    mGroup.doName()
-                    mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
-                    
-                log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
-    
-                # Few Case things
-                #==============            
-                if attr in ['geo','parts']:
-                    mGroup.p_parent = mMasterNull.noTransformGroup
-                elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
-                    mGroup.p_parent = self.getMessage('masterControl')[0]	    
-                else:    
-                    mGroup.p_parent = mMasterNull
-                    
-                ATTR.set_standardFlags(mGroup.mNode)
-                
-                if attr == 'worldSpaceObjects':
-                    mGroup.addAttr('cgmAlias','world')
-                elif attr == 'puppetSpaceObjects':
-                    mGroup.addAttr('cgmAlias','puppet')
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-
-    def verify_objectSet(self):
-        try:
-            _str_func = "cgmRigPuppet.verify_objectSet"
-            log.debug("|{0}| >> ...".format(_str_func))
-            
-            #Quick select sets ================================================================
-            mSet = self.getMessage('puppetSet',asMeta=True)
-            if mSet:
-                mSet = mSet[0]
-            else:#
-                mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
-                mSet.connectParentNode(self.mNode,'puppet','puppetSet')
-    
-            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
-            mSet.doName()
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-    """
-    def doName(self,sceneUnique=False,nameChildren=False,**kws):
-        #if not self.getTransform() and self.__justCreatedState__:
-            #log.error("Naming just created nodes, causes recursive issues. Name after creation")
-            #return False
-        if self.isReferenced():
-            log.error("'%s' is referenced. Cannot change name"%self.mNode)
-            return False
-        mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))"""
-
-    def delete(self):
-        """
-        Delete the Puppet
-        """
-        try:
-            _str_func = "cgmRigPuppet.delete"
-            log.debug("|{0}| >> ...".format(_str_func))
-            
-            mc.delete(self.masterNull.mNode)
-            #mc.delete(self.mNode)
-            del(self)
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+   
 
     def addModule(self,mClass = 'cgmModule',**kws):
         """
@@ -4648,6 +4674,148 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         return pFactory.isSkeletonized(*args,**kws)
     
     def verify_masterControl(self,**kws):
+        """ 
+        """
+        try:
+            _str_func = "cgmRigPuppet.verify_masterControl"
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+            
+            self.verify_groups()#...make sure everythign is there
+            
+            # Size...
+            #-------------------------------------------------------------------------
+            _size = kws.get('size',None)
+            if _size == None:
+                log.debug("|{0}| >> No size kw passed, finding...".format(_str_func))
+                _size = [10,10,10]
+                
+                if self.getMessage('rigBlock'):
+                    _size = self.rigBlock.baseSize
+                    
+                kws['size'] = _size
+                
+                
+            log.debug("|{0}| >> size: {1}".format(_str_func,_size))
+            
+            mMasterNull = self.masterNull
+            
+            # Master Control
+            #==================================================================
+            log.debug("|{0}| >> MasterControl...".format(_str_func))            
+            mMasterControl = self.getMessage('masterControl',asMeta=True)
+            if not mMasterControl:
+                mMasterControl = cgmRigMaster(puppet = self,**kws)#Create and initialize
+                mMasterControl.__verify__()
+            mMasterControl.parent = mMasterNull.mNode
+            #mMasterControl.doName()
+            
+            #Vis network
+            #--------------------------------------------------------------------------
+            log.debug("|{0}| >> visNetwork...".format(_str_func))                        
+            iVis = mMasterControl.controlVis
+            visControls = 'left','right','sub','main'
+            visArg = [{'result':[iVis,'leftSubControls_out'],'drivers':[[iVis,'left'],[iVis,'subControls'],[iVis,'controls']]},
+                      {'result':[iVis,'rightSubControls_out'],'drivers':[[iVis,'right'],[iVis,'subControls'],[iVis,'controls']]},
+                      {'result':[iVis,'subControls_out'],'drivers':[[iVis,'subControls'],[iVis,'controls']]},		      
+                      {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
+                      {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
+                      ]
+            NODEFAC.build_mdNetwork(visArg)            
+            
+            # Setup the settings
+            #--------------------------------------------------------------------------
+            log.debug("|{0}| >> Settings...".format(_str_func))            
+            mSettings = mMasterControl.controlSettings
+            str_settings = mSettings.mNode
+            #Skeleton/geo settings
+            for attr in ['skeleton','geo','proxy']:
+                mSettings.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+                NODEFAC.argsToNodes("%s.%sVis = if %s.%s > 0"%(str_settings,attr,str_settings,attr)).doBuild()
+                NODEFAC.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(str_settings,attr,str_settings,attr)).doBuild()
+
+            mSettings.addAttr('________________',attrType = 'int',keyable = False,hidden = False,lock=True)
+            
+            #>>> Deform group
+            #--------------------------------------------------------------------------
+            log.debug("|{0}| >> deformGroup...".format(_str_func))                        
+            if mMasterNull.getMessage('deformGroup'):
+                mMasterNull.deformGroup.parent = mMasterControl.mNode
+            mMasterControl.addAttr('cgmAlias','world',lock = True)
+            
+            #>>> Skeleton Group
+            #--------------------------------------------------------------------------
+            log.debug("|{0}| >> skeletonGroup...".format(_str_func))                        
+            if not mMasterNull.getMessage('skeletonGroup'):
+                #Make it and link it
+                mGrp = cgmMeta.createMetaNode('cgmObject')
+                mGrp.doSnapTo(mMasterControl.mNode)
+                
+                #mGrp.doRemove('cgmName')
+                mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+                mGrp.parent = mMasterControl.mNode
+                mMasterNull.connectChildNode(mGrp,'skeletonGroup','module')
+    
+                mGrp.doName()
+            else:
+                mGrp = mMasterNull.skeletonGroup
+                
+            mGrp.overrideEnabled = 1             
+            cgmMeta.cgmAttr(mSettings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideVisibility'))    
+            cgmMeta.cgmAttr(mSettings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideDisplayType'))    
+         
+            #>>>Connect some flags
+            #--------------------------------------------------------------------------
+            log.debug("|{0}| >> Geo connections...".format(_str_func))            
+            
+            mGeoGroup = self.masterNull.geoGroup
+            mGeoGroup.overrideEnabled = 1		
+            cgmMeta.cgmAttr(mSettings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(mSettings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,'overrideDisplayType'))  
+    
+            try:mMasterNull.puppetSpaceObjectsGroup.parent = mMasterControl
+            except:pass
+            
+            return True            
+
+
+            #>>> Skeleton Group
+            #=====================================================================	
+            if not self.masterNull.getMessage('skeletonGroup'):
+                #Make it and link it
+                #i_grp = mi_masterControl.doDuplicateTransform()
+                mGrp = cgmMeta.createMetaNode('cgmObject')
+                mGrp.doSnapTo(mi_masterControl.mNode)
+                
+                #mGrp.doRemove('cgmName')
+                mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+                mGrp.parent = mi_masterControl.mNode
+                self.masterNull.connectChildNode(mGrp,'skeletonGroup','module')
+    
+                mGrp.doName()
+            else:
+                mGrp = self.masterNull.skeletonGroup
+    
+    
+            #Verify the connections
+            mGrp.overrideEnabled = 1             
+            cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideVisibility'))    
+            cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideDisplayType'))    
+    
+    
+            #>>>Connect some flags
+            #=====================================================================
+            i_geoGroup = self.masterNull.geoGroup
+            i_geoGroup.overrideEnabled = 1		
+            cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
+    
+            try:self.masterNull.puppetSpaceObjectsGroup.parent = mi_masterControl
+            except:pass
+            
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def verify_masterControlBAK(self,**kws):
         """ 
         """
         try:

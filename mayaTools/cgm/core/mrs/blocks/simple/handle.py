@@ -100,8 +100,8 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 def define(self):
     _short = self.mNode
-    self.translate = 0,0,0
-    self.rotate = 0,0,0
+    #self.translate = 0,0,0
+    #self.rotate = 0,0,0
     
 
     #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
@@ -117,7 +117,7 @@ def template(self):
         _shape = self.getEnumValueString('basicShape')
         _size = self.baseSize
         mHandleFactory = self.asHandleFactory(_short)
-        
+        _shapeDirection = self.getEnumValueString('shapeDirection')
         #Create temple Null  ==================================================================================
         mTemplateNull = BLOCKUTILS.templateNull_verify(self)        
         
@@ -126,7 +126,7 @@ def template(self):
             _size = [v for v in self.baseSize[:-1]] + [None]
             
         _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
-                                          direction = self.getEnumValueString('shapeDirection'),
+                                          direction = _shapeDirection,
                                           sizeMode = 'fixed', size = _size)
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
         
@@ -142,7 +142,7 @@ def template(self):
         NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
         NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
         
-        mProxy = mHandleFactory.addProxyHelper()
+        mProxy = mHandleFactory.addProxyHelper(shapeDirection = _shapeDirection)
         mProxy.p_parent = mTemplateNull
         
         mProxy.overrideEnabled = 1
