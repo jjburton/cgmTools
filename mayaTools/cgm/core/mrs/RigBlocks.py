@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 # From cgm ==============================================================
@@ -1122,12 +1122,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         _blockModule = self.p_blockModule
         return self.stringModuleCall(_blockModule,func,*args, **kws)
-
     def atBlockUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
         return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
+    atUtils = atBlockUtils
 
 
     def string_methodCall(self, func = 'getShortName', *args,**kws):
@@ -2965,23 +2965,23 @@ class factory(object):
             return True
 
         _bfr = _mBlock.getMessage('moduleTarget')
-        _kws = self.module_getBuildKWS()
+        #_kws = self.module_getBuildKWS()
 
         if _bfr:
             log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))            
             mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
         else:
             log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))   
-            mModule = PUPPETMETA.cgmModule(**_kws)
+            mModule = cgmRigModule(rigBlock=_mBlock)
 
-        ATTR.set_message(_mBlock.mNode, 'moduleTarget', mModule.mNode,simple = True)
-        ATTR.set_message(mModule.mNode, 'rigBlock', _mBlock.mNode,simple = True)
+        #ATTR.set_message(_mBlock.mNode, 'moduleTarget', mModule.mNode,simple = True)
+        #ATTR.set_message(mModule.mNode, 'rigBlock', _mBlock.mNode,simple = True)
 
-        ATTR.set(mModule.mNode,'moduleType',_kws['name'],lock=True)
+        ATTR.set(mModule.mNode,'moduleType',_mBlock.blockType,lock=True)
         self._mi_module = mModule
 
-        assert mModule.isModule(),"Not a module: {0}".format(mModule)
-
+        #assert mModule.isModule(),"Not a module: {0}".format(mModule)
+        
         return mModule
 
     def module_getBuildKWS(self):
@@ -3034,7 +3034,8 @@ class factory(object):
         mi_puppet = False
         if self._mi_block.blockType == 'master':
             if not _mBlock.getMessage('moduleTarget'):
-                mi_puppet = cgmRigPuppet(name = _mBlock.cgmName)
+                _name = _mBlock.getMayaAttr('cgmName') or _mBlock.blockType
+                mi_puppet = cgmRigPuppet(name = _name)
                 #ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
                 _mBlock.moduleTarget = mi_puppet.mNode
                 ATTR.set_message(mi_puppet.mNode, 'rigBlock', _mBlock.mNode,simple = True)
@@ -3058,11 +3059,9 @@ class factory(object):
                 if not mi_puppet:
                     mi_puppet = cgmRigPuppet(name = mi_module.getNameAlias())
 
-            if mi_module.getMessage('moduleMirror'):
-                mi_puppet.connectModule(mi_module.moduleMirror)            
-
-            mi_puppet.connectModule(mi_module)	
-            mi_puppet.gatherModules()#Gather any modules in the chain
+            
+            mi_puppet.connect_module(mi_module)	
+            mi_puppet.gather_modules()#Gather any modules in the chain
 
         self._mi_puppet = mi_puppet
 
@@ -3687,7 +3686,7 @@ class rigFactory(object):
         _mPuppet.verify_groups()
 
         if _hasModule:
-            if not _mModule.isSkeletonized():
+            if not _mModule.atUtils('is_skeletonized'):
                 log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
 
                 if not self.mBlock.atBlockModule('build_skeleton'):
@@ -3768,11 +3767,11 @@ class rigFactory(object):
         else:
             if _mModuleParent:
                 _str_moduleParent = _mModuleParent.getShortName()
-                if not _mModuleParent.isRigged():
+                if not _mModuleParent.atUtils('is_rigged'):
                     log.warning("|{0}| >> [{1}] ModuleParent not rigged".format(_str_func,_str_moduleParent))            
                     return False
 
-            _b_rigged = _mModule.isRigged()
+            _b_rigged = _mModule.atUtils('is_rigged')
 
         log.debug("|{0}| >> Rigged: {1}".format(_str_func,_b_rigged))            
 
@@ -3869,14 +3868,14 @@ class rigFactory(object):
             #>>Module dat ------------------------------------------------------------------------------
             _d = {}
             if _mModule:
-                _d['partName'] = _mModule.getPartNameBase()
+                _d['partName'] = _mModule.get_partNameBase()
                 _d['partType'] = _mModule.moduleType.lower() or False
 
-                _d['l_moduleColors'] = _mModule.getModuleColors() 
-                _d['l_coreNames'] = []#...need to do this
-                self.mTemplateNull = _mModule.templateNull
-                _d['mTemplateNull'] = self.mTemplateNull
-                _d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
+                #_d['l_moduleColors'] = _mModule.getModuleColors() 
+                #_d['l_coreNames'] = []#...need to do this
+                #self.mTemplateNull = _mModule.templateNull
+                #_d['mTemplateNull'] = self.mTemplateNull
+                #_d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
                 _d['direction'] = _mModule.getAttr('cgmDirection')
 
                 _d['mirrorDirection'] = _mModule.get_mirrorSideAsString()
@@ -3949,7 +3948,7 @@ class rigFactory(object):
 
             return True
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat==vars())
+            cgmGEN.cgmException(Exception,err)
             raise Exception,err
 
 
@@ -4090,7 +4089,7 @@ class rigFactory(object):
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err)
 
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
 
@@ -4193,6 +4192,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             self.addAttr('mClass', initialValue='cgmRigPuppet',lock=True)  
             if name is not None and name:
                 self.addAttr('cgmName',name, attrType='string', lock = True)
+            else:
+                self.addAttr('cgmName', 'puppet', attrType='string', lock = True)
+                
             self.addAttr('cgmType','puppetNetwork')
             self.addAttr('version',initialValue = 1.0, lock=True)  
             self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
@@ -4242,7 +4244,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         Function to call a blockModule function by string. For menus and other reasons
         """
         return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
-    
     
     def changeName(self,name = ''):
         try:
@@ -4347,16 +4348,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             mSet.doName()
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
-        """
-    def doName(self,sceneUnique=False,nameChildren=False,**kws):
-        #if not self.getTransform() and self.__justCreatedState__:
-            #log.error("Naming just created nodes, causes recursive issues. Name after creation")
-            #return False
-        if self.isReferenced():
-            log.error("'%s' is referenced. Cannot change name"%self.mNode)
-            return False
-        mc.rename(self.mNode,nameTools.returnCombinedNameFromDict(self.getNameDict()))"""
-
     def delete(self):
         """
         Delete the Puppet
@@ -4368,310 +4359,23 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             mc.delete(self.masterNull.mNode)
             mc.delete(self.mNode)
             #del(self)
-        except Exception,err:cgmGEN.cgmException(Exception,err)    
-
-    #=====================================================================================================
-    #=====================================================================================================
-    #>>>OLD STUFF=========================================================================================
-    #=====================================================================================================
-    #=====================================================================================================
-    
-    def atFactory(self, func = 'get_report', *args,**kws):
-        """
-        Function to call a self function by string. For menus and other reasons
-        """
-        try:
-            _str_func = 'cgmRigPuppet.atFactory'
-            log.debug("|{0}| >> ...".format(_str_func))            
-            _short = self.p_nameShort
-            _res = None
-            
-            if not args:
-                _str_args = ''
-                args = [self]
-            else:
-                _str_args = ','.join(str(a) for a in args) + ','
-                args = [self] + [a for a in args]
-            if not kws:
-                kws = {}
-                _kwString = ''  
-            else:
-                _l = []
-                for k,v in kws.iteritems():
-                    _l.append("{0}={1}".format(k,v))
-                _kwString = ','.join(_l)  
-            try:
-                log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
-                log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
-                _res = getattr(pFactory,func)(*args,**kws)
-            except Exception,err:
-                log.error(cgmGEN._str_hardLine)
-                log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
-                log.error("Node: {0} | func: {1}".format(_short,func))            
-                if args:
-                    log.error("Args...")
-                    for a in args:
-                        log.error("      {0}".format(a))
-                if kws:
-                    log.error(" KWS...".format(_str_func))
-                    for k,v in kws.iteritems():
-                        log.error("      {0} : {1}".format(k,v))   
-                log.error("Errors...")
-                for a in err.args:
-                    log.error(a)
-                log.error(cgmGEN._str_subLine)
-                raise Exception,err
-            return _res
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
-   
-
-    def addModule(self,mClass = 'cgmModule',**kws):
-        """
-        Create and connect a new module
-
-        moduleType(string) - type of module to create
-
-        p = cgmPM.cgmRigPuppet(name='Morpheus')
-        p.addModule(mClass = 'cgmLimb',mType = 'torso')
-        p.addModule(mClass = 'cgmLimb',mType = 'neck', moduleParent = 'spine_part')
-        p.addModule(mClass = 'cgmLimb',mType = 'head', moduleParent = 'neck_part')
-        p.addModule(mClass = 'cgmLimb',mType = 'arm',direction = 'left', moduleParent = 'spine_part')
-        """
-        try:
-            _str_func = "cgmRigPuppet.addModule"
-            log.debug("|{0}| >> ...".format(_str_func))            
-
-            if mClass == 'cgmModule':
-                tmpModule = cgmModule(**kws)   
-            elif mClass == 'cgmLimb':
-                tmpModule = cgmLimb(**kws)
-            else:
-                log.warning("'%s' is not a known module type. Cannot initialize"%mClass)
-                return False
+    #=================================================================================================
+    # Modules
+    #=================================================================================================
+    def connect_module(self,mModule,**kws):
+        return self.atUtils('module_connect',mModule,**kws)
+    def get_modules(self,*args,**kws):
+        return self.atUtils('modules_get',*args,**kws)    
+    def gather_modules(self,*args,**kws):
+        return self.atUtils('modules_gather',*args,**kws)    
     
-            self.connectModule(tmpModule)
-            return tmpModule
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-    ##@r9General.Timer
-    def connectModule(self,module,force = True,**kws):
-        """
-        Connects a module to a puppet
-
-        module(string)
-        """
-        try:
-            _str_func = "cgmRigPuppet.connectModule"
-            log.debug("|{0}| >> ...".format(_str_func))
+    def get_mirrorNextIndex(self,side='center'):
+        return self.atUtils('mirror_getNextIndex',side)    
+    def get_mirrorDict(self):
+        return self.atUtils('mirror_getDict')
     
-            #See if it's connected
-            #If exists, connect
-            #Get instance
-            #==============	
-            buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
-            #self.i_masterNull = self.masterNull
-    
-            try:
-                module.mNode#see if we have an instance
-                if module.mNode in buffer and force != True:
-                    #log.warning("'%s' already connnected to '%s'"%(module.getShortName(),self.i_masterNull.getShortName()))
-                    return False 	    
-            except:
-                if mc.objExists(module):
-                    if mc.ls(module,long=True)[0] in buffer and force != True:
-                        #log.warning("'%s' already connnected to '%s'"%(module,self.i_masterNull.getShortName()))
-                        return False
-    
-                    module = r9Meta.MetaClass(module)#initialize
-    
-                else:
-                    log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
-                    return False	
-    
-            #Logic checks
-            #==============	
-            if not module.hasAttr('mClass'):
-                log.warning("'%s' lacks an mClass attr"%module.mNode)	    
-                return False
-    
-            elif module.mClass not in cgmModuleTypes:
-                log.warning("'%s' is not a recognized module type"%module.mClass)
-                return False
-    
-            #Connect
-            #==============	
-            else:
-                #if log.getEffectiveLevel() == 10:log.debug("Current children: %s"%self.getMessage('moduleChildren'))
-                #if log.getEffectiveLevel() == 10:log.debug("Adding '%s'!"%module.getShortName())    
-    
-                buffer.append(module.mNode)
-                self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
-                module.modulePuppet = self.mNode
-                #del self.moduleChildren
-                #self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect	    
-                #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
-    
-            #module.parent = self.i_partsGroup.mNode
-            module.doParent(self.masterNull.partsGroup.mNode)
-    
-            return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-
-    def getGeo(self):
-        return pFactory.getGeo(self)
-
-    def getUnifiedGeo(self,*args,**kws):
-        kws['mPuppet'] = self	
-        return pFactory.getUnifiedGeo(*args,**kws)
-
-    def getModuleFromDict(self,*args,**kws):
-        """
-        Pass a check dict of attributes and arguments. If that module is found, it returns it.
-        checkDict = {'moduleType':'torso',etc}
-        """
-        kws['mPuppet'] = self	
-        return pFactory.getModuleFromDict(*args,**kws)
-
-    def getModules(self,*args,**kws):
-        """
-        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
-        """
-        kws['mPuppet'] = self	
-        return pFactory.getModules(*args,**kws)   
-
-    def getOrderedModules(self,*args,**kws):
-        """
-        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
-        """
-        kws['mPuppet'] = self		
-        return pFactory.getOrderedModules(*args,**kws)
-
-    def get_mirrorIndexDict(self,*args,**kws):
-        """
-        """
-        kws['mPuppet'] = self			
-        return pFactory.get_mirrorIndexDict(*args,**kws)
-
-    def state_set(self,*args,**kws):
-        """
-        from cgm.core.rigger import ModuleFactory as mFactory
-        help(mFactory.setState)
-        """
-        kws['mPuppet'] = self	
-        return pFactory.state_set(*args,**kws)
-
-    def get_nextMirrorIndex(self,*args,**kws):
-        """
-        """
-        kws['mPuppet'] = self			
-        return pFactory.get_nextMirrorIndex(*args,**kws) 
-
-    def gatherModules(self,*args,**kws):
-        """
-        Gathers all connected module children to the puppet
-        """
-        kws['mPuppet'] = self
-        return pFactory.gatherModules(*args,**kws)    
-
-    def getState(self,*args,**kws):
-        """
-        Returns puppet state. That is the minimum state of it's modules
-        """
-        kws['mPuppet'] = self	
-        return pFactory.getState(*args,**kws) 
-
-    #>>> Animation
-    #========================================================================
-    def animSetAttr(self,*args,**kws):
-        kws['mPuppet'] = self
-        return pFactory.animSetAttr(*args,**kws) 
-
-        #return pFactory.animSetAttr(self,attr, value, settingsOnly)
-    def controlSettings_setModuleAttrs(self,*args,**kws):
-        kws['mPuppet'] = self
-        return pFactory.controlSettings_setModuleAttrs(*args,**kws)     
-
-    def toggle_subVis(self):
-        try:
-            self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls
-        except:pass
-
-    def anim_key(self,**kws):
-        _str_func = "%s.animKey()"%self.p_nameShort  
-        start = time.clock()
-        b_return = None
-        _l_callSelection = mc.ls(sl=True) or []
-        try:
-            try:buffer = self.puppetSet.getList()
-            except:buffer = []
-            if buffer:
-                mc.select(buffer)
-                mc.setKeyframe(**kws)
-                b_return =  True
-            b_return = False
-            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
-            if _l_callSelection:mc.select(_l_callSelection)                	    
-            return b_return
-        except Exception,error:
-            log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
-            return False
-
-    def mirrorMe(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.mirrorMe(*args,**kws)
-
-    def mirror_do(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.mirror_do(*args,**kws)
-
-    def mirrorSetup_verify(self,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.mirrorSetup_verify(**kws)   
-
-    def anim_reset(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.animReset(*args,**kws)
-
-    def anim_select(self):
-        _str_func = "%s.anim_select()"%self.p_nameShort  
-        start = time.clock()
-        try:self.puppetSet.select()
-        except:pass
-        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
-        return buffer
-
-    def isCustomizable(self):
-        return False 
-
-    def isTemplated(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.isTemplated(*args,**kws)
-
-    def templateSettings_call(self,*args,**kws):
-        '''
-        Call for doing multiple functions with templateSettings.
-
-        :parameters:
-            mode | string
-        reset:reset controls
-        store:store data to modules
-        load:load data from modules
-        query:get current data
-        export:export to a pose file
-        import:import from a  pose file
-            filepath | string/None -- if None specified, user will be prompted
-        '''
-        kws['mPuppet'] = self			
-        return pFactory.templateSettings_call(*args,**kws)
-
-    def isSized(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.isSized(*args,**kws)
-    
-    def isSkeletonized(self,*args,**kws):
-        kws['mPuppet'] = self			
-        return pFactory.isSkeletonized(*args,**kws)
     
     def verify_masterControl(self,**kws):
         """ 
@@ -4814,6 +4518,301 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+class cgmRigPuppetHOLDER(cgmMeta.cgmNode):
+    #=====================================================================================================
+    #=====================================================================================================
+    #>>>OLD STUFF=========================================================================================
+    #=====================================================================================================
+    #=====================================================================================================
+    def atFactory(self, func = 'get_report', *args,**kws):
+        """
+        Function to call a self function by string. For menus and other reasons
+        """
+        try:
+            _str_func = 'cgmRigPuppet.atFactory'
+            log.debug("|{0}| >> ...".format(_str_func))            
+            _short = self.p_nameShort
+            _res = None
+            
+            if not args:
+                _str_args = ''
+                args = [self]
+            else:
+                _str_args = ','.join(str(a) for a in args) + ','
+                args = [self] + [a for a in args]
+            if not kws:
+                kws = {}
+                _kwString = ''  
+            else:
+                _l = []
+                for k,v in kws.iteritems():
+                    _l.append("{0}={1}".format(k,v))
+                _kwString = ','.join(_l)  
+            try:
+                log.debug("|{0}| >> On: {1}".format(_str_func,_short))     
+                log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
+                _res = getattr(pFactory,func)(*args,**kws)
+            except Exception,err:
+                log.error(cgmGEN._str_hardLine)
+                log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+                log.error("Node: {0} | func: {1}".format(_short,func))            
+                if args:
+                    log.error("Args...")
+                    for a in args:
+                        log.error("      {0}".format(a))
+                if kws:
+                    log.error(" KWS...".format(_str_func))
+                    for k,v in kws.iteritems():
+                        log.error("      {0} : {1}".format(k,v))   
+                log.error("Errors...")
+                for a in err.args:
+                    log.error(a)
+                log.error(cgmGEN._str_subLine)
+                raise Exception,err
+            return _res
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+   
+
+    def addModule(self,mClass = 'cgmModule',**kws):
+        """
+        Create and connect a new module
+
+        moduleType(string) - type of module to create
+
+        p = cgmPM.cgmRigPuppet(name='Morpheus')
+        p.addModule(mClass = 'cgmLimb',mType = 'torso')
+        p.addModule(mClass = 'cgmLimb',mType = 'neck', moduleParent = 'spine_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'head', moduleParent = 'neck_part')
+        p.addModule(mClass = 'cgmLimb',mType = 'arm',direction = 'left', moduleParent = 'spine_part')
+        """
+        try:
+            _str_func = "cgmRigPuppet.addModule"
+            log.debug("|{0}| >> ...".format(_str_func))            
+
+            if mClass == 'cgmModule':
+                tmpModule = cgmModule(**kws)   
+            elif mClass == 'cgmLimb':
+                tmpModule = cgmLimb(**kws)
+            else:
+                log.warning("'%s' is not a known module type. Cannot initialize"%mClass)
+                return False
+    
+            self.connectModule(tmpModule)
+            return tmpModule
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    ##@r9General.Timer
+    def connectModule(self,module,force = True,**kws):
+        """
+        Connects a module to a puppet
+
+        module(string)
+        """
+        try:
+            _str_func = "cgmRigPuppet.connectModule"
+            log.debug("|{0}| >> ...".format(_str_func))
+    
+            #See if it's connected
+            #If exists, connect
+            #Get instance
+            #==============	
+            buffer = copy.copy(self.getMessage('moduleChildren')) or []#Buffer till we have have append functionality	
+            #self.i_masterNull = self.masterNull
+    
+            try:
+                module.mNode#see if we have an instance
+                if module.mNode in buffer and force != True:
+                    #log.warning("'%s' already connnected to '%s'"%(module.getShortName(),self.i_masterNull.getShortName()))
+                    return False 	    
+            except:
+                if mc.objExists(module):
+                    if mc.ls(module,long=True)[0] in buffer and force != True:
+                        #log.warning("'%s' already connnected to '%s'"%(module,self.i_masterNull.getShortName()))
+                        return False
+    
+                    module = r9Meta.MetaClass(module)#initialize
+    
+                else:
+                    log.warning("'%s' doesn't exist"%module)#if it doesn't initialize, nothing is there		
+                    return False	
+    
+            #Logic checks
+            #==============	
+            if not module.hasAttr('mClass'):
+                log.warning("'%s' lacks an mClass attr"%module.mNode)	    
+                return False
+    
+            #Connect
+            #==============	
+            else:
+                #if log.getEffectiveLevel() == 10:log.debug("Current children: %s"%self.getMessage('moduleChildren'))
+                #if log.getEffectiveLevel() == 10:log.debug("Adding '%s'!"%module.getShortName())    
+    
+                buffer.append(module.mNode)
+                self.__setMessageAttr__('moduleChildren',buffer) #Going to manually maintaining these so we can use simpleMessage attr  parents
+                module.modulePuppet = self.mNode
+                #del self.moduleChildren
+                #self.connectChildren(buffer,'moduleChildren','modulePuppet',force=force)#Connect	    
+                #module.__setMessageAttr__('modulePuppet',self.mNode)#Connect puppet to 
+    
+            #module.parent = self.i_partsGroup.mNode
+            module.doParent(self.masterNull.partsGroup.mNode)
+    
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
+    def getGeo(self):
+        return pFactory.getGeo(self)
+
+    def getUnifiedGeo(self,*args,**kws):
+        kws['mPuppet'] = self	
+        return pFactory.getUnifiedGeo(*args,**kws)
+
+    def getModuleFromDict(self,*args,**kws):
+        """
+        Pass a check dict of attributes and arguments. If that module is found, it returns it.
+        checkDict = {'moduleType':'torso',etc}
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModuleFromDict(*args,**kws)
+
+    def getModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getModules(*args,**kws)   
+
+    def getOrderedModules(self,*args,**kws):
+        """
+        Returns ordered modules. If you just need modules, they're always accessible via self.moduleChildren
+        """
+        kws['mPuppet'] = self		
+        return pFactory.getOrderedModules(*args,**kws)
+
+    def get_mirrorIndexDict(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_mirrorIndexDict(*args,**kws)
+
+    def state_set(self,*args,**kws):
+        """
+        from cgm.core.rigger import ModuleFactory as mFactory
+        help(mFactory.setState)
+        """
+        kws['mPuppet'] = self	
+        return pFactory.state_set(*args,**kws)
+
+    def get_nextMirrorIndex(self,*args,**kws):
+        """
+        """
+        kws['mPuppet'] = self			
+        return pFactory.get_nextMirrorIndex(*args,**kws) 
+
+    def getState(self,*args,**kws):
+        """
+        Returns puppet state. That is the minimum state of it's modules
+        """
+        kws['mPuppet'] = self	
+        return pFactory.getState(*args,**kws) 
+
+    #>>> Animation
+    #========================================================================
+    def animSetAttr(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.animSetAttr(*args,**kws) 
+
+        #return pFactory.animSetAttr(self,attr, value, settingsOnly)
+    def controlSettings_setModuleAttrs(self,*args,**kws):
+        kws['mPuppet'] = self
+        return pFactory.controlSettings_setModuleAttrs(*args,**kws)     
+
+    def toggle_subVis(self):
+        try:
+            self.masterControl.controlVis.subControls = not self.masterControl.controlVis.subControls
+        except:pass
+
+    def anim_key(self,**kws):
+        _str_func = "%s.animKey()"%self.p_nameShort  
+        start = time.clock()
+        b_return = None
+        _l_callSelection = mc.ls(sl=True) or []
+        try:
+            try:buffer = self.puppetSet.getList()
+            except:buffer = []
+            if buffer:
+                mc.select(buffer)
+                mc.setKeyframe(**kws)
+                b_return =  True
+            b_return = False
+            log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
+            if _l_callSelection:mc.select(_l_callSelection)                	    
+            return b_return
+        except Exception,error:
+            log.error("%s.animKey>> animKey fail | %s"%(self.getBaseName(),error))
+            return False
+
+    def mirrorMe(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorMe(*args,**kws)
+
+    def mirror_do(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirror_do(*args,**kws)
+
+    def mirrorSetup_verify(self,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.mirrorSetup_verify(**kws)   
+
+    def anim_reset(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.animReset(*args,**kws)
+
+    def anim_select(self):
+        _str_func = "%s.anim_select()"%self.p_nameShort  
+        start = time.clock()
+        try:self.puppetSet.select()
+        except:pass
+        log.info("%s >> Complete Time >> %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)     
+        return buffer
+
+    def isCustomizable(self):
+        return False 
+
+    def isTemplated(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isTemplated(*args,**kws)
+
+    def templateSettings_call(self,*args,**kws):
+        '''
+        Call for doing multiple functions with templateSettings.
+
+        :parameters:
+            mode | string
+        reset:reset controls
+        store:store data to modules
+        load:load data from modules
+        query:get current data
+        export:export to a pose file
+        import:import from a  pose file
+            filepath | string/None -- if None specified, user will be prompted
+        '''
+        kws['mPuppet'] = self			
+        return pFactory.templateSettings_call(*args,**kws)
+
+    def isSized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSized(*args,**kws)
+    
+    def isSkeletonized(self,*args,**kws):
+        kws['mPuppet'] = self			
+        return pFactory.isSkeletonized(*args,**kws)
+    
+
 
     def verify_masterControlBAK(self,**kws):
         """ 
@@ -4970,7 +4969,6 @@ class cgmRigMaster(cgmMeta.cgmObject):
                     raise StandardError,"Failed to verify!"	
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
-    @cgmGEN.Timer
     def __verify__(self,*args,**kws):
         try:
             _str_func = 'cgmRigMaster.__verify__'
@@ -5018,7 +5016,6 @@ class cgmRigMaster(cgmMeta.cgmObject):
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
-    ##@r9General.Timer
     def rebuildMasterShapes(self,**kws):
         """
         Rebuild the master control curve
@@ -5202,13 +5199,206 @@ class cgmRigMaster(cgmMeta.cgmObject):
             self.doName()    
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# MODULE Base class
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 
 
+moduleStates = ['define','template','deform','rig']
 
+initLists = []
+initDicts = ['infoNulls','parentTagDict']
+initStores = ['ModuleNull','refState']
+initNones = ['refPrefix','moduleClass']
 
+defaultSettings = {'partType':'none'}
 
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Modules
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+moduleNulls_toMake = ['rig'] #These will be created and connected to a module and parented under them    
 
+rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any module
+                       'gutsLock':'int',
+                       'gutsVis':'int',                       
+                       'dynSwitch':'messageSimple'}
 
+templateNullAttrs_toMake = {'version':'string',
+                            'gutsLock':'int',
+                            'gutsVis':'int',
+                            'controlsVis':'int',
+                            'controlsLock':'int',
+                            'root':'messageSimple',#The module root                            
+                            'handles':'int',                            
+                            'templateStarterData':'string',#this will be a json dict
+                            'controlObjectTemplatePose':'string'}
+
+class cgmRigModule(cgmMeta.cgmObject):
+    def __init__(self,*args,**kws):
+        """ 
+        Intializes an module master class handler
+        Args:
+        node = existing module in scene
+        name = treated as a base name
+
+        Keyword arguments:
+        moduleName(string) -- either base name or the name of an existing module in scene
+        moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
+
+        Naming and template tags. All Default to False
+        position(string) -- position tag
+        direction(string) -- direction
+        directionModifier(string)
+        nameModifier(string)
+        forceNew(bool) --whether to force the creation of another if the object exists
+        """
+        
+        try:    
+            super(cgmRigModule, self).__init__(*args,**kws)
+            
+            _str_func = ' cgmRigModule.__init__ [{0}]'.format(self)
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)        
+            
+            #====================================================================================	
+            #>>> TO USE Cached instance ---------------------------------------------------------
+            if self.cached:
+                log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+                return
+            #====================================================================================
+
+            doVerify = kws.get('doVerify') or False
+            if self.__justCreatedState__ or doVerify:
+                if not self.__verify__(*args,**kws):
+                    raise StandardError,"Failed to verify!"
+                
+        except Exception,err:cgmGEN.cgmException(Exception,err)        
+        
+    def atUtils(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
+
+    def __verify__(self,**kws):
+        """"""
+        """ 
+        Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
+
+        RETURNS:
+        success(bool)
+        """
+        try:
+            _str_func = ' cgmModule.__verify__ '.format(self)
+            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)        
+            
+            self.addAttr('mClass', initialValue='cgmModule',lock=True) 
+            self.addAttr('cgmType',value = 'module',lock=True)
+            
+            if not kws.get('rigBlock'):
+                if kws.get('name'):#If we have a name, store it
+                    self.addAttr('cgmName',kws.get('name'),attrType='string',lock=True)
+                elif kws.get('mType'):
+                    self.addAttr('cgmName',kws['mType'],attrType='string',lock=True)	    
+    
+            if self.getMayaAttr('cgmType') != 'module':
+                raise ValueError,"not a module: {0}".format(self)
+            
+            #kws
+            #-------------------------------------------------------------------
+            for k in ['position','direction','directionModifier','nameModifier']:
+                if kws.get(k):
+                    log.debug("|{0}| >> kw key: {1}".format(_str_func,k))                            
+                    self.addAttr('cgm'+k.capitalize(),value = kws.get(k),lock = True)
+
+            #rigBlock
+            #--------------------------------------------------------------------------------
+            
+            if kws.get('rigBlock'):
+                mRigBlock = cgmMeta.validateObjArg(kws.get('rigBlock'),'cgmRigBlock')
+                if mRigBlock:
+                    log.debug("|{0}| >> rigBlock on call: {1}".format(_str_func,mRigBlock))
+                    ATTR.set_message(mRigBlock.mNode, 'moduleTarget', self.mNode,simple = True)
+                    ATTR.set_message(self.mNode, 'rigBlock', mRigBlock.mNode,simple = True)
+                    
+            mRigBlock = self.getMessage('rigBlock',asMeta=True)
+            if mRigBlock:
+                mRigBlock = mRigBlock[0]
+                _name = mRigBlock.blockType
+                if mRigBlock.getMayaAttr('cgmName'):
+                    _name = mRigBlock.cgmName
+                self.addAttr('cgmName',value = _name, lock = True)
+                _side = mRigBlock.atUtils('get_side')
+                
+                if _side != 'center':
+                    log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))                                    
+                    self.addAttr('cgmDirection',value = _side,lock = True)
+                
+            self.doName()  
+            
+            #Attributes
+            #--------------------------------------------------------------------------------
+            self.addAttr('moduleType',initialValue = 'base',lock=True)
+    
+            self.addAttr('moduleParent',attrType='messageSimple')#Changed to message for now till Mark decides if we can use single
+            self.addAttr('modulePuppet',attrType='messageSimple')
+            self.addAttr('moduleChildren',attrType='message')
+    
+            #stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
+            #self.addAttr('moduleStates',attrType = 'string', initialValue=stateDict, lock = True)
+    
+            self.addAttr('rigNull',attrType='messageSimple',lock=True)
+            self.addAttr('deformNull',attrType='messageSimple',lock=True)	
+    
+
+            #Groups
+            #--------------------------------------------------------------------------------
+            for attr in moduleNulls_toMake:
+                mGrp = self.getMessage(attr+'Null')
+                if not mGrp:
+                    mGrp = cgmMeta.cgmObject(name=attr)
+                    mGrp.connectParentNode(self.mNode,'module', attr+'Null')
+                    mGrp.addAttr('cgmType',attr+'Null',lock=True)
+                else:
+                    mGrp = mGrp[0]
+                    
+                log.debug("|{0}| >> {1} group: {2}".format(_str_func,attr,mGrp))                            
+                
+                mGrp.parent = self
+                mGrp.doName()
+                
+                mGrp.setAttrFlags()
+                #attributes.doSetLockHideKeyableAttr( self.__dict__[Attr].mNode )
+                
+            mRigNull = self.rigNull
+
+            #Attrbute checking
+            #--------------------------------------------------------------------------------
+            for a,t in rigNullAttrs_toMake.iteritems():
+                mRigNull.addAttr(a,attrType=t)
+            #self.__verifyAttributesOn__(self.i_rigNull,rigNullAttrs_toMake)
+            #self.__verifyAttributesOn__(self.i_templateNull,templateNullAttrs_toMake)
+    
+            #Set Module Parent if we have that kw
+            #=================		
+            if kws.get('moduleParent'):
+                _target = kws.get('moduleParent')
+                log.debug("|{0}| >> moduleParent: {1}".format(_str_func,_target))                            
+                raise NotImplemented,'Not finished moduleParent on call yet...'
+                self.doSetParentModule(self.kw_moduleParent)
+ 
+            return True
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    def get_allModuleChildren(self,*args,**kws):
+        return self.atUtils('moduleChildren_get',*args,**kws)
+    def get_partNameBase(self,*args,**kws):
+        return self.atUtils('get_partName',*args,**kws)
+    def verify_objectSet(self,*args,**kws):
+        return self.atUtils('verify_objectSet',*args,**kws)    
+    def get_mirrorSideAsString(self,*args,**kws):
+        return self.atUtils('mirror_getSideString',*args,**kws)
+    def rig_getSkinJoints(self,asMeta=True):
+        return self.atUtils('rig_getSkinJoints',asMeta)    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    

@@ -2088,3 +2088,61 @@ def controlsRig_reset(self):
         self.moduleTarget.rigNull.moduleSet.reset()
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+_d_attrStateMasks = {0:[],
+                     1:['basicShape'],
+                     2:['baseSizeX','baseSizeY','baseSizeZ','blockScale','proxyShape','shapeDirection'],
+                     3:['hasJoint','side','position','attachPoint']}
+def uiQuery_getStateAttrs(self,mode = None):
+
+    try:
+        _str_func = ' uiQuery_getStateAttrs'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        _short = self.mNode
+        
+        if mode is None:
+            _intState = self.getState(False)
+        else:
+            _intState = mode
+        log.debug("|{0}| >> state: {1}".format(_str_func,_intState))
+            
+        #First pass...
+        l_attrs = []
+        for a in self.getAttrs(ud=True):
+            _type = ATTR.get_type(_short,a)
+            if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
+                l_attrs.append(a)
+            elif _type in ['string'] and '_' in a and not a.endswith('dict'):
+                l_attrs.append(a)
+            #elif a in ['puppetName','cgmName']:
+            #    _l_attrs.append(a)
+        
+        for a in ['visibility','blockScale']:
+            if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
+                l_attrs.append(unicode(a))
+                
+        for a in ['baseSize']:
+            if a in l_attrs:
+                l_attrs.remove(a)
+            
+        if _intState > 1:#prerig up
+            l_mask = []
+            log.debug("|{0}| >> prerig up cull...".format(_str_func))            
+            for a in l_attrs:
+                if not a.startswith('add'):
+                    l_mask.append(a)
+            l_attrs = l_mask
+            
+        for i in range(0,_intState):
+            l_mask = _d_attrStateMasks[i+1]
+            log.debug("|{0}| >> {1} mask: {2}".format(_str_func,i,l_mask))                        
+            for a in l_mask:
+                if a in l_attrs:
+                    l_attrs.remove(a)
+                    
+        l_attrs.sort()
+        return l_attrs
+
+     
+    except Exception,err:cgmGEN.cgmException(Exception,err)

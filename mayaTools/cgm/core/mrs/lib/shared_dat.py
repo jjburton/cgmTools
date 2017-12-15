@@ -47,7 +47,11 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'moduleTarget':'messageSimple',
                    'proxyType':'none:castMesh'}
 
-
+#>> State Attr Masks =================================================================================
+_l_attrMask_all = ['visibility']
+_l_attrMask_template = ['baseSize','blockScale']
+_l_attrMask_prerig = []
+_l_attrMask_rig = []
 
 #>> Modules data =================================================================================
 __l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']

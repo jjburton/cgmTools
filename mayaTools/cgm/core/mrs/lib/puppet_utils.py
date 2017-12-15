@@ -57,32 +57,78 @@ import cgm.core.lib.transform_utils as TRANS
 def example(self):
     try:
         _short = self.p_nameShort
-        _str_func = ' example [{0}]'.format(self)
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        _str_func = ' example'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def modules_get(self):
     try:
-        _str_func = ' modules_get [{0}]'.format(self)
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        _str_func = ' modules_get'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
-        try:ml_initialModules = self._mi_puppet.moduleChildren
+        try:ml_initialModules = self.moduleChildren
         except:ml_initialModules = []
         
         int_lenModules = len(ml_initialModules)  
     
         ml_allModules = copy.copy(ml_initialModules)
         for i,m in enumerate(ml_initialModules):
+            log.debug("|{0}| >> checking: {1}".format(_str_func,m))
             _str_module = m.p_nameShort
-            self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)
-            #for m in m.get_allModuleChildren():
-                #if m not in ml_allModules:
-                    #ml_allModules.append(m)
-        #self.i_modules = ml_allModules
+            for m in m.get_allModuleChildren():
+                if m not in ml_allModules:
+                    ml_allModules.append(m)
+                    
         return ml_allModules        
      
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def modules_gather(self,**kws):
+    try:
+        _short = self.p_nameShort
+        _str_func = ' modules_gather'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        ml_modules = modules_get(self)
+        int_lenModules = len(ml_modules)
+    
+        for i,mModule in enumerate(ml_modules):
+            _str_module = mModule.p_nameShort
+            module_connect(self,mModule,**kws)
+        return ml_modules
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def module_connect(self,mModule,**kws):
+    try:
+        _short = self.p_nameShort
+        _str_func = ' module_connect'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        ml_buffer = copy.copy(self.getMessage('moduleChildren',asMeta=True)) or []#Buffer till we have have append functionality	
+            #self.i_masterNull = self.masterNull
+        
+
+        mModule = cgmMeta.validateObjArg(mModule,'cgmRigModule')
+
+
+        if mModule not in ml_buffer:
+            ml_buffer.append(mModule)
+            self.__setMessageAttr__('moduleChildren',[mObj.mNode for mObj in ml_buffer]) #Going to manually maintaining these so we can use simpleMessage attr  parents
+        
+        mModule.modulePuppet = self.mNode
+
+        mModule.parent = self.masterNull.partsGroup.mNode
+    
+        if mModule.getMessage('moduleMirror'):
+            log.debug("|{0}| >> moduleMirror found. connecting...".format(_str_func))
+            module_connect(self,mi_module.moduleMirror)        
+    
+        return True        
+       
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+
     
     
 #=============================================================================================================
@@ -90,19 +136,18 @@ def modules_get(self):
 #=============================================================================================================
 def mirror_getNextIndex(self,side):
     try:
-        _str_func = ' mirror_getNextIndex [{0}]'.format(self)
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        _str_func = ' mirror_getNextIndex'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
         l_return = []
         ml_modules = modules_get(self)
         int_lenModules = len(ml_modules)
-        
+        str_side = cgmGEN.verify_mirrorSideArg(side)
         for i,mModule in enumerate(ml_modules):
             #self.log_info("Checking: '%s'"%mModule.p_nameShort)
             _str_module = mModule.p_nameShort
-            if mModule.get_mirrorSideAsString() == self.str_side :
+            if mModule.get_mirrorSideAsString() == str_side :
                 #self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		    				    
-                #self.log_info("Match Side '%s' >> '%s'"%(self.str_side,_str_module))		    
                 try:mi_moduleSet = mModule.rigNull.moduleSet.getMetaList()
                 except:mi_moduleSet = []
                 for mObj in mi_moduleSet:
@@ -115,5 +160,37 @@ def mirror_getNextIndex(self,side):
         if l_return:
             return max(l_return)+1
         else:return 0        
+     
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def mirror_getDict(self):
+    try:
+        _str_func = ' mirror_getDict'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        d_return = {}
+        ml_modules = modules_get(self)
+        int_lenModules = len(ml_modules)
+    
+        for i,mModule in enumerate(ml_modules):
+            _str_module = mModule.p_nameShort
+            try:mi_moduleSet = mModule.rigNull.moduleSet.getMetaList()
+            except:mi_moduleSet = []
+            for mObj in mi_moduleSet:
+    
+                if mObj.hasAttr('mirrorSide') and mObj.hasAttr('mirrorIndex'):
+                    int_side = mObj.getAttr('mirrorSide')
+                    int_idx = mObj.getAttr('mirrorIndex')
+                    str_side = mObj.getEnumValueString('mirrorSide')
+    
+                    if not d_return.get(int_side):
+                        d_return[int_side] = []
+    
+                    if int_idx in d_return[int_side]:
+                        pass
+                        #self.log_debug("%s mModule: %s | side: %s | idx :%s already stored"%(self._str_reportStart,_str_module, str_side,int_idx))
+                    else:
+                        d_return[int_side].append(int_idx)
+        return d_return
      
     except Exception,err:cgmGEN.cgmException(Exception,err)

@@ -872,28 +872,30 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
 
 
 def joints_connectToParent(self):
-    _start = time.clock()    
-    _str_func = 'joints_connectToParent'
-        
-    mRigNull = self.mRigNull
-    mMasterControl = self.d_module.get('mMasterControl',False)
-    mMasterNull = self.d_module.get('mMasterNull',False)
-    mSkeletonGroup = mMasterNull.skeletonGroup
-    mModuleParent = self.d_module.get('mModuleParent',False)
-
-    ml_joints = mRigNull.msgList_get('moduleJoints')
-    if not ml_joints:
-        raise ValueError,"|{0}| >> No moduleJoints found".format(_str_func)
+    try:
+        _start = time.clock()    
+        _str_func = 'joints_connectToParent'
+            
+        mRigNull = self.mRigNull
+        mMasterControl = self.d_module.get('mMasterControl',False)
+        mMasterNull = self.d_module.get('mMasterNull',False)
+        mSkeletonGroup = mMasterNull.skeletonGroup
+        mModuleParent = self.d_module.get('mModuleParent',False)
     
-    if mModuleParent:
-        log.debug("|{0}| >> ModuleParent setup...".format(_str_func))
+        ml_joints = mRigNull.msgList_get('moduleJoints')
+        if not ml_joints:
+            raise ValueError,"|{0}| >> No moduleJoints found".format(_str_func)
         
-    else:
-        log.debug("|{0}| >> Root Mode...".format(_str_func))        
-        ml_joints[0].p_parent = mSkeletonGroup
+        if mModuleParent:
+            log.debug("|{0}| >> ModuleParent setup...".format(_str_func))
+            
+        else:
+            log.debug("|{0}| >> Root Mode...".format(_str_func))        
+            ml_joints[0].p_parent = mSkeletonGroup
+            
         
-    
-    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
+        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 
 
 

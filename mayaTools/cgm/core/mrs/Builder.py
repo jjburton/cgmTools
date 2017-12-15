@@ -54,12 +54,12 @@ from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.toolbox as TOOLBOX
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+
 _d_blockTypes = {}
 
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# Factory
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+# Factory 
 #=====================================================================================================
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -654,7 +654,7 @@ class ui(cgmUI.cgmGUI):
                 return"""
             
             _idx_current = None
-            if self._blockCurrent and self._blockCurrent.mNode:
+            if self._blockCurrent and self._blockCurrent.mNode and self._blockCurrent in _ml:
                 _idx_current = _ml.index(self._blockCurrent)
     
             log.debug("|{0}| >> Current: {1}".format(_str_func, _idx_current))    
@@ -767,25 +767,9 @@ class ui(cgmUI.cgmGUI):
         
         
         _short = self._blockCurrent.p_nameShort
+        _intState = self._blockCurrent.getState(False)
         
-        _l_attrs = []
-        for a in self._blockCurrent.getAttrs():
-            try:
-                _type = ATTR.get_type(_short,a)
-                if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
-                    if a not in ['translateX','translateY','translateZ',
-                                 'rotateX','rotateY','rotateZ','baseSize',
-                                 'scaleX','scaleY','scaleZ']:
-                        _l_attrs.append(a)
-                        """if ATTR.get_type(_short,a) == 'enum':
-                                mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                    
-                            else:
-                                mUI.MelLabel(self.uiFrame_blockSettings,l="{0}:{1}".format(a,ATTR.get(_short,a)))"""        
-                elif _type in ['string'] and '_' in a and not a.endswith('dict'):
-                    _l_attrs.append(a)
-                #elif a in ['puppetName','cgmName']:
-                #    _l_attrs.append(a)
-            except: pass
+        _l_attrs = self._blockCurrent.atUtils('uiQuery_getStateAttrs',_intState)
     
         _sidePadding = 25
         self._d_attrFields = {}
