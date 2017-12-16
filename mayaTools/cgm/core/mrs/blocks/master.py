@@ -267,6 +267,8 @@ def rig_cleanUp(self):
             mControl.masterGroup.parent = mPuppet.masterNull.deformGroup
             
             mMasterControl.controlVis.addAttr('rootMotionControl',value = True, keyable=False)
+            mMasterControl.rootMotionControl = 0
+            
             mControl.doConnectIn('v',"{0}.rootMotionControl".format( mMasterControl.controlVis.mNode))
             ATTR.set_standardFlags(mControl.mNode,['v'])
             
@@ -302,7 +304,7 @@ def rig_cleanUp(self):
             #ml_controlsAll = mBlock.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
             #mRigNull.msgList_connect('controlsAll',ml_controlsAll)
             #mRigNull.moduleSet.extend(ml_controlsAll)        
-        mBlock.template = 1    
+        mBlock.v = 0
         
         
         

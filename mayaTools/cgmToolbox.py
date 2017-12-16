@@ -740,7 +740,7 @@ uiByTab = TOOLBOX.uiByTab
 
 def callUI():
     reload(TOOLBOX)
-    TOOLBOX.ui()
+    ui()
     
 class ui(TOOLBOX.ui):
     def buildMenu_first(self):
@@ -754,7 +754,7 @@ class ui(TOOLBOX.ui):
         try:
             installer = AutoStartInstaller()
             mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Auto-Load On Maya Start", cb=installer.isInstalled(), c=lambda *a: AutoStartInstaller().install() )
-        except:
+        except Exception,err:
             log.warning("Not loaded from cgmToolbox. No autoinstaller options")
             
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )

@@ -70,7 +70,9 @@ def get_sideMirror(self):
 def set_nameTag(self,nameTag = None):
     try:
         _short = self.p_nameShort
-        _str_func = '[{0}] setName'.format(_short)
+        _str_func = 'set_nameTag'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
         
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         
@@ -96,24 +98,58 @@ def set_nameTag(self,nameTag = None):
         self.doName()
             
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def set_side(self,side=None):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'set_side'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        if side is None:
+            side = 0
+        try:
+            ATTR.set(_short,'side',side)
+        except Exception,err:
+            log.error("|{0}| >> Failed to change attr. | err: {1}".format(_str_func,err))            
+            return False
+        color(self)
+        
+        ml_objs = get_blockDagNodes(self)
+        for mObj in ml_objs:
+            mObj.doName()
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def set_position(self,position=None):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'set_position'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        if position is None:
+            position = 0
+        try:
+            ATTR.set(_short,'position',position)
+        except Exception,err:
+            log.error("|{0}| >> Failed to change attr. | err: {1}".format(_str_func,err))            
+            return False
+        
+        ml_objs = get_blockDagNodes(self)
+        for mObj in ml_objs:
+            mObj.doName()
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def color(self):
     try:
         _short = self.p_nameShort
-        _str_func = '[{0}] color'.format(_short)
-        
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        _str_func = 'color'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
         _side = get_side(self)
         log.debug("|{0}| >> side: {1}".format(_str_func,_side))
         
         mHandleFactory = self.asHandleFactory(self.mNode)
         
-        ml_controls = controls_get(self)
-        
-        for a in ['proxyHelper']:
-            if self.getMessage(a):
-                ml_controls.extend(self.getMessage(a,asMeta=True))
+        ml_controls = get_blockDagNodes(self)
         
         for mHandle in ml_controls:
             for mShape in mHandle.getShapes(asMeta=True):
@@ -122,8 +158,6 @@ def color(self):
                 elif mShape.overrideEnabled:
                     log.debug("|{0}| >> shape: {1}".format(_str_func,mShape))
                     mHandleFactory.color(mShape.mNode)
-                    
-       
             
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
@@ -141,7 +175,8 @@ def get_infoBlock_report(self):
     """
     try:
         _str_func = 'get_infoBlock_report'
-    
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
         _short = self.p_nameShort
         mBlockModule = self.p_blockModule
         
@@ -190,8 +225,9 @@ def is_template(self):
 
 def templateDelete(self,msgLinks = []):
     try:
-        _str_func = 'templateDelete'    
-        log.info("|{0}| >> ...".format(_str_func))                            
+        _str_func = 'templateDelete'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
         for link in msgLinks:
             if self.getMessage(link):
                 log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
@@ -218,7 +254,8 @@ def templateNull_verify(self):
 def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTemplateNull = None,
                             uAttr = 'neckControls',baseName = 'test'):
     try:
-        _str_func = 'create_templateLoft'
+        _str_func = 'create_templateLoftMesh'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -323,7 +360,8 @@ def prerigNull_verify(self):
         cgmGEN.cgmException(Exception,err)
         
 def prerig_simple(self):
-    _str_func = 'prerig'
+    _str_func = 'prerig_simple'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     _short = self.p_nameShort
     _size = self.baseSize
@@ -345,7 +383,9 @@ def prerig_simple(self):
 
 def prerig_delete(self ,msgLists = [], templateHandles = True):
     try:
-        _str_func = 'prerig_delete'    
+        _str_func = 'prerig_delete'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
         self.moduleTarget.delete()
         self.prerigNull.delete()
         if self.getMessage('noTransformNull'):
@@ -369,6 +409,8 @@ def prerig_delete(self ,msgLists = [], templateHandles = True):
 def is_prerig(self, msgLinks = [], msgLists = [] ):
     try:
         _str_func = 'is_prerig'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
         _l_missing = []
     
         _d_links = {self : ['moduleTarget','prerigNull']}
@@ -395,7 +437,8 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                           polyType = 'mesh',
                           baseName = 'test'):
     try:
-        _str_func = 'create_preRigLoftMesh'
+        _str_func = 'create_prerigLoftMesh'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -477,6 +520,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
     _str_func = 'create_jointLoft'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -544,7 +588,8 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
 def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
-    _str_func = 'create_jointLoft'
+    _str_func = 'create_jointLoftBAK'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -614,7 +659,8 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
         dict
     """
     _short = self.mNode
-    _str_func = 'pivots_buildShapes ( {0} )'.format(_short)
+    _str_func = 'pivots_buildShapes'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     if mRigNull is None:
         mRigNull = self.moduleTarget.rigNull
@@ -655,7 +701,8 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         dict
     """
     _short = self.mNode
-    _str_func = 'pivots_setup ( {0} )'.format(_short)
+    _str_func = 'pivots_setup'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     _start = time.clock()
     
@@ -969,7 +1016,9 @@ def skeleton_getCreateDict(self, count = None):
         dict
     """
     _short = self.mNode
-    _str_func = 'get_skeletonCreateDict ( {0} )'.format(_short)
+    _str_func = 'skeleton_getCreateDict'
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
     mModule = self.moduleTarget    
 
     _mod = self.getBlockModule()
@@ -1914,6 +1963,20 @@ def blockDat_load(self, blockDat = None, mirror=False, reflectionVector = MATH.V
 #=============================================================================================================
 #>> Controls query
 #=============================================================================================================
+def get_blockDagNodes(self,):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'get_blockDagNodes'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        ml_controls = controls_get(self)
+                
+        for a in ['proxyHelper']:
+            if self.getMessage(a):
+                ml_controls.extend(self.getMessage(a,asMeta=True))        
+        return ml_controls
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
 def controls_get(self,template = True, prerig= True):
     try:
         
@@ -2097,7 +2160,7 @@ _d_attrStateMasks = {0:[],
 def uiQuery_getStateAttrs(self,mode = None):
 
     try:
-        _str_func = ' uiQuery_getStateAttrs'.format(self)
+        _str_func = ' uiQuery_getStateAttrs'
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         _short = self.mNode
         
@@ -2122,7 +2185,7 @@ def uiQuery_getStateAttrs(self,mode = None):
             if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
                 l_attrs.append(unicode(a))
                 
-        for a in ['baseSize']:
+        for a in ['baseSize','side']:
             if a in l_attrs:
                 l_attrs.remove(a)
             

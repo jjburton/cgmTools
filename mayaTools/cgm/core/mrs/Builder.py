@@ -487,11 +487,33 @@ class ui(cgmUI.cgmGUI):
                         ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
                         c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
         
+        #...side ----------------------------------------------------------------------------------------
+        sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
+                                   label = 'Set side')
+        
+        for i,side in enumerate(['None','left','right','center']):
+            mUI.MelMenuItem(sub_side,
+                            label = side,
+                            ann = 'Specify the side for the current block to : {0}'.format(side),
+                            c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',i))
+        #...position ------------------------------------------------------------------------------------------
+        #none:upper:lower:front:back:top:bottom
+        sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
+                                       label = 'Set position')
+        for i,position in enumerate(['None','upper','lower','front','back','top','bottom']):
+            mUI.MelMenuItem(sub_position,
+                            label = position,
+                            ann = 'Specify the position for the current block to : {0}'.format(position),
+                            c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',i))
+        
+        
         mUI.MelMenuItem(_popUp,
                         label = "Recolor",
                         en=True,
                         ann = '[{0}] Recolor the block'.format(_short),                        
                         c=cgmGEN.Callback(_mBlock.atBlockUtils,'color'))
+        
+        
         
         mUI.MelMenuItem(_popUp,
                         label = "Verify",
@@ -1272,3 +1294,5 @@ class uiCallback_withUpdate(object):
             self._ui.uiFunc_block_setActive()
         else:
             self._ui.uiUpdate_building()
+        self._ui.uiUpdate_building()
+        

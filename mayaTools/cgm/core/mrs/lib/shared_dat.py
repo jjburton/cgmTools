@@ -20,7 +20,7 @@ _l_requiredModuleDat = ['__version__',
 
 #These are our default attrs to make library. To be called via modules
 _d_attrsTo_make = {'side':'none:left:right:center',
-                   'position':'none:front:back:upper:lower:forward',
+                   'position':'none:upper:lower:front:back:top:bottom',
                    'basicShape':'circle:square:pyramid:semiSphere:sphere:cube',
                    'proxyShape':'cube:sphere:cylinder:cone:torus',
                    'attachPoint':'base:end:closest:surface',

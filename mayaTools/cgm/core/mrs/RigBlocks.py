@@ -4410,6 +4410,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             if not mMasterControl:
                 mMasterControl = cgmRigMaster(puppet = self,**kws)#Create and initialize
                 mMasterControl.__verify__()
+                if self.getMessage('rigBlock'):
+                    SNAP.go(mMasterControl.mNode, self.rigBlock.mNode)
             mMasterControl.parent = mMasterNull.mNode
             #mMasterControl.doName()
             
@@ -5129,12 +5131,6 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 
                 mHelper.p_position = pos
                 mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
-                
-
-                
-
-                
-                
 
             return True
         
