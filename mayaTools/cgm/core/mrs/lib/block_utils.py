@@ -200,7 +200,7 @@ def get_infoBlock_report(self):
 #=============================================================================================================
 #>> Utilities
 #=============================================================================================================
-def get_blockGroup(self):
+def get_blockGroup():
     if not mc.objExists('cgmBlocksGroup'):
         mGroup = cgmMeta.cgmObject(name = 'cgmBlocksGroup')
     else: 
@@ -228,7 +228,7 @@ def templateDelete(self,msgLinks = []):
         _str_func = 'templateDelete'
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
-        for link in msgLinks:
+        for link in msgLinks + ['templateNull']:
             if self.getMessage(link):
                 log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
                 mc.delete(self.getMessage(link))
@@ -351,7 +351,7 @@ def prerigNull_verify(self):
             mPrerigNull.doStore('cgmType','prerigNull')
             mPrerigNull.doName()
             mPrerigNull.p_parent = self
-            mPrerigNull.setAttrFlags()
+            #mPrerigNull.setAttrFlags()
         else:
             mPrerigNull = self.prerigNull    
             
@@ -645,6 +645,62 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
 #=============================================================================================================
 #>> Rig
 #=============================================================================================================
+def rigDelete(self,msgLinks = []):
+    try:
+        _str_func = 'rigDelete'
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        
+        if self.isReferenced():
+            raise ValueError,"Referenced node."
+        
+        _str_state = self.blockState
+    
+        if self.blockState != 'rig':
+            raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
+    
+        self.blockState = 'rig>prerig'        
+    
+        mModuleTarget = self.moduleTarget
+        if mModuleTarget:
+            log.debug("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))            
+            if mModuleTarget.mClass ==  'cgmRigModule':
+                #Deform null
+                _deformNull = mModuleTarget.getMessage('deformNull')
+                if _deformNull:
+                    log.debug("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))                                
+                    mc.delete(_deformNull)
+                #ModuleSet
+                _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
+                if _objectSet:
+                    log.debug("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))                                
+                    mc.delete(_deformNull)                
+                #Module                
+            elif mModuleTarget.mClass == 'cgmRigPuppet':
+                pass
+            else:
+                log.error("|{0}| >> Unknown mClass moduleTarget: {1}".format(_str_func,mModuleTarget))            
+    
+    
+    
+        if 'rigDelete' in _mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))            
+            _mBlockModule.rigDelete(self)        
+    
+    
+        self.blockState = 'prerig'
+        
+        
+        for link in msgLinks + ['rigNull']:
+            if self.getMessage(link):
+                log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
+                mc.delete(self.getMessage(link))
+                
+        return True
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+
 l_pivotOrder = ['center','back','front','left','right']
 
 def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
@@ -1191,7 +1247,7 @@ def skeleton_connectToParent(self):
         ml_parentBlocks = self.getBlockParents()
         
         if ml_parentBlocks:
-            if ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
+            if ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].getMessage('moduleTarget') and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
                 log.info("|{0}| >> Root joint on master found".format(_str_func))           
                 TRANS.parent_set(l_moduleJoints[0], ml_parentBlocks[0].moduleTarget.getMessage('rootJoint')[0])
                 return True

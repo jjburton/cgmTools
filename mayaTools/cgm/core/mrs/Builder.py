@@ -1062,13 +1062,13 @@ class ui(cgmUI.cgmGUI):
         CGMUI.add_Button(_row_push,'Define>',
                          cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','define',**{}))
         CGMUI.add_Button(_row_push,'<Template>',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','template',**{}))
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','template',**{'forceNew':True}))
                          
         CGMUI.add_Button(_row_push,'<PreRig>',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','prerig',**{}))
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','prerig',**{'forceNew':True}))
 
         CGMUI.add_Button(_row_push,'<Rig',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','rig',**{}))
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','rig',**{'forceNew':True}))
 
         _row_push.layout()
                

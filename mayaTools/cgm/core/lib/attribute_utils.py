@@ -1284,55 +1284,56 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
     :returns
         combined name
     """ 
-    _str_func = 'add'
+    try:
+        _str_func = 'add'
+        
+        if '.' in obj or issubclass(type(obj),dict):
+            _d = validate_arg(obj)
+            attrType = attr
+        else:
+            _d = validate_arg(obj,attr)     
+        
+        _combined = _d['combined']
+        _node = _d['node']
+        _attr = _d['attr']
+        if mc.objExists(_combined):
+            raise ValueError,"{0} already exists.".format(_combined)
     
-    if '.' in obj or issubclass(type(obj),dict):
-        _d = validate_arg(obj)
-        attrType = attr
-    else:
-        _d = validate_arg(obj,attr)     
+        _type = validate_attrTypeName(attrType)
     
-    _combined = _d['combined']
-    _node = _d['node']
-    _attr = _d['attr']
-    if mc.objExists(_combined):
-        raise ValueError,"{0} already exists.".format(_combined)
-
-    _type = validate_attrTypeName(attrType)
-
-    assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
-
-    if _type == 'string':
-        mc.addAttr (_node, ln = _attr, dt = 'string',*a, **kws)
-    elif _type == 'double':
-        mc.addAttr (_node, ln = _attr, at = 'float',*a, **kws)
-    elif _type == 'long':
-        mc.addAttr (_node, ln = _attr, at = 'long',*a, **kws)
-    elif _type == 'double3':
-        mc.addAttr (_node, ln=_attr, at= 'double3',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'double',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'double',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'double',*a, **kws)        
-    elif _type == 'enum':
-        if type(enumOptions) in [list,tuple]:
-            enumOptions = '%s' %(':'.join(enumOptions))
-        mc.addAttr (_node,ln = _attr, at = 'enum', en=enumOptions,*a, **kws)
-        mc.setAttr ((_node+'.'+_attr),e=True,keyable=True)
-    elif _type == 'bool':
-        mc.addAttr (_node, ln = _attr,  at = 'bool',*a, **kws)
-        mc.setAttr ((_node+'.'+_attr), edit = True, channelBox = True)
-    elif _type == 'message':
-        mc.addAttr (_node, ln = _attr, at = 'message',*a, **kws )
-    elif _type == 'float3':
-        mc.addAttr (_node, ln=_attr, at= 'float3',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'float',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'float',*a, **kws)
-        mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'float',*a, **kws)        
-    else:
-        raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
-        #return False
-    return _combined        
-
+        assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
+    
+        if _type == 'string':
+            mc.addAttr (_node, ln = _attr, dt = 'string',*a, **kws)
+        elif _type == 'double':
+            mc.addAttr (_node, ln = _attr, at = 'float',*a, **kws)
+        elif _type == 'long':
+            mc.addAttr (_node, ln = _attr, at = 'long',*a, **kws)
+        elif _type == 'double3':
+            mc.addAttr (_node, ln=_attr, at= 'double3',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'double',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'double',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'double',*a, **kws)        
+        elif _type == 'enum':
+            if type(enumOptions) in [list,tuple]:
+                enumOptions = '%s' %(':'.join(enumOptions))
+            mc.addAttr (_node,ln = _attr, at = 'enum', en=enumOptions,*a, **kws)
+            mc.setAttr ((_node+'.'+_attr),e=True,keyable=True)
+        elif _type == 'bool':
+            mc.addAttr (_node, ln = _attr,  at = 'bool',*a, **kws)
+            mc.setAttr ((_node+'.'+_attr), edit = True, channelBox = True)
+        elif _type == 'message':
+            mc.addAttr (_node, ln = _attr, at = 'message',*a, **kws )
+        elif _type == 'float3':
+            mc.addAttr (_node, ln=_attr, at= 'float3',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'X'),p=_attr , at= 'float',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'Y'),p=_attr , at= 'float',*a, **kws)
+            mc.addAttr (_node, ln=(_attr+'Z'),p=_attr , at= 'float',*a, **kws)        
+        else:
+            raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
+            #return False
+        return _combined        
+    except Exception,err:cgmGeneral.cgmException(Exception,err)
 def get_standardFlagsDict(*a):
     """   
     Returns a diciontary of locked,keyable,locked states of an attribute. If

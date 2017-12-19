@@ -128,13 +128,19 @@ def template(self):
         _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
                                           direction = _shapeDirection,
                                           sizeMode = 'fixed', size = _size)
-        CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+        
+        mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+        mHandle.p_parent = mTemplateNull
+        #CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+        mHandle.doStore('cgmName',self.mNode)
+        mHandle.doStore('cgmType','handle')
+        mHandle.doName()
         
         _side = 'center'
         if self.getMayaAttr('side'):
             _side = self.getEnumValueString('side')
             
-        CORERIG.colorControl(self.mNode,_side,'main',transparent = False) 
+        CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = False) 
         
         #Proxy geo ==================================================================================
         attr = 'proxy'
@@ -143,7 +149,7 @@ def template(self):
         NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
         
         mProxy = mHandleFactory.addProxyHelper(shapeDirection = _shapeDirection)
-        mProxy.p_parent = mTemplateNull
+        mProxy.p_parent = mHandle
         
         mProxy.overrideEnabled = 1
         ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mProxy.mNode) )
@@ -153,9 +159,7 @@ def template(self):
             mShape.overrideEnabled = 0
             ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
             
-        self.msgList_connect('templateHandles',[self.mNode])
-
-        return True
+        self.msgList_connect('templateHandles',[mHandle.mNode])
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
@@ -163,7 +167,7 @@ def templateDelete(self):
     return BLOCKUTILS.templateDelete(self)
 
 def is_template(self):
-    if self.getShapes():
+    if self.getMessage('templateNull'):
         return True
     return False
 
@@ -184,7 +188,8 @@ def prerig(self):
     
         self._factory.module_verify()  
         ml_templateHandles = self.msgList_get('templateHandles')
-        mHandleFactory = self.asHandleFactory(_short)
+        mMain = ml_templateHandles[0]
+        mHandleFactory = self.asHandleFactory(mMain.mNode)
         
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
@@ -196,7 +201,7 @@ def prerig(self):
             log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
-            mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
+            mJointHelper = self.asHandleFactory(mMain.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
             ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
                                    lock=False, visible=True,keyable=False)
         
@@ -212,69 +217,12 @@ def prerig(self):
             mHandleFactory.addScalePivotHelper().p_parent = mPrerigNull
         if self.addCog:
             mHandleFactory.addCogHelper().p_parent = mPrerigNull
-        #mHandleFactory.addJointHelper()
-        #mHandleFactory.addOrientHelper()    
+
+        mc.parentConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
+        mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
         
         return
-        #Pivot Helpers ==========================================================================================
-        ml_pivots = []
-        mPivotRootHandle = False
-        self_pos = self.p_position
-        self_upVector = self.getAxisVector('y+')
-        for a in ['addPivotBack','addPivotFront','addPivotLeft','addPivotRight','addPivotCenter']:
-            d_pivotDirections = {'back':'z-',
-                                 'front':'z+',
-                                 'left':'x+',
-                                 'right':'x-'}
-    
-            if self.getAttr(a):
-                _strPivot = a.split('addPivot')[-1]
-                _strPivot = _strPivot[0].lower() + _strPivot[1:]
-                log.info("|{0}| >> Adding addPivot helper: {1}".format(_str_func,_strPivot))
-                
-                if _strPivot == 'center':
-                    pivot = CURVES.create_controlCurve(self.mNode, shape='circle',
-                                                       direction = 'y+',
-                                                       sizeMode = 'fixed',
-                                                       size = _sizeSub)
-                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                    mPivot.addAttr('cgmName',_strPivot)
-                    ml_pivots.append(mPivot)
-                else:
-                    mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
-                    _inverse = mAxis.inverse.p_string
-                    pivot = CURVES.create_controlCurve(self.mNode, shape='hinge',
-                                                       direction = _inverse,
-                                                       sizeMode = 'fixed', size = _sizeSub)
-                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                    mPivot.addAttr('cgmName',_strPivot)
-                    
-                    mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
-                    SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, 'y+', mode='vector', vectorUp = self_upVector)
-                
-                    ml_pivots.append(mPivot)
-            
-                    if not mPivotRootHandle:
-                        pivotHandle = CURVES.create_controlCurve(self.mNode, shape='squareOpen',
-                                                                 direction = 'y+',
-                                                                 sizeMode = 'fixed', size = _size * 1.25)
-                        mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-                        mPivotRootHandle.addAttr('cgmName','base')
-                        mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-                        mPivotRootHandle.doName()
-                        
-                        CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub',transparent = False) 
-                        
-                        mPivotRootHandle.parent = mPrerigNull
-                        self.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-                        
-        for mPivot in ml_pivots:
-            mPivot.addAttr('cgmType','pivotHelper')            
-            mPivot.doName()
-            
-            CORERIG.colorControl(mPivot.mNode,_side,'sub',transparent = False) 
-            mPivot.parent = mPivotRootHandle
-            mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
+
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
@@ -315,6 +263,7 @@ def is_prerig(self):
 #>> rig
 #=============================================================================================================
 def rigDelete(self):
+    
     return
     try:self.moduleTarget.masterControl.delete()
     except Exception,err:
@@ -380,10 +329,21 @@ def build_skeleton(self, forceNew = True):
         else:
             return _bfr
         
-    mJoint = self.jointHelper.doCreateAt('joint')
+    ml_templateHandles = self.msgList_get('templateHandles')
+    
+    mJoint = ml_templateHandles[0].jointHelper.doCreateAt('joint')
     JOINTS.freezeOrientation(mJoint)
 
-    self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+    if self.getMayaAttr('cgmName'):
+        self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+    else:
+        self.copyAttrTo('blockType',mJoint.mNode,'cgmName',driven='target')
+        
+    if self.getMayaAttr('cgmDirection'):
+        self.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
+    if self.getMayaAttr('cgmPosition'):
+        self.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')
+        
     mJoint.doName()
 
     mRigNull.msgList_connect('moduleJoints', [mJoint])
@@ -464,11 +424,13 @@ def rig_shapes(self):
     _start = time.clock()
     
     mBlock = self.mBlock
-    mHelper = mBlock.jointHelper
+    ml_templateHandles = mBlock.msgList_get('templateHandles')
+    mMainHandle = ml_templateHandles[0]
+    mHelper = mMainHandle.jointHelper
     mRigNull = self.mRigNull
     
     #Get our base size from the block
-    _size = DIST.get_bb_size(_short,True,True)
+    _size = DIST.get_bb_size(mMainHandle.mNode,True,True)
     _side = BLOCKUTILS.get_side(self.mBlock)
     _ikPos = mHelper.getPositionByAxisDistance(mBlock.getEnumValueString('axisAim'), _size *2)
     _short_module = self.mModule.mNode
@@ -502,17 +464,17 @@ def rig_shapes(self):
 
     #Control ----------------------------------------------------------------------------------
     log.info("|{0}| >> Main control shape...".format(_str_func))
-    if mBlock.addCog and mBlock.getMessage('cogHelper'):
+    if mBlock.addCog and mMainHandle.getMessage('cogHelper'):
         log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
-        mControl = mBlock.cogHelper.doCreateAt()
+        mControl = mMainHandle.cogHelper.doCreateAt()
     else:
-        mControl = mBlock.doCreateAt()
+        mControl = mMainHandle.doCreateAt()
         
-    if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
+    if mBlock.addScalePivot and mMainHandle.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
-        TRANS.scalePivot_set(mControl.mNode, mBlock.scalePivotHelper.p_position)
+        TRANS.scalePivot_set(mControl.mNode, mMainHandle.scalePivotHelper.p_position)
         
-    CORERIG.shapeParent_in_place(mControl,self.mBlock.mNode,True)
+    CORERIG.shapeParent_in_place(mControl,mMainHandle.mNode,True)
     mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
     ATTR.copy_to(_short_module,'cgmName',mControl.mNode,driven='target')
     mControl.doName()    
@@ -549,8 +511,8 @@ def rig_shapes(self):
             mJnt.radius = .00001
             
     #Pivots =======================================================================================
-    if mBlock.getMessage('pivotHelper'):
-        mBlock.atBlockUtils('pivots_buildShapes', mBlock.pivotHelper, mRigNull)
+    if mMainHandle.getMessage('pivotHelper'):
+        mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
         
         """
         log.info("|{0}| >> Pivot helper found".format(_str_func))
@@ -572,6 +534,8 @@ def rig_controls(self):
     _start = time.clock()
   
     mBlock = self.mBlock
+    ml_templateHandles = mBlock.msgList_get('templateHandles')
+    mMainHandle = ml_templateHandles[0]    
     mRigNull = self.mRigNull
     ml_controlsAll = []#we'll append to this list and connect them all at the end
     mRootParent = self.mDeformNull
@@ -631,7 +595,7 @@ def rig_controls(self):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
 
     # Pivots =================================================================================================
-    if mBlock.getMessage('pivotHelper'):
+    if mMainHandle.getMessage('pivotHelper'):
         log.info("|{0}| >> Pivot helper found".format(_str_func))
         for a in 'center','front','back','left','right':#This order matters
             str_a = 'pivot' + a.capitalize()
@@ -690,6 +654,8 @@ def rig_frame(self):
         _start = time.clock()
         
         mBlock = self.mBlock
+        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        mMainHandle = ml_templateHandles[0]            
         mRigNull = self.mRigNull
         mHandle = mRigNull.handle        
         log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
@@ -700,7 +666,7 @@ def rig_frame(self):
         mRootParent = self.mDeformNull
         
         #Pivot Setup ========================================================================================
-        if mBlock.getMessage('pivotHelper'):
+        if mMainHandle.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot setup...".format(_str_func))
             
             mPivotResultDriver = mHandle.doCreateAt()
@@ -718,7 +684,7 @@ def rig_frame(self):
             
     
         #Aim ========================================================================================
-        if self.mBlock.addAim:
+        if mBlock.addAim:
             log.info("|{0}| >> Aim setup...".format(_str_func))
             mSettings = mRigNull.settings
             

@@ -875,8 +875,13 @@ class simpleOrientation():
         else:_str_func = "{0}({1})".format(_str_funcRoot,arg)    
         
         log.debug('Caller: {0}, arg: {1}'.format(_str_func, arg))
-
-        str_arg = stringArg(arg, noneValid=True)
+        
+        if valueArg(arg):
+            for v,i in d_rotateOrder.iteritems():
+                if i == arg:
+                    str_arg = v
+        else:
+            str_arg = stringArg(arg, noneValid=True)
 
         if str_arg is False:
             fmt_args = [str_arg, _str_func]
@@ -936,7 +941,7 @@ class simpleOrientation():
     @property
     def p_outNegative(self):
         return self.__negativeOutAxis
-
+    @property
     def p_ro(self):
         return self.__i_orientation_index
     

@@ -213,13 +213,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
 
-        if blockParent is not None:
-            try:
-                self.p_blockParent = blockParent
-            except Exception,err:
-                log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
-                for arg in err.args:
-                    log.error(arg)
 
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -245,12 +238,18 @@ class cgmRigBlock(cgmMeta.cgmControl):
         try:
             if self.__justCreatedState__ or _doVerify:
                 kw_name = kws.get('name',None)
-                if kw_name:
-                    self.addAttr('cgmName',kw_name)
-                    if blockType == 'master':
-                        self.addAttr('puppetName',kw_name)
+                if self.__justCreatedState__:
+                    if blockType is not None and not kw_name:
+                        kw_name = blockType
+                    else:
+                        kw_name = 'NAMEME'
+                    self.addAttr('cgmName', kws.get('name', kw_name))
                 else:
                     self.addAttr('cgmName',attrType='string')
+                    if kw_name:
+                        self.cgmName = kw_name
+                    
+
 
 
                 log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
@@ -283,6 +282,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
                             self.doSnapTo(_sel[0])
                 #cgmGEN.func_snapShot(vars())
+                
+            if blockParent is not None:
+                try:
+                    self.p_blockParent = blockParent
+                except Exception,err:
+                    log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
+                    for arg in err.args:
+                        log.error(arg)
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
 
@@ -380,6 +387,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #Check for special attributes to replace data, name
         self.rename(nameTools.returnCombinedNameFromDict(_d))
+        
+        if self.getMessage('moduleTarget'):
+            log.debug("|{0}| >> Module target naming...".format(_str_func))            
+            self.moduleTarget.doName()
 
     def getControls(self, asMeta = False):
         """
@@ -488,11 +499,15 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def setBlockParent(self, parent = False, attachPoint = None):        
         _str_func = 'setBlockParent'
-
+        
         if not parent:
             self.blockParent = False
-            self.p_parent = False
-
+            if self.p_blockParent != False:
+                self.p_parent = False
+                
+            _const = self.getConstraintsTo()
+            if _const:
+                mc.delete(_const)
         else:
             if parent == self:
                 raise ValueError, "Cannot blockParent to self"
@@ -501,10 +516,19 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #raise ValueError, "Cannot blockParent to block whose parent is self"
 
             self.connectParentNode(parent, 'blockParent')
-            if attachPoint:
-                self.p_parent = attachPoint
-            else:
-                self.p_parent = parent
+            
+            if self.p_blockParent != False:
+                self.p_parent = False
+            
+            #if attachPoint:
+                #self.p_parent = attachPoint
+            #else:
+                #self.p_parent = parent
+                
+            _parent = VALID.mNodeString(parent)
+            mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
+            mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
+            
 
     p_blockParent = property(getBlockParent,setBlockParent)
 
@@ -912,11 +936,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return _l_blockStates.index(_goodState)
 
 
-    def changeState(self, state = None, children = True):
+    def changeState(self, *args,**kws):
         _str_func = '[{0}]changeState'.format(self.mNode)
         start = time.clock()
 
-        _res = self._factory.changeState(state)
+        _res = self._factory.changeState(*args,**kws)
         log.info("{0} >> Time >> = {1} seconds ".format(_str_func, "%0.3f"%(time.clock()-start)) + "-"*75)
 
         #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
@@ -1226,10 +1250,10 @@ class handleFactory(object):
             #raise ValueError,"must be a transform"
 
         self._mTransform = cgmMeta.validateObjArg(arg,'cgmObject')
-        if not self._mTransform.hasAttr('baseSize'):
-            ATTR.add(self._mTransform.mNode,'baseSize','float3')
-            self._mTransform.baseSize = 1.0,1.0,1.0
-            ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
+        #if not self._mTransform.hasAttr('baseSize'):
+            #ATTR.add(self._mTransform.mNode,'baseSize','float3')
+            #self._mTransform.baseSize = 1.0,1.0,1.0
+            #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
 
     def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
         self.cleanShapes()
@@ -1458,7 +1482,7 @@ class handleFactory(object):
                     if not mPivotRootHandle:
                         pivotHandle = CURVES.create_controlCurve(mHandle.mNode, shape='squareOpen',
                                                                  direction = upAxis,
-                                                                 sizeMode = 'fixed', size = _size * 1.25)
+                                                                 sizeMode = 'fixed', size = _size * 1.1)
                         mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
                         mPivotRootHandle.addAttr('cgmName','base')
                         mPivotRootHandle.addAttr('cgmType','pivotHelper')            
@@ -2439,15 +2463,15 @@ class factory(object):
                                 'template':self.prerigDelete,#deleteSkeleton,
                                 'prerig':self.rigDelete,#rigDelete,
                                 }
-        d_deleteStateFunctions = {'define':False,#deleteSizeInfo,
-                                  'template':False,#deleteTemplate,#handle from factory now
-                                  'prerig':False,#deleteSkeleton,
-                                  'rig':False,#rigDelete,
+        d_deleteStateFunctions = {'template':self.templateDelete,#deleteTemplate,#handle from factory now
+                                  'prerig':self.prerigDelete,
+                                  'rig':self.rigDelete,#rigDelete,
                                   }        
         stateArgs = BLOCKGEN.validate_stateArg(state)
         _l_moduleStates = BLOCKSHARE._l_blockStates
 
         if not stateArgs:
+            log.info("|{0}| >> No state arg.".format(_str_func))            
             return False
 
         _idx_target = stateArgs[0]
@@ -2459,14 +2483,20 @@ class factory(object):
         #========================================================================
         currentState = _mBlock.getState(False) 
 
-        if currentState == _idx_target and rebuildFrom is None and not forceNew:
-            if not forceNew:
-                log.debug("|{0}| >> block [{1}] already in {2} state".format(_str_func,_mBlock.mNode,currentState))                
-            return True
+        if rebuildFrom:
+            log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
 
+
+        if currentState == _idx_target:
+            if not forceNew:
+                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,_mBlock.mNode,currentState))                
+                return True
+            elif currentState > 0:
+                log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
+                currentState_target = _mBlock.getState(True) 
+                d_deleteStateFunctions[currentState_target]()
 
         #If we're here, we're going to move through the set states till we get to our spot
-
         log.debug("|{0}| >> Changing states...".format(_str_func))
         if _idx_target > currentState:
             startState = currentState+1        
@@ -2505,8 +2535,8 @@ class factory(object):
             return True
         else:
             log.error('Forcing recreate')
-            if stateName in d_upStateFunctions.keys():
-                if not d_upStateFunctions[stateName](self._mi_module,*args,**kws):return False
+            if _state_target in d_upStateFunctions.keys():
+                if not d_upStateFunctions[_state_target]():return False
                 return True	            
 
     def template(self):
@@ -2703,13 +2733,33 @@ class factory(object):
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
+        
+        mModuleTarget = _mBlock.moduleTarget
+        if mModuleTarget:
+            log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))            
+            if mModuleTarget.mClass ==  'cgmRigModule':
+                #Deform null
+                _deformNull = mModuleTarget.getMessage('deformNull')
+                if _deformNull:
+                    log.info("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))                                
+                    mc.delete(_deformNull)
+                #ModuleSet
+                _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
+                if _objectSet:
+                    log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))                                
+                    mc.delete(_deformNull)                
+                #Module                
+            elif mModuleTarget.mClass == 'cgmRigPuppet':
+                pass
+            else:
+                log.error("|{0}| >> Unknown mClass moduleTarget: {1}".format(_str_func,mModuleTarget))            
+                
+  
+        
         if 'rigDelete' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))            
-            _mBlockCall = _mBlockModule.rigDelete    
-
-
-        if _mBlockCall:
-            _mBlockCall(_mBlock)
+            _mBlockModule.rigDelete(_mBlock)        
+            
 
         _mBlock.blockState = 'prerig'
 
@@ -3032,10 +3082,15 @@ class factory(object):
             raise ValueError,"|{0}| >> No root loaded.".format(_str_func)
         _mBlock = self._mi_block     
         mi_puppet = False
-        if self._mi_block.blockType == 'master':
+        if _mBlock.blockType == 'master':
+            log.info("|{0}| >> master...".format(_str_func))                                                    
             if not _mBlock.getMessage('moduleTarget'):
-                _name = _mBlock.getMayaAttr('cgmName') or _mBlock.blockType
-                mi_puppet = cgmRigPuppet(name = _name)
+                #_name = _mBlock.getMayaAttr('cgmName') or _mBlock.blockType
+                #log.info("|{0}| >> masterBlock name: {1}".format(_str_func,_name))                                        
+                #mi_puppet = cgmRigPuppet(name = _name)
+                mi_puppet = cgmRigPuppet()
+                _mBlock.copyAttrTo('cgmName',mi_puppet.mNode,'cgmName',driven='target')
+                
                 #ATTR.set_message(_mBlock.mNode, 'moduleTarget', mi_puppet.mNode,simple = True)
                 _mBlock.moduleTarget = mi_puppet.mNode
                 ATTR.set_message(mi_puppet.mNode, 'rigBlock', _mBlock.mNode,simple = True)
@@ -4169,7 +4224,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 if self.isReferenced():
                     log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
                     return
-                elif not self.__verify__(name,**kws):
+                elif not self.__verify__(name = name,**kws):
                     raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
@@ -4184,16 +4239,19 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         """
         try:
             _short = self.p_nameShort
-            _str_func = "cgmRigPuppet.__verify__({0})".format(_short)
-            log.debug("|{0}| >> ...".format(_str_func))
+            _str_func = "cgmRigPuppet.__verify__"
+            log.debug("|{0}| >> ...".format(_str_func))            
+            log.debug("|{0}| >> name : {1}".format(_str_func,name))                                
     
             #Puppet Network Node 
             #---------------------------------------------------------------------------
             self.addAttr('mClass', initialValue='cgmRigPuppet',lock=True)  
-            if name is not None and name:
-                self.addAttr('cgmName',name, attrType='string', lock = True)
-            else:
-                self.addAttr('cgmName', 'puppet', attrType='string', lock = True)
+            self.addAttr('cgmName',initialValue=name, attrType='string', lock = True)
+            
+            if name is not None:
+                ATTR.set(_short, 'cgmName', name)
+            if self.cgmName is None:
+                ATTR.set(_short, 'cgmName', 'puppet')
                 
             self.addAttr('cgmType','puppetNetwork')
             self.addAttr('version',initialValue = 1.0, lock=True)  
@@ -4245,7 +4303,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         """
         return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
     
-    def changeName(self,name = ''):
+    def changeName(self,name = None):
         try:
             _str_func = 'cgmRigPuppet.changeName'
             log.debug("|{0}| >> ...".format(_str_func))
@@ -4253,11 +4311,40 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             if name == self.cgmName:
                 log.error("Puppet already named '%s'"%self.cgmName)
                 return
+            
             if name != '' and type(name) is str:
                 log.warn("Changing name from '%s' to '%s'"%(self.cgmName,name))
-                self.cgmName = name
-                self.__verify__()
+                try:self.cgmName = name
+                except:pass
+                self.doName()
+                #self.__verify__()
+
         except Exception,err:cgmGEN.cgmException(Exception,err)
+        
+    def doName(self):
+        try:
+            _str_func = 'cgmRigPuppet.doName'
+            log.debug("|{0}| >> ...".format(_str_func))
+            
+            _d = nameTools.returnObjectGeneratedNameDict(self.mNode)
+            self.rename(nameTools.returnCombinedNameFromDict(_d))
+            
+            try:self.masterNull.doName()
+            except:pass
+            
+            try:
+                self.masterControl.doName()
+                self.masterControl.rebuildMasterShapes()
+            except:pass
+            
+            try:self.puppetSet.doName()
+            except:pass
+            
+            try:self.getMessage('rootJoint',asMeta=True)[0].doName()
+            except:pass            
+
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
 
     def verify_masterNull(self,**kws):
         try:
@@ -4308,7 +4395,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
                 if not mGroup:
                     mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
-                    mGroup.doName()
+                    mGroup.rename(attr+'_grp')
                     mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
 
                 log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
@@ -4460,8 +4547,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
                 mGrp.parent = mMasterControl.mNode
                 mMasterNull.connectChildNode(mGrp,'skeletonGroup','module')
-    
-                mGrp.doName()
+                
+                mGrp.doName('skeleton_grp')
+                #mGrp.doName()
             else:
                 mGrp = mMasterNull.skeletonGroup
                 
@@ -4979,9 +5067,10 @@ class cgmRigMaster(cgmMeta.cgmObject):
             
             puppet = kws.pop('puppet',False)
             if puppet and not self.isReferenced():
+                log.debug("|{0}| >> puppet: {1}".format(_str_func,puppet))                            
                 ATTR.copy_to(puppet.mNode,'cgmName',self.mNode,driven='target')
                 self.connectParentNode(puppet,'puppet','masterControl')
-            else:
+            elif not self.hasAttr('cgmName'):
                 self.addAttr('cgmName','MasterControl')
     
             #Check for shapes, if not, build
@@ -5034,6 +5123,11 @@ class cgmRigMaster(cgmMeta.cgmObject):
             font = kws.get('font',None)
             
             size = get_callSize(kws.get('size',[10,10,10]))
+            
+            if self.getMessage('puppet'):
+                if self.puppet.getMessage('rigBlock'):
+                    size = self.puppet.rigBlock.baseSize
+            
     
                     
             log.debug("|{0}| >> size: {1}".format(_str_func,size))
@@ -5267,6 +5361,7 @@ class cgmRigModule(cgmMeta.cgmObject):
                 if not self.__verify__(*args,**kws):
                     raise StandardError,"Failed to verify!"
                 
+                
         except Exception,err:cgmGEN.cgmException(Exception,err)        
         
     def atUtils(self, func = '', *args,**kws):
@@ -5301,10 +5396,23 @@ class cgmRigModule(cgmMeta.cgmObject):
             
             #kws
             #-------------------------------------------------------------------
-            for k in ['position','direction','directionModifier','nameModifier']:
-                if kws.get(k):
-                    log.debug("|{0}| >> kw key: {1}".format(_str_func,k))                            
-                    self.addAttr('cgm'+k.capitalize(),value = kws.get(k),lock = True)
+            """for k,v in kws.iteritems():
+                if self.hasAttr(k):
+                    try:self.k = v
+                    except Exception,err:
+                        log.error("|{0}| Failed to set: {1}|{2}".format(_str_func,k,v,err))"""
+
+            for k,v in kws.iteritems():
+                if k in ['position','direction','directionModifier','nameModifier']:
+                    if kws.get(k):
+                        log.debug("|{0}| >> kw key: {1}".format(_str_func,k))                            
+                        self.addAttr('cgm'+k.capitalize(),value = kws.get(k),lock = True)                
+                elif self.hasAttr(k):
+                    try:self.k = v
+                    except Exception,err:
+                        log.error("|{0}| Failed to set: {1}|{2}".format(_str_func,k,v,err))
+                        
+
 
             #rigBlock
             #--------------------------------------------------------------------------------
@@ -5329,6 +5437,7 @@ class cgmRigModule(cgmMeta.cgmObject):
                     log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))                                    
                     self.addAttr('cgmDirection',value = _side,lock = True)
                 
+
             self.doName()  
             
             #Attributes

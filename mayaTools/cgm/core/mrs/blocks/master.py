@@ -255,10 +255,13 @@ def rig_cleanUp(self):
             
             
             #Color ---------------------------------------------------------------
+            log.info("|{0}| >> Color...".format(_str_func))            
             _side = mBlock.atBlockUtils('get_side')
             CORERIG.colorControl(mControl.mNode,_side,'main')        
             
             #Register ------------------------------------------------------------
+            log.info("|{0}| >> Register...".format(_str_func))
+            
             MODULECONTROL.register(mControl,
                                    addDynParentGroup = True,
                                    mirrorSide= 'Centre',
@@ -304,9 +307,8 @@ def rig_cleanUp(self):
             #ml_controlsAll = mBlock.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
             #mRigNull.msgList_connect('controlsAll',ml_controlsAll)
             #mRigNull.moduleSet.extend(ml_controlsAll)        
-        mBlock.v = 0
         
-        
+        self.v = 0
         
         #mRigNull.version = self.d_block['buildVersion']
         #mRigNull.version = __version__
@@ -316,7 +318,7 @@ def rig_cleanUp(self):
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def rigDelete(self):
-    self.template = 0
+    self.v = 1
     try:self.moduleTarget.masterControl.delete()
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -350,22 +352,24 @@ def is_rig(self):
 #=============================================================================================================
 def build_skeleton(self):
     #    
-    if is_skeletonized(self):
-        return True
-    
-    if self.addMotionJoint:
-        mPuppet = self.moduleTarget
-        if not mPuppet:
-            raise ValueError,"No moduleTarget connected"
+    try:
+        if is_skeletonized(self):
+            return True
         
-        mJoint = self.rootMotionHelper.doCreateAt('joint')
-        mPuppet.connectChildNode(mJoint,'rootJoint','module')
-        mJoint.connectParentNode(self,'module','rootJoint')
-        self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
-        mJoint.doStore('cgmTypeModifier','rootMotion')
-        mJoint.doName()
-        return mJoint.mNode
-        
+        if self.addMotionJoint:
+            mPuppet = self.moduleTarget
+            if not mPuppet:
+                raise ValueError,"No moduleTarget connected"
+            
+            mJoint = self.rootMotionHelper.doCreateAt('joint')
+            mPuppet.connectChildNode(mJoint,'rootJoint','module')
+            mJoint.connectParentNode(self,'module','rootJoint')
+            self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+            mJoint.doStore('cgmTypeModifier','rootMotion')
+            mJoint.doName()
+            return mJoint.mNode
+    except Exception,err:cgmGEN.cgmException(Exception,err
+                                             )
 def is_skeletonized(self):
     if self.addMotionJoint:
         if not self.getMessage('rootJoint'):
