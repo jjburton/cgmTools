@@ -52,7 +52,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.11162017'
+__version__ = 'alpha.12192017'
 __autoTemplate__ = True
 __component__ = True
 __menuVisible__ = True
@@ -185,8 +185,9 @@ def prerig(self):
         _side = 'center'
         if self.getMayaAttr('side'):
             _side = self.getEnumValueString('side')
+            
+        self.atUtils('module_verify')
     
-        self._factory.module_verify()  
         ml_templateHandles = self.msgList_get('templateHandles')
         mMain = ml_templateHandles[0]
         mHandleFactory = self.asHandleFactory(mMain.mNode)

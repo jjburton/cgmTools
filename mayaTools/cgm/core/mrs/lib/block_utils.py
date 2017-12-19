@@ -43,7 +43,8 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import rigging_utils as RIGGING
-reload(RIGGING)
+from cgm.core.mrs.lib import general_utils as BLOCKGEN
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
@@ -67,11 +68,104 @@ def get_sideMirror(self):
     elif _side == 'right':return 'left'
     return False
 
+def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True):
+    """
+    Verify the attributes of a given block type
+    
+    force - overrides the excpetion on a failure
+    """
+    try:
+        _str_func = 'verify_blockAttrs'
+        _short = self.mNode
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        if queryMode:
+            log.debug("|{0}| >> QUERY MODE".format(_str_func,self))
+        if blockType is None:
+            mBlockModule = self.p_blockModule
+        else:
+            raise NotImplementedError,"Haven't implemented blocktype changing..."
+        
+        try:d_attrsFromModule = mBlockModule.d_attrsToMake
+        except:d_attrsFromModule = {}
+        
+        d_defaultSettings = copy.copy(BLOCKSHARE.d_defaultAttrSettings)
+    
+        try:d_defaultSettings.update(mBlockModule.d_defaultSettings)
+        except:pass
+    
+        try:_l_msgLinks = mBlockModule._l_controlLinks
+        except:_l_msgLinks = []
+    
+        _d = copy.copy(BLOCKSHARE.d_defaultAttrs)     
+    
+        _l_standard = mBlockModule.__dict__.get('l_attrsStandard',[])
+        log.debug("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
+        for k in _l_standard:
+            if k in BLOCKSHARE._d_attrsTo_make.keys():
+                _d[k] = BLOCKSHARE._d_attrsTo_make[k]
+    
+        for k,v in d_attrsFromModule.iteritems():
+            if k in _d.keys():
+                log.warning("|{0}| >> key: {1} already in to create list of attributes from default. | blockType: {2}".format(_str_func,k,blockType))                
+            else:
+                _d[k] = v
+    
+        if _l_msgLinks:
+            for l in _l_msgLinks:
+                _d[l] = 'messageSimple'
+    
+        #cgmGEN.walk_dat(_d,_str_func + " '{0}' attributes to verify".format(blockType))
+        #cgmGEN.walk_dat(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
+        
+        if queryMode:
+            return _d,d_defaultSettings
+        
+        
+        #This is the verify part...
+        _keys = _d.keys()
+        _keys.sort()
+        #for a,t in self._d_attrsToVerify.iteritems():
+        for a in _keys:
+            try:
+                v = d_defaultSettings.get(a,None)
+                t = _d[a]
+
+                log.debug("|{0}| Add attr >> '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
+
+                if ':' in t:
+                    if forceReset:
+                        self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
+                    else:
+                        self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+                elif t == 'stringDatList':
+                    mc.select(cl=True)
+                    ATTR.datList_connect(_short, a, v, mode='string')
+                elif t == 'float3':
+                    if not self.hasAttr(a):
+                        ATTR.add(_short, a, attrType='float3', keyable = True)
+                        if v:ATTR.set(_short,a,v)
+                else:
+                    if t == 'string':
+                        _l = True
+                    else:_l = False
+
+                    if forceReset:
+                        self.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
+                    else:
+                        self.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
+            except Exception,err:
+                log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v)) 
+                if not forceReset:
+                    cgmGEN.cgmExceptCB(Exception,err)                    
+
+        return True
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
 def set_nameTag(self,nameTag = None):
     try:
         _short = self.p_nameShort
         _str_func = 'set_nameTag'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -96,14 +190,13 @@ def set_nameTag(self,nameTag = None):
             
         self.cgmName = nameTag
         self.doName()
-            
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def set_side(self,side=None):
     try:
         _short = self.p_nameShort
         _str_func = 'set_side'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         if side is None:
             side = 0
@@ -123,7 +216,7 @@ def set_position(self,position=None):
     try:
         _short = self.p_nameShort
         _str_func = 'set_position'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         if position is None:
             position = 0
@@ -142,7 +235,7 @@ def color(self):
     try:
         _short = self.p_nameShort
         _str_func = 'color'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         _side = get_side(self)
         log.debug("|{0}| >> side: {1}".format(_str_func,_side))
@@ -175,7 +268,7 @@ def get_infoBlock_report(self):
     """
     try:
         _str_func = 'get_infoBlock_report'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         _short = self.p_nameShort
         mBlockModule = self.p_blockModule
@@ -223,10 +316,10 @@ def is_template(self):
         return False
     return True
 
-def templateDelete(self,msgLinks = []):
+def templateDeleteBAK(self,msgLinks = []):
     try:
         _str_func = 'templateDelete'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         for link in msgLinks + ['templateNull']:
             if self.getMessage(link):
@@ -255,7 +348,7 @@ def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTempla
                             uAttr = 'neckControls',baseName = 'test'):
     try:
         _str_func = 'create_templateLoftMesh'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -361,7 +454,7 @@ def prerigNull_verify(self):
         
 def prerig_simple(self):
     _str_func = 'prerig_simple'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _short = self.p_nameShort
     _size = self.baseSize
@@ -384,7 +477,7 @@ def prerig_simple(self):
 def prerig_delete(self ,msgLists = [], templateHandles = True):
     try:
         _str_func = 'prerig_delete'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         self.moduleTarget.delete()
         self.prerigNull.delete()
@@ -409,7 +502,7 @@ def prerig_delete(self ,msgLists = [], templateHandles = True):
 def is_prerig(self, msgLinks = [], msgLists = [] ):
     try:
         _str_func = 'is_prerig'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         _l_missing = []
     
@@ -438,7 +531,7 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                           baseName = 'test'):
     try:
         _str_func = 'create_prerigLoftMesh'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -520,7 +613,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
     _str_func = 'create_jointLoft'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -589,7 +682,7 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
     _str_func = 'create_jointLoftBAK'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -645,10 +738,10 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
 #=============================================================================================================
 #>> Rig
 #=============================================================================================================
-def rigDelete(self,msgLinks = []):
+def rigDeleteBAK(self,msgLinks = []):
     try:
         _str_func = 'rigDelete'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         
         if self.isReferenced():
@@ -716,7 +809,7 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     """
     _short = self.mNode
     _str_func = 'pivots_buildShapes'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     if mRigNull is None:
         mRigNull = self.moduleTarget.rigNull
@@ -758,7 +851,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
     """
     _short = self.mNode
     _str_func = 'pivots_setup'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _start = time.clock()
     
@@ -1073,7 +1166,7 @@ def skeleton_getCreateDict(self, count = None):
     """
     _short = self.mNode
     _str_func = 'skeleton_getCreateDict'
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     mModule = self.moduleTarget    
 
@@ -1455,6 +1548,7 @@ def prerig_getHandleTargets(self):
 #=============================================================================================================
 #>> Mirror/Duplicate
 #=============================================================================================================
+
 def duplicate(self):
     """
     Call to duplicate a block module and load data
@@ -2023,7 +2117,7 @@ def get_blockDagNodes(self,):
     try:
         _short = self.p_nameShort
         _str_func = 'get_blockDagNodes'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         ml_controls = controls_get(self)
                 
@@ -2213,11 +2307,11 @@ _d_attrStateMasks = {0:[],
                      1:['basicShape'],
                      2:['baseSizeX','baseSizeY','baseSizeZ','blockScale','proxyShape','shapeDirection'],
                      3:['hasJoint','side','position','attachPoint']}
-def uiQuery_getStateAttrs(self,mode = None):
 
+def uiQuery_getStateAttrs(self,mode = None):
     try:
         _str_func = ' uiQuery_getStateAttrs'
-        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         _short = self.mNode
         
         if mode is None:
@@ -2264,4 +2358,393 @@ def uiQuery_getStateAttrs(self,mode = None):
         return l_attrs
 
      
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+#=============================================================================================================
+#>> State Changing
+#=============================================================================================================
+def templateDelete(self):
+    _str_func = 'templateDelete'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state != 'template':
+        raise ValueError,"[{0}] is not in template state. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'template>define'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+    l_blockModuleKeys = mBlockModule.__dict__.keys()
+    if 'templateDelete' in l_blockModuleKeys:
+        log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))
+        self.atBlockModule('templateDelete')
+    
+    if 'define' in l_blockModuleKeys:
+        log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
+        self.atBlockModule('define')
+    
+    mc.delete(self.getShapes())
+
+    self.blockState = 'define'#...yes now in this state
+    return True
+
+def template(self):
+    _str_func = 'template'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state == 'template':
+        log.debug("|{0}| >> Already in template state...".format(_str_func))                    
+        return True
+    elif _str_state != 'define':
+        raise ValueError,"[{0}] is not in define state. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'define>template'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+
+    if 'template' in mBlockModule.__dict__.keys():
+        log.debug("|{0}| >> BlockModule call found...".format(_str_func))            
+        self.atBlockModule('template')
+
+    #for mShape in self.getShapes(asMeta=True):
+        #mShape.doName()
+
+    self.blockState = 'template'#...yes now in this state
+    return True
+
+def prerig(self):
+    _str_func = 'prerig'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state == 'prerig':
+        log.debug("|{0}| >> Already in prerig state...".format(_str_func))                    
+        return True
+    elif _str_state != 'template':
+        raise ValueError,"[{0}] is not in define template. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'template>prerig'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+
+    if 'prerig' in mBlockModule.__dict__.keys():
+        log.debug("|{0}| >> BlockModule prerig call found...".format(_str_func))            
+        self.atBlockModule('prerig')
+
+    self.blockState = 'prerig'#...yes now in this state
+    return True
+
+def prerigDelete(self):
+    _str_func = 'prerigDelete'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state != 'prerig':
+        raise ValueError,"[{0}] is not in prerig state. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'prerig>template'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+    l_blockModuleKeys = mBlockModule.__dict__.keys()
+    if 'prerigDelete' in l_blockModuleKeys:
+        log.debug("|{0}| >> BlockModule prerigDelete call found...".format(_str_func))
+        self.atBlockModule('prerigDelete')
+    
+    self.blockState = 'template'#...yes now in this state
+    return True
+
+def rig(self,**kws):
+    _str_func = 'rig'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state == 'rig':
+        log.debug("|{0}| >> Already in rig state...".format(_str_func))                    
+        return True
+    elif _str_state != 'prerig':
+        raise ValueError,"[{0}] is not in prerig template. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'prerig>rig'#...buffering that we're in process
+    if not 'autoBuild' in kws.keys():
+        kws['autoBuild'] = True
+    if not self.asRigFactory(**kws):
+        self.blockState = 'prerig'#...buffering that we're in process
+
+    return True
+
+def rigDelete(self):
+    
+    _str_func = 'rigDelete'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state != 'rig':
+        raise ValueError,"[{0}] is not in rig state. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'rig>prerig'#...buffering that we're in process
+    
+    mModuleTarget = self.moduleTarget
+    if mModuleTarget:
+        log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))            
+        if mModuleTarget.mClass ==  'cgmRigModule':
+            #Deform null
+            _deformNull = mModuleTarget.getMessage('deformNull')
+            if _deformNull:
+                log.info("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))                                
+                mc.delete(_deformNull)
+            #ModuleSet
+            _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
+            if _objectSet:
+                log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))                                
+                mc.delete(_deformNull)                
+            #Module                
+        elif mModuleTarget.mClass == 'cgmRigPuppet':
+            mModuleTarget.masterControl.delete()
+        else:
+            log.error("|{0}| >> Unknown mClass moduleTarget: {1}".format(_str_func,mModuleTarget))                
+
+    mBlockModule = self.p_blockModule
+    l_blockModuleKeys = mBlockModule.__dict__.keys()
+    if 'rigDelete' in l_blockModuleKeys:
+        log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))
+        self.atBlockModule('rigDelete')
+    
+    self.blockState = 'prerig'#...yes now in this state
+    return True
+
+def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
+    try:
+        _str_func = 'changeState'
+        log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+        
+        if self.isReferenced():
+            raise ValueError,"Referenced node. Cannot verify"
+        
+    
+        #>Validate our data ------------------------------------------------------
+        d_upStateFunctions = {'template':template,
+                              'prerig':prerig,
+                              'rig':rig,
+                              }
+        d_downStateFunctions = {'define':templateDelete,
+                                'template':prerigDelete,
+                                'prerig':rigDelete,
+                                }
+        d_deleteStateFunctions = {'template':templateDelete,
+                                  'prerig':prerigDelete,
+                                  'rig':rigDelete,
+                                  }
+        
+        stateArgs = BLOCKGEN.validate_stateArg(state)
+        _l_moduleStates = BLOCKSHARE._l_blockStates
+    
+        if not stateArgs:
+            log.info("|{0}| >> No state arg.".format(_str_func))            
+            return False
+    
+        _idx_target = stateArgs[0]
+        _state_target = stateArgs[1]
+    
+        log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
+    
+        #>>> Meat
+        #========================================================================
+        currentState = self.getState(False) 
+    
+        if rebuildFrom:
+            log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
+    
+    
+        if currentState == _idx_target:
+            if not forceNew:
+                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
+                return True
+            elif currentState > 0:
+                log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
+                currentState_target = self.getState(True) 
+                d_deleteStateFunctions[currentState_target]()
+    
+        #If we're here, we're going to move through the set states till we get to our spot
+        log.debug("|{0}| >> Changing states...".format(_str_func))
+        if _idx_target > currentState:
+            startState = currentState+1        
+            doStates = _l_moduleStates[startState:_idx_target+1]
+            log.debug("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
+    
+            for doState in doStates:
+                #if doState in d_upStateFunctions.keys():
+                log.debug("|{0}| >> Up to: {1} ....".format(_str_func, doState))
+                if not d_upStateFunctions[doState](self,**kws):
+                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    return False
+                elif self.p_blockState != doState:
+                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
+                    return False
+                #else:
+                #    log.debug("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
+            return True
+        elif _idx_target < currentState:#Going down
+            l_reverseModuleStates = copy.copy(_l_moduleStates)
+            l_reverseModuleStates.reverse()
+            startState = currentState 
+            rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
+            rev_end = l_reverseModuleStates.index( _l_moduleStates[_idx_target] )+1
+            doStates = l_reverseModuleStates[rev_start:rev_end]
+            log.debug("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
+    
+            for doState in doStates:
+                log.debug("|{0}| >> Down to: {1} ....".format(_str_func, doState))
+                if not d_downStateFunctions[doState](self,**kws):
+                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                    return False 
+                elif self.p_blockState != doState:
+                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
+                    return False                
+            return True
+        else:
+            log.error('Forcing recreate')
+            if _state_target in d_upStateFunctions.keys():
+                if not d_upStateFunctions[_state_target](self):return False
+                return True
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+def puppet_verify(self):
+    """
+
+    """
+    try:
+        _str_func = 'puppet_verify'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        mPuppet = False
+        if self.blockType == 'master':
+            log.info("|{0}| >> master...".format(_str_func))                                                    
+            if not self.getMessage('moduleTarget'):
+                mPuppet = cgmMeta.createMetaNode('cgmRigPuppet')
+                self.copyAttrTo('cgmName',mPuppet.mNode,'cgmName',driven='target')
+                self.moduleTarget = mPuppet.mNode
+                ATTR.set_message(mPuppet.mNode, 'rigBlock', self.mNode,simple = True)
+            else:
+                mPuppet = self.moduleTarget
+            mPuppet.__verify__()
+        else:
+            log.info("|{0}| >> Non master calling...".format(_str_func))                                                                
+            mi_module = self.moduleTarget
+            if not mi_module:
+                mi_module = module_verify(self)
+    
+            _bfr = mi_module.getMessage('modulePuppet')
+            if _bfr:
+                log.debug("|{0}| >> modulePuppet found: {1}".format(_str_func,_bfr))                        
+                mPuppet = mi_module.modulePuppet
+            else:
+                for mBlockParent in self.getBlockParents():
+                    if mBlockParent.blockType == 'master':
+                        log.debug("|{0}| >> Found puppet on blockParent: {1}".format(_str_func,mBlockParent))                                                
+                        mPuppet = mBlockParent.moduleTarget
+                if not mPuppet:
+                    mPuppet = cgmMeta.createMetaNode('cgmRigPuppet', name = mi_module.getNameAlias())
+
+            mPuppet.connect_module(mi_module)
+            mPuppet.gather_modules()#Gather any modules in the chain
+    
+    
+        if not mPuppet.getMessage('masterNull'):
+            mPuppet.__verify__()
+            """
+            if not mPuppet.masterNull.getMessage('blocksGroup'):
+                mGroup = cgmMeta.cgmObject(name='blocks')#Create and initialize
+                mGroup.doName()
+                mGroup.parent = mPuppet.masterNull
+        
+                mGroup.connectParentNode(mPuppet.masterNull.mNode, 'puppet','blocksGroup') 
+                ATTR.set_standardFlags(mGroup.mNode)"""
+    
+        return mPuppet                
+ 
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def module_verify(self,queryMode=True):
+    """
+    
+
+    """
+    try:
+        _str_func = 'module_verify'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        if self.blockType == 'master':
+            return True
+    
+        _bfr = self.getMessage('moduleTarget')
+        #_kws = self.module_getBuildKWS()
+    
+        if _bfr:
+            log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))            
+            mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
+        else:
+            log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))  
+            mModule = cgmMeta.createMetaNode('cgmRigModule', rigBlock=self)
+
+        ATTR.set(mModule.mNode,'moduleType',self.blockType,lock=True)
+        
+        return mModule        
+ 
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def is_rigged(self):
+    """
+    
+
+    """
+    try:
+        _str_func = 'is_rigged'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        return self.moduleTarget.atUtils('is_rigged')
+
     except Exception,err:cgmGEN.cgmException(Exception,err)

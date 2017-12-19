@@ -9,6 +9,17 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
+                'blockType':'string',
+                #'moduleTarget':'messageSimple',
+                'baseSize':'float3',
+                'blockState':'string',
+                'blockDat':'string',#...for pickle? 
+                'blockParent':'messageSimple',
+                'blockMirror':'messageSimple'}
+d_defaultAttrSettings = {'blockState':'define'}
+
+
 _l_requiredSkeletonDat = ['__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']
 _l_requiredRigDat = []
 

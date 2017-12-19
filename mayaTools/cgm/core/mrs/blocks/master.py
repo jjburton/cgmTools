@@ -160,7 +160,6 @@ def template(self):
 
 def templateDelete(self):
     self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
-    pass#...handled in generic callmc.delete(self.getShapes())
 
 def is_template(self):
     if self.getShapes():
@@ -171,7 +170,8 @@ def is_template(self):
 #>> Prerig
 #=============================================================================================================
 def prerig(self):
-    self._factory.puppet_verify()    
+    self.atUtils('puppet_verify')
+    
     
     #Create preRig Null  ==================================================================================
     mPrerigNull = self.atBlockUtils('prerigNull_verify')
@@ -318,6 +318,7 @@ def rig_cleanUp(self):
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def rigDelete(self):
+    return True
     self.v = 1
     try:self.moduleTarget.masterControl.delete()
     except Exception,err:

@@ -78,15 +78,8 @@ get_from_scene = BLOCKGEN.get_from_scene
 #====================================================================================	
 # Rig Block Meta
 #====================================================================================	
-d_attrstoMake = {'version':'string',#Attributes to be initialzed for any module
-                 'blockType':'string',
-                 #'moduleTarget':'messageSimple',
-                 'baseSize':'float3',
-                 'blockState':'string',
-                 'blockDat':'string',#...for pickle? 
-                 'blockParent':'messageSimple',
-                 'blockMirror':'messageSimple'}
-d_defaultAttrSettings = {'blockState':'define'}
+d_attrstoMake = BLOCKSHARE.d_defaultAttrs
+d_defaultAttrSettings = BLOCKSHARE.d_defaultAttrSettings
 
 def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
     """
@@ -213,11 +206,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
 
-
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
-            log.info('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
+            log.debug('CACHE : Aborting __init__ on pre-cached {0} Object'.format(self))
             return
         #====================================================================================	
         #for a in 'p_blockState','testinasdfasdfasdf':
@@ -229,7 +221,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #Keywords - need to set after the super call
         #=====================================================================================         
         _doVerify = kws.get('doVerify',False) or False
-        self._factory = factory(self.mNode)
+        #self._factory = factory(self.mNode)
         self._callKWS = kws
         self._blockModule = None
         self._callSize = _callSize
@@ -237,8 +229,15 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #>>> Initialization Procedure ================== 
         try:
             if self.__justCreatedState__ or _doVerify:
+                if blockType:
+                    _blockModule =  get_blockModule(blockType)
+                    reload(_blockModule)
+                else:
+                    _blockModule = False
+                
                 kw_name = kws.get('name',None)
                 if self.__justCreatedState__:
+                    self.addAttr('blockType', value = blockType,lock=True)	
                     if blockType is not None and not kw_name:
                         kw_name = blockType
                     else:
@@ -248,9 +247,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     self.addAttr('cgmName',attrType='string')
                     if kw_name:
                         self.cgmName = kw_name
-                    
-
-
 
                 log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
                 if self.isReferenced():
@@ -263,7 +259,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
                 #>>>Auto flags...
                 #Template
-                _blockModule = get_blockModule(self.blockType)
+                if not _blockModule:
+                    _blockModule =  get_blockModule(self.blockType)                    
+                    
                 if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
                     log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
                     try:
@@ -283,6 +281,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             self.doSnapTo(_sel[0])
                 #cgmGEN.func_snapShot(vars())
                 
+                self._blockModule = _blockModule                
+                
             if blockParent is not None:
                 try:
                     self.p_blockParent = blockParent
@@ -290,6 +290,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
                     for arg in err.args:
                         log.error(arg)
+            
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
 
@@ -317,19 +318,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
             else:
                 blockType = _type
     
-            _mBlockModule = get_blockModule(blockType)
+            #_mBlockModule = get_blockModule(blockType)
     
-            if not _mBlockModule:
-                log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
-                return False
+            #if not _mBlockModule:
+                #log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
+                #return False
     
             #if 'build_rigBlock' not in _module.__dict__.keys():
                 #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
                 #return False
     
             #>>> Attributes --------------------------------------------------------------------------------
-            self._factory.verify(blockType)    
-    
+            #self._factory.verify(blockType)    
+            self.atBlockUtils('verify_blockAttrs',queryMode = False)
+            
             _side = side
             try:
                 if _side is not None and self._callKWS.get('side'):
@@ -350,12 +352,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
             try:self.baseSize = self._callSize
             except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
     
-    
-            _mBlockModule = get_blockModule(self.blockType)
-            if 'define' in _mBlockModule.__dict__.keys():
-                log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-                _mBlockModule.define(self)      
-            self._blockModule = _mBlockModule
+            #try:self.atBlockModule('define')
+            #except:pass
+            #_mBlockModule = get_blockModule(self.blockType)
+            #if 'define' in _mBlockModule.__dict__.keys():
+                #log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+                #_mBlockModule.define(self)      
+            #self._blockModule = _mBlockModule
     
             self.doName()
             log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
@@ -671,7 +674,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return _res
     p_blockAttributes = property(getBlockAttributes)
 
-    def getBlockModule(self):
+    def getBlockModule(self,update = False):
+        if self._blockModule and not update:
+            return self._blockModule
         blockType = self.getMayaAttr('blockType')
         return get_blockModule(blockType)
 
@@ -755,7 +760,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def resetBlockDat(self):
         #This needs more work.
-        self._factory.verify(self.blockType, forceReset=True) 
+        self.atUtils('verify_blockAttrs', forceReset=True) 
 
     def printBlockDat(self):
         cgmGEN.walk_dat(self.blockDat,'[{0}] blockDat'.format(self.p_nameShort))
@@ -891,6 +896,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #>>> States 
     #========================================================================================================      
     def rebuild(self,*args,**kws):
+        raise NotImplementedError,"Not done"
         return self._factory.rebuild_rigBlock(*args,**kws)
 
     def getState(self, asString = True):
@@ -939,8 +945,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def changeState(self, *args,**kws):
         _str_func = '[{0}]changeState'.format(self.mNode)
         start = time.clock()
-
-        _res = self._factory.changeState(*args,**kws)
+        _res = self.atUtils('changeState',*args,**kws)
         log.info("{0} >> Time >> = {1} seconds ".format(_str_func, "%0.3f"%(time.clock()-start)) + "-"*75)
 
         #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
@@ -1125,6 +1130,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #========================================================================================================      
     def asHandleFactory(self,*a,**kws):
         return handleFactory(*a,**kws)
+    def asRigFactory(self,*a,**kws):
+        return rigFactory(self,*a,**kws)    
     def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
         """
         Function to contextually call a series of rigBlocks and run a methodCall on them with 
@@ -1146,6 +1153,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         _blockModule = self.p_blockModule
         return self.stringModuleCall(_blockModule,func,*args, **kws)
+    
+    def atRigModule(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        return self.moduleTarget.atUtils(func,*args,**kws)
+    
     def atBlockUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
@@ -2619,8 +2633,6 @@ class factory(object):
 
         return True
 
-
-
     def prerig(self):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
@@ -3137,10 +3149,13 @@ class factory(object):
 #====================================================================================	
 #>> Utilities
 #====================================================================================	
-def get_modules_dict():
-    return get_modules_dat()[0]
+global CGM_RIGBLOCK_DAT
+CGM_RIGBLOCK_DAT = None
 
-def get_modules_dat():
+def get_modules_dict(update=False):
+    return get_modules_dat(update)[0]
+
+def get_modules_dat(update = False):
     """
     Data gather for available blocks.
 
@@ -3153,7 +3168,13 @@ def get_modules_dat():
         _l_unbuildable(list) - list of unbuildable modules
     """
     _str_func = 'get_modules_dict'    
+    global CGM_RIGBLOCK_DAT
 
+    if CGM_RIGBLOCK_DAT and not update:
+        log.debug("|{0}| >> passing buffer...".format(_str_func))          
+        return CGM_RIGBLOCK_DAT
+    
+    
     _b_debug = log.isEnabledFor(logging.DEBUG)
 
     import cgm.core.mrs.blocks as blocks
@@ -3238,10 +3259,12 @@ def get_modules_dat():
         log.debug("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
         for m in _l_unbuildable:
             print(">>>    " + m) 
+            
+    CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
     return _d_modules, _d_categories, _l_unbuildable
 
 
-def get_blockModule(blockType):
+def get_blockModule(blockType,update=False):
     """
     Function to check if a givin block module is buildable or not
 
@@ -3256,7 +3279,7 @@ def get_blockModule(blockType):
     _res = True
 
     if VALID.stringArg(blockType):
-        _d = get_modules_dict()
+        _d = get_modules_dict(update)
         _buildModule = _d.get(blockType,False)
         if not _buildModule:
             log.error("|{0}| >> [{1}] | Failed to query name in library ".format(_str_func,blockType))   
@@ -3270,7 +3293,6 @@ def get_blockModule(blockType):
         return False
 
     return _buildModule        
-
 
 def is_buildable(blockModule):
     """
@@ -3660,13 +3682,14 @@ class rigFactory(object):
         if not self.call_kws['rigBlock']:
             raise RuntimeError,'No rigBlock stored in call kws'
 
-        BlockFactory = factory(self.call_kws['rigBlock'])
-        BlockFactory.verify()
-
-        _d['mBlock'] = BlockFactory._mi_block
-        self.mBlock = _d['mBlock']
-        _d['mFactory'] = BlockFactory
-        _d['shortName'] = BlockFactory._mi_block.getShortName()
+        #BlockFactory = factory(self.call_kws['rigBlock'])
+        mBlock = cgmMeta.validateObjArg(self.call_kws['rigBlock'],'cgmRigBlock')
+        
+        mBlock.verify()
+        _d['mBlock'] = mBlock
+        self.mBlock = mBlock
+        #_d['mFactory'] = BlockFactory
+        _d['shortName'] = mBlock.getShortName()
 
         _blockType = _d['mBlock'].blockType
 
@@ -3695,10 +3718,11 @@ class rigFactory(object):
     def fnc_check_module(self):
         _str_func = 'fnc_check_module'  
         _res = True
-        BlockFactory = self.d_block['mFactory']
+        #BlockFactory = self.d_block['mFactory']
 
         _hasModule = True
-        if BlockFactory._mi_block.blockType in ['master']:
+        #if BlockFactory._mi_block.blockType in ['master']:
+        if self.mBlock.blockType in ['master']:
             _hasModule = False
 
 
@@ -3706,8 +3730,8 @@ class rigFactory(object):
         _d = {}    
 
         if _hasModule:
-            BlockFactory.module_verify()
-            _mModule = BlockFactory._mi_module
+            #BlockFactory.module_verify()
+            _mModule = self.mBlock.atUtils('module_verify')
             self.mModule = _mModule
 
             _mRigNull = _mModule.rigNull
@@ -3730,7 +3754,8 @@ class rigFactory(object):
             _d['mDynSwitch'] = _mDynSwitch"""
 
             #>>Puppet -----------------------------------------------------------------------------------    
-            BlockFactory.puppet_verify()
+            #BlockFactory.puppet_verify()
+            self.mBlock.atUtils('puppet_verify')
             _mPuppet = _mModule.modulePuppet
         else:
             _mPuppet = self.mBlock.moduleTarget
@@ -4096,7 +4121,7 @@ class rigFactory(object):
 
         if self.b_outOfDate and self.call_kws['autoBuild']:
             self.doBuild(**kws)
-        else:log.error("|{0}| >> No autobuild condition met...".format(_str_func))                    
+        else:log.error("|{0}| >> No autobuild condition met. Out of date: {1}".format(_str_func, self.b_outOfDate))                    
 
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
@@ -5368,6 +5393,9 @@ class cgmRigModule(cgmMeta.cgmObject):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
+        try:
+            reload(MODULEUTILS)
+        except Exception,err:cgmGEN.cgmException(Exception,err)
         return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
 
     def __verify__(self,**kws):
