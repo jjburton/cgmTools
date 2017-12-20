@@ -941,14 +941,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _goodState
         return _l_blockStates.index(_goodState)
 
-
     def changeState(self, *args,**kws):
-        _str_func = '[{0}]changeState'.format(self.mNode)
-        start = time.clock()
         _res = self.atUtils('changeState',*args,**kws)
-        log.info("{0} >> Time >> = {1} seconds ".format(_str_func, "%0.3f"%(time.clock()-start)) + "-"*75)
-
-        #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
         return _res
 
     p_blockState = property(getState,changeState)
@@ -1158,7 +1152,22 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
+        _str_func = 'atRigModule'
+        if self.blockType in ['master']:
+            log.debug("|{0}| >> ineligible blockType: {1}".format(_str_func, self.blockType))                 
+            return False
+        
         return self.moduleTarget.atUtils(func,*args,**kws)
+    
+    def atRigPuppet(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _str_func = 'atRigPuppet'
+        if self.blockType in ['master']:
+            return self.moduleTarget.atUtils(func,*args,**kws)
+        
+        return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
     
     def atBlockUtils(self, func = '', *args,**kws):
         """
@@ -1225,7 +1234,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if self.getState() != 'rig':
             log.error("|{0}| >> Block must be rigged. {1}".format(_str_func, self.mNode))            
             return False
-        
+        if not 'build_proxyMesh' in self.p_blockModule.__dict__.keys():
+            log.error("|{0}| >> [{1}] Block module lacks 'build_proxyMesh' call.".format(_str_func, self.blockType))                        
+            return False
         mRigFac = rigFactory(self, autoBuild = False)
         return mRigFac.atBlockModule('build_proxyMesh', forceNew)
     
@@ -5440,8 +5451,6 @@ class cgmRigModule(cgmMeta.cgmObject):
                     except Exception,err:
                         log.error("|{0}| Failed to set: {1}|{2}".format(_str_func,k,v,err))
                         
-
-
             #rigBlock
             #--------------------------------------------------------------------------------
             

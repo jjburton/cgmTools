@@ -293,14 +293,7 @@ def get_infoBlock_report(self):
 #=============================================================================================================
 #>> Utilities
 #=============================================================================================================
-def get_blockGroup():
-    if not mc.objExists('cgmBlocksGroup'):
-        mGroup = cgmMeta.cgmObject(name = 'cgmBlocksGroup')
-    else: 
-        mGroup = cgmMeta.validateObjArg('cgmBlocksGroup','cgmObject')
-    mGroup.setAttrFlags(attrs=['t','r','s'])
-        
-    return mGroup
+
 
 #=============================================================================================================
 #>> define
@@ -2555,6 +2548,7 @@ def rigDelete(self):
     self.blockState = 'prerig'#...yes now in this state
     return True
 
+@cgmGEN.Timer
 def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
     try:
         _str_func = 'changeState'

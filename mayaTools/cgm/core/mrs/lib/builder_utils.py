@@ -54,30 +54,32 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 for m in BLOCKSHARE,MATH,DIST,RAYS:
     reload(m)
 
-
-#Dave, here's the a few calls we need...
-#Here's some code examples when I initially looked at it...
 from cgm.core.cgmPy import os_Utils as cgmOS
 
+def gather_rigBlocks():
+    mGroup = get_blockGroup()
+    
+    for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock'):
+        if not mObj.parent:
+            mObj.parent = mGroup
+
+def get_blockGroup():
+    if not mc.objExists('cgmRigBlocksGroup'):
+        mGroup = cgmMeta.cgmObject(name = 'cgmRigBlocksGroup')
+    else: 
+        mGroup = cgmMeta.validateObjArg('cgmRigBlocksGroup','cgmObject')
+    mGroup.setAttrFlags(attrs=['t','r','s'])
+        
+    return mGroup
 
 def get_scene_blocks():
     """
-    Gather all rig blocks data in scene
-
-    :parameters:
-
-    :returns
-        _d_modules, _d_categories, _l_unbuildable
-        _d_modules(dict) - keys to modules
-        _d_categories(dict) - categories to list of entries
-        _l_unbuildable(list) - list of unbuildable modules
     """
     _str_func = 'get_scene_blocks'
     
     _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
     
     return _l_rigBlocks
-
 
 def get_block_lib_dict():
     return get_block_lib_dat()[0]

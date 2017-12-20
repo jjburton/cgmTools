@@ -226,8 +226,7 @@ def rig_cleanUp(self):
         mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
         mMasterNull = self.d_module['mMasterNull']
         mPlug_globalScale = self.d_module['mPlug_globalScale']
-        
-        
+                
         if mBlock.addMotionJoint:
             if not is_skeletonized(mBlock):
                 build_skeleton(mBlock)

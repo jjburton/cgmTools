@@ -86,6 +86,10 @@ class ui(cgmUI.cgmGUI):
                          'load blockDat':'Load existing blockDat from the block to current settings',
                          'reset blockDat': 'Reset blockDat to defaults as defined by the module',
                          'copy blockDat': 'Copy the blockDat from one block to another',
+                         'rig connect': 'Connect the bind joints to rig joints',
+                         'rig disconnect': 'Disconnect the bind joints from the rig joints',
+                         'proxy verify': 'Verify proxy geo per block (if available)',
+                         'reset rig': 'Reset rig controls',
                          'verify':"Verify the attributes rigBlocks"}    
     
     def insert_init(self,*args,**kws):
@@ -560,9 +564,15 @@ class ui(cgmUI.cgmGUI):
             mUI.MelMenuItem(_rigMenu,
                             label = 'Reset Rig controls',
                             ann = '[{0}] Reset rig controls'.format(_short),
-                            c=cgmGEN.Callback( _mBlock.atBlockUtils, 'controlsRig_reset' ))        
-        
-
+                            c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_reset' ))
+            mUI.MelMenuItem(_rigMenu,
+                            label = 'Connect Rig',
+                            ann = '[{0}] {1}'.format(_short,self._d_ui_annotations.get('rig connect')),
+                            c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_connect' ))
+            mUI.MelMenuItem(_rigMenu,
+                            label = 'Disconnect Rig',
+                            ann = '[{0}] {1}'.format(_short,self._d_ui_annotations.get('rig disconnect')),
+                            c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_disconnect' ))
             
         return
         #>>Context ============================================================================================
@@ -765,7 +775,11 @@ class ui(cgmUI.cgmGUI):
     def uiUpdate_blockDat(self):
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
+        
+        _short = self._blockCurrent.p_nameShort
+        _intState = self._blockCurrent.getState(False)        
     
+        #Save/Load row... ------------------------------------------------------------------------
         _mBlockDat = mUI.MelHLayout(self.uiFrame_blockSettings,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(_mBlockDat, "Save",
                          cgmGEN.Callback(self._blockCurrent.saveBlockDat),
@@ -785,12 +799,10 @@ class ui(cgmUI.cgmGUI):
                          cgmGEN.Callback(self.uiUpdate_blockDat),
                          "Resync the ui blockDat with any changes you've made in viewport.")
     
-        _mBlockDat.layout()                
+        _mBlockDat.layout()
         
-        
-        _short = self._blockCurrent.p_nameShort
-        _intState = self._blockCurrent.getState(False)
-        
+
+        #Attrs... ------------------------------------------------------------------------
         _l_attrs = self._blockCurrent.atUtils('uiQuery_getStateAttrs',_intState)
     
         _sidePadding = 25
@@ -857,7 +869,9 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
-                         c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )      
+                         c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
+        mUI.MelMenuItem( self.uiMenu_help, l="Gather Blocks",
+                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )        
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
                     c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
@@ -865,7 +879,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
         mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
-                         c=lambda *a: self.uiUpdate_building() )      
+                         c=lambda *a: self.uiUpdate_building() )
         
  
     def uiFunc_clear_loaded(self):
