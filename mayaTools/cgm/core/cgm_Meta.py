@@ -288,9 +288,9 @@ class cgmNode(r9Meta.MetaClass):
     def __repr__(self):
         try:
             if self.hasAttr('mClass'):
-                return "[node: {0} | mClass: {1} | class: {2}]".format(self.mNode.split('|')[-1], self.mClass, self.__class__)
+                return "(node: {0} | mClass: {1} | class: {2})".format(self.mNode.split('|')[-1], self.mClass, self.__class__)
             else:
-                return "[node: {0} | class: {1}]".format(self.mNode.split('|')[-1], self.__class__)
+                return "(node: {0} | class: {1})".format(self.mNode.split('|')[-1], self.__class__)
         except:
             # if this fails we have a dead node more than likely
             try:
@@ -329,11 +329,19 @@ class cgmNode(r9Meta.MetaClass):
     #>>> Overloads - Departures from red9's core...
     #======================================================================================================== 
     def __setMessageAttr__(self,attr,value, force = True, ignoreOverload = False,**kws):
-        if ignoreOverload:#just use Mark's
-            r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
-        else:
-            ATTR.set_message(self.mNode, attr, value)   
-            
+        try:
+            if ignoreOverload:#just use Mark's
+                log.info('r9Method...')
+                r9Meta.MetaClass.__setMessageAttr__(self,attr,value,**kws)
+            else:
+                if value:
+                    if issubclass(type(value),list):
+                        value = [VALID.mNodeString(o) for o in value]
+                    else:
+                        value = VALID.mNodeString(value)
+                ATTR.set_message(self.mNode, attr, value)   
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        
     def addAttr(self, attr,value = None, attrType = None, enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         _str_func = 'addAttr'
         

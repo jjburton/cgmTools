@@ -430,8 +430,10 @@ def create_axisProxy(obj=None):
             l_shapes = [obj]
         else:
             l_shapes = TRANS.shapes_get(_dag)
-        
+            
+        _parent = TRANS.parent_get(_dag)
         _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
+        
         _dup = TRANS.parent_set(_dup,False)
         
         #Get some values...
@@ -452,8 +454,7 @@ def create_axisProxy(obj=None):
         
         
         #Now Put it back
-        _dup = TRANS.parent_set(_dup, TRANS.parents_get(_dag))
-        _parent = TRANS.parent_get(_dag)
+        _dup = TRANS.parent_set(_dup, TRANS.parent_get(_dag))
         _proxy = TRANS.parent_set(_proxy, _dup)
         
         #_dup = TRANS.parent_set(_dup, TRANS.parents_get(_dag))
@@ -461,7 +462,7 @@ def create_axisProxy(obj=None):
         #ATTR.set(_dup,'s',(0,0,0))
         ATTR.reset(_dup,['s','shear'])
 
-
+        
         ATTR.reset(_proxy,['t','r','s','shear'])
         _proxy = TRANS.parent_set(_proxy, _dag)
         ATTR.reset(_proxy,['t','r','s','shear'])

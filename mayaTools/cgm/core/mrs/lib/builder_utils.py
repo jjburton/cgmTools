@@ -582,7 +582,7 @@ def build_visSub(self):
     #Get one of the drivers
     if self.mModule.getAttr('cgmDirection') and self.mModule.cgmDirection.lower() in ['left','right']:
         str_mainSubDriver = "%s.%sSubControls_out"%(mMasterControl.controlVis.getShortName(),
-                                                    mModule.cgmDirection)
+                                                    self.mModule.cgmDirection)
     else:
         str_mainSubDriver = "%s.subControls_out"%(mMasterControl.controlVis.getShortName())
 

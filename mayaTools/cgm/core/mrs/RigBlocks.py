@@ -508,9 +508,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if self.p_blockParent != False:
                 self.p_parent = False
                 
-            _const = self.getConstraintsTo()
-            if _const:
-                mc.delete(_const)
+            #_const = self.getConstraintsTo()
+            #if _const:
+                #mc.delete(_const)
         else:
             if parent == self:
                 raise ValueError, "Cannot blockParent to self"
@@ -529,8 +529,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #self.p_parent = parent
                 
             _parent = VALID.mNodeString(parent)
-            mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
-            mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
+            #mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
+            #mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
             
 
     p_blockParent = property(getBlockParent,setBlockParent)
@@ -1123,7 +1123,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #>>> Utilities 
     #========================================================================================================      
     def asHandleFactory(self,*a,**kws):
-        return handleFactory(*a,**kws)
+        return handleFactory(self,*a,**kws)
     def asRigFactory(self,*a,**kws):
         return rigFactory(self,*a,**kws)    
     def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
@@ -1145,35 +1145,44 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _blockModule = self.p_blockModule
-        return self.stringModuleCall(_blockModule,func,*args, **kws)
+        try:
+            _blockModule = self.p_blockModule
+            return self.stringModuleCall(_blockModule,func,*args, **kws)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def atRigModule(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _str_func = 'atRigModule'
-        if self.blockType in ['master']:
-            log.debug("|{0}| >> ineligible blockType: {1}".format(_str_func, self.blockType))                 
-            return False
-        
-        return self.moduleTarget.atUtils(func,*args,**kws)
+        try:
+            _str_func = 'atRigModule'
+            if self.blockType in ['master']:
+                log.debug("|{0}| >> ineligible blockType: {1}".format(_str_func, self.blockType))                 
+                return False
+            
+            return self.moduleTarget.atUtils(func,*args,**kws)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def atRigPuppet(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _str_func = 'atRigPuppet'
-        if self.blockType in ['master']:
-            return self.moduleTarget.atUtils(func,*args,**kws)
-        
-        return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
+        try:
+            _str_func = 'atRigPuppet'
+            if self.blockType in ['master']:
+                return self.moduleTarget.atUtils(func,*args,**kws)
+            
+            return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def atBlockUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
+        try:
+            return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        
     atUtils = atBlockUtils
 
 
@@ -1205,6 +1214,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             print("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
             res = getattr(self,func)(*args,**kws)
         except Exception,err:
+            """
             log.error(cgmGEN._str_hardLine)
             log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
             log.error("block: {0} | func: {1}".format(_short,func))            
@@ -1219,8 +1229,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.error("Errors...")
             for a in err.args:
                 log.error(a)
-            log.error(cgmGEN._str_subLine)
-            raise Exception,err
+            log.error(cgmGEN._str_subLine)"""
+            cgmGEN.cgmExceptCB(Exception,err)
         return res
 
         print res
@@ -1245,9 +1255,8 @@ class handleFactory(object):
     _l_controlLinks = []
     _l_controlmsgLists = []	
 
-    def __init__(self, node = None, baseShape = 'square',  baseSize = 1,
-                 shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+',
-                 rigBlock = None, *a,**kws):
+    def __init__(self, rigBlock = None, node = None, baseShape = 'square',  baseSize = 1, side = None,
+                 shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+', *a,**kws):
         """
         :returns
             factory instance
@@ -1259,17 +1268,25 @@ class handleFactory(object):
             self._call_kws = kws
             cgmGEN.walk_dat(kws,_str_func)
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
-
+        
+        self.mBlock = None
         self._mTransform = None
         self._baseShape = baseShape
         self._baseSize = get_callSize(baseSize)
+        self._side = side
 
         #if node is None:
             #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
             #self.rebuildSimple(baseShape,baseSize,shapeDirection)
         if node is not None:
             self.setHandle(node)
-
+        if rigBlock is not None:
+            self.setRigBlock(rigBlock)
+            
+    def __repr__(self):
+        try:return "{0}(root: {1} | mBlock: {2})".format(self.__class__, self._mTransform, self.mBlock)
+        except:return self
+        
     def setHandle(self,arg = None):
         #if not VALID.is_transform(arg):
             #raise ValueError,"must be a transform"
@@ -1279,7 +1296,11 @@ class handleFactory(object):
             #ATTR.add(self._mTransform.mNode,'baseSize','float3')
             #self._mTransform.baseSize = 1.0,1.0,1.0
             #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
+            
+    def setRigBlock(self,arg = None):
+        self.mBlock = cgmMeta.validateObjArg(arg,'cgmRigBlock')
 
+                #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
     def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
         self.cleanShapes()
 
@@ -1330,6 +1351,32 @@ class handleFactory(object):
         _baseSize = self._mTransform.baseSize * _maxLossy    
         return _baseSize
 
+    def copyBlockNameTags(self, target = None, name = True, direction = True, position = True):
+        _str_func = 'handleFactory.copyBlockNameTags'
+        log.info("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        if not self.mBlock:
+            raise ValueError,"Must have rigBlock loaded"
+        mBlock = self.mBlock
+        
+        #_targets = VALID.listArg(target)
+        ml_targets = cgmMeta.validateObjListArg(target)
+        log.info("|{0}| >> target: [{1}]".format(_str_func, ml_targets))
+    
+        for mTar in ml_targets:
+            t = mTar.mNode
+            if name and mBlock.getMayaAttr('cgmName') and not mTar.getMayaAttr('cgmName') :
+                ATTR.copy_to(mBlock.mNode,'cgmName',t,driven='target')
+            if position and mBlock.getMayaAttr('cgmPosition') and not mTar.getMayaAttr('cgmPosition'):
+                ATTR.copy_to(mBlock.mNode,'cgmPosition',t,driven='target')
+            if not mTar.getMayaAttr('cgmDirection'):
+                if direction and mBlock.getMayaAttr('cgmDirection'):
+                    ATTR.copy_to(mBlock.mNode,'cgmDirection',t,driven='target')
+                elif mBlock.side:
+                    mTar.doStore('cgmDirection',self.get_side())
+            mTar.doName()
+            
+                
     def color(self, target = None, side = None, controlType = None, transparent = None):
         _str_func = 'handleFactory.color'
         log.info("|{0}| >> ".format(_str_func)+ '-'*80)
@@ -1436,6 +1483,10 @@ class handleFactory(object):
         return mCrv
 
     def get_side(self):
+        if self.mBlock:
+            return self.mBlock.atUtils('get_side')
+        if self._side:
+            return self._side
         _side = 'center'
         mHandle = self._mTransform        
         if mHandle.getMayaAttr('side'):
@@ -1513,14 +1564,15 @@ class handleFactory(object):
                         mPivotRootHandle.addAttr('cgmType','pivotHelper')            
                         mPivotRootHandle.doName()
 
-                        CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
+                        #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
+                        self.color(mPivotRootHandle.mNode,_side,'sub')
 
                         #mPivotRootHandle.parent = mPrerigNull
                         mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
 
                         if mHandle.hasAttr('addPivot'):
                             mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-                        self._mTransform.msgList_append('prerigHandles',mPivotRootHandle)
+                        self.mBlock.msgList_append('prerigHandles',mPivotRootHandle)
 
             if _axisBox:
                 mc.delete(_axisBox)
@@ -1528,10 +1580,12 @@ class handleFactory(object):
                 mPivot.addAttr('cgmType','pivotHelper')            
                 mPivot.doName()
 
-                CORERIG.colorControl(mPivot.mNode,_side,'sub') 
+                #CORERIG.colorControl(mPivot.mNode,_side,'sub') 
+                self.color(mPivot.mNode,_side,'sub')
+                
                 mPivot.parent = mPivotRootHandle
                 mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
-                self._mTransform.msgList_append('prerigHandles',mPivot)
+                self.mBlock.msgList_append('prerigHandles',mPivot)
 
             if self._mTransform.getShapes():
                 SNAPCALLS.snap(mPivotRootHandle.mNode,self._mTransform.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
@@ -1571,12 +1625,12 @@ class handleFactory(object):
 
         CORERIG.match_transform(mCurve.mNode, mHandle)
         mCurve.connectParentNode(mHandle.mNode,'handle','scalePivotHelper')      
-        CORERIG.colorControl(mCurve.mNode,_side,'sub')
+        self.color(mCurve.mNode,_side,'sub')
 
         if mHandle.hasAttr('addScalePivot'):
             mHandle.doConnectOut('addScalePivot',"{0}.v".format(mCurve.mNode))
 
-        self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
+        self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
         return mCurve    
 
     def get_subSize(self,mult = .2):
@@ -1645,12 +1699,13 @@ class handleFactory(object):
             CORERIG.match_transform(mCurve.mNode, mHandle)
             mCurve.connectParentNode(mHandle.mNode,'handle',_plug)
 
-            CORERIG.colorControl(mCurve.mNode,_side,'sub')
+            #CORERIG.colorControl(mCurve.mNode,_side,'sub')
+            self.color(mCurve.mNode,_side,'sub')
 
             if mHandle.hasAttr('addCog'):
                 mHandle.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
 
-            self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
+            self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
 
             return mCurve    
         except Exception,err:
@@ -1699,6 +1754,7 @@ class handleFactory(object):
 
             CORERIG.match_transform(mCurve.mNode, mHandle)
             mCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
+            self.color(mCurve.mNode)
 
             return mCurve
         except Exception,err:
@@ -1736,7 +1792,8 @@ class handleFactory(object):
 
             self.setAttrs_fromDict(setAttrs)
 
-            CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
+            #CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
+            self.color(mProxy.mNode,_side,'sub',transparent=True)
 
             mProxy.connectParentNode(mHandle.mNode,'handle','proxyHelper')
 
@@ -1783,7 +1840,7 @@ class handleFactory(object):
                 mHandle.doConnectOut('addMotionJoint',"{0}.v".format(mCurve.mNode))
                 ATTR.set_standardFlags(mCurve.mNode,['v'])
 
-            self._mTransform.msgList_append('prerigHandles',mCurve.mNode)
+            self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
             return mCurve
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
@@ -1815,7 +1872,7 @@ class handleFactory(object):
 
             self.color(mJointCurve.mNode)
 
-            CORERIG.match_transform(mJointCurve.mNode, mHandle)
+            #CORERIG.match_transform(mJointCurve.mNode, mHandle)
 
             #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
             #                   etx = (True,True), ety = (True,True), etz = (True,True))        
@@ -3166,6 +3223,7 @@ CGM_RIGBLOCK_DAT = None
 def get_modules_dict(update=False):
     return get_modules_dat(update)[0]
 
+@cgmGEN.Timer
 def get_modules_dat(update = False):
     """
     Data gather for available blocks.
@@ -3388,13 +3446,13 @@ def valid_blockModule_rigBuildOrder(blockType):
     return False
 
 _l_requiredModuleDat = ['__version__',
-                        'template','is_template','templateDelete',
-                        'prerig','is_prerig','prerigDelete',
+                        'template','is_template',
+                        'prerig','is_prerig',
                         'rig','is_rig','rigDelete']
 
 _d_requiredModuleDat = {'define':['__version__'],
-                        'template':['template','is_template','templateDelete'],
-                        'prerig':['prerig','is_prerig','prerigDelete'],
+                        'template':['template','is_template',],
+                        'prerig':['prerig','is_prerig'],
                         'rig':['is_rig','rigDelete']}
 _d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
 
@@ -3712,6 +3770,7 @@ class rigFactory(object):
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
 
+        _d['blockParents'] = mBlock.getBlockParents()
 
         #Build order --------------------------------------------------------------------------------
         _d['buildOrder'] = valid_blockModule_rigBuildOrder(_buildModule)
@@ -3719,7 +3778,7 @@ class rigFactory(object):
             raise RuntimeError,'Failed to validate build order'
 
         self.d_block = _d    
-
+        
         self.buildModule = _buildModule
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
 
@@ -3751,8 +3810,13 @@ class rigFactory(object):
             self.mRigNull = _mRigNull
             _d['shortName'] = _mModule.getShortName()
             _d['version'] = _mModule.rigNull.version
+            
+            
+            _d['mModuleParent'] = False            
+            if self.d_block['blockParents']:
+                if not _mModule.getMessage('moduleParent'):
+                    _mModule.atUtils('set_parentModule',self.d_block['blockParents'][0].moduleTarget)
 
-            _d['mModuleParent'] = False
             if _mModule.getMessage('moduleParent'):
                 _d['mModuleParent'] = _mModule.moduleParent
 
@@ -4081,7 +4145,7 @@ class rigFactory(object):
             else:
                 #Make it and link it
                 if _str_partType in ['eyelids']:
-                    buffer =  CORERIG.group_me(_mi_moduleParent.deformNull.mNode,False)			
+                    buffer =  CORERIG.group_me(_mi_moduleParent.deformNull.mNode,False)
                 else:
                     buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
 
@@ -4092,10 +4156,19 @@ class rigFactory(object):
                 i_grp.parent = self.d_module['mMasterDeformGroup'].mNode
                 self.mModule.connectChildNode(i_grp,'deformNull','module')
                 if _str_partType in ['eyeball']:
-                    self.mModule.connectChildNode(i_grp,'constrainNull','module')	
-                    i_grp.parent = self.i_faceDeformNull				
+                    self.mModule.connectChildNode(i_grp,'constrainNull','module')
+                    i_grp.parent = self.i_faceDeformNull
+                    
         self.mDeformNull = self.mModule.deformNull
-
+        self.attachPoint = self.mModule.atUtils('get_attachPoint')
+        if self.attachPoint:
+            log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
+            mAttach = cgmMeta.validateObjArg(self.attachPoint)
+            try:mc.delete(self.mDeformNull.getConstraintsTo())
+            except:pass
+            mc.parentConstraint([mAttach.mNode], self.mDeformNull.mNode, maintainOffset = True, weight = 1)
+            mc.scaleConstraint([mAttach.mNode], self.mDeformNull.mNode, maintainOffset = True, weight = 1)
+                    
 
         if not self.mModule.getMessage('constrainNull'):
             #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:

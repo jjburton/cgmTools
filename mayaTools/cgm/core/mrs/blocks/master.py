@@ -155,7 +155,6 @@ def template(self):
         
     for s in [_crv] + l_offsetCrvs:
         RIG.shapeParent_in_place(self.mNode,s,False)
-        
     return True
 
 def templateDelete(self):

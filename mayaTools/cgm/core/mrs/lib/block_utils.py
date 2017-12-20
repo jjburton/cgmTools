@@ -1322,48 +1322,49 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
 
 
 def skeleton_connectToParent(self):
-    _short = self.mNode
-    _str_func = 'skeleton_connectToParent ( {0} )'.format(_short)
+    _str_func = 'skeleton_connectToParent'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     mModule = self.moduleTarget
-    l_moduleJoints = mModule.rigNull.msgList_get('moduleJoints',asMeta = False)
+    ml_moduleJoints = mModule.rigNull.msgList_get('moduleJoints',asMeta = True)
     
-    if not mModule.moduleParent:
-        log.info("|{0}| >> No moduleParent".format(_str_func))
-        ml_parentBlocks = self.getBlockParents()
+    ml_parentBlocks = self.getBlockParents()
+    
+    if ml_parentBlocks:
+        log.debug("|{0}| >> ml_parentBlocks: {1}".format(_str_func,ml_parentBlocks))           
         
-        if ml_parentBlocks:
-            if ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].getMessage('moduleTarget') and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
-                log.info("|{0}| >> Root joint on master found".format(_str_func))           
-                TRANS.parent_set(l_moduleJoints[0], ml_parentBlocks[0].moduleTarget.getMessage('rootJoint')[0])
-                return True
-    return True
-    ml_parentBlocks = self.getParentBlocks()
-    if ml_parentBlocks and ml_parentBlocks[0].blockType == 'master' and ml_parentBlocks[0].moduleTarget.getMessage('rootJoint'):
-        log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
-        
-        
-        
-    if not mModule.getMessage('moduleParent'):
-        log.info("|{0}| >> No moduleParent. Checking puppet".format(_str_func))  
-        TRANS.parent_set(l_moduleJoints[0], mModule.modulePuppet.masterNull.skeletonGroup.mNode)
-    else:
-        mParent = self.moduleParent #Link
-        if mParent.isSkeletonized():#>> If we have a module parent
-            #>> If we have another anchor
-            if self.moduleType == 'eyelids':
-                str_targetObj = mParent.rigNull.msgList_get('moduleJoints',asMeta = False)[0]
-                for jnt in l_moduleJoints:
-                    TRANS.parent_set(jnt,str_targetObj)
-            else:
-                l_parentSkinJoints = mParent.rigNull.msgList_get('moduleJoints',asMeta = False)
-                str_targetObj = distance.returnClosestObject(l_moduleJoints[0],l_parentSkinJoints)
-                TRANS.parent_set(l_moduleJoints[0],str_targetObj)		
+        if ml_parentBlocks[0].getMessage('moduleTarget'):
+            mParentModule = ml_parentBlocks[0].moduleTarget
         else:
-            log.info("|{0}| >> Module parent is not skeletonized".format(_str_func))  
-            return False   
+            log.debug("|{0}| >> No module target found.".format(_str_func))           
+            return False
         
+        if ml_parentBlocks[0].blockType == 'master':
+            log.info("|{0}| >> Master block...".format(_str_func))           
+            if mParentModule.getMessage('rootJoint'):
+                log.debug("|{0}| >> Root joint on master found".format(_str_func))
+                ml_moduleJoints[0].p_parent = mParentModule.getMessage('rootJoint')[0]
+                #TRANS.parent_set(l_moduleJoints[0], mParentModule.getMessage('rootJoint')[0])
+                return True
+            else:
+                log.debug("|{0}| >> No root joint".format(_str_func))
+                return True
+        else:
+            ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+            if not ml_targetJoints:
+                raise ValueError,"mParentModule has no module joints."
+            _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
+            if _attachPoint == 'end':
+                mTargetJoint = ml_targetJoints[-1]
+            elif _attachPoint == 'base':
+                mTargetJoint = ml_targetJoints[0]
+            else:
+                raise ValueError,"Not done with {0}".format(_attachPoint)
         
+            ml_moduleJoints[0].p_parent = mTargetJoint
+            
+    return True
+
 def skeleton_buildRigChain(self):
     _short = self.mNode
     _str_func = 'skeleton_buildRigChain ( {0} )'.format(_short)
@@ -1606,8 +1607,7 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
             controls_mirror(self,mMirror)
         else:
             controls_mirror(mMirror,self)
-        
-        
+
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
@@ -2176,7 +2176,7 @@ def controls_mirror(blockSource, blockMirror = None, mirrorMode = 'push', reflec
             ml_targetControls = controls_get(blockMirror,template,prerig)
             int_lenTarget = len(ml_targetControls)
             if int_lenTarget!=int_lenSource:
-                raise ValueError,"Control list lengths do not match."
+                raise ValueError,"Control list lengths do not match. "
         
         l_dat = []
         
@@ -2254,31 +2254,24 @@ def controls_mirror(blockSource, blockMirror = None, mirrorMode = 'push', reflec
 
         log.debug("|{0}| >> push values...".format(_str_func))
         for i,mObj in enumerate(ml_targetControls):
-            _dat = l_dat[i]
-            
-            if 'pivotHelper' in mObj.p_nameShort:
-                _cgmName = mObj.cgmName
+            try:
+                _dat = l_dat[i]
                 
-                if _cgmName in ['left','right']:
-                    _dat = l_dat[ md_remap['pivotHelper'][_cgmName] ]
-
-            log.debug("|{0}| >> Push mObj: {1}".format(_str_func,mObj.p_nameShort))            
-            mObj.p_positionEuclid = _dat['pos']
-            SNAP.aim_atPoint(mObj.mNode,_dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
-            
-            try:mObj.scale = _dat['scale']
-            except Exception,err:log.debug("|{0}| >> scale err: {1}".format(_str_func,err))            
-            """
-        if md_pivots:
-            log.debug("|{0}| >> Pivot remap...".format(_str_func))
-            md_pivots['left'].cgmName = 'right'
-            md_pivots['left'].doName()
-            md_pivots['right'].cgmName = 'left'
-            md_pivots['right'].doName()
-            
-            md_pivots['base'].connectChildNode(md_pivots['right'],'pivotLeft')#Connect    
-            md_pivots['base'].connectChildNode(md_pivots['left'],'pivotRight')#Connect    
-            """
+                if 'pivotHelper' in mObj.p_nameShort:
+                    _cgmName = mObj.cgmName
+                    
+                    if _cgmName in ['left','right']:
+                        _dat = l_dat[ md_remap['pivotHelper'][_cgmName] ]
+    
+                log.debug("|{0}| >> Push mObj: {1}".format(_str_func,mObj.p_nameShort))            
+                mObj.p_positionEuclid = _dat['pos']
+                
+                SNAP.aim_atPoint(mObj.mNode, _dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
+                
+                try:mObj.scale = _dat['scale']
+                except Exception,err:log.debug("|{0}| >> scale err: {1}".format(_str_func,err))            
+            except Exception,err:
+                log.debug("|{0}| >> mObj failure: {1} | {2}".format(_str_func,mObj.p_nameShort,err))            
             
         return l_dat,md_remap
     
@@ -2378,6 +2371,9 @@ def templateDelete(self):
     if 'templateDelete' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))
         self.atBlockModule('templateDelete')
+    
+    if self.getMessage('templateNull'):
+        mc.delete(self.getMessage('templateNull'))
     
     if 'define' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
@@ -2705,7 +2701,6 @@ def puppet_verify(self):
     
 def module_verify(self,queryMode=True):
     """
-    
 
     """
     try:

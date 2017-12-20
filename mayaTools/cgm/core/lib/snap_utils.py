@@ -23,7 +23,7 @@ from maya import mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 reload(VALID)
 from cgm.core.lib import shared_data as SHARED
@@ -76,7 +76,7 @@ def go(obj = None, target = None,
         kws['ws']=True
     else:kws['os']=True  
     
-    #cgmGeneral.walk_dat(kws)
+    #cgmGEN.walk_dat(kws)
     
     if position:
         kws_move = copy.copy(kws)
@@ -95,7 +95,7 @@ def go(obj = None, target = None,
             log.debug("|{0}|...postion...".format(_str_func))
             pos = POS.get(target,_pivot,_space,_mode)
             #log.info(pos)
-            #cgmGeneral.print_dict(kws,'move kws','snap.go')
+            #cgmGEN.print_dict(kws,'move kws','snap.go')
             mc.move (pos[0],pos[1],pos[2], _obj, **kws_move)
             #log.info(POS.get(_obj))
     if rotateAxis:
@@ -168,120 +168,123 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
     :returns
         success(bool)
     """ 
-    _str_func = 'aimAtPoint'
-    
-    
-    _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-    
-    try:position = position.x,position.y,position.z
-    except:pass
-    try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
-    except:pass
-    
-    log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))  
-    
-    if not ignoreAimAttrs:
-        _d_aim = ATTR.validate_arg(_obj,'axisAim')
-        _d_up =ATTR.validate_arg(_obj,'axisUp')
-        if ATTR.has_attr(_d_aim) and ATTR.has_attr(_d_up):
-            aimAxis = ATTR.get_enumValueString(_d_aim)
-            upAxis = ATTR.get_enumValueString(_d_up)
-            log.debug("|{0}| >> obj: {1} aimable from attrs. aim: {2} | up: {3}".format(_str_func,_obj,aimAxis,upAxis))              
-    
-    if mode == 'matrix':
-        '''Rotate transform based on look vector'''
-        # get source and target vectors
-        objPos = MATH.Vector3.Create(POS.get(_obj))
-        targetPos = MATH.Vector3.Create(position)
-    
-        aim = (targetPos - objPos).normalized()
-    
-        upVector = MATH.Vector3.up()
-        if upAxis == "y-":
-            upVector = MATH.Vector3.down()
-        elif upAxis == "z+":
-            upVector = MATH.Vector3.forward()
-        elif upAxis == "z-":
-            upVector = MATH.Vector3.back()
-        elif upAxis == "x+":
-            upVector = MATH.Vector3.right()
-        elif upAxis == "x-":
-            upVector = MATH.Vector3.left()
-        else:
+    try:
+        _str_func = 'aimAtPoint'
+        
+        
+        _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
+        
+        try:position = position.x,position.y,position.z
+        except:pass
+        try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
+        except:pass
+        
+        log.debug("|{0}| >> obj: {1} | position:{2} | mode: {3}".format(_str_func,_obj,position,mode))  
+        
+        if not ignoreAimAttrs:
+            _d_aim = ATTR.validate_arg(_obj,'axisAim')
+            _d_up =ATTR.validate_arg(_obj,'axisUp')
+            if ATTR.has_attr(_d_aim) and ATTR.has_attr(_d_up):
+                aimAxis = ATTR.get_enumValueString(_d_aim)
+                upAxis = ATTR.get_enumValueString(_d_up)
+                log.debug("|{0}| >> obj: {1} aimable from attrs. aim: {2} | up: {3}".format(_str_func,_obj,aimAxis,upAxis))              
+        
+        if mode == 'matrix':
+            '''Rotate transform based on look vector'''
+            # get source and target vectors
+            objPos = MATH.Vector3.Create(POS.get(_obj))
+            targetPos = MATH.Vector3.Create(position)
+        
+            aim = (targetPos - objPos).normalized()
+        
             upVector = MATH.Vector3.up()
+            if upAxis == "y-":
+                upVector = MATH.Vector3.down()
+            elif upAxis == "z+":
+                upVector = MATH.Vector3.forward()
+            elif upAxis == "z-":
+                upVector = MATH.Vector3.back()
+            elif upAxis == "x+":
+                upVector = MATH.Vector3.right()
+            elif upAxis == "x-":
+                upVector = MATH.Vector3.left()
+            else:
+                upVector = MATH.Vector3.up()
+            
+            up = MATH.transform_direction( _obj, upVector )
+            
+            wantedAim, wantedUp = MATH.convert_aim_vectors_to_different_axis(aim, up, aimAxis, upAxis)
+            
+            xformPos = mc.xform(_obj, q=True, matrix = True, ws=True)
+            pos = MATH.Vector3(xformPos[12], xformPos[13], xformPos[14])
+            rot_matrix = EUCLID.Matrix4.new_look_at(MATH.Vector3.zero(), -wantedAim, wantedUp)
+            
+            s = MATH.Vector3.Create( mc.getAttr('%s.scale' % _obj)[0] )
         
-        up = MATH.transform_direction( _obj, upVector )
+            scale_matrix = EUCLID.Matrix4()
+            scale_matrix.a = s.x
+            scale_matrix.f = s.y
+            scale_matrix.k = s.z
+            scale_matrix.p = 1
         
-        wantedAim, wantedUp = MATH.convert_aim_vectors_to_different_axis(aim, up, aimAxis, upAxis)
+            result_matrix = scale_matrix * rot_matrix
         
-        xformPos = mc.xform(_obj, q=True, matrix = True, ws=True)
-        pos = MATH.Vector3(xformPos[12], xformPos[13], xformPos[14])
-        rot_matrix = EUCLID.Matrix4.new_look_at(MATH.Vector3.zero(), -wantedAim, wantedUp)
+            transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
         
-        s = MATH.Vector3.Create( mc.getAttr('%s.scale' % _obj)[0] )
-    
-        scale_matrix = EUCLID.Matrix4()
-        scale_matrix.a = s.x
-        scale_matrix.f = s.y
-        scale_matrix.k = s.z
-        scale_matrix.p = 1
-    
-        result_matrix = scale_matrix * rot_matrix
-    
-        transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
-    
-        mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
-        """elif mode == 'world':
-        _loc = mc.spaceLocator()[0]
-        mc.move (position[0],position[1],position[2], _loc, ws=True)  
-        
-        mAxis_aim = VALID.simpleAxis(aimAxis)
-        mAxis_up = VALID.simpleAxis(upAxis)
-        
-        _constraint = mc.aimConstraint(_loc,_obj,
-                                       maintainOffset = False,
-                                       aimVector = mAxis_aim.p_vector,
-                                       upVector = mAxis_up.p_vector,
-                                       worldUpType = 'scene',)
-        mc.delete(_constraint + [_loc])"""
-    elif mode in ['local','world','vector','object']:
+            mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
+            """elif mode == 'world':
             _loc = mc.spaceLocator()[0]
             mc.move (position[0],position[1],position[2], _loc, ws=True)  
-            mAxis_aim = VALID.simpleAxis(aimAxis)
-            mAxis_up = VALID.simpleAxis(upAxis) 
             
-            if mode == 'world':                
-                _constraint = mc.aimConstraint(_loc,_obj,
-                                               maintainOffset = False,
-                                               aimVector = mAxis_aim.p_vector,
-                                               upVector = mAxis_up.p_vector,
-                                               worldUpType = 'scene',) 
-            elif mode == 'object':
-                vectorUp = VALID.mNodeString(vectorUp)
-                _constraint = mc.aimConstraint(_loc,_obj,
-                                               maintainOffset = False,
-                                               aimVector = mAxis_aim.p_vector,
-                                               upVector = mAxis_up.p_vector,
-                                               worldUpType = 'object',
-                                               worldUpObject = vectorUp)
-                                               #worldUpVector = _vUp)
-            else:
-                if mode == 'vector':
-                    _vUp = vectorUp
-                else:
-                    _vUp = MATH.get_obj_vector(_obj,upAxis)
-                _constraint = mc.aimConstraint(_loc,_obj,
-                                               maintainOffset = False,
-                                               aimVector = mAxis_aim.p_vector,
-                                               upVector = mAxis_up.p_vector,
-                                               worldUpType = 'vector',
-                                               worldUpVector = _vUp)                 
+            mAxis_aim = VALID.simpleAxis(aimAxis)
+            mAxis_up = VALID.simpleAxis(upAxis)
+            
+            _constraint = mc.aimConstraint(_loc,_obj,
+                                           maintainOffset = False,
+                                           aimVector = mAxis_aim.p_vector,
+                                           upVector = mAxis_up.p_vector,
+                                           worldUpType = 'scene',)
+            mc.delete(_constraint + [_loc])"""
+        elif mode in ['local','world','vector','object']:
+                _loc = mc.spaceLocator()[0]
+                mc.move (position[0],position[1],position[2], _loc, ws=True)  
+                mAxis_aim = VALID.simpleAxis(aimAxis)
+                mAxis_up = VALID.simpleAxis(upAxis) 
                 
-            mc.delete(_constraint + [_loc])    
-    else:
-        raise NotImplementedError,"mode: {0}".format(mode)
-
-    return True
+                if mode == 'world':                
+                    _constraint = mc.aimConstraint(_loc,_obj,
+                                                   maintainOffset = False,
+                                                   aimVector = mAxis_aim.p_vector,
+                                                   upVector = mAxis_up.p_vector,
+                                                   worldUpType = 'scene',) 
+                elif mode == 'object':
+                    vectorUp = VALID.mNodeString(vectorUp)
+                    _constraint = mc.aimConstraint(_loc,_obj,
+                                                   maintainOffset = False,
+                                                   aimVector = mAxis_aim.p_vector,
+                                                   upVector = mAxis_up.p_vector,
+                                                   worldUpType = 'object',
+                                                   worldUpObject = vectorUp)
+                                                   #worldUpVector = _vUp)
+                else:
+                    if mode == 'vector':
+                        _vUp = vectorUp
+                    else:
+                        _vUp = MATH.get_obj_vector(_obj,upAxis)
+                    _constraint = mc.aimConstraint(_loc,_obj,
+                                                   maintainOffset = False,
+                                                   aimVector = mAxis_aim.p_vector,
+                                                   upVector = mAxis_up.p_vector,
+                                                   worldUpType = 'vector',
+                                                   worldUpVector = _vUp)                 
+                    
+                mc.delete(_constraint + [_loc])    
+        else:
+            raise NotImplementedError,"mode: {0}".format(mode)
+    
+        return True
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
 
 def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local',vectorUp = None):
     """
@@ -411,7 +414,7 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     
     _dict = POS.get_info(_target[0])
     
-    #cgmGeneral.log_info_dict(_dict)
+    #cgmGEN.log_info_dict(_dict)
     
     pos = _dict['position']
     

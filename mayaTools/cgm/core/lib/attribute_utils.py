@@ -1146,6 +1146,14 @@ def break_connection(*a):
     family = {}
     source = []
 
+    if get_type(_d) == 'message':
+        log.debug("|{0}| >> message...".format(_str_func))                        
+        _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
+        if _dest:
+            for c in _dest:
+                log.debug("|{0}| >> c: {1}".format(_str_func,c))                
+                disconnect(_drivenAttr,c)
+
     if (mc.connectionInfo (_combined,isDestination=True)):             
         sourceBuffer = mc.listConnections (_combined, scn = False, d = False, s = True, plugs = True)
         if not sourceBuffer:
@@ -1167,11 +1175,7 @@ def break_connection(*a):
 
         return sourceBuffer
     
-    if get_type(_d) == 'message':
-        _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
-        if _dest:
-            for c in _dest:
-                disconnect(_drivenAttr,c)
+
 
     return False
 
@@ -2153,192 +2157,200 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
     :returns
         status(bool)
     """
-    _str_func = 'set_message'    
-    
-    _d = validate_arg(messageHolder,messageAttr)
-    _combined = _d['combined']
-
-    #>> Validation -----------------------------------------------------------------------------------------------
-    _mode = 'reg'
-    _messagedNode = None
-    _messagedExtra = None
-    _d_dataAttr = None
-    
-    _multi = False
-    if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
-        _multi = True
+    try:
+        _str_func = 'set_message'    
         
-    if issubclass(type(message),list) or _multi:
-        def storeMsgMulti(msgNodes,holderDict):
-            for n in msgNodes:
-                try:
-                    connect((n + ".message"),holderDict['combined'],nextAvailable=True)
-                except Exception,err:
-                    log.warning("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
-        if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
-            if mc.objExists(_combined):
-                if not get_type(_combined) == 'message':
-                    log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
-                    delete(_d)
-                    add(messageHolder,messageAttr,'message',m=True,im=False)
-                    storeMsgMulti(message,_d)
-                    return True
-                
-                _buffer = get_message(_combined,dataAttr)        
-                if not mc.addAttr(_combined,q=True,m=True):#not multi...
-                    log.warning("|{0}| >> Not a multi message attribute. converting..".format(_str_func))  
-                    delete(_d)
-                    add(messageHolder,messageAttr,'message',m=True,im=False)
-                    storeMsgMulti(message,_d)
-                    return True                    
-                    
-                else:
-                    log.debug("|{0}| >> multimessage...".format(_str_func))  
-                    _messageLong = [NAMES.get_long(m) for m in message]
-                    if _buffer and [NAMES.get_long(m) for m in _buffer] == _messageLong:
-                        log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
-                        return True
-                    else:
-                        log.debug("|{0}| >> No match...".format(_str_func))                                                    
-                        connections = get_driven(_combined)
-                        if connections:
-                            for c in connections:
-                                break_connection(c)
+        _d = validate_arg(messageHolder,messageAttr)
+        _combined = _d['combined']
+    
+        #>> Validation -----------------------------------------------------------------------------------------------
+        _mode = 'reg'
+        _messagedNode = None
+        _messagedExtra = None
+        _d_dataAttr = None
+        
+        _multi = False
+        if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
+            _multi = True
+            if not message:
+                log.debug("|{0}| >> multimessage delete...".format(_str_func))
+                delete(_combined)
+                add(_combined,'message',m=True,im=False)
+
+                return True            
             
+        if issubclass(type(message),list) or _multi:
+            def storeMsgMulti(msgNodes,holderDict):
+                for n in msgNodes:
+                    try:
+                        connect((n + ".message"),holderDict['combined'],nextAvailable=True)
+                    except Exception,err:
+                        log.warning("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
+            if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
+                if mc.objExists(_combined):
+                    if not get_type(_combined) == 'message':
+                        log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
                         delete(_d)
                         add(messageHolder,messageAttr,'message',m=True,im=False)
                         storeMsgMulti(message,_d)
-            
-            else:
-                log.debug("|{0}| >> new attr...".format(_str_func))                    
-                add(messageHolder,messageAttr,'message',m=True,im=False)
-                storeMsgMulti(message,_d)
-            return True
-        else:
-            message = message[0]
-            
-    if message == False:
-        break_connection(_d)
-        return True
-    elif '.' in message:
-        if VALID.is_component(message):
-            _l_msg = VALID.get_component(message)  
-            _messagedNode = _l_msg[1]            
-            if simple:
-                message = _l_msg[1]
-                log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_l_msg))
-            else:
-                _mode = 'comp'
-                log.debug("|{0}| >> componentMessage: {1}".format(_str_func,_l_msg)) 
-                _messagedExtra = _l_msg[0]
-        else:
-            _d_msg = validate_arg(message)   
-            _messagedNode = _d_msg['node']            
-            if simple:
-                message = _d_msg['node']
-                log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_d_msg))                
-            else:
-                _mode = 'attr'
-                log.debug("|{0}| >> attrMessage: {1}".format(_str_func,_d_msg))
-                _messagedExtra = _d_msg['attr']
-    elif VALID.is_shape(message):
-        _mode = 'shape'
-        _messagedNode = message
-    else:
-        _messagedNode = message
-            
-    _messageLong = NAMES.get_long(message)
-    
-    _dataAttr = 'cgmMsgData'
-    if dataAttr is not None:
-        _dataAttr = dataAttr
-        
-    if dataKey is None:
-        dataKey = messageAttr
-    else:
-        dataKey = unicode(dataKey)
-        
-    log.debug("|{0}| >> mode: {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_mode, _dataAttr,dataKey))
-    log.debug("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
-    log.debug("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
-    
-
-    if _messagedExtra:
-        if '.' in _dataAttr:
-            _d_dataAttr = validate_arg(_dataAttr)            
-        else:
-            _d_dataAttr = validate_arg(messageHolder,_dataAttr)
-
-    #>> Node store ------------------------------------------------------------------------------------------------------------
-    def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None, dataKey = None, mode = None):
-        if mode not in ['sphape']:
-            connect((msgNode + ".message"),holderDict['combined'])
-            
-        if msgExtra:
-            log.debug("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
-            
-            if not mc.objExists(dataAttrDict['combined']):
-                add(dataAttrDict['node'],dataAttrDict['attr'],'string')
+                        return True
+                    _buffer = get_message(_combined,dataAttr)        
+                    if not mc.addAttr(_combined,q=True,m=True):#not multi...
+                        log.warning("|{0}| >> Not a multi message attribute. converting..".format(_str_func))  
+                        delete(_d)
+                        add(messageHolder,messageAttr,'message',m=True,im=False)
+                        storeMsgMulti(message,_d)
+                        return True                    
                         
-            if get_type(dataAttrDict['combined']) != 'string':
-                raise ValueError,"DataAttr must be string. {0} is type {1}".format(dataAttrDict['combined'], get_type(dataAttrDict['combined']) )
-            
-            mi_node = r9Meta.MetaClass(_d['node'])
-            _dBuffer = mi_node.__getattribute__(dataAttrDict['attr']) or {}
-            _dBuffer[dataKey] = _messagedExtra
-            log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
-            mi_node.__setattr__(dataAttrDict['attr'], _dBuffer)
-            #setlock
-            return True
-        
-        log.debug("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
-        return True
-    
-    if _mode == 'shape':
-        copy_to(_messagedNode,'viewName',messageHolder,messageAttr,driven='target')
-        storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey,'shape')  
-        #set_lock(_d,True)
-        return True
-    if mc.objExists(_combined):
-        if not get_type(_combined) == 'message':
-            log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
-            delete(_d)
-            add(messageHolder,messageAttr,'message',m=False)
-            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
-            return True
-        
-        _buffer = get_message(_combined,dataAttr,dataKey = dataKey, simple = simple)        
-        if not mc.addAttr(_combined,q=True,m=True):#not multi...
-            log.debug("|{0}| >> messageSimple...".format(_str_func))
-            if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
-                log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                    else:
+                        log.debug("|{0}| >> multimessage...".format(_str_func))  
+                        _messageLong = [NAMES.get_long(m) for m in message]
+                        if _buffer and [NAMES.get_long(m) for m in _buffer] == _messageLong:
+                            log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                            return True
+                        else:
+                            log.debug("|{0}| >> No match...".format(_str_func))                                                    
+                            connections = get_driven(_combined)
+                            if connections:
+                                for c in connections:
+                                    break_connection(c)
+                
+                            delete(_d)
+                            add(messageHolder,messageAttr,'message',m=True,im=False)
+                            storeMsgMulti(message,_d)
+                
+                else:
+                    log.debug("|{0}| >> new attr...".format(_str_func))                    
+                    add(messageHolder,messageAttr,'message',m=True,im=False)
+                    storeMsgMulti(message,_d)
                 return True
             else:
-                break_connection(_d)
-                storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
-            
+                message = message[0]
+                
+        if message == False:
+            break_connection(_d)
+            return True
+        
+        elif '.' in message:
+            if VALID.is_component(message):
+                _l_msg = VALID.get_component(message)  
+                _messagedNode = _l_msg[1]            
+                if simple:
+                    message = _l_msg[1]
+                    log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_l_msg))
+                else:
+                    _mode = 'comp'
+                    log.debug("|{0}| >> componentMessage: {1}".format(_str_func,_l_msg)) 
+                    _messagedExtra = _l_msg[0]
+            else:
+                _d_msg = validate_arg(message)   
+                _messagedNode = _d_msg['node']            
+                if simple:
+                    message = _d_msg['node']
+                    log.debug("|{0}| >> simple. Using {1} | {2}".format(_str_func,message,_d_msg))                
+                else:
+                    _mode = 'attr'
+                    log.debug("|{0}| >> attrMessage: {1}".format(_str_func,_d_msg))
+                    _messagedExtra = _d_msg['attr']
+        elif VALID.is_shape(message):
+            _mode = 'shape'
+            _messagedNode = message
         else:
-            log.debug("|{0}| >> multimessage...".format(_str_func))  
-            if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
-                log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
-                return True
-            else:
-                connections = get_driven(_combined)
-                if connections:
-                    for c in connections:
-                        break_connection(c)
+            _messagedNode = message
+                
+        _messageLong = NAMES.get_long(message)
+        
+        _dataAttr = 'cgmMsgData'
+        if dataAttr is not None:
+            _dataAttr = dataAttr
+            
+        if dataKey is None:
+            dataKey = messageAttr
+        else:
+            dataKey = unicode(dataKey)
+            
+        log.debug("|{0}| >> mode: {1} | dataAttr: {2} | dataKey: {3}".format(_str_func,_mode, _dataAttr,dataKey))
+        log.debug("|{0}| >> messageHolder: {1} | messageAttr: {2}".format(_str_func,messageHolder, messageAttr))
+        log.debug("|{0}| >> messagedNode: {1} | messagedExtra: {2} | messageLong: {3}".format(_str_func,_messagedNode, _messagedExtra, _messageLong))
+        
     
+        if _messagedExtra:
+            if '.' in _dataAttr:
+                _d_dataAttr = validate_arg(_dataAttr)            
+            else:
+                _d_dataAttr = validate_arg(messageHolder,_dataAttr)
+    
+        #>> Node store ------------------------------------------------------------------------------------------------------------
+        def storeMsg(msgNode,msgExtra,holderDict,dataAttrDict=None, dataKey = None, mode = None):
+            if mode not in ['sphape']:
+                connect((msgNode + ".message"),holderDict['combined'])
+                
+            if msgExtra:
+                log.debug("|{0}| >> '{1}.{2}' stored to: '{3}'".format(_str_func,msgNode,msgExtra, holderDict['combined']))
+                
+                if not mc.objExists(dataAttrDict['combined']):
+                    add(dataAttrDict['node'],dataAttrDict['attr'],'string')
+                            
+                if get_type(dataAttrDict['combined']) != 'string':
+                    raise ValueError,"DataAttr must be string. {0} is type {1}".format(dataAttrDict['combined'], get_type(dataAttrDict['combined']) )
+                
+                mi_node = r9Meta.MetaClass(_d['node'])
+                _dBuffer = mi_node.__getattribute__(dataAttrDict['attr']) or {}
+                _dBuffer[dataKey] = _messagedExtra
+                log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
+                mi_node.__setattr__(dataAttrDict['attr'], _dBuffer)
+                #setlock
+                return True
+            
+            log.debug("|{0}| >> '{1}' stored to: '{2}'".format(_str_func,msgNode, _combined))        
+            return True
+        
+        if _mode == 'shape':
+            copy_to(_messagedNode,'viewName',messageHolder,messageAttr,driven='target')
+            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey,'shape')  
+            #set_lock(_d,True)
+            return True
+        if mc.objExists(_combined):
+            if not get_type(_combined) == 'message':
+                log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
                 delete(_d)
                 add(messageHolder,messageAttr,'message',m=False)
                 storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
-    
-    else:
-        log.debug("|{0}| >> new attr...".format(_str_func))                    
-        add(messageHolder,messageAttr,'message',m=False)
-        storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
+                return True
+            
+            _buffer = get_message(_combined,dataAttr,dataKey = dataKey, simple = simple)        
+            if not mc.addAttr(_combined,q=True,m=True):#not multi...
+                log.debug("|{0}| >> messageSimple...".format(_str_func))
+                if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
+                    log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                    return True
+                else:
+                    break_connection(_d)
+                    storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
+                
+            else:
+                log.debug("|{0}| >> multimessage...".format(_str_func))  
+                if _buffer and NAMES.get_long(_buffer[0]) == _messageLong:
+                    log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                    return True
+                else:
+                    connections = get_driven(_combined)
+                    if connections:
+                        for c in connections:
+                            break_connection(c)
         
-    return True
-
+                    delete(_d)
+                    add(messageHolder,messageAttr,'message',m=False)
+                    storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
+        
+        else:
+            log.debug("|{0}| >> new attr...".format(_str_func))                    
+            add(messageHolder,messageAttr,'message',m=False)
+            storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
+            
+        return True
+    except Exception,err:cgmGeneral.cgmException(Exception,err)
+    
 def convert_type(node = None, attr = None, attrType = None):
     """   
      Attempts to convert an existing attrType from one type to another. 

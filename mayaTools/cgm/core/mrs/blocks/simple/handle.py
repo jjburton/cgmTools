@@ -131,10 +131,10 @@ def template(self):
         
         mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
         mHandle.p_parent = mTemplateNull
-        #CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        mHandle.doStore('cgmName',self.mNode)
+        
+        mHandle.doStore('cgmNameModifier','main')
         mHandle.doStore('cgmType','handle')
-        mHandle.doName()
+        mHandleFactory.copyBlockNameTags(mHandle)
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -163,9 +163,6 @@ def template(self):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
-def templateDelete(self):
-    return BLOCKUTILS.templateDelete(self)
-
 def is_template(self):
     if self.getMessage('templateNull'):
         return True
@@ -182,9 +179,7 @@ def prerig(self):
         _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
         _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
         
-        _side = 'center'
-        if self.getMayaAttr('side'):
-            _side = self.getEnumValueString('side')
+        _side = self.atUtils('get_side')
             
         self.atUtils('module_verify')
     
@@ -214,6 +209,7 @@ def prerig(self):
         
         if self.addPivot:
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
+        
         if self.addScalePivot:
             mHandleFactory.addScalePivotHelper().p_parent = mPrerigNull
         if self.addCog:
@@ -224,8 +220,7 @@ def prerig(self):
         
         return
 
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 def prerigDelete(self):
@@ -340,10 +335,10 @@ def build_skeleton(self, forceNew = True):
     else:
         self.copyAttrTo('blockType',mJoint.mNode,'cgmName',driven='target')
         
-    if self.getMayaAttr('cgmDirection'):
-        self.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
-    if self.getMayaAttr('cgmPosition'):
-        self.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')
+    if mModule.getMayaAttr('cgmDirection'):
+        mModule.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
+    if mModule.getMayaAttr('cgmPosition'):
+        mModule.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')
         
     mJoint.doName()
 
@@ -529,123 +524,124 @@ def rig_shapes(self):
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
 def rig_controls(self):
-    _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_controls'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
-  
-    mBlock = self.mBlock
-    ml_templateHandles = mBlock.msgList_get('templateHandles')
-    mMainHandle = ml_templateHandles[0]    
-    mRigNull = self.mRigNull
-    ml_controlsAll = []#we'll append to this list and connect them all at the end
-    mRootParent = self.mDeformNull
-    mSettings = mRigNull.settings
-    
+    try:
+        _short = self.d_block['shortName']
+        _str_func = '[{0}] > rig_controls'.format(_short)
+        log.info("|{0}| >> ...".format(_str_func))  
+        _start = time.clock()
+      
+        mBlock = self.mBlock
+        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        mMainHandle = ml_templateHandles[0]    
+        mRigNull = self.mRigNull
+        ml_controlsAll = []#we'll append to this list and connect them all at the end
+        mRootParent = self.mDeformNull
+        mSettings = mRigNull.settings
         
-    mHandle = mRigNull.handle
-    
-    # Drivers ==============================================================================================    
-    #>> vis Drivers ================================================================================================	
-    mPlug_visSub = self.atBuilderUtils('build_visSub')
-    #mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-    mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-    
-    if self.mBlock.addAim:        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
-    
-    #mHandle ========================================================================================
-    log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))    
-    _d = MODULECONTROL.register(mHandle,
-                                addSpacePivots = 1,
-                                addDynParentGroup = True,
-                                addConstraintGroup=False,
-                                mirrorSide= self.d_module['mirrorDirection'],
-                                mirrorAxis="translateX,rotateY,rotateZ",
-                                makeAimable = True)
-    
-    mHandle = _d['mObj']
-    mHandle.masterGroup.parent = mRootParent
-    ml_controlsAll.append(mHandle)            
-    
-    #>> settings ========================================================================================
-    if mSettings != mHandle:
-        log.info("|{0}| >> Settings setup : {1}".format(_str_func, mSettings))        
-        MODULECONTROL.register(mSettings)
-        mSettings.masterGroup.parent = mHandle
-        ml_controlsAll.append(mSettings)
-
-    #>> Direct Controls ========================================================================================
-    ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
-    ml_controlsAll.extend(ml_rigJoints)
-    
-    for i,mObj in enumerate(ml_rigJoints):
-        d_buffer = MODULECONTROL.register(mObj,
-                                          typeModifier='direct',
-                                          addDynParentGroup = True,                                          
-                                          mirrorSide= self.d_module['mirrorDirection'],
-                                          mirrorAxis="translateX,rotateY,rotateZ",
-                                          makeAimable = False)
-
-        mObj = d_buffer['instance']
-        ATTR.set_hidden(mObj.mNode,'radius',True)        
-        if mObj.hasAttr('cgmIterator'):
-            ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
             
-        for mShape in mObj.getShapes(asMeta=True):
-            ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
-
-    # Pivots =================================================================================================
-    if mMainHandle.getMessage('pivotHelper'):
-        log.info("|{0}| >> Pivot helper found".format(_str_func))
-        for a in 'center','front','back','left','right':#This order matters
-            str_a = 'pivot' + a.capitalize()
-            if mRigNull.getMessage(str_a):
-                log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
-                
-                mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
-                
-                d_buffer = MODULECONTROL.register(mPivot,
-                                                  typeModifier='pivot',
-                                                  mirrorSide= self.d_module['mirrorDirection'],
-                                                  mirrorAxis="translateX,rotateY,rotateZ",
-                                                  makeAimable = False)
-                
-                mPivot = d_buffer['instance']
-                for mShape in mPivot.getShapes(asMeta=True):
-                    ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
-                
-                
-                ml_controlsAll.append(mPivot)
+        mHandle = mRigNull.handle
         
+        # Drivers ==============================================================================================    
+        #>> vis Drivers ================================================================================================	
+        mPlug_visSub = self.atBuilderUtils('build_visSub')
+        #mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        
+        if self.mBlock.addAim:        
+            mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+        
+        #mHandle ========================================================================================
+        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))    
+        _d = MODULECONTROL.register(mHandle,
+                                    addSpacePivots = 1,
+                                    addDynParentGroup = True,
+                                    addConstraintGroup=False,
+                                    mirrorSide= self.d_module['mirrorDirection'],
+                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    makeAimable = True)
+        
+        mHandle = _d['mObj']
+        mHandle.masterGroup.parent = mRootParent
+        ml_controlsAll.append(mHandle)            
+        
+        #>> settings ========================================================================================
+        if mSettings != mHandle:
+            log.info("|{0}| >> Settings setup : {1}".format(_str_func, mSettings))        
+            MODULECONTROL.register(mSettings)
+            mSettings.masterGroup.parent = mHandle
+            ml_controlsAll.append(mSettings)
     
-    #>> headLookAt ========================================================================================
-    if mRigNull.getMessage('lookAtHandle'):
-        mLookAtHandle = mRigNull.lookAtHandle
-        log.info("|{0}| >> Found lookAtHandle : {1}".format(_str_func, mLookAtHandle))
-        MODULECONTROL.register(mLookAtHandle,
-                               typeModifier='lookAt',
-                               addSpacePivots = 1,
-                               addDynParentGroup = True,
-                               addConstraintGroup=False,
-                               mirrorSide= self.d_module['mirrorDirection'],
-                               mirrorAxis="translateX,rotateY,rotateZ",
-                               makeAimable = False)
-        mLookAtHandle.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mLookAtHandle)
-
-
-    #Connections =======================================================================================
-    ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
-    mRigNull.msgList_connect('controlsAll',ml_controlsAll)
-    mRigNull.moduleSet.extend(ml_controlsAll)
+        #>> Direct Controls ========================================================================================
+        ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
+        ml_controlsAll.extend(ml_rigJoints)
+        
+        for i,mObj in enumerate(ml_rigJoints):
+            d_buffer = MODULECONTROL.register(mObj,
+                                              typeModifier='direct',
+                                              addDynParentGroup = True,                                          
+                                              mirrorSide= self.d_module['mirrorDirection'],
+                                              mirrorAxis="translateX,rotateY,rotateZ",
+                                              makeAimable = False)
     
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+            mObj = d_buffer['instance']
+            ATTR.set_hidden(mObj.mNode,'radius',True)        
+            if mObj.hasAttr('cgmIterator'):
+                ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
+                
+            for mShape in mObj.getShapes(asMeta=True):
+                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+    
+        # Pivots =================================================================================================
+        if mMainHandle.getMessage('pivotHelper'):
+            log.info("|{0}| >> Pivot helper found".format(_str_func))
+            for a in 'center','front','back','left','right':#This order matters
+                str_a = 'pivot' + a.capitalize()
+                if mRigNull.getMessage(str_a):
+                    log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
+                    
+                    mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
+                    
+                    d_buffer = MODULECONTROL.register(mPivot,
+                                                      typeModifier='pivot',
+                                                      mirrorSide= self.d_module['mirrorDirection'],
+                                                      mirrorAxis="translateX,rotateY,rotateZ",
+                                                      makeAimable = False)
+                    
+                    mPivot = d_buffer['instance']
+                    for mShape in mPivot.getShapes(asMeta=True):
+                        ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
+                    
+                    
+                    ml_controlsAll.append(mPivot)
+            
+        
+        #>> headLookAt ========================================================================================
+        if mRigNull.getMessage('lookAtHandle'):
+            mLookAtHandle = mRigNull.lookAtHandle
+            log.info("|{0}| >> Found lookAtHandle : {1}".format(_str_func, mLookAtHandle))
+            MODULECONTROL.register(mLookAtHandle,
+                                   typeModifier='lookAt',
+                                   addSpacePivots = 1,
+                                   addDynParentGroup = True,
+                                   addConstraintGroup=False,
+                                   mirrorSide= self.d_module['mirrorDirection'],
+                                   mirrorAxis="translateX,rotateY,rotateZ",
+                                   makeAimable = False)
+            mLookAtHandle.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mLookAtHandle)
     
     
-    
-    return 
-
+        #Connections =======================================================================================
+        ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+        mRigNull.msgList_connect('controlsAll',ml_controlsAll)
+        mRigNull.moduleSet.extend(ml_controlsAll)
+        
+        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        
+        
+        
+        return 
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def rig_frame(self):
     try:
@@ -734,9 +730,7 @@ def rig_frame(self):
             ml_rigJoints[0].parent = mDirectDriver
             
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
-        raise Exception,err
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
@@ -768,7 +762,9 @@ def rig_cleanUp(self):
     if mModuleParent:
         mi_parentRigNull = mModuleParent.rigNull
         if mi_parentRigNull.getMessage('cog'):
-            ml_baseDynParents_start.append( mi_parentRigNull.cog )    
+            ml_baseDynParents_start.append( mi_parentRigNull.cog )
+        else:
+            ml_baseDynParents_start.append( mi_parentRigNull.msgList_get('rigJoints')[-1] )
     
     #End parents....
     ml_baseDynParents_end.append(mMasterNull.puppetSpaceObjectsGroup)

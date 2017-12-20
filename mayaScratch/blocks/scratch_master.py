@@ -7,6 +7,27 @@ import cgm.core.cgm_General as cgmGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 cgm.core._reload()
 
+#=========================================================================================================
+#>> General Calls 
+#=========================================================================================================
+#Before we dig too much in let's look at some general data calls we have.
+#>>>Get Call size is somethign we use for various things. In general it's meant to give us back a size which to build something
+RBLOCKS.get_callSize()
+RBLOCKS.get_callSize('bb')
+RBLOCKS.get_callSize(3)
+RBLOCKS.get_callSize([1,2,3])
+RBLOCKS.get_callSize(None)
+
+RBLOCKS.get_modules_dict(False)#...this will give you a buffered look at the currently registered modules
+RBLOCKS.get_modules_dict(True)#...this forces that buffer to update and returns the same
+
+RBLOCKS.is_buildable('master')#...call to check the buildability of a module. Master works
+RBLOCKS.is_buildable('asdfasdf')#...doesn't exist
+
+#=========================================================================================================
+#>> Master Block 
+#=========================================================================================================
+
 #Let's start with a box or a sphere in scene. select that and then...
 b1 = cgmMeta.createMetaNode('cgmRigBlock',name = 'Peter', blockType = 'master', size = 'selection')
 b1 # THis will show you a simple read of our metaNode
@@ -25,43 +46,32 @@ b1.atRigModule #...this accesses cgm.core.mrs.lib.module_utils via a connected c
 b1.atRigPuppet #...' ' ' '                       .puppet_utils via a connected cgmRigPuppet
 b1.asHandleFactory #...cgm.core.mrs.RigBlocks.handleFactory. Need to bridge to access in places that would be import loops. We'll use this in rigging
 
-
-import cgm.core.lib.curve_Utils as CURVES
-reload(CURVES)
-CURVES.create_fromName('squareOpen', size = 1)
-CURVES.create_controlCurve(b1.mNode, 'circle')
-
-#>>>Get Call size
-RBLOCKS.get_callSize()
-RBLOCKS.get_callSize('bb')
-RBLOCKS.get_callSize('bb')
-RBLOCKS.get_callSize(3)
-RBLOCKS.get_callSize([1,2,3])
-RBLOCKS.get_callSize(None)
-
+#Push to the prerig state and let's look at skeleton...
 #>>>Skeleton ---------------------------------------------------------------------------------------
 b1.atBlockModule('build_skeleton')
-b1.atBlockUtils('skeleton_getCreateDict')
+b1.atBlockUtils('skeleton_getCreateDict')#... this won't work with the master blockType but is used with other blockTypes
+b1.atBlockUtils('skeleton_connectToParent')
+
 
 #>>>Rig process ----------------------------------------------------------------
 b1.verify()
 
-mRigFac = RBLOCKS.rigFactory(b1)
-mRigFac.log_self()#>>uses pprint
-mRigFac.mRigNull.fkHeadJoint
-pprint.pprint(b1.__dict__)
-mRigFac.mRigNull.headFK.dynParentGroup
+mRigFac = b1.asRigFactory()#...initialize our rigFactory with autobuild off
+mRigFac.log_self()#...see what kind of data is buffered for this which we can then push through step by step
 
-mRigFac.atBlockModule('rig_skeleton')
-
-mRigFac.atBlockModule('build_proxyMesh', False)#must have rig joints
+mRigFac.atBlockModule('rig_skeleton')#...builds and connects to our 
+mRigFac.atBlockModule('rig_cleanUp')
 
 
+#These are handle steps -----------------------------------------------------
 mRigFac.atBlockModule('rig_shapes')
 mRigFac.atBlockModule('rig_controls')
 mRigFac.atBlockModule('rig_neckSegment')
 mRigFac.atBlockModule('rig_frame')
 mRigFac.atBlockModule('rig_cleanUp')
+
+mRigFac.atBlockModule('build_proxyMesh', False)#must have rig joints
+
 
 import cgm.core.lib.attribute_utils as ATTR
 ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
