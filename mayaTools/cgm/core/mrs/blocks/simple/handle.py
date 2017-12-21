@@ -116,7 +116,7 @@ def template(self):
         _short = self.mNode
         _shape = self.getEnumValueString('basicShape')
         _size = self.baseSize
-        mHandleFactory = self.asHandleFactory(_short)
+        mHandleFactory = self.asHandleFactory(self)
         _shapeDirection = self.getEnumValueString('shapeDirection')
         #Create temple Null  ==================================================================================
         mTemplateNull = BLOCKUTILS.templateNull_verify(self)        

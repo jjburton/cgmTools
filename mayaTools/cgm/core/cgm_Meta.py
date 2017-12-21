@@ -6896,6 +6896,11 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
             log.debug("Cache good %0.6f"%(t2-t1))		    
             return _cached
         elif _change:
+            if not setClass:
+                if noneValid:
+                    return False
+                else:
+                    raise ValueError,"'{0}' is not a valid arg. Not class or subclass: {1}".format(arg,mTypeClass)
             log.debug("conversion necessary.removing from cache")
             _wasCached = True
             if _cachedMClass:

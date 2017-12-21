@@ -91,15 +91,19 @@ def resize_masterShape(self):
         _short = self.p_nameShort        
         _str_func = '[{0}] resize_masterShape'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
-        
+        _sel = mc.ls(sl=True)
+        sizeBy = self.mNode
         if not self.getBlockChildren():
-            log.warning("|{0}| >> Must have blockChildren to resize by this call".format(_str_func))        
-            return False
+            if _sel:
+                sizeBy = _sel
+            else:
+                log.warning("|{0}| >> Must have blockChildren to resize by this call".format(_str_func))        
+                return False
         
         mHandleFactory = self.asHandleFactory(_short)
         mc.delete(self.getShapes())
-    
-        _bb = TRANS.bbSize_get(self.mNode,False)
+        
+        _bb = TRANS.bbSize_get(sizeBy,False)
         _average = MATH.average([_bb[0],_bb[2]])
         _size = _average * 1.5
         _offsetSize = _average * .1    

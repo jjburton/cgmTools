@@ -1123,7 +1123,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
     #>>> Utilities 
     #========================================================================================================      
     def asHandleFactory(self,*a,**kws):
-        return handleFactory(self,*a,**kws)
+        if not kws.get('rigBlock'):
+            kws['rigBlock'] = self
+        return handleFactory(*a,**kws)
+    
     def asRigFactory(self,*a,**kws):
         return rigFactory(self,*a,**kws)    
     def contextual_methodCall(self, context = 'self', func = 'getShortName',*args,**kws):
@@ -1255,7 +1258,7 @@ class handleFactory(object):
     _l_controlLinks = []
     _l_controlmsgLists = []	
 
-    def __init__(self, rigBlock = None, node = None, baseShape = 'square',  baseSize = 1, side = None,
+    def __init__(self, node = None, rigBlock = None,baseShape = 'square',  baseSize = 1, side = None,
                  shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+', *a,**kws):
         """
         :returns
@@ -1298,7 +1301,10 @@ class handleFactory(object):
             #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
             
     def setRigBlock(self,arg = None):
-        self.mBlock = cgmMeta.validateObjArg(arg,'cgmRigBlock')
+        mBlock = cgmMeta.validateObjArg(arg)
+        if mBlock.mClass != 'cgmRigBlock':
+            raise ValueError,"Not a rigBlock: {0}".format(arg)
+        self.mBlock = mBlock
 
                 #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
     def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
@@ -5247,7 +5253,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             
             mc.delete(l_shapes)
             
-            mHandleFactory = handleFactory(_short)
+            mHandleFactory = handleFactory(node = _short)
             
                     
             #>>> Figure out font------------------------------------------------------------------
