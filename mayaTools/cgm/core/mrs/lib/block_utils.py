@@ -52,6 +52,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
+from cgm.core.lib import nameTools
 
 #=============================================================================================================
 #>> Queries
@@ -147,8 +148,9 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 else:
                     if t == 'string':
                         _l = True
+                        if v is None:v = ''                        
                     else:_l = False
-
+                    
                     if forceReset:
                         self.addAttr(a, v, attrType = t,lock=_l, keyable = False)                                
                     else:
@@ -191,7 +193,65 @@ def set_nameTag(self,nameTag = None):
         self.cgmName = nameTag
         self.doName()
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+def doName(self):
+    """
+    Override to handle difference with rig block
+
+    """
+    _short = self.p_nameShort
+    _str_func = '[{0}] doName'.format(_short)
     
+    _d = nameTools.returnObjectGeneratedNameDict(_short)
+
+    _direction = self.getEnumValueString('side')
+    if self.getMayaAttr('side'):
+        _d['cgmDirection'] = _direction        
+        self.doStore('cgmDirection',_direction)
+    else:self.cgmDirection = ''
+
+    _position = self.getEnumValueString('position')
+    if self.getMayaAttr('position'):
+        _d['cgmPosition'] = _position            
+        self.doStore('cgmPosition',_position)
+    else:self.cgmPosition = ''
+
+    #Get Raw name
+
+    for a in 'cgmName','baseName','puppetName',:
+        if self.hasAttr(a):
+            _d['cgmName'] = ATTR.get(_short,a)
+
+    _blockType = ATTR.get(_short,'blockType')
+    _d['cgmType'] = _blockType + 'Block'
+
+    """
+        if self.getMayaAttr('position'):
+            _d['cgmPosition'] = self.getEnumValueString('position')
+        if self.getMayaAttr('side'):
+            _value = self.getEnumValueString('side')
+            _d['cgmDirection'] = _value
+            self.doStore('cgmDirection',_value)"""
+
+    #Check for special attributes to replace data, name
+    self.rename(nameTools.returnCombinedNameFromDict(_d))
+
+    if self.getMessage('moduleTarget'):
+        log.debug("|{0}| >> Module target naming...".format(_str_func))            
+        self.moduleTarget.doName()
+        
+    
+    ml_objs = get_blockDagNodes(self)
+    for mObj in ml_objs:
+        if mObj != self:
+            mObj.doName()
+    if self.getMessage('templateNull'):
+        self.templateNull.doName()
+    if self.getMessage('prerigNull'):
+        self.prerigNull.doName()
+        
+        
+        
 def set_side(self,side=None):
     try:
         _short = self.p_nameShort
@@ -2492,9 +2552,9 @@ def rig(self,**kws):
     self.blockState = 'prerig>rig'#...buffering that we're in process
     if not 'autoBuild' in kws.keys():
         kws['autoBuild'] = True
-    if not self.asRigFactory(**kws):
-        self.blockState = 'prerig'#...buffering that we're in process
-
+    self.asRigFactory(**kws)
+    self.blockState = 'rig'
+    skeleton_connectToParent(self)
     return True
 
 def rigDelete(self):
@@ -2595,7 +2655,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
             elif currentState > 0:
                 log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
                 currentState_target = self.getState(True) 
-                d_deleteStateFunctions[currentState_target]()
+                d_deleteStateFunctions[currentState_target](self)
     
         #If we're here, we're going to move through the set states till we get to our spot
         log.debug("|{0}| >> Changing states...".format(_str_func))

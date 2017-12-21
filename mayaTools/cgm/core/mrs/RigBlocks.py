@@ -143,10 +143,14 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
                 
             arg = VALID.objStringList(mode)
             mode = 'selection'
-
+        
+            
         mode = mode.lower()
         if mode == 'selection':
-            size = POS.get_axisBox_size(arg,True)
+            if VALID.isListArg(arg):
+                size = POS.get_bb_size(arg, False)
+            else:
+                size = POS.get_axisBox_size(arg,True)
             #if rigBlock:
                 #log.info("|{0}| >>  Created from obj. Tagging. | {1}".format(_str_func,arg))        
                 #rigBlock.connectChildNode(arg,'sourceObj')#Connect
@@ -277,8 +281,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         if  blockType in ['master']:
                             SNAPCALLS.snap(self.mNode,_sel[0],rotation=False,targetPivot='groundPos')
                         else:
-                            log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))                                              
-                            self.doSnapTo(_sel[0])
+                            log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))
+                            SNAPCALLS.snap(self.mNode, _sel[0],targetPivot='bb',targetMode='center')
+                            #self.doSnapTo(_sel[0])
                 #cgmGEN.func_snapShot(vars())
                 
                 self._blockModule = _blockModule                
@@ -365,35 +370,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
-    def doName(self, *a, **kws):
-        """
-        Override to handle difference with rig block
+    def doName(self):
+        return self.atUtils('doName')
 
-        """
-        _short = self.p_nameShort
-        _str_func = '[{0}] doName'.format(_short)
-
-        #Get Raw name
-        _d = nameTools.returnObjectGeneratedNameDict(_short)
-
-        for a in 'cgmName','baseName','puppetName',:
-            if self.hasAttr(a):
-                _d['cgmName'] = ATTR.get(_short,a)
-
-        _blockType = ATTR.get(_short,'blockType')
-        _d['cgmType'] = _blockType + 'Block'
-
-        if self.getMayaAttr('position'):
-            _d['cgmPosition'] = self.getEnumValueString('position')
-        if self.getMayaAttr('side'):
-            _d['cgmDirection'] = self.getEnumValueString('side')
-
-        #Check for special attributes to replace data, name
-        self.rename(nameTools.returnCombinedNameFromDict(_d))
-        
-        if self.getMessage('moduleTarget'):
-            log.debug("|{0}| >> Module target naming...".format(_str_func))            
-            self.moduleTarget.doName()
 
     def getControls(self, asMeta = False):
         """
@@ -1780,7 +1759,7 @@ class handleFactory(object):
             if _bfr:
                 mc.delete(_bfr)
 
-            _proxyShape = mHandle.getEnumValueString('proxyShape')
+            _proxyShape = self.mBlock.getEnumValueString('proxyShape')
 
             #Orientation helper ======================================================================================
             _proxy = CORERIG.create_proxyGeo(_proxyShape, _baseSize, shapeDirection)
@@ -3815,6 +3794,9 @@ class rigFactory(object):
             _d['mRigNull'] = _mRigNull
             self.mRigNull = _mRigNull
             _d['shortName'] = _mModule.getShortName()
+            _d['b_rigged'] = _mModule.atUtils('is_rigged')
+            if not _d['b_rigged']: 
+                _mModule.rigNull.version = ''
             _d['version'] = _mModule.rigNull.version
             
             
@@ -3853,6 +3835,7 @@ class rigFactory(object):
                 if not self.mBlock.atBlockModule('build_skeleton'):
                     log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
                     _res = False
+            #self.mBlock.atUtils('skeleton_connectToParent')
 
         self.d_module = _d    
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
@@ -3916,11 +3899,11 @@ class rigFactory(object):
 
         _mModule = self.d_module.get('mModule')
         _mModuleParent = self.d_module.get('mModuleParent')
-        _version = self.d_module.get('version')
         _buildVersion = self.d_block.get('buildVersion')
         _buildModule = self.buildModule
         _blockType = self.mBlock.blockType
-
+        _version = self.d_module.get('version')
+        
         _d_callKWS = self.call_kws
 
         if _blockType == 'master':

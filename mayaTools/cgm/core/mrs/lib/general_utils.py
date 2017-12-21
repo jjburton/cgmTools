@@ -162,9 +162,11 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         if mBlock.getMayaAttr('side'):
             _l_report.append( mBlock.getEnumValueString('side') )
 
-        _l_report.append( ATTR.get(_short,'blockType') )
-        if mBlock.hasAttr('puppetName'):
-            _l_report.append(mBlock.puppetName)   
+        if mBlock.hasAttr('cgmName'):
+            _l_report.append(mBlock.cgmName)
+        else:
+            _l_report.append( ATTR.get(_short,'blockType') )
+            
         #_l_report.append(ATTR.get(_short,'blockState'))
         _l_report.append("[{0}]".format(mBlock.getState().upper()))
         

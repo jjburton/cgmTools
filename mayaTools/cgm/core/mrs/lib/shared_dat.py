@@ -13,6 +13,9 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',
                 'baseSize':'float3',
+                'cgmName':'string',
+                'cgmDirection':'string',
+                'cgmPosition':'string',
                 'blockState':'string',
                 'blockDat':'string',#...for pickle? 
                 'blockParent':'messageSimple',

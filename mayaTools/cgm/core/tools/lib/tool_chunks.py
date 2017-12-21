@@ -901,7 +901,11 @@ def uiSection_riggingUtils(parent, selection = None):
                 en=True,
                 c=cgmGen.Callback(TOOLCALLS.dynParentTool),
                 ann = "Tool for modifying and setting up dynamic parent groups")
-    
+    mc.menuItem(parent=_p,
+                l = 'MRS - WIP!',
+                en=True,
+                c=cgmGen.Callback(TOOLCALLS.mrsUI),
+                ann = "Be forwarned - Dragons be here. Soon...")    
     mc.menuItem(parent=_p,
                 l = 'Constraints',
                 en=False,

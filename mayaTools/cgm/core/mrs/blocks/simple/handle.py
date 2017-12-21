@@ -158,6 +158,7 @@ def template(self):
             str_shape = mShape.mNode
             mShape.overrideEnabled = 0
             ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
+            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )        
             
         self.msgList_connect('templateHandles',[mHandle.mNode])
     except Exception,err:
@@ -399,7 +400,7 @@ def rig_skeleton(self):
         ml_aimIkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'aim', self.mRigNull, 'aimIKJoint', singleMode = True)
         ml_jointsToConnect.extend(ml_aimFKJoints + ml_aimIkJoints)
         ml_jointsToHide.extend(ml_aimBlendJoints)
-        
+    
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
         try:
@@ -408,7 +409,8 @@ def rig_skeleton(self):
             mJnt.radius = .00001
             
     #...connect... 
-    self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
+    self.fnc_connect_toRigGutsVis( ml_jointsToConnect )
+    
     BUILDERUTILS.joints_connectToParent(self)
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     return
