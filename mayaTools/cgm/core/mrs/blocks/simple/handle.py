@@ -675,6 +675,7 @@ def rig_frame(self):
             
             mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
             
+            mDirectDriver = mPivotResultDriver
             mAimDriver = mPivotResultDriver
             mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
      

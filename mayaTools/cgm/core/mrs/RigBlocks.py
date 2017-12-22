@@ -479,38 +479,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return [mObj.mNode for mObj in _ml_parents]
         return _ml_parents
 
-    def setBlockParent(self, parent = False, attachPoint = None):        
-        _str_func = 'setBlockParent'
-        
-        if not parent:
-            self.blockParent = False
-            if self.p_blockParent != False:
-                self.p_parent = False
-                
-            #_const = self.getConstraintsTo()
-            #if _const:
-                #mc.delete(_const)
-        else:
-            if parent == self:
-                raise ValueError, "Cannot blockParent to self"
-
-            #if parent.getMessage('blockParent') and parent.blockParent == self:
-                #raise ValueError, "Cannot blockParent to block whose parent is self"
-
-            self.connectParentNode(parent, 'blockParent')
-            
-            if self.p_blockParent != False:
-                self.p_parent = False
-            
-            #if attachPoint:
-                #self.p_parent = attachPoint
-            #else:
-                #self.p_parent = parent
-                
-            _parent = VALID.mNodeString(parent)
-            #mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
-            #mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
-            
+    def setBlockParent(self, parent = False, attachPoint = None):
+        self.atUtils('blockParent_set', parent, attachPoint)
 
     p_blockParent = property(getBlockParent,setBlockParent)
 
@@ -3653,30 +3623,19 @@ class rigFactory(object):
         self.call_kws['ignoreRigCheck'] = ignoreRigCheck
         cgmGEN.log_info_dict(self.call_kws,_str_func)
 
-        try:self.fnc_check_rigBlock()
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-
-        try:self.fnc_check_module()
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-
-        try:self.fnc_rigNeed()
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-
-        try:self.fnc_bufferDat()
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
+        self.fnc_check_rigBlock()
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        self.fnc_check_module()
+        if not self.fnc_rigNeed():
+            log.error('No rig need detected. Check settings. self: {0}'.format(self))
+            return
+        self.fnc_bufferDat()
 
         if not self.fnc_moduleRigChecks():
             pprint.pprint(self.__dict__)            
             raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
 
-        try:self.fnc_deformConstrainNulls()
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=self.__dict__)
-
+        self.fnc_deformConstrainNulls()
         self.fnc_processBuild(**kws)
 
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
@@ -3896,6 +3855,7 @@ class rigFactory(object):
 
         """
         _str_func = 'fnc_rigNeed'  
+        log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
 
         _mModule = self.d_module.get('mModule')
         _mModuleParent = self.d_module.get('mModuleParent')

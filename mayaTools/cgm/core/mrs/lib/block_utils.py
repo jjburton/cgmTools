@@ -848,6 +848,8 @@ def rigDeleteBAK(self,msgLinks = []):
 
 
 l_pivotOrder = ['center','back','front','left','right']
+d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
+                    'right':{'left':'inner','right':'outer'}}
 
 def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     """
@@ -909,7 +911,10 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
     _start = time.clock()
     
     _side = get_side(self)
-    
+    if _side in ['right']:
+        d_bankNames = d_pivotBankNames['right']
+    else:
+        d_bankNames = d_pivotBankNames['default']
     
     d_strCaps = {'front':kws.get('front','toe').capitalize(),
                  'back':kws.get('back','heel').capitalize(),
@@ -942,6 +947,10 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                 mPivot = mPivot[0]
                 d_pivots[a] = mPivot
                 
+                if a in ['left','right']:
+                    mPivot.doStore('cgmName', d_bankNames[a])
+                    mPivot.doName()
+                    
                 mPivot.rotateOrder = 2
                 mPivot.masterGroup.parent = mLastParent
                 mDrivenGroup = mPivot.doGroup(False, False, asMeta=True)
@@ -954,6 +963,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                 mDrivenGroup.parent = mPivot
                 
                 mLastParent = mDrivenGroup
+                
                 
                 
                 continue
@@ -1119,13 +1129,15 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         
         #Ball roll ....
         mDriven = d_drivenGroups['center']
+        mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         
+        """
         if _side in ['right']:
             str_arg = "{0}.rx = -{1}".format(mDriven.mNode,
                                              mPlug_rollBall.p_combinedShortName)
             log.info("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
             NODEFACTORY.argsToNodes(str_arg).doBuild()
         else:
-            mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         
+            mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         """
             
     
     #Spins ===================================================================================================
@@ -1139,25 +1151,26 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         str_key = d_strCaps[k]
         mPlug = d_mPlugSpin[k]
         mDriven = d_drivenGroups[k]
-        log.info("|{0}| >> Spin {1} setup".format(_str_func,str_key))        
+        log.debug("|{0}| >> Spin {1} setup".format(_str_func,str_key))        
         
         if _side in ['right']:
             str_arg = "{0}.ry = -{1}".format(mDriven.mNode,
                                              mPlug.p_combinedShortName)
-            log.info("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
+            log.debug("|{0}| >> Spin Right arg: {1}".format(_str_func,str_arg))        
             NODEFACTORY.argsToNodes(str_arg).doBuild()
         else:
             mPlug.doConnectOut("{0}.ry".format(mDriven.mNode))     
             
     
     if b_bankOK:#Bank ===================================================================================================
-        log.info("|{0}| >> Bank ...".format(_str_func))
+        log.debug("|{0}| >> Bank ...".format(_str_func))
         mPlug_bank = cgmMeta.cgmAttr(mControl,'bank',attrType='float',defaultValue = 0,keyable = True)
         
         mPlug_outerResult = cgmMeta.cgmAttr(mControl,'result_clamp_outerBank',attrType='float',keyable = False,hidden=True)
         mPlug_innerResult = cgmMeta.cgmAttr(mControl,'result_clamp_innerBank',attrType='float',keyable = False,hidden=True)
         
         if _side in ['right']:
+            log.debug("|{0}| >> Bank right...".format(_str_func))            
             mDrivenOutr = d_drivenGroups['right']
             mDrivenInner =d_drivenGroups['left']
             
@@ -1168,13 +1181,14 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
             for arg in [arg1,arg2]:
                 NODEFACTORY.argsToNodes(arg).doBuild()           
             
-            str_bankDriverOutr = "%s.rz = -%s"%(mDrivenOutr.mNode,
+            str_bankDriverOutr = "%s.rz = -%s"%(mDrivenInner.mNode,
                                              mPlug_outerResult.p_combinedShortName)
-            str_bankDriverInnr = "%s.rz = -%s"%(mDrivenInner.mNode,
+            str_bankDriverInnr = "%s.rz = -%s"%(mDrivenOutr.mNode,
                                                 mPlug_innerResult.p_combinedShortName)    
             for arg in [str_bankDriverInnr,str_bankDriverOutr]:
                 NODEFACTORY.argsToNodes(arg).doBuild()
-        else:     
+        else:
+            log.debug("|{0}| >> Bank normal...".format(_str_func))                        
             mDrivenOutr = d_drivenGroups['left']
             mDrivenInner =d_drivenGroups['right']
             
@@ -1186,9 +1200,11 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                 NODEFACTORY.argsToNodes(arg).doBuild()           
             
             mPlug_outerResult.doConnectOut("%s.rz"%(mDrivenOutr.mNode))
-            mPlug_innerResult.doConnectOut("%s.rz"%(mDrivenInner.mNode))        
-    
+            mPlug_innerResult.doConnectOut("%s.rz"%(mDrivenInner.mNode))
+            
+            
     if b_centerOK:#Ball bank ....
+        log.debug("|{0}| >> Bank Center...".format(_str_func))        
         mDriven = d_drivenGroups['center']
         if _side in ['right']:
             str_arg = "{0}.rz = -{1}".format(mDriven.mNode,
@@ -1200,7 +1216,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
     
 
 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
     
 #=============================================================================================================
@@ -1598,11 +1614,72 @@ def prerig_getHandleTargets(self):
             
     log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     return ml_handles
+
+
+#=============================================================================================================
+#>> blockParent
+#=============================================================================================================
+def blockParent_set(self, parent = False, attachPoint = None):        
+    _str_func = 'blockParent_set'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    mParent_current =  self.blockParent
+    if self.blockState == 'rig':
+        raise ValueError,"Cannot change the block parent of a rigged rigBlock. State: {0} | rigBlock: {1}".format(self.blockState,self)
+    
+    if not parent:
+        self.blockParent = False
+        if self.p_blockParent != False:
+            self.p_parent = False
+            
+        if self.getMessage('moduleTarget'):
+            log.debug("|{0}| >>  parent false. clearing moduleTarget".format(_str_func,self))
+            self.moduleTarget = False
+            
+    else:
+        mParent = cgmMeta.validateObjArg(parent,'cgmRigBlock',noneValid=True)
+        if not mParent:
+            raise ValueError,"Invalid blockParent. Not a cgmRigBlock. parent: {0}".format( cgmMeta.asMeta(parent))
         
+        if parent == self:
+            raise ValueError, "Cannot blockParent to self"
+
+        #if parent.getMessage('blockParent') and parent.blockParent == self:
+            #raise ValueError, "Cannot blockParent to block whose parent is self"
+
+        self.connectParentNode(parent, 'blockParent')
+
+        if self.p_blockParent != False:
+            self.p_parent = False
+
+        #if attachPoint:
+            #self.p_parent = attachPoint
+        #else:
+            #self.p_parent = parent
+
+        #_parent = VALID.mNodeString(parent)
+        #mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
+        #mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
+        
+        #Module parent wiring ----------------------------------------------------
+        if mParent.getMessage('moduleTarget'):
+            mParentModuleTarget = mParent.moduleTarget
+            log.debug("|{0}| >>  mParent has moduleTarget: {1}".format(_str_func,mParentModuleTarget))            
+            if self.getMessage('moduleTarget'):
+                mModuleTarget = self.moduleTarget
+                log.debug("|{0}| >>  parent true. setting moduleTarget module parent".format(_str_func,self))
+                if mParent.blockType == 'master':
+                    log.debug("|{0}| >>  master parent. Trying to connect to modulePuppet".format(_str_func))
+                    mModuleTarget.modulePuppet = mParentModuleTarget
+                else:
+                    log.debug("|{0}| >>  Setting moduleParent".format(_str_func))                    
+                    self.atRigModule('set_parentModule',mParentModuleTarget)
+        
+
+
 #=============================================================================================================
 #>> Mirror/Duplicate
 #=============================================================================================================
-
 def duplicate(self):
     """
     Call to duplicate a block module and load data
@@ -1610,7 +1687,6 @@ def duplicate(self):
     try:
         _str_func = 'blockDuplicate'
         mDup = cgmMeta.createMetaNode('cgmRigBlock',blockType = self.blockType, autoTemplate=False)
-        
         mDup.loadBlockDat(self.getBlockDat())
         mDup.doName()
         return mDup
@@ -2553,7 +2629,12 @@ def rig(self,**kws):
     if not 'autoBuild' in kws.keys():
         kws['autoBuild'] = True
     self.asRigFactory(**kws)
-    self.blockState = 'rig'
+    if not is_rigged(self):
+        log.error("|{0}| >> Failed to return is_rigged...".format(_str_func))                    
+        self.blockState = 'prerig'
+        return False
+    else:
+        self.blockState = 'rig'
     skeleton_connectToParent(self)
     return True
 
@@ -2787,13 +2868,14 @@ def module_verify(self,queryMode=True):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def is_rigged(self):
-    """
-    
-
-    """
     try:
         _str_func = 'is_rigged'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        if self.blockType == 'master':
+            if self.getMessage('moduleTarget'):
+                if self.moduleTarget.getMessage('masterControl'):
+                    return True
+            return False
         return self.moduleTarget.atUtils('is_rigged')
 
     except Exception,err:cgmGEN.cgmException(Exception,err)
