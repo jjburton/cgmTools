@@ -397,7 +397,7 @@ def templateNull_verify(self):
         
     return templateNull
 
-def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTemplateNull = None,
+def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNull = None,
                             uAttr = 'neckControls',baseName = 'test'):
     try:
         _str_func = 'create_templateLoftMesh'
@@ -424,12 +424,12 @@ def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTempla
     
         mLoft.overrideEnabled = 1
         mLoft.overrideDisplayType = 2
-        _arg = "{0}.numberOfControlsOut = {1} + 1".format(mBaseLoftCurve.p_nameShort,
+        _arg = "{0}.numberOfControlsOut = {1} + 1".format(mDatHolder.p_nameShort,
                                                           self.getMayaAttrString(uAttr,'short'))
     
         NODEFACTORY.argsToNodes(_arg).doBuild()
     
-        ATTR.connect("{0}.numberOfControlsOut".format(mBaseLoftCurve.mNode), "{0}.uNumber".format(_tessellate))
+        ATTR.connect("{0}.numberOfControlsOut".format(mDatHolder.mNode), "{0}.uNumber".format(_tessellate))
         ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
     
         mLoft.p_parent = mTemplateNull
@@ -452,7 +452,8 @@ def create_templateLoftMesh(self, targets = None, mBaseLoftCurve = None, mTempla
         mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
         #Color our stuff...
-        RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
+        #self.asHandleFactory().color(mLoft.mNode,transparent=True)
+        #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
     
         mLoft.inheritsTransform = 0
         for s in mLoft.getShapes(asMeta=True):
@@ -2452,12 +2453,14 @@ def uiQuery_getStateAttrs(self,mode = None):
                 l_attrs.append(a)
             #elif a in ['puppetName','cgmName']:
             #    _l_attrs.append(a)
+            if _type in ['float3']:
+                l_attrs.remove(a)
         
         for a in ['visibility','blockScale']:
             if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
                 l_attrs.append(unicode(a))
                 
-        for a in ['baseSize','side']:
+        for a in ['side']:
             if a in l_attrs:
                 l_attrs.remove(a)
             
@@ -2751,7 +2754,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 if not d_upStateFunctions[doState](self,**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False
-                elif self.p_blockState != doState:
+                elif self.getState(True) != doState:
                     log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
                     return False
                 #else:
@@ -2771,7 +2774,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 if not d_downStateFunctions[doState](self,**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False 
-                elif self.p_blockState != doState:
+                elif self.getState(True)  != doState:
                     log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
                     return False                
             return True
@@ -2783,7 +2786,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-    
+
 def puppet_verify(self):
     """
 
@@ -2878,4 +2881,60 @@ def is_rigged(self):
             return False
         return self.moduleTarget.atUtils('is_rigged')
 
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+def getState(self, asString = True):
+    d_stateChecks = {'template':is_template,
+                     'prerig':is_prerig,
+                     'rig':is_rigged}
+    try:
+        _str_func = 'getState'
+        log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+        
+        _blockModule = self.p_blockModule
+        _goodState = False
+        _l_blockStates = BLOCKSHARE._l_blockStates
+    
+        _state = self.blockState
+        if _state not in BLOCKSHARE._l_blockStates:
+            log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
+            _state = _state.split('>')[0]
+            self.blockState = _state
+            self.changeState(_state),#rebuild=True)
+    
+        if _state == 'define':
+            _goodState = 'define'
+        else:
+            if d_stateChecks[_state](self):
+                log.debug("|{0}| >> default test passed.".format(_str_func))
+                _goodState = _state
+                
+            if 'is_{0}'.format(_state) in _blockModule.__dict__.keys():
+                _call = getattr(_blockModule,'is_{0}'.format(_state))
+                log.debug("|{0}| >> blockModule test: {1}".format(_str_func, _call))                
+                if _call(self):
+                    log.debug("|{0}| >> still good...".format(_str_func))
+                else:
+                    log.debug("|{0}| >> nope...".format(_str_func))                    
+                    _goodState = False
+                    
+            if not _goodState:
+                _idx = _l_blockStates.index(_state) - 1
+                log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
+                while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
+                    log.debug("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
+                    _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
+                    #self.changeState(_l_blockStates[_idx])
+                    _idx -= 1
+                _goodState = _l_blockStates[_idx]
+    
+    
+        if _goodState != self.blockState:
+            log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
+            self.blockState = _goodState
+    
+        if asString:
+            return _goodState
+        return _l_blockStates.index(_goodState)        
     except Exception,err:cgmGEN.cgmException(Exception,err)

@@ -849,6 +849,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return self._factory.rebuild_rigBlock(*args,**kws)
 
     def getState(self, asString = True):
+        return self.atUtils('getState',asString)
         _str_func = '[{0}] getState'.format(self.p_nameShort)
         #if asString:
         #    return self.blockState
@@ -1226,7 +1227,8 @@ class handleFactory(object):
         self._baseShape = baseShape
         self._baseSize = get_callSize(baseSize)
         self._side = side
-
+        self._mTemp = None
+        
         #if node is None:
             #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
             #self.rebuildSimple(baseShape,baseSize,shapeDirection)
@@ -1387,26 +1389,29 @@ class handleFactory(object):
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
         _str_func = 'get_baseDat'
 
-
+        
         if not self._mTransform or self._mTransform.mNode is None:
             if baseShape:
                 name=baseShape
             else:
                 name='handleFactory_shape'
-            self._mTransform = cgmMeta.createMetaNode('cgmObject', name = name, nodeType = 'transform',)
-            log.error("|{0}| >> Must have an handle loaded. One Generated".format(_str_func))                                
-
+            self._mTransform = cgmMeta.createMetaNode('cgmObject', name = name, nodeType = 'transform')
+            log.error("|{0}| >> Must have an handle loaded. One Generated".format(_str_func))
+            self._mTemp = self._mTransform
+        
+        
         if baseShape:
             _baseShape = baseShape
-        elif self._mTransform.hasAttr('baseShape'):
+        elif self._mTransform and self._mTransform.hasAttr('baseShape'):
             _baseShape = self._mTransform.baseShape
         else:
             _baseShape = 'square'
+            
         if baseSize is not None:
             _baseSize = get_callSize(baseSize)
         elif self._mTransform.getShapes():
             _baseSize = POS.get_axisBox_size(self._mTransform.mNode,False)
-        elif self._mTransform.hasAttr('baseSize'):
+        elif self._mTransform and self._mTransform.hasAttr('baseSize'):
             _baseSize = self._mTransform.baseSize
         else:
             _baseSize = [1.0,1.0,1.0]
@@ -1427,6 +1432,7 @@ class handleFactory(object):
         else:
             _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
             TRANS.snap(_crv, self._mTransform.mNode) 
+            
         mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
 
         #...lossy
@@ -1434,7 +1440,10 @@ class handleFactory(object):
         mCrv.scaleX = mCrv.scaleX * _lossy[0]
         mCrv.scaleY = mCrv.scaleY * _lossy[1]
         mCrv.scaleZ = mCrv.scaleZ * _lossy[2]
-
+        
+        if self._mTemp:
+            self._mTemp.delete()
+            self._mTemp = None
         return mCrv
 
     def get_side(self):
@@ -3401,12 +3410,12 @@ def valid_blockModule_rigBuildOrder(blockType):
     return False
 
 _l_requiredModuleDat = ['__version__',
-                        'template','is_template',
+                        'template',
                         'prerig','is_prerig',
                         'rig','is_rig','rigDelete']
 
 _d_requiredModuleDat = {'define':['__version__'],
-                        'template':['template','is_template',],
+                        'template':['template',],
                         'prerig':['prerig','is_prerig'],
                         'rig':['is_rig','rigDelete']}
 _d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}

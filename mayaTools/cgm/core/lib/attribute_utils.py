@@ -2169,6 +2169,9 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         _messagedExtra = None
         _d_dataAttr = None
         
+        if dataAttr is None:
+            dataAttr = "{0}_datdict".format(messageAttr)        
+        
         _multi = False
         if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
             _multi = True
@@ -2260,7 +2263,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                 
         _messageLong = NAMES.get_long(message)
         
-        _dataAttr = 'cgmMsgData'
+        _dataAttr = 'cgmMsgData_'
         if dataAttr is not None:
             _dataAttr = dataAttr
             
@@ -2595,20 +2598,23 @@ def datList_purge(node = None, attr = None, dataAttr=None):
     _str_func = 'datList_purge'        
     d_attrs = get_sequentialAttrDict(node,attr)
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
-        
+        """
     for k in d_attrs.keys():
         str_attr = d_attrs[k]
         delete(node,str_attr)
         log.debug("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,str_attr))
         
     try:
-        if r9Meta.MetaClass(node).hasAttr(_str_dataAttr):
-            delete(node,_str_dataAttr)
-            log.debug("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,_str_dataAttr))
+        if r9Meta.MetaClass(node).hasAttr(dataAttr):
+            delete(node,dataAttr)
+            log.debug("|{0}| >> Removed: '{1}.{2}'".format(_str_func,node,dataAttr))
     except:pass
     
     return True    
@@ -2629,16 +2635,19 @@ def datList_exists(node = None, attr = None, mode = None, dataAttr = None):
     _str_func = 'datList_exists'    
     
     d_attrs = get_sequentialAttrDict(node,attr)
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)    
     
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
-        
+        """
     for i,k in enumerate(d_attrs.keys()):
         str_attr = d_attrs[i]
         if mode == 'message':
-            if get_message(node,str_attr,_str_dataAttr):
+            if get_message(node,str_attr,dataAttr):
                 return True
         elif get(node,str_attr) is not None:
             return True
@@ -2661,14 +2670,19 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     """
     _str_func = 'msgList_connect'    
     _l_dat = VALID.mNodeStringList(data)
+    
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+        
     #_l_dat = VALID.objStringList(data,noneValid=True)
-    log.debug("|{0}| >> node: {1} | attr: {2} | connectBack: {3}".format(_str_func,node,attr,connectBack))
+    log.debug("|{0}| >> node: {1} | attr: {2} | connectBack: {3} | dataAttr: {4}".format(_str_func,node,attr,connectBack,dataAttr))
     log.debug("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
     datList_purge(node,attr)
     
     mi_node = r9Meta.MetaClass(node)
     
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
@@ -2678,11 +2692,12 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     _dBuffer = {'mode':'msg'}
     log.debug("|{0}| >> buffer: {1}".format(_str_func,_dBuffer))
     mi_node.__setattr__(_str_dataAttr, _dBuffer)    
+    """
     
     for i,_node in enumerate(_l_dat):
         str_attr = "{0}_{1}".format(attr,i)
         
-        set_message(node, str_attr, _node, _str_dataAttr, i)
+        set_message(node, str_attr, _node, dataAttr, i)
        
         if connectBack is not None:
             if '.' in _node:
@@ -2691,7 +2706,7 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
             set_message(_n, connectBack, node, simple = True)
     
     return True
-
+msgList_set = msgList_connect
 def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr=None):
     """   
     Because multimessage data can't be counted on for important sequential connections we have
@@ -2710,22 +2725,23 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
     _str_func = 'datList_connect'    
     
     _l_dat = VALID.listArg(data)
-    
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+        
     log.info("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
     log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
     datList_purge(node,attr)
     
     mi_node = r9Meta.MetaClass(node)
-    
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)    
-    
+    """
     if mode == 'message':
         msgList_connect(node,attr,_l_dat,dataAttr=dataAttr)
-        
     else:
         """_str_dataAttr = "{0}_datdict".format(attr)
         mi_node.addAttr(_str_dataAttr, value="",attrType= 'string')
@@ -2766,11 +2782,14 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
     
     log.debug("|{0}| >> node: {1} | attr: {2} | mode: {3} | cull: {4}".format(_str_func,node,attr,_mode,cull))
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)    
-    
+    """
     d_attrs = get_sequentialAttrDict(node,attr)
     
     l_return = []
@@ -2778,7 +2797,7 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
     
     for k in d_attrs.keys():
         if _mode == 'message':
-            _res = get_message(node,d_attrs[k], _str_dataAttr, k ) or False
+            _res = get_message(node,d_attrs[k], dataAttr, k ) or False
             if _res:_res = _res[0]
             
         else:
@@ -2841,12 +2860,15 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
     
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)     
-    
-    _l_dat = datList_get(node,attr,mode,_str_dataAttr,False)
+    """
+    _l_dat = datList_get(node,attr,mode,dataAttr,False)
     idx = None    
     
     if mode == 'message':
@@ -2893,18 +2915,21 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
     
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
-        
+        """
     _l_dat = datList_get(node,attr,mode,dataAttr,False)
     _len = len(_l_dat)
     _idx = _len
     
         
     if mode == 'message':
-        set_message(node, "{0}_{1}".format(attr,_idx), data, _str_dataAttr, dataKey=_idx)
+        set_message(node, "{0}_{1}".format(attr,_idx), data, dataAttr, dataKey=_idx)
     else:
         store_info(node,"{0}_{1}".format(attr,_idx),data)
     
@@ -2956,11 +2981,14 @@ def datList_remove(node = None, attr = None, data = None, mode = None, dataAttr 
     _data = VALID.listArg(data)        
     d_attrs = get_sequentialAttrDict(node,attr)
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
-        
+        """
     log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
     
     _action = False
@@ -3003,17 +3031,21 @@ def datList_clean(node = None, attr = None, mode = None, dataAttr = None):
     """
     _str_func = 'datList_clean'    
     
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+    
+    """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
-        
+        """
     l_dat = datList_get(node,attr,mode,dataAttr,True)
     
     if mode == 'message':
-        return msgList_connect(node,attr,l_dat,dataAttr=_str_dataAttr)
+        return msgList_connect(node,attr,l_dat,dataAttr=dataAttr)
     else:
-        return datList_connect(node,attr,l_dat,mode,_str_dataAttr)
+        return datList_connect(node,attr,l_dat,mode,dataAttr)
 #>>>==============================================================================================
 #>> Utilities
 #>>>==============================================================================================
@@ -3199,41 +3231,57 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
     :returns
         status(bool)
     """
-    _str_func = 'store_info'    
-    _data = VALID.listArg(data)        
-
+    try:
+        _str_func = 'store_info'    
+        _data = VALID.listArg(data)        
     
-    if attrType is None:
-        if mc.objExists(_data[0]):
-            attrType = 'message'
-        elif len(_data)==3:
-            attrType = 'double3'
-        elif len(_data)>3:
-            attrType = 'doubleArray'
-            
-    log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
-    
-    #>> Store our data #-------------------------------------------------------------------------
-    
-    if attrType == 'message':
-        set_message(node,attr,_data)
-    else:
-        mi_node = r9Meta.MetaClass(node)
-        _except = False
-      
-        if mi_node.hasAttr(attr):
-            try:set(node,attr,_data[0])
-            except:
-                log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
-                delete(node,attr)
-                mi_node.addAttr(attr,_data[0], attrType = attrType)
-        else:
-            mi_node.addAttr(attr,_data[0], attrType = attrType)
         
-    if lock:
-        set_lock(node,attr,lock)
-    return True
-
+        if attrType is None:
+            if mc.objExists(_data[0]):
+                attrType = 'message'
+            elif len(_data)==3:
+                attrType = 'double3'
+            elif len(_data)>3:
+                attrType = 'doubleArray'
+                
+        log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
+        
+        #>> Store our data #-------------------------------------------------------------------------
+        
+        if attrType == 'message':
+            log.debug("|{0}| >> message...".format(_str_func))            
+            set_message(node,attr,_data)
+        elif attrType in ['double3']:
+            log.debug("|{0}| >> list...".format(_str_func))            
+            mi_node = r9Meta.MetaClass(node)
+            
+            if mi_node.hasAttr(attr):
+                try:set(node,attr,_data)
+                except:
+                    log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
+                    delete(node,attr)
+                    mi_node.addAttr(attr,_data, attrType = attrType)
+            else:
+                mi_node.addAttr(attr,_data, attrType = attrType)
+                
+        else:
+            log.debug("|{0}| >> default...".format(_str_func))                        
+            mi_node = r9Meta.MetaClass(node)
+            
+            if mi_node.hasAttr(attr):
+                try:set(node,attr,_data[0])
+                except:
+                    log.warning("|{0}| >> removing... | node: {1} | attr: {2} | value: {3}".format(_str_func,node,attr,mi_node.__getattribute__(attr)))        
+                    delete(node,attr)
+                    mi_node.addAttr(attr,_data[0], attrType = attrType)
+            else:
+                mi_node.addAttr(attr,_data[0], attrType = attrType)
+            
+        if lock:
+            set_lock(node,attr,lock)
+        return True
+    except Exception,err:
+        raise cgmGeneral.cgmException(Exception,err)
 def get_attrsByTypeDict(node,typeCheck = [],*a,**kws):
     """   
     Replacement for getAttr which get's message objects as well as parses double3 type 
