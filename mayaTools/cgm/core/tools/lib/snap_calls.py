@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
 import maya
@@ -523,6 +523,43 @@ def snap(obj = None, targets = None,
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 
+def get_axisBox_size(targets = None, maxDistance = 10000000):
+    try:
+        _str_func = 'get_axisBox_size'
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+        
+        targets = VALID.listArg(targets)
+        _targets = VALID.mNodeStringList(targets)
+    
+        if not _targets:
+            raise ValueError,"Must have targets!"
+        
+        d_res = {'x':[],'y':[],'z':[]}
+        
+        for t in _targets:
+            log.debug("|{0}| >> On t: {1}".format(_str_func,t))
+            _proxy = CORERIG.create_axisProxy(t)
+            _startPoint = POS.get(_proxy,'bb')
+            for k in d_res.keys():
+                log.debug("|{0}| >> On t: {1} | {2}".format(_str_func,t,k))
+                
+                pos_positive = RAYS.get_cast_pos(t, k+'+','near', _proxy, startPoint= _startPoint ,
+                                                 mark=False, maxDistance=maxDistance)
+                pos_neg = RAYS.get_cast_pos(t, k+'-','near', _proxy, startPoint= _startPoint ,
+                                                 mark=False, maxDistance=maxDistance)
+                
+                dist = DIST.get_distance_between_points(pos_positive,pos_neg)
+                d_res[k].append(dist)
+            mc.delete(_proxy)            
+        
+        for k,v in d_res.iteritems():
+            d_res[k] = COREMATH.average(v)
+            
+        return d_res['x'],d_res['y'],d_res['z']
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
 
 def get_special_pos(targets = None,
                     arg = 'rp',

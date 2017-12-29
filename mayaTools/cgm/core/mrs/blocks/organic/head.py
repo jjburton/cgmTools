@@ -65,9 +65,10 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.08072017'
+__version__ = 'alpha.12222017'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]
+__menuVisible__ = False
 
 #These are our base dimensions. In this case it is for human
 __dimensions_by_type = {'box':[22,22,22],
@@ -78,9 +79,7 @@ _l_coreNames = ['head']
 
 l_attrsStandard = ['side',
                    'position',
-                   #'proxyType',
                    'hasRootJoint',
-                   #'buildIK',
                    'baseNames',
                    'proxyShape',
                    'loftSides',

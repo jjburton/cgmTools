@@ -1418,6 +1418,11 @@ class handleFactory(object):
 
         return [_baseShape,_baseSize]
 
+    def get_axisBox_size(self,targets = None, maxDistance = 10000000):
+        """
+        Putting this here till I can refactor it out of SNAPCALLS as I don't want it there permenantly
+        """
+        return SNAPCALLS.get_axisBox_size(targets,maxDistance)
 
     def buildBaseShape(self, baseShape = None, baseSize = None, shapeDirection = 'z+' ):
         _baseDat = self.get_baseDat(baseShape,baseSize)

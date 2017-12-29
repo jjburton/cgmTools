@@ -364,10 +364,20 @@ def define(self):pass
 #=============================================================================================================
 #>> Template
 #=============================================================================================================
-def is_template(self):
+def is_templateBAK(self):
     if not self.getMessage('templateNull'):
         return False
     return True
+
+
+def is_template(self):
+    try:
+        _str_func = 'is_template'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        return check_msgDat(self, get_stateLinks(self,'template'))
+        
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def templateDeleteBAK(self,msgLinks = []):
     try:
@@ -528,7 +538,7 @@ def prerig_simple(self):
     
     return True
 
-def prerig_delete(self ,msgLists = [], templateHandles = True):
+def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
     try:
         _str_func = 'prerig_delete'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -548,12 +558,83 @@ def prerig_delete(self ,msgLists = [], templateHandles = True):
                 log.info("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
             else:
                 mc.delete(_buffer)
-        
         return True   
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
-def is_prerig(self, msgLinks = [], msgLists = [] ):
+def delete_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
+    _str_func = 'delete_msgDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
+    
+    _l_missing = []
+    for l in d_wiring.get('msgLinks',[]) + msgLinks:
+        l_dat = self.getMessage(l)
+        if l_dat:
+            log.debug("|{0}| >>  Found msgLink: {1} | {2}".format(_str_func,l,l_dat))
+            mc.delete(l_dat)
+            
+    for l in d_wiring.get('msgLists',[]) + msgLists:
+        if self.msgList_exists(l):
+            self.msgList_purge('l')
+            log.debug("|{0}| >>  Purging msgList: {1}".format(_str_func,l))
+            
+    return True
+
+def check_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
+    _str_func = 'check_msgDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
+    
+    _l_missing = []
+    for l in d_wiring.get('msgLinks',[]) + msgLinks:
+        if not self.getMessage(l):
+            _l_missing.append('msgLink ' + self.p_nameBase + '.' + l)
+        else:
+            log.debug("|{0}| >>  Found msgLink: {1}".format(_str_func,l))
+            
+    for l in d_wiring.get('msgLists',[]) + msgLists:
+        if not self.msgList_exists(l):
+            _l_missing.append(self.p_nameBase + '.[msgList]' + l)
+        else:
+            log.debug("|{0}| >>  Found msgList: {1}".format(_str_func,l))
+            
+    if _l_missing:
+        log.info("|{0}| >> Missing...".format(_str_func))  
+        for l in _l_missing:
+            log.info("|{0}| >> {1}".format(_str_func,l))  
+        return False
+    return True
+    
+def get_stateLinks(self, mode = 'template' ):
+    try:
+        _str_func = 'get_stateLinks'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        mBlockModule = self.p_blockModule
+        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        
+        d_wiring = {}
+        try:
+            d_wiring.update(getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
+            log.debug("|{0}| >>  Found {1} wiring dat in BlockModule".format(_str_func,mode))
+        except Exception,err:
+            log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))            
+            pass
+        return d_wiring
+        
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def is_prerig(self):
+    try:
+        _str_func = 'is_prerig'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        return check_msgDat(self, get_stateLinks(self,'prerig'))
+
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     try:
         _str_func = 'is_prerig'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -578,7 +659,8 @@ def is_prerig(self, msgLinks = [], msgLists = [] ):
         return True
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
-        
+
+
 def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                           uAttr = 'neckControls', uAttr2 = 'loftSplit',
                           polyType = 'mesh',
@@ -2603,9 +2685,13 @@ def prerigDelete(self):
 
     mBlockModule = self.p_blockModule
     l_blockModuleKeys = mBlockModule.__dict__.keys()
+    
     if 'prerigDelete' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule prerigDelete call found...".format(_str_func))
         self.atBlockModule('prerigDelete')
+    
+    d_links = get_stateLinks(self, 'prerig')
+    delete_msgDat(self,d_links)
     
     self.blockState = 'template'#...yes now in this state
     return True
