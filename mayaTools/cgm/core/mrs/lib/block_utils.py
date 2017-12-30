@@ -434,7 +434,8 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
     
         mLoft.overrideEnabled = 1
         mLoft.overrideDisplayType = 2
-        _arg = "{0}.numberOfControlsOut = {1} + 1".format(mDatHolder.p_nameShort,
+        #...this used to be {1} + 1. may need to revisit for head/neck
+        _arg = "{0}.numberOfControlsOut = {1} ".format(mDatHolder.p_nameShort,
                                                           self.getMayaAttrString(uAttr,'short'))
     
         NODEFACTORY.argsToNodes(_arg).doBuild()
@@ -661,14 +662,17 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
         cgmGEN.cgmException(Exception,err)
 
 
-def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
-                          uAttr = 'neckControls', uAttr2 = 'loftSplit',
+def create_prerigLoftMesh(self, targets = None,
+                          mPrerigNull = None,
+                          uAttr = 'neckControls',
+                          uAttr2 = 'loftSplit',
+                          degreeAttr = None,
                           polyType = 'mesh',
                           baseName = 'test'):
     try:
         _str_func = 'create_prerigLoftMesh'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-        
+        _short = self.mNode
         _side = 'center'
         if self.getMayaAttr('side'):
             _side = self.getEnumValueString('side')  
@@ -676,7 +680,7 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
         
         if polyType == 'mesh':
             _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
-            mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
         
             _tessellate = _inputs[0]
@@ -691,17 +695,19 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
                 ATTR.set(_tessellate,a,v)    
         else:
             _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
-            mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
+            _loftNode = _res_body[1]
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
+            
+        mLoftSurface.overrideEnabled = 1
+        mLoftSurface.overrideDisplayType = 2
     
-        mLoft.overrideEnabled = 1
-        mLoft.overrideDisplayType = 2
+        mLoftSurface.p_parent = mPrerigNull
+        mLoftSurface.resetAttrs()
     
-        mLoft.p_parent = mPrerigNull
-        mLoft.resetAttrs()
-    
-        mLoft.doStore('cgmName',self.mNode)
-        mLoft.doStore('cgmType','shapeApprox')
-        mLoft.doName()
+        mLoftSurface.doStore('cgmName',self.mNode)
+        mLoftSurface.doStore('cgmType','shapeApprox')
+        mLoftSurface.doName()
+        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
     
         #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
         #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
@@ -709,39 +715,48 @@ def create_prerigLoftMesh(self, targets = None, mPrerigNull = None,
         #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
         #Color our stuff...
-        RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
+        RIGGING.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
     
-        mLoft.inheritsTransform = 0
-        for s in mLoft.getShapes(asMeta=True):
+        mLoftSurface.inheritsTransform = 0
+        for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
-            
+        
+        _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
+                                                              self.getMayaAttrString('loftDegree','short'))
+    
+        NODEFACTORY.argsToNodes(_arg).doBuild()            
+        ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
+        
+        toName = []
         if polyType == 'mesh':
             #...wire some controls
             _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
-                                                           self.getMayaAttrString(uAttr,'short'))
+                                                     self.getMayaAttrString(uAttr,'short'))
         
             NODEFACTORY.argsToNodes(_arg).doBuild()
             #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
-            _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
-                                                                  self.getMayaAttrString('loftDegree','short'))
-        
-            NODEFACTORY.argsToNodes(_arg).doBuild()    
+
         
             ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
             ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
         
-            ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
             #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
         
+            toName = [_tessellate,_loftNode]
             
-            for n in _tessellate,_loftNode:
-                mObj = cgmMeta.validateObjArg(n)
-                mObj.doStore('cgmName',self.mNode)
-                mObj.doStore('cgmTypeModifier','prerigMesh')
-                mObj.doName()            
-    
-        self.connectChildNode(mLoft.mNode, 'prerigLoftMesh', 'block')    
-        return mLoft
+        else:
+            ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
+            toName = [_loftNode]
+
+                
+        for n in toName:
+            mObj = cgmMeta.validateObjArg(n)
+            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmTypeModifier','prerigMesh')
+            mObj.doName()                        
+       
+        self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')    
+        return mLoftSurface
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
@@ -1563,17 +1578,17 @@ def skeleton_buildRigChain(self):
     
     return ml_rigJoints
 
-def skeleton_pushSettings(ml_chain, orientation = 'zyx', side = 'right',
+def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
                           d_rotateOrders = {}, d_preferredAngles = {}, d_limits = {}):
-    _str_func = '[{0}] > '.format('skeleton_pushSettings')
     
+    _str_func = '[{0}] > '.format('skeleton_pushSettings')
     
     for mJnt in ml_chain:
         _key = mJnt.getMayaAttr('cgmName',False)
         
-        _rotateOrderBuffer = d_rotateOrders.get(_key,False)
-        _limitBuffer = d_limits.get(_key,False)
-        _preferredAngles = d_preferredAngles.get(_key,False)
+        _rotateOrderBuffer = d_rotateOrders.get(_key,d_rotateOrders.get('default',False))
+        _limitBuffer = d_limits.get(_key,d_limits.get('default',False))
+        _preferredAngles = d_preferredAngles.get(_key,d_preferredAngles.get('default',False))
         
         if _rotateOrderBuffer:
             log.info("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
@@ -2333,7 +2348,7 @@ def get_blockDagNodes(self,):
         
         ml_controls = controls_get(self)
                 
-        for a in ['proxyHelper']:
+        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh']:
             if self.getMessage(a):
                 ml_controls.extend(self.getMessage(a,asMeta=True))        
         return ml_controls
@@ -2351,6 +2366,10 @@ def controls_get(self,template = True, prerig= True):
                 log.debug("|{0}| >> Already stored: {1} ".format(_str_func,mObj))                    
                 return
             ml_controls.append(mObj)
+            if mObj.getMessage('orientHelper'):
+                addMObj(mObj.orientHelper)
+            if mObj.getMessage('jointHelper'):
+                addMObj(mObj.jointHelper)            
             
         
         ml_controls = [self]
@@ -2363,12 +2382,6 @@ def controls_get(self,template = True, prerig= True):
             ml_handles = self.msgList_get('templateHandles',asMeta = True)
             for mObj in ml_handles:
                 addMObj(mObj)
-                
-                if mObj.getMessage('orientHelper'):
-                    addMObj(mObj.orientHelper)
-
-                if mObj.getMessage('jointHelper'):
-                    addMObj(mObj.jointHelper)
                 
         if prerig:
             log.debug("|{0}| >> Prerig pass...".format(_str_func))                        
@@ -2542,9 +2555,17 @@ def uiQuery_getStateAttrs(self,mode = None):
             if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
                 l_attrs.append(unicode(a))
                 
-        for a in ['side']:
+        for a in ['side','position']:
             if a in l_attrs:
                 l_attrs.remove(a)
+        
+        if _intState > 0:#...template
+            l_mask = []
+            log.debug("|{0}| >> template cull...".format(_str_func))            
+            for a in l_attrs:
+                if not a.startswith('base'):
+                    l_mask.append(a)
+            l_attrs = l_mask        
             
         if _intState > 1:#prerig up
             l_mask = []

@@ -1336,27 +1336,27 @@ class handleFactory(object):
                 
     def color(self, target = None, side = None, controlType = None, transparent = None):
         _str_func = 'handleFactory.color'
-        log.info("|{0}| >> ".format(_str_func)+ '-'*80)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         _targets = VALID.listArg(target)
-        log.info("|{0}| >> target: [{1}]".format(_str_func, _targets))
+        log.debug("|{0}| >> target: [{1}]".format(_str_func, _targets))
         
         mTransform = self._mTransform
         if side is None:
             _side = self.get_side()
         else:
-            log.info("|{0}| >> arg side: {1}".format(_str_func, side))            
+            log.debug("|{0}| >> arg side: {1}".format(_str_func, side))            
             _side = side
             
         if transparent is None:
             _transparent = True
         else:
-            log.info("|{0}| >> arg transparent: {1}".format(_str_func, transparent))            
+            log.debug("|{0}| >> arg transparent: {1}".format(_str_func, transparent))            
             _transparent = transparent
                 
         if controlType is None:
             _controlType = 'main'        
         else:
-            log.info("|{0}| >> arg controlType: {1}".format(_str_func, controlType))                        
+            log.debug("|{0}| >> arg controlType: {1}".format(_str_func, controlType))                        
             _controlType = controlType
         
         for t in _targets:
@@ -1371,17 +1371,17 @@ class handleFactory(object):
             for s in _shapes:
                 _useType = _controlType
                 if controlType is not None:
-                    log.info("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
+                    log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
                     ATTR.store_info(s,'cgmControlType',controlType)
                     
                 if transparent is not None and VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
-                    log.info("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
+                    log.debug("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
                     ATTR.store_info(s,'cgmControlTransparent',transparent)
                     
                 if ATTR.has_attr(s,'cgmControlType'):
                     _useType = ATTR.get(s,'cgmControlType')
-                    log.info("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
-                log.info("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
+                    log.debug("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
+                log.debug("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
                     
                 CORERIG.colorControl(s,_side,_useType,transparent = _transparent)
 
@@ -3403,7 +3403,7 @@ def valid_blockModule_rigBuildOrder(blockType):
         for i,step in enumerate(_l_buildOrder):
             if not getattr(_BlockModule,step,False):
                 _status = False
-                print("|{0}| >> [{1}] FAIL. Missing rig step {2} call: {3}".format(_str_func,_blockType,i,step))
+                print("|{0}| >> [{1}] FAIL. Missing rig step '{2}' call: {3}".format(_str_func,_blockType,i,step))
     elif getattr(_BlockModule,'rig',[]):
         log.info("|{0}| >> BlockModule rig call found...".format(_str_func))
     else:

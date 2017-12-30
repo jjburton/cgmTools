@@ -433,19 +433,24 @@ def create_axisProxy(obj=None):
             
         _parent = TRANS.parent_get(_dag)
         _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
-        
+        #TRANS.pivots_recenter(_dup)
         _dup = TRANS.parent_set(_dup,False)
         
         #Get some values...
+        l_reset = ['t','r','s','shear','rotateAxis']
         t = ATTR.get(_dup,'translate')
         r = ATTR.get(_dup,'rotate')
         s = ATTR.get(_dup,'scale')
+        ra = ATTR.get(_dup,'rotateAxis')
+        if ATTR.has_attr(_dup,'jointOrient'):
+            l_reset.append('jointOrient')
+            jo = ATTR.get(_dup,'jointOrient')
         o = TRANS.orient_get(_dup)
         shear = ATTR.get(_dup,'shear')
         _scaleLossy = TRANS.scaleLossy_get(_dag)
         
         #Reset our stuff before we make our bb...
-        ATTR.reset(_dup,['t','r','s','shear'])        
+        ATTR.reset(_dup,l_reset)        
         _size = POS.get_bb_size(_dup,True)
 
         #_proxy = create_proxyGeo('cube',COREMATH.list_div(_scaleLossy,_size))
@@ -463,15 +468,18 @@ def create_axisProxy(obj=None):
         ATTR.reset(_dup,['s','shear'])
 
         
-        ATTR.reset(_proxy,['t','r','s','shear'])
+        ATTR.reset(_proxy,['t','r','s','shear','rotateAxis'])
         _proxy = TRANS.parent_set(_proxy, _dag)
-        ATTR.reset(_proxy,['t','r','s','shear'])
+        ATTR.reset(_proxy,['t','r','s','shear','rotateAxis'])
+        #match_transform(_proxy,_dag)
+        
+        #SNAP.go(_proxy,_dag,pivot='bb')
 
         #cgmGen.func_snapShot(vars())
         
         _proxy = TRANS.parent_set(_proxy, False)
         mc.delete(_dup)
-        
+        #match_transform(_proxy,_dag)
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
     except Exception,err:
         cgmGen.cgmExceptCB(Exception,err)
