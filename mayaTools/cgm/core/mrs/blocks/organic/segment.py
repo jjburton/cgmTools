@@ -778,8 +778,7 @@ def rig_shapes(self):
     
     self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect
     
-    
-    
+
     #Settings =============================================================================
     log.debug("|{0}| >> settings...".format(_str_func))
     
@@ -793,7 +792,6 @@ def rig_shapes(self):
     ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
     mSettings.doStore('cgmTypeModifier','settings')
     mSettings.doName()
-
     #CORERIG.colorControl(mSettings.mNode,_side,'sub')
     mHandleFactory.color(mSettings.mNode, controlType = 'sub')
 
@@ -872,26 +870,28 @@ def rig_shapes(self):
         
         l_lolis = []
         l_starts = []
+        text_crv = CURVES.create_text(mJnt.cgmIterator,_size /3)
+        mText = cgmMeta.cgmObject(text_crv)
+        
         for axis in ['x+','y+','x-']:
             pos_jnt = mJnt.p_position
             pos_axis = SNAPCALLS.get_special_pos(mJnt.mNode,'axisBox',axis)
             pos_dist = DIST.get_distance_between_points(pos_axis,pos_jnt)
             pos = mJnt.getPositionByAxisDistance(axis, pos_dist * 1.5)
-            text_crv = CURVES.create_text(mJnt.cgmIterator,_size /3)
-            mText = cgmMeta.cgmObject(text_crv)
-            mText.p_position = pos
+            mNewText = mText.doDuplicate(po=False)
+            mNewText.p_position = pos
             mc.select(cl=True)
             
-            SNAP.aim_atPoint(mText,pos_jnt,'y-',
+            SNAP.aim_atPoint(mNewText,pos_jnt,'y-',
                              mode = 'vector',
                              vectorUp= mJnt.getAxisVector('z+'))            
             #p_end = DIST.get_closest_point(mJnt.mNode, ball)[0]
             #p_start = mJnt.getPositionByAxisDistance(axis, _size * .25)
             #l_starts.append(p_start)
             #line = mc.curve (d=1, ep = [p_start,p_end], os=True)
-            l_lolis.extend([text_crv])
-            mHandleFactory.color(mText.mNode, controlType = 'sub')        
-
+            l_lolis.extend([mNewText.mNode])
+            mHandleFactory.color(mNewText.mNode, controlType = 'sub')        
+        mText.delete()
         #mFK = ml_fkJoints[-1]
         CORERIG.shapeParent_in_place(mJnt,l_lolis,False)
 
@@ -906,124 +906,102 @@ def rig_shapes(self):
 
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    
+
+@cgmGEN.Timer
 def rig_controls(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_controls'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
-  
+    _str_func = 'rig_controls'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    mBlock = self.mBlock
     mRigNull = self.mRigNull
     ml_controlsAll = []#we'll append to this list and connect them all at the end
     mRootParent = self.mDeformNull
     mSettings = mRigNull.settings
     
-    mHeadFK = False
-    if mRigNull.getMessage('headFK'):
-        mHeadFK = mRigNull.headFK    
-        
-    mHeadIK = mRigNull.headIK
-    
-    # Drivers ==============================================================================================    
-    if self.mBlock.neckBuild:
-        if self.mBlock.neckIK:
-            mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+    # Drivers ==============================================================================================
+    log.debug("|{0}| >> Attr drivers...".format(_str_func))    
+    if mBlock.buildIK:
+        log.debug("|{0}| >> Build IK drivers...".format(_str_func))
+        mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
     
         #>> vis Drivers ================================================================================================	
         mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    
+    mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     
-    if self.mBlock.headAim:        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+    #if self.mBlock.headAim:        
+        #mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
         
-        
-    #>> Neck build ======================================================================================
-    if self.mBlock.neckBuild:
-        log.debug("|{0}| >> Neck...".format(_str_func))
-        
-        #Root -------------------------------------------------------------------------------------------
-        if not mRigNull.getMessage('rigRoot'):
-            raise ValueError,"No rigRoot found"
-        
-        mRoot = mRigNull.rigRoot
-        log.info("|{0}| >> Found rigRoot : {1}".format(_str_func, mRoot))
-        
-        
-        _d = MODULECONTROL.register(mRoot,
-                                    addDynParentGroup = True,
-                                    mirrorSide= self.d_module['mirrorDirection'],
-                                    mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
-        
-        mRoot = _d['mObj']
-        mRoot.masterGroup.parent = mRootParent
-        mRootParent = mRoot#Change parent going forward...
-        ml_controlsAll.append(mRoot)
-        
-        for mShape in mRoot.getShapes(asMeta=True):
-            ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
-            
-        
-        #FK controls -------------------------------------------------------------------------------------
-        log.debug("|{0}| >> FK Controls...".format(_str_func))
-        ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
-        
-        ml_fkJoints[0].parent = mRoot
-        ml_controlsAll.extend(ml_fkJoints)
-        
-        for i,mObj in enumerate(ml_fkJoints):
-            d_buffer = MODULECONTROL.register(mObj,
-                                              mirrorSide= self.d_module['mirrorDirection'],
-                                              mirrorAxis="translateX,rotateY,rotateZ",
-                                              makeAimable = True)
     
-            mObj = d_buffer['instance']
-            #mObj.axisAim = "%s+"%self._go._jointOrientation[0]
-            #mObj.axisUp= "%s+"%self._go._jointOrientation[1]	
-            #mObj.axisOut= "%s+"%self._go._jointOrientation[2]
-            #try:i_obj.drawStyle = 2#Stick joint draw style	    
-            #except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))
-            ATTR.set_hidden(mObj.mNode,'radius',True)
-            
+
+    #Root/Settings ==============================================================================================
+    log.debug("|{0}| >> Root...".format(_str_func))
     
-    #ikHead ========================================================================================
-    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))    
-    _d = MODULECONTROL.register(mHeadIK,
-                                addSpacePivots = 2,
-                                addDynParentGroup = True, addConstraintGroup=False,
+    if not mRigNull.getMessage('rigRoot'):
+        raise ValueError,"No rigRoot found"
+    
+    mRoot = mRigNull.rigRoot
+    log.debug("|{0}| >> Found rigRoot : {1}".format(_str_func, mRoot))
+    
+    
+    _d = MODULECONTROL.register(mRoot,
+                                addDynParentGroup = True,
                                 mirrorSide= self.d_module['mirrorDirection'],
                                 mirrorAxis="translateX,rotateY,rotateZ",
                                 makeAimable = True)
     
-    mHeadIK = _d['mObj']
-    mHeadIK.masterGroup.parent = mRootParent
-    ml_controlsAll.append(mHeadIK)            
+    mRoot = _d['mObj']
+    mRoot.masterGroup.parent = mRootParent
+    mRootParent = mRoot#Change parent going forward...
+    ml_controlsAll.append(mRoot)
     
+    for mShape in mRoot.getShapes(asMeta=True):
+        ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+            
+    #FK controls ==============================================================================================
+    log.debug("|{0}| >> FK Controls...".format(_str_func))
+    ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
-    #>> headLookAt ========================================================================================
-    if mRigNull.getMessage('headLookAt'):
-        mHeadLookAt = mRigNull.headLookAt
-        log.info("|{0}| >> Found headLookAt : {1}".format(_str_func, mHeadLookAt))
-        MODULECONTROL.register(mHeadLookAt,
-                               typeModifier='lookAt',addSpacePivots = 2,
-                               addDynParentGroup = True, addConstraintGroup=False,
-                               mirrorSide= self.d_module['mirrorDirection'],
-                               mirrorAxis="translateX,rotateY,rotateZ",
-                               makeAimable = False)
-        mHeadLookAt.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mHeadLookAt)
+    ml_fkJoints[0].parent = mRoot
+    ml_controlsAll.extend(ml_fkJoints)
+    
+    for i,mObj in enumerate(ml_fkJoints):
+        d_buffer = MODULECONTROL.register(mObj,
+                                          mirrorSide= self.d_module['mirrorDirection'],
+                                          mirrorAxis="translateX,rotateY,rotateZ",
+                                          makeAimable = True)
+
+        mObj = d_buffer['instance']
+        ATTR.set_hidden(mObj.mNode,'radius',True)
+            
+    
+    #ControlIK ========================================================================================
+    mControlIK = False
+    if mRigNull.getMessage('controlIK'):
+        mControlIK = mRigNull.controlIK
+        log.info("|{0}| >> Found debug : {1}".format(_str_func, mControlIK))
         
+        _d = MODULECONTROL.register(mControlIK,
+                                    addSpacePivots = 2,
+                                    addDynParentGroup = True, addConstraintGroup=False,
+                                    mirrorSide= self.d_module['mirrorDirection'],
+                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    makeAimable = True)
+        
+        mControlIK = _d['mObj']
+        mControlIK.masterGroup.parent = mRootParent
+        ml_controlsAll.append(mControlIK)            
     
+
     #>> settings ========================================================================================
-    if mHeadFK:
-        mSettings = mRigNull.settings
-        log.info("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
-        
-        MODULECONTROL.register(mSettings)
-        
-        ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
-        mSettings.masterGroup.parent = ml_blendJoints[-1]
+    log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
+    
+    MODULECONTROL.register(mSettings)
+    
+    ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
+    mSettings.masterGroup.parent = ml_blendJoints[0]
     
     #>> handleJoints ========================================================================================
     ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
@@ -1046,6 +1024,8 @@ def rig_controls(self):
         
             
     #>> Direct Controls ========================================================================================
+    log.debug("|{0}| >> Direct controls...".format(_str_func))
+    
     ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
     ml_controlsAll.extend(ml_rigJoints)
     
@@ -1068,10 +1048,6 @@ def rig_controls(self):
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
-    
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
-    
-    
     
     return 
 
