@@ -124,9 +124,9 @@ d_defaultSettings = {'version':__version__,
                      #'proxyShape':'cube',}
                      #'proxyType':'geo'}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransformNull'],
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','prerigLoftMesh','noTransformNull'],
                    'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh',],
+d_wiring_template = {'msgLinks':['templateNull','templateLoftMesh',],
                      'msgLists':['templateHandles']}
 
 #Skeletal stuff ------------------------------------------------------------------------------------------------
@@ -331,6 +331,9 @@ def prerig(self):
         _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (self.numControls - 1)
         _l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
         
+        
+        
+        
         #Linear track curve ----------------------------------------------------------------------
         _linearCurve = mc.curve(d=1,p=[_pos_start,_pos_end])
         mLinearCurve = cgmMeta.validateObjArg(_linearCurve,'cgmObject')
@@ -362,7 +365,7 @@ def prerig(self):
             mHandle.scale = 1,1,1
             
 
-
+        
         #Sub handles... ------------------------------------------------------------------------------------
         for i,p in enumerate(_l_pos[1:-1]):
             #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
@@ -424,7 +427,7 @@ def prerig(self):
             
             CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
             #LOC.create(position = p)
-            
+        
         ml_handles.append(mEndHandle)
         self.msgList_connect('prerigHandles', ml_handles,)
         mc.delete(_res_body)
@@ -432,8 +435,6 @@ def prerig(self):
         #Push scale back...
         for i,mHandle in enumerate([mStartHandle, mEndHandle]):
             mHandle.scale = l_scales[i]
-        
-
         
         #Template Loft Mesh -------------------------------------
         mTemplateLoft = self.getMessage('templateLoftMesh',asMeta=True)[0]        
@@ -460,7 +461,10 @@ def prerig(self):
                 mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
                 
                 if i == 1:
-                    s_targetForward = ml_handles[i+1].getMessage('masterGroup')[0]
+                    if len(ml_handles) <=3:
+                        s_targetForward = mEndHandle.mNode
+                    else:
+                        s_targetForward = ml_handles[i+1].getMessage('masterGroup')[0]
                     s_targetBack = mStartHandle.mNode
                 elif i == len(ml_handles) -1:
                     s_targetForward = ml_handles[i+1].getMessage('masterGroup')[0]
@@ -633,12 +637,11 @@ d_preferredAngles = {}
 d_rotateOrders = {'default':'yxz'}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
+@cgmGEN.Timer
 def rig_skeleton(self):
     _short = self.d_block['shortName']
-    
-    _str_func = '[{0}] > rig_skeleton'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = 'rig_skeleton'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
     mBlock = self.mBlock
     mRigNull = self.mRigNull
@@ -724,7 +727,6 @@ def rig_skeleton(self):
             mJnt.radius = .00001
             
     #...connect... 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     
     cgmGEN.func_snapShot(vars())     
