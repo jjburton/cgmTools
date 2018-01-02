@@ -306,6 +306,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         """
         try:
+            reload(BLOCKSHARE)#...to make sure we get changes
             _str_func = '[{0}] verify'.format(self.p_nameShort)
     
             _start = time.clock()

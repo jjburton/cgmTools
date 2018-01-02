@@ -142,9 +142,21 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
                 modeIdx = l_distances.index( min(l_distances) )
             else:
                 modeIdx = l_distances.index( max(l_distances) )
-            _res = l_hits[modeIdx]
+                
+            _hit =  l_hits[modeIdx]
+            
+            if MATH.is_vector_equivalent(_hit, startPoint):
+                log.warning("|{0}| >> startPoint equivalent to hit. Using alternate method. May not be exact".format(_str_func,s))
+                _vec = MATH.get_obj_vector(obj, axis)
+                _outPoint = DIST.get_pos_by_axis_dist(obj,axis,maxDistance)
+                _newPos = DIST.get_closest_point(_outPoint,s)
+                _hit = _newPos[0]
+                
+            _res = _hit
 
         #cgmGEN.func_snapShot(vars())
+
+
 
         if mark:
             #_size = get_bb_size(arg, shapes)
@@ -152,6 +164,8 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = T
             #ATTR.set(_loc,'scale', [v/4 for v in _size])        
             mc.move (_res[0],_res[1],_res[2], _loc, ws=True)        
             mc.rename(_loc, '{0}_loc'.format(mode))
+            
+
         if _sel:
             mc.select(_sel)
         if asEuclid:

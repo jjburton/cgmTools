@@ -834,6 +834,7 @@ def ribbon(jointList = None,
            baseName = None,
            connectBy = 'constraint',
            stretchBy = 'translate',
+           msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
@@ -954,6 +955,13 @@ def ribbon(jointList = None,
         import cgm.core.lib.node_utils as NODES
         
         for i,mJnt in enumerate(ml_joints):
+            if msgDriver:
+                mDriven = mJnt.getMessage(msgDriver,asMeta=True)
+                if not mDriven:
+                    raise ValueError,"Missing msgDriver: {0} | {1}".format(msgDriver,mJnt)
+                mDriven = mDriven[0]
+            else:
+                mDriven = mJnt
             follicle,shape = RIGCONSTRAINTS.attach_toShape(mJnt.mNode, mControlSurface.mNode, None)
             mFollicle = cgmMeta.asMeta(follicle)
             mFollShape = cgmMeta.asMeta(shape)
@@ -969,7 +977,7 @@ def ribbon(jointList = None,
                 cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
             
             #Simple contrain
-            mc.parentConstraint([mFollicle.mNode], mJnt.mNode, maintainOffset=True)
+            mc.parentConstraint([mFollicle.mNode], mDriven.mNode, maintainOffset=True)
             
             """
             if mJnt != ml_joints[-1]:
@@ -1004,7 +1012,7 @@ def ribbon(jointList = None,
             else:#if last...
                 pass"""
     
-        return
+        return mControlSurface
         #>>> SplineIK ===========================================================================================
         if mi_useCurve:
             log.debug("|{0}| >> useCurve. SplineIk...".format(_str_func))    
