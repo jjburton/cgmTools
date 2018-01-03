@@ -288,9 +288,9 @@ class cgmNode(r9Meta.MetaClass):
     def __repr__(self):
         try:
             if self.hasAttr('mClass'):
-                return "(node: {0} | mClass: {1} | class: {2})".format(self.mNode.split('|')[-1], self.mClass, self.__class__)
+                return "(node: '{0}' | mClass: {1} | class: {2})".format(self.mNode.split('|')[-1], self.mClass, self.__class__)
             else:
-                return "(node: {0} | class: {1})".format(self.mNode.split('|')[-1], self.__class__)
+                return "(node: '{0}' | class: {1})".format(self.mNode.split('|')[-1], self.__class__)
         except:
             # if this fails we have a dead node more than likely
             try:
@@ -6901,6 +6901,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                     return False
                 else:
                     raise ValueError,"'{0}' is not a valid arg. Not class or subclass: {1}".format(arg,mTypeClass)
+            
             log.debug("conversion necessary.removing from cache")
             _wasCached = True
             if _cachedMClass:
@@ -7460,7 +7461,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
                 else: i_plug = cgmAttr(obj,attr,attrType=defaultType,**kws)
         elif mi_obj:i_plug = cgmAttr(mi_obj,attr,**kws)	
         else:i_plug = cgmAttr(obj,attr,**kws)
-        return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug}
+        return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug,'mPlug':i_plug}
     except StandardError,error:
         #log.debug("validateAttrArg>>Failure! arg: %s"%arg)	
         if noneValid:

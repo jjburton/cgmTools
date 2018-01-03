@@ -1583,12 +1583,21 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
     
     _str_func = '[{0}] > '.format('skeleton_pushSettings')
     
+    _preferredAxis = {}
+    _l_axisAlias = ['aim','up','out']
+    for k in _l_axisAlias:
+        if d_preferredAngles.get(k) is not None:
+            _v = d_preferredAngles.get(k)
+            log.info("|{0}| >> found default preferred {1}:{2}".format(_str_func,k,_v))  
+            _preferredAxis[k] = _v
+    
     for mJnt in ml_chain:
         _key = mJnt.getMayaAttr('cgmName',False)
         
         _rotateOrderBuffer = d_rotateOrders.get(_key,d_rotateOrders.get('default',False))
         _limitBuffer = d_limits.get(_key,d_limits.get('default',False))
         _preferredAngles = d_preferredAngles.get(_key,d_preferredAngles.get('default',False))
+        
         
         if _rotateOrderBuffer:
             log.info("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
@@ -1602,7 +1611,14 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
                     mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
                 else:
                     mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),v)
-        
+        elif _preferredAxis:
+            for k,v in _preferredAxis.iteritems():
+                _idx = _l_axisAlias.index(k)
+                if side.lower() == 'right':#negative value
+                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),-v)				
+                else:
+                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
+            
         if _limitBuffer:
             log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
             raise Exception,"Limit Buffer not implemented"

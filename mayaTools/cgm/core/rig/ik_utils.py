@@ -38,6 +38,7 @@ import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
+import cgm.core.lib.math_utils as MATH
 reload(CURVES)
 
 def spline(jointList = None,
@@ -51,7 +52,6 @@ def spline(jointList = None,
            reorient = False,
            moduleInstance = None,
            parentGutsTo = None):
-
     """
     Root of the segment setup.
     Inspiriation from Jason Schleifer's work as well as
@@ -80,8 +80,7 @@ def spline(jointList = None,
     :raises:
         Exception | if reached
 
-    """   	 
-
+    """ 
     _str_func = 'splineIK'
     #try:
     #>>> Verify =============================================================================================
@@ -97,16 +96,16 @@ def spline(jointList = None,
     
     
     #module -----------------------------------------------------------------------------------------------
-    mi_module = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
-    try:mi_module.isModule()
-    except:mi_module = False
+    mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
+    try:mModule.isModule()
+    except:mModule = False
 
     mi_rigNull = False	
-    if mi_module:
-        log.debug("|{0}| >> Module found. mi_module: {1}...".format(_str_func,mi_module))                                    
-        mi_rigNull = mi_module.rigNull	
+    if mModule:
+        log.debug("|{0}| >> Module found. mModule: {1}...".format(_str_func,mModule))                                    
+        mi_rigNull = mModule.rigNull	
         if str_baseName is None:
-            str_baseName = mi_module.getPartNameBase()#Get part base name	    
+            str_baseName = mModule.getPartNameBase()#Get part base name	    
     if not str_baseName:str_baseName = 'testSplineIK' 
     #...
     
@@ -176,7 +175,7 @@ def spline(jointList = None,
         mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
         mSegmentCurve.doName()
 
-    #if mi_module:#if we have a module, connect vis
+    #if mModule:#if we have a module, connect vis
         #mSegmentCurve.overrideEnabled = 1		
         #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideVisibility'))    
         #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
@@ -257,11 +256,11 @@ def spline(jointList = None,
             ml_distanceObjects.append(mi_distanceObject)
             ml_distanceShapes.append(mi_distanceShape)
 
-            if mi_module:#Connect hides if we have a module instance:
-                ATTR.connect("{0}.gutsVis".format(mi_module.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
-                ATTR.connect("{0}.gutsLock".format(mi_module.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                #cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
-                #cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
+            if mModule:#Connect hides if we have a module instance:
+                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
+                ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
+                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
+                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
 
 
         #>>>Hook up stretch/scale #========================================================================= 
@@ -421,16 +420,16 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
     
     #>>> Data gather and arg check
     mIKHandle = cgmMeta.validateObjArg(ikHandle,'cgmObject',noneValid=False)
-    mi_midHandle = cgmMeta.validateObjArg(midHandle,'cgmObject',noneValid=True)
+    mMidHandle = cgmMeta.validateObjArg(midHandle,'cgmObject',noneValid=True)
     
     if mIKHandle.getMayaType() != 'ikHandle':
         raise ValueError,("|{0}| >> Not an ikHandle ({2}). Type: {1}".format(_str_func, mIKHandle.getMayaType(), mIKHandle.p_nameShort))                                                    
-    if mi_midHandle and mi_midHandle.getMayaType() != 'ikHandle':
-        raise ValueError,("|{0}| >> Mid ({2}) not an ikHandle. Type: {1}".format(_str_func, mi_midHandle.getMayaType(),mi_midHandle.p_nameShort))                                                    
+    if mMidHandle and mMidHandle.getMayaType() != 'ikHandle':
+        raise ValueError,("|{0}| >> Mid ({2}) not an ikHandle. Type: {1}".format(_str_func, mMidHandle.getMayaType(),mMidHandle.p_nameShort))                                                    
 
     ml_handles = [mIKHandle]
-    if mi_midHandle:
-        ml_handles.append(mi_midHandle)
+    if mMidHandle:
+        ml_handles.append(mMidHandle)
         
         if advancedTwistSetup:
             log.warning("|{0}| >> advancedTwistSetup not supported with midTwist setup currently. Using no advanced setup.".format(_str_func))                                                        
@@ -505,8 +504,8 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         mPlug_midTwist = cgmMeta.cgmAttr(mi_crv.mNode,'twistMid_twist',attrType='float',keyable=True, hidden=False)
         
         ml_joints = mIKHandle.msgList_get('drivenJoints',asMeta = True)
-        mPlug_midSum.doConnectOut("{0}.roll".format(mi_midHandle.p_nameShort))
-        mPlug_midTwist.doConnectOut("{0}.twist".format(mi_midHandle.p_nameShort))
+        mPlug_midSum.doConnectOut("{0}.roll".format(mMidHandle.p_nameShort))
+        mPlug_midTwist.doConnectOut("{0}.twist".format(mMidHandle.p_nameShort))
         
         arg1 = "{0} = {1}".format(mPlug_midSum.p_combinedShortName,
                                   ' + '.join(["{0}.r{1}".format(mJnt.p_nameShort,orientation[0]) for mJnt in ml_joints]))
@@ -517,7 +516,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         for a in arg1,arg2:
             NodeF.argsToNodes(a).doBuild()
         
-        """arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mi_midHandle.p_nameShort,
+        """arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mMidHandle.p_nameShort,
                                                                mPlug_start.p_combinedName,
                                                                mPlug_end.p_combinedName,                                                               
                                                                mPlug_endMidDiffResult.p_combinedShortName,
@@ -527,7 +526,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         
         
         """
-        arg1 = "{0}.twist = {1} - {2}".format(mi_midHandle.p_nameShort,
+        arg1 = "{0}.twist = {1} - {2}".format(mMidHandle.p_nameShort,
                                               mPlug_end.p_combinedShortName,
                                               mPlug_midNegResult.p_combinedShortName)
         """
@@ -654,9 +653,9 @@ def buildFKIK(fkJoints = None,
     outVector = VALID.simpleAxis("%s+"%orientation[2]).p_vector#dictionary.stringToVectorDict.get("%s+"%self._go._jointOrientation[2])
 
 
-    mi_controlIK = cgmMeta.validateObjArg(ikControl,'cgmObject')
-    mi_controlMidIK = cgmMeta.validateObjArg(ikMid,'cgmObject')
-    mPlug_lockMid = cgmMeta.cgmAttr(mi_controlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
+    mControlIK = cgmMeta.validateObjArg(ikControl,'cgmObject')
+    mControlMidIK = cgmMeta.validateObjArg(ikMid,'cgmObject')
+    mPlug_lockMid = cgmMeta.cgmAttr(mControlMidIK,'lockMid',attrType='float',defaultValue = 0,keyable = True,minValue=0,maxValue=1.0)
 
 
     #for more stable ik, we're gonna lock off the lower channels degrees of freedom
@@ -692,50 +691,50 @@ def buildFKIK(fkJoints = None,
     #Create no flip arm IK
     #We're gonna use the no flip stuff for the most part
     d_armPVReturn = rUtils.IKHandle_create(ml_ikJoints[0].mNode,ml_ikJoints[ikLen - 1].mNode,nameSuffix = 'PV',
-                                           rpHandle=True, controlObject=mi_controlIK, addLengthMulti=True,
+                                           rpHandle=True, controlObject=mControlIK, addLengthMulti=True,
                                            globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',
                                            )	
 
     mi_armIKHandlePV = d_armPVReturn['mi_handle']
     ml_distHandlesPV = d_armPVReturn['ml_distHandles']
-    mi_rpHandlePV = d_armPVReturn['mi_rpHandle']
+    mRPHandlePV = d_armPVReturn['mRPHandle']
     mPlug_lockMid = d_armPVReturn['mPlug_lockMid']
 
 
 
-    mi_armIKHandlePV.parent = mi_controlIK.mNode#armIK to ball		
-    ml_distHandlesPV[-1].parent = mi_controlIK.mNode#arm distance handle to ball	
+    mi_armIKHandlePV.parent = mControlIK.mNode#armIK to ball		
+    ml_distHandlesPV[-1].parent = mControlIK.mNode#arm distance handle to ball	
     ml_distHandlesPV[0].parent = mi_settings#hip distance handle to deform group
-    ml_distHandlesPV[1].parent = mi_controlMidIK.mNode#elbow distance handle to midIK
-    mi_rpHandlePV.parent = mi_controlMidIK
+    ml_distHandlesPV[1].parent = mControlMidIK.mNode#elbow distance handle to midIK
+    mRPHandlePV.parent = mControlMidIK
 
 
     #RP handle	
-    #mi_rpHandlePV.doCopyNameTagsFromObject(self._go._mi_module.mNode, ignore = ['cgmName','cgmType'])
-    mi_rpHandlePV.addAttr('cgmName','elbowPoleVector',attrType = 'string')
-    mi_rpHandlePV.doName()
+    #mRPHandlePV.doCopyNameTagsFromObject(self._go._mModule.mNode, ignore = ['cgmName','cgmType'])
+    mRPHandlePV.addAttr('cgmName','elbowPoleVector',attrType = 'string')
+    mRPHandlePV.doName()
 
     #Mid fix
     #=========================================================================================			
-    mc.move(0,0,-25,mi_controlMidIK.mNode,r=True, rpr = True, ws = True, wd = True)#move out the midControl to fix the twist from
+    mc.move(0,0,-25,mControlMidIK.mNode,r=True, rpr = True, ws = True, wd = True)#move out the midControl to fix the twist from
 
     #>>> Fix our ik_handle twist at the end of all of the parenting
     #rUtils.IKHandle_fixTwist(mi_armIKHandlePV)#Fix the twist
 
     log.info("rUtils.IKHandle_fixTwist('%s')"%mi_armIKHandlePV.getShortName())
     #Register our snap to point before we move it back
-    i_ikMidMatch = RIGMETA.cgmDynamicMatch(dynObject=mi_controlMidIK,
+    i_ikMidMatch = RIGMETA.cgmDynamicMatch(dynObject=mControlMidIK,
                                            dynPrefix = "FKtoIK",
                                            dynMatchTargets=ml_blendJoints[1]) 	
     #>>> Reset the translations
-    mi_controlMidIK.translate = [0,0,0]
+    mControlMidIK.translate = [0,0,0]
 
     #Move the lock mid and add the toggle so it only works with show elbow on
-    #mPlug_lockMid.doTransferTo(mi_controlMidIK.mNode)#move the lock mid	
+    #mPlug_lockMid.doTransferTo(mControlMidIK.mNode)#move the lock mid	
 
     #Parent constain the ik wrist joint to the ik wrist
     #=========================================================================================				
-    mc.orientConstraint(mi_controlIK.mNode,ml_ikJoints[ikLen-1].mNode, maintainOffset = True)	
+    mc.orientConstraint(mControlIK.mNode,ml_ikJoints[ikLen-1].mNode, maintainOffset = True)	
 
     #Blend stuff
     #-------------------------------------------------------------------------------------
@@ -886,16 +885,16 @@ def ribbon(jointList = None,
         
         
         #module -----------------------------------------------------------------------------------------------
-        mi_module = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
-        try:mi_module.isModule()
-        except:mi_module = False
+        mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
+        try:mModule.isModule()
+        except:mModule = False
     
         mi_rigNull = False	
-        if mi_module:
-            log.debug("|{0}| >> Module found. mi_module: {1}...".format(_str_func,mi_module))                                    
-            mi_rigNull = mi_module.rigNull	
+        if mModule:
+            log.debug("|{0}| >> Module found. mModule: {1}...".format(_str_func,mModule))                                    
+            mi_rigNull = mModule.rigNull	
             if str_baseName is None:
-                str_baseName = mi_module.getPartNameBase()#Get part base name	    
+                str_baseName = mModule.getPartNameBase()#Get part base name	    
         if not str_baseName:str_baseName = 'testRibbon' 
         #...
         
@@ -942,10 +941,10 @@ def ribbon(jointList = None,
             mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
             mControlSurface.doName()
         
-        if mi_module:#if we have a module, connect vis
+        if mModule:#if we have a module, connect vis
             mControlSurface.overrideEnabled = 1		
-            cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideVisibility'))
-            cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideDisplayType'))    
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(i_controlSurface.mNode,'overrideDisplayType'))    
         
         #>>> Follicles ===========================================================================================        
         ml_follicleTransforms = []
@@ -962,22 +961,28 @@ def ribbon(jointList = None,
                 mDriven = mDriven[0]
             else:
                 mDriven = mJnt
+                
             follicle,shape = RIGCONSTRAINTS.attach_toShape(mJnt.mNode, mControlSurface.mNode, None)
             mFollicle = cgmMeta.asMeta(follicle)
             mFollShape = cgmMeta.asMeta(shape)
+            
+            
 
             ml_follicleShapes.append(mFollicle)
             ml_follicleTransforms.append(mFollShape)
     
             mFollicle.parent = mi_grp.mNode
     
-            if mi_module:#if we have a module, connect vis
+            if mModule:#if we have a module, connect vis
                 mFollicle.overrideEnabled = 1
-                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
-                cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
+                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
+                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
             
             #Simple contrain
             mc.parentConstraint([mFollicle.mNode], mDriven.mNode, maintainOffset=True)
+            
+
+            
             
             """
             if mJnt != ml_joints[-1]:
@@ -1004,10 +1009,10 @@ def ribbon(jointList = None,
                 mc.move(0,10,0,mUpLoc.mNode,os=True)	
                 ml_upGroups.append(mUpLoc)
             
-                if mi_module:#if we have a module, connect vis
+                if mModule:#if we have a module, connect vis
                     mUpLoc.overrideEnabled = 1		
-                    cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideVisibility'))
-                    cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideDisplayType'))    
+                    cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideVisibility'))
+                    cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideDisplayType'))    
             
             else:#if last...
                 pass"""
@@ -1049,7 +1054,7 @@ def ribbon(jointList = None,
             mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
             mSegmentCurve.doName()
     
-        #if mi_module:#if we have a module, connect vis
+        #if mModule:#if we have a module, connect vis
             #mSegmentCurve.overrideEnabled = 1		
             #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideVisibility'))    
             #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
@@ -1130,11 +1135,11 @@ def ribbon(jointList = None,
                 ml_distanceObjects.append(mi_distanceObject)
                 ml_distanceShapes.append(mi_distanceShape)
     
-                if mi_module:#Connect hides if we have a module instance:
-                    ATTR.connect("{0}.gutsVis".format(mi_module.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
-                    ATTR.connect("{0}.gutsLock".format(mi_module.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                    #cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
-                    #cgmMeta.cgmAttr(mi_module.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
+                if mModule:#Connect hides if we have a module instance:
+                    ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
+                    ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
+                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
+                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
     
     
             #>>>Hook up stretch/scale #========================================================================= 
@@ -1284,3 +1289,514 @@ def ribbon(jointList = None,
         #pprint.pformat(vars)
         return
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+def handleHOLDER(jointList = None,
+           useCurve = None,
+           orientation = 'zyx',
+           secondaryAxis = 'y+',
+           baseName = None,
+           stretchBy = 'translate',
+           advancedTwistSetup = False,
+           extendTwistToEnd = False,
+           reorient = False,
+           moduleInstance = None,
+           parentGutsTo = None):
+    """
+    Root of the segment setup.
+    Inspiriation from Jason Schleifer's work as well as
+
+    http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
+    on twist methods.
+
+    Latest rewrite - July 2017
+
+    :parameters:
+        jointList(joints - None) | List or metalist of joints
+        useCurve(nurbsCurve - None) | Which curve to use. If None. One Created
+        orientation(string - zyx) | What is the joints orientation
+        secondaryAxis(maya axis arg(y+) | Only necessary when no module provide for orientating
+        baseName(string - None) | baseName string
+        stretchBy(string - trans/scale/None) | How the joint will scale
+        advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
+        addMidTwist(bool - True) | Whether to setup a mid twist on the segment
+        moduleInstance(cgmModule - None) | cgmModule to use for connecting on build
+        extendTwistToEnd(bool - False) | Whether to extned the twist to the end by default
+
+    :returns:
+        mIKHandle, mIKEffector, mIKSolver, mi_splineCurve
+        
+
+    :raises:
+        Exception | if reached
+
+    """ 
+    _str_func = 'splineIK'
+    #try:
+    #>>> Verify =============================================================================================
+    ml_joints = cgmMeta.validateObjListArg(jointList,mType = 'cgmObject', mayaType=['joint'], noneValid = False)
+    l_joints = [mJnt.p_nameShort for mJnt in ml_joints]
+    int_lenJoints = len(ml_joints)#because it's called repeatedly
+    mi_useCurve = cgmMeta.validateObjArg(useCurve,mayaType=['nurbsCurve'],noneValid = True)
+
+    mi_mayaOrientation = VALID.simpleOrientation(orientation)
+    str_orientation = mi_mayaOrientation.p_string
+    str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)
+    str_baseName = VALID.stringArg(baseName,noneValid=True)
+    
+    
+    #module -----------------------------------------------------------------------------------------------
+    mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
+    try:mModule.isModule()
+    except:mModule = False
+
+    mi_rigNull = False	
+    if mModule:
+        log.debug("|{0}| >> Module found. mModule: {1}...".format(_str_func,mModule))                                    
+        mi_rigNull = mModule.rigNull	
+        if str_baseName is None:
+            str_baseName = mModule.getPartNameBase()#Get part base name	    
+    if not str_baseName:str_baseName = 'testSplineIK' 
+    #...
+    
+    str_stretchBy = VALID.stringArg(stretchBy,noneValid=True)		
+    b_advancedTwistSetup = VALID.boolArg(advancedTwistSetup)
+    b_extendTwistToEnd= VALID.boolArg(extendTwistToEnd)
+
+    if int_lenJoints<3:
+        pprint.pprint(vars())
+        raise ValueError,"needs at least three joints"
+    
+    if parentGutsTo is None:
+        mi_grp = cgmMeta.cgmObject(name = 'newgroup')
+        mi_grp.addAttr('cgmName', str(str_baseName), lock=True)
+        mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+        mi_grp.doName()
+    else:
+        mi_grp = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+
+    #Good way to verify an instance list? #validate orientation             
+    #> axis -------------------------------------------------------------
+    axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
+    axis_aimNeg = axis_aim.inverse
+    axis_up = VALID.simpleAxis("{0}+".format(str_orientation [1]))
+
+    v_aim = axis_aim.p_vector#aimVector
+    v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
+    v_up = axis_up.p_vector   #upVector
+
+    outChannel = str_orientation[2]#outChannel
+    upChannel = '{0}up'.format(str_orientation[1])#upChannel
+    l_param = []  
+
+
+def handle(startJoint,
+           endJoint,
+           solverType = 'ikRPsolver',
+           rpHandle = False,
+           lockMid = True,
+           addLengthMulti = False,
+           stretch = False, globalScaleAttr = None,
+           controlObject = None,
+           baseName = None,
+           orientation = 'zyx',
+           nameSuffix = None,
+           handles = [],#If one given, assumed to be mid, can't have more than length of joints
+           moduleInstance = None):
+    """
+    @kws
+    l_jointChain1(list) -- blend list 1
+    l_jointChain2(list) -- blend list 2
+    l_blendChain(list) -- result chain
+    solverType -- 'ikRPsolver','ikSCsolver'
+    baseName -- 
+    nameSuffix -- add to nameBase
+    rpHandle(bool/string) -- whether to have rphandle setup, object to use if string or MetaClass
+    lockMid(bool) --
+    driver(attr arg) -- driver attr
+    globalScaleAttr(string/cgmAttr) -- global scale attr to connect in
+    addLengthMulti(bool) -- whether to setup lengthMultipliers
+    controlObject(None/string) -- whether to have control to put attrs on, object to use if string or MetaClass OR will use ikHandle
+    channels(list) -- channels to blend
+    stretch(bool/string) -- stretch options - translate/scale
+    moduleInstance -- instance to connect stuff to
+
+    """
+    _str_func = 'handle'
+    log.debug("|{0}| >> ...".format(_str_func))  
+    
+
+    ml_rigObjectsToConnect = []
+    ml_rigObjectsToParent = []
+
+    #>>> Data gather and arg check
+    if solverType not in ['ikRPsolver','ikSCsolver']:
+        raise ValueError,"|{0}| >> Invalid solverType: {1}".format(_str_func,solverType)
+    
+    
+    mi_mayaOrientation = VALID.simpleOrientation(orientation)
+    str_orientation = mi_mayaOrientation.p_string
+    #str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)
+    str_baseName = VALID.stringArg(baseName,noneValid=True)
+    
+    #module -----------------------------------------------------------------------------------------------
+    mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
+    #try:mModule.isModule()
+    #except:mModule = False
+
+    mi_rigNull = False	
+    if mModule:
+        log.debug("|{0}| >> Module found. mModule: {1}...".format(_str_func,mModule))                                    
+        mi_rigNull = mModule.rigNull	
+        if str_baseName is None:
+            str_baseName = mModule.getPartNameBase()#Get part base name	    
+    if not str_baseName:str_baseName = 'testIK'     
+
+    #Joint chain ======================================================================================
+    mStart = cgmMeta.validateObjArg(startJoint,'cgmObject',noneValid=False)
+    mEnd = cgmMeta.validateObjArg(endJoint,'cgmObject',noneValid=False)
+    if not mEnd.isChildOf(mStart):
+        raise ValueError,"|{0}| >> {1} not a child of {2}".format(_str_func,endJoint,startJoint)
+        
+    
+    ml_jointChain = mStart.getListPathTo(mEnd,asMeta=True)
+    #ml_jointChain = cgmMeta.validateObjListArg(l_jointChain,'cgmObject',noneValid=False)
+    
+    if len(ml_jointChain)<3:
+        raise ValueError,"|{0}| >> {1} len less than 3 joints.".format(_str_func,len(ml_jointChain))
+        
+    _foundPrerred = False
+    for mJnt in ml_jointChain:
+        for attr in ['preferredAngleX','preferredAngleY','preferredAngleZ']:
+            if mJnt.getAttr(attr):
+                log.debug("|{0}| >> Found preferred...".format(_str_func))                  
+                _foundPrerred = True
+                break
+    
+    #Attributes =====================================================================================
+    #Master global control
+    d_MasterGlobalScale = cgmMeta.validateAttrArg(globalScaleAttr,noneValid=True)    
+    
+    #Stretch
+    if stretch and stretch not in ['translate','scale']:
+        log.debug("|{0}| >> Invalid stretch arg: {1}. Using 'translate'".format(_str_func,stretch))                  
+        stretch = 'translate'
+    if stretch == 'scale':
+        raise NotImplementedError,"|{0}| >> Scale method not done".format(_str_func)
+        
+    #Handles =======================================================================================
+    ml_handles = cgmMeta.validateObjListArg(handles,'cgmObject',noneValid=True)
+    if len(ml_handles)>len(ml_jointChain):#Check handle length to joint list
+        raise ValueError,"|{0}| >> More handles than joints. joints: {1}| handles: {2}.".format(_str_func,len(ml_jointChain),len(ml_handles))
+        
+
+    mRPHandle = cgmMeta.validateObjArg(rpHandle,'cgmObject',noneValid=True)
+    if mRPHandle and mRPHandle in ml_handles:
+        raise NotImplementedError,"|{0}| >> rpHandle can't be a measure handle".format(_str_func)
+        
+
+    #Control object
+    mControl = cgmMeta.validateObjArg(controlObject,'cgmObject',noneValid=True)
+    if mControl:
+        log.debug("|{0}| >> mControl: {1}.".format(_str_func,mControl))                  
+
+    #Figure out our aimaxis
+    #v_localAim = distance.returnLocalAimDirection(ml_jointChain[0].mNode,ml_jointChain[1].mNode)
+    #str_localAim = dictionary.returnVectorToString(v_localAim)
+    #str_localAimSingle = str_localAim[0]
+    #log.debug("create_IKHandle>>> vector aim: %s | str aim: %s"%(v_localAim,str_localAim))
+
+
+
+
+    
+    #Create IK handle ==================================================================================
+    buffer = mc.ikHandle( sj=mStart.mNode, ee=mEnd.mNode,
+                          solver = solverType, forceSolver = True,
+                          snapHandleFlagToggle=True )  	
+
+
+    #>>> Name
+    log.debug(buffer)
+    mIKHandle = cgmMeta.asMeta(buffer[0],'cgmObject',setClass=True)
+    mIKHandle.addAttr('cgmName',str_baseName,attrType='string',lock=True)
+    #mIKHandle.doStore('cgmType','IKHand')
+    mIKHandle.doName()
+
+    ml_rigObjectsToConnect.append(mIKHandle)
+
+    mIKEffector = cgmMeta.asMeta(buffer[1],'cgmNode',setClass=True)
+    mIKEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)    
+    mIKEffector.doName()
+
+    #>>> Control
+    if not mControl:
+        mControl = mIKHandle
+    else:
+        mIKHandle.parent = mControl
+        
+    #>>> Store our start and end
+    mIKHandle.connectChildNode(mStart,'jointStart','ikOwner')
+    mIKHandle.connectChildNode(mEnd,'jointEnd','ikOwner')
+    
+
+
+    #>>>Stetch #===============================================================================
+    mPlug_lockMid = False  
+    ml_distanceShapes = []
+    ml_distanceObjects = []   
+    mPlug_globalScale = False
+    if stretch:
+        log.debug("|{0}| >> Stretch setup...".format(_str_func))
+        
+        mPlug_autoStretch = cgmMeta.cgmAttr(mControl,'autoStretch',initialValue = 1, defaultValue = 1, keyable = True, attrType = 'float', minValue = 0, maxValue = 1)
+        
+        if len(ml_jointChain) == 3:
+            log.debug("|{0}| >> MidLock setup possible...".format(_str_func))
+            
+        
+            if lockMid:mPlug_lockMid = cgmMeta.cgmAttr(mControl,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
+    
+    
+            if addLengthMulti:
+                mPlug_lengthUpr= cgmMeta.cgmAttr(mControl,'lengthUpr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)
+                mPlug_lengthLwr = cgmMeta.cgmAttr(mControl,'lengthLwr',attrType='float',value = 1, defaultValue = 1,minValue=0,keyable = True)	
+                ml_multiPlugs = [mPlug_lengthUpr,mPlug_lengthLwr]
+    
+            #Check our handles for stretching
+            if len(ml_handles)!= len(ml_jointChain):#we need a handle per joint for measuring purposes
+                log.debug("create_IKHandle>>> Making handles")
+                ml_buffer = ml_handles
+                ml_handles = []
+                for j in ml_jointChain:
+                    m_match = False
+                    for h in ml_buffer:
+                        if MATH.is_vector_equivalent(j.getPosition(),h.getPosition()):
+                            log.debug("create_IKHandle>>> '%s' handle matches: '%s'"%(h.getShortName(),j.getShortName()))
+                            m_match = h
+                    if not m_match:#make one
+                        m_match = j.doLoc(nameLink = True)
+                        m_match.addAttr('cgmTypeModifier','stretchMeasure')
+                        m_match.doName()
+                    ml_handles.append(m_match)
+                    ml_rigObjectsToConnect.append(m_match)
+    
+                #>>>TODO Add hide stuff
+    
+            #>>>Do Handles
+            mMidHandle = False   
+            if ml_handles:
+                if len(ml_handles) == 1:
+                    mMidHandle = ml_handles[0]
+                else:
+                    mid = int((len(ml_handles))/2)
+                    mMidHandle = ml_handles[mid]
+                
+                log.debug("|{0}| >> mid handle: {1}".format(_str_func,mMidHandle))
+                    
+
+
+        #Overall stretch
+        mPlug_globalScale = cgmMeta.cgmAttr(mIKHandle.mNode,'masterScale',value = 1.0, lock =True, hidden = True)
+
+        """
+	mi_baseLenCurve = cgmMeta.cgmObject( mc.curve (d=1, ep = [ml_jointChain[0].getPosition(),ml_jointChain[-1].getPosition()], os=True))
+	mi_baseLenCurve.addAttr('cgmName',baseName)
+	mi_baseLenCurve.addAttr('cgmTypeModifier','baseMeasure')
+	mi_baseLenCurve.doName()
+        mi_baseArcLen = cgmMeta.cgmNode( distance.createCurveLengthNode(mi_baseLenCurve.mNode) )
+	log.debug("create_IKHandle>>> '%s' length : %s"%(mi_baseArcLen.getShortName(),mi_baseArcLen.arcLength))
+	"""
+        
+        md_baseDistReturn = create_distanceMeasure(ml_handles[0].mNode,ml_handles[-1].mNode)
+        ml_rigObjectsToParent.append(md_baseDistReturn['mi_object'])
+        mPlug_baseDist = cgmMeta.cgmAttr(mIKHandle.mNode,'ikDistBase' , attrType = 'float', value = md_baseDistReturn['mi_shape'].distance , lock =True , hidden = True)	
+        mPlug_baseDistRaw = cgmMeta.cgmAttr(mIKHandle.mNode,'ikDistRaw' , value = 1.0 , lock =True , hidden = True)
+        mPlug_baseDistRaw.doConnectIn("%s.distance"%md_baseDistReturn['mi_shape'].mNode)
+        mPlug_baseDistNormal = cgmMeta.cgmAttr(mIKHandle.mNode,'result_ikBaseNormal',value = 1.0, lock =True, hidden = True)
+        mPlug_ikDistNormal = cgmMeta.cgmAttr(mIKHandle.mNode,'result_ikDistNormal',value = 1.0, lock =True, hidden = True)	
+        mPlug_ikScale = cgmMeta.cgmAttr(mIKHandle.mNode,'result_ikScale',value = 1.0, lock =True, hidden = True)
+        mPlug_ikClampScale = cgmMeta.cgmAttr(mIKHandle.mNode,'result_ikClampScale',value = 1.0, lock =True, hidden = True)
+        mPlug_ikClampMax = cgmMeta.cgmAttr(mIKHandle.mNode,'result_ikClampMax',value = 1.0, lock =True, hidden = True)
+
+        #Normal base
+        arg = "%s = %s * %s"%(mPlug_baseDistNormal.p_combinedShortName,
+                              mPlug_baseDist.p_combinedShortName,
+                              mPlug_globalScale.p_combinedShortName)
+        NodeF.argsToNodes(arg).doBuild()
+
+        #Normal Length
+        arg = "%s = %s / %s"%(mPlug_ikDistNormal.p_combinedShortName,
+                              mPlug_baseDistRaw.p_combinedShortName,
+                              mPlug_globalScale.p_combinedShortName)
+        NodeF.argsToNodes(arg).doBuild()	
+
+        #ik scale
+        arg = "%s = %s / %s"%(mPlug_ikScale.p_combinedShortName,
+                              mPlug_baseDistRaw.p_combinedShortName,
+                              mPlug_baseDistNormal.p_combinedShortName)
+        NodeF.argsToNodes(arg).doBuild()	
+
+        #ik max clamp
+        """ This is for maya 2013 (at least) which honors the max over the  min """
+        arg = "%s = if %s >= 1: %s else 1"%(mPlug_ikClampMax.p_combinedShortName,
+                                            mPlug_ikScale.p_combinedShortName,
+                                            mPlug_ikScale.p_combinedShortName)
+        NodeF.argsToNodes(arg).doBuild()
+
+        #ik clamp scale
+        arg = "%s = clamp(1,%s,%s)"%(mPlug_ikClampScale.p_combinedShortName,
+                                     mPlug_ikClampMax.p_combinedShortName,
+                                     mPlug_ikScale.p_combinedShortName)
+        NodeF.argsToNodes(arg).doBuild()	
+
+        #Create our blend to stretch or not - blend normal base and stretch base
+        mi_stretchBlend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
+        mi_stretchBlend.addAttr('cgmName','%s_stretchBlend'%(baseName),lock=True)
+        mi_stretchBlend.doName()
+        attributes.doSetAttr(mi_stretchBlend.mNode,"input[0]",1)
+        mPlug_ikClampScale.doConnectOut("%s.input[1]"%mi_stretchBlend.mNode)
+        mPlug_autoStretch.doConnectOut("%s.attributesBlender"%mi_stretchBlend.mNode)
+
+
+        #Make our distance objects per segment
+        #=========================================================================
+        l_segments = lists.parseListToPairs(ml_handles)
+        for i,seg in enumerate(l_segments):#Make our measure nodes
+            buffer =  create_distanceMeasure(seg[0].mNode,seg[-1].mNode)
+            ml_distanceShapes.append(buffer['mi_shape'])
+            ml_distanceObjects.append(buffer['mi_object'])
+            #>>>TODO Add hide stuff
+        ml_rigObjectsToParent.extend(ml_distanceObjects)
+        ml_rigObjectsToConnect.extend(ml_handles)
+
+        for i,i_jnt in enumerate(ml_jointChain[:-1]):
+            #Make some attrs
+            mPlug_baseDist= cgmMeta.cgmAttr(mIKHandle.mNode,"baseDist_%s"%i,attrType = 'float' , value = ml_distanceShapes[i].distance , lock=True,minValue = 0)
+            mPlug_rawDist = cgmMeta.cgmAttr(mIKHandle.mNode,"baseRaw_%s"%i,attrType = 'float', initialValue=0 , lock=True , minValue = 0)				  	    
+            mPlug_normalBaseDist = cgmMeta.cgmAttr(mIKHandle.mNode,"baseNormal_%s"%i,attrType = 'float', initialValue=0 , lock=True , minValue = 0)			
+            mPlug_normalDist = cgmMeta.cgmAttr(mIKHandle.mNode,"distNormal_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)		
+            mPlug_stretchDist = cgmMeta.cgmAttr(mIKHandle.mNode,"result_stretchDist_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)			    
+            mPlug_stretchNormalDist = cgmMeta.cgmAttr(mIKHandle.mNode,"result_stretchNormalDist_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)			    	    
+            mPlug_resultSegmentScale = cgmMeta.cgmAttr(mIKHandle.mNode,"segmentScale_%s"%i,attrType = 'float',initialValue=0,lock=True,minValue = 0)	
+
+            #Raw distance in
+            mPlug_rawDist.doConnectIn("%s.distance"%ml_distanceShapes[i].mNode)	  
+
+            #Normal base distance
+            arg = "%s = %s * %s"%(mPlug_normalBaseDist.p_combinedShortName,
+                                  mPlug_baseDist.p_combinedName,
+                                  mPlug_globalScale.p_combinedShortName)
+            NodeF.argsToNodes(arg).doBuild()
+
+            #Normal distance
+            arg = "%s = %s / %s"%(mPlug_normalDist.p_combinedShortName,
+                                  mPlug_rawDist.p_combinedName,
+                                  mPlug_globalScale.p_combinedShortName)
+            NodeF.argsToNodes(arg).doBuild()
+
+            #Stretch Distance
+            arg = "%s = %s * %s.output"%(mPlug_stretchDist.p_combinedShortName,
+                                         mPlug_normalBaseDist.p_combinedName,
+                                         mi_stretchBlend.getShortName())
+            NodeF.argsToNodes(arg).doBuild()
+
+            #Then pull the global out of the stretchdistance 
+            arg = "%s = %s / %s"%(mPlug_stretchNormalDist.p_combinedShortName,
+                                  mPlug_stretchDist.p_combinedName,
+                                  mPlug_globalScale.p_combinedName)
+            NodeF.argsToNodes(arg).doBuild()	    
+
+            #Segment scale
+            arg = "%s = %s / %s"%(mPlug_resultSegmentScale.p_combinedShortName,
+                                  mPlug_normalDist.p_combinedName,
+                                  mPlug_baseDist.p_combinedShortName)
+            NodeF.argsToNodes(arg).doBuild()
+
+            #Create our blend to stretch or not - blend normal base and stretch base
+            mi_blend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
+            mi_blend.addAttr('cgmName','%s_stretch_to_lockMid'%(i_jnt.getBaseName()),lock=True)
+            mi_blend.doName()
+            if lockMid:
+                mPlug_lockMid.doConnectOut("%s.attributesBlender"%mi_blend.mNode)
+
+            if stretch == 'translate':
+                #Base Normal, Dist Normal
+                mPlug_stretchNormalDist.doConnectOut("%s.input[0]"%mi_blend.mNode)
+                mPlug_normalDist.doConnectOut("%s.input[1]"%mi_blend.mNode)
+                attributes.doConnectAttr("%s.output"%mi_blend.mNode,"%s.t%s"%(ml_jointChain[i+1].mNode,str_localAimSingle))
+
+    #>>> addLengthMulti
+    if addLengthMulti:
+        log.debug("create_IKHandle>>> addLengthMulti!")		
+        if len(ml_jointChain[:-1]) == 2:
+            #grab the plug
+
+            i_mdLengthMulti = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
+            i_mdLengthMulti.operation = 1
+            i_mdLengthMulti.doStore('cgmName',baseName)
+            i_mdLengthMulti.addAttr('cgmTypeModifier','lengthMulti')
+            i_mdLengthMulti.doName()
+
+            l_mdAxis = ['X','Y','Z']
+            for i,i_jnt in enumerate(ml_jointChain[:-1]):
+                #grab the plug
+                mPlug_driven = cgmMeta.cgmAttr(ml_jointChain[i+1],'t%s'%str_localAimSingle)
+                plug = attributes.doBreakConnection(mPlug_driven.p_combinedName)
+                if not plug:raise StandardError,"create_IKHandle>>> Should have found a plug on: %s.t%s"%(ml_jointChain[i+1].mNode,str_localAimSingle)
+
+                attributes.doConnectAttr(plug,#>>
+                                         '%s.input1%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect the old plug data
+                ml_multiPlugs[i].doConnectOut('%s.input2%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect in the mutliDriver	
+                mPlug_driven.doConnectIn('%s.output.output%s'%(i_mdLengthMulti.mNode,l_mdAxis[i]))#Connect it back to our driven
+
+        else:
+            log.error("create_IKHandle>>> addLengthMulti only currently supports 2 segments. Found: %s"%len(ml_jointChain[:-1]) )
+
+    #>>> rpSetup
+    if solverType == 'ikRPsolver' and rpHandle:
+        log.debug("|{0}| >> RP Handle setup...".format(_str_func))
+        
+        if not mRPHandle:
+            #Make one
+            mRPHandle = mMidHandle.doLoc()
+            mRPHandle.addAttr('cgmTypeModifier','poleVector')
+            mRPHandle.doName()
+            ml_rigObjectsToConnect.append(mRPHandle)
+        cBuffer = mc.poleVectorConstraint(mRPHandle.mNode,mIKHandle.mNode)
+
+        #Fix rp
+        #rotValue = mStart.getAttr('r%s'%str_localAimSingle)    
+        #if not cgmMath.isFloatEquivalent(rotValue,0):#if we have a value, we need to fix it
+            #IKHandle_fixTwist(mIKHandle)	
+
+
+    #>>> Plug in global scale
+    if d_MasterGlobalScale and mPlug_globalScale:
+        d_MasterGlobalScale['mi_plug'].doConnectOut(mPlug_globalScale.p_combinedName)
+
+    #>>> Connect our iModule vis stuff
+    if mModule:#if we have a module, connect vis
+        for mObj in ml_rigObjectsToConnect:
+            mObj.overrideEnabled = 1		
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+        for mObj in ml_rigObjectsToParent:
+            mObj.parent = mModule.rigNull.mNode
+
+    #>>> Return dict
+    d_return = {'mi_handle':mIKHandle,'mi_effector':mIKEffector}
+    if lockMid:
+        d_return['mPlug_lockMid'] = mPlug_lockMid	
+        d_return['ml_measureObjects']=ml_distanceObjects	
+    if stretch:
+        d_return['mPlug_autoStretch'] = mPlug_autoStretch
+        d_return['ml_distHandles']=ml_handles
+    if mRPHandle:
+        d_return['mRPHandle'] = mRPHandle
+    if addLengthMulti:
+        d_return['ml_lengthMultiPlugs'] = ml_multiPlugs
+
+    if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
+
+    return d_return   

@@ -24,6 +24,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_General as r9General
+import cgm.core.cgm_General as cgmGEN
 from cgm.core.cgmPy import str_Utils as strUtils
 from cgm.lib import names
 import cgm.core.lib.attribute_utils as ATTR
@@ -131,18 +132,19 @@ def returnRawGeneratedName(obj,ignore=[False]):
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    rawNamesDict = returnObjectGeneratedNameDict(obj,ignore)
-    divider = returnCGMDivider()
-    order = returnCGMOrder()
-
-    nameBuilder=[]
-    #>>> Dictionary driven order
-    for item in order:
-        buffer = rawNamesDict.get(item)
-        if buffer > 0 and item not in ignore:
-            nameBuilder.append(buffer)
-    return divider.join(nameBuilder)
-
+    try:
+        rawNamesDict = returnObjectGeneratedNameDict(obj,ignore)
+        divider = returnCGMDivider()
+        order = returnCGMOrder()
+    
+        nameBuilder=[]
+        #>>> Dictionary driven order
+        for item in order:
+            buffer = rawNamesDict.get(item)
+            if buffer > 0 and item not in ignore:
+                nameBuilder.append(str(buffer))
+        return divider.join(nameBuilder)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
 def returnCombinedNameFromDict(nameDict, stripInvalid = True):
