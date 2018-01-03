@@ -592,5 +592,15 @@ def get_midPointDict(sourceList,forceBBCenter = False):
     _d_info['rotation'] = MATH.get_average_pos(_l_rot)
     return _d_info 
 
+def get_positionPlug(obj):
+    _str_func = 'get_positionPlug'
+    
+    l_elibiblePlugs = ['worldPosition','position'] 
+    d_plugTypes= {'worldPosition':'worldPosition[0]','position':'position'}
+    _res = False
+    for attr in l_elibiblePlugs:
+        if ATTR.has_attr(obj,attr):
+            _res = "{0}.{1}".format(obj,d_plugTypes.get(attr))
+    return _res      
 
 #Closest ===================================================================================================

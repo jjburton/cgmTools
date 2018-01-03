@@ -1021,8 +1021,6 @@ def get_rootList():
             _res.append(o)
     return _res
     
-
-     
 #Transformations bridges =========================================================================================
 vector_byAxis = MATH.get_obj_vector
 

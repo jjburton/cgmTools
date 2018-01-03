@@ -23,6 +23,7 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 
 # From Red9 =============================================================
+import Red9.core.Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 #NO LOC
@@ -545,6 +546,57 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         
     return _pos, _l_res_distances[_idx], _shapes[_idx]
 
+def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
+    """
+    Get the the closest return based on a source and target and variable modes
+    
+    :parameters:
+        :start(str): Our start obj
+        :end(str): End obj
+        :baseName(str):What mode are we checking data from
+    
+    :returns
+        {shape,dag,loc_start,loc_end,start,end}
+    """
+    try:
+        _str_func = 'create_distanceMeasure'
+        
+        #Create ====================================================================================
+        plug_start = POS.get_positionPlug(start)
+        plug_end = POS.get_positionPlug(end)
+        _res = {'start':start,'end':end}
+        
+        if not plug_start:
+            pos_start = POS.get(start)
+            loc_start = mc.spaceLocator(name="{0}_{1}_start_loc".format(NAMES.get_base(start),baseName))[0]
+            POS.set(loc_start,pos_start)  
+            plug_start = POS.get_positionPlug(loc_start)
+            _res['loc_start'] = loc_start
+        if not plug_end:
+            pos_end = POS.get(end)
+            loc_end = mc.spaceLocator(name="{0}_{1}_end_loc".format(NAMES.get_base(end),baseName))[0]
+            POS.set(loc_end,pos_end)  
+            plug_end = POS.get_positionPlug(loc_end)
+            _res['loc_end'] = loc_end
+            
+            
+        mDistShape = r9Meta.MetaClass( mc.createNode ('distanceDimShape') )
+        mDistShape.rename("{0}_distShape".format(baseName))
+        
+        mDistTrans = r9Meta.MetaClass( VALID.getTransform(mDistShape.mNode) )
+        mDistTrans.rename("{0}_dist".format(baseName))
+        
+        _res['dag'] = mDistTrans.mNode
+        _res['shape'] = mDistShape.mNode
+        
+        ATTR.set_message(_res['dag'],'distShape',_res['shape'],simple = True)
+
+        ATTR.connect(plug_start, "{0}.startPoint".format(_res['shape']))
+        ATTR.connect(plug_end, "{0}.endPoint".format(_res['shape']))
+    
+
+        return _res
+    except Exception,err:cgmGen.cgmException(Exception,err)
 
 def create_closest_point_node(source = None, targetSurface = None, singleReturn = False):
     """

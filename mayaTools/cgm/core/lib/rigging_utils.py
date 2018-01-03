@@ -950,7 +950,7 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
     _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
     if transparent:
         _node = _node + '_trans'
-    log.info(_node)
+    log.debug(_node)
     _set = False
     if not mc.objExists(_node):
         _node = mc.shadingNode('phong',n =_node, asShader = True)
