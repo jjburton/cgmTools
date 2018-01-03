@@ -815,7 +815,7 @@ def rig_shapes(self):
     
     if len(ml_rigJoints) < 3:
         _size_direct = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_rigJoints], average=True)        
-        d_direct = {'size':_size_direct}
+        d_direct = {'size':_size_direct/2}
     else:
         d_direct = {'size':None}
         
@@ -871,7 +871,7 @@ def rig_shapes(self):
     
     #FK =============================================================================================    
     log.debug("|{0}| >> FK...".format(_str_func))
-    ml_fkShapes = self.atBuilderUtils('shapes_fromCast',  ml_prerigHandles)
+    ml_fkShapes = self.atBuilderUtils('shapes_fromCast',  ml_fkJoints, aimVector=self.d_orientation['vectorUp'])
     for i,mCrv in enumerate(ml_fkShapes):
         mJnt = ml_fkJoints[i]
         #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)

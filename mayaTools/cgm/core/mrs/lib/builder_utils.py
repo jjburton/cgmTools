@@ -682,10 +682,17 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                               len(ml_targets))
 
         if mode == 'default':
+            log.debug("|{0}| >> Default cast...".format(_str_func))                        
             axis = VALID.simpleAxis(aimVector).p_string
+            _average = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_targets],average=True)/4
             for i,mTar in enumerate(ml_targets):
                 log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))                
                 _d = RAYS.cast(str_tmpMesh, mTar.mNode, axis = axis)
+                
+                if mTar == ml_targets[-1]:
+                    _normal = MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position)
+                else:
+                    _normal = MATH.get_vector_of_two_points(mTar.p_position, ml_targets[i+1].p_position)
                 
                 if not _d:
                     log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,mTar))            
@@ -694,14 +701,19 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     v = _d['uvsRaw'][str_tmpMesh][0][0]
                 
                 if offset is None:
-                    offset = DIST.get_distance_between_points(_d['source'],_d['hit'])/3
-                
+                    offset = _average
+                    #if _d.get('hit'):
+                    #    _offset = DIST.get_distance_between_points(_d.get('source',mTar.p_position),_d['hit'])/3
+                    #else:
+                    #    log.debug("|{0}| >> No hit...".format(_str_func))                                        
+                    #    _offset = 2
+                        
                 #cgmGEN.log_info_dict(_d,j)
                 log.info("|{0}| >> v: {1} ...".format(_str_func,v))
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
                 baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
-                offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]
+                offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False, normal = _normal )[0]
                 log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
                 mc.delete(baseCrv)
                 #mTrans = mTar.doCreateAt()
@@ -709,6 +721,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 ml_shapes.append(cgmMeta.validateObjArg(offsetCrv))
                 
         elif mode == 'segmentHandle':
+            log.debug("|{0}| >> segmentHandle cast...".format(_str_func))                        
+            
             if not uValues: raise ValueError,"Must have uValues with segmentHandle mode"
             
             mMesh_tmp = cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
@@ -717,24 +731,32 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             
             minU = ATTR.get(str_meshShape,'minValueU')
             maxU = ATTR.get(str_meshShape,'maxValueU')
-            f_factor = (maxU-minU)/(20)
+            f_factor = (maxU-minU)/(40)
             
             if offset is None:
                 offset = DIST.get_distance_between_targets([ml_targets[0].mNode, ml_targets[-1]]) / 25
-                
-            for u in uValues:
+            
+            l_vectors = []
+            for i,mObj in enumerate(ml_targets[:-1]):
+                l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_targets[i+1].p_position) )
+            l_vectors.append(  MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position) )
+            
+            
+            for i,u in enumerate(uValues):
                 uValue = MATH.Lerp(minU,maxU,u)
                 if u < minU or u > maxU:
                     raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(uValue,minU,maxU)
                 
                 l_mainCurves = []
-                for i,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
+                for ii,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
                     baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
                     mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 1, spans = 12, kr = 2)
-                    if i == 1:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False )[0]                        
+                    
+                    
+                    if ii == 1:
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset, normal = l_vectors[i], ch=False )[0]                        
                     else:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset * .9, ch=False )[0]
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset * .9, normal = l_vectors[i], ch=False )[0]
                     l_mainCurves.append(offsetCrv)
                     mc.delete(baseCrv)
                 
@@ -750,17 +772,17 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     l_v = MATH.get_splitValueList(minU_shape,maxU_shape, points)
                     #pprint.pprint(l_v)
                     log.debug("|{0}| >> crv {1} splitList {2} ...".format(_str_func,crv,l_v))
-                    for i,v in enumerate(l_v):
-                        if not d_crvPos.get(i):
-                            d_crvPos[i] = []
+                    for ii,v in enumerate(l_v):
+                        if not d_crvPos.get(ii):
+                            d_crvPos[ii] = []
                         #print "{0}.u[{1}]".format(mCrv.mNode, v)
                         pos = POS.get("{0}.u[{1}]".format(mCrv.mNode, v))
                         #if pos not in d_crvPos[i]:
-                        d_crvPos[i].append( pos )
+                        d_crvPos[ii].append( pos )
 
                         
-                for i in range(points):
-                    crv_connect = CURVES.create_fromList(posList=d_crvPos[i])
+                for ii in range(points):
+                    crv_connect = CURVES.create_fromList(posList=d_crvPos[ii])
                     #for p in d_crvPos[i]:
                         #LOC.create(position=p)
                     l_mainCurves.append(crv_connect)
