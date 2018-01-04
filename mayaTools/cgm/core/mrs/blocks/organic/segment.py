@@ -709,13 +709,13 @@ def rig_skeleton(self):
             for i,mJnt in enumerate(ml_segmentHandles):
                 mJnt.parent = ml_fkJoints[i]
                 
-    """
-    if mBlock.buildIK:
+    
+    if mBlock.buildIK == 2:#...ribbon
         log.info("|{0}| >> IK Drivers...".format(_str_func))            
-        ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles, None, mRigNull,'baseIKDrivers', cgmType = 'baseIKDriver', indices=[0,-1])
-        for mJnt in ml_baseIKDrivers:
+        ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
+        for mJnt in ml_ribbonIKDrivers:
             mJnt.parent = False
-        ml_jointsToConnect.extend(ml_baseIKDrivers)"""
+        ml_jointsToConnect.extend(ml_ribbonIKDrivers)
         
     
     if mBlock.numJoints > mBlock.numControls:
@@ -841,8 +841,13 @@ def rig_shapes(self):
     #ml_baseIKDrivers = self.mRigNull.msgList_get('baseIKDrivers')
     if mBlock.buildIK:
         log.debug("|{0}| >> ikHandle...".format(_str_func))
-
-        crv = CURVES.create_fromName('cube',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode)))
+        
+        str_tmpMesh = mBlock.getMessage('prerigLoftMesh')[0]
+        ab_size = SNAPCALLS.get_axisBox_size(str_tmpMesh)
+        
+        #crv = CURVES.create_fromName('cube',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode)))
+        crv = CURVES.create_fromName('arrowsOnBall', [ab_size[0],ab_size[1],1], 'z+')
+        
         mIKCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
         mIKCrv.doSnapTo(ml_joints[-1])
         mHandleFactory.color(mIKCrv.mNode, controlType = 'main')
@@ -853,7 +858,7 @@ def rig_shapes(self):
         
         self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect        
                 
-            
+    
     #Handles =============================================================================================    
     ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
     if ml_handleJoints:
@@ -1153,8 +1158,8 @@ def rig_frame(self):
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         ml_fkJoints = mRigNull.msgList_get('fkJoints')
-        ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
-        ml_baseIKDrivers = self.mRigNull.msgList_get('baseIKDrivers')
+        ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
@@ -1305,6 +1310,12 @@ def rig_frame(self):
             mSettings = mRigNull.settings
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
+            _jointOrientation = self.d_orientation['str']
+            
+            mStart = ml_ikJoints[0]
+            mEnd = ml_ikJoints[-1]
+            _start = ml_ikJoints[0].mNode
+            _end = ml_ikJoints[-1].mNode            
             
             #>>> Setup a vis blend result
             mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
@@ -1325,6 +1336,25 @@ def rig_frame(self):
             
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
             
+            #spin
+            #=========================================================================================
+            log.debug("|{0}| >> spin setup...".format(_str_func))
+        
+            #Make a spin group
+            mSpinGroup = mStart.doGroup(False,False,asMeta=True)
+            mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
+            mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
+            mSpinGroup.doName()
+        
+            mSpinGroup.parent = mRoot
+        
+            mSpinGroup.doGroup(True,True,typeModifier='zero')
+        
+            #Setup arg
+            mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
+            mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))                
+
+            
             if mBlock.buildIK == 1:
                 log.debug("|{0}| >> rp setup...".format(_str_func,_ikType))
                 
@@ -1336,10 +1366,6 @@ def rig_frame(self):
                         'nameSuffix':'noFlip',
                         'controlObject':mIKControl.mNode,
                         'moduleInstance':self.mModule.mNode}
-                mStart = ml_ikJoints[0]
-                mEnd = ml_ikJoints[-1]
-                _start = ml_ikJoints[0].mNode
-                _end = ml_ikJoints[-1].mNode
                 
                 d_ikReturn = IK.handle(_start,_end,**_d_ik)
                 
@@ -1349,7 +1375,6 @@ def rig_frame(self):
                 _side = mBlock.atUtils('get_side')
                 _dist_ik_noFlip = DIST.get_distance_between_points(mStart.p_position,
                                                                    mEnd.p_position)
-                _jointOrientation = self.d_orientation['str']
                 if _side == 'left':#if right, rotate the pivots
                     pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'-',_dist_ik_noFlip)
                 else:
@@ -1362,7 +1387,7 @@ def rig_frame(self):
                 ml_distHandlesNF = d_ikReturn['ml_distHandles']
                 mRPHandleNF = d_ikReturn['mRPHandle']
             
-                #No Flip RP handle
+                #No Flip RP handle -------------------------------------------------------------------
                 mRPHandleNF.p_position = pos_noFlipOffset
             
                 mRPHandleNF.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])
@@ -1370,26 +1395,10 @@ def rig_frame(self):
                 mRPHandleNF.addAttr('cgmTypeModifier','noFlip')
                 mRPHandleNF.doName()
             
-                #spin
-                #=========================================================================================
-                log.debug("|{0}| >> spin setup...".format(_str_func))
-                
-                #Make a spin group
-                mSpinGroup = mStart.doGroup(False,False,asMeta=True)
-                mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
-                mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
-                mSpinGroup.doName()
-                
-                mSpinGroup.parent = mRoot
-            
-                mSpinGroup.doGroup(True,True,typeModifier='zero')
+ 
                 mRPHandleNF.parent = mSpinGroup.mNode
-            
-                #Setup arg
-                mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
-                mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
-            
-                #>>>Parent IK handles
+
+                #>>>Parent IK handles -----------------------------------------------------------------
                 log.debug("|{0}| >> parent ik dat...".format(_str_func,_ikType))
                 
                 mIKHandle.parent = mIKControl.mNode#handle to control	
@@ -1403,7 +1412,62 @@ def rig_frame(self):
                 mc.orientConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
 
             elif mBlock.buildIK == 2:
-                log.debug("|{0}| >> ribbon setup...".format(_str_func,_ikType))
+                log.debug("|{0}| >> ribbon setup...".format(_str_func))
+                ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                if not ml_ribbonIkHandles:
+                    raise ValueError,"No ribbon IKDriversFound"
+                
+                log.debug("|{0}| >> ribbon ik handles...".format(_str_func))                
+                ml_ribbonIkHandles[0].parent = mSpinGroup
+                ml_ribbonIkHandles[-1].parent = mIKControl
+                
+                mc.aimConstraint(mIKControl.mNode,
+                                 ml_ribbonIkHandles[0].mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorOut'],
+                                 worldUpObject = mSpinGroup.mNode,
+                                 worldUpType = 'objectRotation' )
+                
+                
+                mSurf = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
+                                  baseName = self.d_module['partName'] + '_ikRibbon',
+                                  connectBy='constraint',
+                                  moduleInstance = self.mModule)
+                
+                log.debug("|{0}| >> ribbon surface...".format(_str_func))
+                """
+                #Setup the aim along the chain -----------------------------------------------------------------------------
+                for i,mJnt in enumerate(ml_ikJoints):
+                    mAimGroup = mJnt.doGroup(True,asMeta=True,typeModifier = 'aim')
+                    v_aim = [0,0,1]
+                    if mJnt == ml_ikJoints[-1]:
+                        s_aim = ml_ikJoints[-2].masterGroup.mNode
+                        v_aim = [0,0,-1]
+                    else:
+                        s_aim = ml_ikJoints[i+1].masterGroup.mNode
+            
+                    mc.aimConstraint(s_aim, mAimGroup.mNode, maintainOffset = True, #skip = 'z',
+                                     aimVector = v_aim, upVector = [1,0,0], worldUpObject = mJnt.masterGroup.mNode,
+                                     worldUpType = 'objectrotation', worldUpVector = [1,0,0])    
+                """
+                #...ribbon skinCluster ---------------------------------------------------------------------
+                log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))                
+                mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
+                                                                      mSurf.mNode,
+                                                                      tsb=True,
+                                                                      maximumInfluences = 2,
+                                                                      normalizeWeights = 1,dropoffRate=2.5),
+                                                      'cgmNode',
+                                                      setClass=True)
+            
+                mSkinCluster.doStore('cgmName', mSurf.mNode)
+                mSkinCluster.doName()    
+            
+                cgmGEN.func_snapShot(vars())
+                
+                
                 
             else:
                 raise ValueError,"Not implemented {0} setup".format(_ikType)
