@@ -465,12 +465,12 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
     if SEARCH.is_shape(targetSurface):
         _shapes = [targetSurface]
     elif VALID.is_component(targetSurface):
-        _shapes = mc.listRelatives(VALID.get_component(targetSurface)[1], s=True)
+        _shapes = mc.listRelatives(VALID.get_component(targetSurface)[1], s=True, fullPath = True)
     else:
-        _shapes = mc.listRelatives(targetSurface, s=True)
+        _shapes = mc.listRelatives(targetSurface, s=True, fullPath = True)
     
     if not _shapes:
-        log.error("|{0}| >> Unsupported target surface type. Skipping: {1}".format(_str_func,targetSurface))
+        log.error("|{0}| >> No shapes found. Skipping: {1}".format(_str_func,targetSurface))
         mc.delete(_loc)
         return False
     
@@ -482,7 +482,7 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         _type = VALID.get_mayaType(s)
         
         if _type not in ['mesh','nurbsSurface','nurbsCurve']:
-            log.error("|{0}| >> Unsupported target surface type. Skipping: {1} |{2}".format(_str_func,s,_type))
+            log.error("|{0}| >> Unsupported target surface type. Skipping: {1} |{2} | {3}".format(_str_func,s,_type))
             _l_res_positions.append(False)
             continue
         
@@ -630,7 +630,7 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
         if SEARCH.is_shape(targetSurface):
             l_shapes = [targetSurface]
         else:
-            l_shapes = mc.listRelatives(targetSurface, s=True)
+            l_shapes = mc.listRelatives(targetSurface, s=True, fullPath = True)
         
         if not l_shapes:
             raise ValueError,"Must have shapes to check."
@@ -644,7 +644,7 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
             _type = VALID.get_mayaType(s)
             
             if _type not in ['mesh','nurbsSurface','nurbsCurve']:
-                log.error("|{0}| >> Unsupported target surface type. Skipping: {0} |{1}".format(_str_func,s,_type))
+                log.error("|{0}| >> Unsupported target surface type. Skipping: {1} |{2} ".format(_str_func,s,_type))
                 continue
             
             _res_loc = mc.spaceLocator(n='{0}_to_{1}_result_loc'.format(NAMES.get_base(source), NAMES.get_base(s)))[0]
@@ -699,6 +699,9 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
         for i,n in enumerate(_nodes):
             p2 = POS.get(_locs[i])
             _l_distances.append(get_distance_between_points(pos_base, p2))
+        
+        if not _l_distances:
+            raise ValueError,"No distance value found"
         closest = min(_l_distances)
         _idx = _l_distances.index(closest)
         

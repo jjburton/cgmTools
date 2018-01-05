@@ -99,6 +99,8 @@ def resize_masterShape(self):
             else:
                 log.warning("|{0}| >> Must have blockChildren to resize by this call".format(_str_func))        
                 return False
+        else:
+            sizeBy = mc.ls(self.getBlockChildren(asMeta=False))
         
         mHandleFactory = self.asHandleFactory(_short)
         mc.delete(self.getShapes())

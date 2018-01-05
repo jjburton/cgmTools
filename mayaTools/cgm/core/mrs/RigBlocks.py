@@ -914,10 +914,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         mModule = self.moduleTarget
         if not mModule:
+            log.debug("|{0}| >> No module target...".format(_str_func))                                            
+            return False
             raise ValueError,"No moduleTarget connected"
 
         mRigNull = mModule.rigNull
         if not mRigNull:
+            log.debug("|{0}| >> No rigNull...".format(_str_func))
+            return False
             raise ValueError,"No rigNull connected"
 
         if mRigNull.msgList_get('moduleJoints'):
@@ -1852,7 +1856,7 @@ class handleFactory(object):
             mJointCurve.setAttrFlags(lockChannels)
 
             if loftHelper:#...loft curve -------------------------------------------------------------------------------------
-                mLoft = self.buildBaseShape('square',_size*.5,'y+')
+                mLoft = self.buildBaseShape('square',_size*.5,'z+')
                 mLoft.doStore('cgmName',mJointCurve.mNode)
                 mLoft.doStore('cgmType','loftCurve')
                 mLoft.doName()

@@ -435,13 +435,26 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         mLoft.overrideEnabled = 1
         mLoft.overrideDisplayType = 2
         #...this used to be {1} + 1. may need to revisit for head/neck
-        _arg = "{0}.numberOfControlsOut = {1} ".format(mDatHolder.p_nameShort,
+ 
+        
+        
+        _arg = "{0}.numberOfControlsOutTemp = {1} ".format(mDatHolder.p_nameShort,
                                                           self.getMayaAttrString(uAttr,'short'))
     
         NODEFACTORY.argsToNodes(_arg).doBuild()
     
-        ATTR.connect("{0}.numberOfControlsOut".format(mDatHolder.mNode), "{0}.uNumber".format(_tessellate))
-        ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
+        ATTR.connect("{0}.numberOfControlsOutTemp".format(mDatHolder.mNode), "{0}.uNumber".format(_tessellate))
+        
+        #Loft sides...
+        _arg = "{0}.out_vSplitTemp = {1} + 1".format(targets[0],
+                                                     self.getMayaAttrString('loftSides','short'))
+
+        NODEFACTORY.argsToNodes(_arg).doBuild()
+        #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+
+
+        ATTR.connect("{0}.out_vSplitTemp".format(targets[0]), "{0}.vNumber".format(_tessellate))                
+        #ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
     
         mLoft.p_parent = mTemplateNull
         mLoft.resetAttrs()
@@ -463,7 +476,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
         #Color our stuff...
-        #self.asHandleFactory().color(mLoft.mNode,transparent=True)
+        self.asHandleFactory().color(mLoft.mNode,transparent=True)
         #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
     
         mLoft.inheritsTransform = 0
@@ -666,6 +679,7 @@ def create_prerigLoftMesh(self, targets = None,
                           mPrerigNull = None,
                           uAttr = 'neckControls',
                           uAttr2 = 'loftSplit',
+                          vAttr = 'loftSides',
                           degreeAttr = None,
                           polyType = 'mesh',
                           baseName = 'test'):
@@ -677,11 +691,12 @@ def create_prerigLoftMesh(self, targets = None,
         if self.getMayaAttr('side'):
             _side = self.getEnumValueString('side')  
                 
+        log.debug("|{0}| >> Creating: {1}".format(_str_func,polyType))
         
         if polyType == 'mesh':
             _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-            _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
         
             _tessellate = _inputs[0]
             _loftNode = _inputs[1]
@@ -693,6 +708,19 @@ def create_prerigLoftMesh(self, targets = None,
         
             for a,v in _d.iteritems():
                 ATTR.set(_tessellate,a,v)    
+        elif polyType == 'bezier':
+            _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
+            _loftNode = _res_body[1]
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+            _rebuildNode = _inputs[0]            
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            
+            _d = {'keepCorners':False}#General}
+        
+            for a,v in _d.iteritems():
+                ATTR.set(_rebuildNode,a,v)
+                
         else:
             _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
             _loftNode = _res_body[1]
@@ -700,7 +728,7 @@ def create_prerigLoftMesh(self, targets = None,
             
         mLoftSurface.overrideEnabled = 1
         mLoftSurface.overrideDisplayType = 2
-    
+        
         mLoftSurface.p_parent = mPrerigNull
         mLoftSurface.resetAttrs()
     
@@ -715,35 +743,57 @@ def create_prerigLoftMesh(self, targets = None,
         #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
         #Color our stuff...
+        log.debug("|{0}| >> Color...".format(_str_func))        
         RIGGING.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
         
-        _arg = "{0}.out_degree = if {1} == 0:1 else 3".format(targets[0],
+        log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
+        if polyType == 'bezier':
+            _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
+                                                                     self.getMayaAttrString('loftDegree','short'))
+            NODEFACTORY.argsToNodes(_arg).doBuild()            
+            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeU".format(_rebuildNode))
+            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
+            
+        _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
                                                               self.getMayaAttrString('loftDegree','short'))
-    
+
         NODEFACTORY.argsToNodes(_arg).doBuild()            
-        ATTR.connect("{0}.out_degree".format(targets[0]), "{0}.degree".format(_loftNode))    
+        ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
         
         toName = []
         if polyType == 'mesh':
             #...wire some controls
-            _arg = "{0}.out_vSplit = {1} + 1".format(targets[0],
+            _arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
                                                      self.getMayaAttrString(uAttr,'short'))
         
             NODEFACTORY.argsToNodes(_arg).doBuild()
             #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
 
         
-            ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))
-            ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate)) 
+            ATTR.connect("{0}.out_vSplitPre".format(targets[0]), "{0}.uNumber".format(_tessellate))
+            ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.vNumber".format(_tessellate)) 
         
             #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
         
             toName = [_tessellate,_loftNode]
+        elif polyType == 'bezier':
+            #_arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
+            #                                         self.getMayaAttrString(uAttr,'short'))
+                    
+            #NODEFACTORY.argsToNodes(_arg).doBuild()
+            #ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.spansU".format(_rebuildNode))
+            ATTR.connect("{0}.{1}".format(self.mNode,uAttr), "{0}.spansU".format(_rebuildNode))            
+            ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.spansV".format(_rebuildNode))
             
+            ATTR.connect("{0}.{1}".format(_short,uAttr2), "{0}.sectionSpans".format(_loftNode))
+            
+            #_close = mc.closeSurface(mLoftSurface.mNode,d=1,p=0,rpo=True)
+            
+            toName = [_rebuildNode,_loftNode]
         else:
             ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
             toName = [_loftNode]
@@ -1649,7 +1699,7 @@ def skeleton_getHandleChain(self, typeModifier = None):
                                            axisAim='z+',
                                            axisUp='y+',
                                            parent=True,
-                                           worldUpAxis= mOrientHelper.getAxisVector('z-'))
+                                           worldUpAxis= mOrientHelper.getAxisVector('y+'))
         if typeModifier:
             for mJnt in ml_fkJoints:
                 mJnt.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)

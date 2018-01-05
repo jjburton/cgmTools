@@ -133,7 +133,7 @@ def get_average_pos(posList = []):
         posZ.append(posBuffer[2])
     return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]    
 
-def get_vector_of_two_points(point1,point2):
+def get_vector_of_two_points(point1,point2,asEuclid=False):
     """
     Get a vector between two points
     
@@ -150,7 +150,8 @@ def get_vector_of_two_points(point1,point2):
     _point2 = Vector3(point2[0],point2[1],point2[2])
     
     _new = (_point2 - _point1).normalized()
-    
+    if asEuclid:
+        return Vector3(_new.x,_new.y,_new.z)
     return _new.x,_new.y,_new.z    
 
 
@@ -193,7 +194,7 @@ def get_obj_vector(obj = None, axis = 'z+',asEuclid = False):
         for i,v in enumerate(vector):
             vector[i]=-v
     if asEuclid:
-        return EUCLID.Vector3(vector[0],vector[1],vector[2])          
+        return Vector3(vector[0],vector[1],vector[2])          
     return vector
     
     

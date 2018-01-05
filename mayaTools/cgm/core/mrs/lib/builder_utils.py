@@ -472,7 +472,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         for i,p in enumerate(l_cvPoints[:-1]):
             l_dist.append(DIST.get_distance_between_points(p,l_cvPoints[i+1]))
     
-        f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .1        
+        f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .001        
         
         mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )    
         
@@ -713,7 +713,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
                 baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
-                offsetCrv = mc.offsetCurve(baseCrv, distance = offset, ch=False, normal = _normal )[0]
+                offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, ch=False, normal = _normal )[0]
                 log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
                 mc.delete(baseCrv)
                 #mTrans = mTar.doCreateAt()
@@ -754,9 +754,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                     
                     if ii == 1:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset, normal = l_vectors[i], ch=False )[0]                        
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, normal = l_vectors[i], ch=False )[0]                        
                     else:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = offset * .9, normal = l_vectors[i], ch=False )[0]
+                        offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9), normal = l_vectors[i], ch=False )[0]
                     l_mainCurves.append(offsetCrv)
                     mc.delete(baseCrv)
                 
@@ -842,12 +842,19 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
     #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
     #str_tmpMesh = mMesh_tmp.mNode
+    
     str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]    
-    mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+    mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject').doDuplicate(po=False)
+    
+    if self.mBlock.loftDegree == 0:
+        log.debug("|{0}| >> Closing linear mesh loft".format(_str_func))
+        _close = mc.closeSurface(mMesh_tmp.mNode,d=1,p=0,rpo=True,ch=False)
     
     #Process -----------------------------------------------------------------------------------
     l_newCurves = []
     str_meshShape = mMesh_tmp.getShapes()[0]
+    log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
+    
     minU = ATTR.get(str_meshShape,'minValueU')
     maxU = ATTR.get(str_meshShape,'maxValueU')
     
@@ -857,19 +864,19 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
 
     for i,mTar in enumerate(ml_targets):
         j = mTar.mNode
-        _d = RAYS.cast(str_tmpMesh,j,upVector)
+        _d = RAYS.cast(str_meshShape,j,upVector)
         log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
         #cgmGEN.log_info_dict(_d,j)
         if not _d:
             log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))            
             _v = l_failSafes[i]
         else:
-            _v = _d['uvsRaw'][str_tmpMesh][0][0]
+            _v = _d['uvsRaw'][str_meshShape][0][0]
         log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
         
         #>>For each v value, make a new curve -----------------------------------------------------------------        
         #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
-        crv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,_v), ch = 0, rn = 0, local = 0)
+        crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
         log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
         l_newCurves.append(crv[0])
     
@@ -885,6 +892,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     
     #...clean up 
     mc.delete(l_newCurves)# + [str_tmpMesh]
+    mMesh_tmp.delete()
     #>>Parent to the joints ----------------------------------------------------------------- 
     return l_new
     
