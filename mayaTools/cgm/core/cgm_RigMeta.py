@@ -572,7 +572,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
         #Verify constraints    
         self.verifyConstraints()
 
-        return 'Done'    
+        return True
         #Check constraint
 
     def addDynObject(self,arg):
@@ -1477,7 +1477,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         log.debug("|{0}| >> Constraints... ".format(_str_func))            
         self.verifyConstraints()
         self._setLocks(True)	
-        return 'Done'    
+        return True
 
     def addDynChild(self,arg):
         log.debug(">>> %s.addDynChild(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
@@ -1504,29 +1504,38 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         #if we make changes, we have to veriy
 
     def addDynParent(self,arg,index = None, alias = None):
-        log.debug(">>> %s.addDynParent(arg = %s, index = %s, alias = %s) >> "%(self.p_nameShort,arg,index,alias) + "="*75) 		        		
-        i_dParent = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
-        if not i_dParent:
-            raise StandardError, "cgmDynParentGroup.addDynParent>> Failed to cgmMeta.validate: %s"%arg	    
-        if self == i_dParent:
-            raise StandardError, "cgmDynParentGroup.addDynParent>> Cannot add self as target"
-        if not VALID.is_transform(i_dParent.mNode):
-            raise StandardError, "cgmDynParentGroup.addDynParent>> Target has no transform: '%s'"%i_dParent.getShortName()
-        log.debug("cgmDynParentGroup.addDynParent>> '%s'"%i_dParent.getShortName())
+        _str_func = 'addDynParent'
+        log.debug("|{0}| >>  arg: {1} | index {2} | alias: {3}".format(_str_func,arg,index,alias))                        
+        
+        #log.debug(">>> %s.addDynParent(arg = %s, index = %s, alias = %s) >> "%(self.p_nameShort,arg,index,alias) + "="*75) 		        		
+        mDynParent = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
+        if not mDynParent:
+            return log.error("|{0}| >>  Failed to validate arg: {1} | index {2} | alias: {3}".format(_str_func,arg,index,alias))                        
+        if self == mDynParent:
+            return log.warning("|{0}| >>  Cannot add self as target. arg: {1} | index {2} | alias: {3}".format(_str_func,arg,index,alias))                        
+        if not VALID.is_transform(mDynParent.mNode):
+            return log.warning("|{0}| >>  Target has no transform. arg: {1} | index {2} | alias: {3}".format(_str_func,arg,index,alias))                        
+        
+        if self.getMessage('dynChild'):
+            if self.getMessage('dynChild',asMeta=True)[0].mNode == mDynParent.mNode:
+                return log.warning("|{0}| >>  Cannot add dynChild as dynParent. arg: {1} | index {2} | alias: {3}".format(_str_func,arg,index,alias))                        
+                
+        
+        log.debug("cgmDynParentGroup.addDynParent>> '%s'"%mDynParent.getShortName())
         l_dynParents = self.msgList_get('dynParents',asMeta = False)
         ml_dynParents = [cgmMeta.cgmObject(o) for o in l_dynParents]
         log.debug(">>>>>>>>>>>>> Start add %s"%l_dynParents)
 
-        if i_dParent in ml_dynParents:
-            log.debug("cgmDynParentGroup.addDynParent>> Child already connected: %s"%i_dParent.getShortName())
+        if mDynParent in ml_dynParents:
+            log.debug("cgmDynParentGroup.addDynParent>> Child already connected: %s"%mDynParent.getShortName())
             return True
 
         if alias is not None:
             i_dynParent.addAttr('cgmAlias', str(alias),lock = True)
 
-        log.debug("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%i_dParent.getShortName())
-        ml_dynParents.append(i_dParent)	
-        self.msgList_append('dynParents',i_dParent)#Connect the nodes
+        log.debug("cgmDynParentGroup.addDynParent>> Adding target: '%s'"%mDynParent.getShortName())
+        ml_dynParents.append(mDynParent)	
+        self.msgList_append('dynParents',mDynParent)#Connect the nodes
         log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynParents',asMeta =False))
 
     def verifyConstraints(self):
@@ -1650,17 +1659,17 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=True) 
         if not i_dynChild:
             raise StandardError, "cgmDynParentGroup.verifyParentDriver>> Must have dynChild. None found"	    
-        i_dParent = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
-        if not i_dParent:
+        mDynParent = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
+        if not mDynParent:
             raise StandardError, "cgmDynParentGroup.verifyParentDriver>> arg fail: %s"%arg
 
         index = False
         ml_dynParents = self.msgList_get('dynParents')
         l_dynParents = [obj.mNode for obj in ml_dynParents]
-        if i_dParent.mNode in l_dynParents:
-            index = l_dynParents.index(i_dParent.mNode)
+        if mDynParent.mNode in l_dynParents:
+            index = l_dynParents.index(mDynParent.mNode)
         if index is False:
-            raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%i_dParent.getShortName()
+            raise StandardError, "cgmDynParentGroup.verifyParentDriver>> not a dynParent: %s"%mDynParent.getShortName()
 
         log.debug("cgmDynParentGroup.verifyParentDriver>> dynParents index: %s"%index)
         #dBuffer = self.getMessage('dyDriver_%s'%index)
@@ -1682,16 +1691,16 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             i_driver = i_dynChild.doCreateAt()
             l_dynDrivers.insert(index,i_driver.mNode)
             self.msgList_connect('dynDrivers',l_dynDrivers,'dynMaster')
-            #i_driver = i_dParent.doCreateAt()
+            #i_driver = mDynParent.doCreateAt()
 
-        i_driver.parent = i_dParent.mNode
+        i_driver.parent = mDynParent.mNode
         i_driver = cgmMeta.validateObjArg(i_driver,'cgmObject',setClass = True)
-        i_driver.doStore('cgmName',"%s_driving_%s"%(i_dParent.getNameAlias(),i_dynChild.getNameAlias())) 
+        i_driver.doStore('cgmName',"%s_driving_%s"%(mDynParent.getNameAlias(),i_dynChild.getNameAlias())) 
         i_driver.addAttr('cgmType','dynDriver')
         i_driver.doName()
 
         i_driver.rotateOrder = i_dynChild.rotateOrder#Match rotate order
-        log.debug("dynDriver: '%s' >> '%s'"%(i_dParent.getShortName(),i_driver.getShortName()))
+        log.debug("dynDriver: '%s' >> '%s'"%(mDynParent.getShortName(),i_driver.getShortName()))
 
         #self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
         i_driver.connectChildNode(i_dynChild,'dynTarget')	
@@ -1810,14 +1819,13 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         
         
     def _setLocks(self,lock=True):
-        _str_funcName = "_setLocks(%s)"%self.p_nameShort  
-        log.info(">>> %s >>> "%(_str_funcName) + "="*75) 
-        try:
-            l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']					
-            for a in l_attrs:
-                cgmMeta.cgmAttr(self,a,lock=lock)
-        except Exception,error:
-            raise Exception,"%s >>> Fail | %s"%(_str_funcName,error)	
+        _str_func = '_setLocks'
+        log.debug("|{0}| >> ...".format(_str_func))
+        
+        l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']					
+        for a in l_attrs:
+            cgmMeta.cgmAttr(self,a,lock=lock)
+
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  

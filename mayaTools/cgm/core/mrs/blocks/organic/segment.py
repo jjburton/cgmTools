@@ -641,16 +641,27 @@ def build_skeleton(self, forceNew = True):
     
     self.copyAttrTo('cgmName',ml_joints[0].mNode,'cgmName',driven='target')
     
-
-    for i,mJnt in enumerate(ml_joints):
-        mJnt.addAttr('cgmIterator',i + 1)
-        mJnt.doName()        
+    
+        
+    for i,mJoint in enumerate(ml_joints):
+        if i == 0:
+            if self.getMayaAttr('cgmName'):
+                self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+            else:
+                self.copyAttrTo('blockType',mJoint.mNode,'cgmName',driven='target')
+                
+            if mModule.getMayaAttr('cgmDirection'):
+                mModule.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
+            if mModule.getMayaAttr('cgmPosition'):
+                mModule.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')            
+        mJoint.addAttr('cgmIterator',i + 1)
+        mJoint.doName()        
     
     ml_joints[0].parent = False
     
-    for mJnt in ml_joints:
-        mJnt.displayLocalAxis = 1
-        mJnt.radius = _radius
+    for mJoint in ml_joints:
+        mJoint.displayLocalAxis = 1
+        mJoint.radius = _radius
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     #cgmGEN.func_snapShot(vars())    
@@ -879,10 +890,10 @@ def rig_shapes(self):
         log.debug("|{0}| >> ikHandle...".format(_str_func))
         
         str_tmpMesh = mBlock.getMessage('prerigLoftMesh')[0]
-        ab_size = SNAPCALLS.get_axisBox_size(str_tmpMesh)
+        #ab_size = SNAPCALLS.get_axisBox_size(str_tmpMesh)
         
-        #crv = CURVES.create_fromName('cube',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode)))
-        crv = CURVES.create_fromName('arrowsOnBall', [ab_size[0],ab_size[1],1], 'z+')
+        crv = CURVES.create_fromName('arrowsOnBall',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode))*2)
+        #crv = CURVES.create_fromName('arrowsOnBall', [ab_size[0],ab_size[1],1], 'z+')
         
         mIKCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
         mIKCrv.doSnapTo(ml_joints[-1])
@@ -1613,7 +1624,6 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     
-    
     ml_controlsToSetup = []
     for msgLink in ['rigJoints','controlIK']:
         ml_buffer = mRigNull.msgList_get(msgLink)
@@ -1632,7 +1642,49 @@ def rig_cleanUp(self):
         if mi_parentRigNull.getMessage('cog'):
             ml_baseDynParents.append( mi_parentRigNull.cog )
     
-    #...rigjoints ----------------------------------------------------------------------------------------------
+    #...Root controls =================================================================================================
+    log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
+    mParent = mRoot.getParent(asMeta=True)
+    ml_targetDynParents = []
+
+    if not mParent.hasAttr('cgmAlias'):
+        mParent.addAttr('cgmAlias','base')
+    ml_targetDynParents.append(mParent)    
+    
+    ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
+
+    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=2)
+    #mDynGroup.dynMode = 2
+
+    for mTar in ml_targetDynParents:
+        mDynGroup.addDynParent(mTar)
+    mDynGroup.rebuild()
+    mDynGroup.dynFollow.p_parent = self.mDeformNull
+    
+    #...fk controls =================================================================================================
+    mControlIK = mRigNull.getMessage('controlIK')
+    if mControlIK:
+        log.debug("|{0}| >>  IK Handle...".format(_str_func))                
+        mControlIK = mRigNull.controlIK
+        
+        mParent = mControlIK.getParent(asMeta=True)
+        ml_targetDynParents = []
+    
+        if not mParent.hasAttr('cgmAlias'):
+            mParent.addAttr('cgmAlias','base')
+        ml_targetDynParents.append(mParent)    
+        
+        ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
+    
+        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mControlIK,dynMode=2)
+        #mDynGroup.dynMode = 2
+    
+        for mTar in ml_targetDynParents:
+            mDynGroup.addDynParent(mTar)
+        mDynGroup.rebuild()
+        mDynGroup.dynFollow.p_parent = self.mDeformNull        
+    
+    #...rigjoints =================================================================================================
     log.debug("|{0}| >>  Direct...".format(_str_func))                
     for mObj in mRigNull.msgList_get('rigJoints'):
         log.debug("|{0}| >>  Direct: {1}".format(_str_func,mObj))                        
@@ -1650,19 +1702,19 @@ def rig_cleanUp(self):
         mDynGroup.dynMode = 2
         
         for mTar in ml_targetDynParents:
-            if mTar != mObj:
-                mDynGroup.addDynParent(mTar)
+            mDynGroup.addDynParent(mTar)
+        
         mDynGroup.rebuild()
         
         mDynGroup.dynFollow.p_parent = mRoot
-            
-    #...fk controls ----------------------------------------------------------------------------------------------
+    
+    #...fk controls =================================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func))                
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
-    ml_targetDynParents = copy.copy(ml_baseDynParents)
     
     for mObj in ml_fkJoints[:1]:
-        log.debug("|{0}| >>  Direct: {1}".format(_str_func,mObj))                        
+        log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))                        
+        ml_targetDynParents = copy.copy(ml_baseDynParents)
         
         mParent = mObj.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
@@ -1671,34 +1723,13 @@ def rig_cleanUp(self):
         
         ml_targetDynParents.extend(ml_endDynParents)
     
-        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode)
-        mDynGroup.dynMode = 2
+        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=2)# dynParents=ml_targetDynParents)
+        #mDynGroup.dynMode = 2
     
         for mTar in ml_targetDynParents:
-            if mTar != mObj:
-                mDynGroup.addDynParent(mTar)
+            mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
         mDynGroup.dynFollow.p_parent = mRoot    
-    
-    #...fk controls ----------------------------------------------------------------------------------------------
-    log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
-    mParent = mRoot.getParent(asMeta=True)
-    ml_targetDynParents = []
-
-    if not mParent.hasAttr('cgmAlias'):
-        mParent.addAttr('cgmAlias','base')
-    ml_targetDynParents.append(mParent)    
-    
-    ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
-
-    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode)
-    mDynGroup.dynMode = 2
-
-    for mTar in ml_targetDynParents:
-        if mTar != mObj:
-            mDynGroup.addDynParent(mTar)
-    mDynGroup.rebuild()
-    mDynGroup.dynFollow.p_parent = mRoot        
     
     
     #Close out ====================================================================================================
@@ -1707,56 +1738,7 @@ def rig_cleanUp(self):
     return
 
 
-    #Add our parents
-    mDynGroup = mHeadFK.dynParentGroup
-    log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    mDynGroup.dynMode = 2
 
-    for o in ml_headDynParents:
-        mDynGroup.addDynParent(o)
-    mDynGroup.rebuild()
-
-    mDynGroup.dynFollow.parent = mMasterDeformGroup
-    
-    #...headLookat ---------------------------------------------------------------------------------------
-    if self.mBlock.headAim:
-        log.info("|{0}| >> HeadAim setup...".format(_str_func))
-        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
-        
-        #mHeadFKJoint = mRigNull.getMessage('fkHeadJoint', asMeta=True)[0]
-        #mHeadAimJoint = mRigNull.getMessage('aimHeadJoint', asMeta=True)[0]
-        #mHeadBlendJoint = mRigNull.getMessage('blendHeadJoint', asMeta=True)[0]
-        #mHeadFKDynParentGroup = mHeadFK.dynParentGroup
-        
-        mHeadLookAt = mRigNull.headLookAt        
-        mHeadLookAt.setAttrFlags(attrs='v')
-        
-        #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseHeadDynParents)
-        ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
-        ml_headLookAtDynParents.append(mMasterNull.worldSpaceObjectsGroup)    
-        
-        ml_headDynParents.insert(0, mHeadFK)
-        #mHeadFK.masterGroup.addAttr('cgmAlias','headRoot')
-        
-        #Add our parents...
-        mDynGroup = mHeadLookAt.dynParentGroup
-        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    
-        for o in ml_headDynParents:
-            mDynGroup.addDynParent(o)
-        mDynGroup.rebuild()
-        
-    
-        
-    #>>  Lock and hide ======================================================================================
-    
-    
-    #>>  Attribute defaults =================================================================================
-    
-    mRigNull.version = self.d_block['buildVersion']
-    
     
 
 def build_proxyMesh(self, forceNew = True):
