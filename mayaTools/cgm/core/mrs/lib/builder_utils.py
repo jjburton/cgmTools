@@ -625,6 +625,7 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
+@cgmGEN.Timer
 def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None):
     """
     :parameters:
@@ -633,7 +634,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         mode - 
             default
             segmentHandle
-        
+            ikHandle
         upVector - If none provided, uses from rigFactory 
         uValues - percent based values to generate curves on nurbs loft
         offset(float) - If none, uses internal data to guess
@@ -646,10 +647,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
     """
     _short = self.mBlock.mNode
     _str_func = 'shapes_build ( {0} )'.format(_short)
-    _start = time.clock()	
     mRigNull = self.mRigNull
     ml_shapes = []
-    
+    mMesh_tmp = None
     if upVector is None:
         upVector = self.d_orientation['vectorUp']
     if aimVector is None:
@@ -663,7 +663,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
     else:
         ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
     
-    if mode in ['default','segmentHandle']:
+    if mode in ['default','segmentHandle','ikHandle','fkHandles']:
         #Get our cast mesh        
         #mMesh = self.mBlock.getMessage('prerigLoftMesh', asMeta = True)[0]
         #str_mesh = mMesh.mNode
@@ -673,7 +673,13 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
         str_tmpMesh = self.mBlock.getMessage('prerigLoftMesh')[0]
         #str_tmpMesh =res_body[0]        
-        mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
+        
+        mMesh_tmp =  cgmMeta.validateObjArg(str_tmpMesh,'cgmObject').doDuplicate(po=False)
+            
+        if self.mBlock.loftDegree == 0:
+            log.debug("|{0}| >> Closing linear mesh loft".format(_str_func))
+            _close = mc.closeSurface(mMesh_tmp.mNode,d=1,p=0,rpo=True,ch=False)        
+        
         str_meshShape = mMesh_tmp.getShapes()[0]        
         minU = ATTR.get(str_meshShape,'minValueU')
         maxU = ATTR.get(str_meshShape,'maxValueU')
@@ -687,7 +693,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             _average = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_targets],average=True)/4
             for i,mTar in enumerate(ml_targets):
                 log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))                
-                _d = RAYS.cast(str_tmpMesh, mTar.mNode, axis = axis)
+                _d = RAYS.cast(str_meshShape, mTar.mNode, axis = axis)
                 
                 if mTar == ml_targets[-1]:
                     _normal = MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position)
@@ -698,7 +704,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,mTar))            
                     v = l_failSafes[i]
                 else:
-                    v = _d['uvsRaw'][str_tmpMesh][0][0]
+                    v = _d['uvsRaw'][str_meshShape][0][0]
                 
                 if offset is None:
                     offset = _average
@@ -712,7 +718,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 log.info("|{0}| >> v: {1} ...".format(_str_func,v))
             
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
-                baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
+                baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)
                 offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, ch=False, normal = _normal )[0]
                 log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
                 mc.delete(baseCrv)
@@ -720,82 +726,193 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
                 ml_shapes.append(cgmMeta.validateObjArg(offsetCrv))
                 
-        elif mode == 'segmentHandle':
-            log.debug("|{0}| >> segmentHandle cast...".format(_str_func))                        
-            
-            if not uValues: raise ValueError,"Must have uValues with segmentHandle mode"
-            
-            mMesh_tmp = cgmMeta.validateObjArg(str_tmpMesh,'cgmObject')
-            str_tmpMesh = mMesh_tmp.mNode
-            str_meshShape = mMesh_tmp.getShapes()[0]             
-            
-            minU = ATTR.get(str_meshShape,'minValueU')
-            maxU = ATTR.get(str_meshShape,'maxValueU')
+        elif mode in ['segmentHandle','ikHandle','fkHandle']:
             f_factor = (maxU-minU)/(40)
-            
             if offset is None:
                 offset = DIST.get_distance_between_targets([ml_targets[0].mNode, ml_targets[-1]]) / 25
             
-            l_vectors = []
-            for i,mObj in enumerate(ml_targets[:-1]):
-                l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_targets[i+1].p_position) )
-            l_vectors.append(  MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position) )
-            
-            
-            for i,u in enumerate(uValues):
-                uValue = MATH.Lerp(minU,maxU,u)
-                if u < minU or u > maxU:
-                    raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(uValue,minU,maxU)
+            if mode == 'segmentHandle':
+                log.debug("|{0}| >> segmentHandle cast...".format(_str_func))                        
                 
-                l_mainCurves = []
-                for ii,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
-                    baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_tmpMesh,v), ch = 0, rn = 0, local = 0)
-                    mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 1, spans = 12, kr = 2)
-                    
-                    
-                    if ii == 1:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, normal = l_vectors[i], ch=False )[0]                        
-                    else:
-                        offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9), normal = l_vectors[i], ch=False )[0]
-                    l_mainCurves.append(offsetCrv)
-                    mc.delete(baseCrv)
+                if not uValues: raise ValueError,"Must have uValues with segmentHandle mode"
                 
-                l_crvPos = []
-                points = 7
-                d_crvPos = {}
-                for crv in l_mainCurves:
-                    mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                    mShape = mCrv.getShapes(asMeta=True)[0]
+                l_vectors = []
+                for i,mObj in enumerate(ml_targets[:-1]):
+                    l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_targets[i+1].p_position) )
+                l_vectors.append(  MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position) )
+                
+                for i,u in enumerate(uValues):
+                    uValue = MATH.Lerp(minU,maxU,u)
+                    if u < minU or u > maxU:
+                        raise ValueError, "uValue not in range. {0}. min: {1} | max: {2}".format(uValue,minU,maxU)
                     
-                    minU_shape = mShape.minValue
-                    maxU_shape = mShape.maxValue# - 1# not sure on this
-                    l_v = MATH.get_splitValueList(minU_shape,maxU_shape, points)
-                    #pprint.pprint(l_v)
-                    log.debug("|{0}| >> crv {1} splitList {2} ...".format(_str_func,crv,l_v))
-                    for ii,v in enumerate(l_v):
-                        if not d_crvPos.get(ii):
-                            d_crvPos[ii] = []
-                        #print "{0}.u[{1}]".format(mCrv.mNode, v)
-                        pos = POS.get("{0}.u[{1}]".format(mCrv.mNode, v))
-                        #if pos not in d_crvPos[i]:
-                        d_crvPos[ii].append( pos )
-
+                    l_mainCurves = []
+                    for ii,v in enumerate([uValue+f_factor, uValue, uValue-f_factor]):
+                        baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)
+                        mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 1, spans = 12, kr = 2)
                         
-                for ii in range(points):
-                    crv_connect = CURVES.create_fromList(posList=d_crvPos[ii])
-                    #for p in d_crvPos[i]:
-                        #LOC.create(position=p)
+                        
+                        if ii == 1:
+                            offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, normal = l_vectors[i], ch=False )[0]                        
+                        else:
+                            offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9), normal = l_vectors[i], ch=False )[0]
+                        l_mainCurves.append(offsetCrv)
+                        mc.delete(baseCrv)
+                    
+                    l_crvPos = []
+                    points = 7
+                    d_crvPos = {}
+                    for crv in l_mainCurves:
+                        mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                        mShape = mCrv.getShapes(asMeta=True)[0]
+                        
+                        minU_shape = mShape.minValue
+                        maxU_shape = mShape.maxValue# - 1# not sure on this
+                        l_v = MATH.get_splitValueList(minU_shape,maxU_shape, points)
+                        #pprint.pprint(l_v)
+                        log.debug("|{0}| >> crv {1} splitList {2} ...".format(_str_func,crv,l_v))
+                        for ii,v in enumerate(l_v):
+                            if not d_crvPos.get(ii):
+                                d_crvPos[ii] = []
+                            #print "{0}.u[{1}]".format(mCrv.mNode, v)
+                            pos = POS.get("{0}.u[{1}]".format(mCrv.mNode, v))
+                            #if pos not in d_crvPos[i]:
+                            d_crvPos[ii].append( pos )
+    
+                            
+                    for ii in range(points):
+                        crv_connect = CURVES.create_fromList(posList=d_crvPos[ii])
+                        l_mainCurves.append(crv_connect)
+                        
+                    for crv in l_mainCurves[1:]:
+                        RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                        
+                    ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
+                        
+            ##mc.delete(str_tmpMesh)
+            elif mode == 'ikHandle':
+                if not mRigNull.msgList_get('ikJoints'):
+                    return log.error("|{0}| >> No ik joints found".format(_str_func))
+    
+                ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
+                if len(ml_ikJoints)<2:
+                    return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
+                
+                str_aim = self.d_orientation['str'][1] + '-'
+                vec_normal = MATH.get_vector_of_two_points(ml_ikJoints[-2].p_position,
+                                                           ml_ikJoints[-1].p_position)
+                l_mainCurves = []
+                for mJnt in ml_ikJoints[-2:]:
+                    #...Make our curve
+                    _short = mJnt.mNode
+                    _d = RAYS.cast(str_meshShape, _short, str_aim)
+                    
+                    log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+                    #cgmGEN.log_info_dict(_d,j)
+                    _v = _d['uvsRaw'][str_meshShape][0][0]                
+                    log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+            
+                    #>>For each v value, make a new curve -----------------------------------------------------------------        
+                    #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+                    baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
+                    offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9),
+                                               normal = vec_normal,
+                                               ch=False )[0]
+                    l_mainCurves.append(offsetCrv)
+                    mc.delete(baseCrv)                        
+                    
+                    log.debug("|{0}| >> created: {1} ...".format(_str_func,baseCrv))
+                
+                log.debug("|{0}| >> Making connectors".format(_str_func))
+                d_epPos = {}
+                for i,crv in enumerate(l_mainCurves):
+                    mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                    for ii,ep in enumerate(mCrv.getComponents('ep',True)):
+                        if not d_epPos.get(ii):
+                            d_epPos[ii] = []
+                            
+                        _l = d_epPos[ii]
+                        _l.append(POS.get(ep))
+                        
+                for k,points in d_epPos.iteritems():
+                    crv_connect = CURVES.create_fromList(posList=points)
                     l_mainCurves.append(crv_connect)
                     
                 for crv in l_mainCurves[1:]:
                     RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
                     
-                ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
+                ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                        
+                
+                #ml_shapes = mc.loft(l_loftShapes, o = True, d = 3, po = 0,ch=False)
+                #mc.delete(l_loftShapes)
+            elif mode == 'fkhandle':
+                raise NotImplementedError,"not done with fkHandle"
+                str_aim = self.d_orientation['str'][1] + '-'
+                
+                for i,mTar in enumerate(ml_targets[:-1]):
+                    log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))                
+                    _d = RAYS.cast(str_meshShape, mTar.mNode, axis = str_aim)
+                    _normal = MATH.get_vector_of_two_points(mTar.p_position, ml_targets[i+1].p_position)
+                    
+                    if mTar == ml_targets[-1]:
+                        _normal = MATH.get_vector_of_two_points(ml_targets[-2].p_position, ml_targets[-1].p_position)
+                    else:
+                        _normal = MATH.get_vector_of_two_points(mTar.p_position, ml_targets[i+1].p_position)
+                    
+                    if not _d:
+                        log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,mTar))            
+                        v = l_failSafes[i]
+                    else:
+                        v = _d['uvsRaw'][str_meshShape][0][0]                
                 
                 
                 
+                l_mainCurves = []
+                for mJnt in ml_ikJoints[-2:]:
+                    #...Make our curve
+                    _short = mJnt.mNode
+                    _d = RAYS.cast(str_meshShape, _short, str_aim)
+                    
+                    log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+                    #cgmGEN.log_info_dict(_d,j)
+                    _v = _d['uvsRaw'][str_meshShape][0][0]                
+                    log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
             
-        ##mc.delete(str_tmpMesh)
+                    #>>For each v value, make a new curve -----------------------------------------------------------------        
+                    #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+                    baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
+                    offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9),
+                                               normal = vec_normal,
+                                               ch=False )[0]
+                    l_mainCurves.append(offsetCrv)
+                    mc.delete(baseCrv)                        
+                    
+                    log.debug("|{0}| >> created: {1} ...".format(_str_func,baseCrv))
+                
+                log.debug("|{0}| >> Making connectors".format(_str_func))
+                d_epPos = {}
+                for i,crv in enumerate(l_mainCurves):
+                    mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                    for ii,ep in enumerate(mCrv.getComponents('ep',True)):
+                        if not d_epPos.get(ii):
+                            d_epPos[ii] = []
+                            
+                        _l = d_epPos[ii]
+                        _l.append(POS.get(ep))
+                        
+                for k,points in d_epPos.iteritems():
+                    crv_connect = CURVES.create_fromList(posList=points)
+                    l_mainCurves.append(crv_connect)
+                    
+                for crv in l_mainCurves[1:]:
+                    RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                    
+                ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                        
+                
+                #ml_shapes = mc.loft(l_loftShapes, o = True, d = 3, po = 0,ch=False)
+                #mc.delete(l_loftShapes)            
+                
+                
     elif mode == 'direct':
         if size == None:
             log.debug("|{0}| >> Guessing size".format(_str_func))
@@ -808,14 +925,12 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 
             ml_shapes.append(cgmMeta.validateObjArg(crv))
         
-            
     else:
         raise ValueError,"unknown mode: {0}".format(mode)
     #Process
     
     
-    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
-    
+    if mMesh_tmp:mMesh_tmp.delete()
     return ml_shapes
 
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):

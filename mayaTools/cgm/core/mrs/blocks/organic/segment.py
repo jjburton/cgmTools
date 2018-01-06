@@ -791,12 +791,12 @@ def rig_shapes(self):
     #_str_func = '[{0}] > rig_shapes'.format(_short)
     log.info("|{0}| >> ...".format(_str_func))  
     
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    
     ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
-
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')    
     mIKEnd = ml_prerigHandleTargets[-1]
-    
-    mBlock = self.mBlock
     ml_prerigHandles = mBlock.msgList_get('prerigHandles')
     
     _side = mBlock.atUtils('get_side')
@@ -889,19 +889,20 @@ def rig_shapes(self):
     if mBlock.buildIK:
         log.debug("|{0}| >> ikHandle...".format(_str_func))
         
-        str_tmpMesh = mBlock.getMessage('prerigLoftMesh')[0]
-        #ab_size = SNAPCALLS.get_axisBox_size(str_tmpMesh)
+        ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
         
-        crv = CURVES.create_fromName('arrowsOnBall',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode))*2)
-        #crv = CURVES.create_fromName('arrowsOnBall', [ab_size[0],ab_size[1],1], 'z+')
-        
+        #crv = CURVES.create_fromName('arrowsOnBall',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode))*2)
+        crv = self.atBuilderUtils('shapes_fromCast', mode ='ikHandle')[0]
         mIKCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
-        mIKCrv.doSnapTo(ml_joints[-1])
-        mHandleFactory.color(mIKCrv.mNode, controlType = 'main')
+        #mIKCrv.doSnapTo(ml_joints[-1])
         
+        mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
         ATTR.copy_to(_short_module,'cgmName',mIKCrv.mNode,driven='target')
         mIKCrv.doStore('cgmTypeModifier','ik')
         mIKCrv.doName()
+        
+        CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
+        mHandleFactory.color(mIKCrv.mNode, controlType = 'main')        
         
         self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect        
                 
@@ -923,14 +924,14 @@ def rig_shapes(self):
     
     #FK =============================================================================================    
     log.debug("|{0}| >> FK...".format(_str_func))
-    ml_fkShapes = self.atBuilderUtils('shapes_fromCast',  ml_fkJoints, aimVector=self.d_orientation['vectorUp'])
+    ml_fkShapes = self.atBuilderUtils('shapes_fromCast',  ml_fkJoints[:-1], aimVector=self.d_orientation['vectorUp'])
     for i,mCrv in enumerate(ml_fkShapes):
         mJnt = ml_fkJoints[i]
         #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
         
         mHandleFactory.color(mCrv.mNode, controlType = 'main')        
         CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
-        
+        """
         l_lolis = []
         l_starts = []
         text_crv = CURVES.create_text(mJnt.cgmIterator,_size /3)
@@ -959,7 +960,7 @@ def rig_shapes(self):
         mText.delete()
         #mFK = ml_fkJoints[-1]
         CORERIG.shapeParent_in_place(mJnt,l_lolis,False)
-        
+        """
         #CORERIG.shapeParent_in_place(ml_fkJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
         for mShape in ml_fkJoints[i].getShapes(asMeta=True):
             mShape.doName()
