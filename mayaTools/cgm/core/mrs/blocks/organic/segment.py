@@ -795,7 +795,9 @@ def rig_shapes(self):
     mRigNull = self.mRigNull
     
     ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
-    ml_fkJoints = self.mRigNull.msgList_get('fkJoints')    
+    ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+    ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
+    
     mIKEnd = ml_prerigHandleTargets[-1]
     ml_prerigHandles = mBlock.msgList_get('prerigHandles')
     
@@ -884,37 +886,15 @@ def rig_shapes(self):
             mJnt.radius = .00001    
             
             
-    #baseIKDrivers =============================================================================================    
-    #ml_baseIKDrivers = self.mRigNull.msgList_get('baseIKDrivers')
-    if mBlock.buildIK:
-        log.debug("|{0}| >> ikHandle...".format(_str_func))
-        
-        ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
-        
-        #crv = CURVES.create_fromName('arrowsOnBall',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode))*2)
-        crv = self.atBuilderUtils('shapes_fromCast', mode ='ikHandle')[0]
-        mIKCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
-        #mIKCrv.doSnapTo(ml_joints[-1])
-        
-        mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
-        ATTR.copy_to(_short_module,'cgmName',mIKCrv.mNode,driven='target')
-        mIKCrv.doStore('cgmTypeModifier','ik')
-        mIKCrv.doName()
-        
-        CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
-        mHandleFactory.color(mIKCrv.mNode, controlType = 'main')        
-        
-        self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect        
-                
+
     
     #Handles =============================================================================================    
     ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
     if ml_handleJoints:
         log.debug("|{0}| >> Found Handle joints...".format(_str_func))
-        l_uValues = MATH.get_splitValueList(.01,.99, len(ml_handleJoints))
+        #l_uValues = MATH.get_splitValueList(.01,.99, len(ml_handleJoints))
         ml_handleShapes = self.atBuilderUtils('shapes_fromCast',
-                                              mode ='segmentHandle',
-                                              uValues = l_uValues,)
+                                              mode ='segmentHandle')
                                                                                                                                                                 #offset = 3
         for i,mCrv in enumerate(ml_handleShapes):
             mHandleFactory.color(mCrv.mNode, controlType = 'sub')            
@@ -922,9 +902,30 @@ def rig_shapes(self):
             for mShape in ml_handleJoints[i].getShapes(asMeta=True):
                 mShape.doName()
     
-    #FK =============================================================================================    
-    log.debug("|{0}| >> FK...".format(_str_func))
-    ml_fkShapes = self.atBuilderUtils('shapes_fromCast',  ml_fkJoints[:-1], aimVector=self.d_orientation['vectorUp'])
+    #FK/Ik =============================================================================================    
+    log.debug("|{0}| >> Frame shape cast...".format(_str_func))        
+    ml_fkShapes = self.atBuilderUtils('shapes_fromCast', mode = 'frameHandle')
+    
+    
+    if mBlock.buildIK:
+        log.debug("|{0}| >> ikBaseHandle...".format(_str_func))        
+        mIKBaseCrv = ml_fkShapes[0].doDuplicate(po=False)
+        
+        #mIKCrv.doSnapTo(ml_joints[-1])
+    
+        mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
+        ATTR.copy_to(_short_module,'cgmName',mIKBaseCrv.mNode,driven='target')
+        mIKBaseCrv.doStore('cgmTypeModifier','ikBase')
+        mIKBaseCrv.doName()
+    
+        CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[1].mNode)
+        mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
+    
+        self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect        
+    
+    
+    
+    log.debug("|{0}| >> FK...".format(_str_func))    
     for i,mCrv in enumerate(ml_fkShapes):
         mJnt = ml_fkJoints[i]
         #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
@@ -964,6 +965,28 @@ def rig_shapes(self):
         #CORERIG.shapeParent_in_place(ml_fkJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
         for mShape in ml_fkJoints[i].getShapes(asMeta=True):
             mShape.doName()
+    
+    #baseIKDrivers =============================================================================================    
+    #ml_baseIKDrivers = self.mRigNull.msgList_get('baseIKDrivers')
+    if mBlock.buildIK:
+        log.debug("|{0}| >> ikHandle...".format(_str_func))
+        
+        
+        #crv = CURVES.create_fromName('arrowsOnBall',MATH.average(mHandleFactory.get_axisBox_size(ml_prerigHandles[-1].mNode))*2)
+        crv = self.atBuilderUtils('shapes_fromCast', mode ='ikHandle')[0]
+        mIKCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
+        #mIKCrv.doSnapTo(ml_joints[-1])
+        
+        mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
+        ATTR.copy_to(_short_module,'cgmName',mIKCrv.mNode,driven='target')
+        mIKCrv.doStore('cgmTypeModifier','ik')
+        mIKCrv.doName()
+        
+        CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
+        mHandleFactory.color(mIKCrv.mNode, controlType = 'main')        
+        
+        self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect        
+    
     
     return
     

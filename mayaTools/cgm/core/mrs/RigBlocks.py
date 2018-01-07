@@ -4005,7 +4005,7 @@ class rigFactory(object):
             else:
                 _d['mirrorDirection'] = 'Centre'
 
-            _d['f_skinOffset'] = _mPuppet.getAttr('skinDepth') or 1
+            _d['f_shapeOffset'] = _mPuppet.atUtils('get_shapeOffset')
             _d['mMasterNull'] = _mPuppet.masterNull
 
             #>MasterControl....

@@ -62,6 +62,32 @@ def example(self):
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+def get_shapeOffset(self):
+    """
+    Get the shape offset value 
+    """
+    try:
+        _str_func = ' get_shapeOffset'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        l_attrs = ['loftOffset','skinOffset']
+        for a in l_attrs:
+            if self.hasAttr(a):
+                v = self.getMayaAttr(a)
+                log.debug("|{0}| >> {1} attr found: {2}".format(_str_func,a,v))                
+                return v
+        
+        if self.getMessage('masterControl'):
+            log.debug("|{0}| >> Master control found...".format(_str_func))
+            _bb = DIST.get_bb_size(self.getMessage('masterControl'))
+            return MATH.average(_bb[0],_bb[2])/50
+            
+        log.debug("|{0}| >> default return".format(_str_func))
+        return 1
+        
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
 def modules_get(self):
     try:
         _str_func = ' modules_get'.format(self)
