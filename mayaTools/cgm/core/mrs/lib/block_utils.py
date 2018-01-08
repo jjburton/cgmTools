@@ -707,8 +707,9 @@ def create_prerigLoftMesh(self, targets = None,
                   'uNumber': 1 + len(targets)}
         
             for a,v in _d.iteritems():
-                ATTR.set(_tessellate,a,v)    
-        elif polyType == 'bezier':
+                ATTR.set(_tessellate,a,v)  
+                
+        elif polyType in ['bezier','noMult']:
             _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False)
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
             _loftNode = _res_body[1]
@@ -716,7 +717,12 @@ def create_prerigLoftMesh(self, targets = None,
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             
+            
+            
             _d = {'keepCorners':False}#General}
+            
+            if polyType == 'noMult':
+                _d['rebuildType'] = 3
         
             for a,v in _d.iteritems():
                 ATTR.set(_rebuildNode,a,v)
@@ -751,7 +757,7 @@ def create_prerigLoftMesh(self, targets = None,
             s.overrideDisplayType = 2    
         
         log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
-        if polyType == 'bezier':
+        if polyType in ['bezier','noMult']:
             _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
                                                                      self.getMayaAttrString('loftDegree','short'))
             NODEFACTORY.argsToNodes(_arg).doBuild()            
@@ -780,7 +786,7 @@ def create_prerigLoftMesh(self, targets = None,
             #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
         
             toName = [_tessellate,_loftNode]
-        elif polyType == 'bezier':
+        elif polyType in ['bezier','noMult']:
             #_arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
             #                                         self.getMayaAttrString(uAttr,'short'))
                     
@@ -2688,7 +2694,10 @@ def templateDelete(self):
         self.atBlockModule('define')
     
     mc.delete(self.getShapes())
-
+    
+    d_links = get_stateLinks(self, 'template')
+    delete_msgDat(self,d_links)
+    
     self.blockState = 'define'#...yes now in this state
     return True
 
@@ -3111,3 +3120,43 @@ def getState(self, asString = True):
             return _goodState
         return _l_blockStates.index(_goodState)        
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+#Profile stuff ==============================================================================================
+def profile_getOptions(self ):
+    try:
+        _str_func = 'profile_getOptions'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        mBlockModule = self.p_blockModule
+        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        
+        try:return mBlockModule.d_block_profiles.keys()
+        except Exception,err:
+            return log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+        
+def profile_load(self, arg):
+    _str_func = 'profile_load'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    _short = self.mNode
+    mBlockModule = self.p_blockModule
+    log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+            
+    try:_d = mBlockModule.d_block_profiles[arg]
+    except Exception,err:
+        return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
+    
+    cgmGEN.func_snapShot(vars())
+    log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
+    for a,v in _d.iteritems():
+        try:
+            log.debug("|{0}| attr >> '{1}' | v:{2}".format(_str_func,a,v)) 
+            ATTR.set(_short,a,v)
+        except Exception,err:
+            log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | {3}".format(_str_func,a,v,err)) 
+
+        
+        

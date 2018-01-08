@@ -1138,6 +1138,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Function to call a blockModule function by string. For menus and other reasons
         """
         try:
+            reload(BLOCKUTILS)
             return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
