@@ -2616,8 +2616,11 @@ def uiQuery_getStateAttrs(self,mode = None):
             _type = ATTR.get_type(_short,a)
             if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
                 l_attrs.append(a)
-            elif _type in ['string'] and '_' in a and not a.endswith('dict'):
-                l_attrs.append(a)
+            elif _type in ['string']:
+                if '_' in a and not a.endswith('dict'):
+                    l_attrs.append(a)
+                elif a.startswith('name'):
+                    l_attrs.append(a)
             #elif a in ['puppetName','cgmName']:
             #    _l_attrs.append(a)
             if _type in ['float3']:
@@ -3130,6 +3133,7 @@ def profile_getOptions(self ):
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        reload(mBlockModule)
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:
@@ -3144,7 +3148,7 @@ def profile_load(self, arg):
     _short = self.mNode
     mBlockModule = self.p_blockModule
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-            
+    reload(mBlockModule)
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
@@ -3153,10 +3157,16 @@ def profile_load(self, arg):
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
     for a,v in _d.iteritems():
         try:
-            log.debug("|{0}| attr >> '{1}' | v:{2}".format(_str_func,a,v)) 
-            ATTR.set(_short,a,v)
+            log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
+            
+            if issubclass(type(v),list):
+                if self.datList_exists(a):
+                    mc.select(cl=True)
+                    ATTR.datList_connect(_short, a, v, mode='string')                    
+            else:
+                ATTR.set(_short,a,v)
         except Exception,err:
-            log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | {3}".format(_str_func,a,v,err)) 
+            log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
 
         
         

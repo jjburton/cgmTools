@@ -307,6 +307,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         try:
             reload(BLOCKSHARE)#...to make sure we get changes
+            reload(self.p_blockModule)
             _str_func = '[{0}] verify'.format(self.p_nameShort)
     
             _start = time.clock()
@@ -1831,7 +1832,7 @@ class handleFactory(object):
             if _bfr:
                 mc.delete(_bfr)
 
-            _size = MATH.average(_baseSize[:1]) * .3
+            _size = MATH.average(_baseSize[:1]) * .5
 
 
             #Joint helper ======================================================================================
