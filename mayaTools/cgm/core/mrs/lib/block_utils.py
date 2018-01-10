@@ -675,7 +675,21 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
+def get_castMesh(self):
+    mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
+    mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
+    
+    _rebuildState = mRebuildNode.rebuildType
+    if _rebuildState != 5:
+        mRebuildNode.rebuildType = 5
+        
+    mCastMesh =  cgmMeta.validateObjArg(mMesh.mNode,'cgmObject').doDuplicate(po=False,ic=False)
+    mRebuildNode.rebuildType = _rebuildState
+    mCastMesh.parent=False
+    return mCastMesh
 
+    
+    
 def create_prerigLoftMesh(self, targets = None,
                           mPrerigNull = None,
                           uAttr = 'neckControls',
@@ -689,6 +703,9 @@ def create_prerigLoftMesh(self, targets = None,
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         _short = self.mNode
         _side = 'center'
+        _rebuildNode = None
+        _loftNode = None
+        
         if self.getMayaAttr('side'):
             _side = self.getEnumValueString('side')  
                 
@@ -812,7 +829,11 @@ def create_prerigLoftMesh(self, targets = None,
             mObj.doStore('cgmTypeModifier','prerigMesh')
             mObj.doName()                        
        
-        self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')    
+        self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')
+        if _rebuildNode:
+            mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
+        if _loftNode:
+            mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
         return mLoftSurface
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
