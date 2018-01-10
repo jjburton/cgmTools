@@ -1047,17 +1047,25 @@ def rig_shapes(self):
             else:
                 _mTar = ml_fkJoints[-1]
                 
-            settings = CURVES.create_fromName('gear',_size * .25,'x+')
-            mSettings = cgmMeta.validateObjArg(settings,'cgmObject',setClass=True)
-            mSettings.doSnapTo(_mTar.mNode)
             
-            CORERIG.match_transform(mSettings.mNode, _mTar.mNode)
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .25,'x+'))
             
-            mSettings.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'+', _size * .5)
-            SNAP.aim_atPoint(mSettings,_mTar.p_position,aimAxis=_jointOrientation[1]+'-',
+
+            #mSettings = cgmMeta.validateObjArg(settings,'cgmObject',setClass=True)
+            mSettingsShape.doSnapTo(_mTar.mNode)
+            #CORERIG.match_transform(mSettings.mNode, _mTar.mNode)
+            
+            mSettingsShape.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'+', _size * .5)
+            SNAP.aim_atPoint(mSettingsShape,_mTar.p_position,aimAxis=_jointOrientation[1]+'-',
                              mode = 'vector',
                              vectorUp= _mTar.getAxisVector(_jointOrientation[1]+'+'))
+            
+            mSettings = _mTar.doCreateAt(setClass=True)
+            mSettings.parent = False            
+            CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
+            
             ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
+
             mSettings.doStore('cgmTypeModifier','settings')
             mSettings.doName()
             #CORERIG.colorControl(mSettings.mNode,_side,'sub')
@@ -1117,16 +1125,19 @@ def rig_shapes(self):
         
         
         if mBlock.ikBase:
-            log.debug("|{0}| >> ikBaseHandle...".format(_str_func))        
-            mIKBaseCrv = ml_fkShapes[0].doDuplicate(po=False)
+            log.debug("|{0}| >> ikBaseHandle...".format(_str_func))
             
-        
+            mIKBaseShape = ml_fkShapes[0].doDuplicate(po=False)
+            mIKBaseCrv = ml_ikJoints[0].doCreateAt(setClass=True)
+            
+            CORERIG.shapeParent_in_place(mIKBaseCrv.mNode,mIKBaseShape.mNode,False)
+            
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
             ATTR.copy_to(_short_module,'cgmName',mIKBaseCrv.mNode,driven='target')
             mIKBaseCrv.doStore('cgmTypeModifier','ikBase')
             mIKBaseCrv.doName()
         
-            CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
+            #CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
         
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
@@ -1136,14 +1147,17 @@ def rig_shapes(self):
         if mBlock.ikSetup:
             log.debug("|{0}| >> ikHandle...".format(_str_func))
             
-            mIKCrv = ml_fkShapes[-1].doDuplicate(po=False)
+            mIKCrvShape = ml_fkShapes[-1].doDuplicate(po=False)
+            mIKCrv = ml_ikJoints[-1].doCreateAt(setClass=True)
+            
+            CORERIG.shapeParent_in_place(mIKCrv.mNode,mIKCrvShape.mNode,False)
             
             mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
             ATTR.copy_to(_short_module,'cgmName',mIKCrv.mNode,driven='target')
             mIKCrv.doStore('cgmTypeModifier','ik')
             mIKCrv.doName()
             
-            CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
+            #CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
             mHandleFactory.color(mIKCrv.mNode, controlType = 'main')        
             
             self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect                
@@ -1760,7 +1774,6 @@ def rig_frame(self):
             
                 mSkinCluster.doStore('cgmName', mSurf.mNode)
                 mSkinCluster.doName()    
-            
                 cgmGEN.func_snapShot(vars())
                 
                 

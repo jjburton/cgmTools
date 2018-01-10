@@ -3060,8 +3060,8 @@ class cgmObject(cgmNode):
             return mGrp
         return buffer
     
-    def doCreateAt(self, create = 'null', copyAttrs = False, asMeta = True):
-        mCreated = validateObjArg( RIGGING.create_at(self.mNode, create) )
+    def doCreateAt(self, create = 'null', copyAttrs = False, asMeta = True, setClass=False):
+        mCreated = validateObjArg( RIGGING.create_at(self.mNode, create), 'cgmObject', setClass=setClass)
         
         if copyAttrs:
             _short = self.mNode
