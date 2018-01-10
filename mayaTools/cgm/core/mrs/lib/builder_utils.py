@@ -867,18 +867,23 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     l_vectors.append( l_vectors[-1])#...add it again
                     
                     
+                    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                                          len(ml_fkJoints))                    
+                    
                     #...Get our uValues...
-                    l_uValues = [minU]
-                    for i,mObj in enumerate(ml_fkJoints[1:-1]):
+                    l_uValues = []
+                    for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
                         _d = RAYS.cast(str_meshShape, _short, str_aim)
                         log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
-                        except:_v = None
+                        except:
+                            log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                            _v = l_failSafes[i]
                         l_uValues.append( _v )
                         
-                    l_uValues.append( l_uValues[-1] + (maxU - l_uValues[-1])/2 )
+                    #l_uValues.append( l_uValues[-1] + (maxU - l_uValues[-1])/2 )
                     l_uValues.append(maxU)
                 
                     ml_shapes = []
@@ -886,6 +891,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                     for i,v in enumerate(l_uValues[:-1]):
                         l_mainCurves = []
+                        log.debug("|{0}| >> {1} | {2} ...".format(_str_func,i,v))
                         
                         if v == l_uValues[-2]:
                             log.debug("|{0}| >> {1} | Last one...".format(_str_func,i))
@@ -935,6 +941,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     if len(ml_fkJoints)<2:
                         return log.error("|{0}| >> Need at least two ik joints".format(_str_func))                
                     
+                    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                                          len(ml_fkJoints))
                     #...Get our vectors...
                     l_vectors = []
                     for i,mObj in enumerate(ml_fkJoints[:-1]):
@@ -942,23 +950,26 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     l_vectors.append(  MATH.get_vector_of_two_points(ml_fkJoints[-2].p_position, ml_fkJoints[-1].p_position) )
                     
                     #...Get our uValues...
-                    l_uValues = [minU]
-                    for i,mObj in enumerate(ml_fkJoints[1:-1]):
+                    #l_uValues = [minU]
+                    l_uValues = []
+                    for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
                         _d = RAYS.cast(str_meshShape, _short, str_aim)
                         log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
-                        except:_v = None
+                        except:
+                            log.debug("|{0}| >> segmentHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                            _v = l_failSafes[i]
                         l_uValues.append( _v )
-                    l_uValues.append(maxU)
+                    #l_uValues.append(maxU)
                     
                     ml_shapes = []
                     _add = f_factor
                     
                     ml_shapes = []
                     _add = f_factor
-                    _offset_seg = offset * 2
+                    _offset_seg = offset * 3
                     for i,v in enumerate(l_uValues):
                         l_mainCurves = []
                         
@@ -1086,6 +1097,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if mMesh_tmp:mMesh_tmp.delete()
         return ml_shapes
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     _short = self.mBlock.mNode
     _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
@@ -1105,7 +1117,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
         ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
     
 
-    ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
+    ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
     l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
     #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
     #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')

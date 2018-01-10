@@ -2731,6 +2731,15 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
     log.info("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
     log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
+    l_attrs = datList_getAttrs(node,attr)
+    d_driven = {}
+    for i,a in enumerate(l_attrs):
+        _driven = get_driven(node,a)
+        if _driven:
+            d_driven[i] = _driven
+        else:
+            d_driven[i] = False
+            
     datList_purge(node,attr)
     
     mi_node = r9Meta.MetaClass(node)
@@ -2742,6 +2751,13 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
     """
     if mode == 'message':
         msgList_connect(node,attr,_l_dat,dataAttr=dataAttr)
+        if _plug:
+            for p in _plug:
+                try:
+                    connect("{0}.{1}".format(node,attr), p)
+                except Exception,err:
+                    log.warning("|{0}| >> Failed to reconnect {1} | driven: {2} | err: {3}".format(_str_func, str_attr,p,err ))
+        
     else:
         """_str_dataAttr = "{0}_datdict".format(attr)
         mi_node.addAttr(_str_dataAttr, value="",attrType= 'string')
@@ -2752,7 +2768,14 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
         for i,_data in enumerate(_l_dat):
             str_attr = "{0}_{1}".format(attr,i)
             store_info(node, str_attr, _data, mode)
-           
+            _plug =  d_driven.get(i)
+            if _plug:
+                for p in _plug:
+                    try:
+                        connect("{0}.{1}".format(node,str_attr), p)
+                    except Exception,err:
+                        log.warning("|{0}| >> Failed to reconnect {1} | driven: {2} | err: {3}".format(_str_func, str_attr,p,err ))
+                    
     return True
 
 def msgList_get(node = None, attr = None, dataAttr = None, cull = False, ):

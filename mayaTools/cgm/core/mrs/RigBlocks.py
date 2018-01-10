@@ -3643,9 +3643,10 @@ class rigFactory(object):
         self.call_kws['autoBuild'] = autoBuild
         self.call_kws['ignoreRigCheck'] = ignoreRigCheck
         cgmGEN.log_info_dict(self.call_kws,_str_func)
-
+        
         self.fnc_check_rigBlock()
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        
         self.fnc_check_module()
         if not self.fnc_rigNeed():
             log.error('No rig need detected. Check settings. self: {0}'.format(self))

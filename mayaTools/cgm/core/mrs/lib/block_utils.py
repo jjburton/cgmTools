@@ -52,7 +52,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
-from cgm.core.lib import nameTools
+from cgm.core.lib import nameTools as NAMETOOLS
 
 #=============================================================================================================
 #>> Queries
@@ -139,8 +139,9 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                     else:
                         self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
                 elif t == 'stringDatList':
-                    mc.select(cl=True)
-                    ATTR.datList_connect(_short, a, v, mode='string')
+                    if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
+                        mc.select(cl=True)
+                        ATTR.datList_connect(_short, a, v, mode='string')
                 elif t == 'float3':
                     if not self.hasAttr(a):
                         ATTR.add(_short, a, attrType='float3', keyable = True)
@@ -202,7 +203,7 @@ def doName(self):
     _short = self.p_nameShort
     _str_func = '[{0}] doName'.format(_short)
     
-    _d = nameTools.returnObjectGeneratedNameDict(_short)
+    _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
     _direction = self.getEnumValueString('side')
     if self.getMayaAttr('side'):
@@ -234,7 +235,7 @@ def doName(self):
             self.doStore('cgmDirection',_value)"""
 
     #Check for special attributes to replace data, name
-    self.rename(nameTools.returnCombinedNameFromDict(_d))
+    self.rename(NAMETOOLS.returnCombinedNameFromDict(_d))
 
     if self.getMessage('moduleTarget'):
         log.debug("|{0}| >> Module target naming...".format(_str_func))            
@@ -1376,6 +1377,157 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
+def prerigHandles_getNameDat(self, nameHandles = False,**kws):
+    """
+    Get a list of the driving attributes to plug in to our handles
+    
+    :parameters:
+    
+    :returns
+        list
+    """
+    _str_func = 'prerigHandles_getNameDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    l_res = []
+
+    mModule = self.moduleTarget
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+    
+    _number = self.numControls
+    
+    #Name dict...
+    _nameDict ={}
+    _short = self.mNode
+    if mModule.getMayaAttr('cgmDirection'):
+        _nameDict['cgmDirection'] = [mModule.mNode,'cgmDirection']
+    if mModule.getMayaAttr('cgmPosition'):
+        _nameDict['cgmPosition'] = [mModule.mNode,'cgmPosition']
+    
+    if self.getMayaAttr('nameIter'):
+        _nameDict['cgmName'] = [_short,'nameIter']
+    elif self.getMayaAttr('cgmName'):
+        _nameDict['cgmName'] = [_short,'cgmName']
+    else:
+        _nameDict['cgmName'] = [_short,'blockType']
+    
+    _nameDict['cgmType'] = 'blockHandle'
+    
+    for a,v in kws.iteritems():
+        _nameDict[a] = v    
+    
+    _cnt = 0
+    l_range = range(_number)
+    for i in l_range:
+        _nameDictTemp = copy.copy(_nameDict)
+        _specialName = False
+        _cnt+=1
+
+        if i == 0:
+            if self.getMayaAttr(_baseNameAttrs[0]):
+                _nameDictTemp['cgmName'] = [_short, _baseNameAttrs[0]]#"{0}.{1}".format(self.mNode, _baseNameAttrs[0])
+                _cnt = 0
+                _specialName = True
+        elif i == len(l_range) -1:
+            if self.getMayaAttr(_baseNameAttrs[-1]):
+                _nameDictTemp['cgmName'] = [_short, _baseNameAttrs[-1]]#"{0}.{1}".format(self.mNode, _baseNameAttrs[-1])                
+                #_nameDictTemp['cgmName'] = _l_baseNames[-1]
+                _specialName = True
+
+        if not _specialName:
+            _nameDictTemp['cgmIterator'] = _cnt
+            
+        l_res.append( _nameDictTemp )
+        
+    if nameHandles:
+        ml_prerigHandles = self.msgList_get('prerigHandles')
+        if len(ml_prerigHandles) == _number:
+            log.debug("|{0}| >>  nameHandles on. Same length...".format(_str_func))
+            for i,mHandle in enumerate(ml_prerigHandles):
+                _dict = l_res[i]
+                for k,v in _dict.iteritems():
+                    if issubclass(type(v),list):
+                        ATTR.copy_to(v[0],v[1], toObject=mHandle.mNode,toAttr=k,driven='target')
+                    else:
+                        mHandle.doStore(k,v)
+                mHandle.doName()
+                for plug in ['masterGroup','aimGroup','jointHelper']:
+                    if mHandle.getMessage(plug):
+                        mHandle.getMessage(plug,asMeta=True)[0].doName()
+
+                log.debug("|{0}| >>  {1} : {2}.".format(_str_func, i, mHandle.p_nameShort))
+    return l_res    
+
+
+def skeleton_getNameDicts(self, combined = False, count = None, **kws):
+    """
+    Get a list of name dicts for a given block's rig/skin joints
+    
+    :parameters:
+    
+    :returns
+        list
+    """
+    _str_func = 'skeleton_getNameDicts'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    l_res = []
+    if count is not None:
+        _number = count
+    else:
+        _number = self.numJoints
+    mModule = self.moduleTarget
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')    
+    #Name dict...
+    _nameDict ={}
+    
+    if mModule.getMayaAttr('cgmDirection'):
+        _nameDict['cgmDirection'] = mModule.cgmDirection
+    if mModule.getMayaAttr('cgmPosition'):
+        _nameDict['cgmPosition']=mModule.cgmPosition
+    
+    if self.getMayaAttr('nameIter'):
+        _nameDict['cgmName'] = self.nameIter
+    elif self.getMayaAttr('cgmName'):
+        _nameDict['cgmName'] = self.cgmName
+    else:
+        _nameDict['cgmName'] = self.blockType
+        
+    _nameDict['cgmType'] = 'joint'
+    
+    
+    for a,v in kws.iteritems():
+        _nameDict[a] = v
+    
+    _cnt = 0
+    l_range = range(_number)
+    for i in l_range:
+        _nameDictTemp = copy.copy(_nameDict)
+        _specialName = False
+        _cnt+=1
+        
+        if i == 0:
+            if self.getMayaAttr(_baseNameAttrs[0]):
+                _nameDictTemp['cgmName'] = _l_baseNames[0]
+                _cnt = 0
+                _specialName = True
+        elif i == len(l_range) -1:
+            if self.getMayaAttr(_baseNameAttrs[-1]):
+                _nameDictTemp['cgmName'] = _l_baseNames[-1]
+                _specialName = True
+
+        if not _specialName:
+            _nameDictTemp['cgmIterator'] = _cnt
+            
+        #mJoint.rename(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
+        if combined:
+            l_res.append(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
+        else:
+            l_res.append( _nameDictTemp )
+    return l_res
+
+
+
 def skeleton_getCreateDict(self, count = None):
     """
     Data checker to see the skeleton create dict for a given blockType regardless of what's loaded
@@ -1488,10 +1640,12 @@ def skeleton_getCreateDict(self, count = None):
     return _d_res
 
 
-def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = []):
+def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = [],blockNames=False):
+    """
+    blockNames(bool) - use the block generated names
+    """
     _str_func = 'skeleton_buildDuplicateChain'
     
-    start = time.clock()
     
     if indices:
         log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
@@ -1519,16 +1673,29 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
     
     ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
 
-
+    if blockNames:
+        l_names = skeleton_getNameDicts(self,False)        
+    else:
+        l_names = []
+    
     for i,mJnt in enumerate(ml_joints):
+        if blockNames:
+            _d_tmp = l_names[i]
+            log.info("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
+            for a in ['cgmIterator','cgmName']:
+                if _d_tmp.get(a):
+                    mJnt.addAttr(a, str(_d_tmp.get(a)),attrType='string',lock=True)
+
         if modifier is not None:
+            #l_names[i]['cgmTypeModifier'] = modifier
             mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
         if cgmType is not None:
+            #l_names[i]['cgmType'] = cgmType            
             mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
             
         #l_joints[i] = mJnt.mNode
         if connectToSource:
-            mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect	    
+            mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect
         
         if mJnt.hasAttr('scaleJoint'):
             if mJnt.scaleJoint in ml_skinJoints:
@@ -1537,7 +1704,8 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
 
     #Name loop
     ml_joints[0].parent = False
-    for mJnt in ml_joints:
+    for i,mJnt in enumerate(ml_joints):
+        #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(l_names[i]))
         mJnt.doName()	
         
     if connectToModule:
@@ -1545,9 +1713,7 @@ def skeleton_buildDuplicateChain(sourceJoints = None, modifier = 'rig', connectT
             connectToModule.connectChildNode(ml_joints[0],connectAs,'rigNull')
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
-        
-    log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
-    
+            
     return ml_joints
 
 
@@ -1694,11 +1860,15 @@ def skeleton_getHandleChain(self, typeModifier = None):
     if not ml_fkJoints:
         log.info("|{0}| >> Generating handleJoints".format(_str_func))
         
+        ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+        if not ml_templateHandles:
+            raise ValueError,"No templateHandles connected"        
+        
         ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
         if not ml_prerigHandles:
             raise ValueError,"No prerigHandles connected"
         
-        mOrientHelper = ml_prerigHandles[0].orientHelper
+        mOrientHelper = ml_templateHandles[0].orientHelper or ml_prerigHandles[0].orientHelper
         _d = skeleton_getCreateDict(self)
         pprint.pprint(_d)
         ml_fkJoints = COREJOINTS.build_chain(targetList=_d['helpers']['targets'],
@@ -1706,6 +1876,12 @@ def skeleton_getHandleChain(self, typeModifier = None):
                                            axisUp='y+',
                                            parent=True,
                                            worldUpAxis= mOrientHelper.getAxisVector('y+'))
+        
+        for i,mJnt in enumerate(ml_fkJoints):
+            mJnt.doCopyNameTagsFromObject(ml_prerigHandles[i].mNode, ignore = ['cgmType'])
+            if not typeModifier:
+                mJnt.doName()
+                
         if typeModifier:
             for mJnt in ml_fkJoints:
                 mJnt.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
@@ -3107,7 +3283,7 @@ def getState(self, asString = True):
             if not _goodState:
                 _idx = _l_blockStates.index(_state) - 1
                 log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
-                while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
+                while _idx > 0 and not self.atUtils('is_{0}'.format(_l_blockStates[_idx])):
                     log.debug("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
                     _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
                     #self.changeState(_l_blockStates[_idx])

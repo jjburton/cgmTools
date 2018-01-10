@@ -614,7 +614,7 @@ class cgmNode(r9Meta.MetaClass):
             #log.debug("..."+tag)
             if tag not in ignore and targetCGM[tag] not in [None,False]:
                 if ATTR.has_attr(target,tag):
-                    ATTR.copy_to(target,tag,self.mNode)
+                    ATTR.copy_to(target,tag,self.mNode,inConnection=True)
                     #ATTR.copy_to(target,tag,
                                           #self.mNode,connectTargetToSource=False)
                     didSomething = True
