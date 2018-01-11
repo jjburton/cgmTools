@@ -411,10 +411,6 @@ def spline(jointList = None,
     return _res
 
 
-    #import pprint
-    pprint.pprint(vars())
-    #pprint.pformat(vars)
-    return
 
 
 def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False, orientation = 'zyx'):

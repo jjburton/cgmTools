@@ -324,6 +324,9 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
                 ATTR.set_standardFlags(mi_control.mNode,channels=['sx','sy','sz'])
             cgmMeta.cgmAttr(mi_control,'visibility',lock=True,hidden=True)      
         
+        for mShape in mi_control.getShapes(asMeta=True):
+            mShape.doName()
+        
         #return ============================================================================================
         #pprint.pprint(vars())
         

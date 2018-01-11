@@ -324,6 +324,7 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             mc.delete(_l_objShapes)
     
     mc.select (cl=True)
+    #mc.refresh()    
     for c in l_shapes:
         try:
             _shapeCheck = SEARCH.is_shape(c)
@@ -332,12 +333,15 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             if coreNames.get_long(obj) == coreNames.get_long(c):
                 raise ValueError,"Cannot parentShape self"
             
-            
+            if VALID.get_mayaType(c) == 'nurbsCurve':
+                mc.ls(['%s.ep[*]'%(c)],flatten=True)
+                #This is for a really weird bug in 2016 where offset curve shapes don't work right unless they're components are queried.
+                
             if _shapeCheck:
                 _dup_curve = duplicate_shape(c)[0]
                 log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
                 if snapFirst:
-                    SNAP.go(_dup_curve,obj)                    
+                    SNAP.go(_dup_curve,obj)
             else:
                 log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
                 _dup_curve =  mc.duplicate(c)[0]

@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -995,18 +995,23 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
                         d_epPos = {}
                         for i,crv in enumerate(l_mainCurves):
+                            #mc.ls(['%s.%s[*]'%(crv,'ep')],flatten=True)
                             mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                            mCrv.getComponents('ep',True)
+                            #continue
                             for ii,ep in enumerate(mCrv.getComponents('ep',True)):
                                 if not d_epPos.get(ii):
                                     d_epPos[ii] = []
                                 _l = d_epPos[ii]
                                 _l.append(POS.get(ep))
-                                
+                        
                         for k,points in d_epPos.iteritems():
                             crv_connect = CURVES.create_fromList(posList=points)
-                            l_mainCurves.append(crv_connect)
-                            """
+                            l_mainCurves.append(crv_connect)"""
+                            
+                        
                         for crv in l_mainCurves[1:]:
+                            log.debug("|{0}| >> combining: {1}".format(_str_func,crv))
                             RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         mCrv = cgmMeta.validateObjArg(l_mainCurves[0])
