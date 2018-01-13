@@ -4561,7 +4561,10 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 _size = [10,10,10]
                 
                 if self.getMessage('rigBlock'):
-                    _size = self.rigBlock.baseSize
+                    log.info("|{0}| >> Finding size from rigBlock...".format(_str_func))                    
+                    mBlock = self.rigBlock
+                    bb = DIST.get_bb_size(mBlock.getShapes(),True)
+                    _size = bb
                     
                 kws['size'] = _size
                 
@@ -4579,6 +4582,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mMasterControl.__verify__()
                 if self.getMessage('rigBlock'):
                     SNAP.go(mMasterControl.mNode, self.rigBlock.mNode)
+            else:
+                mMasterControl = mMasterControl[0]
             mMasterControl.parent = mMasterNull.mNode
             #mMasterControl.doName()
             
@@ -5206,9 +5211,11 @@ class cgmRigMaster(cgmMeta.cgmObject):
             
             if self.getMessage('puppet'):
                 if self.puppet.getMessage('rigBlock'):
-                    size = self.puppet.rigBlock.baseSize
+                    log.info("|{0}| >> Finding size from rigBlock...".format(_str_func))                    
+                    mBlock = self.puppet.rigBlock
+                    size = DIST.get_bb_size(mBlock.getShapes(),True)
+                    #size = self.puppet.rigBlock.baseSize
             
-    
                     
             log.debug("|{0}| >> size: {1}".format(_str_func,size))
             
@@ -5305,7 +5312,9 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 
                 mHelper.p_position = pos
                 mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
-
+            
+            for mShape in self.getShapes(asMeta=True):
+                mShape.doName()
             return True
         
         except Exception,err:cgmGEN.cgmException(Exception,err)

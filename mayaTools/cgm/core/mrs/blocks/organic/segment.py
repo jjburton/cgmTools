@@ -94,6 +94,8 @@ __menuVisible__ = True
 #These are our base dimensions. In this case it is for human
 
 #>>>Profiles =====================================================================================================
+d_rig_profiles = {'unity':{'numJoints':12}}
+
 d_block_profiles = {'tail':{'numControls':5,
                             'numJoints':12,
                             'numShapers':5,

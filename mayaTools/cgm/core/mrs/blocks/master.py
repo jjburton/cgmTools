@@ -48,6 +48,9 @@ __autoTemplate__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
 
+#>>>Profiles =====================================================================================================
+d_rig_profiles = {'unity':{'addMotionJoint':True}}
+
 #>>>Attrs ----------------------------------------------------------------------------------------------------
 l_attrsStandard = ['addMotionJoint','moduleTarget','baseSize']
 
