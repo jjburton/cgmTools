@@ -1083,15 +1083,23 @@ class ui(cgmUI.cgmGUI):
         CGMUI.add_LineSubBreak()
         _row_push = mUI.MelHLayout(_RightColumn,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(_row_push,'Define>',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','define',**{}))
-        CGMUI.add_Button(_row_push,'<Template>',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','template',**{'forceNew':True}))
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','define',**{}),
+                         '[Define] - initial block state')
+        CGMUI.add_Button(_row_push,'<Templ>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','template',**{'forceNew':True}),
+                         '[Template] - Shaping the proxy and initial look at settings')
                          
-        CGMUI.add_Button(_row_push,'<PreRig>',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','prerig',**{'forceNew':True}))
+        CGMUI.add_Button(_row_push,'<Prerig>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','prerig',**{'forceNew':True}),
+                         '[Prerig] - More refinded placement and setup before rig process')
+
+        CGMUI.add_Button(_row_push,'<Joint>',
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','skeleton',**{'forceNew':True}),
+                         '[Joint] - Build skeleton if necessary')
 
         CGMUI.add_Button(_row_push,'<Rig',
-                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','rig',**{'forceNew':True}))
+                         cgmGEN.Callback(self.uiFunc_contextualCall,'changeState','rig',**{'forceNew':True}),
+                         '[Rig] - Push to a fully rigged state.')
 
         _row_push.layout()
                

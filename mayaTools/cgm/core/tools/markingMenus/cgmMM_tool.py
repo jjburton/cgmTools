@@ -38,7 +38,7 @@ from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
-
+reload(MMPuppet)
 #reload(mmTemplate)
 #from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
@@ -560,7 +560,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         
         mc.menuItem(parent = parent,
                     l='MRS - WIP',
-                    c=lambda *a: mc.evalDeferred(TOOLCALLS.mrsUI))                   
+                    c=lambda *a: mc.evalDeferred(TOOLCALLS.mrsUI))
         
         #UICHUNKS.uiSection_arrange(parent,self._len_sel, self._b_sel_pair)
         #UICHUNKS.uiSection_shapes(parent,self._l_sel,self._b_sel_pair)

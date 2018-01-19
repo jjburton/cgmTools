@@ -61,6 +61,11 @@ d_defaultSettings = {'version':__version__,
                      'addMotionJoint':True, 
                      'attachPoint':'end'}
 
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
+                   'msgLists':['prerigHandles']}
+d_wiring_template = {}
+
+
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format
 #cgmRigamathig
@@ -236,8 +241,8 @@ def rig_cleanUp(self):
         mPlug_globalScale = self.d_module['mPlug_globalScale']
                 
         if mBlock.addMotionJoint:
-            if not is_skeletonized(mBlock):
-                build_skeleton(mBlock)
+            if not skeleton_check(mBlock):
+                skeleton_build(mBlock)
             
             mRootMotionHelper = mBlock.rootMotionHelper
             mPuppet = mBlock.moduleTarget
@@ -356,14 +361,14 @@ def is_rig(self):
     return True
 
 #=============================================================================================================
-#>> Skeleton
+#>> Bind
 #=============================================================================================================
-def build_skeleton(self):
+def skeleton_build(self):
     #    
     try:
-        if is_skeletonized(self):
+        if skeleton_check(self):
             return True
-        
+
         if self.addMotionJoint:
             mPuppet = self.moduleTarget
             if not mPuppet:
@@ -378,13 +383,13 @@ def build_skeleton(self):
             return mJoint.mNode
     except Exception,err:cgmGEN.cgmException(Exception,err
                                              )
-def is_skeletonized(self):
+def skeleton_check(self):
     if self.addMotionJoint:
         if not self.getMessage('rootJoint'):
             return False
     return True
 
-def skeletonDelete(self):
+def skeleton_delete(self):
     if is_skeletonized(self):
         log.warning("MUST ACCOUNT FOR CHILD JOINTS")
         mc.delete(self.getMessage('rootJoint'))

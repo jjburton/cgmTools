@@ -3199,7 +3199,7 @@ CGM_RIGBLOCK_DAT = None
 def get_modules_dict(update=False):
     return get_modules_dat(update)[0]
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_modules_dat(update = False):
     """
     Data gather for available blocks.
@@ -3429,6 +3429,7 @@ _l_requiredModuleDat = ['__version__',
 _d_requiredModuleDat = {'define':['__version__'],
                         'template':['template',],
                         'prerig':['prerig','is_prerig'],
+                        'skeleton':['build_skeleton'],
                         'rig':['is_rig','rigDelete']}
 _d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
 
@@ -3455,7 +3456,7 @@ def get_blockModule_status(blockModule, state = None):
 
     if state is None:
         _res = {}        
-        for state in ['define','template','prerig','rig']:
+        for state in BLOCKSHARE._l_blockStates:
             l_tests = _d_requiredModuleDat[state]
             l_functionTests = _d_requiredModuleDatCalls.get(state,[])            
             _good = True
@@ -4286,6 +4287,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                     node = _buffer[0]
         
             super(cgmRigPuppet, self).__init__(node = node, name = name, nodeType = 'network') 
+            self._blockModule=None
     
             #====================================================================================	
             #>>> TO USE Cached instance ---------------------------------------------------------
@@ -5377,7 +5379,13 @@ class cgmRigMaster(cgmMeta.cgmObject):
     
             self.doName()    
         except Exception,err:cgmGEN.cgmException(Exception,err)
-
+        
+    def getBlockModule(self,update = False):
+        if self._blockModule and not update:
+            return self._blockModule
+        return get_blockModule('master')
+    p_blockModule = property(getBlockModule)
+    
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # MODULE Base class
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
@@ -5437,7 +5445,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             
             _str_func = ' cgmRigModule.__init__ [{0}]'.format(self)
             log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)        
-            
+            self._blockModule=None
             #====================================================================================	
             #>>> TO USE Cached instance ---------------------------------------------------------
             if self.cached:
@@ -5593,7 +5601,14 @@ class cgmRigModule(cgmMeta.cgmObject):
     def get_mirrorSideAsString(self,*args,**kws):
         return self.atUtils('mirror_getSideString',*args,**kws)
     def rig_getSkinJoints(self,asMeta=True):
-        return self.atUtils('rig_getSkinJoints',asMeta)    
+        return self.atUtils('rig_getSkinJoints',asMeta)
+    
+    def getBlockModule(self,update = False):
+        if self._blockModule and not update:
+            return self._blockModule
+        blockType = self.getMayaAttr('moduleType')
+        return get_blockModule(blockType)
+    p_blockModule = property(getBlockModule)
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    

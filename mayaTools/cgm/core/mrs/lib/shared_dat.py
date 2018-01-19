@@ -26,7 +26,7 @@ d_defaultAttrSettings = {'blockState':'define'}
 _l_requiredSkeletonDat = ['__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']
 _l_requiredRigDat = []
 
-_l_blockStates = ['define','template','prerig','rig']
+_l_blockStates = ['define','template','prerig','skeleton','rig']
 _l_requiredModuleDat = ['__version__',
                         'template','is_template','templateDelete',
                         'prerig','is_prerig','prerigDelete',

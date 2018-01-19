@@ -94,6 +94,10 @@ d_defaultSettings = {'version':__version__,
                      'proxy':1,
                      'proxyType':1}
 
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
+                   'msgLists':['prerigHandles']}
+d_wiring_template = {'msgLinks':['templateNull'],
+                     }
 
 #=============================================================================================================
 #>> Define
@@ -164,10 +168,10 @@ def template(self):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
-def is_template(self):
-    if self.getMessage('templateNull'):
-        return True
-    return False
+#def is_template(self):
+#    if self.getMessage('templateNull'):
+#        return True
+#    return False
 
 #=============================================================================================================
 #>> Prerig
@@ -234,8 +238,8 @@ def prerigDelete(self):
         mc.delete(self.getMessage('noTransformNull'))
     return BLOCKUTILS.prerig_delete(self,templateHandles=True)
 
-def is_prerig(self):
-    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
+#def is_prerig(self):
+#    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
 
 """
 def is_prerig(self):
@@ -296,9 +300,9 @@ def is_rig(self):
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
-def build_skeleton(self, forceNew = True):
+def skeleton_build(self, forceNew = True):
     _short = self.mNode
-    _str_func = '[{0}] > build_skeleton'.format(_short)
+    _str_func = '[{0}] > skeleton_build'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func)) 
     
     _radius = 1
@@ -350,7 +354,7 @@ def build_skeleton(self, forceNew = True):
     return mJoint.mNode        
 
         
-def is_skeletonized(self):
+def skeleton_check(self):
     if self.getMessage('moduleTarget'):
         if self.moduleTarget.getMessage('rigNull'):
             if self.moduleTarget.rigNull.msgList_get('moduleJoints'):
@@ -391,13 +395,13 @@ def rig_skeleton(self):
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
     
-    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints, 'rig', self.mRigNull,'rigJoints')
+    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints')
     
     if self.mBlock.addAim:
         log.info("|{0}| >> Aim...".format(_str_func))              
-        ml_aimFKJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'fk', self.mRigNull, 'aimFKJoint', singleMode = True )
-        ml_aimBlendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'blend', self.mRigNull, 'aimBlendJoint', singleMode = True)
-        ml_aimIkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(ml_joints[-1], 'aim', self.mRigNull, 'aimIKJoint', singleMode = True)
+        ml_aimFKJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'fk', self.mRigNull, 'aimFKJoint', singleMode = True )
+        ml_aimBlendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'blend', self.mRigNull, 'aimBlendJoint', singleMode = True)
+        ml_aimIkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'aim', self.mRigNull, 'aimIKJoint', singleMode = True)
         ml_jointsToConnect.extend(ml_aimFKJoints + ml_aimIkJoints)
         ml_jointsToHide.extend(ml_aimBlendJoints)
     

@@ -643,9 +643,25 @@ def is_prerig(self):
     try:
         _str_func = 'is_prerig'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-        
         return check_msgDat(self, get_stateLinks(self,'prerig'))
-
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def is_skeleton(self):
+    try:
+        _str_func = 'is_skeleton'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        
+        mBlockModule = self.p_blockModule
+    
+        if 'skeleton_check' in mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule skeleton_check call found...".format(_str_func))            
+            return self.atBlockModule('skeleton_check')
+    
+        return True        
+        
+        return check_msgDat(self, get_stateLinks(self,'skeleton'))
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
@@ -2793,7 +2809,8 @@ def controlsRig_reset(self):
 _d_attrStateMasks = {0:[],
                      1:['basicShape'],
                      2:['baseSizeX','baseSizeY','baseSizeZ','blockScale','proxyShape','shapeDirection'],
-                     3:['hasJoint','side','position','attachPoint']}
+                     3:['hasJoint','side','position','attachPoint'],
+                     4:[]}
 
 def uiQuery_getStateAttrs(self,mode = None):
     try:
@@ -2992,6 +3009,69 @@ def prerigDelete(self):
     self.blockState = 'template'#...yes now in this state
     return True
 
+
+def skeleton(self):
+    _str_func = 'skeleton'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state == 'skeleton':
+        log.debug("|{0}| >> Already in skeleton state...".format(_str_func))                    
+        return True
+    elif _str_state != 'prerig':
+        raise ValueError,"[{0}] is not in prerig template. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'prerig>skeleton'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+    
+    for c in ['skeleton_build','build_skeleton']:
+        if c in mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
+            self.atBlockModule(c)
+
+    self.blockState = 'skeleton'#...yes now in this state
+    return True
+
+def skeletonDelete(self):
+    _str_func = 'skeletonDelete'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state != 'skeleton':
+        raise ValueError,"[{0}] is not in skeleton state. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    self.blockState = 'skeleton>prerig'#...buffering that we're in process
+
+    mBlockModule = self.p_blockModule
+    l_blockModuleKeys = mBlockModule.__dict__.keys()
+    
+    if 'skeleton_delete' in l_blockModuleKeys:
+        log.debug("|{0}| >> BlockModule skeleton_delete call found...".format(_str_func))
+        self.atBlockModule('skeleton_delete')
+    
+    #d_links = get_stateLinks(self, 'joint')
+    #delete_msgDat(self,d_links)
+    
+    self.blockState = 'prerig'#...yes now in this state
+    return True
+
+
+
 def rig(self,**kws):
     _str_func = 'rig'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
@@ -3083,15 +3163,18 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         #>Validate our data ------------------------------------------------------
         d_upStateFunctions = {'template':template,
                               'prerig':prerig,
+                              'skeleton':skeleton,
                               'rig':rig,
                               }
         d_downStateFunctions = {'define':templateDelete,
                                 'template':prerigDelete,
-                                'prerig':rigDelete,
+                                'prerig':skeletonDelete,
+                                'skeleton':rigDelete,
                                 }
         d_deleteStateFunctions = {'template':templateDelete,
                                   'prerig':prerigDelete,
                                   'rig':rigDelete,
+                                  'skeleton':skeletonDelete,
                                   }
         
         stateArgs = BLOCKGEN.validate_stateArg(state)
@@ -3269,6 +3352,7 @@ def is_rigged(self):
 def getState(self, asString = True):
     d_stateChecks = {'template':is_template,
                      'prerig':is_prerig,
+                     'skeleton':is_skeleton,
                      'rig':is_rigged}
     try:
         _str_func = 'getState'

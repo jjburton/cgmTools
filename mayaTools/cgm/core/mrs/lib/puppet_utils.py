@@ -49,6 +49,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 
 #=============================================================================================================
 #>> Queries
@@ -107,7 +108,6 @@ def modules_get(self):
                     ml_allModules.append(m)
                     
         return ml_allModules        
-     
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def modules_gather(self,**kws):
@@ -134,9 +134,7 @@ def module_connect(self,mModule,**kws):
         ml_buffer = copy.copy(self.getMessage('moduleChildren',asMeta=True)) or []#Buffer till we have have append functionality	
             #self.i_masterNull = self.masterNull
         
-
         mModule = cgmMeta.validateObjArg(mModule,'cgmRigModule')
-
 
         if mModule not in ml_buffer:
             ml_buffer.append(mModule)
@@ -153,9 +151,6 @@ def module_connect(self,mModule,**kws):
         return True        
        
     except Exception,err:cgmGEN.cgmException(Exception,err)
-    
-
-    
     
 #=============================================================================================================
 #>> Mirror
@@ -219,4 +214,69 @@ def mirror_getDict(self):
                         d_return[int_side].append(int_idx)
         return d_return
      
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+#=============================================================================================================
+#>> Anim
+#=============================================================================================================
+def modules_settings_set(self,**kws):
+    try:
+        _str_func = ' modules_settings_set'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        for mModule in modules_get(self):
+            if mModule.rigNull.getMessage('settings'):
+                mSettings = mModule.rigNull.settings
+                _short_settings = mSettings.mNode
+                for k,v in kws.iteritems():
+                    try:
+                        ATTR.set(_short_settings,k,v)
+                    except Exception,err:
+                        log.debug("|{0}| >>  Failed to set: mModule:{1} | k:{2} | v:{3}".format(_str_func,mModule.mNode,k,v))
+            else:
+                log.debug("|{0}| >>  Missing settings: {1}".format(_str_func,mModule))
+        return True        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def anim_reset(self,transformsOnly = True):
+    try:
+        _str_func = ' anim_reset'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        _result = False
+        _sel = mc.ls(sl=True)
+        
+        self.puppetSet.select()
+        if mc.ls(sl=True):
+            ml_resetChannels.main(transformsOnly = transformsOnly)
+            _result = True
+        if _sel:mc.select(_sel)
+        return _result
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def anim_select(self):
+    try:
+        _str_func = ' anim_select'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        self.puppetSet.select()
+        return True        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def anim_key(self,**kws):
+    try:
+        _str_func = ' anim_key'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        _result = False
+        _sel = mc.ls(sl=True)
+        
+        l_objs = self.puppetSet.getList() or []
+        
+        if l_objs:
+            mc.select(l_objs)
+            mc.setKeyframe(**kws)
+            b_return =  True
+            
+        if _sel:mc.select(_sel)
+        return _result
+        
     except Exception,err:cgmGEN.cgmException(Exception,err)
