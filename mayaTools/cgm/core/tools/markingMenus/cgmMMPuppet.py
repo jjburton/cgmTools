@@ -202,6 +202,7 @@ def bUI_moduleSection(self,parent = None):
     for mModule in self._ml_modules:
         _short = mModule.p_nameShort
         _side = cgmGen.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center')
+        _mSettings = mModule.rigNull.settings
         if state_multiModule:
             iTmpModuleSub = mc.menuItem(p=iSubM_modules,l=" %s  "%mModule.getBaseName(),subMenu = True)
             use_parent = iTmpModuleSub
@@ -212,7 +213,7 @@ def bUI_moduleSection(self,parent = None):
             mc.menuItem(p = use_parent, l="Key",
                         c = cgmGen.Callback(mModule.atUtils,'anim_key'))
             mc.menuItem(p = use_parent, l="Select",
-                        c = cgmGen.Callback(mModule.atUtils,'anim_reset'))
+                        c = cgmGen.Callback(mModule.atUtils,'anim_select'))
             mc.menuItem(p = use_parent, l="Reset",
                         c = cgmGen.Callback(mModule.atUtils,'anim_reset',self.var_resetMode.value))                        
             mc.menuItem(p = use_parent, l="Mirror",
@@ -233,9 +234,10 @@ def bUI_moduleSection(self,parent = None):
             """
             
             mUI_toggle = mc.menuItem(p=use_parent,l="Toggle",subMenu = True)
-            for a in 'visSub','visDirect','blend_aim':
-                mUI.MelMenuItem( mUI_toggle, l=a,
-                                 c = cgmGen.Callback(mModule.atUtils,'anim_settings_toggle',a))
+            for a in 'visSub','visDirect','visRoot','blend_aim','FKIK':
+                if _mSettings.hasAttr(a):
+                    mUI.MelMenuItem( mUI_toggle, l=a,
+                                     c = cgmGen.Callback(mModule.atUtils,'anim_settings_toggle',a))
                 
         except Exception,err:
             log.error("|{0}| >> Basic module menu FAILURE: {1} | {2}".format(_str_func, _short,err))                
@@ -350,7 +352,7 @@ def bUI_puppetSection(self,parent = None):
             mmPuppetSettingsMenu = mc.menuItem(p = parent, l='Settings', subMenu=True)
             mmPuppetControlSettings = mPuppet.masterControl.controlSettings 
             
-            for attr in ['visSub','visDirect']:
+            for attr in ['visSub','visDirect','visRoot']:
                 mi_tmpMenu = mc.menuItem(p = mmPuppetSettingsMenu, l=attr, subMenu=True)
                 
                 mc.menuItem(p = mi_tmpMenu, l="Show",

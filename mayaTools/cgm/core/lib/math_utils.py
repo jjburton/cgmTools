@@ -193,9 +193,12 @@ def get_obj_vector(obj = None, axis = 'z+',asEuclid = False):
     if list(axis)[1] == '-':
         for i,v in enumerate(vector):
             vector[i]=-v
+            
+    mVector = Vector3(vector[0],vector[1],vector[2])
+    mVector.normalize()
     if asEuclid:
-        return Vector3(vector[0],vector[1],vector[2])          
-    return vector
+        return mVector
+    return mVector.x,mVector.y,mVector.z
     
     
 def get_space_value(arg, mode = 'mayaSpace'):

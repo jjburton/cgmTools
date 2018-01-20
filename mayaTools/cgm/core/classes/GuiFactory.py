@@ -80,7 +80,7 @@ class markingMenu(object):
         #self.create_guiOptionVar('isClicked', value = 0)
         #self.create_guiOptionVar('mmAction', value = 0)
         self.create_guiOptionVar('clockStart', value = 0.0)  
-    
+        self._ui_parentPanel = None
         #>>>> Clock set
         #====================================================================
     
@@ -99,7 +99,8 @@ class markingMenu(object):
         if _p:
             log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
             _parentPanel = mc.panel(_p,q = True,ctl = True)
-            log.debug("...panel parent: {1}...".format(self._str_MM,_parentPanel))
+            #self._ui_parentPanel = _parentPanel
+            log.info("...panel parent: {1}...".format(self._str_MM,_parentPanel))
             if 'MayaWindow' in _parentPanel:
                 _p = 'viewPanes'   
                 

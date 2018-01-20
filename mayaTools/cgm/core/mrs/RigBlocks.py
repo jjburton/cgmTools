@@ -1581,8 +1581,7 @@ class handleFactory(object):
         if _bfr:
             mc.delete(_bfr)
 
-
-        _sizeSub = self.get_subSize(.5)
+        _sizeSub = self.get_subSize[0](.5)
 
 
         #helper ======================================================================================
@@ -1611,10 +1610,10 @@ class handleFactory(object):
 
     def get_subSize(self,mult = .2):
         mHandle = self._mTransform        
-        _bbsize = POS.get_axisBox_size(mHandle.mNode)
-        _size = MATH.average(_bbsize)
+        _absize = POS.get_axisBox_size(mHandle.mNode)
+        _size = MATH.average(_absize)
         _sizeSub = _size * mult
-        return _sizeSub
+        return _sizeSub, _size, _absize
 
     def addCogHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
         try:
@@ -1626,17 +1625,20 @@ class handleFactory(object):
             upAxis = 'y+'
 
             mHandle = self._mTransform
+            mBlock = self.mBlock
+            
             _short = mHandle.mNode
 
             _bfr = mHandle.getMessage(_plug)
             if _bfr:
                 mc.delete(_bfr)
-
-            _sizeSub = self.get_subSize(.25)
-            _sizeByBB = [_sizeSub, _sizeSub * .5, _sizeSub]
+                
+            _sizeSub, _size, _absize = self.get_subSize(.25)
+            _sizeByBB = [_absize[0] * .5, _absize[1] * .15, _absize[2]*.5]
             self_pos = mHandle.p_position
             self_upVector = mHandle.getAxisVector(upAxis)
-
+            
+            mCurve = cgmMeta.validateObjArg(self._mTransform.doCreateAt(),'cgmObject',setClass=True)
             #helper ======================================================================================
             d_shapeDirections = {'back':'z-',
                                  'front':'z+',
@@ -1650,21 +1652,29 @@ class handleFactory(object):
                                                    direction = axis,
                                                    sizeMode = 'fixed', size = _sizeByBB)
                 mShape = cgmMeta.validateObjArg(shape,'cgmObject',setClass=True)
-
-                mShape.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _baseSize[0]/1.75)
+                _pos = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size)
+                mShape.p_position = _pos
+                #import cgm.core.lib.locator_utils as LOC
+                #LOC.create(position=_pos)
                 SNAP.aim_atPoint(mShape.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
 
                 ml_shapes.append(mShape)
 
                 #mCurve.scaleY = 2
                 #mCurve.scaleZ = .75
+                
+                CORERIG.shapeParent_in_place(mCurve.mNode,mShape.mNode,False)
+            
+            """
             mCurve = cgmMeta.validateObjArg(CORERIG.combineShapes([mObj.mNode for mObj in ml_shapes],keepSource=False),
-                                            'cgmObject',setClass=True)
+                                            'cgmObject',setClass=True)"""
 
 
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
+                
             mCurve.doStore('cgmType',_plug)
+            mCurve.doStore('cgmTypeModifier','shape')            
             mCurve.doName()    
 
             mCurve.p_parent = mHandle
@@ -1672,18 +1682,36 @@ class handleFactory(object):
             for a,v in setAttrs.iteritems():
                 ATTR.set(mCurve.mNode, a, v)
 
-            CORERIG.match_transform(mCurve.mNode, mHandle)
-            mCurve.connectParentNode(mHandle.mNode,'handle',_plug)
 
             #CORERIG.colorControl(mCurve.mNode,_side,'sub')
             self.color(mCurve.mNode,_side,'sub')
 
-            if mHandle.hasAttr('addCog'):
-                mHandle.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
-
-            self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
-
-            return mCurve    
+            mBlock.msgList_append('prerigHandles',mCurve.mNode)
+            
+            #Transform ---------------------------------------------------------------------------
+            mTrans = cgmMeta.validateObjArg( CURVES.create_text('COG',MATH.average(_sizeByBB)),'cgmObject',setClass=True)
+            SNAP.go(mTrans.mNode, mCurve.mNode)
+            self.color(mTrans.mNode,_side,'main')
+            
+            if mHandle.hasAttr('cgmName'):
+                ATTR.copy_to(mHandle.mNode,'cgmName',mTrans.mNode,driven='target')            
+            
+            mTrans.doStore('cgmType',_plug)
+            mTrans.doStore('cgmTypeModifier','dag')            
+            
+            mTrans.doName()                
+            
+            mCurve.p_parent = mTrans
+            
+            mTrans.connectParentNode(mBlock.mNode,'rigBlock',_plug)            
+            mCurve.connectParentNode(mTrans.mNode,'handle','shapeHelper')
+            
+            
+            if mBlock.hasAttr('addCog'):
+                mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
+                mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
+            
+            return mTrans    
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
@@ -1832,7 +1860,7 @@ class handleFactory(object):
             if _bfr:
                 mc.delete(_bfr)
 
-            _size = MATH.average(_baseSize[:1]) * .5
+            _size = MATH.average(_baseSize[:1]) #* .5
 
 
             #Joint helper ======================================================================================

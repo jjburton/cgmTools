@@ -837,8 +837,12 @@ def create_prerigLoftMesh(self, targets = None,
         else:
             ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
             toName = [_loftNode]
+            
+        if _rebuildNode:
+            mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
+            if _loftNode:
+                mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
 
-                
         for n in toName:
             mObj = cgmMeta.validateObjArg(n)
             mObj.doStore('cgmName',self.mNode)
@@ -846,10 +850,7 @@ def create_prerigLoftMesh(self, targets = None,
             mObj.doName()                        
        
         self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')
-        if _rebuildNode:
-            mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
-        if _loftNode:
-            mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
+        
         return mLoftSurface
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
@@ -1758,7 +1759,12 @@ def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
+    if self.blockType == 'master':
+        log.debug("|{0}| >> Master block type. No connection possible".format(_str_func))                   
+        return True
+    
     mModule = self.moduleTarget
+    
     ml_moduleJoints = mModule.rigNull.msgList_get('moduleJoints',asMeta = True)
     
     ml_parentBlocks = self.getBlockParents()
@@ -1883,13 +1889,18 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             raise Exception,"Limit Buffer not implemented"
    
 
-def skeleton_getHandleChain(self, typeModifier = None):
+def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
     """
     Generate a handle chain of joints if none exists, otherwise return existing
+    
+    :parameters:
+        typeModifier(str): for nam linking
+        jointHelpers(bool): Whether to use jointHelpers or preRigHandles
+        
     """
     _short = self.mNode
     _str_func = 'skeleton_getHandleChain [{0}]'.format(_short)
-    start = time.clock()	
+    #start = time.clock()	
     
     mRigNull = self.moduleTarget.rigNull
     ml_fkJoints = mRigNull.msgList_get('fkJoints')
@@ -1906,13 +1917,21 @@ def skeleton_getHandleChain(self, typeModifier = None):
             raise ValueError,"No prerigHandles connected"
         
         mOrientHelper = ml_templateHandles[0].orientHelper or ml_prerigHandles[0].orientHelper
-        _d = skeleton_getCreateDict(self)
-        pprint.pprint(_d)
-        ml_fkJoints = COREJOINTS.build_chain(targetList=_d['helpers']['targets'],
-                                           axisAim='z+',
-                                           axisUp='y+',
-                                           parent=True,
-                                           worldUpAxis= mOrientHelper.getAxisVector('y+'))
+        #_d = skeleton_getCreateDict(self)
+        #pprint.pprint(_d)
+        l_pos = []
+        if jointHelpers:
+            for mObj in ml_prerigHandles:
+                l_pos.append(mObj.jointHelper.p_position)
+        else:
+            for mObj in ml_prerigHandles:
+                l_pos.append(mObj.p_position)            
+            
+        ml_fkJoints = COREJOINTS.build_chain(posList = l_pos,
+                                             axisAim='z+',
+                                             axisUp='y+',
+                                             parent=True,
+                                             worldUpAxis= mOrientHelper.getAxisVector('y+'))
         
         for i,mJnt in enumerate(ml_fkJoints):
             mJnt.doCopyNameTagsFromObject(ml_prerigHandles[i].mNode, ignore = ['cgmType'])
@@ -1929,7 +1948,7 @@ def skeleton_getHandleChain(self, typeModifier = None):
     else:
         log.info("|{0}| >> Found fkJoints".format(_str_func))
         
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     return ml_fkJoints
 
 
@@ -3084,19 +3103,19 @@ def rig(self,**kws):
     if _str_state == 'rig':
         log.debug("|{0}| >> Already in rig state...".format(_str_func))                    
         return True
-    elif _str_state != 'prerig':
-        raise ValueError,"[{0}] is not in prerig template. state: {1}".format(self.mNode, _str_state)
+    elif _str_state != 'skeleton':
+        raise ValueError,"[{0}] is not in skeleton template. state: {1}".format(self.mNode, _str_state)
 
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'prerig>rig'#...buffering that we're in process
+    self.blockState = 'skeleton>rig'#...buffering that we're in process
     if not 'autoBuild' in kws.keys():
         kws['autoBuild'] = True
     self.asRigFactory(**kws)
     if not is_rigged(self):
         log.error("|{0}| >> Failed to return is_rigged...".format(_str_func))                    
-        self.blockState = 'prerig'
+        self.blockState = 'skeleton'
         return False
     else:
         self.blockState = 'rig'
@@ -3119,7 +3138,7 @@ def rigDelete(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'rig>prerig'#...buffering that we're in process
+    self.blockState = 'rig>skeleton'#...buffering that we're in process
     
     mModuleTarget = self.moduleTarget
     if mModuleTarget:
@@ -3147,7 +3166,7 @@ def rigDelete(self):
         log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))
         self.atBlockModule('rigDelete')
     
-    self.blockState = 'prerig'#...yes now in this state
+    self.blockState = 'skeleton'#...yes now in this state
     return True
 
 @cgmGEN.Timer
@@ -3439,12 +3458,14 @@ def profile_load(self, arg):
     for a,v in _d.iteritems():
         try:
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
-            
+            _done = False
             if issubclass(type(v),list):
                 if self.datList_exists(a):
+                    log.debug("|{0}| datList...".format(_str_func))                                     
                     mc.select(cl=True)
-                    ATTR.datList_connect(_short, a, v, mode='string')                    
-            else:
+                    ATTR.datList_connect(_short, a, v, mode='string')
+                    _done = True
+            if not _done:
                 ATTR.set(_short,a,v)
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 

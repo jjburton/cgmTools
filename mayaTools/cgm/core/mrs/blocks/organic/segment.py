@@ -129,7 +129,7 @@ d_block_profiles = {'tail':{'numControls':5,
                              'loftSetup':'default',
                              'loftShape':'square',
                              'ikSetup':'ribbon',
-                             'ikBase':'simple',
+                             'ikBase':'hips',
                              'nameIter':'spine',
                              'nameList':['hips','shoulders'],                             
                              'baseAim':[0,1,0],
@@ -229,17 +229,19 @@ def template(self):
     _baseAim = self.baseAim
     _size_width = _baseSize[0]#...x width
     
+    if self.baseAim == self.baseUp:
+        raise ValueError,"baseAim and baseUp cannot be the same. baseAim: {0} | baseUp: {1}".format(self.baseAim,self.baseUp)
+    
     #Generate more posData if necessary...
     if not len(_l_basePos)>1:
         log.debug("|{0}| >> Generating more pos dat".format(_str_func))
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _baseAim, max(_baseSize))
         _l_basePos.append(_end)
     
-    reload(MATH)
     _mVectorAim = MATH.get_vector_of_two_points(_l_basePos[0],_l_basePos[1],asEuclid=True)
     _mVectorUp = _mVectorAim.up()
-    _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]
-    #cgmGEN.func_snapShot(vars())
+    _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
+    cgmGEN.func_snapShot(vars())
     
     #Create temple Null  ==================================================================================
     mTemplateNull = self.atUtils('templateNull_verify')
@@ -314,10 +316,12 @@ def template(self):
         mBaseOrientCurve.p_parent =  ml_handles[0]
         mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')        
     
-        mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
-                         aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = ml_handles[0].mNode, #skip = 'z',
-                         worldUpType = 'vector', worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z])    
+        _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
+                                  aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = ml_handles[0].mNode, #skip = 'z',
+                                  worldUpType = 'vector', worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
         
+        self.connectChildNode(mHandle.mNode,'orientHelper')
+        cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
         #mBaseOrientCurve.p_parent = mStartAimGroup
         
         mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])
@@ -346,8 +350,6 @@ def template(self):
                          worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
         
 
-    
-    
         #Sub handles=========================================================================================
         if self.numShapers > 2:
             log.debug("|{0}| >> Sub handles..".format(_str_func))
@@ -568,13 +570,18 @@ def prerig(self):
         #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self)
     
         #> Get our stored dat ==================================================================================================
-        mHandleFactory = self.asHandleFactory()   
+        mHandleFactory = self.asHandleFactory()
         #mTemplateMesh = self.getMessage('templateLoftMesh',asMeta=True)[0]
         
         #Get positions
         #DIST.get_pos_by_axis_dist(obj, axis)
         
         ml_templateHandles = self.msgList_get('templateHandles')
+        
+        #...cog -----------------------------------------------------------------------------
+        if self.addCog:
+            self.asHandleFactory(ml_templateHandles[0]).addCogHelper().p_parent = mPrerigNull
+        
         
         mStartHandle = ml_templateHandles[0]    
         mEndHandle = ml_templateHandles[-1]    
@@ -586,7 +593,7 @@ def prerig(self):
     
         _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
         #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]
-        _sizeSub = _size * .5    
+        _sizeSub = _size * .33    
         _vec_root_up = ml_templateHandles[0].orientHelper.getAxisVector('z+')
         
         
@@ -716,6 +723,7 @@ def prerig(self):
             s.overrideDisplayType = 1       
         """
         
+        """
         #Aim the segment
         for i,mHandle in enumerate(ml_handles):
             #if i > 0 and i < len(ml_handles) - 1:
@@ -727,20 +735,22 @@ def prerig(self):
                 mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = True, #skip = 'z',
                                  aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
                                  worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
-                
+                """
             
                     
 
 
         #>>Joint placers ==================================================================================================    
         #Joint placer aim....
+        
         for i,mHandle in enumerate(ml_handles):
             mJointHelper = mHandle.jointHelper
             mLoftCurve = mJointHelper.loftCurve
             
             if not mLoftCurve.getMessage('aimGroup'):
                 mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
-                 
+                
+            
             mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
         
             if mHandle == ml_handles[-1]:
@@ -751,7 +761,7 @@ def prerig(self):
                 mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
                                  aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
                                  worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
-    
+                                 
         #Joint placer loft....
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         
@@ -792,9 +802,9 @@ def prerigDelete(self):
             s.overrideDisplayType = 2
         mTemplateLoft.v = True
         
-def build_skeleton(self, forceNew = True):
+def skeleton_build(self, forceNew = True):
     _short = self.mNode
-    _str_func = 'build_skeleton'
+    _str_func = 'skeleton_build'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _radius = .25

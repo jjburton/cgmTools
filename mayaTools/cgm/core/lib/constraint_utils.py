@@ -45,7 +45,7 @@ _d_type_to_call = {'parentConstraint':mc.parentConstraint,
                     'scaleConstraint':mc.scaleConstraint,
                     'aimConstraint':mc.aimConstraint}
 
-def get_constraintsTo(node=None, fullPath = False):
+def get_constraintsTo(node=None, fullPath = True):
     """
     Get the constraints on a given node
     
@@ -65,7 +65,7 @@ def get_constraintsTo(node=None, fullPath = False):
         return [NAMES.long(o) for o in _res]
     return _res
 
-def get_constraintsFrom(node=None, fullPath = False):
+def get_constraintsFrom(node=None, fullPath = True):
     """
     Get the constraints a given node drives
     
@@ -267,7 +267,73 @@ def set_weightsByDistance(constraint=None,vList = None):
     for i,v in enumerate(vList):
         ATTR.set(constraint,_attrs[i],v)
 
-    return vList   
+    return vList
 
+def get_datDict(constraint = None):
+    _str_func = 'get_datDict'
+        
+    log.debug("|{0}| >> constraint: {1} ".format(_str_func,constraint))
+    result = {}
+    
+    result['driven'] = get_driven(constraint)
+    result['targets']= get_targets(constraint)
+    result['attrs']= get_targetWeightsAttrs(constraint)
+    result['type'] = VALID.get_mayaType(constraint)
+    result['attrWeights'] = get_targetWeightsDict(constraint)
+    
+    result['attrDrivers'] = []
+    for a in result['attrs']:
+        result['attrDrivers'].append(ATTR.get_driver("{0}.{1}".format(constraint,a)))
+    
+    return result
+
+def copy_constraint(sourceConstraint=None, targetObj=None, constraintType=None, maintainOffset = True):
+    """
+    Copy the constraint settings from a constraint to another object
+    :parameters:
+        node(str): node to query
+
+    :returns
+        list of constraints(list)
+    """   
+    _str_func = 'copy_constraint'
+    
+    log.debug("|{0}| >> constraint: {1} ".format(_str_func,sourceConstraint))
+    
+    d_source = get_datDict(sourceConstraint)
+    _type = d_source['type']
+
+    if constraintType is None:
+        if targetObj is None:
+            raise ValueError,"|{0}| >> Must have targetObject or constraintType ".format(_str_func)
+        else:
+            log.info("|{0}| >> No constraintType passed. Using source's: '{1}' ".format(_str_func,_type))            
+            constraintType = _type
+            
+    _call = _d_type_to_call.get(constraintType,False)
+    
+    if not _call:
+        raise ValueError,"|{0}| >> {1} not a known type of constraint. node: {2}".format(_str_func,_type,sourceConstraint)
+    
+    
+    if targetObj is None:
+        targetObj = d_source['driven']
+        log.info("|{0}| >> No target object passed. Using source's: '{1}' ".format(_str_func,targetObj))
+        
+    cgmGeneral.func_snapShot(vars())
+    result = _call(d_source['targets'], targetObj, maintainOffset=maintainOffset)
+    d_result = get_datDict(result[0])
+    
+    for i,a in enumerate(d_result['attrs']):
+        if d_source['attrDrivers'][i]:
+            ATTR.connect("{0}".format(d_source['attrDrivers'][i]), "{0}.{1}".format(result[0],d_result['attrs'][i]) )
+        else:
+            ATTR.set(result[0], d_result['attrs'][i], d_source['attrWeights'][ d_source['attrs'][i] ] )
+    
+    return result
+    
+    
+    
+    
 
  
