@@ -131,7 +131,7 @@ d_block_profiles = {'tail':{'numControls':5,
                              'ikSetup':'ribbon',
                              'ikBase':'hips',
                              'nameIter':'spine',
-                             'nameList':['hips','shoulders'],                             
+                             'nameList':['waist','shoulders'],                             
                              'baseAim':[0,1,0],
                              'baseUp':[0,0,-1],
                              'baseSize':[2,8,2]}}
@@ -1032,6 +1032,19 @@ def rig_shapes(self):
         _bbSize.remove(max(_bbSize))
         _size = MATH.average(_bbSize)
         
+        #Cog =============================================================================
+        if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
+            log.debug("|{0}| >> Cog...".format(_str_func))
+            mCogHelper = mBlock.cogHelper
+            
+            mCog = mCogHelper.doCreateAt()
+            CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
+            
+            mCog.doStore('cgmName','cog')
+            mCog.doName()            
+            
+        
+        return
         #Root =============================================================================
         log.debug("|{0}| >> Root...".format(_str_func))
         

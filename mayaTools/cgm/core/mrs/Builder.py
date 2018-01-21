@@ -773,10 +773,18 @@ class ui(cgmUI.cgmGUI):
         ATTR.set(obj,attr,_v)
         
         if attrType == 'enum':
-            field.setValue(ATTR.get_enumValueString(obj,attr))            
+            _strValue = ATTR.get_enumValueString(obj,attr)
+            field.setValue(_strValue)
+            
+            if attr == 'buildProfile':
+                log.info("Loading buildProfile...")
+                self._blockCurrent.atUtils('buildProfile_load',_strValue)
         else:
             field.setValue(ATTR.get(obj,attr))
+            
 
+            
+            
     def uiCallback_blockDatButton(self,func,*args,**kws):
         func(*args,**kws)
         self.uiUpdate_blockDat()

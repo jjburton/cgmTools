@@ -1889,7 +1889,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             raise Exception,"Limit Buffer not implemented"
    
 
-def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
+def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = False):
     """
     Generate a handle chain of joints if none exists, otherwise return existing
     
@@ -2826,8 +2826,10 @@ def controlsRig_reset(self):
 
 
 _d_attrStateMasks = {0:[],
-                     1:['basicShape'],
-                     2:['baseSizeX','baseSizeY','baseSizeZ','blockScale','proxyShape','shapeDirection'],
+                     1:['basicShape',],
+                     2:['baseSizeX','baseSizeY','baseSizeZ',
+                        'buildProfile','blockProfile',
+                        'blockScale','proxyShape','shapeDirection'],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
@@ -2875,7 +2877,7 @@ def uiQuery_getStateAttrs(self,mode = None):
                     l_mask.append(a)
             l_attrs = l_mask        
             
-        if _intState > 1:#prerig up
+        if _intState > 1:#...prerig
             l_mask = []
             log.debug("|{0}| >> prerig up cull...".format(_str_func))            
             for a in l_attrs:
@@ -3426,7 +3428,7 @@ def getState(self, asString = True):
     
     
 #Profile stuff ==============================================================================================
-def profile_getOptions(self ):
+def profile_block_getOptions(self ):
     try:
         _str_func = 'profile_getOptions'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -3442,7 +3444,7 @@ def profile_getOptions(self ):
         cgmGEN.cgmException(Exception,err)
         
         
-def profile_load(self, arg):
+def profile_block_load(self, arg):
     _str_func = 'profile_load'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     _short = self.mNode
@@ -3470,5 +3472,31 @@ def profile_load(self, arg):
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
 
-        
-        
+def buildProfile_load(self, arg):
+    _str_func = 'buildProfile_load'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    _short = self.mNode
+    mBlockModule = self.p_blockModule
+    log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+    reload(mBlockModule)
+    
+    try:_d = mBlockModule.d_build_profiles[arg]
+    except Exception,err:
+        return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
+    
+    cgmGEN.func_snapShot(vars())
+    log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
+    for a,v in _d.iteritems():
+        try:
+            log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
+            _done = False
+            if issubclass(type(v),list):
+                if self.datList_exists(a):
+                    log.debug("|{0}| datList...".format(_str_func))                                     
+                    mc.select(cl=True)
+                    ATTR.datList_connect(_short, a, v, mode='string')
+                    _done = True
+            if not _done:
+                ATTR.set(_short,a,v)
+        except Exception,err:
+            log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 

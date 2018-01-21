@@ -49,10 +49,15 @@ __menuVisible__ = True
 __baseSize__ = 10,10,10
 
 #>>>Profiles =====================================================================================================
-d_rig_profiles = {'unity':{'addMotionJoint':True}}
+d_build_profiles = {'unityMobile':{'addMotionJoint':True,
+                                   'buildProfile':'unityMobile'},
+                    'unityPC':{'addMotionJoint':True,
+                               'buildProfile':'unityPC'},
+                    'feature':{'addMotionJoint':False,
+                               'buildProfile':'feature'}}
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
-l_attrsStandard = ['addMotionJoint','moduleTarget','baseSize']
+l_attrsStandard = ['addMotionJoint','moduleTarget','baseSize','buildProfile']
 
 d_attrsToMake = {'rootJoint':'messageSimple'}
 
@@ -390,7 +395,7 @@ def skeleton_check(self):
     return True
 
 def skeleton_delete(self):
-    if is_skeletonized(self):
+    if skeleton_check(self):
         log.warning("MUST ACCOUNT FOR CHILD JOINTS")
         mc.delete(self.getMessage('rootJoint'))
     return True
