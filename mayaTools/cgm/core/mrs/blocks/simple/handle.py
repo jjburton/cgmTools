@@ -63,7 +63,12 @@ __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_frame',
                        'rig_cleanUp']
 
-#>>>Attrs ----------------------------------------------------------------------------------------------------
+#>>>Profiles =====================================================================================================
+d_build_profiles = {'unityMobile':{},
+                    'unityPC':{},
+                    'feature':{}}
+
+#>>>Attrs ========================================================================================================
 l_attrsStandard = ['side',
                    'position',
                    'hasJoint',
@@ -75,6 +80,7 @@ l_attrsStandard = ['side',
                    'addCog',
                    'addScalePivot',
                    'proxy',
+                   'buildProfile',
                    'moduleTarget']
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),

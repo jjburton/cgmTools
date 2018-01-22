@@ -49,14 +49,11 @@ __menuVisible__ = True
 __baseSize__ = 10,10,10
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {'unityMobile':{'addMotionJoint':True,
-                                   'buildProfile':'unityMobile'},
-                    'unityPC':{'addMotionJoint':True,
-                               'buildProfile':'unityPC'},
-                    'feature':{'addMotionJoint':False,
-                               'buildProfile':'feature'}}
+d_build_profiles = {'unityMobile':{'addMotionJoint':True},
+                    'unityPC':{'addMotionJoint':True,},
+                    'feature':{'addMotionJoint':False}}
 
-#>>>Attrs ----------------------------------------------------------------------------------------------------
+#>>>Attrs =======================================================================================================
 l_attrsStandard = ['addMotionJoint','moduleTarget','baseSize','buildProfile']
 
 d_attrsToMake = {'rootJoint':'messageSimple'}
@@ -94,6 +91,7 @@ def define(self):
     self.setAttrFlags(attrs=['sx','sz'])
     self.doConnectOut('sy',['sx','sz'])
     ATTR.set_alias(_short,'sy','blockScale')
+    
     
 #=============================================================================================================
 #>> Template
@@ -151,6 +149,7 @@ def template(self):
     _short = self.mNode    
     _str_func = '[{0}] template'.format(_short)
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+
 
     _average = MATH.average([self.baseSize[0],self.baseSize[2]])
     _size = _average * 1.5

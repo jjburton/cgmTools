@@ -261,6 +261,22 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
                 #Name -----------------------------------------------
 
+                #On call attrs -------------------------------------------------------------------------
+                for a,v in kws.iteritems():
+                    if self. hasAttr(a):
+                        try:
+                            log.info("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))                             
+                            ATTR.set(self.mNode,a,v)
+                        except Exception,err:
+                            log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+                
+                #Profiles --------------------------------------------------------------------------
+                if self.hasAttr('blockProfile'):
+                    self.atUtils('blockProfile_load', ATTR.get_enumValueString(self.mNode,'blockProfile'))
+                
+                if self.hasAttr('buildProfile'):
+                    self.atUtils('buildProfile_load', ATTR.get_enumValueString(self.mNode,'buildProfile'))                
+                
                 #>>>Auto flags...
                 #Template
                 if not _blockModule:
@@ -286,8 +302,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             #self.doSnapTo(_sel[0])
                 #cgmGEN.func_snapShot(vars())
                 
-                self._blockModule = _blockModule                
+                self._blockModule = _blockModule
                 
+
+
             if blockParent is not None:
                 try:
                     self.p_blockParent = blockParent
@@ -5637,6 +5655,26 @@ class cgmRigModule(cgmMeta.cgmObject):
         blockType = self.getMayaAttr('moduleType')
         return get_blockModule(blockType)
     p_blockModule = property(getBlockModule)
+    
+#Profile stuff ==============================================================================================
+def get_blockProfile_options(arg):
+    try:
+        _str_func = 'get_blockProfile_options'
+        
+        mBlockModule = get_blockModule(arg)
+        
+        log.debug("|{0}| >>  {1}".format(_str_func,arg)+ '-'*80)
+        
+        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        reload(mBlockModule)
+        
+        try:return mBlockModule.d_block_profiles.keys()
+        except Exception,err:
+            return log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
+        
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    

@@ -779,6 +779,9 @@ class ui(cgmUI.cgmGUI):
             if attr == 'buildProfile':
                 log.info("Loading buildProfile...")
                 self._blockCurrent.atUtils('buildProfile_load',_strValue)
+            if attr == 'blockProfile':
+                log.info("Loading blockProfile...")
+                self._blockCurrent.atUtils('blockProfile_load',_strValue)                
         else:
             field.setValue(ATTR.get(obj,attr))
             

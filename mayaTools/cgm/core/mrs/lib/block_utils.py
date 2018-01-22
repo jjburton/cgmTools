@@ -2076,7 +2076,11 @@ def blockParent_set(self, parent = False, attachPoint = None):
                 else:
                     log.debug("|{0}| >>  Setting moduleParent".format(_str_func))                    
                     self.atRigModule('set_parentModule',mParentModuleTarget)
-        
+                    
+        #blockProfile ----------------------------------------------------
+        if mParent.hasAttr('buildProfile'):
+            self.atUtils('buildProfile_load', ATTR.get_enumValueString(mParent.mNode,'buildProfile'))
+            
 
 
 #=============================================================================================================
@@ -3428,9 +3432,9 @@ def getState(self, asString = True):
     
     
 #Profile stuff ==============================================================================================
-def profile_block_getOptions(self ):
+def blockProfile_getOptions(self):
     try:
-        _str_func = 'profile_getOptions'
+        _str_func = 'blockProfile_getOptions'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         mBlockModule = self.p_blockModule
@@ -3444,8 +3448,8 @@ def profile_block_getOptions(self ):
         cgmGEN.cgmException(Exception,err)
         
         
-def profile_block_load(self, arg):
-    _str_func = 'profile_load'
+def blockProfile_load(self, arg):
+    _str_func = 'blockProfile_load'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     _short = self.mNode
     mBlockModule = self.p_blockModule
@@ -3454,6 +3458,9 @@ def profile_block_load(self, arg):
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
+    
+    if not _d.get('blockProfile'):
+        _d['blockProfile'] = arg
     
     cgmGEN.func_snapShot(vars())
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
@@ -3484,7 +3491,10 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
-    cgmGEN.func_snapShot(vars())
+    if not _d.get('buildProfile'):
+        _d['buildProfile'] = arg    
+    
+    #cgmGEN.func_snapShot(vars())
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
     for a,v in _d.iteritems():
         try:

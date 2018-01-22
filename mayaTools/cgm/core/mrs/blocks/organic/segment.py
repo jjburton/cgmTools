@@ -91,15 +91,28 @@ __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
 #__baseSize__ = 1,1,10
 
+__l_rigBuildOrder__ = ['rig_skeleton',
+                       'rig_shapes',
+                       'rig_controls',
+                       'rig_frame',
+                       'rig_segments',
+                       'rig_cleanUp']
+
 #These are our base dimensions. In this case it is for human
 
 #>>>Profiles =====================================================================================================
-d_rig_profiles = {'unity':{'numJoints':12}}
+d_build_profiles = {'unityMobile':{'numJoints':3,
+                                   'numControls':3},
+                    'unityPC':{'numJoints':6,
+                               'numControls':4},
+                    'feature':{'numJoints':9,
+                               'numControls':4}}
 
-d_block_profiles = {'tail':{'numControls':5,
-                            'numJoints':12,
+d_block_profiles = {'tail':{#'numControls':5,
+                            #'numJoints':12,
                             'numShapers':5,
                             'addCog':False,
+                            'cgmName':'tail',
                             'loftShape':'wideDown',
                             'loftSetup':'default',
                             'ikSetup':'spline',
@@ -109,10 +122,11 @@ d_block_profiles = {'tail':{'numControls':5,
                             'baseAim':[0,0,-1],
                             'baseUp':[0,1,0],
                             'baseSize':[2,8,2]},
-                    'fish':{'numControls':4,
+                    'fish':{#'numControls':4,
                             'numShapers':5,
-                            'numJoints':8,
+                            #'numJoints':8,
                             'addCog':True,
+                            'cgmName':'fish',
                             'loftShape':'circle',
                             'loftSetup':'default',
                             'ikSetup':'spline',
@@ -122,16 +136,17 @@ d_block_profiles = {'tail':{'numControls':5,
                             'baseAim':[0,0,-1],
                             'baseUp':[0,1,0],
                             'baseSize':[2,8,2]},
-                    'torso':{'numControls':5,
+                    'spine':{#'numControls':5,
                              'numShapers':6,
-                             'numJoints':8,
+                             #'numJoints':8,
                              'addCog':True,
                              'loftSetup':'default',
                              'loftShape':'square',
                              'ikSetup':'ribbon',
                              'ikBase':'hips',
+                             'cgmName':'spine',
                              'nameIter':'spine',
-                             'nameList':['waist','shoulders'],                             
+                             'nameList':['pelvis','chest'],
                              'baseAim':[0,1,0],
                              'baseUp':[0,0,-1],
                              'baseSize':[2,8,2]}}
@@ -151,6 +166,7 @@ l_attrsStandard = ['side',
                    'ikSetup',
                    'ikBase',
                    #'customStartOrientation',
+                   'buildProfile',                   
                    'moduleTarget',]
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
@@ -158,6 +174,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:torso',
                  'loftShape':'circle:square:diamond:wideUp:wideDown:widePos:wideNeg',
                  'placeSettings':'start:end:cog',
+                 'blockProfile':':'.join(d_block_profiles.keys()),
                  'nameIter':'string',
                  'numControls':'int',
                  'numShapers':'int',
@@ -175,6 +192,7 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',                     
                      'numJoints':5,
                      'nameList':['',''],
+                     'blockProfile':'spine',
                      'attachPoint':'base',}
                      #'proxyShape':'cube',}
                      #'proxyType':'geo'}
@@ -2194,12 +2212,7 @@ def build_proxyMesh(self, forceNew = True):
         
     mRigNull.msgList_connect('proxyMesh', ml_segProxy)
 
-__l_rigBuildOrder__ = ['rig_skeleton',
-                       'rig_shapes',
-                       'rig_controls',
-                       'rig_frame',
-                       'rig_segments',
-                       'rig_cleanUp']
+
 
 
 
