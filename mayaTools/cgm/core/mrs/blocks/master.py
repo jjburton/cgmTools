@@ -54,13 +54,18 @@ d_build_profiles = {'unityMobile':{'addMotionJoint':True},
                     'feature':{'addMotionJoint':False}}
 
 #>>>Attrs =======================================================================================================
-l_attrsStandard = ['addMotionJoint','moduleTarget','baseSize','buildProfile']
+l_attrsStandard = ['addMotionJoint',
+                   'moduleTarget',
+                   'baseSize',
+                   'controlOffset',
+                   'buildProfile']
 
 d_attrsToMake = {'rootJoint':'messageSimple'}
 
 d_defaultSettings = {'version':__version__,
                      'baseName':'MasterBlock',
-                     'addMotionJoint':True, 
+                     'addMotionJoint':True,
+                     'controlOffset':2.54,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],

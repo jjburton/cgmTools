@@ -236,13 +236,21 @@ class ui(cgmUI.cgmGUI):
         
         self.uiMenu_add.clear()   
         
-        _d = RIGBLOCKS.get_modules_dat()#...refresh data
+        _d = RIGBLOCKS.get_modules_dat(True)#...refresh data
             
         for b in _d[1]['blocks']:
             if _d[0][b].__dict__.get('__menuVisible__'):
+                
                 mUI.MelMenuItem(self.uiMenu_add, l=b,
                                 c=cgmGEN.Callback(self.uiFunc_block_build,b),
                                 ann="{0} : {1}".format(b, self.uiFunc_block_build))
+                
+                l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                if l_options:
+                    for o in l_options:
+                        mUI.MelMenuItem(self.uiMenu_add, l=o,
+                                        c=cgmGEN.Callback(self.uiFunc_block_build,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_build))
         
         d_sections = {}
         for c in _d[1].keys():
@@ -250,13 +258,20 @@ class ui(cgmUI.cgmGUI):
             if c == 'blocks':continue
             for b in _d[1][c]:
                 if _d[0][b].__dict__.get('__menuVisible__'):
+                    
                     d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
                     
+                    l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                    if l_options:
+                        for o in l_options:
+                            d_sections[c].append( ["{0} ({1})".format(o,b),cgmGEN.Callback(self.uiFunc_block_build,b,o)] )
+
         for s in d_sections.keys():
             if d_sections[s]:
                 _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
                                         l=s)                
                 for option in d_sections[s]:
+                    
                     mUI.MelMenuItem(_sub, l=option[0],
                                     c=option[1],
                                     ann="{0} : {1}".format(option[0], option[1])
@@ -275,7 +290,7 @@ class ui(cgmUI.cgmGUI):
         
         
             
-    def uiFunc_block_build(self, blockType = None):
+    def uiFunc_block_build(self, blockType = None, blockProfile = None):
         _str_func = 'uiFunc_block_build'
         
         #index = _indices[0]
@@ -293,7 +308,7 @@ class ui(cgmUI.cgmGUI):
                 #return False
             _sizeMode = None
         
-        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, size = _sizeMode, blockParent = mActiveBlock)
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, size = _sizeMode, blockParent = mActiveBlock, blockProfile = blockProfile)
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
@@ -442,10 +457,13 @@ class ui(cgmUI.cgmGUI):
                 _b_active = True
                 
             #>>>Special menu ---------------------------------------------------------------------------------------
+            mBlockModule = _mBlock.p_blockModule
             try:
-                _mBlock.p_blockModule.uiBuilderMenu(_mBlock,_popUp)
+                mBlockModule.uiBuilderMenu(_mBlock,_popUp)
                 #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
             except:pass
+            
+            
             
             #>>>Heirarchy ------------------------------------------------------------------------------------------
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
@@ -454,11 +472,11 @@ class ui(cgmUI.cgmGUI):
                             en = _b_active,
                             ann = 'Set parent block to active block: {0}'.format(_str_activeBlock),
                             c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'setParentToActive'}),
-                            label = "To active")        
+                            label = "To active")
             mUI.MelMenuItem(_menu_parent,
                             ann = 'Clear parent block',
                             c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
-                            label = "Clear")            
+                            label = "Clear")
             
             #>>Mirror -----------------------------------------------------------------------------------------------
             _mirror = mUI.MelMenuItem(_popUp, subMenu = True,
@@ -500,6 +518,12 @@ class ui(cgmUI.cgmGUI):
                             ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
                             c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
             
+            _sizeMode = mBlockModule.__dict__.get('__sizeMode__',None)
+            if _sizeMode:
+                mUI.MelMenuItem(_popUp,
+                                label ='Size',
+                                ann = 'Size by: {0}'.format(_sizeMode),
+                                c=cgmGEN.Callback(_mBlock.atUtils, 'size', _sizeMode))
             #...side ----------------------------------------------------------------------------------------
             sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = 'Set side')

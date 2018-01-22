@@ -98,6 +98,7 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
     """  
     try:
         _str_func = 'get_callSize'
+        
         def floatValues(arg):
             return [float(v) for v in arg]
         _sel = mc.ls(sl=True)
@@ -192,6 +193,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _sel = None
         _size = kws.get('size',None)
         _side =  kws.get('side')
+        _sizeMode = None
+        _postState = None#...for sizeMode call
         
         if node is None:
             _sel = mc.ls(sl=1)            
@@ -240,9 +243,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     _blockModule = False
                 
                 kw_name = kws.get('name',None)
+                kw_blockProfile = kws.get('blockProfile',None)
                 if self.__justCreatedState__:
-                    self.addAttr('blockType', value = blockType,lock=True)	
-                    if blockType is not None and not kw_name:
+                    self.addAttr('blockType', value = blockType,lock=True)
+                    if kw_blockProfile and not kw_name:
+                        kw_name = kw_blockProfile
+                    elif blockType is not None and not kw_name:
                         kw_name = blockType
                     else:
                         kw_name = 'NAMEME'
@@ -278,17 +284,25 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     self.atUtils('buildProfile_load', ATTR.get_enumValueString(self.mNode,'buildProfile'))                
                 
                 #>>>Auto flags...
-                #Template
                 if not _blockModule:
                     _blockModule =  get_blockModule(self.blockType)                    
                     
+                #Size -----------------------------------------------------
+                _sizeMode = _blockModule.__dict__.get('__sizeMode__',None)
+                
+                if _sizeMode:
+                    log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+                    self.atUtils('size', _sizeMode)
+
+                #Template -------------------------------------------------
                 if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
-                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))  
-                    try:
+                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))
+                    if _sizeMode:
+                        _postState = 'template'
+                        
+                    else:
                         self.p_blockState = 'template'
-                    except Exception,err:
-                        for arg in err.args:
-                            log.error(arg)
+
 
                 #Snap with selection mode --------------------------------------
                 if _size in ['selection']:
@@ -305,7 +319,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 self._blockModule = _blockModule
                 
 
-
             if blockParent is not None:
                 try:
                     self.p_blockParent = blockParent
@@ -313,6 +326,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
                     for arg in err.args:
                         log.error(arg)
+                        
+            if _sizeMode:
+                log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+                self.atUtils('size', _sizeMode, postState = _postState )                
             
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
@@ -5666,11 +5683,12 @@ def get_blockProfile_options(arg):
         log.debug("|{0}| >>  {1}".format(_str_func,arg)+ '-'*80)
         
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        reload(mBlockModule)
+        if mBlockModule:reload(mBlockModule)
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:
-            return log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
+            log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
+        return []
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)

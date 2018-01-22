@@ -89,6 +89,8 @@ __version__ = 'alpha.01092018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
+__sizeMode__ = 'castNames'
+
 #__baseSize__ = 1,1,10
 
 __l_rigBuildOrder__ = ['rig_skeleton',
@@ -100,56 +102,60 @@ __l_rigBuildOrder__ = ['rig_skeleton',
 
 #These are our base dimensions. In this case it is for human
 
-#>>>Profiles =====================================================================================================
-d_build_profiles = {'unityMobile':{'numJoints':3,
-                                   'numControls':3},
-                    'unityPC':{'numJoints':6,
-                               'numControls':4},
-                    'feature':{'numJoints':9,
-                               'numControls':4}}
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
+                   'msgLists':['prerigHandles']}
+d_wiring_template = {'msgLinks':['templateNull','noTransformNull','prerigLoftMesh','orientHelper'],
+                     'msgLists':['templateHandles']}
 
-d_block_profiles = {'tail':{#'numControls':5,
-                            #'numJoints':12,
-                            'numShapers':5,
-                            'addCog':False,
-                            'cgmName':'tail',
-                            'loftShape':'wideDown',
-                            'loftSetup':'default',
-                            'ikSetup':'spline',
-                            'ikBase':'none',
-                            'nameIter':'tail',
-                            'nameList':['tailBase','tailTip'],
-                            'baseAim':[0,0,-1],
-                            'baseUp':[0,1,0],
-                            'baseSize':[2,8,2]},
-                    'fish':{#'numControls':4,
-                            'numShapers':5,
-                            #'numJoints':8,
-                            'addCog':True,
-                            'cgmName':'fish',
-                            'loftShape':'circle',
-                            'loftSetup':'default',
-                            'ikSetup':'spline',
-                            'ikBase':'simple',
-                            'nameIter':'spine',
-                            'nameList':['head','tailFin'],
-                            'baseAim':[0,0,-1],
-                            'baseUp':[0,1,0],
-                            'baseSize':[2,8,2]},
-                    'spine':{#'numControls':5,
-                             'numShapers':6,
-                             #'numJoints':8,
-                             'addCog':True,
-                             'loftSetup':'default',
-                             'loftShape':'square',
-                             'ikSetup':'ribbon',
-                             'ikBase':'hips',
-                             'cgmName':'spine',
-                             'nameIter':'spine',
-                             'nameList':['pelvis','chest'],
-                             'baseAim':[0,1,0],
-                             'baseUp':[0,0,-1],
-                             'baseSize':[2,8,2]}}
+#>>>Profiles =====================================================================================================
+d_build_profiles = {'unityMobile':{'default':{'numJoints':3,
+                                              'numControls':3},                                   
+                                   },
+                    'unityPC':{'default':{'numJoints':6,
+                                          'numControls':4},
+                               'spine':{'numJoints':7,
+                                       'numControls':5}},
+                    'feature':{'default':{'numJoints':9,
+                                          'numControls':4}}}
+
+d_block_profiles = {
+    'tail':{'numShapers':5,
+            'addCog':False,
+            'cgmName':'tail',
+            'loftShape':'wideDown',
+            'loftSetup':'default',
+            'ikSetup':'spline',
+            'ikBase':'none',
+            'nameIter':'tail',
+            'nameList':['tailBase','tailTip'],
+            'baseAim':[0,0,-1],
+            'baseUp':[0,1,0],
+            'baseSize':[2,8,2]},
+    'fish':{'numShapers':5,
+            'addCog':True,
+            'cgmName':'fish',
+            'loftShape':'circle',
+            'loftSetup':'default',
+            'ikSetup':'spline',
+            'ikBase':'simple',
+            'nameIter':'spine',
+            'nameList':['head','tailFin'],
+            'baseAim':[0,0,-1],
+            'baseUp':[0,1,0],
+            'baseSize':[2,8,2]},
+    'spine':{'numShapers':6,
+             'addCog':True,
+             'loftSetup':'default',
+             'loftShape':'square',
+             'ikSetup':'ribbon',
+             'ikBase':'hips',
+             'cgmName':'spine',
+             'nameIter':'spine',
+             'nameList':['pelvis','chest'],
+             'placeSettings':'cog',
+             'baseAim':[0,1,0],
+             'baseUp':[0,0,-1],
+             'baseSize':[2,8,2]}}
 
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
@@ -158,19 +164,16 @@ l_attrsStandard = ['side',
                    'position',
                    'addCog',                   
                    'hasRootJoint',
-                   #'proxyShape',
                    'nameList',
                    'loftSides',
                    'loftDegree',
                    'loftSplit',
                    'ikSetup',
                    'ikBase',
-                   #'customStartOrientation',
                    'buildProfile',                   
                    'moduleTarget',]
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
-                 #'proxyType':'base:geo',
                  'loftSetup':'default:torso',
                  'loftShape':'circle:square:diamond:wideUp:wideDown:widePos:wideNeg',
                  'placeSettings':'start:end:cog',
@@ -194,13 +197,8 @@ d_defaultSettings = {'version':__version__,
                      'nameList':['',''],
                      'blockProfile':'spine',
                      'attachPoint':'base',}
-                     #'proxyShape':'cube',}
-                     #'proxyType':'geo'}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
-                   'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull','noTransformNull','prerigLoftMesh','orientHelper'],
-                     'msgLists':['templateHandles']}
+
 
 #Skeletal stuff ------------------------------------------------------------------------------------------------
 d_skeletonSetup = {'mode':'curveCast',
@@ -411,8 +409,10 @@ def template(self):
                 l_clusters.append(_res)
         
             pprint.pprint(l_clusters)
-        
+            
             mLinearCurve.parent = mNoTransformNull
+            mLinearCurve.rename('template_trackCrv')
+            
             #mLinearCurve.inheritsTransform = False      
         
         
@@ -612,7 +612,7 @@ def prerig(self):
         _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
         #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]
         _sizeSub = _size * .33    
-        _vec_root_up = ml_templateHandles[0].orientHelper.getAxisVector('z+')
+        _vec_root_up = ml_templateHandles[0].orientHelper.getAxisVector('y+')
         
         
         #Initial logic=========================================================================================
@@ -634,8 +634,10 @@ def prerig(self):
         
         _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_templateHandles])
         mTrackCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
-        mTrackCurve.rename(self.cgmName + 'preRigTrack_crv')
+        mTrackCurve.rename(self.cgmName + 'prerigTrack_crv')
         mTrackCurve.parent = mNoTransformNull
+        
+        #mPrerigNull.connectChildNode('prerigTrackCurve',mTrackCurve.mNode,)
         
         l_clusters = []
         #_l_clusterParents = [mStartHandle,mEndHandle]
@@ -674,7 +676,7 @@ def prerig(self):
             l_scales.append(mHandle.scale)
             mHandle.scale = 1,1,1
             
-        _l_pos = CURVES.returnSplitCurveList('spinepreRigTrack_crv',self.numControls,markPoints = False)
+        _l_pos = CURVES.returnSplitCurveList(mTrackCurve.mNode,self.numControls,markPoints = False)
         #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
             
 
@@ -825,7 +827,6 @@ def skeleton_build(self, forceNew = True):
     _str_func = 'skeleton_build'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
-    _radius = .25
     ml_joints = []
     
     mModule = self.moduleTarget
@@ -876,6 +877,9 @@ def skeleton_build(self, forceNew = True):
         
 
     ml_joints[0].parent = False
+    
+    _radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
+    #MATH.get_space_value(5)
     
     for mJoint in ml_joints:
         mJoint.displayLocalAxis = 1

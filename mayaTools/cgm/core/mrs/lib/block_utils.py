@@ -53,6 +53,7 @@ from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.lib import nameTools as NAMETOOLS
+import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
 
 #=============================================================================================================
 #>> Queries
@@ -3491,11 +3492,23 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
+    if self.hasAttr('blockProfile'):
+        _strValue = ATTR.get_enumValueString(_short,'blockProfile')
+        log.debug("|{0}| >>  blockProfile check: {1}".format(_str_func,_strValue))
+        _d_block = _d.get(_strValue,None)
+        _d_default = _d.get('default',None)
+        if _d_block:
+            log.debug("|{0}| >>  Found blockProfile...".format(_str_func))
+            _d = _d_block
+        elif _d_default:
+            log.debug("|{0}| >>  Found default dat...".format(_str_func))
+            _d = _d_default
+            
     if not _d.get('buildProfile'):
         _d['buildProfile'] = arg    
     
     #cgmGEN.func_snapShot(vars())
-    log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
+    log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))    
     for a,v in _d.iteritems():
         try:
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
@@ -3510,3 +3523,81 @@ def buildProfile_load(self, arg):
                 ATTR.set(_short,a,v)
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+
+
+#Profile stuff ==============================================================================================
+def size(self, mode = None, postState = None):
+    """
+    mode is placeholder for now
+    """
+    #try:
+    _str_func = 'size'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    _str_state = getState(self)
+    if _str_state not in ['define','template']:
+        raise ValueError,"|{0}| >>  [{1}] is not in define state. state: {2}".format(_str_func,self.mNode, _str_state)
+    
+    #mBlockModule = self.p_blockModule
+    #log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+    #reload(mBlockModule)
+    
+    l_baseNames = self.datList_get('nameList')
+    l_toCreate = l_baseNames#...this needs to be 2
+    
+    cgmGEN.func_snapShot(vars())
+    
+    mRigBlock = self
+    class castSizer(DRAGFACTORY.clickMesh):
+        def __init__(self,rigBlock = mRigBlock,**kws):
+            if kws:log.info("kws: %s"%str(kws))
+    
+            super(castSizer, self).__init__(**kws)
+            self._mRigBlock = mRigBlock
+            self.toCreate = l_toCreate
+            self._rigBlockTally = 0
+            log.info("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[0]))
+    
+        def release_post_insert(self):
+            
+            #cgmGEN.func_snapShot(self.__dict__)
+            self._rigBlockTally +=1                
+            if self._createModeBuffer:
+                mc.delete(self._createModeBuffer)
+                
+            if self._rigBlockTally < len(l_toCreate):
+                log.info("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[self._rigBlockTally]))
+            else:
+                log.info("|{0}| >>  Finalizing...".format(_str_func,self)+ '-'*80)
+                
+                l_pos = self.l_returnRaw
+                mVector = MATH.get_vector_of_two_points(l_pos[0],l_pos[-1],asEuclid=True)
+                mVector.normalize()
+                
+                mRigBlock.p_position = l_pos[0]
+                mRigBlock.baseAim = mVector.x, mVector.y, mVector.z
+                
+                mRigBlock.baseSizeZ = DIST.get_distance_between_points(l_pos[0],l_pos[-1])
+                mRigBlock.baseSizeX = mRigBlock.baseSizeZ/2
+                mRigBlock.baseSizeY = mRigBlock.baseSizeX
+                
+                #cgmGEN.func_snapShot(vars())
+                
+                log.info(" pos...")
+                for p in l_pos:
+                    log.info("      {0}".format(p))
+                log.info(" baseAim: {0}".format(_str_func,mRigBlock.baseAim))
+                log.info(" baseSize: {0}".format(_str_func,mRigBlock.baseSize))
+                
+                self.finalize()
+                self.dropTool()
+                
+                if postState:
+                    changeState(postState,forceNew=True)
+                return True
+                
+    castSizer(mode = 'midPoint',toCreate = l_toCreate)
+
+    
+    #except Exception,err:
+        #cgmGEN.cgmException(Exception,err)
