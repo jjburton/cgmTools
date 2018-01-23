@@ -922,6 +922,7 @@ def rig_skeleton(self):
     mRigNull = self.mRigNull
     ml_jointsToConnect = []
     ml_jointsToHide = []
+    ml_blendJoints = []
     ml_joints = mRigNull.msgList_get('moduleJoints')
     self.d_joints['ml_moduleJoints'] = ml_joints
     
@@ -1019,8 +1020,14 @@ def rig_skeleton(self):
         for i,mJnt in enumerate(ml_rigJoints):
             mJnt.parent = ml_segmentChain[i]
             mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
-            
         ml_jointsToHide.extend(ml_segmentChain)
+    else:
+        log.info("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))
+        ml_rigParents = ml_fkJoints
+        if ml_blendJoints:
+            ml_rigParents = ml_blendJoints
+        for i,mJnt in enumerate(ml_rigJoints):
+            mJnt.parent = ml_blendJoints[i]
         
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
@@ -1524,11 +1531,14 @@ def rig_segments(self):
     
     if len(ml_rigJoints)<2:
         log.info("|{0}| >> Not enough rig joints for setup".format(_str_func))                      
-        return True    
+        return True
+    
     
     mRootParent = self.mDeformNull
     ml_handleJoints = mRigNull.msgList_get('handleJoints')
-    
+    if not ml_handleJoints:
+        log.info("|{0}| >> No handle joints. No segment setup necessary.".format(_str_func))                      
+        return True        
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -1536,6 +1546,7 @@ def rig_segments(self):
     #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
     mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
                       baseName = mBlock.cgmName,
+                      driverSetup='stable',
                       connectBy='constraint',
                       moduleInstance = mModule)
     """
@@ -1924,9 +1935,10 @@ def rig_frame(self):
                 
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
-
+                reload(IK)
                 mSurf = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
                                   baseName = self.d_module['partName'] + '_ikRibbon',
+                                  driverSetup='stable',
                                   connectBy='constraint',
                                   moduleInstance = self.mModule)
                 

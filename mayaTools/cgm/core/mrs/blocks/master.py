@@ -65,7 +65,7 @@ d_attrsToMake = {'rootJoint':'messageSimple'}
 d_defaultSettings = {'version':__version__,
                      'baseName':'MasterBlock',
                      'addMotionJoint':True,
-                     'controlOffset':2.54,
+                     'controlOffset':1,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],

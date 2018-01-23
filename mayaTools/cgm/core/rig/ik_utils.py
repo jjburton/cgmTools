@@ -835,6 +835,7 @@ def ribbon(jointList = None,
            baseName = None,
            connectBy = 'constraint',
            stretchBy = 'translate',
+           driverSetup = None,#...aim.stable
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
@@ -857,7 +858,14 @@ def ribbon(jointList = None,
         orientation(string - zyx) | What is the joints orientation
         secondaryAxis(maya axis arg(y+) | Only necessary when no module provide for orientating
         baseName(string - None) | baseName string
+        connectBy(str)
         stretchBy(string - trans/scale/None) | How the joint will scale
+        driverSetup(string) | Extra setup on driver
+            stable - two folicle stable setup
+            aim - aim along the chain
+
+        
+        
         advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
         moduleInstance(cgmModule - None) | cgmModule to use for connecting on build
@@ -926,11 +934,13 @@ def ribbon(jointList = None,
         axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
         axis_aimNeg = axis_aim.inverse
         axis_up = VALID.simpleAxis("{0}+".format(str_orientation [1]))
+        axis_out = VALID.simpleAxis("{0}+".format(str_orientation [2]))
     
         v_aim = axis_aim.p_vector#aimVector
         v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
         v_up = axis_up.p_vector   #upVector
-    
+        v_out = axis_out.p_vector
+        
         outChannel = str_orientation[2]#outChannel
         upChannel = '{0}up'.format(str_orientation[1])#upChannel
         l_param = []  
@@ -953,10 +963,18 @@ def ribbon(jointList = None,
             cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mControlSurface.mNode,'overrideVisibility'))
             cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mControlSurface.mNode,'overrideDisplayType'))    
             mControlSurface.parent = mModule.rigNull
+        
         #>>> Follicles ===========================================================================================        
-        ml_follicleTransforms = []
+        ml_follicles = []
         ml_follicleShapes = []
         ml_upGroups = []
+        ml_aimDrivers = []
+        ml_upDrivers = []
+        
+        minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')        
+        #maxU = ATTR.get(mControlSurface.getShapes()[0],'maxValueU')
+        #minV = ATTR.get(mControlSurface.getShapes()[0],'mimValueV')        
+        #maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
         
         import cgm.core.lib.node_utils as NODES
         
@@ -974,9 +992,10 @@ def ribbon(jointList = None,
             mFollShape = cgmMeta.asMeta(shape)
             
             
-
-            ml_follicleShapes.append(mFollicle)
-            ml_follicleTransforms.append(mFollShape)
+            ml_follicleShapes.append(mFollShape)
+            ml_follicles.append(mFollicle)
+            
+            
     
             mFollicle.parent = mi_grp.mNode
     
@@ -985,10 +1004,56 @@ def ribbon(jointList = None,
                 cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
                 cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
             
-            #Simple contrain
-            mc.parentConstraint([mFollicle.mNode], mDriven.mNode, maintainOffset=True)
-            
+            mDriver = mFollicle
+            if driverSetup:
+                mDriver = mJnt.doCreateAt(setClass=True)                
+                mDriver.rename("{0}_aimDriver".format(mFollicle.p_nameBase))
+                mDriver.parent = mFollicle
+                mUpGroup = mDriver.doGroup(True,asMeta=True,typeModifier = 'up')
+                
+                if driverSetup == 'aim':
+                    ml_aimDrivers.append(mDriver)
+                    ml_upDrivers.append(mUpGroup)
+                    
+                else:#stable setup
+                    #We need to make new follicles
+                    l_stableFollicleInfo = NODES.createFollicleOnMesh( mControlSurface.mNode )
+                    
+                    mStableFollicle = cgmMeta.asMeta(l_stableFollicleInfo[1],'cgmObject',setClass=True)
+                    mStableFollicleShape = cgmMeta.asMeta(l_stableFollicleInfo[0],'cgmNode')
+                    mStableFollicle.parent = mi_grp.mNode
+                
+                    #> Name...
+                    #mStableFollicleTrans.doStore('cgmName',mObj.mNode)
+                    #mStableFollicleTrans.doStore('cgmTypeModifier','surfaceStable')            
+                    #mStableFollicleTrans.doName()
+                    mStableFollicle.rename('{0}_surfaceStable'.format(mJnt.p_nameBase))
+                
 
+                    mStableFollicleShape.parameterU = minU
+                    mStableFollicleShape.parameterV = mFollShape.parameterV
+                    
+                    #...now aim it
+                    mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
+                                     aimVector = v_out, upVector = v_up, worldUpObject = mUpGroup.mNode,
+                                     worldUpType = 'objectrotation', worldUpVector = v_up)                                
+                    
+                    
+            #Simple contrain
+            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+            
+        if ml_aimDrivers:
+            for i,mDriver in enumerate(ml_aimDrivers):
+                v_aimUse = v_aim
+                if mDriver == ml_aimDrivers[-1]:
+                    s_aim = ml_follicles[-2].mNode
+                    v_aimUse = v_aimNeg
+                else:
+                    s_aim = ml_follicles[i+1].mNode
+            
+                mc.aimConstraint(s_aim, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                                 aimVector = v_aimUse, upVector = v_up, worldUpObject = ml_upDrivers[i].mNode,
+                                 worldUpType = 'objectrotation', worldUpVector = v_up)            
             
             
             """
