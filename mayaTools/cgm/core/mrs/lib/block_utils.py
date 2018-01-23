@@ -1890,7 +1890,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             raise Exception,"Limit Buffer not implemented"
    
 
-def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = False):
+def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
     """
     Generate a handle chain of joints if none exists, otherwise return existing
     
@@ -1953,7 +1953,7 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = False):
     return ml_fkJoints
 
 
-def skeleton_buildHandleChain(self,typeModifier = 'handle',connectNodesAs = False,clearType = False): 
+def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = False,clearType = False): 
     _short = self.mNode
     _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
     start = time.clock()

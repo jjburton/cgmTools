@@ -85,7 +85,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.01092018'
+__version__ = 'alpha.01222018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -858,11 +858,21 @@ def skeleton_build(self, forceNew = True):
 
     log.debug("|{0}| >> creating...".format(_str_func))
     
-    _d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
+    #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
+    
+    if self.numJoints == self.numControls:
+        log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
+        l_pos = []
+        for mObj in ml_prerigHandles:
+            l_pos.append(mObj.p_position)
+        
+    else:
+        _d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
+        l_pos = _d['positions']
 
     mOrientHelper = ml_templateHandles[0].orientHelper
     
-    ml_joints = JOINT.build_chain(_d['positions'], parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
+    ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
     
     
     
@@ -962,7 +972,7 @@ def rig_skeleton(self):
                                          d_rotateOrders, d_preferredAngles)        
         
     #cgmGEN.func_snapShot(vars())        
-    
+    """
     if mBlock.numControls > 1:
         log.info("|{0}| >> Handles...".format(_str_func))            
         ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
@@ -972,11 +982,11 @@ def rig_skeleton(self):
         else:
             for i,mJnt in enumerate(ml_segmentHandles):
                 mJnt.parent = ml_fkJoints[i]
-                
+                """
     
     if mBlock.ikSetup in [2,3]:#...ribbon/spline
         log.info("|{0}| >> IK Drivers...".format(_str_func))            
-        ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_segmentHandles, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
+        ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
         for i,mJnt in enumerate(ml_ribbonIKDrivers):
             mJnt.parent = False
             
@@ -993,6 +1003,16 @@ def rig_skeleton(self):
         
     
     if mBlock.numJoints > mBlock.numControls:
+        log.info("|{0}| >> Handles...".format(_str_func))            
+        ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
+        if mBlock.ikSetup:
+            for i,mJnt in enumerate(ml_segmentHandles):
+                mJnt.parent = ml_blendJoints[i]
+        else:
+            for i,mJnt in enumerate(ml_segmentHandles):
+                mJnt.parent = ml_fkJoints[i]        
+        
+        
         log.info("|{0}| >> segment necessary...".format(_str_func))
             
         ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None, mRigNull,'segmentJoints', cgmType = 'segJnt',blockNames=True)
@@ -1039,6 +1059,7 @@ def rig_shapes(self):
         
         _side = mBlock.atUtils('get_side')
         _short_module = self.mModule.mNode
+        str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
         
         mHandleFactory = mBlock.asHandleFactory()
         mOrientHelper = ml_prerigHandles[0].orientHelper
@@ -1059,85 +1080,85 @@ def rig_shapes(self):
             log.debug("|{0}| >> Cog...".format(_str_func))
             mCogHelper = mBlock.cogHelper
             
-            mCog = mCogHelper.doCreateAt()
+            mCog = mCogHelper.doCreateAt(setClass=True)
             CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
             
             mCog.doStore('cgmName','cog')
-            mCog.doName()            
+            mCog.doName()
+            
+            self.mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect
+            self.mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect        
             
         
-        return
-        #Root =============================================================================
-        log.debug("|{0}| >> Root...".format(_str_func))
-        
-        mRootHandle = ml_prerigHandles[0]
-        #mRoot = ml_joints[0].doCreateAt()
-        mRoot = ml_joints[0].doCreateAt()
-        
-        _size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_templateHandles[0].mNode))
-        mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
-        mRootCrv.doSnapTo(mRootHandle)
-    
-        #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
-    
-        CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
-    
-        ATTR.copy_to(_short_module,'cgmName',mRoot.mNode,driven='target')
-        mRoot.doStore('cgmTypeModifier','root')
-        mRoot.doName()
-        
-        mHandleFactory.color(mRoot.mNode, controlType = 'sub')
-        
-        self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect
-        
-        
-        #Settings =============================================================================
-        _placeSettings = mBlock.getEnumValueString('placeSettings')
-        if _placeSettings == 'cog' and not mBlock.addCog:
-            log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
-            _placeSettings = 'start'
-        
-        if _placeSettings is not 'cog':
-            log.debug("|{0}| >> settings: {1}...".format(_str_func,_placeSettings))
+        else:#Root =============================================================================
+            log.debug("|{0}| >> Root...".format(_str_func))
             
+            mRootHandle = ml_prerigHandles[0]
+            #mRoot = ml_joints[0].doCreateAt()
+            mRoot = ml_joints[0].doCreateAt()
             
-            if ml_blendJoints:
-                ml_targets = ml_blendJoints
-            else:
-                ml_targets = ml_fkJoints
+            _size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_templateHandles[0].mNode))
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
+            mRootCrv.doSnapTo(mRootHandle)
+        
+            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+        
+            CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
+        
+            ATTR.copy_to(_short_module,'cgmName',mRoot.mNode,driven='target')
+            mRoot.doStore('cgmTypeModifier','root')
+            mRoot.doName()
+            
+            mHandleFactory.color(mRoot.mNode, controlType = 'sub')
+            
+            self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect
+        
+        
+            #Settings =============================================================================
+            _placeSettings = mBlock.getEnumValueString('placeSettings')
+            if _placeSettings == 'cog':
+                log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
+                _placeSettings = 'start'
+            
+            if _placeSettings is not 'cog':
+                log.debug("|{0}| >> settings: {1}...".format(_str_func,_placeSettings))
                 
-            if _placeSettings == 'start':
-                _mTar = ml_targets[0]                
-            else:
-                _mTar = ml_targets[-1]
                 
+                if ml_blendJoints:
+                    ml_targets = ml_blendJoints
+                else:
+                    ml_targets = ml_fkJoints
+                    
+                if _placeSettings == 'start':
+                    _mTar = ml_targets[0]                
+                else:
+                    _mTar = ml_targets[-1]
+                    
+                
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .25,'x+'))
+                
+    
+                #mSettings = cgmMeta.validateObjArg(settings,'cgmObject',setClass=True)
+                mSettingsShape.doSnapTo(_mTar.mNode)
+                #CORERIG.match_transform(mSettings.mNode, _mTar.mNode)
+                
+                mSettingsShape.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'+', _size * .5)
+                SNAP.aim_atPoint(mSettingsShape,_mTar.p_position,aimAxis=_jointOrientation[1]+'-',
+                                 mode = 'vector',
+                                 vectorUp= _mTar.getAxisVector(_jointOrientation[1]+'+'))
+                
+                mSettings = _mTar.doCreateAt(setClass=True)
+                mSettings.parent = _mTar
+                CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
+                
+                ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
+    
+                mSettings.doStore('cgmTypeModifier','settings')
+                mSettings.doName()
+                #CORERIG.colorControl(mSettings.mNode,_side,'sub')
+                mHandleFactory.color(mSettings.mNode, controlType = 'sub')
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .25,'x+'))
-            
-
-            #mSettings = cgmMeta.validateObjArg(settings,'cgmObject',setClass=True)
-            mSettingsShape.doSnapTo(_mTar.mNode)
-            #CORERIG.match_transform(mSettings.mNode, _mTar.mNode)
-            
-            mSettingsShape.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'+', _size * .5)
-            SNAP.aim_atPoint(mSettingsShape,_mTar.p_position,aimAxis=_jointOrientation[1]+'-',
-                             mode = 'vector',
-                             vectorUp= _mTar.getAxisVector(_jointOrientation[1]+'+'))
-            
-            mSettings = _mTar.doCreateAt(setClass=True)
-            mSettings.parent = _mTar
-            CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
-            
-            ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
-
-            mSettings.doStore('cgmTypeModifier','settings')
-            mSettings.doName()
-            #CORERIG.colorControl(mSettings.mNode,_side,'sub')
-            mHandleFactory.color(mSettings.mNode, controlType = 'sub')
-        
-            self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
-        else:
-            log.warning("|{0}| >> JOSH - connect the cog to settings here...".format(_str_func))
+                self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
             
         
         
@@ -1166,9 +1187,9 @@ def rig_shapes(self):
             try:
                 mJnt.drawStyle =2
             except:
-                mJnt.radius = .00001    
-                
+                mJnt.radius = .00001
 
+        
         #Handles =============================================================================================    
         ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
         reload(CORERIG)
@@ -1196,15 +1217,20 @@ def rig_shapes(self):
             log.debug("|{0}| >> ikBaseHandle...".format(_str_func))
             
             mIKBaseShape = ml_fkShapes[0].doDuplicate(po=False)
-            mIKBaseCrv = ml_ikJoints[0].doCreateAt(setClass=True)
+            
+            if str_ikBase == 'hips':
+                mIKBaseCrv = ml_ikJoints[1].doCreateAt(setClass=True)
+                mIKBaseCrv.doStore('cgmName','hips')                
+                
+            else:
+                mIKBaseCrv = ml_ikJoints[0].doCreateAt(setClass=True)
+                mIKBaseCrv.doCopyNameTagsFromObject(ml_fkJoints[0].mNode,ignore=['cgmType'])
+                mIKBaseCrv.doStore('cgmTypeModifier','ikBase')                
             
             CORERIG.shapeParent_in_place(mIKBaseCrv.mNode,mIKBaseShape.mNode,False)
             
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
             
-            
-            mIKBaseCrv.doCopyNameTagsFromObject(ml_fkJoints[0].mNode,ignore=['cgmType'])
-            mIKBaseCrv.doStore('cgmTypeModifier','ikBase')
             mIKBaseCrv.doName()
         
             #CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
@@ -1212,8 +1238,7 @@ def rig_shapes(self):
         
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
             
-            
-            
+
         if mBlock.ikSetup:
             log.debug("|{0}| >> ikHandle...".format(_str_func))
             
@@ -1238,8 +1263,14 @@ def rig_shapes(self):
             mJnt = ml_fkJoints[i]
             #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
             
-            mHandleFactory.color(mCrv.mNode, controlType = 'main')        
-            CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
+            if i == 0 and str_ikBase == 'hips':
+                log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
+                mCrv.delete()
+                continue
+                
+            else:
+                mHandleFactory.color(mCrv.mNode, controlType = 'main')        
+                CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
             """
             l_lolis = []
             l_starts = []
@@ -1315,6 +1346,11 @@ def rig_controls(self):
     mRootParent = self.mDeformNull
     mSettings = mRigNull.settings
     
+    b_cog = False
+    if mBlock.getMessage('cogHelper'):
+        b_cog = True
+    str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+        
     # Drivers ==============================================================================================
     log.debug("|{0}| >> Attr drivers...".format(_str_func))    
     if mBlock.ikSetup:
@@ -1324,7 +1360,8 @@ def rig_controls(self):
     #>> vis Drivers ================================================================================================	
     mPlug_visSub = self.atBuilderUtils('build_visSub')
     
-    mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    if not b_cog:
+        mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     
     #if self.mBlock.headAim:        
@@ -1352,12 +1389,16 @@ def rig_controls(self):
     mRootParent = mRoot#Change parent going forward...
     ml_controlsAll.append(mRoot)
     
-    for mShape in mRoot.getShapes(asMeta=True):
-        ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+    if not b_cog:
+        for mShape in mRoot.getShapes(asMeta=True):
+            ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
     #FK controls ==============================================================================================
     log.debug("|{0}| >> FK Controls...".format(_str_func))
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+    
+    if str_ikBase == 'hips':
+        ml_fkJoints = ml_fkJoints[1:]
     
     ml_fkJoints[0].parent = mRoot
     ml_controlsAll.extend(ml_fkJoints)
@@ -1406,16 +1447,16 @@ def rig_controls(self):
         ml_controlsAll.append(mControlBaseIK)            
     
 
-    #>> settings ========================================================================================
-    log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
+    if not b_cog:#>> settings ========================================================================================
+        log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
+        
+        MODULECONTROL.register(mSettings)
     
-    MODULECONTROL.register(mSettings)
-    
-    #ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
-    #if ml_blendJoints:
-    #    mSettings.masterGroup.parent = ml_blendJoints[-1]
-    #else:
-    #    mSettings.masterGroup.parent = ml_fkJoints[-1]
+        #ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
+        #if ml_blendJoints:
+        #    mSettings.masterGroup.parent = ml_blendJoints[-1]
+        #else:
+        #    mSettings.masterGroup.parent = ml_fkJoints[-1]
     
     #>> handleJoints ========================================================================================
     ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
@@ -1464,19 +1505,6 @@ def rig_controls(self):
     mRigNull.moduleSet.extend(ml_controlsAll)
     
     return 
-
-    try:#>>>> IK Segments =============================================================================	 
-        for i_obj in ml_shapes_segmentIK:
-            d_buffer = mControlFactory.registerControl(i_obj,addExtraGroups=1,typeModifier='segIK',
-                                                       mirrorSide=mi_go._str_mirrorDirection, mirrorAxis="translateX,rotateY,rotateZ",	                                               
-                                                       setRotateOrder=2)       
-            i_obj = d_buffer['instance']
-            i_obj.masterGroup.parent = mi_go._i_deformNull.mNode
-            mPlug_result_moduleSubDriver.doConnectOut("%s.visibility"%i_obj.mNode)	    
-
-        mi_go._i_rigNull.msgList_connect('segmentHandles',ml_shapes_segmentIK,'rigNull')
-        ml_controlsAll.extend(ml_shapes_segmentIK)	
-    except Exception,error:raise Exception,"IK Segments! | error: {0}".format(error)
 
 
 @cgmGEN.Timer
@@ -1559,6 +1587,11 @@ def rig_frame(self):
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
+        
+        b_cog = False
+        if mBlock.getMessage('cogHelper'):
+            b_cog = True
+        str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
         
         #>> handleJoints ========================================================================================
         if ml_handleJoints:
@@ -1720,8 +1753,6 @@ def rig_frame(self):
             NODEFACTORY.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
                                                  mPlug_IKon.p_combinedName,
                                                  mPlug_FKon.p_combinedName)
-            #Fk...
-            mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))
             
             #IK...
             mIKGroup = mRoot.doCreateAt()
@@ -1736,7 +1767,12 @@ def rig_frame(self):
             mIKBaseControl = False
             if mRigNull.getMessage('controlIKBase'):
                 mIKBaseControl = mRigNull.controlIKBase
-                mIKBaseControl.masterGroup.parent = mIKGroup
+                
+                if str_ikBase == 'hips':
+                    mIKBaseControl.masterGroup.parent = mRoot
+                else:
+                    mIKBaseControl.masterGroup.parent = mIKGroup
+                    
             else:#Spin Group
                 #=========================================================================================
                 log.debug("|{0}| >> spin setup...".format(_str_func))
@@ -1930,9 +1966,18 @@ def rig_frame(self):
                 raise ValueError,"Not implemented {0} ik setup".format(_ikSetup)
             
             
-            #Parent --------------------------------------------------            
+            #Parent --------------------------------------------------
+            #Fk...
+            if str_ikBase == 'hips':
+                mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[1].masterGroup.mNode))
+                ml_fkJoints[0].p_parent = mIKBaseControl
+            else:
+                mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))            
+            
+            
             ml_blendJoints[0].parent = mRoot
             ml_ikJoints[0].parent = mIKGroup
+            
             
 
             

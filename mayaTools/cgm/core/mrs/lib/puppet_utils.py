@@ -71,6 +71,15 @@ def get_shapeOffset(self):
         _str_func = ' get_shapeOffset'.format(self)
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
+        if self.getMessage('rigBlock'):
+            mRigBlock = self.rigBlock
+            l_attrs = ['controlOffset','skinOffset']
+            for a in l_attrs:
+                if mRigBlock.hasAttr(a):
+                    v = mRigBlock.getMayaAttr(a)
+                    log.debug("|{0}| >> {1} attr found on rigBlock: {2}".format(_str_func,a,v))                
+                    return v            
+        
         l_attrs = ['loftOffset','skinOffset']
         for a in l_attrs:
             if self.hasAttr(a):
