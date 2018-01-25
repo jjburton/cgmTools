@@ -142,6 +142,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
                         mc.select(cl=True)
+                        if v == None:
+                            v = []
                         ATTR.datList_connect(_short, a, v, mode='string')
                 elif t == 'float3':
                     if not self.hasAttr(a):
@@ -158,9 +160,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                     else:
                         self.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
             except Exception,err:
-                log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v)) 
+                log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err)) 
+                _msg= ("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err))
                 if not forceReset:
-                    cgmGEN.cgmExceptCB(Exception,err)                    
+                    cgmGEN.cgmException(Exception,err,msg=_msg)                    
 
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -2915,8 +2918,8 @@ def templateDelete(self):
 
     _str_state = self.blockState
     
-    if _str_state != 'template':
-        raise ValueError,"[{0}] is not in template state. state: {1}".format(self.mNode, _str_state)
+    #if _str_state != 'template':
+        #raise ValueError,"[{0}] is not in template state. state: {1}".format(self.mNode, _str_state)
 
     #>>>Children ------------------------------------------------------------------------------------
 

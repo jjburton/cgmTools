@@ -100,7 +100,6 @@ __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_segments',
                        'rig_cleanUp']
 
-#These are our base dimensions. In this case it is for human
 
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
@@ -108,15 +107,16 @@ d_wiring_template = {'msgLinks':['templateNull','noTransformNull','prerigLoftMes
                      'msgLists':['templateHandles']}
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {'unityMobile':{'default':{'numJoints':3,
-                                              'numControls':3},                                   
-                                   },
-                    'unityPC':{'default':{'numJoints':4,
-                                          'numControls':4},
-                               'spine':{'numJoints':4,
-                                       'numControls':4}},
-                    'feature':{'default':{'numJoints':9,
-                                          'numControls':5}}}
+d_build_profiles = {
+    'unityMobile':{'default':{'numJoints':3,
+                              'numControls':3},
+                   },
+    'unityPC':{'default':{'numJoints':4,
+                          'numControls':4},
+               'spine':{'numJoints':4,
+                       'numControls':4}},
+    'feature':{'default':{'numJoints':9,
+                          'numControls':5}}}
 
 d_block_profiles = {
     'tail':{'numShapers':5,
@@ -159,29 +159,34 @@ d_block_profiles = {
 
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
+                   'position',
                    'baseUp',
                    'baseAim',
-                   'position',
-                   'addCog',                   
-                   'hasRootJoint',
+                   'addCog',
+                   #'hasRootJoint',
                    'nameList',
                    'loftSides',
                    'loftDegree',
                    'loftSplit',
+                   'loftShape',
                    'ikSetup',
                    'ikBase',
-                   'buildProfile',                   
-                   'moduleTarget',]
+                   'nameIter',
+                   'numControls',
+                   'numShapers',
+                   'numJoints',
+                   'buildProfile',
+                   'moduleTarget']
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:torso',
-                 'loftShape':'circle:square:diamond:wideUp:wideDown:widePos:wideNeg',
                  'placeSettings':'start:end',
                  'blockProfile':':'.join(d_block_profiles.keys()),
-                 'nameIter':'string',
-                 'numControls':'int',
-                 'numShapers':'int',
-                 'numJoints':'int'}
+                 #'nameIter':'string',
+                 #'numControls':'int',
+                 #'numShapers':'int',
+                 #'numJoints':'int'
+                 }
 
 d_defaultSettings = {'version':__version__,
                      'baseSize':MATH.get_space_value(__dimensions[1]),

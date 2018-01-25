@@ -371,8 +371,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #return False
     
             #>>> Attributes --------------------------------------------------------------------------------
-            #self._factory.verify(blockType)    
-            self.atBlockUtils('verify_blockAttrs',queryMode = False)
+            #self._factory.verify(blockType)
+            BLOCKUTILS.verify_blockAttrs(self,queryMode=False)
+            #self.atBlockUtils('verify_blockAttrs',queryMode = False)
             
             _side = side
             try:
@@ -1300,6 +1301,7 @@ class handleFactory(object):
         self.mBlock = mBlock
 
                 #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
+    
     def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
         self.cleanShapes()
 
@@ -1311,8 +1313,8 @@ class handleFactory(object):
         SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
 
         if baseSize is not None:
-            baseSize = get_callSize(baseSize)
-            self._mTransform.baseSize = baseSize
+            _baseSize = get_callSize(baseSize)
+            #self._mTransform.baseSize = baseSize
 
         _baseSize = self._mTransform.baseSize
 

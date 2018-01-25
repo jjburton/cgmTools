@@ -55,6 +55,7 @@ import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
 for m in DIST,POS,MATH,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
     reload(m)
@@ -65,43 +66,97 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.12222017'
+__version__ = 'alpha.01152017'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]
-__menuVisible__ = False
+__menuVisible__ = True
 
 #These are our base dimensions. In this case it is for human
 __dimensions_by_type = {'box':[22,22,22],
                         'human':[15.2, 23.2, 19.7]}
 
-#>>>Attrs ----------------------------------------------------------------------------------------------------
-_l_coreNames = ['head']
+__l_rigBuildOrder__ = ['rig_skeleton',
+                       'rig_shapes',
+                       'rig_controls',
+                       'rig_segments',
+                       'rig_frame',
+                       'rig_cleanUp ']
+
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
+                   'msgLists':['prerigHandles']}
+d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh','orientHelper'],
+                     'msgLists':['templateHandles']}
+
+#>>>Profiles =====================================================================================================
+d_build_profiles = {
+    'unityMobile':{'default':{'neckJoints':1,
+                              'neckControls':1,
+                              'neckBuild':True},
+                   'human':{'neckJoints':1,
+                            'neckControls':1}
+                   },
+    'unityPC':{'default':{'neckJoints':2,
+                          'neckControls':1},
+               },
+    'feature':{'default':{'numJoints':9,
+                          'numControls':5}
+               }
+}
+
+d_block_profiles = {
+    'box':{'neckShapers':2,
+           'neckBuild':False,
+           'baseAim':[0,-1,0],
+           'baseUp':[0,0,-1],
+           'baseSize':[22,22,22],
+           'loftShape':'square',           
+           },
+    'human':{'neckShapers':3,
+             'neckBuild':True,
+             'baseAim':[0,-1,0],
+             'baseUp':[0,0,-1],
+             'baseSize':[15.2, 23.2, 19.7],
+             'loftShape':'wideUp',
+             'proxyType':'geo'
+             }
+}
+
+
+
+#>>>Attrs =====================================================================================================
+#_l_coreNames = ['head']
 
 l_attrsStandard = ['side',
                    'position',
-                   'hasRootJoint',
-                   'baseNames',
-                   'proxyShape',
+                   'baseUp',
+                   'baseAim',
+                   #'hasRootJoint',
+                   'nameList',
                    'loftSides',
                    'loftDegree',
                    'loftSplit',
-                   #'customStartOrientation',
+                   'loftShape',
+                   'ikSetup',
+                   'ikBase',
+                   'buildProfile',
                    'moduleTarget',]
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'proxyType':'base:geo',
-                 'headType':'box:human:beast',
                  'headAim':'bool',
                  'headRotate':'double3',
                  'neckBuild':'bool',
                  'neckControls':'int',
+                 'neckShapers':'int',
                  'neckJoints':'int',
-                 'neckIK':'bool'}
+                 'loftSetup':'default:neck',                 
+                 'blockProfile':':'.join(d_block_profiles.keys()),
+                 'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
+                 }
 
 d_defaultSettings = {'version':__version__,
                      'baseSize':MATH.get_space_value(__dimensions[1]),
                      'headAim':True,
-                     'headType':'human',
                      'neckBuild':True,
                      'neckControls': 1,
                      'loftSides': 10,
@@ -109,9 +164,9 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',                     
                      'neckJoints':3,
                      'attachPoint':'base',
-                     'neckIK':True,
+                     'neckIK':'ribbon',
                      'proxyShape':'cube',
-                     'baseNames':['head','neck'],#...our datList values
+                     'nameList':['head','neck'],#...our datList values
                      'proxyType':'geo'}
 
 #Skeletal stuff ------------------------------------------------------------------------------------------------
@@ -138,32 +193,36 @@ def define(self):
 #=============================================================================================================
 #>> Template
 #=============================================================================================================    
-def templateDelete(self):
-    return BLOCKUTILS.templateDelete(self,['orientHelper'])
+#def templateDelete(self):
+#    return BLOCKUTILS.templateDelete(self,['orientHelper'])
 
-is_template = BLOCKUTILS.is_template
+#is_template = BLOCKUTILS.is_template
 
   
 def template(self):
     _str_func = 'template'
     
     _short = self.p_nameShort
-    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
-    _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
-    _headType = self.getEnumValueString('headType')
-    _dimensions = __dimensions_by_type.get(_headType,'human')
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+    _headType = self.getEnumValueString('blockProfile')
+    _baseSize = self.baseSize
+    #_dimensions = __dimensions_by_type.get(_headType,'human')
     
     _side = 'center'
     if self.getMayaAttr('side'):
         _side = self.getEnumValueString('side')
         
     self.scale = 1,1,1
+    self.baseSize
+    #_size = self.baseSize
+    _size = MATH.average(self.scale)
+    #_size_width = (_dimensions[1]/_size) * _dimensions[2]
+    _size_width = (_baseSize[1]) * _baseSize[2]
     
-    _size = self.baseSize
-    _size_width = (_dimensions[1]/_size) * _dimensions[2]
+    log.info("|{0}| >> [{1}] | headType: {2} |baseSize: {3} | side: {4}".format(_str_func,_short,_headType, _baseSize, _side))            
     
-    log.info("|{0}| >> [{1}] | headType: {2} |baseSize: {3} | side: {4} | dimensions: {5}".format(_str_func,_short,_headType,_size, _side, _dimensions))            
-
+    
     #Create temple Null  ==================================================================================
     mTemplateNull = BLOCKUTILS.templateNull_verify(self)
     
@@ -177,24 +236,28 @@ def template(self):
     
     #Size our base proxy shape ----------------------------------------------------------------
     mProxyBase = cgmMeta.validateObjArg( CORERIG.duplicate_shape( self.getShapes()[0] )[0] , 'cgmObject' )
-    _factor = _dimensions[1]/_size
-    _scale = [d * _factor for d in _dimensions]
-    TRANS.scale_to_boundingBox(mProxyBase.mNode, _scale)
+    #_factor = _baseSize[1]/_size
+    _factor = 1/_size
+    
+    _scale_BB = [d * _factor for d in _baseSize]
+    TRANS.scale_to_boundingBox(mProxyBase.mNode, _scale_BB)
     CORERIG.shapeParent_in_place(self.mNode, mProxyBase.mNode, False, True)
     
     CORERIG.colorControl(self.mNode,_side,'main',transparent = True) 
     
+    
     #Orient Helper ----------------------------------------------------------------------------------
-    mOrientCurve = mHandleFactory.addOrientHelper(baseSize = _scale[0] * .7,
+    mOrientCurve = mHandleFactory.addOrientHelper(baseSize = _scale_BB[0] * .7,
                                                   shapeDirection = 'z+',
                                                   setAttrs = {'rz':90,
-                                                              'tz': _size * .8})
-    self.copyAttrTo(_baseNameAttrs[1],mOrientCurve.mNode,'cgmName',driven='target')
+                                                              'tz': _scale_BB[2] * .8})
+    self.copyAttrTo(_baseNameAttrs[0],mOrientCurve.mNode,'cgmName',driven='target')
     mOrientCurve.doName()    
-    mOrientCurve.setAttrFlags(['rz','rx','translate','scale','v'])
+    mOrientCurve.setAttrFlags(['rz','translate','scale','v'])
     mOrientCurve.p_parent = mTemplateNull
     CORERIG.colorControl(mOrientCurve.mNode,_side,'sub')    
-      
+    
+    
     #Proxies ==============================================================================
     ml_proxies = []        
     log.info("|{0}| >> Geo proxyType...".format(_str_func,))     
@@ -204,7 +267,7 @@ def template(self):
         _res = build_prerigMesh(self)
         mProxy = cgmMeta.validateObjArg(_res[0],'cgmObject',setClass=True)
         mProxy.doSnapTo(self.mNode)       
-        TRANS.scale_to_boundingBox(mProxy.mNode, _scale)
+        TRANS.scale_to_boundingBox(mProxy.mNode, _scale_BB)
         
         ml_proxies.append(mProxy)
         
@@ -255,14 +318,20 @@ def template(self):
     
     self.msgList_connect('headMeshProxy',ml_proxies,'block')#Connect
     self.msgList_connect('templateHandles',[self.mNode])
-        
+    
+    
     #Neck ==================================================================================================
     if self.neckBuild:
         log.info("|{0}| >> Building neck...".format(_str_func,_short,_size_width, _side)) 
-        _size_width = _size_width * .5
+        #_size_width = _size_width * .5
+        _size_width = _scale_BB[0]
+
+        _loftShapeBase = self.getEnumValueString('loftShape')        
+        _loftShape = 'loft' + _loftShapeBase[0].capitalize() + ''.join(_loftShapeBase[1:])
         
         
-        #>>> Top curve ==========================================================================================
+        
+        #>>> Top Handle ==========================================================================================
         mTopCurve = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
         mTopCurve.p_parent = mTemplateNull
         
@@ -273,7 +342,7 @@ def template(self):
         
         #Convert to loft curve setup ----------------------------------------------------
         mHandleFactory = self.asHandleFactory(mTopCurve.mNode)
-        mHandleFactory.rebuildAsLoftTarget('circle', _size_width, shapeDirection = 'y+',rebuildHandle = False)
+        mHandleFactory.rebuildAsLoftTarget(_loftShape, _size_width, shapeDirection = 'y+',rebuildHandle = False)
         
         mc.makeIdentity(mTopCurve.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
     
@@ -285,7 +354,7 @@ def template(self):
         CORERIG.colorControl(mTopCurve.mNode,_side,'main',transparent = True)        
         
 
-        #>>> Base curve ==========================================================================================
+        #>>> Base Handle ==========================================================================================
         mBaseCurve = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
         
         self.copyAttrTo(_baseNameAttrs[1],mBaseCurve.mNode,'cgmName',driven='target')
@@ -295,8 +364,10 @@ def template(self):
         
         mBaseCurve.p_parent = mTemplateNull
         
-        mBaseAttachGroup = mBaseCurve.doGroup(True, asMeta=True,typeModifier = 'attach')                
-        mBaseCurve.translate = 0,-_size,0        
+        mBaseAttachGroup = mBaseCurve.doGroup(True, asMeta=True,typeModifier = 'attach')
+        
+        new_pos = DIST.get_pos_by_vec_dist(self.p_position, self.baseAim, MATH.average(_scale_BB))
+        mBaseCurve.p_position = new_pos
         
         self.copyAttrTo(_baseNameAttrs[1],mBaseCurve.mNode,'cgmName',driven='target')
         mBaseCurve.doStore('cgmType','blockHandle')
@@ -305,7 +376,7 @@ def template(self):
         
         #Convert to loft curve setup ----------------------------------------------------
         mHandleFactory = self.asHandleFactory(mBaseCurve.mNode)
-        mHandleFactory.rebuildAsLoftTarget('circle', _size_width, shapeDirection = 'y+', rebuildHandle = False)
+        mHandleFactory.rebuildAsLoftTarget(_loftShape, _size_width, shapeDirection = 'y+', rebuildHandle = False)
         
         mc.makeIdentity(mBaseCurve.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
     
@@ -335,67 +406,22 @@ def template(self):
         
         
         #>>Loft Mesh ==================================================================================================
-        targets = [mBaseLoftCurve.mNode, mTopLoftCurve.mNode]        
+        targets = [mBaseLoftCurve.mNode, mTopLoftCurve.mNode]
+        
+        self.atUtils('create_prerigLoftMesh',
+                     targets,
+                     mTemplateNull,
+                     'neckControls',                     
+                     'loftSplit',
+                     polyType='bezier',
+                     baseName = self.cgmName )        
+        
+        """
         BLOCKUTILS.create_templateLoftMesh(self,targets,mBaseLoftCurve,
                                            mTemplateNull,'neckControls',
-                                           baseName = _l_baseNames[1])
+                                           baseName = _l_baseNames[1])"""
         
-        """targets = [mBaseLoftCurve.mNode, mTopLoftCurve.mNode]
-        _res_body = mc.loft(targets, o = True, d = 3, po = 1, name = _l_baseNames[1] )
-        mLoft = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-        
-        _inputs = mc.listHistory(mLoft.mNode,pruneDagObjects=True)
-        _tessellate = _inputs[0]
-        _loftNode = _inputs[1]
-        
-        
-        _d = {'format':2,#General
-              'polygonType':1,#'quads',
-              'uNumber': 1 + self.neckControls}
-        
-        for a,v in _d.iteritems():
-            ATTR.set(_tessellate,a,v)    
-            
-        mLoft.overrideEnabled = 1
-        mLoft.overrideDisplayType = 2
-        _arg = "{0}.numberOfControlsOut = {1} + 1".format(mBaseLoftCurve.p_nameShort,
-                                                          self.getMayaAttrString('neckControls','short'))
-                                                          
-        NODEFACTORY.argsToNodes(_arg).doBuild()
-        
-        ATTR.connect("{0}.numberOfControlsOut".format(mBaseLoftCurve.mNode), "{0}.uNumber".format(_tessellate))
-        ATTR.connect("{0}.loftSides".format(self.mNode), "{0}.vNumber".format(_tessellate))
-        
-        mLoft.p_parent = mTemplateNull
-        mLoft.resetAttrs()
-        
-        mLoft.doStore('cgmName',self.mNode)
-        mLoft.doStore('cgmType','controlsApprox')
-        mLoft.doName()
-        
-        for n in _tessellate,_loftNode:
-            mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self.mNode)
-            mObj.doStore('cgmTypeModifier','controlsApprox')
-            mObj.doName()            
-        
-        
-        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
-        #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
-    
-        mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
-        
-        #Color our stuff...
-        CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = True)
-        
-        mLoft.inheritsTransform = 0
-        for s in mLoft.getShapes(asMeta=True):
-            s.overrideDisplayType = 2   
-            
-        self.connectChildNode(mLoft.mNode, 'templateLoftMesh', 'block')
-        """
-        
-    
+
         #Base Orient Helper ----------------------------------------------------------------------------------
         mHandleFactory = self.asHandleFactory(mBaseCurve.mNode)
     
@@ -415,12 +441,7 @@ def template(self):
         mc.select(cl=True)    
     
     return True
-    #Push our dimensions if we're gonna do go mesh...
-    if self.proxyType ==2:
-        log.info("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func,_short,_size, _side))     
-        self.scaleX = __dimensions[0] / __dimensions[1]
-        self.scaleZ = __dimensions[2] / __dimensions[1]
-        
+
 
 
 #=============================================================================================================
@@ -432,11 +453,11 @@ def build_prerigMesh(self):
     _size = self.baseSize
     
     if _shape == 'cube':
-        _res = mc.polyCube(width=_size, height = _size, depth = _size)
+        _res = mc.polyCube(width=_size[0], height = _size[1], depth = _size[2])
     elif _shape == 'sphere':
-        _res = mc.polySphere(radius = _size * .5)
+        _res = mc.polySphere(radius = MATH.average(_size) * .5)
     elif _shape == 'cylinder':
-        _res = mc.polyCylinder(height = _size, radius = _size * .5)
+        _res = mc.polyCylinder(height = MATH.average(_size), radius = MATH.average(_size) * .5)
     else:
         raise ValueError,"|{0}| >> Unknown shape: [{1}]".format(_str_func,_shape)
     return _res
@@ -1927,12 +1948,6 @@ def build_proxyMesh(self, forceNew = True):
         
     mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
 
-__l_rigBuildOrder__ = ['rig_skeleton',
-                       'rig_shapes',
-                       'rig_controls',
-                       'rig_segments',
-                       'rig_frame',
-                       'rig_cleanUp ']
 
 
 
