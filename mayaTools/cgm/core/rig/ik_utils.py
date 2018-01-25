@@ -941,6 +941,8 @@ def ribbon(jointList = None,
         v_up = axis_up.p_vector   #upVector
         v_out = axis_out.p_vector
         
+        str_up = axis_up.p_string
+        
         outChannel = str_orientation[2]#outChannel
         upChannel = '{0}up'.format(str_orientation[1])#upChannel
         l_param = []  
@@ -969,12 +971,13 @@ def ribbon(jointList = None,
         ml_follicleShapes = []
         ml_upGroups = []
         ml_aimDrivers = []
-        ml_upDrivers = []
+        ml_upTargets = []
         
         minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')        
         #maxU = ATTR.get(mControlSurface.getShapes()[0],'maxValueU')
         #minV = ATTR.get(mControlSurface.getShapes()[0],'mimValueV')        
         #maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
+        f_offset = DIST.get_distance_between_targets(l_joints,True)
         
         import cgm.core.lib.node_utils as NODES
         
@@ -1006,19 +1009,44 @@ def ribbon(jointList = None,
             
             mDriver = mFollicle
             if driverSetup:
-                mDriver = mJnt.doCreateAt(setClass=True)                
+                mDriver = mJnt.doCreateAt(setClass=True)
                 mDriver.rename("{0}_aimDriver".format(mFollicle.p_nameBase))
                 mDriver.parent = mFollicle
                 mUpGroup = mDriver.doGroup(True,asMeta=True,typeModifier = 'up')
                 
-                if driverSetup == 'aim':
-                    ml_aimDrivers.append(mDriver)
-                    ml_upDrivers.append(mUpGroup)
+                ml_aimDrivers.append(mDriver)
+                ml_upGroups.append(mUpGroup)
+                
+                if driverSetup == 'stable':
+                    mUpDriver = mJnt.doCreateAt(setClass=True)
+                    mDriver.rename("{0}_upTarget".format(mFollicle.p_nameBase))                    
+                    pos = DIST.get_pos_by_axis_dist(mJnt.mNode, str_up, f_offset)
+                    mUpDriver.p_position = pos
+                    mUpDriver.p_parent = mUpGroup
                     
-                else:#stable setup
+                    ml_upTargets.append(mUpDriver)
+                    
+            #Simple contrain
+            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+            
+        if ml_aimDrivers:
+            if driverSetup == 'aim':
+                for i,mDriver in enumerate(ml_aimDrivers):
+                    v_aimUse = v_aim
+                    if mDriver == ml_aimDrivers[-1]:
+                        s_aim = ml_follicles[-2].mNode
+                        v_aimUse = v_aimNeg
+                    else:
+                        s_aim = ml_follicles[i+1].mNode
+                
+                    mc.aimConstraint(s_aim, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                                     aimVector = v_aimUse, upVector = v_up, worldUpObject = ml_upGroups[i].mNode,
+                                     worldUpType = 'objectrotation', worldUpVector = v_up)            
+            else:
+                for i,mDriver in enumerate(ml_aimDrivers):
                     #We need to make new follicles
                     l_stableFollicleInfo = NODES.createFollicleOnMesh( mControlSurface.mNode )
-                    
+                
                     mStableFollicle = cgmMeta.asMeta(l_stableFollicleInfo[1],'cgmObject',setClass=True)
                     mStableFollicleShape = cgmMeta.asMeta(l_stableFollicleInfo[0],'cgmNode')
                     mStableFollicle.parent = mi_grp.mNode
@@ -1027,34 +1055,24 @@ def ribbon(jointList = None,
                     #mStableFollicleTrans.doStore('cgmName',mObj.mNode)
                     #mStableFollicleTrans.doStore('cgmTypeModifier','surfaceStable')            
                     #mStableFollicleTrans.doName()
-                    mStableFollicle.rename('{0}_surfaceStable'.format(mJnt.p_nameBase))
+                    mStableFollicle.rename('{0}_surfaceStable'.format(ml_joints[i].p_nameBase))
                 
-
+                
                     mStableFollicleShape.parameterU = minU
-                    mStableFollicleShape.parameterV = mFollShape.parameterV
-                    
-                    #...now aim it
-                    mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
-                                     aimVector = v_out, upVector = v_up, worldUpObject = mUpGroup.mNode,
-                                     worldUpType = 'objectrotation', worldUpVector = v_up)                                
+                    mStableFollicleShape.parameterV = ml_follicleShapes[i].parameterV
                     
                     
-            #Simple contrain
-            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
-            
-        if ml_aimDrivers:
-            for i,mDriver in enumerate(ml_aimDrivers):
-                v_aimUse = v_aim
-                if mDriver == ml_aimDrivers[-1]:
-                    s_aim = ml_follicles[-2].mNode
-                    v_aimUse = v_aimNeg
-                else:
-                    s_aim = ml_follicles[i+1].mNode
-            
-                mc.aimConstraint(s_aim, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
-                                 aimVector = v_aimUse, upVector = v_up, worldUpObject = ml_upDrivers[i].mNode,
-                                 worldUpType = 'objectrotation', worldUpVector = v_up)            
-            
+                    
+                    if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
+                        #...now aim it
+                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
+                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                         worldUpType = 'object', worldUpVector = v_up)                     
+                    else:
+                        mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                         worldUpType = 'object', worldUpVector = v_up)                                    
+                    
             
             """
             if mJnt != ml_joints[-1]:

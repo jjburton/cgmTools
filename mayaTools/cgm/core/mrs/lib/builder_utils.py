@@ -982,23 +982,23 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             dnV = MATH.Clamp(v - f_factor/4, minU, maxU)
                         
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,dnV), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(baseCrv,offset * 2,component='ep')
                         
                         #baseOffsetCrv = mc.offsetCurve(baseCrv, distance = - _offset_seg,
                         #                           normal = l_vectors[i],
                         #                           ch=False )[0]
-                        mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 3, spans = 12, d=3)
+                        #mc.rebuildCurve(baseCrv, replaceOriginal = True, rt = 3, spans = 12, d=3)
                         
                         l_mainCurves.append(baseCrv)
                         #mc.delete(baseCrv)
                         
                         topCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,upV), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(topCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(topCrv,offset * 2,component='ep')
                         
                         #topOffsetCrv = mc.offsetCurve(topCrv, distance = - _offset_seg,
                         #                           normal = l_vectors[i],
                         #                           ch=False )[0]
-                        mc.rebuildCurve(topCrv, replaceOriginal = True, rt = 3, spans = 12,d=3)                    
+                        #mc.rebuildCurve(topCrv, replaceOriginal = True, rt = 3, spans = 12,d=3)                    
                         l_mainCurves.append(topCrv)
                         #mc.delete(topCrv)                    
                         
