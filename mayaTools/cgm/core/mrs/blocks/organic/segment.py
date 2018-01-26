@@ -413,7 +413,7 @@ def template(self):
                 #TRANS.parent_set( _res[1], _l_clusterParents[i].getMessage('loftCurve')[0])
                 TRANS.parent_set(_res[1], mTemplateNull)
                 mc.pointConstraint(_l_clusterParents[i].getMessage('loftCurve')[0],
-                                   _res[1],maintainOffset=True)                
+                                   _res[1],maintainOffset=True)
                 ATTR.set(_res[1],'v',False)                
                 l_clusters.append(_res)
         
