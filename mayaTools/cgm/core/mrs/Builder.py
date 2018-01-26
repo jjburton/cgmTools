@@ -820,9 +820,12 @@ class ui(cgmUI.cgmGUI):
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
         
+        _sidePadding = 25
+        
         _short = self._blockCurrent.p_nameShort
         _intState = self._blockCurrent.getState(False)        
-    
+        mBlock = self._blockCurrent
+        
         #Save/Load row... ------------------------------------------------------------------------
         _mBlockDat = mUI.MelHLayout(self.uiFrame_blockSettings,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(_mBlockDat, "Save",
@@ -842,14 +845,34 @@ class ui(cgmUI.cgmGUI):
         CGMUI.add_Button(_mBlockDat,'Refresh',
                          cgmGEN.Callback(self.uiUpdate_blockDat),
                          "Resync the ui blockDat with any changes you've made in viewport.")
-    
         _mBlockDat.layout()
+        
+        #Lock nulls row ------------------------------------------------------------------------
+        _mRow_lockNulls = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,ut='cgmUISubTemplate',padding = 2)
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        
+        mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
+        _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
+        
+        for null in ['templateNull','prerigNull']:
+            _str_null = mBlock.getMessage(null)
+            if _str_null:
+                _nullShort = _str_null[0]
+                mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
+                                value = ATTR.get(_nullShort,'template'),
+                                onCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',1),
+                                offCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',0))                
+            else:
+                mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
+                                en=False)
+        
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        _mRow_lockNulls.layout()
         
 
         #Attrs... ------------------------------------------------------------------------
         _l_attrs = self._blockCurrent.atUtils('uiQuery_getStateAttrs',_intState)
     
-        _sidePadding = 25
         self._d_attrFields = {}
         _l_attrs.sort()
         for a in _l_attrs:
@@ -858,7 +881,7 @@ class ui(cgmUI.cgmGUI):
             _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
             mUI.MelSpacer(_hlayout,w=_sidePadding)
     
-            _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
+            _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))
     
             if _type not in ['bool']:#Some labels parts of fields
                 mUI.MelLabel(_hlayout,l="{0} -".format(a))   

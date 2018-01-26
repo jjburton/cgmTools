@@ -860,7 +860,7 @@ def create_prerigLoftMesh(self, targets = None,
         cgmGEN.cgmException(Exception,err)
         
 def create_jointLoft(self, targets = None, mPrerigNull = None,
-                     uAttr = 'neckJoints', baseName = 'test'):
+                     uAttr = 'neckJoints', baseCount = 1, baseName = 'test'):
     
     _str_func = 'create_jointLoft'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -883,17 +883,19 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
     _d = {'format':2,#General
           'polygonType':1,#'quads',
-          'uNumber': 1 + len(targets)}
+          'uNumber': baseCount + len(targets)}
 
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)  
+        
+    #ATTR.set(_loftNode,'degree',1)  
+    
         
 
     log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
 
     mLoft.overrideEnabled = 1
     mLoft.overrideDisplayType = 2
-
     mLoft.p_parent = mPrerigNull
     mLoft.resetAttrs()
 
@@ -909,8 +911,9 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
         s.overrideDisplayType = 2    
 
     #...wire some controls
-    _arg = "{0}.out_vSplit = {1} + 1 ".format(targets[0],
-                                             self.getMayaAttrString(uAttr,'short'))
+    _arg = "{0}.out_vSplit = {1} + {2} ".format(targets[0],
+                                             self.getMayaAttrString(uAttr,'short'),
+                                             baseCount)
 
     NODEFACTORY.argsToNodes(_arg).doBuild()
     
@@ -1419,7 +1422,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
-def prerigHandles_getNameDat(self, nameHandles = False,**kws):
+def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
     """
     Get a list of the driving attributes to plug in to our handles
     
@@ -1436,7 +1439,8 @@ def prerigHandles_getNameDat(self, nameHandles = False,**kws):
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
     
-    _number = self.numControls
+    if count == None:
+        count = self.numControls
     
     #Name dict...
     _nameDict ={}
@@ -1459,7 +1463,7 @@ def prerigHandles_getNameDat(self, nameHandles = False,**kws):
         _nameDict[a] = v    
     
     _cnt = 0
-    l_range = range(_number)
+    l_range = range(count)
     for i in l_range:
         _nameDictTemp = copy.copy(_nameDict)
         _specialName = False
@@ -1483,7 +1487,7 @@ def prerigHandles_getNameDat(self, nameHandles = False,**kws):
         
     if nameHandles:
         ml_prerigHandles = self.msgList_get('prerigHandles')
-        if len(ml_prerigHandles) == _number:
+        if len(ml_prerigHandles) == count:
             log.debug("|{0}| >>  nameHandles on. Same length...".format(_str_func))
             for i,mHandle in enumerate(ml_prerigHandles):
                 _dict = l_res[i]
