@@ -410,7 +410,11 @@ def template(self):
             for i,cv in enumerate(mLinearCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'test_{0}_{1}_cluster'.format(_l_clusterParents[i].p_nameBase,i))
                 #_res = mc.cluster(cv)            
-                TRANS.parent_set( _res[1], _l_clusterParents[i].getMessage('loftCurve')[0])
+                #TRANS.parent_set( _res[1], _l_clusterParents[i].getMessage('loftCurve')[0])
+                TRANS.parent_set(_res[1], mTemplateNull)
+                mc.pointConstraint(_l_clusterParents[i].getMessage('loftCurve')[0],
+                                   _res[1],maintainOffset=True)                
+                ATTR.set(_res[1],'v',False)                
                 l_clusters.append(_res)
         
             pprint.pprint(l_clusters)

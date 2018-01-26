@@ -665,7 +665,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if self._blockModule and not update:
             return self._blockModule
         blockType = self.getMayaAttr('blockType')
-        return get_blockModule(blockType)
+        blockModule = get_blockModule(blockType)
+        reload(blockModule)
+        return blockModule
 
     p_blockModule = property(getBlockModule)
 
@@ -1316,7 +1318,7 @@ class handleFactory(object):
             _baseSize = get_callSize(baseSize)
             #self._mTransform.baseSize = baseSize
 
-        _baseSize = self._mTransform.baseSize
+        _baseSize = self.mBlock.baseSize
 
         _baseShape = self._mTransform.getMayaAttr('baseShape') 
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
@@ -1349,7 +1351,7 @@ class handleFactory(object):
 
     def getBaseCreateSize(self):
         _maxLossy = max(self._mTransform.getScaleLossy())
-        _baseSize = self._mTransform.baseSize * _maxLossy    
+        _baseSize = self.mBlock.baseSize * _maxLossy    
         return _baseSize
 
     def copyBlockNameTags(self, target = None, name = True, direction = True, position = True):
@@ -1455,6 +1457,8 @@ class handleFactory(object):
             _baseSize = get_callSize(baseSize)
         elif self._mTransform.getShapes():
             _baseSize = POS.get_axisBox_size(self._mTransform.mNode,False)
+        elif self.mBlock and self.mBlock.hasAttr('baseSize'):
+            _baseSize = self.mBlock.baseSize
         elif self._mTransform and self._mTransform.hasAttr('baseSize'):
             _baseSize = self._mTransform.baseSize
         else:

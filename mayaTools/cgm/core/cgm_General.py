@@ -1515,7 +1515,7 @@ def testException(*args,**kws):
         raise ValueError,"Bob's not home"
     except Exception,err:cgmException(Exception,err)
 
-def cgmException(etype = None, value = None, tb = None):
+def cgmException(etype = None, value = None, tb = None,msg=None):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
 
     try:db_file = tb.tb_frame.f_code.co_filename
@@ -1542,7 +1542,8 @@ def cgmException(etype = None, value = None, tb = None):
     print("  Local dat...")
     pprint.pprint(_d)
     #pprint.pprint(tb.tb_frame.f_locals)
-    
+    if msg:
+        print (msg)
     print("..." + _str_headerDiv)
     """
     if value:
