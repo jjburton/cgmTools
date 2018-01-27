@@ -168,6 +168,7 @@ class ui(cgmUI.cgmGUI):
         #Reference Prefixes -----------------------------------------------------------------------------
         _refKeys = self.d_refSets.keys()
         _activeRefs = self.var_ActiveSetRefs.getValue()
+        _str_activeSetRefs = self.var_ActiveSetRefs.name
         if _refKeys:# and len(_refKeys) > 1:
         
             refMenu = mUI.MelMenuItem( self.uiMenu_FirstMenu, l='Load Refs:', subMenu=True)
@@ -179,7 +180,7 @@ class ui(cgmUI.cgmGUI):
                          #c = Callback(setToolsLib.doSetAllRefState,self,True))	
                          
             mUI.MelMenuItemDiv( refMenu )
-        
+            reload(cgmUI)
         
             for i,n in enumerate(_refKeys):
         
@@ -189,8 +190,14 @@ class ui(cgmUI.cgmGUI):
         
                 mUI.MelMenuItem( refMenu, l = n,
                                  cb = activeState,
-                                 c=lambda *a: uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n))        
-        
+                                 #c= cgmGEN.Callback(cgmUI.varBuffer_toggle,self,_str_activeSetRefs,n))                                                                          
+                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n))        
+                                 #c= uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n))                                  
+                                 #c=lambda *a: uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n))        
+                                 #cc=lambda *a: uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n)
+                                 #c=cgmGEN.Callback(self.log_n,n))
+                                 #cc=cgmGEN.Callback(log.info, n))
+                
         
             mUI.MelMenuItemDiv( refMenu )
             mUI.MelMenuItem( refMenu, l = 'Clear',
@@ -214,6 +221,18 @@ class ui(cgmUI.cgmGUI):
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
+    
+    def uiFunc_toggleListValueOptionVarAndUpdate(self, optionVar = None, value=None ):
+        _str_func = 'uiFunc_setOptionVarAndUpdate'
+        log.warning("|{0}| >> optionVar: {1} | value: {2}".format(_str_func,optionVar,value)) 
+        try:optionVar.value
+        except:optionVar = cgmMeta.cgmOptionVar(optionVar)
+        if value in optionVar.value:
+            optionVar.remove(value)
+        else:
+            optionVar.append(value)
+        
+        self.uiUpdate_objectSets()
         
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'    
@@ -481,6 +500,9 @@ class ui(cgmUI.cgmGUI):
             log.error("|{0}| >> No loaded or active sets.".format(_str_func))               
             return False
         
+        l_sel = False
+        if mode == 'select':
+            l_sel = []
         for mSet in ml_sets:
             try:
                 if mode == 'key':
@@ -489,12 +511,16 @@ class ui(cgmUI.cgmGUI):
                     mSet.deleteKey()
                 elif mode == 'reset':
                     mSet.reset()
+                elif mode == 'select':
+                    l_sel.extend(mSet.getList())
                 else:
                     log.error("|{0}| >> unknown mode: {1}".format(_str_func, mode))   
                     return False
             except Exception,err:
                 log.error("|{0}| >> Failed: {1} | mode: {2} | err: {3}".format(_str_func,mSet, mode,err)) 
-                
+        
+        if l_sel:
+            mc.select(l_sel)
                 
     def uiFunc_setActiveState(self,mObjectSet = None,value = None):
         _str_func = 'uiFunc_setActiveState' 
@@ -586,7 +612,7 @@ def uiFunc_setOptionVarAndUpdate(self, optionVar = None, value=None ):
     
 def uiFunc_toggleListValueOptionVarAndUpdate(self, optionVar = None, value=None ):
     _str_func = 'uiFunc_setOptionVarAndUpdate'
-    
+    log.warning("|{0}| >> optionVar: {1} | value: {2}".format(_str_func,optionVar,value)) 
     if value in optionVar.value:
         optionVar.remove(value)
     else:
@@ -670,6 +696,13 @@ def buildSetsForm_main(self,parent):
     _uiRow_allSets.setStretchWidget(self.SetModeOptionMenu)
     
     mUI.MelSpacer(parent = _uiRow_allSets, w = 2)
+    
+    mc.button(parent=_uiRow_allSets ,
+                     ut = 'cgmUITemplate',                                                                                                
+                     l = 'S',
+                     c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'select'),
+                     ann = "Select all sets")    
+    
     mc.button(parent=_uiRow_allSets ,
                  ut = 'cgmUITemplate',                                                                                                
                  l = 'K',
@@ -1022,14 +1055,17 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
               ann = "Select members")
     
     if b_setupMode:
+        _ref = mObjectSet.isReferenced()
         mc.button(parent=_row ,
                          ut = 'cgmUITemplate',                                                                                                
                          l = '+',
                          c = cgmGEN.Callback(mObjectSet.addSelected),
+                         en = not _ref,
                          ann = "Add selected to objectSet: {0}".format(_short))    
         mc.button(parent=_row ,
                       ut = 'cgmUITemplate',                                                                                                
                       l = '-',
+                      en = not _ref,                      
                       c = cgmGEN.Callback(mObjectSet.removeSelected),
                       ann = "Remove selected from objectSet: {0}".format(_short))  
         mc.button(parent=_row ,

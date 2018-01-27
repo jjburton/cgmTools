@@ -909,9 +909,9 @@ def prerigDelete(self):
         mc.delete(self.getMessage('noTransformNull'))
     return BLOCKUTILS.prerig_delete(self,templateHandles=True)
 
-def is_prerig(self):
-    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
-
+#def is_prerig(self):
+#    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
+def is_prerig(self):pass
     
 def build_skeleton(self, forceNew = True):
     _short = self.mNode

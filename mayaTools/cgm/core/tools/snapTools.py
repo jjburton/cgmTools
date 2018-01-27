@@ -42,6 +42,7 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
+from cgm.core.lib import snap_utils as SNAP
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 reload(SNAPCALLS)
 reload(RAYS)
