@@ -49,7 +49,7 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists"""
 
 #>>> Root settings =============================================================
-__version__ = '0.09112017'
+__version__ = '1.01272018'
 
 _l_setTypes = ['NONE',
                'animation',
@@ -97,6 +97,7 @@ class ui(cgmUI.cgmGUI):
         
         self.l_objectSets = []
         self.d_refSets = {}
+        self.d_typeSets = {}
         self.l_setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
         self.setMode = 0
         
@@ -135,7 +136,7 @@ class ui(cgmUI.cgmGUI):
                      c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_setupMode, not _setup ))            
         
         
-        #Hide -------------------------------------------------------------------------------------
+        #Hide ================================================================================
         _menu_hide = mUI.MelMenuItem( self.uiMenu_FirstMenu, l='Auto Hide', subMenu=True)
         #self.var_hideNonQSS = cgmMeta.cgmOptionVar('cgmVar_objectSetHideNonQSS', defaultValue = 1)
         #self.var_hideAnimLayerSets = cgmMeta.cgmOptionVar('cgmVar_HideAnimLayerSets', defaultValue = 1)
@@ -165,7 +166,7 @@ class ui(cgmUI.cgmGUI):
         #             cb= self.HideSetGroupOptionVar.value,
         #             c= lambda *a: setToolsLib.uiToggleOptionCB(self,self.HideSetGroupOptionVar))        
         
-        #Reference Prefixes -----------------------------------------------------------------------------
+        #Reference Prefixes ================================================================================
         _refKeys = self.d_refSets.keys()
         _activeRefs = self.var_ActiveSetRefs.getValue()
         _str_activeSetRefs = self.var_ActiveSetRefs.name
@@ -183,29 +184,45 @@ class ui(cgmUI.cgmGUI):
             reload(cgmUI)
         
             for i,n in enumerate(_refKeys):
-        
                 activeState = False
                 if n in _activeRefs:
                     activeState = True
         
                 mUI.MelMenuItem( refMenu, l = n,
                                  cb = activeState,
-                                 #c= cgmGEN.Callback(cgmUI.varBuffer_toggle,self,_str_activeSetRefs,n))                                                                          
-                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n))        
-                                 #c= uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n))                                  
-                                 #c=lambda *a: uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n))        
-                                 #cc=lambda *a: uiFunc_toggleListValueOptionVarAndUpdate(self, self.var_ActiveSetRefs,n)
-                                 #c=cgmGEN.Callback(self.log_n,n))
-                                 #cc=cgmGEN.Callback(log.info, n))
-                
+                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n))
         
             mUI.MelMenuItemDiv( refMenu )
             mUI.MelMenuItem( refMenu, l = 'Clear',
                              c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetRefs,[''] ))        
-                             #c = Callback(setToolsLib.doSetAllRefState,self,False))	        
         
+        #Types filtering  ================================================================================
+        _typeKeys = self.d_typeSets.keys()
+        _activeTypes = self.var_ActiveSetTypes.getValue()
+        _str_activeTypesVar = self.var_ActiveSetTypes.name
+
+        typeMenu = mUI.MelMenuItem( self.uiMenu_FirstMenu, l='Load Types:', subMenu=True)
         
-         
+        if _typeKeys:# and len(_refKeys) > 1:
+            mUI.MelMenuItem( typeMenu, l = 'All',
+                             c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetTypes,_typeKeys ))        
+            
+                         #c = Callback(setToolsLib.doSetAllRefState,self,True))	
+                         
+            mUI.MelMenuItemDiv( typeMenu )
+        
+            for i,n in enumerate(_typeKeys):
+                activeState = False
+                if n in _activeTypes:
+                    activeState = True
+        
+                mUI.MelMenuItem( typeMenu, l = n,
+                                 cb = activeState,
+                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeTypesVar,n))
+        
+            mUI.MelMenuItemDiv( typeMenu )
+            mUI.MelMenuItem( typeMenu, l = 'Clear',
+                             c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetTypes,[''] ))        
 
         mc.menuItem( parent = self.uiMenu_FirstMenu,
                      l="Log Self",
@@ -272,7 +289,7 @@ class ui(cgmUI.cgmGUI):
         self.l_objectSets = []        
         self.d_activeStateCBs = {}
         self.d_refSets = {}        
-        
+        self.d_typeSets = {}
         l_running = []
         
         #Filter our list --------------------------------------------------------------------------------
@@ -291,7 +308,6 @@ class ui(cgmUI.cgmGUI):
                 if VALID.get_mayaType(s) == 'animLayer':
                     l_running.remove(s)  
                     
-        
         if _d_sets['referenced']:
             activePrefixes = self.var_ActiveSetRefs.value
             for k,l in _d_sets['referenced'].iteritems():
@@ -303,8 +319,23 @@ class ui(cgmUI.cgmGUI):
                 if k not in activePrefixes:
                     for s in l:
                         if s in l_running:
+                            log.debug("|{0}| >> refCull: {1} | {2}".format(_str_func, k, s))
                             l_running.remove(s)
-                    
+
+        if _d_sets['cgmTypes']:
+            activeTypes = self.var_ActiveSetTypes.value
+            log.debug("|{0}| >> activeTypes: {1}".format(_str_func, activeTypes))
+            #pprint.pprint(_d_sets['cgmTypes'])
+            for k,l in _d_sets['cgmTypes'].iteritems():
+                k_uni = unicode(k)
+                if k not in self.d_typeSets.keys():
+                    #self.var_ActiveSetRefs.append(k)
+                    self.d_typeSets[k] = []                
+                if k_uni not in activeTypes:
+                    for s in l:
+                        if s in l_running:
+                            log.debug("|{0}| >> typeCull: {1} | {2}".format(_str_func, k,s))                            
+                            l_running.remove(s)
             
             
         #self.var_hideAnimLayerSets = cgmMeta.cgmOptionVar('cgmVar_HideAnimLayerSets', defaultValue = 1)
@@ -314,126 +345,7 @@ class ui(cgmUI.cgmGUI):
             uiBuild_objectSetRow(self,self.uiScrollList_objectSets, oSet)
         
         return
-        self.refPrefixes = self.objectSetsRaw['referenced'].keys()
-        self.refSetsDict = self.objectSetsRaw['referenced'] or {}
-        self.setTypesDict = self.objectSetsRaw['cgmTypes'] or {}
-        self.setGroups = self.objectSetsRaw['objectSetGroups'] or []
-        #Set Group stuff
-        self.setGroupName = False
-    
-        for s in self.setGroups:
-            if s in self.refSetsDict.get('From Scene'):
-                self.setGroupName = s
-                self.setsGroup = SetFactory(s)
-                break
-    
-        self.mayaSets = self.objectSetsRaw['maya'] or []
-        self.qssSets = self.objectSetsRaw['qss'] or []
-    
-        self.sortedSets = []
-        self.objectSets = []
-        self.activeSets = []
-    
-        #Sort sets we want to actually load
-        self.sortedSets = []
-    
-        #Sort for activeRefs
-        tmpActiveRefSets = []
-        if self.ActiveRefsOptionVar.value:
-            for r in self.ActiveRefsOptionVar.value:
-                #If value, let's add or subtract based on if our set refs are found
-                if self.refSetsDict.get(r):
-                    tmpActiveRefSets.extend(self.refSetsDict.get(r))
-    
-        #Sort for active types  
-        tmpActiveTypeSets = []
-        if self.setTypesDict.keys() and self.ActiveTypesOptionVar.value:
-            for t in self.setTypesDict.keys():
-                if t in self.ActiveTypesOptionVar.value and self.setTypesDict.get(t):	    
-                    tmpActiveTypeSets.extend(self.setTypesDict.get(t))
-    
-        if tmpActiveTypeSets and tmpActiveRefSets:
-            self.sortedSets = lists.returnMatchList(tmpActiveTypeSets,tmpActiveRefSets)
-        elif tmpActiveTypeSets:
-            self.sortedSets = tmpActiveTypeSets
-        else:
-            self.sortedSets = tmpActiveRefSets
-    
-    
-        #Next step, hiding. First get our cull lists
-        if self.sortedSets:
-            self.objectSets = self.sortedSets
-        else:
-            self.objectSets = self.objectSetsRaw['all']
-    
-        # Start pulling out stuff by making a list we can iterate through as culling from a list you're iterating through doesn't work
-        bufferList = copy.copy(self.objectSets)
-    
-        # Hide Set groups
-        if mc.optionVar(q='cgmVar_HideSetGroups'):
-            for s in self.setGroups:
-                try:self.objectSets.remove(s)
-                except:pass
-    
-    
-        # Hide animLayer Sets
-        if mc.optionVar(q='cgmVar_HideAnimLayerSets'):
-            for s in bufferList:
-                if search.returnObjectType(s) == 'animLayer':
-                    try:self.objectSets.remove(s)
-                    except:pass
-    
-    
-        # Hide Maya Sets
-        if mc.optionVar(q='cgmVar_HideMayaSets'):
-            for s in self.mayaSets:
-                try:self.objectSets.remove(s)
-                except:pass
-    
-    
-        # Hide non qss Sets
-        #print self.qssSets
-        #print self.objectSets
-        if mc.optionVar(q='cgmVar_HideNonQss'):
-            #print "sorting for qss"
-            for s in bufferList:
-                if s not in self.qssSets and s not in self.setGroups:
-                    try:self.objectSets.remove(s)
-                    except:pass 
-    
-    
-        #Refresh our active lists    
-        if self.ActiveObjectSetsOptionVar.value:
-            for o in self.objectSets:
-                if o in self.ActiveObjectSetsOptionVar.value:
-                    self.activeSets.append(o) 
-    
-        self.setInstances = {}
-        self.setInstancesFastIndex = {}
-    
-        #If we have object sets to load, we're gonna initialize em
-        if self.objectSets:
-            #Counter build
-            mayaMainProgressBar = guiFactory.doStartMayaProgressBar(len(self.objectSetsRaw),"Getting Set info")
-    
-            for i,o in enumerate(self.objectSets):
-                if mc.progressBar(mayaMainProgressBar, query=True, isCancelled=True ) :
-                    break
-                mc.progressBar(mayaMainProgressBar, edit=True, status = ("On set %s"%(o)), step=1)                    	
-    
-                self.setInstances[i] = SetFactory(o) #Store the instance so we only have to do it once
-                sInstance = self.setInstances[i] #Simple link to keep the code cleaner
-    
-                self.setInstancesFastIndex[o] = i #Store name to index for fast lookup of index on the fly
-    
-            guiFactory.doEndMayaProgressBar(mayaMainProgressBar)
-    
-        # Set Group creation if they don't have em
-        #if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ) and not self.setGroupName:
-        #    initializeSetGroup(self)
-    
-        #if mc.optionVar( q='cgmVar_MaintainLocalSetGroup' ):
-        #    doGroupLocal(self)        
+        
         
     def uiFunc_createSet(self):
         _str_func = 'uiFunc_createSet'   
@@ -566,7 +478,6 @@ class ui(cgmUI.cgmGUI):
             v = l_buffer[i]
             #log.info("|{0}| >> indices: {1} | objectSet: {2} | v: {3}".format(_str_func, _indices,_str, v))  
             _l.append(v)
-            print(v)
         mc.select(_l)
         return _l
         #mc.evalDeferred(self.uiUpdate_objectSets,lp=True)            
@@ -1002,7 +913,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
     if mObjectSet not in self.ml_objectSets:
         self.ml_objectSets.append(mObjectSet)
     index = self.ml_objectSets.index(mObjectSet)
-    log.info("|{0}| >> objectSet: {1} | index: {2}".format(_str_func,objectSet, index))
+    log.debug("|{0}| >> objectSet: {1} | index: {2}".format(_str_func,objectSet, index))
     _short = mObjectSet.p_nameShort    
     _base = mObjectSet.p_nameBase
     
@@ -1020,7 +931,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             self.d_refSets[refPrefix] = []
         self.d_refSets[refPrefix].append(mObjectSet)
         
-    if mObjectSet.mayaSetState or refPrefix:				
+    if mObjectSet.mayaSetState or refPrefix:
         b_editable = False    
         
     b_animMode = self.var_animMode.value

@@ -141,13 +141,17 @@ def get_objectSetsDict():
 
         #Type sort
         buffer = ATTR.get(s,'cgmType')
+        _match = False
         for tag,v in coreShared.objectSetTypes.iteritems():
             if v == buffer:
                 if tag in typeBuffer.keys():
                     typeBuffer[tag].append(s)
+                    _match =True
                 else:
                     typeBuffer[tag] = [s]
-        else:
+                    _match = True
+                    
+        if not _match:
             typeBuffer['NONE'].append(s)
 
         #Set group check
