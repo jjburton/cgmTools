@@ -53,7 +53,7 @@ from cgm.lib import (search,
 from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.cgmPy import path_Utils as CGMPATH
-
+import cgm.core.cgmPy.validateArgs as VALID 
 
 
 #>>>======================================================================
@@ -141,7 +141,7 @@ class markingMenu(object):
         mc.menuItem('test',p = parent)
                 
         
-        mc.showWindow('cgmMM')
+        #mc.showWindow('cgmMM')
         
     def create_guiOptionVar(self,varName,*args,**kws):
         fullName = "cgmVar_%s_%s"%(self._str_MM ,varName)
@@ -1529,15 +1529,18 @@ def varBuffer_add(self,optionVar):
     for o in sel:
         optionVar.append(o)
 
-def varBuffer_remove(self,optionVar):
+def varBuffer_remove(self,optionVar,value=None):
     _str_func = 'varBuffer_add'
-
-    sel = mc.ls(sl=True, flatten = True) or []
-    if not sel:
-        log.error("|{0}| >> No selection found. Cannot define")
-        return False
-
-    for o in sel:
+    try:optionVar.name
+    except:optionVar = cgmMeta.cgmOptionVar(optionVar)
+    
+    if not value:
+        value = mc.ls(sl=True, flatten = True) or []
+        if not sel:
+            log.error("|{0}| >> No selection found. Cannot define")
+            return False
+    value = VALID.listArg(value)
+    for o in value:
         optionVar.remove(o)
         
         

@@ -291,6 +291,7 @@ class ui(cgmUI.cgmGUI):
         self.d_refSets = {}        
         self.d_typeSets = {}
         l_running = []
+        self.var_LoadedSets.value = ['']
         
         #Filter our list --------------------------------------------------------------------------------
         if self.var_hideNonQSS.value:
@@ -343,7 +344,7 @@ class ui(cgmUI.cgmGUI):
         
         for oSet in l_running:
             uiBuild_objectSetRow(self,self.uiScrollList_objectSets, oSet)
-        
+            self.var_LoadedSets.append(oSet)
         return
         
         
@@ -502,6 +503,7 @@ def uiSetupOptionVars(self):
     self.var_ActiveSets = cgmMeta.cgmOptionVar('cgmVar_activeObjectSets', defaultValue = [''])
     self.var_ActiveSetRefs = cgmMeta.cgmOptionVar('cgmVar_activeObjectSetRefs', defaultValue = [''])
     self.var_ActiveSetTypes = cgmMeta.cgmOptionVar('cgmVar_activeObjectSetTypes', defaultValue = [''])
+    self.var_LoadedSets = cgmMeta.cgmOptionVar('cgmVar_loadedObjectSets', defaultValue = [''])        
     self.var_setMode = cgmMeta.cgmOptionVar('cgmVar_objectSetMode', defaultValue = 1)
     self.var_animMode = cgmMeta.cgmOptionVar('cgmVar_setToolsAnimMode', defaultValue = 1)
     self.var_setupMode = cgmMeta.cgmOptionVar('cgmVar_setToolsSetupMode', defaultValue = 1)
@@ -510,8 +512,115 @@ def uiSetupOptionVars(self):
     self.var_hideAnimLayerSets = cgmMeta.cgmOptionVar('cgmVar_HideAnimLayerSets', defaultValue = 1)
     self.var_hideMayaSets= cgmMeta.cgmOptionVar('cgmVar_HideMayaObjectSets', defaultValue = 1)
     
+def uiMenu_mmSetup(self, parent):
+    _str_func = 'uiMenu_mmSetup'
+    #uiMatch = mc.menuItem(p=parent, l='Match Mode ', subMenu=True)
+    mc.menuItem(p=parent,l = "- Object Sets -",en = False)
+    
+    var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
+    
+    var_ActiveSets = cgmMeta.cgmOptionVar('cgmVar_activeObjectSets', defaultValue = [''])
+    len_active = len(var_ActiveSets.value)
+    
+    var_LoadedSets = cgmMeta.cgmOptionVar('cgmVar_loadedObjectSets', defaultValue = [''])        
+    len_loaded = len(var_LoadedSets.value)
+    
+    
+    uiRC = mc.radioMenuItemCollection()
+    #self.uiOptions_menuMode = []		
+    _v = var_mmSetToolsMode.value
+
+    for i,item in enumerate(['none',
+                             "Active ({0})".format(len_active),
+                             "Loaded ({0})".format(len_loaded)]):
+        if i == _v:
+            _rb = True
+        else:_rb = False
+        mc.menuItem(p=parent,collection = uiRC,
+                    label=item,
+                    c = cgmGEN.Callback(var_mmSetToolsMode.setValue,i),
+                    rb = _rb)                    
+    
+    mc.menuItem(p=parent,l = 'Select',
+                c = lambda *a:uiFunc_multiSetsAction(None,'select'))
+    mc.menuItem(p=parent,l = 'Report',
+                    c = lambda *a:uiFunc_multiSetsAction(None,'report'))
+    
+    mc.menuItem(p=parent,l = 'cgmSetTools',
+                c = lambda *a:ui())    
+    mc.menuItem(p=parent,l = "-"*25,en = False)
 
 
+def uiFunc_selectAndDo(func = None, *args,**kws):
+    _str_func = 'uiFunc_selectAndDo'
+    log.debug("|{0}| >> func: {1}".format(_str_func, func)) 
+    
+    var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
+    val_mmSetToolsMode = var_mmSetToolsMode.value
+    _sel = mc.ls(sl=True)
+    if val_mmSetToolsMode:
+        if val_mmSetToolsMode == 1:
+            _mode = 'active'
+        else:
+            _mode = 'loaded'
+        uiFunc_multiSetsAction(_mode, action='select')
+    
+    func(*args,**kws)
+    mc.select(_sel)
+
+
+
+def uiFunc_multiSetsAction(mode = 'active', action = 'report'):
+    _str_func = 'uiFunc_multiSetsAction'
+    log.debug("|{0}| >> ...".format(_str_func)) 
+    
+    if mode is None:
+        log.info("|{0}| >> resolving mode...".format(_str_func)) 
+        var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
+        val_mmSetToolsMode = var_mmSetToolsMode.value
+        if val_mmSetToolsMode:
+            if val_mmSetToolsMode == 1:
+                mode = 'active'
+            else:
+                mode = 'loaded'        
+    
+    if mode == 'active':
+        var = 'cgmVar_activeObjectSets'
+    elif mode == 'loaded':
+        var = 'cgmVar_loadedObjectSets'
+    else:        
+        return log.error("|{0}| >> unknown mode: {1}".format(_str_func,mode)) 
+
+    mVar = cgmMeta.cgmOptionVar(var, defaultValue = [''])
+    l_objectSets = mVar.value
+    if not l_objectSets:
+        return log.error("|{0}| >> Set is empty: {1}".format(_str_func,mVar.name))
+    
+    l_items = []
+    if action == 'report':
+        log.info("|{0}| >> Set count: {1}".format(_str_func,len(l_objectSets)))
+        
+    for s in l_objectSets:
+        try:mSet = cgmMeta.cgmObjectSet(s)
+        except:
+            log.error("|{0}| >> Set failed to initialize. Removing.: {1}".format(_str_func,s))
+            mVar.remove(s)
+            continue
+        if action == 'report':
+            mSet.log()
+        elif action == 'select':
+            l_items.extend(mSet.getList())
+        elif action == 'query':
+            if mSet.getList():return True
+            
+    if action == 'report':
+        print cgmGEN._str_hardBreak
+        
+    if l_items:
+        mc.select(l_items)
+        return l_items
+    
+    
 def uiFunc_setOptionVarAndUpdate(self, optionVar = None, value=None ):
     _str_func = 'uiFunc_setOptionVarAndUpdate'
     
@@ -536,9 +645,7 @@ def uiFunc_setAllSets(self,active = False):
     _str_func = 'uiFunc_setAllSets'
     log.warning("|{0}| >> Finish...".format(_str_func)) 
     
-def uiFunc_multiSetsAction(self,mode = None):
-    _str_func = 'uiFunc_multiSetsAction'
-    log.warning("|{0}| >> Finish...".format(_str_func)) 
+
     
 def uiFunc_setActiveState(self, index = None, arg=None ):
     _str_func = 'uiFunc_setActiveState'
