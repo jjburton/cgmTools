@@ -48,7 +48,7 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.tools import meshTools
 from cgm.core.tools import attrTools as ATTRTOOLS
 import cgm.core.tools.setTools as SETTOOLS
-#reload(SETTOOLS)
+reload(SETTOOLS)
 #from cgm.tools import locinator
 #from cgm.tools import tdTools
 #from cgm.tools import attrTools
@@ -536,43 +536,47 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                         c = cgmGEN.Callback(var_mmSetToolsMode.setValue,i),
                         rb = _rb)                    
         
+        mc.menuItem(p=parent,l = "-"*25,en = False)        
+
         mc.menuItem(p=parent,l = 'Key',
                     c = lambda*a:SETTOOLS.uiFunc_selectAndDo(setKey,'default'))
-        mc.menuItem(p=parent,l = 'Breakdown',
-                    c = lambda*a:SETTOOLS.uiFunc_selectAndDo(setKey,'breakdown'))
+        mc.menuItem(p=parent,l = 'Tween',
+                    c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'tween'))                    
+                    #c = lambda*a:SETTOOLS.uiFunc_selectAndDo(ml_breakdownDragger.drag))
+                    #c = lambda*a:SETTOOLS.uiFunc_selectAndDo(setKey,'breakdown'))
         mc.menuItem(p=parent,l = 'Delete Key',
-                    c = lambda*a:SETTOOLS.uiFunc_selectAndDo(deleteKey))                                                
+                    c = lambda*a:SETTOOLS.uiFunc_selectAndDo(deleteKey))
+        
+        
+        
+        
+        #c = lambda*a:SETTOOLS.uiFunc_selectAndDo(ml_breakdownDragger.drag),
+        
         mc.menuItem(p=parent,l = 'Select',
                     c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'select'))
         mc.menuItem(p=parent,l = 'Reset',
                     c = lambda *a:SETTOOLS.uiFunc_selectAndDo(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}))                   
         mc.menuItem(p=parent,l = 'Report',
-                        c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'report'))
+                    c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'report'))
         
 
         mc.menuItem(p=parent,l = "-"*25,en = False)        
         
         
-        
-        uiUtils= mc.menuItem(parent = parent, l='Utilities', subMenu=True)
-        UICHUNKS.uiSection_animUtils(uiUtils)        
+        #uiUtils= mc.menuItem(parent = parent, l='Utilities', subMenu=True)
+        #UICHUNKS.uiSection_animUtils(uiUtils)        
 
-        mc.menuItem(p=parent,l = "-"*25,en = False)
+        #mc.menuItem(p=parent,l = "-"*25,en = False)
         
 
-        uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
+        #uiOptions = mc.menuItem(parent = parent, l='Options', subMenu=True)
         
-        self.bUI_optionMenu_keyType(uiOptions) 
-        self.bUI_optionMenu_keyMode(uiOptions)
-        self.bUI_optionMenu_resetMode(uiOptions)
-        LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)        
-        #self.bUI_optionMenu_aimMode(uiOptions)
-        #self.bUI_optionMenu_objDefaults(uiOptions)
-        #self.bUI_optionMenu_rayCast(uiOptions)
-        
-        #uiBuffers = mc.menuItem(parent = parent, l='Buffers', subMenu=True)
-        #LOCINATOR.uiBuffer_control(self, uiBuffers)
-        #self.bUI_rayCastBuffer(uiBuffers)
+        #self.bUI_optionMenu_keyType(uiOptions) 
+        #self.bUI_optionMenu_keyMode(uiOptions)
+        #self.bUI_optionMenu_resetMode(uiOptions)
+        #LOCINATOR.uiOptionMenu_matchMode(self,uiOptions)        
+        #
+
         
     def bUI_menuBottom_anim(self,parent):
         DYNPARENTTOOL.uiMenu_changeSpace(self,parent)             

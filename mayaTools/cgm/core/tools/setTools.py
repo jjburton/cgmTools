@@ -32,6 +32,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.search_utils as SEARCH
 
+from cgm.lib.ml import (ml_breakdownDragger)
 
 """
 from cgm.core.lib import shared_data as SHARED
@@ -342,9 +343,15 @@ class ui(cgmUI.cgmGUI):
         #self.var_hideAnimLayerSets = cgmMeta.cgmOptionVar('cgmVar_HideAnimLayerSets', defaultValue = 1)
         #self.var_hideMayaSets= cgmMeta.cgmOptionVar('cgmVar_HideMayaObjectSets', defaultValue = 1)        
         
+        _len = len(l_running)
+        
         for oSet in l_running:
-            uiBuild_objectSetRow(self,self.uiScrollList_objectSets, oSet)
-            self.var_LoadedSets.append(oSet)
+            try:
+                uiBuild_objectSetRow(self,self.uiScrollList_objectSets, oSet)
+                self.var_LoadedSets.append(oSet)
+            except Exception,err:
+                log.error("|{0}| >> Build row failed: {1} | err: {2}".format(_str_func,oSet, err))
+            finally:pass
         return
         
         
@@ -502,7 +509,7 @@ def uiSetupOptionVars(self):
     
     self.var_ActiveSets = cgmMeta.cgmOptionVar('cgmVar_activeObjectSets', defaultValue = [''])
     self.var_ActiveSetRefs = cgmMeta.cgmOptionVar('cgmVar_activeObjectSetRefs', defaultValue = [''])
-    self.var_ActiveSetTypes = cgmMeta.cgmOptionVar('cgmVar_activeObjectSetTypes', defaultValue = [''])
+    self.var_ActiveSetTypes = cgmMeta.cgmOptionVar('cgmVar_activeObjectSetTypes', defaultValue = ['NONE'])
     self.var_LoadedSets = cgmMeta.cgmOptionVar('cgmVar_loadedObjectSets', defaultValue = [''])        
     self.var_setMode = cgmMeta.cgmOptionVar('cgmVar_objectSetMode', defaultValue = 1)
     self.var_animMode = cgmMeta.cgmOptionVar('cgmVar_setToolsAnimMode', defaultValue = 1)
@@ -608,14 +615,18 @@ def uiFunc_multiSetsAction(mode = 'active', action = 'report'):
             continue
         if action == 'report':
             mSet.log()
-        elif action == 'select':
+        elif action in ['select','tween']:
             l_items.extend(mSet.getList())
         elif action == 'query':
             if mSet.getList():return True
             
     if action == 'report':
         print cgmGEN._str_hardBreak
-        
+    
+    if action == 'tween':
+        mc.select(l_items)
+        ml_breakdownDragger.drag()
+    
     if l_items:
         mc.select(l_items)
         return l_items
@@ -1009,225 +1020,228 @@ def buildSetsForm_main(self,parent):
 def uiBuild_objectSetRow(self, parent = None, objectSet = None):
     _str_func = 'uiBuild_objectSetRow'
     
-    #Get our data --------------------------------------------------------------------------
-    try:mObjectSet = cgmMeta.validateObjArg(objectSet,'cgmObjectSet')
-    except Exception,err:
-        log.error("|{0}| >> Failed to validate objectSet: {1}".format(_str_func,objectSet))
-        log.error(err)
-        return False
-    
-    
-    if mObjectSet not in self.ml_objectSets:
-        self.ml_objectSets.append(mObjectSet)
-    index = self.ml_objectSets.index(mObjectSet)
-    log.debug("|{0}| >> objectSet: {1} | index: {2}".format(_str_func,objectSet, index))
-    _short = mObjectSet.p_nameShort    
-    _base = mObjectSet.p_nameBase
-    
-    #Get check box state
-    b_activeState = False
-    if mObjectSet.p_nameShort in self.var_ActiveSets.value:
-        b_activeState = True
+    try:
+        #Get our data --------------------------------------------------------------------------
+        try:mObjectSet = cgmMeta.validateObjArg(objectSet,'cgmObjectSet')
+        except Exception,err:
+            log.error("|{0}| >> Failed to validate objectSet: {1}".format(_str_func,objectSet))
+            log.error(err)
+            return False
         
-    #see if the no no fields are enabled
-    b_editable = True
-    refPrefix = mObjectSet.getReferencePrefix()
-    
-    if refPrefix:
-        if refPrefix not in self.d_refSets.keys():
-            self.d_refSets[refPrefix] = []
-        self.d_refSets[refPrefix].append(mObjectSet)
         
-    if mObjectSet.mayaSetState or refPrefix:
-        b_editable = False    
+        if mObjectSet not in self.ml_objectSets:
+            self.ml_objectSets.append(mObjectSet)
+        index = self.ml_objectSets.index(mObjectSet)
+        log.debug("|{0}| >> objectSet: {1} | index: {2}".format(_str_func,objectSet, index))
+        _short = mObjectSet.p_nameShort    
+        _base = mObjectSet.p_nameBase
         
-    b_animMode = self.var_animMode.value
-    b_setupMode = self.var_setupMode.value
-    b_qssState = mObjectSet.qssState
-    
-    #Build our row -----------------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(parent)#bgc = cgmUI.guiBackgroundColor
+        #Get check box state
+        b_activeState = False
+        if mObjectSet.p_nameShort in self.var_ActiveSets.value:
+            b_activeState = True
+            
+        #see if the no no fields are enabled
+        b_editable = True
+        refPrefix = mObjectSet.getReferencePrefix()
         
-    """
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = '+',
-              c = cgmGEN.Callback(uiFunc_valuesTweak,self,'+'),
-              ann = "Adds value relatively to current")   """
-    
-    mUI.MelSpacer(parent = _row, w = 5)
-    
-    _cb = mUI.MelCheckBox(parent = _row,
-                          annotation = 'Sets as active',
-                          value = b_activeState,
-                          onCommand =  cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,True),
-                          offCommand = cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,False))
-    
-    self.d_activeStateCBs[mObjectSet] = _cb
-    
-
-    mc.button(parent=_row ,
-              ut = 'cgmUITemplate',                                                                                                
-              l = 's',
-              c = cgmGEN.Callback(mObjectSet.select),
-              ann = "Select members")
-    
-    if b_setupMode:
-        _ref = mObjectSet.isReferenced()
-        mc.button(parent=_row ,
-                         ut = 'cgmUITemplate',                                                                                                
-                         l = '+',
-                         c = cgmGEN.Callback(mObjectSet.addSelected),
-                         en = not _ref,
-                         ann = "Add selected to objectSet: {0}".format(_short))    
-        mc.button(parent=_row ,
-                      ut = 'cgmUITemplate',                                                                                                
-                      l = '-',
-                      en = not _ref,                      
-                      c = cgmGEN.Callback(mObjectSet.removeSelected),
-                      ann = "Remove selected from objectSet: {0}".format(_short))  
-        mc.button(parent=_row ,
-                  ut = 'cgmUITemplate',                                                                                                
-                  l = 'e',
-                  c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
-                  ann = "Work with items in our list: {0}".format(_short))
-    
-    _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameBase,
-                                  ann = _short,
-                                  editable = False)
-    
-    _row.setStretchWidget(_uiTF_name)
-    #_uiTF_name(edit = True,
-               #ec = cgmGEN.Callback(ui.,self,tmpName,i)	)    
-    
-    #cgmMeta.cgmObjectSet().rese
-    #Basics...
-   
-    if b_animMode:
-        mc.button(parent=_row ,
-                      ut = 'cgmUITemplate',                                                                                                
-                      l = 'k',
-                      c = cgmGEN.Callback(mObjectSet.key),
-                      ann = "Key objectSet: {0}".format(_short))   
-        
-        mc.button(parent=_row ,
-                      ut = 'cgmUITemplate',                                                                                                
-                      l = 'd',
-                      c = cgmGEN.Callback(mObjectSet.deleteKey),
-                      ann = "Delete current keyes for objectSet: {0}".format(_short))   
-    
-    mc.button(parent=_row ,
-                  ut = 'cgmUITemplate',                                                                                                
-                  l = 'r',
-                  c = cgmGEN.Callback(mObjectSet.reset),
-                  ann = "Reset objectSet: {0}".format(_short))       
-    mUI.MelSpacer(parent = _row, w = 5)    
-    _row.layout()
-    
-    #Popup menu -------------------------------------------------------------------------
-    #Build pop up for text field
-    _popUpMenu = mUI.MelPopupMenu(_uiTF_name,button = 3)
-    
-    mUI.MelMenuItem(_popUpMenu,
-                label = "<<<{0}>>>".format(_short),
-                enable = False)
-    
-    if not b_editable:
-        if mObjectSet.mayaSetState:
-            mUI.MelMenuItem(_popUpMenu,
-                        label = "<Maya Default Set>",
-                        enable = False)				
         if refPrefix:
-            mUI.MelMenuItem(_popUpMenu,
-                        label = "<Referenced>",
-                        enable = False)		
+            if refPrefix not in self.d_refSets.keys():
+                self.d_refSets[refPrefix] = []
+            self.d_refSets[refPrefix].append(mObjectSet)
+            
+        if mObjectSet.mayaSetState or refPrefix:
+            b_editable = False    
+            
+        b_animMode = self.var_animMode.value
+        b_setupMode = self.var_setupMode.value
+        b_qssState = mObjectSet.qssState
+        
+        #Build our row -----------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(parent)#bgc = cgmUI.guiBackgroundColor
+            
+        """
+        mc.button(parent=_row ,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l = '+',
+                  c = cgmGEN.Callback(uiFunc_valuesTweak,self,'+'),
+                  ann = "Adds value relatively to current")   """
+        
+        mUI.MelSpacer(parent = _row, w = 5)
+        
+        _cb = mUI.MelCheckBox(parent = _row,
+                              annotation = 'Sets as active',
+                              value = b_activeState,
+                              onCommand =  cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,True),
+                              offCommand = cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,False))
+        
+        self.d_activeStateCBs[mObjectSet] = _cb
+        
     
-    #cgmMeta.cgmObjectSet().selectSelf
-    qssMenu = mUI.MelMenuItem(_popUpMenu,
-                              label = 'Qss',
-                              cb = b_qssState,
-                              en = b_editable,
-                              c = cgmGEN.Callback(mObjectSet.makeQss,not b_qssState))
-
-    categoryMenu = mUI.MelMenuItem(_popUpMenu,
-                                   label = 'Make Type:',
-                                   sm = True,
-                                   en = b_editable)
+        mc.button(parent=_row ,
+                  ut = 'cgmUITemplate',                                                                                                
+                  l = 's',
+                  c = cgmGEN.Callback(mObjectSet.select),
+                  ann = "Select members")
+        
+        if b_setupMode:
+            _ref = mObjectSet.isReferenced()
+            mc.button(parent=_row ,
+                             ut = 'cgmUITemplate',                                                                                                
+                             l = '+',
+                             c = cgmGEN.Callback(mObjectSet.addSelected),
+                             en = not _ref,
+                             ann = "Add selected to objectSet: {0}".format(_short))    
+            mc.button(parent=_row ,
+                          ut = 'cgmUITemplate',                                                                                                
+                          l = '-',
+                          en = not _ref,                      
+                          c = cgmGEN.Callback(mObjectSet.removeSelected),
+                          ann = "Remove selected from objectSet: {0}".format(_short))  
+            mc.button(parent=_row ,
+                      ut = 'cgmUITemplate',                                                                                                
+                      l = 'e',
+                      c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
+                      ann = "Work with items in our list: {0}".format(_short))
+        
+        _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameBase,
+                                      ann = _short,
+                                      editable = False)
+        
+        _row.setStretchWidget(_uiTF_name)
+        #_uiTF_name(edit = True,
+                   #ec = cgmGEN.Callback(ui.,self,tmpName,i)	)    
+        
+        #cgmMeta.cgmObjectSet().rese
+        #Basics...
+       
+        if b_animMode:
+            mc.button(parent=_row ,
+                          ut = 'cgmUITemplate',                                                                                                
+                          l = 'k',
+                          c = cgmGEN.Callback(mObjectSet.key),
+                          ann = "Key objectSet: {0}".format(_short))   
+            
+            mc.button(parent=_row ,
+                          ut = 'cgmUITemplate',                                                                                                
+                          l = 'd',
+                          c = cgmGEN.Callback(mObjectSet.deleteKey),
+                          ann = "Delete current keyes for objectSet: {0}".format(_short))   
+        
+        mc.button(parent=_row ,
+                      ut = 'cgmUITemplate',                                                                                                
+                      l = 'r',
+                      c = cgmGEN.Callback(mObjectSet.reset),
+                      ann = "Reset objectSet: {0}".format(_short))       
+        mUI.MelSpacer(parent = _row, w = 5)    
+        _row.layout()
+        
+        #Popup menu -------------------------------------------------------------------------
+        #Build pop up for text field
+        _popUpMenu = mUI.MelPopupMenu(_uiTF_name,button = 3)
+        
+        mUI.MelMenuItem(_popUpMenu,
+                    label = "<<<{0}>>>".format(_short),
+                    enable = False)
+        
+        if not b_editable:
+            if mObjectSet.mayaSetState:
+                mUI.MelMenuItem(_popUpMenu,
+                            label = "<Maya Default Set>",
+                            enable = False)				
+            if refPrefix:
+                mUI.MelMenuItem(_popUpMenu,
+                            label = "<Referenced>",
+                            enable = False)		
+        
+        #cgmMeta.cgmObjectSet().selectSelf
+        qssMenu = mUI.MelMenuItem(_popUpMenu,
+                                  label = 'Qss',
+                                  cb = b_qssState,
+                                  en = b_editable,
+                                  c = cgmGEN.Callback(mObjectSet.makeQss,not b_qssState))
     
-    mUI.MelMenuItem(_popUpMenu,
-                        label = 'Select set',
-                        c = cgmGEN.Callback(mObjectSet.selectSelf))      
-    mUI.MelMenuItem(_popUpMenu,
-                    label = 'Purge',
-                    en = b_editable,
-                    c = cgmGEN.Callback(mObjectSet.purge))  
+        categoryMenu = mUI.MelMenuItem(_popUpMenu,
+                                       label = 'Make Type:',
+                                       sm = True,
+                                       en = b_editable)
+        
+        mUI.MelMenuItem(_popUpMenu,
+                            label = 'Select set',
+                            c = cgmGEN.Callback(mObjectSet.selectSelf))      
+        mUI.MelMenuItem(_popUpMenu,
+                        label = 'Purge',
+                        en = b_editable,
+                        c = cgmGEN.Callback(mObjectSet.purge))  
+        
+        mUI.MelMenuItem(_popUpMenu,
+                        label = 'Rename',
+                        en = b_editable,
+                        c = cgmGEN.Callback(self.uiFunc_rename, mObjectSet))  
+        mUI.MelMenuItem(_popUpMenu,
+                        label = 'Copy',
+                        en = b_editable,
+                        c = cgmGEN.Callback(self.uiFunc_copy, mObjectSet))    
+        mUI.MelMenuItem(_popUpMenu,
+                        label = 'Log',
+                        c = cgmGEN.Callback(mObjectSet.log))  
+        mUI.MelMenuItemDiv( _popUpMenu )
+        
+        mUI.MelMenuItem(_popUpMenu,
+                        label = 'Delete',
+                        en = b_editable,
+                        c = cgmGEN.Callback(self.uiFunc_delete, mObjectSet))       
+       
+        #Category menus --------------------------------------------------------------------
+        for n in _l_setTypes:
+            mUI.MelMenuItem(categoryMenu,
+                            label = n,
+                            c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n))       
+        
+        
+        #ItemsList -------------------------------------------------------------------------
+        if b_setupMode:
+            l_items = mObjectSet.getList()
+            self.d_itemLists[mObjectSet] = l_items        
+            height = 50
+            if len(l_items) > 3:
+                height = 150
+            uiItemList = mUI.MelObjectScrollList(parent, allowMultiSelection=True,en=True,
+                                                 bgc = [.9,.9,.9],height = height, vis=False,
+                                                 sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
+                                                 dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
+                                                 #selectCommand = self.uiFunc_selectParent_inList)
+            self.d_itemScrollLists[mObjectSet] = uiItemList
     
-    mUI.MelMenuItem(_popUpMenu,
-                    label = 'Rename',
-                    en = b_editable,
-                    c = cgmGEN.Callback(self.uiFunc_rename, mObjectSet))  
-    mUI.MelMenuItem(_popUpMenu,
-                    label = 'Copy',
-                    en = b_editable,
-                    c = cgmGEN.Callback(self.uiFunc_copy, mObjectSet))    
-    mUI.MelMenuItem(_popUpMenu,
-                    label = 'Log',
-                    c = cgmGEN.Callback(mObjectSet.log))  
-    mUI.MelMenuItemDiv( _popUpMenu )
+        return
     
-    mUI.MelMenuItem(_popUpMenu,
-                    label = 'Delete',
-                    en = b_editable,
-                    c = cgmGEN.Callback(self.uiFunc_delete, mObjectSet))       
-   
-    #Category menus --------------------------------------------------------------------
-    for n in _l_setTypes:
-        mUI.MelMenuItem(categoryMenu,
+    
+        for n in self.setTypes:
+            MelMenuItem(categoryMenu,
                         label = n,
-                        c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n))       
+                        c = Callback(setToolsLib.guiDoSetType,self,i,n))
     
     
-    #ItemsList -------------------------------------------------------------------------
-    if b_setupMode:
-        l_items = mObjectSet.getList()
-        self.d_itemLists[mObjectSet] = l_items        
-        height = 50
-        if len(l_items) > 3:
-            height = 150
-        uiItemList = mUI.MelObjectScrollList(parent, allowMultiSelection=True,en=True,
-                                             bgc = [.9,.9,.9],height = height, vis=False,
-                                             sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
-                                             dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
-                                             #selectCommand = self.uiFunc_selectParent_inList)
-        self.d_itemScrollLists[mObjectSet] = uiItemList
-
-    return
-
-
-    for n in self.setTypes:
-        MelMenuItem(categoryMenu,
-                    label = n,
-                    c = Callback(setToolsLib.guiDoSetType,self,i,n))
-
-
-    MelMenuItem(popUpMenu ,
-                label = 'Copy Set',
-                c = Callback(setToolsLib.doCopySet,self,i))
-
-    MelMenuItem(popUpMenu ,
-                label = 'Purge',
-                en = enabledMenuLogic,
-                c = Callback(setToolsLib.doPurgeSet,self,i))
-
-    MelMenuItemDiv(popUpMenu)
-    MelMenuItem(popUpMenu ,
-                label = 'Delete',
-                en = enabledMenuLogic,
-                c = Callback(setToolsLib.doDeleteSet,self,i))	    
+        MelMenuItem(popUpMenu ,
+                    label = 'Copy Set',
+                    c = Callback(setToolsLib.doCopySet,self,i))
     
-    return
-
-
+        MelMenuItem(popUpMenu ,
+                    label = 'Purge',
+                    en = enabledMenuLogic,
+                    c = Callback(setToolsLib.doPurgeSet,self,i))
+    
+        MelMenuItemDiv(popUpMenu)
+        MelMenuItem(popUpMenu ,
+                    label = 'Delete',
+                    en = enabledMenuLogic,
+                    c = Callback(setToolsLib.doDeleteSet,self,i))	    
+        
+        return
+    except Exception,err:
+        print err
+        #raise cgmGEN.cgmException(Exception,err)
+    finally:return 
 
     
 

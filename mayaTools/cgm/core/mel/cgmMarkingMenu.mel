@@ -1,8 +1,12 @@
 global proc cgmMarkingMenu() {
-	python("from cgm.core.tools.markingMenus import cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
 	}
 
 
 global proc cgmMarkingMenuKillUI () {
-	python("cgmMM_tool.killUI();");
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;cgmMM_tool.killUI();");
+	}
+	
+global proc cgmMarkingMenuBak() {
+	python("from cgm.core.tools.markingMenus import cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
 	}
