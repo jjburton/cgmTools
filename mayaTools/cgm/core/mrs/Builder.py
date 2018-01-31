@@ -876,62 +876,66 @@ class ui(cgmUI.cgmGUI):
         self._d_attrFields = {}
         _l_attrs.sort()
         for a in _l_attrs:
-            _type = ATTR.get_type(_short,a)
-    
-            _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
-            mUI.MelSpacer(_hlayout,w=_sidePadding)
-    
-            _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))
-    
-            if _type not in ['bool']:#Some labels parts of fields
-                mUI.MelLabel(_hlayout,l="{0} -".format(a))   
-    
-            if _type == 'bool':
-                mUI.MelCheckBox(_hlayout, l="- {0}".format(a),
-                                #annotation = "Copy values",		                           
-                                value = ATTR.get(_short,a),
-                                onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
-                                offCommand = cgmGEN.Callback(ATTR.set,_short,a,0))
-    
-            elif _type in ['double','doubleAngle','doubleLinear','float']:
-                self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,
-                                                          value = ATTR.get(_short,a),                                                          
-                                                          )
-                self._d_attrFields[a](e=True,
-                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                            self._d_attrFields[a]),
-                                      )
-            elif _type == 'long':
-                self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
-                                                         value = ATTR.get(_short,a),
-                                                         maxValue=20,
-                                                         minValue=1,
-                                                          )
-                self._d_attrFields[a](e=True,
-                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                            self._d_attrFields[a]),
-                                      )                
-            elif _type == 'string':
-                self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
-                                                         text = ATTR.get(_short,a),
-                                                          )
-                self._d_attrFields[a](e=True,
-                                      cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                            self._d_attrFields[a]),
-                                      )
-            elif _type == 'enum':
-                _optionMenu = mUI.MelOptionMenu(_hlayout)
-                _optionMenu(e=True,
-                            cc = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                 _optionMenu),) 
-                for option in ATTR.get_enumList(_short,a):
-                    _optionMenu.append(option)
-                _optionMenu.setValue(ATTR.get_enumValueString(_short,a))
-            else:
-                mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
-    
-            mUI.MelSpacer(_hlayout,w=_sidePadding)                
-            _hlayout.layout()            
+            try:
+                _type = ATTR.get_type(_short,a)
+        
+                _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
+                mUI.MelSpacer(_hlayout,w=_sidePadding)
+        
+                _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))
+        
+                if _type not in ['bool']:#Some labels parts of fields
+                    mUI.MelLabel(_hlayout,l="{0} -".format(a))   
+        
+                if _type == 'bool':
+                    mUI.MelCheckBox(_hlayout, l="- {0}".format(a),
+                                    #annotation = "Copy values",		                           
+                                    value = ATTR.get(_short,a),
+                                    onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
+                                    offCommand = cgmGEN.Callback(ATTR.set,_short,a,0))
+        
+                elif _type in ['double','doubleAngle','doubleLinear','float']:
+                    self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,
+                                                              value = ATTR.get(_short,a),                                                          
+                                                              )
+                    self._d_attrFields[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                self._d_attrFields[a]),
+                                          )
+                elif _type == 'long':
+                    self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
+                                                             value = ATTR.get(_short,a),
+                                                             maxValue=20,
+                                                             minValue=1,
+                                                              )
+                    self._d_attrFields[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                self._d_attrFields[a]),
+                                          )                
+                elif _type == 'string':
+                    self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
+                                                             text = ATTR.get(_short,a),
+                                                              )
+                    self._d_attrFields[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                self._d_attrFields[a]),
+                                          )
+                elif _type == 'enum':
+                    _optionMenu = mUI.MelOptionMenu(_hlayout)
+                    _optionMenu(e=True,
+                                cc = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                     _optionMenu),) 
+                    for option in ATTR.get_enumList(_short,a):
+                        _optionMenu.append(option)
+                    _optionMenu.setValue(ATTR.get_enumValueString(_short,a))
+                else:
+                    mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
+        
+                mUI.MelSpacer(_hlayout,w=_sidePadding)                
+                _hlayout.layout()
+            except Exception,err:
+                log.info("Attr {0} failed. err: {1}".format(a,err))
+                
         
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()

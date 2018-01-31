@@ -815,7 +815,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #>>For each v value, make a new curve -----------------------------------------------------------------        
                         #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
                         #offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9),
                         ##                           normal = vec_normal,
                         #                           ch=False )[0]
@@ -893,7 +893,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             _add = 0
 
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+_add), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
                         #baseOffsetCrv = mc.offsetCurve(baseCrv, distance = - offset,
                         #                           normal = l_vectors[i],
                         #                           ch=False )[0]
@@ -902,7 +902,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         l_mainCurves.append(baseCrv)
                         
                         endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,l_uValues[i+1]-_add), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(endCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(endCrv,offset,component='cv')
                         
                         #topOffsetCrv = mc.offsetCurve(endCrv, distance = - offset,
                         #                           normal = l_vectors[i+1],
@@ -982,7 +982,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             dnV = MATH.Clamp(v - f_factor/4, minU, maxU)
                         
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,dnV), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset * 2,component='ep')
+                        DIST.offsetShape_byVector(baseCrv,offset * 2,component='cv')
                         
                         #baseOffsetCrv = mc.offsetCurve(baseCrv, distance = - _offset_seg,
                         #                           normal = l_vectors[i],
@@ -993,7 +993,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #mc.delete(baseCrv)
                         
                         topCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,upV), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(topCrv,offset * 2,component='ep')
+                        DIST.offsetShape_byVector(topCrv,offset * 2,component='cv')
                         
                         #topOffsetCrv = mc.offsetCurve(topCrv, distance = - _offset_seg,
                         #                           normal = l_vectors[i],
@@ -1055,7 +1055,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #>>For each v value, make a new curve -----------------------------------------------------------------        
                         #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='ep')
+                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
                         #offsetCrv = mc.offsetCurve(baseCrv, distance = -(offset * .9),
                         #                           normal = vec_normal,
                         #                           ch=False )[0]

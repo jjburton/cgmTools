@@ -3479,7 +3479,7 @@ def valid_blockModule_rigBuildOrder(blockType):
         for i,step in enumerate(_l_buildOrder):
             if not getattr(_BlockModule,step,False):
                 _status = False
-                print("|{0}| >> [{1}] FAIL. Missing rig step '{2}' call: {3}".format(_str_func,_blockType,i,step))
+                print("|{0}| >> [{1}] FAIL. Missing rig step '{2}' call: '{3}'".format(_str_func,_blockType,i,step))
     elif getattr(_BlockModule,'rig',[]):
         log.info("|{0}| >> BlockModule rig call found...".format(_str_func))
     else:
@@ -3497,8 +3497,8 @@ _l_requiredModuleDat = ['__version__',
 
 _d_requiredModuleDat = {'define':['__version__'],
                         'template':['template',],
-                        'prerig':['prerig','is_prerig'],
-                        'skeleton':['build_skeleton'],
+                        'prerig':['prerig'],
+                        'skeleton':['skeleton_build'],
                         'rig':['is_rig','rigDelete']}
 _d_requiredModuleDatCalls = {'rig':[valid_blockModule_rigBuildOrder]}
 

@@ -101,6 +101,7 @@ __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_cleanUp']
 
 
+d_wiring_skeleton = {'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_template = {'msgLinks':['templateNull','noTransformNull','prerigLoftMesh','orientHelper'],
@@ -152,7 +153,6 @@ d_block_profiles = {
              'cgmName':'spine',
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
-             'placeSettings':'cog',
              'baseAim':[0,1,0],
              'baseUp':[0,0,-1],
              'baseSize':[2,8,2]}}
@@ -165,6 +165,7 @@ l_attrsStandard = ['side',
                    'addCog',
                    #'hasRootJoint',
                    'nameList',
+                   'attachPoint',
                    'loftSides',
                    'loftDegree',
                    'loftSplit',

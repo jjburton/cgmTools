@@ -594,8 +594,11 @@ def delete_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
             
     for l in d_wiring.get('msgLists',[]) + msgLists:
         if self.msgList_exists(l):
-            self.msgList_purge('l')
-            log.debug("|{0}| >>  Purging msgList: {1}".format(_str_func,l))
+            dat = self.msgList_get(l,asMeta=False)
+            if dat:
+                log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, dat))                
+                mc.delete(dat)
+                #self.msgList_purge(l)
             
     return True
 
@@ -1505,7 +1508,7 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
     return l_res    
 
 
-def skeleton_getNameDicts(self, combined = False, count = None, **kws):
+def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, **kws):
     """
     Get a list of name dicts for a given block's rig/skin joints
     
@@ -1523,7 +1526,9 @@ def skeleton_getNameDicts(self, combined = False, count = None, **kws):
         _number = self.numJoints
     mModule = self.moduleTarget
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')    
+    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+    log.debug("|{0}| >>  baseNames: {1}".format(_str_func,_l_baseNames))
+    
     #Name dict...
     _nameDict ={}
     
@@ -1532,7 +1537,9 @@ def skeleton_getNameDicts(self, combined = False, count = None, **kws):
     if mModule.getMayaAttr('cgmPosition'):
         _nameDict['cgmPosition']=mModule.cgmPosition
     
-    if self.getMayaAttr('nameIter'):
+    if iterName:
+        _nameDict['cgmName'] = iterName
+    elif self.getMayaAttr('nameIter'):
         _nameDict['cgmName'] = self.nameIter
     elif self.getMayaAttr('cgmName'):
         _nameDict['cgmName'] = self.cgmName
@@ -1554,16 +1561,21 @@ def skeleton_getNameDicts(self, combined = False, count = None, **kws):
         
         if i == 0:
             if self.getMayaAttr(_baseNameAttrs[0]):
+                log.debug("|{0}| >>  First and name attr...interupting default name".format(_str_func))                            
                 _nameDictTemp['cgmName'] = _l_baseNames[0]
+                _nameDict['cgmName'] = _l_baseNames[0]#...interupt the default name...
                 _cnt = 0
                 _specialName = True
         elif i == len(l_range) -1:
+            log.debug("|{0}| >>  last...".format(_str_func))            
             if self.getMayaAttr(_baseNameAttrs[-1]):
+                log.debug("|{0}| >>  found: {1}".format(_str_func,_l_baseNames[-1]))                            
                 _nameDictTemp['cgmName'] = _l_baseNames[-1]
                 _specialName = True
+                _cnt = 0
 
-        if not _specialName:
-            _nameDictTemp['cgmIterator'] = _cnt
+        #if not _specialName:
+        _nameDictTemp['cgmIterator'] = _cnt
             
         #mJoint.rename(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
         if combined:
@@ -1720,7 +1732,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
     ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
 
     if blockNames:
-        l_names = skeleton_getNameDicts(self,False)        
+        l_names = skeleton_getNameDicts(self,False,len(l_joints))        
     else:
         l_names = []
     
@@ -1759,9 +1771,82 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
             connectToModule.connectChildNode(ml_joints[0],connectAs,'rigNull')
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
-            
     return ml_joints
 
+def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = [],blockNames=False):
+    """
+    blockNames(bool) - use the block generated names
+    """
+    _str_func = 'skeleton_buildDuplicateChain'
+    
+    
+    if indices:
+        log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
+        l_buffer = []
+        for i in indices:
+            l_buffer.append(sourceJoints[i])
+        sourceJoints = l_buffer    
+    
+    ml_source = cgmMeta.validateObjListArg(sourceJoints,mayaType=['joint'],noneValid=False)
+    
+    if connectToModule:
+        #mRigNull = self.moduleTarget.rigNull
+    
+        #Get our segment joints
+        if singleMode:
+            l_jointsExist = connectToModule.getMessage(connectAs)
+        else:
+            l_jointsExist = connectToModule.msgList_get(connectAs,asMeta = False, cull = True)
+        
+        if l_jointsExist:
+            log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
+            mc.delete(l_jointsExist)
+
+    l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
+    
+    ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
+
+    if blockNames:
+        l_names = skeleton_getNameDicts(self,False,len(l_joints))        
+    else:
+        l_names = []
+    
+    for i,mJnt in enumerate(ml_joints):
+        if blockNames:
+            _d_tmp = l_names[i]
+            log.info("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
+            for a in ['cgmIterator','cgmName']:
+                if _d_tmp.get(a):
+                    mJnt.addAttr(a, str(_d_tmp.get(a)),attrType='string',lock=True)
+
+        if modifier is not None:
+            #l_names[i]['cgmTypeModifier'] = modifier
+            mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
+        if cgmType is not None:
+            #l_names[i]['cgmType'] = cgmType            
+            mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
+            
+        #l_joints[i] = mJnt.mNode
+        if connectToSource:
+            mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect
+        
+        if mJnt.hasAttr('scaleJoint'):
+            if mJnt.scaleJoint in ml_skinJoints:
+                int_index = ml_source.index(mJnt.scaleJoint)
+                mJnt.connectChildNode(ml_source[int_index],'scaleJoint','sourceJoint')#Connect
+
+    #Name loop
+    ml_joints[0].parent = False
+    for i,mJnt in enumerate(ml_joints):
+        #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(l_names[i]))
+        mJnt.doName()	
+        
+    if connectToModule:
+        if singleMode:
+            connectToModule.connectChildNode(ml_joints[0],connectAs,'rigNull')
+        else:
+            connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
+    return ml_joints
 
 def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
@@ -3073,8 +3158,8 @@ def skeleton(self):
     self.blockState = 'skeleton'#...yes now in this state
     return True
 
-def skeletonDelete(self):
-    _str_func = 'skeletonDelete'
+def skeleton_delete(self):
+    _str_func = 'skeleton_delete'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
     
     if self.isReferenced():
@@ -3097,8 +3182,8 @@ def skeletonDelete(self):
         log.debug("|{0}| >> BlockModule skeleton_delete call found...".format(_str_func))
         self.atBlockModule('skeleton_delete')
     
-    #d_links = get_stateLinks(self, 'joint')
-    #delete_msgDat(self,d_links)
+    d_links = get_stateLinks(self, 'skeleton')
+    delete_msgDat(self,d_links)
     
     self.blockState = 'prerig'#...yes now in this state
     return True
@@ -3201,13 +3286,13 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                               }
         d_downStateFunctions = {'define':templateDelete,
                                 'template':prerigDelete,
-                                'prerig':skeletonDelete,
+                                'prerig':skeleton_delete,
                                 'skeleton':rigDelete,
                                 }
         d_deleteStateFunctions = {'template':templateDelete,
                                   'prerig':prerigDelete,
                                   'rig':rigDelete,
-                                  'skeleton':skeletonDelete,
+                                  'skeleton':skeleton_delete,
                                   }
         
         stateArgs = BLOCKGEN.validate_stateArg(state)
@@ -3412,11 +3497,12 @@ def getState(self, asString = True):
             if 'is_{0}'.format(_state) in _blockModule.__dict__.keys():
                 _call = getattr(_blockModule,'is_{0}'.format(_state))
                 log.debug("|{0}| >> blockModule test: {1}".format(_str_func, _call))                
-                if _call(self):
-                    log.debug("|{0}| >> still good...".format(_str_func))
-                else:
-                    log.debug("|{0}| >> nope...".format(_str_func))                    
-                    _goodState = False
+                if _call:
+                    if _call(self):
+                        log.debug("|{0}| >> still good...".format(_str_func))
+                    else:
+                        log.debug("|{0}| >> nope...".format(_str_func))                    
+                        _goodState = False
                     
             if not _goodState:
                 _idx = _l_blockStates.index(_state) - 1

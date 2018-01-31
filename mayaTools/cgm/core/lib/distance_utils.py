@@ -387,7 +387,7 @@ def set_vectorOffset(obj = None, origin = None, distance = 0, asEuclid = False):
     POS.set(obj,newPos)
     return newPos
 
-def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'ep'):
+def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'):
     """
     Attempt for more consistency 
     
