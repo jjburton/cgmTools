@@ -4081,14 +4081,12 @@ class cgmObjectSet(cgmNode):
     
     def log(self):
         print cgmGEN._str_subLine
-        print "objectSet: '{0}' data...".format(self.p_nameShort)
-        _data = self.getList()
-        print _data
-        for v in _data:
-            print v
-        print cgmGEN._str_subLine
-            
-        
+        _data = self.getList()        
+
+        log.info(cgmGEN._str_baseStart * 2 + " objectSet: {0} | type: {1} | count: {2}".format(self.p_nameShort,self.getSetType(),len(_data)))
+        for i,v in enumerate(_data):
+            log.info("idx: {0} | obj: {1}".format(i,v))
+        log.info(cgmGEN._str_subLine)            
 
     def doSetList(self, objectList = []):
         """
