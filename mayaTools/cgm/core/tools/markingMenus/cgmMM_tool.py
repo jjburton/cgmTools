@@ -2030,22 +2030,25 @@ def deleteKey():
         selection = mc.ls(sl=True) or []
         if not selection:
             return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
-
+        
+        mel.eval('timeSliderClearKey;')
+        """
         if not KeyTypeOptionVar.value:
-            mc.cutKey(selection)	    
+            mc.cutKey(selection)
         else:
-            mc.cutKey(selection)	    
+            mc.cutKey(selection)"""
     else:#Let's check the channel box for objects
         selection = search.returnSelectedAttributesFromChannelBox(False) or []
         if not selection:
             selection = mc.ls(sl=True) or []
             if not selection:
                 return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
-
+        """
         if not KeyTypeOptionVar.value:
             mc.cutKey(selection)	    
         else:
-            mc.cutKey(selection,breakdown = True)
+            mc.cutKey(selection,breakdown = True)"""
+        mel.eval('timeSliderClearKey;')
             
             
 def ui_CallAndKill(func, *a, **kws ):

@@ -437,7 +437,7 @@ class ui(cgmUI.cgmGUI):
                 if mode == 'key':
                     mSet.key()
                 elif mode == 'delete':
-                    mSet.deleteKey()
+                    mSet.deleteCurrentKey()
                 elif mode == 'reset':
                     mSet.reset()
                 elif mode == 'select':
@@ -1175,7 +1175,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             mc.button(parent=_row ,
                           ut = 'cgmUITemplate',                                                                                                
                           l = 'd',
-                          c=lambda *a: mObjectSet.deleteKey(),
+                          c=lambda *a: mObjectSet.deleteCurrentKey(),
                           #c = cgmGEN.Callback(mObjectSet.deleteKey),
                           ann = "Delete current keyes for objectSet: {0}".format(_short))   
         
