@@ -510,7 +510,9 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         #Sets menu ================================================================================
         mc.menuItem(p=parent,l = "- Object Sets -",en = False)
         mc.menuItem(p=parent,l = 'UI',
-                    c = lambda *a:TOOLCALLS.setTools())
+                    c=lambda*a:mc.evalDeferred(TOOLCALLS.setTools,lp=True)                    
+                    #c = lambda *a:TOOLCALLS.setTools(),
+                    )
         
         var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
         
