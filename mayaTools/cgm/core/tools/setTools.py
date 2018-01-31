@@ -112,7 +112,10 @@ class ui(cgmUI.cgmGUI):
         #self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
 
     def build_menus(self):
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Options', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_FirstMenu = mUI.MelMenu(l='Options',
+                                            pmc = lambda *a:self.buildMenu_first()
+                                            #pmc = cgmGEN.Callback(self.buildMenu_first)
+                                            )
         #self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGEN.Callback(self.buildMenu_buffer))
 
     def buildMenu_first(self):
@@ -191,7 +194,9 @@ class ui(cgmUI.cgmGUI):
         
                 mUI.MelMenuItem( refMenu, l = n,
                                  cb = activeState,
-                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n))
+                                 c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate(self, _str_activeSetRefs, n )
+                                 #c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n)
+                                 )
         
             mUI.MelMenuItemDiv( refMenu )
             mUI.MelMenuItem( refMenu, l = 'Clear',
@@ -206,7 +211,9 @@ class ui(cgmUI.cgmGUI):
         
         if _typeKeys:# and len(_refKeys) > 1:
             mUI.MelMenuItem( typeMenu, l = 'All',
-                             c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetTypes,_typeKeys ))        
+                             c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetTypes, _typeKeys )
+                             #c=lambda *a: uiFunc_setOptionVarAndUpdate(self, self.var_ActiveSetTypes,_typeKeys )
+                             )        
             
                          #c = Callback(setToolsLib.doSetAllRefState,self,True))	
                          
@@ -219,7 +226,9 @@ class ui(cgmUI.cgmGUI):
         
                 mUI.MelMenuItem( typeMenu, l = n,
                                  cb = activeState,
-                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeTypesVar,n))
+                                 c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate(self, _str_activeTypesVar, n )
+                                 #c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeTypesVar,n)
+                                 )
         
             mUI.MelMenuItemDiv( typeMenu )
             mUI.MelMenuItem( typeMenu, l = 'Clear',
@@ -711,8 +720,8 @@ def buildSetsForm_main(self,parent):
     mUI.MelCheckBox(parent = _uiRow_allSets,
                     annotation = 'Sets all sets active',
                     value = activeState,
-                    onCommand =  cgmGEN.Callback(self.uiFunc_setAllActiveState,True),
-                    offCommand = cgmGEN.Callback(self.uiFunc_setAllActiveState,False))
+                    onCommand = lambda *a: self.uiFunc_setAllActiveState(True),#cgmGEN.Callback(self.uiFunc_setAllActiveState,True),
+                    offCommand = lambda *a: self.uiFunc_setAllActiveState(False))
     
     # Mode toggle box
     self.SetModeOptionMenu = mUI.MelOptionMenu(_uiRow_allSets,cc=modeSet)
@@ -727,29 +736,33 @@ def buildSetsForm_main(self,parent):
     mUI.MelSpacer(parent = _uiRow_allSets, w = 2)
     
     mc.button(parent=_uiRow_allSets ,
-                     ut = 'cgmUITemplate',                                                                                                
+                     ut = 'cgmUITemplate',
                      l = 'S',
-                     c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'select'),
+                     c = lambda *a: self.uiFunc_multiSetsFunction('select'),
+                     #cgmGEN.Callback(self.uiFunc_multiSetsFunction,'select'),
                      ann = "Select all sets")    
     
     mc.button(parent=_uiRow_allSets ,
                  ut = 'cgmUITemplate',                                                                                                
                  l = 'K',
-                 c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'key'),
+                 c = lambda *a: self.uiFunc_multiSetsFunction('key'),
+                 #cgmGEN.Callback(self.uiFunc_multiSetsFunction,'key'),
                  ann = "Key all sets")
     
     #mUI.MelSpacer(parent = _uiRow_allSets, w = 2)
     mc.button(parent=_uiRow_allSets ,
                  ut = 'cgmUITemplate',                                                                                                
                  l = 'D',
-                 c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'delete'),
+                 c = lambda *a: self.uiFunc_multiSetsFunction('delete'),
+                 #c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'delete'),
                  ann = "Delete all keys of sets") 
     
     #mUI.MelSpacer(parent = _uiRow_allSets, w = 2)
     mc.button(parent=_uiRow_allSets ,
                  ut = 'cgmUITemplate',                                                                                                
                  l = 'R',
-                 c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'reset'),
+                 c = lambda *a: self.uiFunc_multiSetsFunction('reset'),
+                 #c = cgmGEN.Callback(self.uiFunc_multiSetsFunction,'reset'),
                  ann = "Reset all active sets") 
     
     mUI.MelSpacer(parent = _uiRow_allSets, w = 5)    
@@ -764,18 +777,22 @@ def buildSetsForm_main(self,parent):
 
     multiMakeQssMenu = mUI.MelMenuItem(allPopUpMenu,
                                        label = 'Make Qss',
-                                       c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'qss':True}))
+                                       c = lambda *a: uiFunc_multiSetsSetType(self,**{'qss':True}),
+                                       #c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'qss':True})
+                                       )
     multiMakeNotQssMenu = mUI.MelMenuItem(allPopUpMenu,
                                           label = 'Clear Qss State',
-                                          c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'qss':False}))
+                                          c = lambda *a: uiFunc_multiSetsSetType(self,**{'qss':False}),
+                                          #c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'qss':False})
+                                          )
     #Mulit set type
     for n in _l_setTypes:
         mUI.MelMenuItem(allCategoryMenu,
                         label = n,
-                        c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'setType':n}))
-                        
+                        c = lambda *a: uiFunc_multiSetsSetType(self,**{'setType':n}),
+                        #c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'setType':n}))
                         #c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))    
-
+                        )
 
     #>>>Scroll List ----------------------------------------------------------------------------------
     SetListScroll = mUI.MelScrollLayout(_MainForm,cr = 1, ut = 'cgmUISubTemplate')
@@ -836,15 +853,21 @@ def buildSetsForm_main(self,parent):
 
     multiMakeQssMenu = MelMenuItem(allPopUpMenu,
                                    label = 'Make Qss',
-                                   c = Callback(setToolsLib.doMultiSetQss,self,True))
+                                   c = lambda *a: setToolsLib.doMultiSetQss(self,True),
+                                   #c = Callback(setToolsLib.doMultiSetQss,self,True)
+                                   )
     multiMakeNotQssMenu = MelMenuItem(allPopUpMenu,
                                       label = 'Clear Qss State',
-                                      c = Callback(setToolsLib.doMultiSetQss,self,False))		
+                                      c = lambda *a: setToolsLib.doMultiSetQss(self,False),
+                                      #c = Callback(setToolsLib.doMultiSetQss,self,False)
+                                      )
     #Mulit set type
     for n in self.setTypes:
         MelMenuItem(allCategoryMenu,
                     label = n,
-                    c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))
+                    c = lambda *a: setToolsLib.doMultiSetQss(self,self.SetToolsModeOptionVar.value,n),
+                    #c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n)
+                    )
 
 
     #>>> Sets building section
@@ -878,14 +901,18 @@ def buildSetsForm_main(self,parent):
         tmpActive = MelCheckBox(tmpSetRow,
                                 annotation = 'make set as active',
                                 value = activeState,
-                                onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
-                                offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i))
+                                onCommand = lambda *a: setToolsLib.doSetSetAsActive(self,i),
+                                #onCommand =  Callback(setToolsLib.doSetSetAsActive,self,i),
+                                offCommand = lambda *a: setToolsLib.doSetSetAsInactive(self,i),
+                                #offCommand = Callback(setToolsLib.doSetSetAsInactive,self,i)
+                                )
 
         self.activeSetsCBDict[i] = tmpActive
 
         tmpSel = guiFactory.doButton2(tmpSetRow,
                                       ' s ',
-                                      Callback(setToolsLib.doSelectSetObjects,self,i),
+                                      lambda *a: setToolsLib.doSelectSetObjects(self,i),
+                                      #Callback(setToolsLib.doSelectSetObjects,self,i),
                                       'Select the set objects')
 
 
@@ -898,26 +925,31 @@ def buildSetsForm_main(self,parent):
 
         tmpAdd = guiFactory.doButton2(tmpSetRow,
                                       '+',
-                                      Callback(setToolsLib.doAddSelected,self,i),
+                                      lambda *a: setToolsLib.doAddSelected(self,i),
+                                      #Callback(setToolsLib.doAddSelected,self,i),
                                       'Add selected  to the set',
                                       en = not sInstance.refState)
         tmpRem= guiFactory.doButton2(tmpSetRow,
                                      '-',
-                                     Callback(setToolsLib.doRemoveSelected,self,i),
+                                     lambda *a: setToolsLib.doRemoveSelected(self,i),
+                                     #Callback(setToolsLib.doRemoveSelected,self,i),
                                      'Remove selected  to the set',
                                      en = not sInstance.refState)
         tmpKey = guiFactory.doButton2(tmpSetRow,
                                       'k',
-                                      Callback(setToolsLib.doKeySet,self,i),			                              
+                                      lambda *a: setToolsLib.doKeySet(self,i),
+                                      #Callback(setToolsLib.doKeySet,self,i),
                                       'Key set')
         tmpDeleteKey = guiFactory.doButton2(tmpSetRow,
                                             'd',
-                                            Callback(setToolsLib.doDeleteCurrentSetKey,self,i),			                              			                                
+                                            lambda *a: setToolsLib.doDeleteCurrentSetKey(self,i),
+                                            #Callback(setToolsLib.doDeleteCurrentSetKey,self,i),
                                             'delete set key')	
 
         tmpReset = guiFactory.doButton2(tmpSetRow,
                                         'r',
-                                        Callback(setToolsLib.doResetSet,self,i),			                              			                                
+                                        lambda *a: setToolsLib.doResetSet(self,i),
+                                        #Callback(setToolsLib.doResetSet,self,i),
                                         'Reset Set')
         mc.formLayout(tmpSetRow, edit = True,
                       af = [(tmpActive, "left", 4),
@@ -954,7 +986,9 @@ def buildSetsForm_main(self,parent):
                               label = 'Qss',
                               cb = qssState,
                               en = enabledMenuLogic,
-                              c = Callback(self.setInstances[i].isQss,not qssState))
+                              c=lambda *a: setToolsLib.doDeleteCurrentSetKey(self.setInstances[i].isQss,not qssState),
+                              #c = Callback(self.setInstances[i].isQss,not qssState),
+                              )
 
         categoryMenu = MelMenuItem(popUpMenu,
                                    label = 'Make Type:',
@@ -964,23 +998,31 @@ def buildSetsForm_main(self,parent):
         for n in self.setTypes:
             MelMenuItem(categoryMenu,
                         label = n,
-                        c = Callback(setToolsLib.guiDoSetType,self,i,n))
+                        c=lambda *a: setToolsLib.guiDoSetType(self,i),
+                        #c = Callback(setToolsLib.guiDoSetType,self,i,n)
+                        )
 
 
         MelMenuItem(popUpMenu ,
                     label = 'Copy Set',
-                    c = Callback(setToolsLib.doCopySet,self,i))
+                    c=lambda *a: setToolsLib.doCopySet(self,i),
+                    #c = Callback(setToolsLib.doCopySet,self,i)
+                    )
 
         MelMenuItem(popUpMenu ,
                     label = 'Purge',
                     en = enabledMenuLogic,
-                    c = Callback(setToolsLib.doPurgeSet,self,i))
+                    c=lambda *a: setToolsLib.doPurgeSet(self,i),
+                    #c = Callback(setToolsLib.doPurgeSet,self,i)
+                    )
 
         MelMenuItemDiv(popUpMenu)
         MelMenuItem(popUpMenu ,
                     label = 'Delete',
                     en = enabledMenuLogic,
-                    c = Callback(setToolsLib.doDeleteSet,self,i))	
+                    c=lambda *a: setToolsLib.doDeleteSet(self,i)
+                    #c = Callback(setToolsLib.doDeleteSet,self,i)
+                    )
 
 
 
@@ -1072,8 +1114,11 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
         _cb = mUI.MelCheckBox(parent = _row,
                               annotation = 'Sets as active',
                               value = b_activeState,
-                              onCommand =  cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,True),
-                              offCommand = cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,False))
+                              onCommand=lambda *a: self.uiFunc_setActiveState(mObjectSet,True),
+                              offCommand=lambda *a: self.uiFunc_setActiveState(mObjectSet,False),
+                              #onCommand =  cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,True),
+                              #offCommand = cgmGEN.Callback(self.uiFunc_setActiveState,mObjectSet,False)
+                              )
         
         self.d_activeStateCBs[mObjectSet] = _cb
         
@@ -1081,7 +1126,8 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
         mc.button(parent=_row ,
                   ut = 'cgmUITemplate',                                                                                                
                   l = 's',
-                  c = cgmGEN.Callback(mObjectSet.select),
+                  c=lambda *a: mObjectSet.select(),
+                  #c = cgmGEN.Callback(mObjectSet.select),
                   ann = "Select members")
         
         if b_setupMode:
@@ -1089,19 +1135,22 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             mc.button(parent=_row ,
                              ut = 'cgmUITemplate',                                                                                                
                              l = '+',
-                             c = cgmGEN.Callback(mObjectSet.addSelected),
+                             c=lambda *a: mObjectSet.addSelected(),
+                             #c = cgmGEN.Callback(mObjectSet.addSelected),
                              en = not _ref,
                              ann = "Add selected to objectSet: {0}".format(_short))    
             mc.button(parent=_row ,
                           ut = 'cgmUITemplate',                                                                                                
                           l = '-',
-                          en = not _ref,                      
-                          c = cgmGEN.Callback(mObjectSet.removeSelected),
+                          en = not _ref,
+                          c=lambda *a: mObjectSet.removeSelected(),
+                          #c = cgmGEN.Callback(mObjectSet.removeSelected),
                           ann = "Remove selected from objectSet: {0}".format(_short))  
             mc.button(parent=_row ,
                       ut = 'cgmUITemplate',                                                                                                
                       l = 'e',
-                      c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
+                      c=lambda *a: self.uiFunc_itemList_showToggle(mObjectSet),
+                      #c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
                       ann = "Work with items in our list: {0}".format(_short))
         
         _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameBase,
@@ -1119,19 +1168,22 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             mc.button(parent=_row ,
                           ut = 'cgmUITemplate',                                                                                                
                           l = 'k',
-                          c = cgmGEN.Callback(mObjectSet.key),
+                          c=lambda *a: mObjectSet.key(),
+                          #c = cgmGEN.Callback(mObjectSet.key),
                           ann = "Key objectSet: {0}".format(_short))   
             
             mc.button(parent=_row ,
                           ut = 'cgmUITemplate',                                                                                                
                           l = 'd',
-                          c = cgmGEN.Callback(mObjectSet.deleteKey),
+                          c=lambda *a: mObjectSet.deleteKey(),
+                          #c = cgmGEN.Callback(mObjectSet.deleteKey),
                           ann = "Delete current keyes for objectSet: {0}".format(_short))   
         
         mc.button(parent=_row ,
                       ut = 'cgmUITemplate',                                                                                                
                       l = 'r',
-                      c = cgmGEN.Callback(mObjectSet.reset),
+                      c=lambda *a: mObjectSet.reset(),
+                      #c = cgmGEN.Callback(mObjectSet.reset),
                       ann = "Reset objectSet: {0}".format(_short))       
         mUI.MelSpacer(parent = _row, w = 5)    
         _row.layout()
@@ -1159,7 +1211,9 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
                                   label = 'Qss',
                                   cb = b_qssState,
                                   en = b_editable,
-                                  c = cgmGEN.Callback(mObjectSet.makeQss,not b_qssState))
+                                  c=lambda *a: mObjectSet.makeQss(not b_qssState)
+                                  #c = cgmGEN.Callback(mObjectSet.makeQss,not b_qssState),
+                                  )
     
         categoryMenu = mUI.MelMenuItem(_popUpMenu,
                                        label = 'Make Type:',
@@ -1168,35 +1222,49 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
         
         mUI.MelMenuItem(_popUpMenu,
                             label = 'Select set',
-                            c = cgmGEN.Callback(mObjectSet.selectSelf))      
+                            c=lambda *a: mObjectSet.selectSelf()
+                            #c = cgmGEN.Callback(mObjectSet.selectSelf)
+                            )      
         mUI.MelMenuItem(_popUpMenu,
                         label = 'Purge',
                         en = b_editable,
-                        c = cgmGEN.Callback(mObjectSet.purge))  
+                        c=lambda *a: mObjectSet.purge()
+                        #c = cgmGEN.Callback(mObjectSet.purge)
+                        )  
         
         mUI.MelMenuItem(_popUpMenu,
                         label = 'Rename',
                         en = b_editable,
-                        c = cgmGEN.Callback(self.uiFunc_rename, mObjectSet))  
+                        c=lambda *a: self.uiFunc_rename(mObjectSet)
+                        #c = cgmGEN.Callback(self.uiFunc_rename, mObjectSet)
+                        )  
         mUI.MelMenuItem(_popUpMenu,
                         label = 'Copy',
                         en = b_editable,
-                        c = cgmGEN.Callback(self.uiFunc_copy, mObjectSet))    
+                        c=lambda *a: self.uiFunc_copy(mObjectSet)                        
+                        #c = cgmGEN.Callback(self.uiFunc_copy, mObjectSet)
+                        )    
         mUI.MelMenuItem(_popUpMenu,
                         label = 'Log',
-                        c = cgmGEN.Callback(mObjectSet.log))  
+                        c=lambda *a: mObjectSet.log()
+                        #c = cgmGEN.Callback(mObjectSet.log)
+                        )  
         mUI.MelMenuItemDiv( _popUpMenu )
         
         mUI.MelMenuItem(_popUpMenu,
                         label = 'Delete',
                         en = b_editable,
-                        c = cgmGEN.Callback(self.uiFunc_delete, mObjectSet))       
+                        c=lambda *a: self.uiFunc_delete(mObjectSet)
+                        #c = cgmGEN.Callback(self.uiFunc_delete, mObjectSet)
+                        )       
        
         #Category menus --------------------------------------------------------------------
         for n in _l_setTypes:
             mUI.MelMenuItem(categoryMenu,
                             label = n,
-                            c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n))       
+                            c=lambda *a: self.uiFunc_setType(mObjectSet,n)
+                            #c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n)
+                            )       
         
         
         #ItemsList -------------------------------------------------------------------------
@@ -1208,36 +1276,16 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
                 height = 150
             uiItemList = mUI.MelObjectScrollList(parent, allowMultiSelection=True,en=True,
                                                  bgc = [.9,.9,.9],height = height, vis=False,
-                                                 sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
-                                                 dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
+                                                 sc = self.uiFunc_itemList_dc(mObjectSet),
+                                                 dcc = self.uiFunc_itemList_dc(mObjectSet),
+                                                 #sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
+                                                 #dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
                                                  #selectCommand = self.uiFunc_selectParent_inList)
+                                                 )
             self.d_itemScrollLists[mObjectSet] = uiItemList
     
         return
     
-    
-        for n in self.setTypes:
-            MelMenuItem(categoryMenu,
-                        label = n,
-                        c = Callback(setToolsLib.guiDoSetType,self,i,n))
-    
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Copy Set',
-                    c = Callback(setToolsLib.doCopySet,self,i))
-    
-        MelMenuItem(popUpMenu ,
-                    label = 'Purge',
-                    en = enabledMenuLogic,
-                    c = Callback(setToolsLib.doPurgeSet,self,i))
-    
-        MelMenuItemDiv(popUpMenu)
-        MelMenuItem(popUpMenu ,
-                    label = 'Delete',
-                    en = enabledMenuLogic,
-                    c = Callback(setToolsLib.doDeleteSet,self,i))	    
-        
-        return
     except Exception,err:
         print err
         #raise cgmGEN.cgmException(Exception,err)
