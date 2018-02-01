@@ -32,6 +32,55 @@ import cgm.core.lib.rigging_utils as RIG
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.math_utils as MATH
 reload(DIST)
+import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.name_utils as NAMES
+
+def fbx_cleaner(delete = False, spaceString = '03FBXASC032'):
+    """
+    Find all the sill attributes fbx adds on import
+    
+    :parameters:
+        delete | whether to delete all userDefined attrs or not
+        spaceString | Search string for what fbx did with spaces from max or other app. Replaces with underscore
+    """
+    _str_func = 'fbx_cleaner'
+    log.debug("|{0}| >> ...".format(_str_func))
+    
+    _res = {}
+    for o in mc.ls():
+        _res[o] = []
+        _l = mc.listAttr(o,userDefined=True) or []
+        for a in _l:
+            _res[o].append(a)
+        _shapes = TRANS.shapes_get(o)
+        
+        if _shapes:
+            for s in _shapes:
+                _res[s] = []
+                _l = mc.listAttr(s,userDefined=True) or []
+                for a in _l:
+                    _res[s].append(a)
+                    
+    print cgmGEN._str_hardBreak
+    l_renamed = []
+    for k,l in _res.iteritems():
+        if l:
+            print cgmGEN._str_subLine
+            print(cgmGEN._str_baseStart * 2 + " node: '{0}' | attrs: {1}...".format(k,len(l)))
+            for i,a in enumerate(l):
+                print("   {0} | '{1}'".format(i,a))
+                if delete:
+                    ATTR.delete(k,a)
+        if spaceString:
+            if spaceString in NAMES.get_base(k) and k not in l_renamed:
+                new = mc.rename(k, NAMES.get_base(k).replace(spaceString,'_'))
+                print(" Rename  {0} | '{1}'".format(k,new))
+                l_renamed.append(k)
+            
+    
+    print cgmGEN._str_hardBreak
+
 
 def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
                         minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None):

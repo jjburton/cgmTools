@@ -125,8 +125,8 @@ d_block_profiles = {
             'cgmName':'tail',
             'loftShape':'wideDown',
             'loftSetup':'default',
-            'ikSetup':'spline',
-            'ikBase':'none',
+            'ikSetup':'ribbon',
+            'ikBase':'simple',
             'nameIter':'tail',
             'nameList':['tailBase','tailTip'],
             'baseAim':[0,0,-1],
@@ -473,16 +473,29 @@ def template(self):
                 mHandle.p_parent = mTemplateNull
         
                 mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
+                mGroup.p_parent = mTemplateNull
+                
                 _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mStartHandle.mNode,mEndHandle.mNode])
                 #_point = mc.pointConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
                 _scale = mc.scaleConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
-                reload(CURVES)
-                mLoc = mGroup.doLoc()
-                mLoc.parent = mNoTransformNull
+                #reload(CURVES)
+                #mLoc = mGroup.doLoc()
+                #mLoc.parent = mNoTransformNull
                 #mLoc.inheritsTransform = False
         
-                CURVES.attachObjToCurve(mLoc.mNode, mLinearCurve.mNode)
-                _point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+                #CURVES.attachObjToCurve(mLoc.mNode, mLinearCurve.mNode)
+                reload(RIGCONSTRAINT)
+                _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
+                                                           mLinearCurve.mNode,
+                                                           'conPoint')
+                TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
+                
+                #print cgmGEN._str_hardBreak
+                #pprint.pprint(_res_attach)
+                #print cgmGEN._str_hardBreak
+                
+                
+                #_point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
         
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
@@ -526,7 +539,6 @@ def template(self):
         
                                      
             mLoftCurve = mHandle.loftCurve
-        
         
         
             #>>Loft Mesh ==================================================================================================
@@ -692,7 +704,7 @@ def prerig(self):
 
         #Sub handles... ------------------------------------------------------------------------------------
         log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
-        
+        ml_aimGroups = []
         for i,p in enumerate(_l_pos):
             log.debug("|{0}| >> handle cnt: {1} | p: {2}".format(_str_func,i,p))
             crv = CURVES.create_fromName('cubeOpen', size = _sizeSub)
@@ -701,24 +713,28 @@ def prerig(self):
             _short = mHandle.mNode
             ml_handles.append(mHandle)
             mHandle.p_position = p
-            
+            """
             if p == _l_pos[-1]:
-                SNAP.aim_atPoint(_short,_l_pos[-2],'z-', 'y+', mode='vector', vectorUp = _vec_root_up)                
+                SNAP.aim_atPoint(_short,_l_pos[-2],'z-', 'y+', mode='vector', vectorUp = _vec_root_up)
             else:
                 SNAP.aim_atPoint(_short,_l_pos[i+1],'z+', 'y+', mode='vector', vectorUp = _vec_root_up)
-            
+            """
             mHandle.p_parent = mPrerigNull
             
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
+            ml_aimGroups.append(mGroup)
             _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mStartHandle.mNode,mEndHandle.mNode])
             #_point = mc.pointConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
             #_scale = mc.scaleConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
-            mLoc = mGroup.doLoc()
-            mLoc.parent = mNoTransformNull
+            #mLoc = mGroup.doLoc()
+            #mLoc.parent = mNoTransformNull
             #mLoc.inheritsTransform = False
     
-            CURVES.attachObjToCurve(mLoc.mNode, mTrackCurve.mNode)
-            _point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+            _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mTrackCurve.mNode, 'conPoint')
+            TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
+    
+            #CURVES.attachObjToCurve(mLoc.mNode, mTrackCurve.mNode)
+            #_point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
             
             #for c in [_scale]:
                 #CONSTRAINT.set_weightsByDistance(c[0],_vList)
@@ -752,6 +768,14 @@ def prerig(self):
         for s in mTemplateLoft.getShapes(asMeta=True):
             s.overrideDisplayType = 1       
         """
+        
+        #Aim the segment
+        for i,mGroup in enumerate(ml_aimGroups):
+            if mGroup == ml_aimGroups[-1]:
+                SNAP.aim_atPoint(mGroup.mNode,_pos_start,'z-', 'y+', mode='vector', vectorUp = _worldUpVector)
+            else:
+                SNAP.aim_atPoint(mGroup.mNode,_pos_end,'z+', 'y+', mode='vector', vectorUp = _worldUpVector)            
+        
         
         """
         #Aim the segment
@@ -1564,10 +1588,11 @@ def rig_segments(self):
     
     
     mRootParent = self.mDeformNull
-    ml_handleJoints = mRigNull.msgList_get('segmentJoints')
-    if not ml_handleJoints:
+    if not ml_segJoints:
         log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
         return True
+    
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -2163,11 +2188,20 @@ def rig_cleanUp(self):
     
     if mModuleParent:
         mi_parentRigNull = mModuleParent.rigNull
+        if mi_parentRigNull.getMessage('rigRoot'):
+            ml_baseDynParents.append( mi_parentRigNull.rigRoot )        
         if mi_parentRigNull.getMessage('controlIK'):
             ml_baseDynParents.append( mi_parentRigNull.controlIK )	    
         if mi_parentRigNull.getMessage('controlIKBase'):
             ml_baseDynParents.append( mi_parentRigNull.controlIKBase )
-    
+        ml_parentRigJoints =  mi_parentRigNull.msgList_get('rigJoints')
+        if ml_parentRigJoints:
+            ml_used = []
+            for mJnt in ml_parentRigJoints:
+                if mJnt in ml_used:continue
+                if mJnt in [ml_parentRigJoints[0],ml_parentRigJoints[-1]]:
+                    ml_baseDynParents.append( mJnt.masterGroup)
+                    ml_used.append(mJnt)    
     #...Root controls =================================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
     mParent = mRoot.getParent(asMeta=True)
@@ -2225,10 +2259,10 @@ def rig_cleanUp(self):
         ml_targetDynParents = copy.copy(ml_baseDynParents)
         ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta=True) or [])
         
-        mParent = mObj.getParent(asMeta=True)
+        mParent = mObj.masterGroup.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
             mParent.addAttr('cgmAlias','{0}_rig{1}_base'.format(mObj.cgmName,i))
-        ml_targetDynParents.append(mParent)
+        ml_targetDynParents.insert(0,mParent)
         
         ml_targetDynParents.extend(ml_endDynParents)
         
@@ -2250,10 +2284,10 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))                        
         ml_targetDynParents = copy.copy(ml_baseDynParents)
         
-        mParent = mObj.getParent(asMeta=True)
+        mParent = mObj.masterGroup.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
             mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
-        ml_targetDynParents.append(mParent)    
+        ml_targetDynParents.insert(0,mParent)
         
         ml_targetDynParents.extend(ml_endDynParents)
         ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))

@@ -50,6 +50,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         connectBy(str)
             parent - parent to track transform
             parentGroup - parent to group and have group follow
+            conPoint - just point contraint
             conPointGroup - pointConstrain group
             conPointOrientGroup - point/orient constrain group
             conParentGroup - parent Constrain group
@@ -118,7 +119,9 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         elif connectBy == 'parent':
             mObj.p_parent = _trackTransform
             return _res
-        
+        elif connectBy == 'conPoint':
+            mc.pointConstraint(_trackTransform, mObj.mNode,maintainOffset = True)
+            return _res
         elif connectBy == 'parentGroup':
             mGroup = mObj.doGroup(asMeta=True)
             #_grp = TRANS.group_me(obj,True)
