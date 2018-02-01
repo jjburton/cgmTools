@@ -1566,8 +1566,8 @@ def rig_segments(self):
     mRootParent = self.mDeformNull
     ml_handleJoints = mRigNull.msgList_get('segmentJoints')
     if not ml_handleJoints:
-        log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))                      
-        return True        
+        log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
+        return True
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -2174,7 +2174,7 @@ def rig_cleanUp(self):
     ml_targetDynParents = []
 
     if not mParent.hasAttr('cgmAlias'):
-        mParent.addAttr('cgmAlias','base')
+        mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
     ml_targetDynParents.append(mParent)    
     
     ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
@@ -2203,7 +2203,7 @@ def rig_cleanUp(self):
         ml_targetDynParents = []
     
         if not mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias','base')
+            mParent.addAttr('cgmAlias','conIK_base')
         ml_targetDynParents.append(mParent)    
         
         ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
@@ -2220,14 +2220,14 @@ def rig_cleanUp(self):
     
     #...rigjoints =================================================================================================
     log.debug("|{0}| >>  Direct...".format(_str_func))                
-    for mObj in mRigNull.msgList_get('rigJoints'):
+    for i,mObj in enumerate(mRigNull.msgList_get('rigJoints')):
         log.debug("|{0}| >>  Direct: {1}".format(_str_func,mObj))                        
         ml_targetDynParents = copy.copy(ml_baseDynParents)
         ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta=True) or [])
         
         mParent = mObj.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias','base')
+            mParent.addAttr('cgmAlias','{0}_rig{1}_base'.format(mObj.cgmName,i))
         ml_targetDynParents.append(mParent)
         
         ml_targetDynParents.extend(ml_endDynParents)
@@ -2252,7 +2252,7 @@ def rig_cleanUp(self):
         
         mParent = mObj.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias','base')
+            mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
         ml_targetDynParents.append(mParent)    
         
         ml_targetDynParents.extend(ml_endDynParents)

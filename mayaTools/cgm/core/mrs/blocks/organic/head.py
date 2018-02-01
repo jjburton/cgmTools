@@ -1821,10 +1821,14 @@ def rig_cleanUp(self):
     _str_func = '[{0}] > rig_cleanUp'.format(_short)
     log.info("|{0}| >> ...".format(_str_func))  
     
+    mBlock = self.mBlock
     mRigNull = self.mRigNull
     mHeadIK = mRigNull.headIK
     mSettings = mRigNull.settings
     
+    mRoot = mRigNull.rigRoot
+    if not mRoot.hasAttr('cgmAlias'):
+        mRoot.addAttr('cgmAlias','root')    
     
     mMasterControl= self.d_module['mMasterControl']
     mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
@@ -1839,7 +1843,6 @@ def rig_cleanUp(self):
     #>>  DynParentGroups - Register parents for various controls ============================================
 
     #...head -----------------------------------------------------------------------------------
-    ml_headDynParents = []
     ml_baseHeadDynParents = []
     
     #ml_headDynParents = [ml_controlsFK[0]]
@@ -1859,10 +1862,32 @@ def rig_cleanUp(self):
                 if mJnt in [ml_parentRigJoints[0],ml_parentRigJoints[-1]]:
                     ml_baseHeadDynParents.append( mJnt.masterGroup)
                     ml_used.append(mJnt)
+                    
     ml_baseHeadDynParents.append(mMasterNull.puppetSpaceObjectsGroup)
     
-  
+    #...Root controls ================================================================================
+    log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
+    mParent = mRoot.getParent(asMeta=True)
+    ml_targetDynParents = []
+
+    if not mParent.hasAttr('cgmAlias'):
+        mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
+    ml_targetDynParents.append(mParent)    
     
+    ml_targetDynParents.extend(ml_baseHeadDynParents)
+
+    mDynGroup = mRoot.dynParentGroup
+    mDynGroup.dynMode = 2
+
+    for mTar in ml_targetDynParents:
+        mDynGroup.addDynParent(mTar)
+    mDynGroup.rebuild()
+    mDynGroup.dynFollow.p_parent = self.mDeformNull    
+    
+    
+    #Head -------------------------------------------------------------------------------------------
+    ml_headDynParents = []
+  
     ml_headDynParents = copy.copy(ml_baseHeadDynParents)
     ml_headDynParents.extend(mHeadIK.msgList_get('spacePivots',asMeta = True))
     ml_headDynParents.append(mMasterNull.worldSpaceObjectsGroup)
@@ -1886,7 +1911,7 @@ def rig_cleanUp(self):
     mDynGroup.dynFollow.parent = mMasterDeformGroup
     
     #...headLookat ---------------------------------------------------------------------------------------
-    if self.mBlock.headAim:
+    if mBlock.headAim:
         log.info("|{0}| >> HeadAim setup...".format(_str_func))
         
         mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
@@ -1915,6 +1940,8 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(o)
         mDynGroup.rebuild()
         
+    #...root ---------------------------------------------------------------------------------------
+
     
         
     #>>  Lock and hide ======================================================================================
@@ -2002,11 +2029,13 @@ def build_proxyMesh(self, forceNew = True):
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     
-    mGroup = mBlock.msgList_get('headMeshProxy')[mBlock.headGeo + 1].getParent(asMeta=True)
+    mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
     l_headGeo = mGroup.getChildren(asMeta=False)
     l_vis = mc.ls(l_headGeo, visible = True)
     ml_headStuff = []
     for i,o in enumerate(l_vis):
+        log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))
+        
         mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
         ml_headStuff.append(  mObj )
         mObj.parent = ml_rigJoints[-1]
