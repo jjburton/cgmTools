@@ -43,6 +43,7 @@ import sys
 import os
 import uuid
 import types
+import inspect
 
 import Red9.startup.setup as r9Setup
 import Red9_General as r9General
@@ -79,6 +80,12 @@ RED9_META_NODECACHE = {}
 global __RED9_META_NODESTORE__
 __RED9_META_NODESTORE__ = []
 
+global RED9_META_REGISTERY
+RED9_META_REGISTERY = {}
+
+global RED9_META_INHERITANCE_MAP
+RED9_META_INHERITANCE_MAP = {}
+
 if 'RED9_META_CALLBACKS' in globals():
     log.debug('RED9_META_CALLBACKS already setup')
 else:
@@ -89,7 +96,6 @@ else:
     RED9_META_CALLBACKS['New'] = []
     # RED9_META_CALLBACKS['DuplicatePre'] = []
     # RED9_META_CALLBACKS['DuplicatePost'] = []
-
 
 
 '''
@@ -107,12 +113,29 @@ global RED9_META_REGISTERY
 # ----------------------------------------------------------------------------
 
 def registerMClassInheritanceMapping():
+    '''
+    build up the master global registry of all available subclasses from r9Meta.MetaClass,
+    this build up 2 global dicts:
+    RED9_META_REGISTERY : {'className': class pointer}
+    RED9_META_INHERITANCE_MAP : {'className': {'full': [list of inherited class pointers]},
+                                              {'short': [list of inherited class.__names__]}}
+    '''
     global RED9_META_REGISTERY
     RED9_META_REGISTERY = {}
+    global RED9_META_INHERITANCE_MAP
+    RED9_META_INHERITANCE_MAP = {}
+
     RED9_META_REGISTERY['MetaClass'] = MetaClass
+    RED9_META_INHERITANCE_MAP['MetaClass'] = {}
+    RED9_META_INHERITANCE_MAP['MetaClass']['full'] = [MetaClass]
+    RED9_META_INHERITANCE_MAP['MetaClass']['short'] = [MetaClass.__name__]
+    
     for mclass in r9General.itersubclasses(MetaClass):
         log.debug('registering : %s' % mclass)
         RED9_META_REGISTERY[mclass.__name__] = mclass
+        RED9_META_INHERITANCE_MAP[mclass.__name__] = {}
+        RED9_META_INHERITANCE_MAP[mclass.__name__]['full'] = list(inspect.getmro(mclass))
+        RED9_META_INHERITANCE_MAP[mclass.__name__]['short'] = [n.__name__ for n in inspect.getmro(mclass)]
 
 def printSubClassRegistry():
     for m in RED9_META_REGISTERY:
@@ -655,26 +678,38 @@ def isMetaNode(node, mTypes=[], checkInstance=True, returnMClass=False):
             return False
 
 # def isMetaNodeInherited(node, mInstances=[]):
-#    '''
-#    unlike isMetaNode which checks the node against a particular MetaClass,
-#    this expands the check to see if the node is inherited from or a subclass of
-#    a given Meta base class, ie, part of a system
-#    TODO : we COULD return the instantiated metaClass object here rather than just a bool??
-#    '''
-#    if isMetaNode(node):
-#        mClass=MetaClass(node) #instantiate the metaClass so we can work out subclass mapping
-#        for inst in mTypesToRegistryKey(mInstances):
-#            #log.debug('testing class inheritance: %s > %s' % ( inst, RED9_META_REGISTERY[inst],type(mClass)))
-#            if issubclass(type(mClass), RED9_META_REGISTERY[inst]):
-#                log.debug('MetaNode %s is of subclass >> %s' % (mClass,inst))
-#                return True
+#     '''
+#     unlike isMetaNode which checks the node against a particular MetaClass,
+#     this expands the check to see if the node is inherited from or a subclass of
+#     a given Meta base class, ie, part of a system
+#     TODO : we COULD return the instantiated metaClass object here rather than just a bool??
+#     '''
+#     if not node:
+#         return False
+#     if issubclass(type(node), MetaClass):
+#         node = node.mNode
+#     mClass = getMClassDataFromNode(node)
+#     if mClass and mClass in RED9_META_REGISTERY:
+#         for inst in mTypesToRegistryKey(mInstances):
+#             # log.debug('testing class inheritance: %s > %s' % (inst, mClass))
+#             if issubclass(RED9_META_REGISTERY[mClass], RED9_META_REGISTERY[inst]):
+#                 log.debug('MetaNode %s is of subclass >> %s' % (mClass, inst))
+#                 return True
+#     return False
 
-def isMetaNodeInherited(node, mInstances=[]):
+def isMetaNodeInherited(node, mInstances=[], mode='short'):
     '''
     unlike isMetaNode which checks the node against a particular MetaClass,
     this expands the check to see if the node is inherited from or a subclass of
     a given Meta base class, ie, part of a system
-    TODO : we COULD return the instantiated metaClass object here rather than just a bool??
+
+    .. note::
+        this has been modified to bypass the issue of the same subclass being imported
+        in a different space in the inheritance and breaking the standard issubclass()
+        testing. This was an issue as r9Pro.metadata_pro for clients is imported via the .r9Co
+        handlers and can break things.
+        We now us a new global registry r9Meta.RED9_META_INHERITANCE_MAP which stores
+        each classes inheritance in long and short form on boot.
     '''
     if not node:
         return False
@@ -683,10 +718,24 @@ def isMetaNodeInherited(node, mInstances=[]):
     mClass = getMClassDataFromNode(node)
     if mClass and mClass in RED9_META_REGISTERY:
         for inst in mTypesToRegistryKey(mInstances):
-            # log.debug('testing class inheritance: %s > %s' % (inst, mClass))
-            if issubclass(RED9_META_REGISTERY[mClass], RED9_META_REGISTERY[inst]):
-                log.debug('MetaNode %s is of subclass >> %s' % (mClass, inst))
-                return True
+            if mode == 'full':
+                # FULL CLASS INHERITANCE : test the full inheritance mapping
+                # log.debug('testing class inheritance: %s > %s' % (inst, mClass))
+                if RED9_META_REGISTERY[inst] in RED9_META_INHERITANCE_MAP[mClass]['full']:
+                    log.debug('MetaNode %s is of subclass >> %s' % (mClass, inst))
+                    return True
+            elif mode == 'short':
+                # SHORT CLASS NAME : test ONLY the short class name, regardless of where the class was imported or how
+                # log.debug('testing class inheritance: %s > %s' % (inst, mClass))
+                if inst in RED9_META_INHERITANCE_MAP[mClass]['short']:
+                    log.debug('MetaNode %s is of subclass >> %s' % (mClass, inst))
+                    return True
+            else:
+                # original issubclass test
+                # log.debug('testing class inheritance: %s > %s' % (inst, mClass))
+                if issubclass(RED9_META_REGISTERY[mClass], RED9_META_REGISTERY[inst]):
+                    log.debug('MetaNode %s is of subclass >> %s' % (mClass, inst))
+                    return True
     return False
 
 def isMetaNodeClassGrp(node, mClassGrps=[]):
@@ -2020,7 +2069,7 @@ class MetaClass(object):
             data = object.__getattribute__(self, attr)
             objectattr = True
         except:
-            log.debug('attr not yet seen - function call probably generated by Maya directly')
+            log.debug('%s : attr not yet seen - function call probably generated by Maya directly' % attr)
 
         if data:
             if type(data) == types.MethodType:
@@ -2262,7 +2311,7 @@ class MetaClass(object):
                             log.debug("mNode is referenced and the setEditFlags are therefore invalid (lock, keyable, channelBox)")
             except:
                 if self.isReferenced():
-                    log.debug('Trying to modify and attr on a reference node')
+                    log.debug('%s : Trying to modify an attr on a reference node' % attr)
             return
 
         # ATTR IS NEW, CREATE IT
@@ -2525,13 +2574,17 @@ class MetaClass(object):
         :param attr: attr to uplift
         :rtype bool: if the attr is a multi or not
         '''
+        if not cmds.attributeQuery(attr, node=node, exists=True):
+            log.debug('%s : message attr does not exist' % attr)
+            return
+
         if cmds.attributeQuery(attr, node=node, multi=True):
-            log.debug('message attr is already multi - abort uplift')
+            log.debug('%s : message attr is already multi - abort uplift' % attr)
             return True
 
         cons = cmds.listConnections('%s.%s' % (node, attr), s=True, d=False, p=True)  # attr is already connected?
         if cons:
-            log.debug('attr is already connected - uplift to multi-message - im=True')
+            log.debug('%s : attr is already connected - uplift to multi-message - im=True' % attr)
             cmds.deleteAttr('%s.%s' % (node, attr))  # delete current attr
             cmds.addAttr(node, longName=attr, at='message', m=True, im=True)
             # recast previous attr connections
@@ -2982,7 +3035,7 @@ class MetaClass(object):
             return mNodes[0]
 
     @r9General.Timer
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, **kws):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, plugsOnly=False, **kws):
         '''
         This finds all UserDefined attrs of type message and returns all connected nodes
         This is now being run in the MetaUI on doubleClick. This is a generic call, implemented
@@ -2996,7 +3049,8 @@ class MetaClass(object):
         :param nAttrs: search returned MayaNodes for given set of attrs and only return matched nodes
         :param asMeta: return instantiated mNodes regardless of type
         :param asMap: return the data as a map such that {mNode.plugAttr:[nodes], mNode.plugAttr:[nodes]}
-    
+        :param plugsOnly: only with asMap falg, this truncates the return to [plugAttr, [nodes]]
+        
         .. note:: 
             mAttrs is only searching attrs on the mNodes themselves, not the children
             cAttrs is searching the connection attr names from the mNodes, uses the cmds.listAttr 'st' flag
@@ -3035,7 +3089,10 @@ class MetaClass(object):
                                             if not asMap:
                                                 children.extend(linkedNode)
                                             else:
-                                                attrMapData['%s.%s' % (node.mNode, attr)] = linkedNode
+                                                if not plugs:
+                                                    attrMapData['%s.%s' % (node.mNode, attr)] = linkedNode
+                                                else:
+                                                    attrMapData[attr] = linkedNode
                                             break
                                             break
             else:
@@ -3101,7 +3158,7 @@ class MetaClass(object):
             This will be depricated soon and replaced by getNodeConnections which is
             more flexible as it returns and filters all plugs between self and the given node.
         '''
-        log.debug('getNodeConnectionAttr will be depricated soon!!!!')
+        log.debug('getNodeConnetionAttr will be depricated soon!!!!')
         for con in cmds.listConnections(node, s=True, d=False, p=True) or []:
             if self.mNode in con.split('.')[0]:
                 return con.split('.')[1]
@@ -3342,7 +3399,7 @@ class MetaRig(MetaClass):
         '''
         return self.getChildren(walk, mAttrs)
 
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, incFacial=False, **kws):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, plugsOnly=False, incFacial=False, **kws):
         '''
         Massively important bit of code, this is used by most bits of code
         to find the child controllers linked to this metaRig instance.
@@ -3353,6 +3410,7 @@ class MetaRig(MetaClass):
         :param nAttrs: search returned MayaNodes for given set of attrs and only return matched nodes
         :param asMeta: return instantiated mNodes regardless of type
         :param asMap: return the data as a map such that {mNode.plugAttr:[nodes], mNode.plugAttr:[nodes]}
+        :param plugsOnly: only with asMap falg, this truncates the return to {plugAttr:[nodes]}
         :param incFacial: if we have a facial system linked include it's children in the return (uses the getFacialSystem to id the facial node)
     
         .. note::
