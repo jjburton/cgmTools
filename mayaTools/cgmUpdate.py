@@ -24,12 +24,14 @@ from shutil import move,rmtree
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 _pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
 _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
 #_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
 _pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
+_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
+
 _defaultBranch = 'MRS'
 _sep = os.sep
 
@@ -330,8 +332,56 @@ def get_dat(branch = 'master', limit = 3, update = False):
         print 'It appears this is not working...URL or Timeout Error :(', e
     finally:
         print '...'
+
+
+def get_branch_tags():
+    _str_func = 'get_branch_tags'
+    
+    route = _pathRepos + 'refs/branches'
+    log.debug("|{0}| >> Route: {1}".format(_str_func,route))
+    
+    request = Request(route)
+    log.debug('Route: {0}'.format(request))
+    
+    try:
+        response = urlopen(request)
+        stable = json.load(response)
+        idx = 1
+        _res = []
         
-def here(branch = _defaultBranch, idx = 0):
+        #pprint.pprint(stable.get('values'))
+        for i,d_branch in enumerate(stable.get('values',[])):
+            _name = d_branch.get('name')
+            if _name:
+                _res.append(_name)
+            log.debug('name: {0} : {1}'.format(i,d_branch.get('name')))
+        
+        return _res
+        """
+        while _dat
+        while idx < 50 +1:
+            log.debug('checking....{0}'.format(idx))
+            _hash = stable['values'][idx]['hash']
+            _msg = stable['values'][idx]['message']
+            _d_res[idx-1] = {'hash':_hash,
+                           'msg': _msg}
+            print("{0} | {1}{2} | msg: {3}".format(idx,
+                                                    _pathMain,
+                                                    _hash,
+                                                    _msg,
+                                                    ))
+            idx+=1
+            
+        #pprint.pprint(_d_res)
+        CGM_BUILDS_DAT[branch] = _d_res
+        return _d_res 
+        """
+    except URLError, e:
+        print 'It appears this is not working...URL or Timeout Error :(', e
+    finally:
+        print '...'
+
+def here(branch = _defaultBranch, idx = 0, cleanInstall = False):
     """
     """
     _str_func = 'here'
@@ -341,7 +391,7 @@ def here(branch = _defaultBranch, idx = 0):
     _zip = get_build(branch,idx)
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
-    unzip(_zip,True,True)
+    unzip(_zip,True,cleanInstall)
     
     import cgm
     cgm.core._reload()
