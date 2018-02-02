@@ -388,6 +388,7 @@ def here(branch = _defaultBranch, idx = 0, cleanInstall = False):
     _path = get_install_path()
     log.debug("|{0}| >> path: {1}".format(_str_func,_path))
     
+    get_dat(branch,5,update=True)
     _zip = get_build(branch,idx)
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
