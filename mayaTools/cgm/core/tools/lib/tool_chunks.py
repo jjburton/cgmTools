@@ -467,19 +467,23 @@ def uiSection_nodes(parent):
                     )
         
 def uiSection_animUtils(parent):
-    _str_func = 'uiSection_nodes'  
+    _str_func = 'uiSection_animUtils'  
     mc.menuItem(parent = parent,
                 l='cgmLocinator',
-                ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",                                                                                                                                       
+                ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",
                 c=lambda *a: TOOLCALLS.locinator()) 
     mc.menuItem(parent = parent,
                 l='cgmDynParentTool',
-                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",                                                                                                                                       
+                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
                 c=lambda *a: TOOLCALLS.dynParentTool())   
     mc.menuItem(parent = parent,
                 l='cgmSetTools',
-                ann = "Launch cgm's setTools - a tool for managing maya selection sets",                                                                                                                                       
-                c=lambda *a: TOOLCALLS.setTools())   
+                ann = "Launch cgm's setTools - a tool for managing maya selection sets",
+                c=lambda *a: TOOLCALLS.setTools())
+    mc.menuItem(parent = parent,
+                l='cgmSnapTools',
+                ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
+                c=lambda *a: TOOLCALLS.cgmSnapTools())
     
     mc.menuItem(parent = parent,
             l='autoTangent',
