@@ -308,7 +308,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
         stable = json.load(response)
         idx = 1
         _d_res = {}
-        
+        _l_res = []
         print 'Here Are the Last 10 Commits:'
     
         while idx < limit +1:
@@ -317,6 +317,8 @@ def get_dat(branch = 'master', limit = 3, update = False):
             _msg = stable['values'][idx]['message']
             _d_res[idx-1] = {'hash':_hash,
                            'msg': _msg}
+            _l_res.append({'hash':_hash,
+                           'msg': _msg})
             print("{0} | {1}{2} | msg: {3}".format(idx,
                                                     _pathMain,
                                                     _hash,
@@ -325,8 +327,8 @@ def get_dat(branch = 'master', limit = 3, update = False):
             idx+=1
             
         #pprint.pprint(_d_res)
-        CGM_BUILDS_DAT[branch] = _d_res
-        return _d_res 
+        CGM_BUILDS_DAT[branch] = _l_res
+        return _l_res 
 
     except URLError, e:
         print 'It appears this is not working...URL or Timeout Error :(', e

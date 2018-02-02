@@ -119,12 +119,87 @@ class ui(cgmUI.cgmGUI):
     
                         ],
                   ac = [(self.uiScroll_commits,"top",2,_column),                        
-                        (self.uiScroll_commits,"bottom",2,_row_buttons),
+                        (self.uiScroll_commits,"bottom",5,_row_buttons),
                         (_row_buttons,"bottom",2,_row_cgm)
                         ],
                   attachNone = [(_row_buttons,"top")])
         
-    
+    def uiFunc_checkForUpdates(self):
+        _str_func = 'uiFunc_checkForUpdates'
+        log.debug("|{0}| >> ...".format(_str_func))
+        
+        
+        try:self.var_lastUpdate
+        except:self.var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = [''])
+        
+        _lastUpdate = self.var_lastUpdate.getValue()
+        self.var_lastUpdate.report()
+        if _lastUpdate == 'None':
+            return log.error("No last update found. Can't check for updates")
+        
+        _lastBranch = _lastUpdate[0]
+        
+        try:_lastHash = _lastUpdate[1]
+        except:_lastHash = None
+        try:_lastMsg = _lastUpdate[2]
+        except:_lastMsg = None
+
+        #Get our dat from the server
+        _d_serverDat = cgmUpdate.get_dat(_lastBranch,1,True)
+        _targetHash = _d_serverDat[0].get('hash')
+        _targetMsg = _d_serverDat[0].get('msg')
+        if _d_serverDat[0]['hash'] == _lastHash:
+            return log.info("No update necessary. Branch [{0}] Up to date! Hash: [{1}]".format(_lastBranch,_lastHash))
+        
+        result = mc.confirmDialog(title="Update your local cgmTools...",
+                                 message='Are you sure you want to get and update to build: \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,_targetHash,
+                                                                                                                                              _lastBranch,_lastHash),
+                                 messageAlign='center',
+                                 button=['OK', 'Cancel'],
+                                 #text = self.value,
+                                 defaultButton='OK',
+                                 cancelButton='Cancel',
+                                 dismissString='Cancel')
+        
+        if result == 'OK':
+            log.debug("|{0}| >> go!".format(_str_func))
+            
+            try:
+                cgmUpdate.here(_branch,hashKey=_targetHash)
+
+                try:self.var_lastUpdate
+                except:self.var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = ['None'])                
+                self.var_lastUpdate.setValue([_lastBranch,_targetHash,_targetMsg])
+                
+                self.uiUpdate_topReport()
+                
+            except Exception,err:
+                print err
+            finally:pass
+        else:
+            return log.error("|{0}| update cancelled".format(_str_func))
+        
+    def uiUpdate_topReport(self):
+        try:self.var_lastUpdate
+        except:self.var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = [''])
+        
+        _lastUpdate = self.var_lastUpdate.getValue()
+        self.var_lastUpdate.report()
+        if _lastUpdate == 'None':
+            self.uiField_report(edit=True, label='...')
+            return log.error("No last update found.")
+        else:
+            _lastBranch = _lastUpdate[0]
+            try:_lastHash = _lastUpdate[1]
+            except:_lastHash = None
+            try:_lastMsg = _lastUpdate[2]
+            except:_lastMsg = None
+            
+            self.uiField_report(edit = True,
+                                label = "Last update: [{0}] | [{1}]".format(_lastBranch,_lastHash),
+                                ann = _lastMsg,
+                                )
+             
     def uiFunc_updateMyStuff(self):
         _str_func = 'uiFunc_updateMyStuff'
         log.debug("|{0}| >> ...".format(_str_func))
@@ -145,9 +220,12 @@ class ui(cgmUI.cgmGUI):
         
         _lastUpdate = self.var_lastUpdate.getValue()
         if _lastUpdate[0] != 'None':
-            _lastBranch = _lastUpdate[0] 
-            _lastHash = _lastUpdate[1]
-            _lastMsg = _lastUpdate[2]
+            try:_lastBranch = _lastUpdate[0] 
+            except:pass
+            try:_lastHash = _lastUpdate[1]
+            except:pass
+            try:_lastMsg = _lastUpdate[2]
+            except:pass
 
         result = mc.confirmDialog(title="Update your local cgmTools...",
                                  message='Are you sure you want to get and update to build: \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,_hash,
@@ -166,7 +244,7 @@ class ui(cgmUI.cgmGUI):
                 cgmUpdate.here(_branch,_idx)
                 
                 self.var_lastUpdate.setValue([_branch,_hash,_msg])
-                
+                self.uiUpdate_topReport()
             except Exception,err:
                 print err
             finally:pass
@@ -187,7 +265,7 @@ class ui(cgmUI.cgmGUI):
         self.uiRC_commits = uiRC
         self.dat_commits = _dat
         
-        for i,d in _dat.iteritems():
+        for i,d in enumerate(_dat):
             _hash = d['hash']
             _msg = d['msg']
             _ann = '{0} | {1}'.format(_hash, _msg[:50])
@@ -216,13 +294,14 @@ class ui(cgmUI.cgmGUI):
 
 def buildRow_commitButtons(self,parent):
     #>>>Match mode -------------------------------------------------------------------------------------
-    _row = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 5, )
+    _row = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
-    cgmUI.add_Button(_row,'Check branch',
-                     None,#lambda *a:MMCONTEXT.func_process(SNAP.verify_aimAttrs, mc.ls(sl=True),'each','Verify aim attributes',True,**{}),
+    cgmUI.add_Button(_row,'Check for updates',
+                     lambda *a:(self.uiFunc_checkForUpdates()),
+                     "Check your last branch pull for updates"
                      )
-    cgmUI.add_Button(_row,'Update',
-                        lambda *a:(self.uiFunc_updateMyStuff()),
+    cgmUI.add_Button(_row,'Get Selected',
+                     lambda *a:(self.uiFunc_updateMyStuff()),
                     )    
     _row.layout() 
     return _row
@@ -268,6 +347,15 @@ def buildRow_branches(self,parent):
 
     _row.layout()
 
+def uiFunc_setLastUpdateDebug(branch = 'MRS',clear=False):
+    var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = ['None'])
+    if clear:
+        var_lastUpdate.setValue(['None'])
+        var_lastUpdate.report()
+        return
+    d_branch = cgmUpdate.get_dat(branch,3,True)
+    var_lastUpdate.setValue([branch,d_branch[0]['hash'],d_branch[0]['msg']])
+    
 def uiFunc_branchChange(self, varMode, uiSelector):
     self.set_optionVar(varMode, None,uiSelector)
     self.uiUpdate_commits()
@@ -302,7 +390,8 @@ def buildColumn_main(self,parent, asScroll = False):
     #buildSection_aim(self,_inside)
     
     buildRow_branches(self,_inside)
- 
+    
+    self.uiUpdate_topReport()
     return _inside
 
 
