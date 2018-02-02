@@ -381,7 +381,7 @@ def get_branch_tags():
     finally:
         print '...'
 
-def here(branch = _defaultBranch, idx = 0, cleanInstall = False):
+def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     """
     """
     _str_func = 'here'
@@ -392,7 +392,7 @@ def here(branch = _defaultBranch, idx = 0, cleanInstall = False):
     _zip = get_build(branch,idx)
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
-    unzip(_zip,True,cleanInstall)
+    unzip(_zip,True,cleanFirst)
     
     import cgm
     cgm.core._reload()

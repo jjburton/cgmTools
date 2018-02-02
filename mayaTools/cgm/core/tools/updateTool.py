@@ -137,7 +137,7 @@ class ui(cgmUI.cgmGUI):
         
         _branch = self.var_branchMode.value
         _idx = self.uiRC_commits.getSelectedIndex()
-        _d = self.dat_commits[]
+        _d = self.dat_commits[_idx]
         _hash = _d['hash']
         _msg = _d['msg']
         _lastBranch = None
