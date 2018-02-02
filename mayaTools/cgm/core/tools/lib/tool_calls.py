@@ -29,7 +29,15 @@ def cgmSnapTools():
         SNAP.ui()
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
-    
+        
+def cgmUpdateTool():
+    try:
+        import cgm.core.tools.updateTool as CGMUPDATE
+        reload(CGMUPDATE)
+        CGMUPDATE.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def locinator():
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)

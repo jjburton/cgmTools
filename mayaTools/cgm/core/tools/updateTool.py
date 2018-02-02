@@ -19,7 +19,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 import maya.cmds as mc
 
@@ -129,7 +129,7 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'uiFunc_updateMyStuff'
         log.debug("|{0}| >> ...".format(_str_func))
         
-        if not self.uiRC_commits.getSelectedIndex():
+        if self.uiRC_commits.getSelectedIndex() == None:
             return log.error("No commit selected.")
         
         try:self.var_lastUpdate
@@ -147,6 +147,7 @@ class ui(cgmUI.cgmGUI):
         if _lastUpdate[0] != 'None':
             _lastBranch = _lastUpdate[0] 
             _lastHash = _lastUpdate[1]
+            _lastMsg = _lastUpdate[2]
 
         result = mc.confirmDialog(title="Update your local cgmTools...",
                                  message='Are you sure you want to get and update to build: \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,_hash,
@@ -164,7 +165,7 @@ class ui(cgmUI.cgmGUI):
             try:
                 cgmUpdate.here(_branch,_idx)
                 
-                self.var_lastUpdate.setValue([_branch,_hash])
+                self.var_lastUpdate.setValue([_branch,_hash,_msg])
                 
             except Exception,err:
                 print err
@@ -180,7 +181,7 @@ class ui(cgmUI.cgmGUI):
         _sidePadding = 25
         _parent = self.uiScroll_commits
         _branch = self.var_branchMode.value
-        _dat = cgmUpdate.get_dat(_branch,_commit_limit)
+        _dat = cgmUpdate.get_dat(_branch,_commit_limit,True)
         
         uiRC = mUI.MelRadioCollection()
         self.uiRC_commits = uiRC
@@ -189,7 +190,9 @@ class ui(cgmUI.cgmGUI):
         for i,d in _dat.iteritems():
             _hash = d['hash']
             _msg = d['msg']
+            _ann = '{0} | {1}'.format(_hash, _msg[:50])
             _report = '{0} | {1}'.format(_hash, _msg[:50])
+            _label = "{0} - [{1}...] {2}...".format(i,_hash[:8],_msg[:30])
             #log.debug(_report)
             cgmUI.mUI.MelLabel
             #cgmUI.mUI.MelLabel(_parent, l = _msg,
@@ -199,9 +202,10 @@ class ui(cgmUI.cgmGUI):
                          #ut='cgmUISubTemplate'
             #             )
             cgmUI.mUI.MelSpacer(_parent, h=5)
-            uiRC.createButton(_parent,label=_msg,
-                              annotation = _hash,
-                              onCommand = lambda*a:(log.info("{0} | {1} | {2}".format(uiRC.getSelectedIndex(), _branch, self.dat_commits[uiRC.getSelectedIndex()]['hash'])))
+            uiRC.createButton(_parent,label=_label,
+                              annotation = _msg,
+                              ut='cgmUISubTemplate',
+                              #onCommand = lambda*a:(log.info("{0} | {1} | {2}".format(uiRC.getSelectedIndex(), _branch, self.dat_commits[uiRC.getSelectedIndex()]['hash'])))
                               #sl=_rb,
                               #onCommand = cgmGEN.Callback(_var.setValue,i)
                               )

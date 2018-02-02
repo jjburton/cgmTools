@@ -542,8 +542,8 @@ def uiBuild_cgmMenu( *args ):
 
     #>>Help ----------------------------------------------------------------------
     _help = mc.menuItem(p=menu,l='Help',subMenu = True, tearOff = True)
-    cgmUI.uiSection_help(_help)
-    
+    #cgmUI.uiSection_help(_help)
+    UICHUNKS.uiSection_help(_help)
     
     mUI.MelMenuItemDiv(menu)    
     mc.menuItem(p = menu, l='Rebuild',
