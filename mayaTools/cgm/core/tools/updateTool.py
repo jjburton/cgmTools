@@ -152,8 +152,7 @@ class ui(cgmUI.cgmGUI):
             return log.info("No update necessary. Branch [{0}] Up to date! Hash: [{1}]".format(_lastBranch,_lastHash))
         
         result = mc.confirmDialog(title="Update your local cgmTools...",
-                                 message='Are you sure you want to get and update to build: \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,_targetHash,
-                                                                                                                                              _lastBranch,_lastHash),
+                                 message='Are you sure you want to get and update to build: \n Target: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_lastBranch,_targetHash,_lastBranch,_lastHash),
                                  messageAlign='center',
                                  button=['OK', 'Cancel'],
                                  #text = self.value,

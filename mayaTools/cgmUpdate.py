@@ -309,7 +309,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
         idx = 1
         _d_res = {}
         _l_res = []
-        print 'Here Are the Last 10 Commits:'
+        log.debug( 'Here Are the Last 10 Commits:')
     
         while idx < limit +1:
             log.debug('checking....{0}'.format(idx))
@@ -319,7 +319,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
                            'msg': _msg}
             _l_res.append({'hash':_hash,
                            'msg': _msg})
-            print("{0} | {1}{2} | msg: {3}".format(idx,
+            log.debug("{0} | {1}{2} | msg: {3}".format(idx,
                                                     _pathMain,
                                                     _hash,
                                                     _msg,
@@ -336,8 +336,8 @@ def get_dat(branch = 'master', limit = 3, update = False):
         print '...'
 
 
-def get_branch_tags():
-    _str_func = 'get_branch_tags'
+def get_branch_names():
+    _str_func = 'get_branch_names'
     
     route = _pathRepos + 'refs/branches'
     log.debug("|{0}| >> Route: {1}".format(_str_func,route))
