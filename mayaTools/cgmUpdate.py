@@ -26,7 +26,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 _pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
 _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
@@ -323,7 +323,9 @@ def get_build(branch = _defaultBranch, idx = 0, mode = None):
             return log.error("No idx. {0} | idx: {1}".format(branch,idx))
             
     
-    _dat = get_dat(branch).get(idx,None)
+    try:_dat = get_dat(branch)[idx]
+    except:_dat=None
+    
     if not _dat:
         return log.error("No build dat found. {0} | idx: {1}".format(branch,idx))
     
@@ -355,7 +357,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
         _dat = CGM_BUILDS_DAT.get(branch,None)
         if _dat:
             log.debug('Checking buffer...')
-            if len(_dat.keys()) >= limit:
+            if len(_dat) >= limit:
                 log.debug("passing buffer...")                          
                 return _dat
             
