@@ -31,7 +31,7 @@ log.setLevel(logging.DEBUG)
 _pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
 _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
 #_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
-_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
+_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
 _pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
 
 _defaultBranch = 'MRS'
@@ -43,20 +43,78 @@ CGM_BUILDS_DAT = {}
 import maya.cmds as mc
 import maya.mel as mel
 
-def get_install_path():
+def get_install_path(confirm = False):
     """
     Install to this location...
     """
+    _str_func = 'get_install_path'
+    
     _path = False
+
     try:
         #First we'll see if we have cgm installed...
+        try:
+            import cgm
+            _path_cgm = cgm.__file__
+            _path_cgm = os.path.abspath(_path_cgm)
+            _path_cgm = _sep.join(_path_cgm.split(_sep)[:-2])            
+            log.debug("|{0}| >> cgm path found: {1}".format(_str_func,_path_cgm))
+        except:
+            _path_cgm = False
+        
+        _path = os.path.abspath(__file__)        
         _path = _sep.join(__file__.split(_sep)[:-1])
+        _path = os.path.abspath(_path)
+        _warn = ''
         for check in ['repos','mayaTools']:
             if check in _path:
-                log.error("Please don't install to your repos. Found check: '{0}' | path: {1}".format(check,_path))
+                _warn = "Please don't install to your repos. Found check: '{0}' | path: {1}".format(check,_path)
+                log.warning(_warn)
                 break
                 #_path = False
     except:pass
+    
+    log.debug("|{0}| >> path here found: {1}".format(_str_func,_path_cgm))
+    
+    #pprint.pprint(vars())
+    if os.path.normcase(_path_cgm) in [os.path.normcase(_path)]:
+        log.debug("|{0}| >> paths match.".format(_str_func))
+    
+    if confirm:
+        _res_confirm = mc.confirmDialog(title="Install cgmTools",
+                                        message='Welcome to the stand alone cgm installer. Would you like to install your tools here: \n {0} \n \n {1}'.format(_path,_warn),
+                                        messageAlign='center',
+                                        button=['OK', 'Pick New','Cancel'],
+                                        defaultButton='OK',
+                                        cancelButton='Cancel',
+                                        dismissString='Cancel')
+        if _res_confirm == 'OK':
+            log.debug("|{0}| >> install here...".format(_str_func))
+        elif _res_confirm == 'Pick New':
+            log.debug("|{0}| >> pick...".format(_str_func))
+            
+            _res_pick = mc.fileDialog2(dialogStyle=2,
+                                       cap = "Pick a new location please",
+                                       startingDirectory = _path,
+                                       fileMode = 2,
+                                       okCaption = 'Install')
+            if _res_pick:
+                _path = os.path.abspath(_res_pick[0])
+                log.debug("|{0}| >> install here...".format(_str_func))
+                log.debug("|{0}| >> {1}".format(_str_func,_path))
+                return _path
+            else:
+                return log.error("|{0}| >> Cancelled".format(_str_func))  
+            
+            
+        else:
+            return log.error("|{0}| >> Cancelled".format(_str_func))  
+    return _path
+    
+
+        
+    
+
     
     return _path
 
@@ -309,33 +367,30 @@ def get_dat(branch = 'master', limit = 3, update = False):
     try:
         response = urlopen(request)
         stable = json.load(response)
-        idx = 1
-        _d_res = {}
         _l_res = []
         _len = len(stable['values'])
         log.debug("|{0}| >> List of {1}".format(_str_func,_len))
         
         for idx in range(_len):
             if idx == limit:break
-            log.debug('-'*80)
-            log.debug("|{0}| >> Checking {1}...".format(_str_func,idx))
-            
+            #log.debug('-'*80)            
             _hash = stable['values'][idx]['hash']
             _msg = stable['values'][idx]['message']
-            _date= stable['values'][idx]['date']
-            log.debug("|{0}| >> {1} : {2}".format(_str_func,idx,_msg))
+            _dateRaw= stable['values'][idx]['date']
             
-            _d_res[idx-1] = {'hash':_hash,
-                           'msg': _msg}
+            try:_date = datetime.datetime.strptime( _dateRaw[:-6], "%Y-%m-%dT%H:%M:%S").__str__()
+            except:_date = _date
             
             _l_res.append({'hash':_hash,
                            'msg': _msg,
-                           'date':_date})
-            log.debug("{0} | {1}{2} | msg: {3}".format(idx,
-                                                    _pathMain,
-                                                    _hash,
-                                                    _msg,
-                                                    ))
+                           'date':_date,
+                           'dateRaw':_dateRaw})
+            log.debug("{0} | {1}{2} | date: {3} |msg: {4}".format(idx,
+                                                                  _pathMain,
+                                                                  _hash,
+                                                                  _date,
+                                                                  _msg,
+                                                                  ))
             
         #pprint.pprint(_d_res)
         CGM_BUILDS_DAT[branch] = _l_res
@@ -398,7 +453,10 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     """
     """
     _str_func = 'here'
-    _path = get_install_path()
+    _path = get_install_path(True)
+    if not _path:
+        return log.error("|{0}| >>No Path picked...".format(_str_func,_path))
+
     log.debug("|{0}| >> path: {1}".format(_str_func,_path))
     
     get_dat(branch,5,update=True)

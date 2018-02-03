@@ -15,6 +15,7 @@ import re
 import time
 import pprint
 import os
+import datetime
 
 import logging
 logging.basicConfig()
@@ -143,16 +144,20 @@ class ui(cgmUI.cgmGUI):
         except:_lastHash = None
         try:_lastMsg = _lastUpdate[2]
         except:_lastMsg = None
-
+        try:_lastDate = _lastUpdate[3]
+        except:_lastDate = None
+        
         #Get our dat from the server
         _d_serverDat = cgmUpdate.get_dat(_lastBranch,1,True)
         _targetHash = _d_serverDat[0].get('hash')
         _targetMsg = _d_serverDat[0].get('msg')
+        _targetDate = _d_serverDat[0].get('date')
+        
         if _d_serverDat[0]['hash'] == _lastHash:
             return log.info("No update necessary. Branch [{0}] Up to date! Hash: [{1}]".format(_lastBranch,_lastHash))
         
         result = mc.confirmDialog(title="Update your local cgmTools...",
-                                 message='Are you sure you want to get and update to build: \n Target: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_lastBranch,_targetHash,_lastBranch,_lastHash),
+                                 message='Are you sure you want to get and update to build: \n Last update: {4} \n Target: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_lastBranch,_targetHash,_lastBranch,_lastHash,_lastDate),
                                  messageAlign='center',
                                  button=['OK', 'Cancel'],
                                  #text = self.value,
@@ -164,11 +169,13 @@ class ui(cgmUI.cgmGUI):
             log.debug("|{0}| >> go!".format(_str_func))
             
             try:
-                cgmUpdate.here(_branch,hashKey=_targetHash)
+                cgmUpdate.here(_branch,0)
 
                 try:self.var_lastUpdate
                 except:self.var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = ['None'])                
-                self.var_lastUpdate.setValue([_lastBranch,_targetHash,_targetMsg])
+                self.var_lastUpdate.setValue([_lastBranch,_targetHash,_targetMsg,
+                                              datetime.datetime.now().__str__()[:-7]
+                                              ])
                 
                 self.uiUpdate_topReport()
                 
@@ -185,7 +192,7 @@ class ui(cgmUI.cgmGUI):
         _lastUpdate = self.var_lastUpdate.getValue()
         self.var_lastUpdate.report()
         if _lastUpdate == 'None':
-            self.uiField_report(edit=True, label='...')
+            self.uiField_report(edit=True, label='No last update data found...')
             return log.error("No last update found.")
         else:
             _lastBranch = _lastUpdate[0]
@@ -193,9 +200,13 @@ class ui(cgmUI.cgmGUI):
             except:_lastHash = None
             try:_lastMsg = _lastUpdate[2]
             except:_lastMsg = None
+            try:_lastDate = _lastUpdate[3]
+            except:_lastDate = None
             
             self.uiField_report(edit = True,
-                                label = "Last update: [{0}] | [{1}]".format(_lastBranch,_lastHash),
+                                label = "Last update: [{0}] - {1}".format(_lastBranch,
+                                                                           _lastDate,
+                                                                           _lastHash),
                                 ann = _lastMsg,
                                 )
              
@@ -225,10 +236,16 @@ class ui(cgmUI.cgmGUI):
             except:pass
             try:_lastMsg = _lastUpdate[2]
             except:pass
-
+            try:_lastDate = _lastUpdate[3]
+            except:pass
+            
         result = mc.confirmDialog(title="Update your local cgmTools...",
-                                 message='Are you sure you want to get and update to build: \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,_hash,
-                                                                                                                                              _lastBranch,_lastHash),
+                                 message='Are you sure you want to get and update to build? \n Last update: {4} \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,
+                                                                                                                                                      _hash,
+                                                                                                                                              
+                                                                                                                                              _lastBranch,
+                                                                                                                                              _lastHash,
+                                                                                                                                              _lastDate),
                                  messageAlign='center',
                                  button=['OK', 'Cancel'],
                                  #text = self.value,
@@ -242,7 +259,12 @@ class ui(cgmUI.cgmGUI):
             try:
                 cgmUpdate.here(_branch,_idx)
                 
-                self.var_lastUpdate.setValue([_branch,_hash,_msg])
+                self.var_lastUpdate.setValue([_branch,
+                                              _hash,
+                                              _msg,datetime.datetime.now().__str__()[:-7]])
+                
+
+                
                 self.uiUpdate_topReport()
             except Exception,err:
                 print err
@@ -267,11 +289,12 @@ class ui(cgmUI.cgmGUI):
         for i,d in enumerate(_dat):
             _hash = d['hash']
             _msg = d['msg']
-            _ann = '{0} | {1}'.format(_hash, _msg[:50])
+            _date = d['date']
+            
+            _ann = '{0} \n {1} \n {2}'.format(_date,_hash, _msg)
             _report = '{0} | {1}'.format(_hash, _msg[:50])
-            _label = "{0} - [{1}...] {2}...".format(i,_hash[:8],_msg[:30])
+            _label = "{0} - {1} | {3}...".format(i,_date, _hash[:8],_msg[:40])
             #log.debug(_report)
-            cgmUI.mUI.MelLabel
             #cgmUI.mUI.MelLabel(_parent, l = _msg,
             #                   annotation = d['msg'])
             
@@ -280,7 +303,7 @@ class ui(cgmUI.cgmGUI):
             #             )
             cgmUI.mUI.MelSpacer(_parent, h=5)
             uiRC.createButton(_parent,label=_label,
-                              annotation = _msg,
+                              annotation = _ann,
                               ut='cgmUISubTemplate',
                               #onCommand = lambda*a:(log.info("{0} | {1} | {2}".format(uiRC.getSelectedIndex(), _branch, self.dat_commits[uiRC.getSelectedIndex()]['hash'])))
                               #sl=_rb,
@@ -352,8 +375,11 @@ def uiFunc_setLastUpdateDebug(branch = 'MRS',clear=False):
         var_lastUpdate.setValue(['None'])
         var_lastUpdate.report()
         return
-    d_branch = cgmUpdate.get_dat(branch,3,True)
-    var_lastUpdate.setValue([branch,d_branch[0]['hash'],d_branch[0]['msg']])
+    d_branch = cgmUpdate.get_dat(branch,1,True)
+    var_lastUpdate.setValue([branch,
+                             d_branch[0]['hash'],
+                             d_branch[0]['msg'],
+                             datetime.datetime.now().__str__()[:-7]])
     
 def uiFunc_branchChange(self, varMode, uiSelector):
     self.set_optionVar(varMode, None,uiSelector)
@@ -377,7 +403,7 @@ def buildColumn_main(self,parent, asScroll = False):
     
     self.uiField_report = mUI.MelLabel(_row,
                                        bgc = SHARED._d_gui_state_colors.get('help'),
-                                       label = '...',
+                                       label = 'No last update data found...',
                                        h=20)
 
     
@@ -396,3 +422,58 @@ def buildColumn_main(self,parent, asScroll = False):
 
 
 #>>> Core functions =====================================================================================
+def checkBranch():
+    """
+    Standalone update call
+    """
+    _str_func = 'checkBranch'
+    log.debug("|{0}| >> ...".format(_str_func))
+    
+    try:var_lastUpdate
+    except:var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = [''])
+    
+    _lastUpdate = var_lastUpdate.getValue()
+    var_lastUpdate.report()
+    if _lastUpdate == 'None':
+        return log.error("No last update found. Can't check for updates")
+    
+    _lastBranch = _lastUpdate[0]
+    
+    try:_lastHash = _lastUpdate[1]
+    except:_lastHash = None
+    try:_lastMsg = _lastUpdate[2]
+    except:_lastMsg = None
+    try:_lastDate = _lastUpdate[3]
+    except:_lastDate = None
+    
+    #Get our dat from the server
+    _d_serverDat = cgmUpdate.get_dat(_lastBranch,1,True)
+    _targetHash = _d_serverDat[0].get('hash')
+    _targetMsg = _d_serverDat[0].get('msg')
+    _targetDate = _d_serverDat[0].get('date')
+    
+    if _d_serverDat[0]['hash'] == _lastHash:
+        return log.info("No update necessary. Branch [{0}] Up to date! Last update: {2} | Hash: [{1}]".format(_lastBranch,_lastHash,_lastDate))
+    
+    result = mc.confirmDialog(title="Update your local cgmTools...",
+                             message='Are you sure you want to get and update to build: \n Last update: {4} \n Target: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_lastBranch,_targetHash,_lastBranch,_lastHash,_lastDate),
+                             messageAlign='center',
+                             button=['OK', 'Cancel'],
+                             #text = self.value,
+                             defaultButton='OK',
+                             cancelButton='Cancel',
+                             dismissString='Cancel')
+    
+    if result == 'OK':
+        log.debug("|{0}| >> go!".format(_str_func))
+        
+        try:
+            cgmUpdate.here(_branch,0)
+            var_lastUpdate.setValue([_branch,
+                                     _targetHash,
+                                     _targetMsg,datetime.datetime.now().__str__()[:-7]])
+        except Exception,err:
+            print err
+        finally:pass
+    else:
+        return log.error("|{0}| update cancelled".format(_str_func))
