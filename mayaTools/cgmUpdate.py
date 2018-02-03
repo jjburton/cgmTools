@@ -142,7 +142,7 @@ def clean_install_path(path = None):
 #zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\stuff.zip'
 zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\0c122db7cfd4d0269df8be1bf72269c4b86d3870.zip'
 
-def unzip(zFile = zFile, deleteZip = False, cleanFirst = False):
+def unzip(zFile = zFile, deleteZip = False, cleanFirst = False, targetPath = None):
     if not os.path.exists(zFile):
         return log.error("Bad zip path: {0}".format(zFile))
     
@@ -216,11 +216,17 @@ def unzip(zFile = zFile, deleteZip = False, cleanFirst = False):
             log.debug("Unzip: cleaning...")        
             clean_install_path(_dir)    
         
+        if targetPath:
+            _path_target = os.path.abspath(targetPath)
+        else:
+            _path_target = _dir
+            
         _path_mayaTools = _sep.join([_dir,_zipDir,'mayaTools'])
+            
         log.debug("Path mayaTools: {0}".format(_path_mayaTools))
         
         for f in os.listdir(_path_mayaTools):
-            _dst = _sep.join([_dir,f])
+            _dst = _sep.join([_path_target,f])
             _src = _sep.join([_path_mayaTools,f])
             log.debug("Copy: {0} >> {1} ...".format(_src,_dst))
             
@@ -465,7 +471,7 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     _zip = get_build(branch,idx)
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
-    unzip(_zip,True,cleanFirst)
+    unzip(_zip,True,cleanFirst, targetPath=_path)
     
     import cgm
     cgm.core._reload()
