@@ -456,7 +456,7 @@ def checkBranch():
         return log.info("No update necessary. Branch [{0}] Up to date! Last update: {2} | Hash: [{1}]".format(_lastBranch,_lastHash,_lastDate))
     
     result = mc.confirmDialog(title="Update your local cgmTools...",
-                             message='Are you sure you want to get and update to build: \n Last update: {4} \n Target: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_lastBranch,_targetHash,_lastBranch,_lastHash,_lastDate),
+                             message='Are you sure you want to get and update to build: \n Last update: {0} \n [{1}] | [{2}] \n \n {3} \n \n Target updated: {4} \n [{1}] | [{5}] \n \n {6}'.format(_lastDate, _lastBranch, _lastHash,_lastMsg,_targetDate,_targetHash, _targetMsg),
                              messageAlign='center',
                              button=['OK', 'Cancel'],
                              #text = self.value,
