@@ -20,16 +20,18 @@ import pprint
 import os
 import zipfile
 from shutil import move,rmtree
+import datetime
+import time
 
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 _pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
 _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
 #_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
-_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
+_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
 _pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
 
 _defaultBranch = 'MRS'
@@ -285,10 +287,11 @@ def get_dat(branch = 'master', limit = 3, update = False):
     
     """
     """branch = raw_input("Enter the name of the Branch ('Master' or 'Stable') to see a summary of last 10 commits: ")"""
-    log.debug('Branch: {0}'.format(branch))
+    _str_func = 'get_dat'
+    log.debug("|{0}| >> Branch: {1}".format(_str_func,branch))
     
     global CGM_BUILDS_DAT
-    pprint.pprint(CGM_BUILDS_DAT)
+    #pprint.pprint(CGM_BUILDS_DAT)
     
     if CGM_BUILDS_DAT and not update:
         _dat = CGM_BUILDS_DAT.get(branch,None)
@@ -301,7 +304,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
     route = _pathMount + branch
 
     request = Request(route)
-    log.debug('Route: {0}'.format(request))
+    log.debug("|{0}| >> Route: {1}".format(_str_func,request))
     
     try:
         response = urlopen(request)
@@ -309,22 +312,30 @@ def get_dat(branch = 'master', limit = 3, update = False):
         idx = 1
         _d_res = {}
         _l_res = []
-        log.debug( 'Here Are the Last 10 Commits:')
-    
-        while idx < limit +1:
-            log.debug('checking....{0}'.format(idx))
+        _len = len(stable['values'])
+        log.debug("|{0}| >> List of {1}".format(_str_func,_len))
+        
+        for idx in range(_len):
+            if idx == limit:break
+            log.debug('-'*80)
+            log.debug("|{0}| >> Checking {1}...".format(_str_func,idx))
+            
             _hash = stable['values'][idx]['hash']
             _msg = stable['values'][idx]['message']
+            _date= stable['values'][idx]['date']
+            log.debug("|{0}| >> {1} : {2}".format(_str_func,idx,_msg))
+            
             _d_res[idx-1] = {'hash':_hash,
                            'msg': _msg}
+            
             _l_res.append({'hash':_hash,
-                           'msg': _msg})
+                           'msg': _msg,
+                           'date':_date})
             log.debug("{0} | {1}{2} | msg: {3}".format(idx,
                                                     _pathMain,
                                                     _hash,
                                                     _msg,
                                                     ))
-            idx+=1
             
         #pprint.pprint(_d_res)
         CGM_BUILDS_DAT[branch] = _l_res
