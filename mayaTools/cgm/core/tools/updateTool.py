@@ -98,7 +98,7 @@ class ui(cgmUI.cgmGUI):
         _column = buildColumn_main(self,_MainForm,False)
         
         
-        self.uiScroll_commits = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
+        self.uiScroll_commits = mUI.MelScrollLayout(_MainForm,bgc=[.5,.5,.5])
         #for v in range(50):
             #mUI.MelLabel(self.uiFrame_commits, l=v)
         self.uiUpdate_commits()
@@ -304,7 +304,7 @@ class ui(cgmUI.cgmGUI):
             cgmUI.mUI.MelSpacer(_parent, h=5)
             uiRC.createButton(_parent,label=_label,
                               annotation = _ann,
-                              ut='cgmUISubTemplate',
+                              #ut='cgmUIHeader',
                               #onCommand = lambda*a:(log.info("{0} | {1} | {2}".format(uiRC.getSelectedIndex(), _branch, self.dat_commits[uiRC.getSelectedIndex()]['hash'])))
                               #sl=_rb,
                               #onCommand = cgmGEN.Callback(_var.setValue,i)
