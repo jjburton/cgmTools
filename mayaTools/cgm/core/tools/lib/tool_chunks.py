@@ -55,6 +55,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.tools.updateTool as CGMUPDATE
+reload(CGMUPDATE)
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
@@ -84,9 +85,10 @@ def uiSection_help(parent):
                     ann = "Check your local cgm branch for updates...",
                     c=lambda *a: mc.evalDeferred(CGMUPDATE.checkBranch,lp=True))
     mc.menuItem(parent = parent,
-                    l='cgmUpdateTool',
-                    ann = "Get Tool Updates",
-                    c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
+                l='cgmUpdateTool',
+                ann = "Get Tool Updates",
+                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
+    
     mc.menuItem(parent = parent,
                 l='CGM Docs',
                 ann = "Find help for various tools",

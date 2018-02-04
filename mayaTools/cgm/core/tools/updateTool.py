@@ -195,7 +195,8 @@ class ui(cgmUI.cgmGUI):
             self.uiField_report(edit=True, label='No last update data found...')
             return log.error("No last update found.")
         else:
-            _lastBranch = _lastUpdate[0]
+            try:_lastBranch = _lastUpdate[0]
+            except:_lastBranch = None
             try:_lastHash = _lastUpdate[1]
             except:_lastHash = None
             try:_lastMsg = _lastUpdate[2]
@@ -291,7 +292,7 @@ class ui(cgmUI.cgmGUI):
             _msg = d['msg']
             _date = d['date']
             
-            _ann = '{0} \n {1} \n {2}'.format(_date,_hash, _msg)
+            _ann = '\n {0} commit {1} | {2} | {3} \n {4}'.format(_branch, i, _hash, _date, _msg)
             _report = '{0} | {1}'.format(_hash, _msg[:50])
             _label = "{0} - {1} | {3}...".format(i,_date, _hash[:8],_msg[:40])
             #log.debug(_report)
@@ -304,6 +305,7 @@ class ui(cgmUI.cgmGUI):
             cgmUI.mUI.MelSpacer(_parent, h=5)
             uiRC.createButton(_parent,label=_label,
                               annotation = _ann,
+                              onCommand = cgmGEN.Callback(log.info,_ann),
                               #ut='cgmUIHeader',
                               #onCommand = lambda*a:(log.info("{0} | {1} | {2}".format(uiRC.getSelectedIndex(), _branch, self.dat_commits[uiRC.getSelectedIndex()]['hash'])))
                               #sl=_rb,
