@@ -198,8 +198,8 @@ class ui(cgmUI.cgmGUI):
         
                 mUI.MelMenuItem( refMenu, l = n,
                                  cb = activeState,
-                                 c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate(self, _str_activeSetRefs, n )
-                                 #c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n)
+                                 #c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate( _str_activeSetRefs, n )
+                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeSetRefs,n)
                                  )
         
             mUI.MelMenuItemDiv( refMenu )
@@ -230,8 +230,8 @@ class ui(cgmUI.cgmGUI):
         
                 mUI.MelMenuItem( typeMenu, l = n,
                                  cb = activeState,
-                                 c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate(self, _str_activeTypesVar, n )
-                                 #c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeTypesVar,n)
+                                 #c=lambda *a: self.uiFunc_toggleListValueOptionVarAndUpdate(self, _str_activeTypesVar, n )
+                                 c=cgmGEN.Callback(self.uiFunc_toggleListValueOptionVarAndUpdate, _str_activeTypesVar,n)
                                  )
         
             mUI.MelMenuItemDiv( typeMenu )
@@ -1157,7 +1157,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
                       #c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
                       ann = "Work with items in our list: {0}".format(_short))
         
-        _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameBase,
+        _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameShort,
                                       ann = _short,
                                       editable = False)
         
