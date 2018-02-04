@@ -7,6 +7,10 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 
+
+2.1 - 
+    - Added marking menu
+    - Added type flagging
 ================================================================
 """
 # From Python =============================================================
@@ -50,7 +54,7 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists"""
 
 #>>> Root settings =============================================================
-__version__ = '1.01272018'
+__version__ = '2.1.02012018'
 
 _l_setTypes = ['NONE',
                'animation',
@@ -789,8 +793,8 @@ def buildSetsForm_main(self,parent):
     for n in _l_setTypes:
         mUI.MelMenuItem(allCategoryMenu,
                         label = n,
-                        c = lambda *a: uiFunc_multiSetsSetType(self,**{'setType':n}),
-                        #c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'setType':n}))
+                        #c = lambda *a: uiFunc_multiSetsSetType(self,**{'setType':n}),
+                        c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'setType':n}),
                         #c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))    
                         )
 
@@ -865,8 +869,8 @@ def buildSetsForm_main(self,parent):
     for n in self.setTypes:
         MelMenuItem(allCategoryMenu,
                     label = n,
-                    c = lambda *a: setToolsLib.doMultiSetQss(self,self.SetToolsModeOptionVar.value,n),
-                    #c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n)
+                    #c = lambda *a: setToolsLib.doMultiSetQss(self,self.SetToolsModeOptionVar.value,n),
+                    c = cgmGEN.Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n)
                     )
 
 
@@ -998,8 +1002,8 @@ def buildSetsForm_main(self,parent):
         for n in self.setTypes:
             MelMenuItem(categoryMenu,
                         label = n,
-                        c=lambda *a: setToolsLib.guiDoSetType(self,i),
-                        #c = Callback(setToolsLib.guiDoSetType,self,i,n)
+                        #c=lambda *a: setToolsLib.guiDoSetType(self,i),
+                        c = cgmGEN.Callback(setToolsLib.guiDoSetType,self,i,n)
                         )
 
 
@@ -1262,8 +1266,8 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
         for n in _l_setTypes:
             mUI.MelMenuItem(categoryMenu,
                             label = n,
-                            c=lambda *a: self.uiFunc_setType(mObjectSet,n)
-                            #c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n)
+                            #c=lambda *a: self.uiFunc_setType(mObjectSet,n)
+                            c = cgmGEN.Callback(self.uiFunc_setType, mObjectSet, n)
                             )       
         
         
