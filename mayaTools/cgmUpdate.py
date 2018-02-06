@@ -77,8 +77,9 @@ def get_install_path(confirm = False):
     log.debug("|{0}| >> path here found: {1}".format(_str_func,_path_cgm))
     
     #pprint.pprint(vars())
-    if os.path.normcase(_path_cgm) in [os.path.normcase(_path)]:
-        log.debug("|{0}| >> paths match.".format(_str_func))
+    if _path_cgm:
+        if os.path.normcase(_path_cgm) in [os.path.normcase(_path)]:
+            log.debug("|{0}| >> paths match.".format(_str_func))
     
     if confirm:
         _res_confirm = mc.confirmDialog(title="Install cgmTools",
@@ -127,7 +128,7 @@ def clean_install_path(path = None):
                 return log.error("Please don't clean your repos. Found check: '{0}' | path: {1}".format(check,path))
     
     _path = os.path.abspath(path)
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     for f in os.listdir(_path):
         if f in _l_to_clean:
@@ -239,6 +240,8 @@ def unzip(zFile = zFile, deleteZip = False, cleanFirst = False, targetPath = Non
         if deleteZip:
             try:os.unlink(zFile)
             except Exception,err:log.error("Delete zip fail | {0}".format(err))
+            
+        
     except Exception, err:
         log.error("Zip exception: {0}".format(err))
     finally:
@@ -473,8 +476,13 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     
     unzip(_zip,True,cleanFirst, targetPath=_path)
     
-    import cgm
-    cgm.core._reload()
+    try:
+        mel.eval('rehash')
+        mel.eval('cgmToolbox')
+    except Exception,err:
+        return log.error("Failed to load cgm | {0}".format(err))
+    #import cgm
+    #cgm.core._reload()
 
 def ryan():
     from urllib2 import Request, urlopen, URLError
