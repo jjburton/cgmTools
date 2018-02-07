@@ -61,6 +61,8 @@ import cgm.core.lib.position_utils as POS
 import cgm.core.rig.joint_utils as JOINT
 import cgm.core.rig.ik_utils as IK
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.builder_utils as BUILDUTILS
+
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 reload(CURVES)
 
@@ -108,7 +110,7 @@ d_block_profiles = {
     'leg_bi':{'numShapers':5,
                'addCog':False,
                'cgmName':'leg',
-               'loftShape':'wideDown',
+               'loftShape':'square',
                'loftSetup':'default',
                'placeSettings':'end',
                'ikSetup':'rp',
@@ -120,11 +122,12 @@ d_block_profiles = {
                'baseAim':[0,-1,0],
                'baseUp':[0,0,1],
                'baseSize':[2,8,2]},
+    
     'arm':{'numShapers':5,
            'addCog':False,
            'cgmName':'leg',
            'side':'left',
-           'loftShape':'wideDown',
+           'loftShape':'square',
            'loftSetup':'default',
            'placeSettings':'start',
            'ikSetup':'rp',
@@ -144,6 +147,8 @@ l_attrsStandard = ['side',
                    'baseAim',
                    'addCog',
                    'nameList',
+                   #'namesHandles',
+                   #'namesJoints',
                    'attachPoint',
                    'loftSides',
                    'loftDegree',
@@ -161,7 +166,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:bank:foot:hand',
                  'numRoll':'int',
-                 'ikBase':'none:clavRoot',
+                 'ikBase':'none:fkRoot',#...fkRoot is our clav like setup
                  'hasBaseJoint':'bool',
                  'hasEndJoint':'bool',
                  'hasBallJoint':'bool',
@@ -874,7 +879,7 @@ def prerig(self):
         #Pivot setup======================================================================================
         if _ikSetup != 'none' and _ikEnd == 'bank':
             log.debug("|{0}| >> Bank setup".format(_str_func)) 
-            mHandleFactory.setHandle(ml_handles[-1].mNode)
+            mHandleFactory.setHandle(ml_templateHandles[-1].mNode)
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
         
         #if self.addScalePivot:
@@ -905,6 +910,8 @@ def skeleton_build(self, forceNew = True):
     
     ml_joints = []
     
+    mPrerigNull = self.prerigNull
+    
     mModule = self.moduleTarget
     if not mModule:
         raise ValueError,"No moduleTarget connected"
@@ -916,9 +923,9 @@ def skeleton_build(self, forceNew = True):
     if not ml_templateHandles:
         raise ValueError,"No templateHandles connected"
     
-    ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
-    if not ml_prerigHandles:
-        raise ValueError,"No prerigHandles connected"
+    ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
+    if not ml_jointHelpers:
+        raise ValueError,"No jointHelpers connected"
     
     #>> If skeletons there, delete ------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -930,34 +937,66 @@ def skeleton_build(self, forceNew = True):
         else:
             return _bfr
     
-    #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
-
-    log.debug("|{0}| >> creating...".format(_str_func))
+    #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
     
     
-    if self.numJoints == self.numControls:
-        log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
-        l_pos = []
-        for mObj in ml_prerigHandles:
-            l_pos.append(mObj.p_position)
-        
-    else:
-        _d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
-        l_pos = _d['positions']
-
+    _d_base = self.atBlockUtils('skeleton_getNameDictBase')
+    _l_names = ATTR.datList_get(self.mNode,'nameList')
+    
+    _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
+    log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
+    _d_rollCounts = {i:v for i,v in enumerate(_rollCounts)}
+    
+    if len(_l_names) != len(ml_jointHelpers):
+        return log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,
+                                                                                                     len(
+                                                                                                                  ml_jointHelpers)))
+    
+    
+    #Build our handle chain ======================================================
+    l_pos = []
+    for mObj in ml_jointHelpers:
+        l_pos.append(mObj.p_position)
+            
     mOrientHelper = ml_templateHandles[0].orientHelper
-    
-    ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
-    
-
-    #self.copyAttrTo('cgmName',ml_joints[0].mNode,'cgmName',driven='target')
-    
-    _l_names = self.atUtils('skeleton_getNameDicts',True)
-
-   
-    for i,mJoint in enumerate(ml_joints):
-        mJoint.rename(_l_names[i])
-        
+    ml_handleJoints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
+    ml_joints = []
+    d_rolls = {}
+    for i,mJnt in enumerate(ml_handleJoints):
+        d=copy.copy(_d_base)
+        d['cgmName'] = _l_names[i]
+        mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
+        ml_joints.append(mJnt)
+        if mJnt != ml_handleJoints[-1]:
+            if _d_rollCounts.get(i):
+                log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,_d_rollCounts.get(i)))
+                _roll = _d_rollCounts.get(i)
+                _p_start = l_pos[i]
+                _p_end = l_pos[i+1]
+                
+                if _roll != 1:
+                    _l_pos = BUILDUTILS.get_posList_fromStartEnd(_p_start,_p_end,_roll+2)[1:-1]
+                else:
+                    _l_pos = BUILDUTILS.get_posList_fromStartEnd(_p_start,_p_end,_roll)
+                    
+                log.debug("|{0}| >> {1}".format(_str_func,_l_pos))
+                ml_rolls = []
+                
+                ml_handleJoints[i].select()
+                
+                for ii,p in enumerate(_l_pos):
+                    mRoll = cgmMeta.validateObjArg( mc.joint (p=(p[0],p[1],p[2])))
+                    dRoll=copy.copy(d)
+                    
+                    dRoll['cgmNameModifier'] = 'roll'
+                    dRoll['cgmIterator'] = ii
+                    
+                    mRoll.rename(NAMETOOLS.returnCombinedNameFromDict(dRoll))
+                    #mRoll.jointOrient = mJnt.jointOrient
+                    mRoll.rotate = mJnt.rotate
+                    ml_rolls.append(mRoll)
+                    ml_joints.append(mRoll)
+                d_rolls[i] = ml_rolls
 
     ml_joints[0].parent = False
     
@@ -969,7 +1008,11 @@ def skeleton_build(self, forceNew = True):
         mJoint.radius = _radius
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
-    #cgmGEN.func_snapShot(vars())    
+    mPrerigNull.msgList_connect('handleJoints', ml_handleJoints)
+    for i,l in d_rolls.iteritems():
+        mPrerigNull.msgList_connect('rollJoints_{0}'.format(i), l)
+        for mJnt in l:
+            mJnt.radius = _radius / 2
     self.atBlockUtils('skeleton_connectToParent')
     
     return ml_joints

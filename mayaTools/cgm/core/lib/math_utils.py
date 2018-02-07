@@ -319,7 +319,18 @@ def is_vector_equivalent(v1,v2,places=7):
         if not is_float_equivalent(n,v2[i],places):
             return False
     return True
-    
+
+def multiply(valueList):
+    _res = None
+    if valueList:
+        for i,v in enumerate(valueList[:-1]):
+            _res = v * valueList[i+1]
+    return _res
+    #from math import log, exp
+    #return exp(sum(map(log, valueList))) # -- doesn't work for negative values
+
+
+
 #Bosker's stuff ===========================================================================================================================
 def Clamp(val, minimum, maximum):
     '''Clamps the value between 2 minimum and maximum values'''

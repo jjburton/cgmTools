@@ -772,7 +772,7 @@ class ui(cgmUI.cgmGUI):
             
             #>>>Settings ----------------------------------------------------------------------------------------
             self.uiUpdate_blockDat()#<<< build our blockDat frame
-                    
+            
             #>>>Info ----------------------------------------------------------------------------------------
             self.uiFrame_blockInfo.clear()
             
@@ -817,6 +817,7 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_blockDat()
         
     def uiUpdate_blockDat(self):
+        _str_func = 'uiUpdate_blockDat'
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
         
@@ -878,7 +879,7 @@ class ui(cgmUI.cgmGUI):
         for a in _l_attrs:
             try:
                 _type = ATTR.get_type(_short,a)
-        
+                log.info("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
                 _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
                 mUI.MelSpacer(_hlayout,w=_sidePadding)
         
@@ -906,7 +907,7 @@ class ui(cgmUI.cgmGUI):
                     self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
                                                              value = ATTR.get(_short,a),
                                                              maxValue=20,
-                                                             minValue=1,
+                                                             minValue=ATTR.get_min(_short,a),
                                                               )
                     self._d_attrFields[a](e=True,
                                           cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,

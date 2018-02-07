@@ -134,28 +134,33 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         return [],[]
         
     l_keys.sort()
+    
+    
     counter+=1
     
     for k in l_keys:
         mBlock = k
-        print mBlock
         #>>>Build strings
         _short = mBlock.p_nameShort
         #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
 
         _l_report = []
 
-        #_l_parents = mBlock.getBlockParents(True)
-
-        #log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
-
-        s_start = ''
-        #_len = len(_l_parents)
-        if counter:
-            if counter == 1:
-                s_start = "-"            
-            else:
-                s_start = "-"*counter + '>'
+        _l_parents = mBlock.getBlockParents(False)
+        log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
+        
+        _len = len(_l_parents)
+        
+        if _len:
+            s_start = ' '*_len +' '
+        else:
+            s_start = ''
+            
+        if counter == 1:
+            s_start = s_start + " "            
+        else:
+            #s_start = s_start + '-[{0}] '.format(counter-1)
+            s_start = s_start + ' ^- '
 
         if mBlock.getMayaAttr('position'):
             _l_report.append( mBlock.getEnumValueString('position') )

@@ -1514,7 +1514,30 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
             
     return l_res    
 
+def skeleton_getNameDictBase(self):
+    """
+    Get the base name dict - direction, etc
+    """
+    _str_func = 'skeleton_getNameDicts'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    l_res = []
 
+        
+    mModule = self.moduleTarget
+    
+    #Name dict...
+    _nameDict ={}
+    
+    if mModule.getMayaAttr('cgmDirection'):
+        _nameDict['cgmDirection'] = mModule.cgmDirection
+    if mModule.getMayaAttr('cgmPosition'):
+        _nameDict['cgmPosition']=mModule.cgmPosition
+        
+    _nameDict['cgmType'] = 'joint'
+    
+    return _nameDict
+
+    
 def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, **kws):
     """
     Get a list of name dicts for a given block's rig/skin joints
@@ -3575,6 +3598,8 @@ def blockProfile_load(self, arg):
                     mc.select(cl=True)
                     ATTR.datList_connect(_short, a, v, mode='string')
                     _done = True
+                else:
+                    log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))                     
             if not _done:
                 ATTR.set(_short,a,v)
         except Exception,err:
