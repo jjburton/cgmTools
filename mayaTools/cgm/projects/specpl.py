@@ -1454,5 +1454,67 @@ def setup_toeIKGroups(objs = [],settings = 'l_front_leg_root'):
         ATTR.connect("{0}.result_FKon".format(settings), "{0}.{1}".format(_const[0],_l_attrs[0]))
         ATTR.connect("{0}.result_IKon".format(settings), "{0}.{1}".format(_const[0],_l_attrs[1]))
 
-
+def resetCurveTransformsToSource():
+    
+    ml_objs = cgmMeta.validateObjListArg(mc.ls(sl=True),'cgmObject')
+    
+    for mObj in ml_objs:
+        mSource = mObj.getMessage('cgmSource',asMeta=True)
         
+        RIG.match_transform(mObj.mNode, mSource[0].mNode)
+        
+
+l_fingerJoints = [u'index_l_base_sknj',
+                  u'index_l_mid_sknj',
+                  u'index_l_tip_sknj',
+                  u'index_l_end_sknj',
+                  u'middle_l_base_sknj',
+                  u'middle_l_mid_sknj',
+                  u'middle_l_tip_sknj',
+                  u'middle_l_end_sknj',
+                  u'ring_l_base_sknj',
+                  u'ring_l_mid_sknj',
+                  u'ring_l_tip_sknj',
+                  u'ring_l_end_sknj',
+                  u'thumb_l_base_sknj',
+                  u'thumb_l_mid_sknj',
+                  u'thumb_l_tip_sknj',
+                  u'thumb_l_end_sknj',
+                  u'pinky_l_base_sknj',
+                  u'pinky_l_mid_sknj',
+                  u'pinky_l_tip_sknj',
+                  u'pinky_l_end_sknj',
+                  u'index_r_base_sknj',
+                  u'index_r_mid_sknj',
+                  u'index_r_tip_sknj',
+                  u'index_r_end_sknj',
+                  u'middle_r_base_sknj',
+                  u'middle_r_mid_sknj',
+                  u'middle_r_tip_sknj',
+                  u'middle_r_end_sknj',
+                  u'ring_r_base_sknj',
+                  u'ring_r_mid_sknj',
+                  u'ring_r_tip_sknj',
+                  u'ring_r_end_sknj',
+                  u'thumb_r_base_sknj',
+                  u'thumb_r_mid_sknj',
+                  u'thumb_r_tip_sknj',
+                  u'thumb_r_end_sknj',
+                  u'pinky_r_base_sknj',
+                  u'pinky_r_mid_sknj',
+                  u'pinky_r_tip_sknj',
+                  u'pinky_r_end_sknj'] 
+import cgm.core.lib.constraint_utils as CONSTRAINTS
+reload(CONSTRAINTS)
+#CONSTRAINTS.copy_constraint('ring_r_base_rigj|OrientConstraint',None,'pointConstraint')
+
+def fixFingerConstraints(l_joints = l_fingerJoints):
+    ml_joints = cgmMeta.validateObjListArg(l_joints)
+    
+    for mObj in ml_joints:
+        targets = CONSTRAINTS.get_targets( mObj.mNode)
+        target = targets[0]
+        constraint = CONSTRAINTS.get_constraintsTo(target)[0]
+        CONSTRAINTS.copy_constraint(constraint,None,'pointConstraint',maintainOffset=False)
+        
+
