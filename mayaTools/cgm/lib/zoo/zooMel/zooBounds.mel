@@ -1,0 +1,152 @@
+zooArrays_str;
+
+
+global proc zooBounds() {
+	return;
+	}
+
+
+global proc float[] zooGetSize( string $obj ) {
+	string $shapes[] = `listRelatives -pa -s $obj`;
+	if( !`size $shapes` ) $shapes = {$obj};
+	float $bounds[] = `zooGetBounds $shapes`;
+	float $size[] = `zooGetSizeFromBounds $bounds`;
+
+	return $size;
+	}
+
+
+global proc float[] zooGetSizeFromBounds( float $bounds[] ) {
+	float $size[] = { ( abs($bounds[3]-$bounds[0])), ( abs($bounds[4]-$bounds[1])), ( abs($bounds[5]-$bounds[2])) };
+	return $size;
+	}
+
+
+//takes a list of objects, and returns an array containing:
+//minBBX, minBBY, minBBZ, maxBBX, maxBBY, maxBBZ for the whole collection of objects
+global proc float[] zooGetBounds( string $objs[] ) {
+	float $minX = `getAttr ( $objs[0] +".bbnx" )`;
+	float $minY = `getAttr ( $objs[0] +".bbny" )`;
+	float $minZ = `getAttr ( $objs[0] +".bbnz" )`;
+	float $maxX = `getAttr ( $objs[0] +".bbxx" )`;
+	float $maxY = `getAttr ( $objs[0] +".bbxy" )`;
+	float $maxZ = `getAttr ( $objs[0] +".bbxz" )`;
+
+	for( $n=1; $n<`size $objs`; $n++ ) {
+		float $minXn = `getAttr ( $objs[$n] +".bbnx" )`;
+		float $minYn = `getAttr ( $objs[$n] +".bbny" )`;
+		float $minZn = `getAttr ( $objs[$n] +".bbnz" )`;
+		float $maxXn = `getAttr ( $objs[$n] +".bbxx" )`;
+		float $maxYn = `getAttr ( $objs[$n] +".bbxy" )`;
+		float $maxZn = `getAttr ( $objs[$n] +".bbxz" )`;
+
+		if( $minXn < $minX ) $minX = $minXn;
+		if( $minYn < $minY ) $minY = $minYn;
+		if( $minZn < $minZ ) $minZ = $minZn;
+
+		if( $maxXn > $maxX ) $maxX = $maxXn;
+		if( $maxYn > $maxY ) $maxY = $maxYn;
+		if( $maxZn > $maxZ ) $maxZ = $maxZn;
+		}
+
+	return { $minX,$minY,$minZ, $maxX,$maxY,$maxZ };
+	}
+
+//similar to bounds, but uses object pivots instead of object bounds, so doesn't
+//take child nodes into account - like geometry, or child transforms etc...
+global proc float[] zooGetPivotBounds( string $pivs[] ) {
+	float $pos0[] = `xform -q -ws -rp $pivs[0]`;
+	float $minX = $pos0[0];
+	float $minY = $pos0[1];
+	float $minZ = $pos0[2];
+	float $maxX = $pos0[0];
+	float $maxY = $pos0[1];
+	float $maxZ = $pos0[2];
+
+	for( $n=1; $n<`size $pivs`; $n++ ) {
+		float $pos[] = `xform -q -ws -rp $pivs[$n]`;print $pos;
+		if( $pos[0] < $minX ) $minX = $pos[0];
+		else if( $pos[0] > $maxX ) $maxX = $pos[0];
+
+		if( $pos[1] < $minY ) $minY = $pos[1];
+		else if( $pos[1] > $maxY ) $maxY = $pos[1];
+
+		if( $pos[2] < $minZ ) $minZ = $pos[2];
+		else if( $pos[2] > $maxZ ) $maxZ = $pos[2];
+		}
+
+	return { $minX,$minY,$minZ, $maxX,$maxY,$maxZ };
+	}
+
+
+global proc float[] zooCentreFromBounds( float $bounds[] ) {
+	float $midX = ($bounds[0]+$bounds[3]) /2;
+	float $midY = ($bounds[1]+$bounds[4]) /2;
+	float $midZ = ($bounds[2]+$bounds[5]) /2;
+	float $minRad = 0;
+	float $maxRad = 0;
+	float $rads[] = {};
+	float $radius;
+
+	$rads = `sort { ($bounds[3]-$midX), ($bounds[4]-$midY), ($bounds[5]-$midZ) }`;
+	$minRad = $rads[2];
+	$maxRad = sqrt(($bounds[3]-$midX)*($bounds[3]-$midX) + ($bounds[4]-$midY)*($bounds[4]-$midY) + ($bounds[5]-$midZ)*($bounds[5]-$midZ));
+
+	$radius = ( $minRad + $maxRad )/2;
+	//$radius = $minRad;
+	return { $midX, $midY, $midZ, $radius };
+	}
+
+
+//returns the name of the bound object
+global proc string zooDrawBoundBox( float $bounds[] ) {
+	string $box = zooGetElement_str(0,`polyCube`);
+	for( $n=0; $n<6; $n++ ) move -a 0 0 0 ( $box +".vtx["+ $n +"]" );
+
+	//x translations
+	move -r $bounds[0] 0 0 ( $box +".vtx[1]" );
+	move -r $bounds[0] 0 0 ( $box +".vtx[3]" );
+	move -r $bounds[0] 0 0 ( $box +".vtx[5]" );
+	move -r $bounds[0] 0 0 ( $box +".vtx[7]" );
+
+	move -r $bounds[3] 0 0 ( $box +".vtx[1]" );
+	move -r $bounds[3] 0 0 ( $box +".vtx[3]" );
+	move -r $bounds[3] 0 0 ( $box +".vtx[5]" );
+	move -r $bounds[3] 0 0 ( $box +".vtx[7]" );
+
+	//y translations
+	move -r 0 $bounds[1] 0 ( $box +".vtx[0]" );
+	move -r 0 $bounds[1] 0 ( $box +".vtx[1]" );
+	move -r 0 $bounds[1] 0 ( $box +".vtx[6]" );
+	move -r 0 $bounds[1] 0 ( $box +".vtx[7]" );
+
+	move -r 0 $bounds[4] 0 ( $box +".vtx[2]" );
+	move -r 0 $bounds[4] 0 ( $box +".vtx[3]" );
+	move -r 0 $bounds[4] 0 ( $box +".vtx[4]" );
+	move -r 0 $bounds[4] 0 ( $box +".vtx[5]" );
+
+	//z translations
+	move -r 0 0 $bounds[2] ( $box +".vtx[4]" );
+	move -r 0 0 $bounds[2] ( $box +".vtx[5]" );
+	move -r 0 0 $bounds[2] ( $box +".vtx[6]" );
+	move -r 0 0 $bounds[2] ( $box +".vtx[7]" );
+
+	move -r 0 0 $bounds[5] ( $box +".vtx[0]" );
+	move -r 0 0 $bounds[5] ( $box +".vtx[1]" );
+	move -r 0 0 $bounds[5] ( $box +".vtx[2]" );
+	move -r 0 0 $bounds[5] ( $box +".vtx[3]" );
+
+	return $box;
+	}
+
+
+//returns the name of the bound object
+global proc string zooDrawBoundSphere( float $bounds[] ) {
+	string $sphere = zooGetElement_str(0,`sphere -r 1 -ch 0`);
+	move -a $bounds[0] $bounds[1] $bounds[2];
+	scale $bounds[3] $bounds[3] $bounds[3];
+	return $sphere;
+	}
+
+
+//zoo.end
