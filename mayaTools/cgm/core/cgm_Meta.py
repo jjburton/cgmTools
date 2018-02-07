@@ -7460,11 +7460,13 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
         elif mi_obj:i_plug = cgmAttr(mi_obj,attr,**kws)	
         else:i_plug = cgmAttr(obj,attr,**kws)
         return {'obj':obj ,'attr':attr ,'combined':combined,'mi_plug':i_plug,'mPlug':i_plug}
-    except StandardError,error:
+    except Exception,err:
         #log.debug("validateAttrArg>>Failure! arg: %s"%arg)	
         if noneValid:
             return False
-        raise StandardError,"%s >> arg: %s | defaultType: %s | noneValid: %s | %s"%(_str_func,defaultType,noneValid,error)
+        raise Exception,"{0} >> arg: {1} | defaultType: {2} | noneValid: {3} | {4}".format(_str_func,
+                                                                                           arg,
+                                                                                           defaultType,noneValid,error)
 
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:

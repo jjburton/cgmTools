@@ -1253,95 +1253,93 @@ class argsToNodes(object):
             argBuffer = [arg]
 
         log.debug("argsToNodes.validateArg>> argBuffer: %s"%(argBuffer))
-        try:#Arg checks
-            for i,a in enumerate(argBuffer):
-                for k in l_NotImplementedTo_NodalArg:
-                    if k in arg:
-                        raise NotImplementedError,"argsToNodes.validateArg>> '%s' not implemented | '%s'"%(k,a)
+        
+        
+        #Arg checks
+        for i,a in enumerate(argBuffer):
+            for k in l_NotImplementedTo_NodalArg:
+                if k in arg:
+                    raise NotImplementedError,"argsToNodes.validateArg>> '%s' not implemented | '%s'"%(k,a)
 
-                foundMatch = False
-                log.debug("argsToNodes.validateArg>> On a: %s"%(a))
-                for k in d_operator_to_NodeType['setRange']:
-                    if k in a:
-                        foundMatch = True
-                        log.debug("argsToNodes.validateArg>> setRange arg found: %s"%a)
-                        try:
-                            if self.validate_subArg(a,'setRange'):
-                                log.debug("argsToNodes.validateArg>> setRange arg verified: %s"%a)				
-                                self.l_clampNetworkArgs.append(a)
-                                break
-                            else:
-                                log.debug("argsToNodes.validateArg>> setRange arg failed: %s"%a)							
-                        except StandardError,error:
-                            raise StandardError,error 	    
-                for k in d_operator_to_NodeType['clamp']:
-                    if k in a:
-                        foundMatch = True
-                        log.debug("argsToNodes.validateArg>> clamp arg found: %s"%a)
-                        try:
-                            if self.validate_subArg(a,'clamp'):
-                                log.debug("argsToNodes.validateArg>> clamp arg verified: %s"%a)				
-                                self.l_clampNetworkArgs.append(a)
-                                break
-                            else:
-                                log.debug("argsToNodes.validateArg>> clamp arg failed: %s"%a)							
-                        except StandardError,error:
-                            raise StandardError,error  	    
-                for k in d_operator_to_NodeType['condition'] + l_extraConditionArgs:
-                    if k in a:
-                        foundMatch = True
-                        log.debug("argsToNodes.validateArg>> cond arg found: %s"%a)
-                        try:
-                            if self.validate_subArg(a,'condition'):
-                                log.debug("argsToNodes.validateArg>> cond arg verified: %s"%a)				
-                                self.l_condNetworkArgs.append(a)
-                                break
-                            else:
-                                log.debug("argsToNodes.validateArg>> cond arg failed: %s"%a)							
-                        except StandardError,error:
-                            raise StandardError,error  
-                for k in d_operator_to_NodeType['multiplyDivide']:
-                    if k in a:
-                        foundMatch = True		    
-                        try:
-                            log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
-                            if self.validate_subArg(a,'multiplyDivide'):
-                                self.l_mdNetworkArgs.append(a)
-                                break
-                            else:
-                                log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
-                        except StandardError,error:
-                            raise StandardError,error  	   
-                for k in d_operator_to_NodeType['plusMinusAverage']:
-                    if k in a:
-                        foundMatch = True		    
-                        try:
-                            log.debug("argsToNodes.validateArg>> pma arg(%s) found: %s"%(k,a))				    
-                            if self.validate_subArg(a,'plusMinusAverage'):
-                                self.l_pmaNetworkArgs.append(a)
-                                break
-                            else:
-                                log.debug("argsToNodes.validateArg>> pma arg found: %s"%a)				    
-                        except StandardError,error:
-                            raise StandardError,error  
-                if not foundMatch and '-' in a:
+            foundMatch = False
+            log.debug("argsToNodes.validateArg>> On a: %s"%(a))
+            for k in d_operator_to_NodeType['setRange']:
+                if k in a:
                     foundMatch = True
-                    if self.validate_subArg(a,'multiplyDivide'):
-                        self.l_mdNetworkArgs.append(arg)
+                    log.debug("argsToNodes.validateArg>> setRange arg found: %s"%a)
+                    
+                    if self.validate_subArg(a,'setRange'):
+                        log.debug("argsToNodes.validateArg>> setRange arg verified: %s"%a)				
+                        self.l_clampNetworkArgs.append(a)
                         break
                     else:
-                        log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
-                if not foundMatch and '=' in a:
-                    log.debug("Finding direct connect...")
-                    if self.validate_subArg(a,'directConnect'):
-                        self.l_directConnectArgs.append(arg)
+                        log.debug("argsToNodes.validateArg>> setRange arg failed: %s"%a)							
+ 
+            for k in d_operator_to_NodeType['clamp']:
+                if k in a:
+                    foundMatch = True
+                    log.debug("argsToNodes.validateArg>> clamp arg found: %s"%a)
+                    
+                    if self.validate_subArg(a,'clamp'):
+                        log.debug("argsToNodes.validateArg>> clamp arg verified: %s"%a)				
+                        self.l_clampNetworkArgs.append(a)
                         break
                     else:
-                        log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
-                if not self.d_networksToBuild:
-                    raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
-        except StandardError,error:
-            raise StandardError,"argsToNodes.validateArg>> arg get error | %s"%error
+                        log.debug("argsToNodes.validateArg>> clamp arg failed: %s"%a)							
+
+                    
+            for k in d_operator_to_NodeType['condition'] + l_extraConditionArgs:
+                if k in a:
+                    foundMatch = True
+                    log.debug("argsToNodes.validateArg>> cond arg found: %s"%a)
+                    
+                    if self.validate_subArg(a,'condition'):
+                        log.debug("argsToNodes.validateArg>> cond arg verified: %s"%a)
+                        self.l_condNetworkArgs.append(a)
+                        break
+                    else:
+                        log.debug("argsToNodes.validateArg>> cond arg failed: %s"%a)
+
+            for k in d_operator_to_NodeType['multiplyDivide']:
+                if k in a:
+                    foundMatch = True		    
+                    try:
+                        log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
+                        if self.validate_subArg(a,'multiplyDivide'):
+                            self.l_mdNetworkArgs.append(a)
+                            break
+                        else:
+                            log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
+                    except StandardError,error:
+                        raise StandardError,error  	   
+            for k in d_operator_to_NodeType['plusMinusAverage']:
+                if k in a:
+                    foundMatch = True		    
+                    try:
+                        log.debug("argsToNodes.validateArg>> pma arg(%s) found: %s"%(k,a))				    
+                        if self.validate_subArg(a,'plusMinusAverage'):
+                            self.l_pmaNetworkArgs.append(a)
+                            break
+                        else:
+                            log.debug("argsToNodes.validateArg>> pma arg found: %s"%a)				    
+                    except StandardError,error:
+                        raise StandardError,error  
+            if not foundMatch and '-' in a:
+                foundMatch = True
+                if self.validate_subArg(a,'multiplyDivide'):
+                    self.l_mdNetworkArgs.append(arg)
+                    break
+                else:
+                    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+            if not foundMatch and '=' in a:
+                log.debug("Finding direct connect...")
+                if self.validate_subArg(a,'directConnect'):
+                    self.l_directConnectArgs.append(arg)
+                    break
+                else:
+                    log.debug("argsToNodes.validateArg>> inverse check: %s"%arg)
+            if not self.d_networksToBuild:
+                raise StandardError,"argsToNodes.validateArg>> Found nothing to do! | %s"%a
 
     def verify_attr(self,arg,nodeType = False,originalArg = False):
         """
@@ -1475,46 +1473,45 @@ class argsToNodes(object):
 
         log.debug("validate_subArg>> l_funcs: %s"%l_funcs)
         log.debug("validate_subArg>> splitBuffer: %s"%splitBuffer)
-        try:#Validate our function factors
-            l_drivers = []
-            if l_funcs:
-                first = True
-                for i,n in enumerate(splitBuffer):
-                    if n == l_funcs[0]:#if it's our func, grab the one one before and after
-                        if first:
-                            l_drivers.append(splitBuffer[i-1])	
-                            first = False			    
-                        l_drivers.append(splitBuffer[i+1])
-            elif nodeType in ['clamp','setRange']:
-                l_drivers = splitBuffer
-            else:
-                l_drivers.append(splitBuffer[0])
+        
+        #Validate our function factors
+        l_drivers = []
+        if l_funcs:
+            first = True
+            for i,n in enumerate(splitBuffer):
+                if n == l_funcs[0]:#if it's our func, grab the one one before and after
+                    if first:
+                        l_drivers.append(splitBuffer[i-1])	
+                        first = False			    
+                    l_drivers.append(splitBuffer[i+1])
+        elif nodeType in ['clamp','setRange']:
+            l_drivers = splitBuffer
+        else:
+            l_drivers.append(splitBuffer[0])
 
-            l_validDrivers = []
-            for d in l_drivers:
-                log.debug("Checking driver: %s"%d)
-                d_return = self.verify_attr(d,nodeType,arg)
-                if d_return is None:raise StandardError, "argsToNodes.validate_subArg>> driver failure: %s"%(d)
-                else:l_validDrivers.append(d_return)
+        l_validDrivers = []
+        for d in l_drivers:
+            log.debug("Checking driver: %s"%d)
+            d_return = self.verify_attr(d,nodeType,arg)
+            if d_return is None:raise StandardError, "argsToNodes.validate_subArg>> driver failure: %s"%(d)
+            else:l_validDrivers.append(d_return)
 
-            log.debug("l_validDrivers: %s"%l_validDrivers)
-            #need to rework for more drivers
-            if nodeType != 'directConnect':
-                maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
-                if maxDrivers and len(l_validDrivers)>maxDrivers:
-                    raise StandardError, "argsToNodes.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_validDrivers)
+        log.debug("l_validDrivers: %s"%l_validDrivers)
+        #need to rework for more drivers
+        if nodeType != 'directConnect':
+            maxDrivers = d_nodeType_to_limits[nodeType].get('maxDrivers')
+            if maxDrivers and len(l_validDrivers)>maxDrivers:
+                raise StandardError, "argsToNodes.validate_subArg>> Too many drivers (max - %s): %s"%(maxDrivers,l_validDrivers)
 
-            if l_funcs:#we  use normal start
-                d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers,'operation':d_function_to_Operator[l_funcs[0]]}
-            elif nodeType in ['directConnect','clamp','setRange']:
-                d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers}		
-            else:#we have a special case
-                d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
-            log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
+        if l_funcs:#we  use normal start
+            d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers,'operation':d_function_to_Operator[l_funcs[0]]}
+        elif nodeType in ['directConnect','clamp','setRange']:
+            d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg,'drivers':l_validDrivers}		
+        else:#we have a special case
+            d_validArg = {'arg':self.cleanArg(arg),'oldArg':arg}		
+        log.debug("argsToNodes.validate_subArg>> Drivers: %s"%(l_validDrivers))
 
-        except StandardError,error:
-            log.error(error)
-            raise StandardError, "argsToNodes.validate_subArg>> sub arg failure: %s"%(arg)
+
 
         then_indices = []
         if thenArg:
@@ -1536,41 +1533,39 @@ class argsToNodes(object):
                 else:
                     d_validArg['False']=n		    
 
-        try:#Results build
-            results_indices = []
-            if resultArg:
-                if ',' in resultArg:
-                    resultBuffer = resultArg.split(',')
-                else:
-                    resultBuffer = [resultArg]
-                for arg in resultBuffer:
-                    #try to validate
-                    a_return = self.verify_attr(arg,nodeType)
-                    if a_return is not None:
-                        if d_validArg.get('drivers') and a_return in d_validArg['drivers']:
-                            raise StandardError,"argsToNodes.validate_subArg>> Same attr cannot be in drivers and driven of same node arg!"
-                        results_indices.append(a_return)
+        #Results build
+        results_indices = []
+        if resultArg:
+            if ',' in resultArg:
+                resultBuffer = resultArg.split(',')
+            else:
+                resultBuffer = [resultArg]
+            for arg in resultBuffer:
+                #try to validate
+                a_return = self.verify_attr(arg,nodeType)
+                if a_return is not None:
+                    if d_validArg.get('drivers') and a_return in d_validArg['drivers']:
+                        raise StandardError,"argsToNodes.validate_subArg>> Same attr cannot be in drivers and driven of same node arg!"
+                    results_indices.append(a_return)
 
-            #Build our arg 
-            if results_indices:
-                if d_validArg.get('drivers'):
-                    d_validArg['results']=results_indices
-                log.debug("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
-                self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
-            log.debug("d_validArg: %s"%d_validArg)
-
+        #Build our arg 
+        if results_indices:
             if d_validArg.get('drivers'):
-                if len(d_validArg['drivers']) > 1 and nodeType:#just need a connecton mapped
-                    self.d_networksToBuild[nodeType].append(d_validArg)#append to build
-                elif nodeType == 'directConnect' and len(d_validArg['drivers']) == 1:
-                    self.d_connectionsToMake[d_validArg['arg']]['driver'] = d_validArg['drivers'][0]
-                    #self.d_networksToBuild[nodeType].append(d_validArg)#append to build		    
-                    #self.d_good_connections[d_validArg['arg']]=self.ml_attrs[d_validArg['drivers'][0]]#store the instance		    
-                else:
-                    raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
-        except StandardError,error:
-            log.error(error)
-            raise StandardError, "argsToNodes.validate_subArg>> results build failure: %s"%(arg)
+                d_validArg['results']=results_indices
+            log.debug("argsToNodes.validate_subArg>> Results indices: %s "%(results_indices))	
+            self.d_connectionsToMake[d_validArg['arg']] = {'driven':results_indices,'nodeType':nodeType}
+        log.debug("d_validArg: %s"%d_validArg)
+
+        if d_validArg.get('drivers'):
+            if len(d_validArg['drivers']) > 1 and nodeType:#just need a connecton mapped
+                self.d_networksToBuild[nodeType].append(d_validArg)#append to build
+            elif nodeType == 'directConnect' and len(d_validArg['drivers']) == 1:
+                self.d_connectionsToMake[d_validArg['arg']]['driver'] = d_validArg['drivers'][0]
+                #self.d_networksToBuild[nodeType].append(d_validArg)#append to build		    
+                #self.d_good_connections[d_validArg['arg']]=self.ml_attrs[d_validArg['drivers'][0]]#store the instance		    
+            else:
+                raise StandardError, "argsToNodes.validate_subArg>> Too few drivers : %s"%(l_validDrivers)
+
 
         return True
 

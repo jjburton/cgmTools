@@ -615,7 +615,7 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
     except Exception,err:
         cgmGen.cgmExceptCB(Exception,err,localDat=vars())
     
-def create_at(obj = None, create = 'null',midPoint = False):
+def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName = 'created'):
     """
     Create a null matching a given obj
     
@@ -665,17 +665,32 @@ def create_at(obj = None, create = 'null',midPoint = False):
         if objRotAxis:
             mc.xform(_created, ws=True, ra= objRotAxis,p=False)
         
-    elif _create in ['curve','curveLinear']:
-        l_pos = []
-        #_sel = mc.ls(sl=True,flatten=True)
-        for i,o in enumerate(obj):
-            p = TRANS.position_get(o)
-            log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
-            l_pos.append(p)
-    
+    elif _create in ['curve','curveLinear','linearTrack']:
+        if not l_pos:
+            l_pos = []
+            #_sel = mc.ls(sl=True,flatten=True)
+            for i,o in enumerate(obj):
+                p = TRANS.position_get(o)
+                log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+                l_pos.append(p)
+        
         if len(l_pos) <= 1:
             raise ValueError,"Must have more than one position to create curve"
-        if _create == 'curve':
+        if _create == 'linearTrack':
+            _trackCurve = mc.curve(d=1,p=l_pos)
+            _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
+    
+            l_clusters = []
+            #_l_clusterParents = [mStartHandle,mEndHandle]
+            for i,cv in enumerate(mc.ls(['{0}.cv[*]'.format(_trackCurve)],flatten=True)):
+                _res = mc.cluster(cv, n = '{0}_{1}_cluster'.format(baseName,i))
+                TRANS.parent_set( _res[1], obj[i])
+                l_clusters.append(_res)
+                
+            return _trackCurve,l_clusters
+                
+                
+        elif _create == 'curve':
             knot_len = len(l_pos)+3-1		
             _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
         else:

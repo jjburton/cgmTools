@@ -116,7 +116,7 @@ d_block_profiles = {
                'ikEnd':'foot',
                'side':'left',
                'numControls':3,
-               'nameList':['upper','lower','ankle'],
+               'nameList':['hip','knee','ankle'],
                'baseAim':[0,-1,0],
                'baseUp':[0,0,1],
                'baseSize':[2,8,2]},
@@ -131,7 +131,7 @@ d_block_profiles = {
            'ikBase':'none',
            'ikEnd':'hand',
            'numControls':3,
-           'nameList':['upper','lower','wrist'],
+           'nameList':['shoulder','elbow','wrist'],
            'baseAim':[-1,0,0],
            'baseUp':[0,0,-1],
            'baseSize':[2,8,2]}    
@@ -920,7 +920,7 @@ def skeleton_build(self, forceNew = True):
     if not ml_prerigHandles:
         raise ValueError,"No prerigHandles connected"
     
-    #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
+    #>> If skeletons there, delete ------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
     if _bfr:
         log.debug("|{0}| >> Joints detected...".format(_str_func))            
@@ -934,7 +934,6 @@ def skeleton_build(self, forceNew = True):
 
     log.debug("|{0}| >> creating...".format(_str_func))
     
-    #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
     
     if self.numJoints == self.numControls:
         log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
@@ -950,9 +949,7 @@ def skeleton_build(self, forceNew = True):
     
     ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
     
-    
-    
-    
+
     #self.copyAttrTo('cgmName',ml_joints[0].mNode,'cgmName',driven='target')
     
     _l_names = self.atUtils('skeleton_getNameDicts',True)

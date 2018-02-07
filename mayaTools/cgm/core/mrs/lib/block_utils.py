@@ -495,14 +495,15 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
-def noTransformNull_verify(self):
+def noTransformNull_verify(self,mode='template'):
     try:
-        if not self.getMessage('noTransformNull'):
+        _plug = 'noTrans{0}Null'.format(mode[0].capitalize() + mode[1:])
+        if not self.getMessage(_plug):
             str_prerigNull = mc.group(em=True)
             mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
-            mNoTransformNull.connectParentNode(self, 'rigBlock','noTransformNull') 
+            mNoTransformNull.connectParentNode(self, 'rigBlock',_plug) 
             mNoTransformNull.doStore('cgmName', self.mNode)
-            mNoTransformNull.doStore('cgmType','noTransformNull')
+            mNoTransformNull.doStore('cgmType',_plug)
             mNoTransformNull.doName()
     
     
@@ -863,7 +864,8 @@ def create_prerigLoftMesh(self, targets = None,
         cgmGEN.cgmException(Exception,err)
         
 def create_jointLoft(self, targets = None, mPrerigNull = None,
-                     uAttr = 'neckJoints', baseCount = 1, baseName = 'test'):
+                     uAttr = 'neckJoints', baseCount = 1, baseName = 'test',degree = 1,
+                     simpleMode = False):
     
     _str_func = 'create_jointLoft'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -891,7 +893,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)  
         
-    #ATTR.set(_loftNode,'degree',1)  
+    ATTR.set(_loftNode,'degree',degree)  
     
         
 
@@ -912,18 +914,19 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mLoft.inheritsTransform = 0
     for s in mLoft.getShapes(asMeta=True):
         s.overrideDisplayType = 2    
+        
+    if not simpleMode:
+        #...wire some controls
+        _arg = "{0}.out_vSplit = {1} + {2} ".format(targets[0],
+                                                 self.getMayaAttrString(uAttr,'short'),
+                                                 baseCount)
 
-    #...wire some controls
-    _arg = "{0}.out_vSplit = {1} + {2} ".format(targets[0],
-                                             self.getMayaAttrString(uAttr,'short'),
-                                             baseCount)
-
-    NODEFACTORY.argsToNodes(_arg).doBuild()
+        NODEFACTORY.argsToNodes(_arg).doBuild()
     
-    #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
-    #NODEFACTORY.argsToNodes(_arg).doBuild()    
-
-    ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))  
+        #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+        #NODEFACTORY.argsToNodes(_arg).doBuild()    
+    
+        ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.uNumber".format(_tessellate))  
 
     for n in _tessellate,_loftNode:
         mObj = cgmMeta.validateObjArg(n)
@@ -1505,6 +1508,10 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
                         mHandle.getMessage(plug,asMeta=True)[0].doName()
 
                 log.debug("|{0}| >>  {1} : {2}.".format(_str_func, i, mHandle.p_nameShort))
+        else:
+            log.debug("|{0}| >>  nameHandles on. mismatch length...".format(_str_func))
+            pprint.pprint(vars())
+            
     return l_res    
 
 
