@@ -2,3 +2,8 @@
 *.wpu
 *.bak
 userSetup.py
+mayaTools/cgm/core/lib/wing/wingHotkeys.pyo
+mayaTools/cgm/core/lib/wing/wingdbstub.pyo
+mayaTools/cgm/core/lib/wing/mayaWingServer.pyo
+mayaTools/cgm/core/lib/wing/executeWingCode.pyo
+mayaTools/cgm/core/lib/wing/__init__.pyo
