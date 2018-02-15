@@ -62,15 +62,16 @@ from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 reload(UISNAPCALLS)
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.rig.joint_utils as JOINTS
-from cgm.lib.ml import (ml_breakdownDragger,
-                        ml_resetChannels,
-                        ml_deleteKey,
-                        ml_setKey,
-                        ml_hold,
-                        ml_stopwatch,
-                        ml_arcTracer,
-                        ml_convertRotationOrder,
-                        ml_copyAnim)
+from cgm.core.lib.ml_tools import (ml_breakdownDragger,
+                                   ml_breakdown,
+                                   ml_resetChannels,
+                                   ml_deleteKey,
+                                   ml_setKey,
+                                   ml_hold,
+                                   ml_stopwatch,
+                                   ml_arcTracer,
+                                   ml_convertRotationOrder,
+                                   ml_copyAnim)
 
 
 _2016 = False
@@ -532,26 +533,35 @@ def uiSection_animUtils(parent):
                 ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
                 c=lambda *a: TOOLCALLS.cgmSnapTools())
     
+    
     mc.menuItem(parent = parent,
-            l='autoTangent',
-            ann = "autoTangent by Michael Comet - an oldie but a goodie for those who loathe the graph editor",                                                                                                                                   
-            c=lambda *a: mel.eval('autoTangent'))
-    mc.menuItem(parent = parent,
-                l='tweenMachine',
-                ann = "tweenMachine by Justin Barrett - Fun little tweening tool",                                                                                                                                                   
-                c=lambda *a: mel.eval('tweenMachine'))
-    mc.menuItem(parent = parent,
-                l='mlArcTracer',
-                ann = "mlArcTracer by Morgan Loomis",                                                                                                                                                                   
-                c=lambda *a: ml_arcTracer.ui())         
-    mc.menuItem(parent = parent,
-                l='mlCopyAnim',
-                ann = "mlCopyAnim by Morgan Loomis",                                                                                                                                                                                   
-                c=lambda *a: ml_copyAnim.ui())         
+                l='mlBreakdown',
+                ann = "mlBreakdown by Morgan Loomis",
+                c=lambda *a: ml_breakdown.ui())
     mc.menuItem(parent = parent,
                 l='mlHold',
                 ann = "mlHold by Morgan Loomis",
-                c=lambda *a: ml_hold.ui())  
+                c=lambda *a: ml_hold.ui())
+    mc.menuItem(parent = parent,
+                l='mlArcTracer',
+                ann = "mlArcTracer by Morgan Loomis",
+                c=lambda *a: ml_arcTracer.ui())         
+    mc.menuItem(parent = parent,
+                l='mlCopyAnim',
+                ann = "mlCopyAnim by Morgan Loomis",
+                c=lambda *a: ml_copyAnim.ui())
+
+    
+    mc.menuItem(parent = parent,
+            l='autoTangent',
+            ann = "autoTangent by Michael Comet - an oldie but a goodie for those who loathe the graph editor",
+            c=lambda *a: mel.eval('autoTangent'))
+    mc.menuItem(parent = parent,
+                l='tweenMachine',
+                ann = "tweenMachine by Justin Barrett - Fun little tweening tool",
+                c=lambda *a: mel.eval('tweenMachine'))
+    
+
     mc.menuItem(parent = parent,
                 l='red9.Studio Tools',
                 ann = "Launch Red 9's tools",

@@ -4648,22 +4648,25 @@ class cgmOptionVar(object):
         """
         Attempts to select the items of a optionVar buffer
         """
-        selectList = []
-        if self.value:
-            for item in self.value:
-                if mc.objExists(item):
-                    if '.' in item:
-                        buffer = mc.ls(item,o=True)
-                        if mc.objExists(buffer[0]):
-                            selectList.append(buffer[0])
-                    else:
-                        selectList.append(item)
-
-        if selectList:
-            mc.select(selectList)
-        else:
-            log.warning("'%s' is empty!"%self.name)
-
+        try:
+            selectList = []
+            if self.value:
+                for item in self.value:
+                    if mc.objExists(item):
+                        if '.' in item:
+                            buffer = mc.ls(item,o=True)
+                            if mc.objExists(buffer[0]):
+                                selectList.append(buffer[0])
+                        else:
+                            selectList.append(item)
+    
+            if selectList:
+                mc.select(selectList)
+            else:
+                log.warning("'%s' is empty!"%self.name)
+        except Exception,err:
+            return log.error("cgmOptionVar.select fail | {0}".format(err))
+        
     def existCheck(self):
         """
         Removes non existing items

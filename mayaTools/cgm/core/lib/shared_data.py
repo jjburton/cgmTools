@@ -6,6 +6,84 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 """
+l_cgmNameOrder = ['cgmPosition',
+                  'cgmDirectionModifier',
+                  'cgmDirection',
+                  'cgmName',
+                  'cgmNameModifier',
+                  'cgmIterator',
+                  'cgmTypeModifier',
+                  'cgmType']
+
+str_nameDivider = '_'
+
+defaultTextFont = 'Arial'
+
+
+d_cgmTypes = {### Custom Types
+              'null':'null',
+              'group':'grp',
+              'object':'obj',
+              'skinCluster':'skinNode',
+              'blendShapeGeo':'bsGeo',
+              
+              ### Controls
+              'controlMaster':'placer',
+              'controlAnim':'anim',
+              
+              ### Sets
+              'quickSelectSet':'qss',
+              'characterSet':'cs',
+              
+              ### Maya Types
+              'camera':'cam',
+              'transform':'trans',
+              'group':'grp',
+              'locator':'loc',
+              
+              
+              'subdiv':'subGeo',
+              'mesh':'geo',
+              'nurbsCurve':'crv',
+              'nurbsSurface':'surf',
+              
+              
+              'ambientLight':'ambLt',
+              'spotLight':'sptLt',
+              'pointLight':'pntLt',
+              
+              
+              'joint':'jnt',
+              'skinJoint':'sknJnt',
+              'rigJoint':'rigJnt',
+              'ikHandle':'ikH',
+              'ikEffector':'ikE',
+              
+              
+              ###Contraints
+              'orientConstraint':'orConst',
+              'parentConstraint':'prntConst',
+              'pointConstraint':'pntConst',
+              'aimConstraint':'aimConst',
+              'scaleConstraint':'scConst',
+              'geometryConstraint':'geoConst',
+              'normalConstraint':'normConst',
+              'tangentConstraint':'tangConst',
+              'poleVectorConstraint':'pvConst',
+              
+              
+              ### Nodes
+              'pointOnSurfaceInfoNode':'posInfoNode',
+              'frameCacheNode':'fCacheNode',
+              'plusMinusAverageNode':'pmAvNode',
+              'closestPointOnSurfaceNode':'cPntOnSurfNode',
+              'blendShapeNode':'bsNode',
+              'multiplyDivideNode':'mdNode',
+              'remapNode':'remapNode',
+              'reverseNode':'revNode'}
+
+
+
 #>>> Attributes
 #==================================================================
 _d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',

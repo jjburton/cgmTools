@@ -7,10 +7,12 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 
-
+2.11
+    - Implemented Morgan Loomis' awesome hold/breakdown calls with set modes
 2.1 - 
     - Added marking menu
     - Added type flagging
+
 ================================================================
 """
 # From Python =============================================================
@@ -36,7 +38,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.search_utils as SEARCH
 
-from cgm.lib.ml import (ml_breakdownDragger)
+from cgm.core.lib.ml_tools import (ml_breakdownDragger, ml_breakdown, ml_hold)
 
 """
 from cgm.core.lib import shared_data as SHARED
@@ -54,7 +56,7 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists"""
 
 #>>> Root settings =============================================================
-__version__ = '2.1.02012018'
+__version__ = '2.11.021418'
 
 _l_setTypes = ['NONE',
                'animation',
@@ -73,7 +75,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 300,400
+    DEFAULT_SIZE = 325,400
     TOOLNAME = 'setTools.ui'
      
     
@@ -296,6 +298,9 @@ class ui(cgmUI.cgmGUI):
         _d_sets = SEARCH.get_objectSetsDict()
         #pprint.pprint(_d_sets)
         
+        self.uiColumn_tween(edit=True,visible=self.var_animMode.value)
+        
+        
         self.uiScrollList_objectSets.clear()
         self.d_itemScrollLists = {}
         self.d_itemLists = {}       
@@ -468,32 +473,44 @@ class ui(cgmUI.cgmGUI):
         #mc.evalDeferred(self.uiUpdate_objectSets,lp=True)    
            
     def uiFunc_itemList_showToggle(self,mObjectSet = None):
-        _str_func = 'uiFunc_itemList_showToggle' 
-        _str = mObjectSet.p_nameShort
-        
-        _list = self.d_itemScrollLists[mObjectSet]
-        _vis = _list(q=True, vis=True)
-        
-        if _vis:
-            _list(e=True, vis = False)
-        else:
-            _list.clear()
-            l_items = mObjectSet.getList()
-            l_items.sort()
-            self.d_itemLists[mObjectSet] = l_items
-            for o in l_items:
-                _list.append(str(o))                
-            _list(e=True, vis = True)
+        try:
+            _str_func = 'uiFunc_itemList_showToggle' 
+            
+            try:mObjectSet.mNode
+            except:mObjectSet = cgmMeta.cgmObjectSet(mObjectSet)
+            
+            _str = mObjectSet.p_nameShort
+            _list = self.d_itemScrollLists.get(_str)
+            _vis = _list(q=True, vis=True)
+            
+            if _vis:
+                _list(e=True, vis = False)
+            else:
+                _list.clear()
+                l_items = mObjectSet.getList()
+                l_items.sort()
+                self.d_itemLists[mObjectSet] = l_items
+                for o in l_items:
+                    _list.append(str(o))                
+                _list(e=True, vis = True)
+        except Exception,err:
+            pprint.pprint(vars())
+            log.info("|{0}| >> Failure: {1} | {2}".format(_str_func,mObjectSet,err))  
+            
             
     def uiFunc_itemList_dc(self,mObjectSet = None):
         _str_func = 'uiFunc_itemList_dc' 
+        
+        try:mObjectSet.mNode
+        except:mObjectSet = cgmMeta.cgmObjectSet(mObjectSet)        
+        
         _str = mObjectSet.p_nameShort
-        _list = self.d_itemScrollLists[mObjectSet]
+        _list = self.d_itemScrollLists[_str]
         
         _indices = _list.getSelectedIdxs() or []
         
         _l = []
-        l_buffer = self.d_itemLists[mObjectSet]
+        l_buffer = self.d_itemLists[_str]
         
         for i in _indices:
             v = l_buffer[i]
@@ -590,9 +607,13 @@ def uiFunc_selectAndDo(func = None, *args,**kws):
 
 
 
-def uiFunc_multiSetsAction(mode = 'active', action = 'report'):
+def uiFunc_multiSetsAction(mode = 'active', action = 'report', weight = None):
     _str_func = 'uiFunc_multiSetsAction'
     log.debug("|{0}| >> ...".format(_str_func)) 
+    
+    log.info("|{0}| >> weight: {1}".format(_str_func,weight)) 
+    
+    l_sel = mc.ls(sl=True)
     
     if mode is None:
         log.info("|{0}| >> resolving mode...".format(_str_func)) 
@@ -626,23 +647,49 @@ def uiFunc_multiSetsAction(mode = 'active', action = 'report'):
             log.error("|{0}| >> Set failed to initialize. Removing.: {1}".format(_str_func,s))
             mVar.remove(s)
             continue
+        l_items.extend(mSet.getList())        
         if action == 'report':
             mSet.log()
-        elif action in ['select','tween']:
-            l_items.extend(mSet.getList())
         elif action == 'query':
             if mSet.getList():return True
             
     if action == 'report':
         print cgmGEN._str_hardBreak
     
-    if action == 'tween':
+    if action in ['tween',
+                  'bdAverage','bdPrevious','bdNext',
+                  'holdPrevious','holdCurrent','holdAverage','holdNext']:
         mc.select(l_items)
-        ml_breakdownDragger.drag()
+        if action == 'tween':
+            ml_breakdownDragger.drag()
+        elif action == 'bdAverage':
+            ml_breakdown.weightAverage(weight)
+        elif action == 'bdPrevious':
+            ml_breakdown.weightPrevious(weight)
+        elif action == 'bdNext':
+            ml_breakdown.weightNext(weight)
+        elif action == 'bdNext':
+            ml_breakdown.weightNext(weight)
+            
+        elif action == 'holdPrevious':
+            ml_hold.previous()
+        elif action == 'holdCurrent':
+            ml_hold.current()        
+        elif action == 'holdAverage':
+            ml_hold.average()            
+        elif action == 'holdNext':
+            ml_hold.next()            
+            
+            
+        if action not in ['tween'] and l_sel:
+            mc.select(l_sel)
+            return
     
     if l_items:
         mc.select(l_items)
         return l_items
+    
+
     
     
 def uiFunc_setOptionVarAndUpdate(self, optionVar = None, value=None ):
@@ -696,7 +743,93 @@ def buildSetsForm_main(self,parent):
     _MainForm = mUI.MelFormLayout(parent, useTemplate = 'cgmUISubTemplate')
 
 
-    #>>>  Snap Section
+    #Tweener ==========================================================================================
+    _uiColumn_tween = mUI.MelColumn(_MainForm)
+    
+    mc.setParent(_uiColumn_tween)
+    #cgmUI.add_Header('Keys')
+    mc.text('KEYS', al = 'center', ut = 'cgmUIHeaderTemplate')
+    
+    cgmUI.add_LineSubBreak()
+    self.uiColumn_tween = _uiColumn_tween
+    
+    #Hold row ------------------------------------------------------------------------------------    
+    _uiRow_hold =  mUI.MelHLayout(_uiColumn_tween,ut='cgmUISubTemplate',padding = 2,en=True)
+    #mUI.MelSpacer(_uiRow_hold, w = 5)
+                
+    cgmUI.add_Button(_uiRow_hold,'<<H',
+                     lambda *a:uiFunc_multiSetsAction(None,'holdPrevious'),
+                     "mlBreakdown + setMode | Weight toward the previous key.")
+
+    cgmUI.add_Button(_uiRow_hold,'Current',
+                     lambda *a:uiFunc_multiSetsAction(None,'holdCurrent'),
+                     "mlBreakdown + setMode | Weight toward the previous key.")
+    
+    cgmUI.add_Button(_uiRow_hold,'Average',
+                     lambda *a:uiFunc_multiSetsAction(None,'holdAverage'),
+                     "mlBreakdown + setMode | Weight toward the previous key.")
+    
+    cgmUI.add_Button(_uiRow_hold,'H>>',
+                     lambda *a:uiFunc_multiSetsAction(None,'holdNext'),
+                     "mlBreakdown + setMode | Weight toward the previous key.")
+    
+    _uiRow_hold.layout()
+    
+    
+
+    #Tween slider ------------------------------------------------------------------------------------
+    _uiRow_tween = mUI.MelHSingleStretchLayout(_uiColumn_tween, height = 27)
+    
+    mUI.MelSpacer(_uiRow_tween, w = 2)
+    
+    self.uiFF_tween = mUI.MelFloatField(_uiRow_tween, w = 50, value = .2,
+                                        cc = lambda *a: self.uiSlider_tween.setValue(self.uiFF_tween.getValue()))    
+    
+    self.uiSlider_tween = mUI.MelFloatSlider(_uiRow_tween, 0, 2.0, defaultValue=.2, 
+                                             #bgc = cgmUI.guiBackgroundColor,
+                                             value = .2,
+                                             cc = lambda *a: self.uiFF_tween.setValue(self.uiSlider_tween.getValue()),
+                                             dragCommand = lambda *a: log.info(self.uiSlider_tween.getValue()),
+                                             )
+    mUI.MelSpacer(_uiRow_tween, w = 1)
+    """
+    mc.button(parent=_uiRow_tween ,
+              ut = 'cgmUITemplate',
+              l = 'R',
+              c = lambda *a: self.uiSlider_tween.reset(),
+              ann = "Reset tweener")
+    """
+    mUI.MelSpacer(_uiRow_tween, w = 2)
+    
+    _uiRow_tween.setStretchWidget(self.uiSlider_tween)
+    
+    _uiRow_tween.layout()
+    
+    #Tween buttons ------------------------------------------------------------------------------------
+    _uiRow_tweenButtons =  mUI.MelHLayout(_uiColumn_tween,ut='cgmUISubTemplate',padding = 2,en=True)
+    #mUI.MelSpacer(_uiRow_hold, w = 5)
+
+    cgmUI.add_Button(_uiRow_tweenButtons,'<<BD',
+                     lambda *a:uiFunc_multiSetsAction(None,'bdPrevious',self.uiFF_tween.getValue()),
+                    "mlBreakdown + setMode | Weight toward the previous key.")
+
+    cgmUI.add_Button(_uiRow_tweenButtons,'Average',
+                     lambda *a:uiFunc_multiSetsAction(None,'bdAverage',self.uiFF_tween.getValue()),
+                     "mlBreakdown + setMode | Weight toward the average of the next and previous frame.")
+    
+    cgmUI.add_Button(_uiRow_tweenButtons,'Drag',
+                     lambda *a:uiFunc_multiSetsAction(None,'tween'),
+                     "mlBreakdown + setMode | Initialze breakdown dragger")
+
+    cgmUI.add_Button(_uiRow_tweenButtons,'BD>>',
+                     lambda *a:uiFunc_multiSetsAction(None,'bdNext',self.uiFF_tween.getValue()),
+                     "mlBreakdown + setMode | Weight toward the next key.")
+
+    _uiRow_tweenButtons.layout()    
+
+
+    #>>>  Snap Section ==========================================================================
+    mc.setParent(_MainForm)
     _Header = cgmUI.add_Header('Sets')
     
     #>> Logic ----------------------------------------------------------------------------------------
@@ -797,8 +930,9 @@ def buildSetsForm_main(self,parent):
                         c = cgmGEN.Callback(uiFunc_multiSetsSetType,self,**{'setType':n}),
                         #c = Callback(setToolsLib.doMultiSetType,self,self.SetToolsModeOptionVar.value,n))    
                         )
+    
 
-    #>>>Scroll List ----------------------------------------------------------------------------------
+    #>>>Scroll List ========================================================================================
     SetListScroll = mUI.MelScrollLayout(_MainForm,cr = 1, ut = 'cgmUISubTemplate')
     
     self.uiScrollList_objectSets = SetListScroll
@@ -826,17 +960,21 @@ def buildSetsForm_main(self,parent):
     
     
     _MainForm(edit = True,
-             af = [(_Header,"top",0),
+             af = [(_uiColumn_tween,"top",0),
                    (_Header,"left",0),
                    (_Header,"right",0),
                    (_uiRow_allSets,"left",0),
                    (_uiRow_allSets,"right",0),
+                   (_uiColumn_tween,"left",0),
+                   (_uiColumn_tween,"right",0),                   
                    (SetListScroll,"left",0),
                    (SetListScroll,"right",0),
                    (NewSetRow,"left",0),
                    (NewSetRow,"right",0),
                    (NewSetRow,"bottom",0)],
-             ac = [(_uiRow_allSets,"top",0,_Header),
+             ac = [(_Header,"top",0,_uiColumn_tween),
+                   (_uiRow_allSets,"top",0,_Header),
+                   #(_uiColumn_tween,"top",2,_uiRow_allSets),                   
                    (SetListScroll,"top",2,_uiRow_allSets),
                    (SetListScroll,"bottom",0,NewSetRow)],
              attachNone = [(NewSetRow,"top")])       
@@ -1153,8 +1291,8 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
             mc.button(parent=_row ,
                       ut = 'cgmUITemplate',                                                                                                
                       l = 'e',
-                      c=lambda *a: self.uiFunc_itemList_showToggle(mObjectSet),
-                      #c = cgmGEN.Callback(self.uiFunc_itemList_showToggle,mObjectSet),
+                      #c=lambda *a: self.uiFunc_itemList_showToggle(mObjectSet),
+                      c = cgmGEN.Callback(self.uiFunc_itemList_showToggle, _short),
                       ann = "Work with items in our list: {0}".format(_short))
         
         _uiTF_name = mUI.MelTextField(_row, w = 100,ut = 'cgmUIReservedTemplate', text = mObjectSet.p_nameShort,
@@ -1274,19 +1412,19 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
         #ItemsList -------------------------------------------------------------------------
         if b_setupMode:
             l_items = mObjectSet.getList()
-            self.d_itemLists[mObjectSet] = l_items        
+            self.d_itemLists[_short] = l_items        
             height = 50
             if len(l_items) > 3:
                 height = 150
             uiItemList = mUI.MelObjectScrollList(parent, allowMultiSelection=True,en=True,
                                                  bgc = [.9,.9,.9],height = height, vis=False,
-                                                 sc = self.uiFunc_itemList_dc(mObjectSet),
-                                                 dcc = self.uiFunc_itemList_dc(mObjectSet),
-                                                 #sc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet),
-                                                 #dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, mObjectSet))
+                                                 #sc = self.uiFunc_itemList_dc(mObjectSet),
+                                                 #dcc = self.uiFunc_itemList_dc(mObjectSet),
+                                                 sc = cgmGEN.Callback(self.uiFunc_itemList_dc, _short),
+                                                 dcc = cgmGEN.Callback(self.uiFunc_itemList_dc, _short),
                                                  #selectCommand = self.uiFunc_selectParent_inList)
                                                  )
-            self.d_itemScrollLists[mObjectSet] = uiItemList
+            self.d_itemScrollLists[_short] = uiItemList
     
         return
     
