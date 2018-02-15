@@ -293,7 +293,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
                 return True                
         else:
             log.info("|{0}| >> tagged...".format(_str_func))          
-            _mode = SEARCH.get_tag(_loc,'cgmLocMode')
+            _mode = SEARCH.get_nodeTagInfo(_loc,'cgmLocMode')
             if _mode == 'fromTarget':
                 _targets = ATTR.get_message(_loc,'cgmLocSource','cgmLocDat')
                 return getAndMove(_loc,_targets,_mode,forceBBCenter)

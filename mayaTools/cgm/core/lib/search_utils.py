@@ -26,9 +26,10 @@ import maya.mel as mel
 from cgm.core import cgm_General as cgmGen
 from cgm.core.cgmPy import validateArgs as VALID
 reload(VALID)
-from cgm.core.lib import shared_data as coreShared
+from cgm.core.lib import shared_data as CORESHARE
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import attribute_utils as ATTR
+#import cgm.core.lib.transform_utils as TRANS #CAN'T IMPORT 
 from cgm.lib import attributes
 
 from cgm.lib import lists
@@ -39,7 +40,7 @@ is_transform = VALID.is_transform
 get_mayaType = VALID.get_mayaType
 get_transform = VALID.get_transform 
 
-def get_tag(node = None, tag = None):
+def get_nodeTagInfo(node = None, tag = None):
     """
     Get the info on a given node with a provided tag
     
@@ -49,7 +50,7 @@ def get_tag(node = None, tag = None):
     :returns
         status(bool)
     """   
-    _str_func = 'get_tag'
+    _str_func = 'get_nodeTagInfo'
     _node = VALID.stringArg(node,False,_str_func) 
     
     if (mc.objExists('%s.%s' %(_node,tag))) == True:
@@ -70,7 +71,84 @@ def get_tag(node = None, tag = None):
             else:
                 return False
     else:
-        return False    
+        return False
+    
+def get_tagInfo(node,tag):
+    """
+    DESCRIPTION:
+    Returns tag info from the object if it exists. If not, it looks upstream
+    before calling it quits. Also, it checks the types and names dictionaries for
+    short versions
+
+    ARGUMENTS:
+    obj(string) - the object we're starting from
+    tag(string)
+
+    RETURNS:
+    Success - name(string)
+    Failure - False
+    """
+    # first check the object for the tags """
+    selfTagInfo = get_nodeTagInfo(node,tag)
+    _isType = VALID.get_mayaType(node)
+    
+    if selfTagInfo is not False:
+        return selfTagInfo
+    else:
+        #if it doesn't have one, we're gonna go find em """
+        if tag == 'cgmType':
+            # get the type info and see if there's a short hand name for it """
+            return get_tagInfoShort(_isType)
+        elif _isType not in ['objectSet']:
+            # check up stream """
+            upCheck = get_tagUp(node,tag)
+            if upCheck == False:
+                return False
+            else:
+                tagInfo =  upCheck[0]
+                return tagInfo
+    return False
+
+def get_tagUp(node,tag):
+    """
+    DESCRIPTION:
+    Returns name from a cgmName Tag from the first object above the input
+    object that has it
+
+    ARGUMENTS:
+    obj(string) - the object we're starting from
+
+    RETURNS:
+    Success - info(list) - [info,parentItCameFrom]
+    Failure - False
+    """
+    parents = TRANS.parents_get(node)
+    tagInfo = []
+    
+    for p in parents:
+        info = get_nodeTagInfo(p,tag)
+        if info is not False:
+            tagInfo.append(info)
+            tagInfo.append(p)
+            return tagInfo
+    return False
+
+def get_tagInfoShort(info,tagType=None):
+    """
+    Returns short name for a tag
+    
+    :parameters:
+        info(str): Kind of info to check
+
+    :returns
+        status(bool)
+    """       
+    #typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
+    #namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
+    return CORESHARE.d_cgmTypes.get(info,info)
+    
+    
+
 
 def get_objectSetsDict():
     """ 
@@ -142,7 +220,7 @@ def get_objectSetsDict():
         #Type sort
         buffer = ATTR.get(s,'cgmType')
         _match = False
-        for tag,v in coreShared.objectSetTypes.iteritems():
+        for tag,v in CORESHARE.objectSetTypes.iteritems():
             if v == buffer:
                 if tag in typeBuffer.keys():
                     typeBuffer[tag].append(s)

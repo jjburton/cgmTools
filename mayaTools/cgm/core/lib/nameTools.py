@@ -27,8 +27,13 @@ from Red9.core import Red9_General as r9General
 import cgm.core.cgm_General as cgmGEN
 from cgm.core.cgmPy import str_Utils as strUtils
 from cgm.lib import names
+import cgm.core.lib.shared_data as CORESHARE
+import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.transform_utils as TRANS
 reload(strUtils)
+reload(CORESHARE)
+reload(SEARCH)
 # From cgm ==============================================================
 from cgm.lib import (lists,
                      search,
@@ -36,9 +41,9 @@ from cgm.lib import (lists,
                      settings,
                      attributes)
 
-namesDictionaryFile = settings.getNamesDictionaryFile()
-typesDictionaryFile = settings.getTypesDictionaryFile()
-settingsDictionaryFile = settings.getSettingsDictionaryFile()
+#namesDictionaryFile = settings.getNamesDictionaryFile()
+#typesDictionaryFile = settings.getTypesDictionaryFile()
+#settingsDictionaryFile = settings.getSettingsDictionaryFile()
         
 #>>>Utilities
 #==================================================================================
@@ -75,9 +80,11 @@ def returnCGMOrder():
     order(list)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    dict = dictionary.initializeDictionary(settingsDictionaryFile)
-    orderBuffer = dict.get('nameOrder')
-    return (orderBuffer.split(','))
+    #dict = dictionary.initializeDictionary(settingsDictionaryFile)
+    #orderBuffer = dict.get('nameOrder')
+    #return (orderBuffer.split(','))
+    return CORESHARE.l_cgmNameOrder
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def returnCGMDivider():
@@ -93,8 +100,9 @@ def returnCGMDivider():
     divider(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    dict = dictionary.initializeDictionary(settingsDictionaryFile)
-    return dict.get('nameDivider')
+    #dict = dictionary.initializeDictionary(settingsDictionaryFile)
+    #return dict.get('nameDivider')
+    return CORESHARE.str_nameDivider
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
@@ -111,9 +119,9 @@ def returnCGMSetting(setting):
     divider(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    dict = dictionary.initializeDictionary(settingsDictionaryFile)
-    return (dict.get(setting))
-
+    #dict = dictionary.initializeDictionary(settingsDictionaryFile)
+    #return (dict.get(setting))
+    return CORESHARE.d_cgmTypes('setting')
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
@@ -173,7 +181,7 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     #>>> Dictionary driven order
     for item in order:
         buffer = nameDict.get(item)
-        buffer = str(search.returnTagInfoShortName(buffer,item))
+        buffer = str(SEARCH.get_tagInfoShort(buffer,item))
         if buffer not in ['False','None','ignore']:
             nameBuilder.append(buffer)
     _str = divider.join(nameBuilder)
@@ -181,7 +189,7 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     return _str
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def returnObjectGeneratedNameDict(obj,ignore=[False]):
+def get_objNameDict(obj,ignore=[False]):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -201,9 +209,9 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     #_str_funcName = "returnObjectGeneratedNameDict(%s,ignore = %s)"%(obj,ignore)
 		
     if type(ignore) is not list:ignore = [ignore]    
-    typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
-    namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
-    settingsDictionary = dictionary.initializeDictionary(settingsDictionaryFile)
+    #typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
+    #namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
+    #settingsDictionary = dictionary.initializeDictionary(settingsDictionaryFile)
     namesDict={}
     divider = returnCGMDivider()
     order = returnCGMOrder()
@@ -219,7 +227,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
 
     #>>> Geting our data
     for tag in order:
-        tagInfo = search.findRawTagInfo(obj,tag)
+        tagInfo = SEARCH.get_tagInfo(obj,tag)
         if tagInfo is not False:
             namesDict[tag] = (tagInfo)
             
@@ -237,10 +245,10 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
     
     #>>> checks if the names exist as objects or it's a shape node
     ChildNameObj = False
-    nameObj = search.returnTagInfo(obj,'cgmName')
-    typeTag = search.returnTagInfo(obj,'cgmType')
-    isType = search.returnObjectType(obj)
-    childrenObjects = search.returnChildrenObjects(obj)
+    nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
+    typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
+    isType = SEARCH.VALID.get_mayaType(obj)
+    childrenObjects = TRANS.children_get(obj,True)
     """first see if it's a group """
     if isType == 'group' and typeTag == False:
         log.debug("%s >>> group and no typeTag..."%(_str_funcName))            
@@ -250,7 +258,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             groupNamesDict['cgmName'] = childrenObjects[0]
         else:
             groupNamesDict['cgmName'] = nameObj
-        groupNamesDict['cgmType'] = typesDictionary.get('transform')
+        groupNamesDict['cgmType'] = CORESHARE.d_cgmTypes.get('transform')
         if namesDict.get('cgmTypeModifier') != None:
             groupNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
         return groupNamesDict
@@ -274,7 +282,7 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             """if so, it's a child name object"""
             log.debug("%s >>> child name object..."%(_str_funcName))                                    
             childNamesDict = {}
-            childNamesDict['cgmName'] = search.returnParentObject(obj,False)
+            childNamesDict['cgmName'] = TRANS.parents_get(obj,False)
             childNamesDict['cgmType'] = namesDict.get('cgmType')
             return childNamesDict
         elif typeTag == 'infoNull':
@@ -300,4 +308,4 @@ def returnObjectGeneratedNameDict(obj,ignore=[False]):
             return namesDict
     else:
         return namesDict
-
+returnObjectGeneratedNameDict = get_objNameDict

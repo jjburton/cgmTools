@@ -26,12 +26,11 @@ from maya import mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-#CANNOT import Rigging, CURVES
+#CANNOT import Rigging, CURVES, SEARCH, NAMETOOLS
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.distance_utils as DIST
 from cgm.core.lib import shared_data as SHARED
-#from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import position_utils as POS
 reload(POS)
