@@ -122,7 +122,7 @@ def get_tagUp(node,tag):
     Success - info(list) - [info,parentItCameFrom]
     Failure - False
     """
-    parents = TRANS.parents_get(node)
+    parents = parents_get(node)
     tagInfo = []
     
     for p in parents:
@@ -145,9 +145,40 @@ def get_tagInfoShort(info,tagType=None):
     """       
     #typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
     #namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
+    
+    if info in CORESHARE.d_shortNames.keys():
+        return CORESHARE.d_shortNames.get(info,info)
     return CORESHARE.d_cgmTypes.get(info,info)
     
+def parents_get(node = None, fullPath = True):
+    """
+    Get all the parents of a given node where the last parent is the top of the heirarchy
     
+    :parameters:
+        node(str): Object to check
+        fullPath(bool): Whether you want long names or not
+
+    :returns
+        parents(list)
+    """   
+    _str_func = 'parents_get'
+    _node =  VALID.mNodeString(node)
+    
+    _l_parents = []
+    tmpObj = _node
+    noParent = False
+    while noParent == False:
+        tmpParent = mc.listRelatives(tmpObj,allParents=True,fullPath=True)
+        if tmpParent:
+            if len(tmpParent) > 1:
+                raise ValueError,"Resolve what to do with muliple parents...{0} | {1}".format(_node,tmpParent)
+            _l_parents.append(tmpParent[0])
+            tmpObj = tmpParent[0]
+        else:
+            noParent = True
+    if not fullPath:
+        return [NAME.get_short(o) for o in _l_parents]
+    return _l_parents 
 
 
 def get_objectSetsDict():

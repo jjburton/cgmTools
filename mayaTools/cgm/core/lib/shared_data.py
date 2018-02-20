@@ -19,6 +19,54 @@ str_nameDivider = '_'
 
 defaultTextFont = 'Arial'
 
+d_shortNames = {'module':'part',
+                'modules':'parts',
+                
+                ### Types
+                
+                'blendShapeGeo':'bsGeo',
+                'object':'obj',
+                
+                
+                ### General acgmreviations
+                'left':'L' ,
+                'right':'R' ,
+                'center':'C',
+                'front':'F',
+                'back':'B',
+                'top':'T',
+                'bottom':'BTM',
+                'blendShape':'bs',
+                'quickSelectSet':'qss',
+                'characterSet':'cs',
+                'template':'tmpl',
+
+                'controlMaster':'all',
+
+                #Arms
+                'clavicle':'clav',
+                'upperArm':'uprArm',
+                'lowerArm':'lwrArm',
+                
+                #Leg
+                'upperLeg':'uprLeg',
+                'lowerLeg':'lwrLeg',
+                
+                #Digits
+                'finger1':'thumb',
+                'finger2':'index',
+                'finger3':'middle',
+                'finger4':'ring',
+                'finger5':'pinky',
+                'toe1':'big',
+                'toe2':'index',
+                'toe3':'middle',
+                'toe4':'ring',
+                'toe5':'pinky',
+                }
+                
+                
+                
 
 d_cgmTypes = {### Custom Types
               'null':'null',
@@ -37,7 +85,7 @@ d_cgmTypes = {### Custom Types
               
               ### Maya Types
               'camera':'cam',
-              'transform':'trans',
+              'transform':'grp',
               'group':'grp',
               'locator':'loc',
               

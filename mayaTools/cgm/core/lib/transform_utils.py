@@ -676,17 +676,9 @@ def parent_get(node = None, fullPath = True):
         return _parents[0]
     return False
 
+parents_get = SNAP.SEARCH.parents_get
+'''
 def parents_get(node = None, fullPath = True):
-    """
-    Get all the parents of a given node where the last parent is the top of the heirarchy
-    
-    :parameters:
-        node(str): Object to check
-        fullPath(bool): Whether you want long names or not
-
-    :returns
-        parents(list)
-    """   
     _str_func = 'parents_get'
     _node =  VALID.mNodeString(node)
     
@@ -705,7 +697,7 @@ def parents_get(node = None, fullPath = True):
     if not fullPath:
         return [NAME.get_short(o) for o in _l_parents]
     return _l_parents 
-
+'''
 def shapes_get(node = None, fullPath = False):
     """
     Get the immediate children of a given node
