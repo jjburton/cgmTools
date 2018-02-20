@@ -129,7 +129,7 @@ def registerMClassInheritanceMapping():
     RED9_META_INHERITANCE_MAP['MetaClass'] = {}
     RED9_META_INHERITANCE_MAP['MetaClass']['full'] = [MetaClass]
     RED9_META_INHERITANCE_MAP['MetaClass']['short'] = [MetaClass.__name__]
-    
+
     for mclass in r9General.itersubclasses(MetaClass):
         log.debug('registering : %s' % mclass)
         RED9_META_REGISTERY[mclass.__name__] = mclass
@@ -703,6 +703,11 @@ def isMetaNodeInherited(node, mInstances=[], mode='short'):
     this expands the check to see if the node is inherited from or a subclass of
     a given Meta base class, ie, part of a system
 
+    :param node: node we're wanting to test
+    :param mInstances: list of instances we want to validate against
+    :param mode: 'short' or 'full' how we determine the inheritance, either full class
+        inheritance OR from the RED9_META_INHERITANCE_MAP[key] (string)
+
     .. note::
         this has been modified to bypass the issue of the same subclass being imported
         in a different space in the inheritance and breaking the standard issubclass()
@@ -1022,11 +1027,11 @@ def convertMClassType(cls, newMClass, **kws):
 def convertNodeToMetaData(nodes, mClass):
     '''
     pass in a node and convert it to a MetaNode, assuming that the nodeType
-    is valid in the metaNodeTypesRegistry. 
-    
+    is valid in the metaNodeTypesRegistry.
+
     :param nodes: nodes to cast to mClass instances
     :param mClass: mClass class to convert them too
-    
+
     .. note::
         ideally you should use the convertMClassType func now as that wraps this if the
         nodes passed in aren't already instanitated or bound to meta
@@ -3609,7 +3614,7 @@ class MetaRig(MetaClass):
     def getMirrorData(self):
         '''
         Bind the MirrorObject to this instance of MetaRig.
-    
+
         .. note::
             you must run this binding function before using any of
             the inbuilt mirror functions
@@ -3650,7 +3655,7 @@ class MetaRig(MetaClass):
         from the given nodes return a map of the opposite pairs of controllers
         so if you pass in a right controller of mirrorIndex 4 you get back the
         left[4] mirror node and visa versa. Centre controllers pass straight through
-    
+
         :param nodes: nodes to get the opposites from
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
@@ -3672,7 +3677,7 @@ class MetaRig(MetaClass):
 
     def getMirror_ctrlSets(self, set='Centre', forceRefresh=False):
         '''
-        from  the metaNode grab all controllers and return sets of nodes
+        from the metaNode grab all controllers and return sets of nodes
         based on their mirror side data
 
         :param set: which set/side to get, valid = 'Left' ,'Right', 'Center'
@@ -3693,7 +3698,7 @@ class MetaRig(MetaClass):
     def getMirror_lastIndexes(self, side, forceRefresh=False):
         '''
         get the last mirror index for a given side
-    
+
         :param side: side to check, valid = 'Left' ,'Right', 'Center'
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
@@ -3704,7 +3709,7 @@ class MetaRig(MetaClass):
     def getMirror_nextSlot(self, side, forceRefresh=False):
         '''
         return the next available slot in the mirrorIndex list for a given side
-    
+
         :param side: side to check, valid = 'Left' ,'Right', 'Center'
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
@@ -3713,7 +3718,7 @@ class MetaRig(MetaClass):
     def mirror(self, nodes=None, mode='Anim'):
         '''
         direct mapper call to the Mirror functions
-    
+
         :param nodes: nodes to mirror, if None then we process the entire rig
         :param mode: either 'Anim' or 'Pose'
         '''
@@ -3732,7 +3737,7 @@ class MetaRig(MetaClass):
         the cached pose is stored internally on the node so it can be loaded
         back from the mNode internally. If not given then the pose is cached
         on this object instance only.
-    
+
         :param attr: optional - attr to store the cached pose to
         :param filepath: optional - path to store the pose too
         :param incRoots: passed directly to the filterSettings object in the pose, do we process self.ctrl_main?
@@ -3867,7 +3872,7 @@ class MetaRig(MetaClass):
     def unHideNodes(self):
         '''
         wrap over the nodeVisibility to set True for all Controllers
-        with the exceptiojn of the Main_Ctrl
+        with the exception of the Main_Ctrl
         '''
         self.nodeVisibility(state=1, skip=['%s_Main' % self.CTRL_Prefix])
 
@@ -3991,7 +3996,7 @@ class MetaRig(MetaClass):
         :param filepath: r9Anim file to load
         :param incRoots: do we include the root node in the load, in metaRig case this is ctrl_main
         :param useFilter: do we process all children of this rig or just selected
-        :param timerange: specific a timerange to store, else store all
+        :param timerange: specify a timerange to store, else store all
         :param storeThumbnail: this will be an avi but currently it's a pose thumbnail
         :param force: allow force write on a read only file
         :param userInfoData: user information used by the AnimStore UI only
