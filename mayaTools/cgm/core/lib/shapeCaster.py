@@ -762,10 +762,6 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                     mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
                     mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode,ws=True)	                    
                 if offsetMode =='vector':
-                    """constBuffer = mc.aimConstraint(mi_obj.mNode,mi_tmpLoc.mNode,
-                                                   aimVector=[0,0,-1],
-                                                   upVector=[0,1,0],
-                                                   worldUpType = 'scene')"""
                     _baseVector = MATH.get_vector_of_two_points(pos_base,
                                                                 hit)
                     _baseDist = DIST.get_distance_between_points(pos_base, 

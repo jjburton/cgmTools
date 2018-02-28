@@ -512,7 +512,7 @@ def noTransformNull_verify(self,mode='template'):
             #mNoTransformNull.setAttrFlags()
             #mNoTransformNull.inheritsTransform = False
         else:
-            mNoTransformNull = self.noTransformNull    
+            mNoTransformNull = self.getMessage(_plug,asMeta=True)[0]
     
         return mNoTransformNull    
     except Exception,err:
@@ -758,8 +758,6 @@ def create_prerigLoftMesh(self, targets = None,
             _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
-            
-            
             
             _d = {'keepCorners':False}#General}
             
@@ -1728,7 +1726,7 @@ def skeleton_getCreateDict(self, count = None):
     return _d_res
 
 
-def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = [],blockNames=False):
+def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = None, singleMode = False, cgmType = None, indices  = [],blockNames=False):
     """
     blockNames(bool) - use the block generated names
     """
@@ -1783,7 +1781,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
             
         #l_joints[i] = mJnt.mNode
         if connectToSource:
-            mJnt.connectChildNode(ml_joints[i].mNode,connectToSource,'{0}Joint'.format(modifier))#Connect
+            mJnt.connectChildNode(ml_source[i].mNode,'sourceJoint',"{0}Joint".format(connectToSource))#Connect
         
         if mJnt.hasAttr('scaleJoint'):
             if mJnt.scaleJoint in ml_skinJoints:
@@ -3651,7 +3649,7 @@ def buildProfile_load(self, arg):
 
 
 #Profile stuff ==============================================================================================
-def size(self, mode = None, postState = None):
+def doSize(self, mode = None, postState = None):
     """
     mode is placeholder for now
     """
