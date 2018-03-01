@@ -1081,10 +1081,12 @@ def rig_prechecks(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
     mBlock = self.mBlock
+    mModule = self.mModule
     mRigNull = self.mRigNull
     mPrerigNull = mBlock.prerigNull
     ml_templateHandles = mBlock.msgList_get('templateHandles')
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
+    mMasterNull = self.d_module['mMasterNull']
     
     #Pivot checks ============================================================================
     mPivotHolderHandle = ml_templateHandles[-1]
@@ -1092,29 +1094,57 @@ def rig_prechecks(self):
     if mPivotHolderHandle.getMessage('pivotHelper'):
         log.debug("|{0}| >> Pivot setup needed".format(_str_func))
         self.b_pivotSetup = True
+        log.debug(cgmGEN._str_subLine)
         
     #Roll joints =============================================================================
     #Look for roll chains...
+    log.debug("|{0}| >> Looking for rollChains...".format(_str_func))    
     _check = 0
+    
     self.md_roll = {}
-    self.ml_roll = []
-    self.b_segmentSetup = False
-    self.b_rollSetup = False
+    self.md_rollMulti = {}
+    self.ml_segHandles = []
+    self.md_segHandleIndices = {}
+    #self.b_segmentSetup = False
+    #self.b_rollSetup = False
     
     while _check <= len(ml_handleJoints):
         mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
         _len = len(mBuffer)
+        self.md_rollMulti[_check] = False
+        
         if mBuffer:
-            log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2}".format(_str_func,_check,_len ))
-            self.ml_roll.append(mBuffer)
-            self.md_roll[_check] = mBuffer
-            self.b_singleRoll = True
+            mStart = ml_handleJoints[_check]
+            mEnd = ml_handleJoints[_check+1]            
+            
+            ml_roll = [mStart] + mBuffer + [mEnd]
+            self.ml_segHandles
+            if mStart not in self.ml_segHandles:
+                self.ml_segHandles.append(mStart)
+                self.md_segHandleIndices[mStart] = _check
+            if mEnd not in self.ml_segHandles:
+                self.ml_segHandles.append(mEnd)
+                self.md_segHandleIndices[mEnd] = _check+1
+            
+            self.md_roll[_check] = ml_roll            
             if _len > 1:
-                self.b_segmentSetup = True
+                self.md_rollMulti[_check] = True
+            log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
+                                                                                      _check,
+                                                                                      _len,
+                                                                                      self.md_rollMulti[_check]))
             
         _check +=1
-    log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
-    log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
+        
+    #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
+    #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
+    pprint.pprint(self.md_roll)
+    log.debug(cgmGEN._str_subLine)
+    
+    pprint.pprint(self.ml_segHandles)
+    
+    log.debug(cgmGEN._str_subLine)
+    
     
     #Frame Handles =============================================================================
     self.ml_handleTargets = mPrerigNull.msgList_get('handleJoints')
@@ -1135,10 +1165,46 @@ def rig_prechecks(self):
     log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,self.ml_handleTargets))            
     log.debug("|{0}| >> End idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
                                                    ml_handleJoints[self.int_handleEndIdx]))            
+    log.debug(cgmGEN._str_subLine)
     
     
+    #DynParents =============================================================================
+    log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func,self.ml_handleTargets))            
+    
+    mModuleParent = self.d_module['mModuleParent']
+    self.d_dynTargetsParent = {}
+    self.ml_dynEndParents = [mMasterNull.puppetSpaceObjectsGroup, mMasterNull.worldSpaceObjectsGroup]
 
+    
+    self.d_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
+                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    
+    if mModuleParent:
+        mi_parentRigNull = mModuleParent.rigNull
+        if mi_parentRigNull.getMessage('rigRoot'):
+            self.d_dynTargetsParent['root'] = mi_parentRigNull.rigRoot
+        else:
+            self.d_dynTargetsParent['root'] = False
 
+        
+        if mi_parentRigNull.getMessage('controlIK'):
+            self.d_dynTargetsParent['controlIK'] = mi_parentRigNull.controlIK
+        else:
+            self.d_dynTargetsParent['controlIK'] = False
+            
+        if mi_parentRigNull.getMessage('controlIKBase'):
+            self.d_dynTargetsParent['controlIKBase'] = mi_parentRigNull.controlIKBase 
+        else:
+            self.d_dynTargetsParent['controlIKBase'] = False        
+            
+    log.debug(cgmGEN._str_subLine)
+    log.debug("|{0}| >> dynTargets...".format(_str_func))            
+    pprint.pprint(self.d_dynTargetsParent)
+    log.debug(cgmGEN._str_subLine)    
+    log.debug("|{0}| >> dynEndTargets...".format(_str_func))                
+    pprint.pprint(self.ml_dynEndParents)
+    
+    log.debug(cgmGEN._str_subLine)
 
 @cgmGEN.Timer
 def rig_skeleton(self):
@@ -1237,66 +1303,185 @@ def rig_skeleton(self):
         ml_jointsToConnect.extend(ml_ribbonIKDrivers)
         
     
-    if self.b_segmentSetup or self.b_singleRoll:
-        log.info("|{0}| >> Handles...".format(_str_func))            
-        ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
-        if mBlock.ikSetup:
-            for i,mJnt in enumerate(ml_segmentHandles):
-                mJnt.parent = ml_blendJoints[i]
-        else:
-            for i,mJnt in enumerate(ml_segmentHandles):
-                mJnt.parent = ml_fkJoints[i]        
+    #Segment/Parenting -----------------------------------------------------------------------------
+    self.md_roll
+    self.md_rollMulti
+    ml_processed = []
+    self.md_segHandleIndices
+    self.ml_segHandles
+    
+    md_rigTargets = {}
+    self.md_segHandles = {}
+    if self.md_roll:#Segment stuff ===================================================================
+        log.debug("|{0}| >> Segment...".format(_str_func))
         
-        if self.b_segmentSetup:
-            log.info("|{0}| >> segment necessary...".format(_str_func))
+        for i,ml_set in self.md_roll.iteritems():
+            log.debug("|{0}| >> Segment Handles {1} ...".format(_str_func, i))#----------------------------
+        
+            ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                        [ml_set[0],ml_set[-1]], None, 
+                                                                        mRigNull,
+                                                                        'segmentHandles_{0}'.format(i),
+                                                                        connectToSource = 'segHandle_{0}_'.format(i),
+                                                                        cgmType = 'segHandle')
+            ml_jointsToConnect.extend(ml_segmentHandles)
+            
+            self.md_segHandles[i] = ml_segmentHandles
+            
+            for mJnt in ml_segmentHandles:
+                mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
+                mJnt.doName()
                 
+            if mBlock.ikSetup:
+                for ii,mJnt in enumerate(ml_segmentHandles):
+                    mJnt.parent = ml_blendJoints[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
+            else:
+                for ii,mJnt in enumerate(ml_segmentHandles):
+                    mJnt.parent = ml_fkJoints[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
+                    
+            
+            #Seg chain -------------------------------------------------------------------------------------
+            log.debug("|{0}| >> SegChain {1} ...".format(_str_func, i))
             ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                      ml_joints, None, 
-                                                                      mRigNull,'segmentJoints',
-                                                                      connectToSource = 'seg',
+                                                                      ml_set, None, 
+                                                                      mRigNull,'segJoints_{0}'.format(i),
+                                                                      connectToSource = 'seg_{0}_'.format(i),
                                                                       cgmType = 'segJnt')
-            for i,mJnt in enumerate(ml_rigJoints):
-                mJnt.parent = ml_segmentChain[i]
-                mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
-                
-            ml_jointsToHide.extend(ml_segmentChain)
             
-        else:
-            log.info("|{0}| >> rollSetup joints...".format(_str_func))
+            for mJnt in ml_segmentChain:
+                mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
+                mJnt.doName()
+                
+            ml_jointsToConnect.extend(ml_segmentChain)
             
-             
-            for i,mBlend in enumerate(ml_blendJoints):
-                ml_rolls = self.md_roll.get(i)
+            log.debug("|{0}| >> map drivers {1} ...".format(_str_func, i))            
+            for ii,mJnt in enumerate(ml_set):
+                mRigJoint = mJnt.getMessage('rigJoint',asMeta=True)[0]
                 
-                if ml_rolls:
-                    ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                              ml_rolls,
-                                                                              None, 
-                                                                              False,
-                                                                              connectToSource = 'seg',
-                                                                              cgmType = 'segJnt')
+                log.debug("|{0}| >> mJnt: {1} | rigJoint: {2} | segJoint: {3}".format(_str_func,
+                                                                                      mJnt.p_nameShort,
+                                                                                      mRigJoint.p_nameShort,
+                                                                                      ml_segmentChain[ii].p_nameShort))
                 
-                    ml_jointsToHide.extend(ml_segmentChain)
-                    ml_segmentChain[0].p_parent = mBlend
-                    
-                    
-                
-                
+                mRigJoint.msgList_append('driverJoints',ml_segmentChain[ii].mNode, connectBack = 'drivenJoint')
+
             
             
+            for ii,mJnt in enumerate(ml_segmentChain):
+                if ii == 0:
+                    continue
+                mJnt.parent = ml_segmentChain[ii-1]
+        
+            if mBlock.ikSetup:
+                ml_segmentChain[0].parent = ml_blendJoints[i]
+            else:
+                ml_segmentChain[0].parent = ml_fkJoints[i]
+                
+
+    """
+    if self.b_segmentSetup:
+        log.info("|{0}| >> segment necessary...".format(_str_func))
+            
+        ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                  ml_joints, None, 
+                                                                  mRigNull,'segmentJoints',
+                                                                  connectToSource = 'seg',
+                                                                  cgmType = 'segJnt')
+        for i,mJnt in enumerate(ml_rigJoints):
+            mJnt.parent = ml_segmentChain[i]
+            mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
+            
+        ml_jointsToHide.extend(ml_segmentChain)
         
     else:
-        log.info("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))
-        ml_rigParents = ml_fkJoints
-        if ml_blendJoints:
-            ml_rigParents = ml_blendJoints
-        for i,mJnt in enumerate(ml_rigJoints):
-            mJnt.parent = ml_blendJoints[i]
+        log.info("|{0}| >> rollSetup joints...".format(_str_func))
+        
+         
+        for i,mBlend in enumerate(ml_blendJoints):
+            ml_rolls = self.md_roll.get(i)
             
-        """
-        if str_ikBase == 'hips':
-            log.info("|{0}| >> Simple setup. Need single handle.".format(_str_func))
-            ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_fkJoints, 'handle', mRigNull,'handleJoints', cgmType = 'handle', indices=[1])"""
+            if ml_rolls:
+                ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                          ml_rolls,
+                                                                          None, 
+                                                                          False,
+                                                                          connectToSource = 'seg',
+                                                                          cgmType = 'segJnt')
+            
+                ml_jointsToHide.extend(ml_segmentChain)
+                ml_segmentChain[0].p_parent = mBlend"""
+        
+    
+    #Parenting rigJoints ======================================================================
+    log.debug("|{0}| >> Connecting rigJoints to drivers...".format(_str_func))
+    ml_rigParents = ml_fkJoints
+    if ml_blendJoints:
+        ml_rigParents = ml_blendJoints
+    
+    for i,mJnt in enumerate(ml_rigJoints):
+        log.debug("|{0}| >> RigJoint: {1} ...".format(_str_func,mJnt))
+        ml_drivers = mJnt.msgList_get('driverJoints')
+        _l = False
+        _done = False
+        if ml_drivers:
+            log.debug("|{0}| >> ... Found special drivers: {1}".format(_str_func,ml_drivers))
+            if len(ml_drivers) == 1:
+                mJnt.p_parent = ml_drivers[0]
+                _done = True
+            else:
+                _l = [mObj.mNode for mObj in ml_drivers]
+
+        if not _done:
+            for mParent in ml_rigParents:
+                if MATH.is_vector_equivalent(mParent.p_position,mJnt.p_position):
+                    log.debug("|{0}| >> ... Position match: {1}".format(_str_func,mParent))
+                    mJnt.parent = mParent
+                    
+                    if _l:
+                        mc.pointConstraint(_l, mJnt.mNode, maintainOffset =False)
+                        mc.orientConstraint(_l, mJnt.mNode, maintainOffset = False)
+                        mc.scaleConstraint(_l, mJnt.mNode, maintainOffset = False)
+                        
+                    continue
+
+    
+    if self.b_pivotSetup:
+        log.info("|{0}| >> Pivot joints...".format(_str_func))        
+        if self.mBall:
+            log.info("|{0}| >> Ball joints...".format(_str_func))
+            
+            mBallJointPivot = self.mBall.doCreateAt('joint',copyAttrs=True)#dup ball in place
+            mBallJointPivot.parent = False
+            mBallJointPivot.cgmName = 'ball'
+            mBallJointPivot.addAttr('cgmType','pivotJoint')
+            mBallJointPivot.doName()
+            mRigNull.connectChildNode(mBallJointPivot,"pivot_ballJoint","rigNull")
+    
+            #Ball wiggle pivot
+            mBallWiggleJointPivot = mBallJointPivot.doDuplicate(po = True)#dup ball in place
+            mBallWiggleJointPivot.parent = False
+            mBallWiggleJointPivot.cgmName = 'ballWiggle'
+            mBallWiggleJointPivot.addAttr('cgmType','pivotJoint')            
+            mBallWiggleJointPivot.doName()
+            mRigNull.connectChildNode(mBallWiggleJointPivot,"pivot_ballWiggle","rigNull") 
+            
+            if not self.mToe:
+                log.info("|{0}| >> Making toe joint...".format(_str_func))
+                raise NotImplementedError,"Haven't done make toe joint yet"
+                """
+                i_toeJoint = ml_ikJoints[-1].doDuplicate()
+                log.info("i_toeJoint: {0}".format(i_toeJoint))
+                log.info("mi_toePivot: {0}".format(mi_toePivot))                
+                SNAP.go(i_toeJoint, mi_toePivot.mNode,True,False)
+                joints.doCopyJointOrient(ml_ikJoints[-1].mNode,i_toeJoint.mNode)
+                i_toeJoint.addAttr('cgmName','toe',attrType='string',lock=True)	
+                i_toeJoint.addAttr('cgmTypeModifier','ik',attrType='string',lock=True)
+                i_toeJoint.doName()
+            
+                i_toeJoint.parent = ml_ikJoints[-1].mNode
+                ml_ikJoints.append(i_toeJoint)
+                self._i_rigNull.msgList_append('ikJoints',i_toeJoint,'rigNull')            
+                """
     
         
     #...joint hide -----------------------------------------------------------------------------------
@@ -1956,7 +2141,7 @@ def rig_frame(self):
         #Pivot Driver ========================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
         if mPivotHolderHandle.getMessage('pivotHelper'):
-            log.info("|{0}| >> Pivot setup...".format(_str_func))
+            log.info("|{0}| >> Pivot setup initial".format(_str_func))
             
             mPivotResultDriver = mPivotHolderHandle.doCreateAt()
             mPivotResultDriver.addAttr('cgmName','pivotResult')
@@ -1966,14 +2151,15 @@ def rig_frame(self):
             mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
             mIKHandleDriver = mPivotResultDriver
             
-            mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
-     
+            mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect
+            
+            """
             mBlock.atBlockUtils('pivots_setup', mControl = mIKControl, 
                                 mRigNull = mRigNull, 
                                 pivotResult = mPivotResultDriver,
                                 rollSetup = 'default',
                                 front = 'front', back = 'back')#front, back to clear the toe, heel defaults
-        
+            """
 
         
         """
@@ -2399,6 +2585,105 @@ def rig_frame(self):
         return    
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
+@cgmGEN.Timer
+def rig_pivotSetup(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_pivotSetup'.format(_short)
+    log.info("|{0}| >> ...".format(_str_func))  
+    
+    if not self.b_pivotSetup:
+        log.info("|{0}| >> No pivot setup...".format(_str_func))
+        return True
+    
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mRootParent = self.mDeformNull
+    mModule = self.mModule
+    
+    #ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    #ml_fkJoints = mRigNull.msgList_get('fkJoints')
+    #ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    #ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
+    #ml_blendJoints = mRigNull.msgList_get('blendJoints')
+    #ml_templateHandles = mBlock.msgList_get('templateHandles')
+    #mPlug_globalScale = self.d_module['mPlug_globalScale']
+    #mRoot = mRigNull.rigRoot
+
+    #str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+    
+    
+    
+    #Changing targets - these change based on how the setup rolls through
+    #mIKHandleDriver = mIKControl#...this will change with pivot
+    mIKControl = mRigNull.controlIK                
+    mIKHandleDriver = mIKControl
+    
+    #Pivot Driver ========================================================================================
+    mBallPivotJoint = None
+    mBallWiggleJoint = None
+    
+    if self.b_pivotSetup:
+        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)[0]
+        
+        _pivotSetup = ATTR.get_enumValueString(self.mBlock.mNode,'ikEnd')
+        if _pivotSetup == 'foot':
+            _mode = 'foot'
+            
+            mToeIK = False
+            mBallIK = False
+    
+            ml_ikJoints = mRigNull.msgList_get('ikJoints')
+            if self.mToe:
+                mToeIK = ml_ikJoints.pop(-1)
+            if self.mBall:
+                mBallIK = ml_ikJoints.pop(-1)
+            
+            mAnkleIK = ml_ikJoints[-1]
+            mBallPivotJoint = mRigNull.getMessage('pivot_ballJoint',asMeta=True)[0]
+            mBallWiggleJoint = mRigNull.getMessage('pivot_ballWiggle',asMeta=True)[0]
+            
+            pprint.pprint(vars())
+
+            
+            
+            
+    
+        else:
+            _mode == 'default'
+            
+        
+        
+       
+        
+        pprint.pprint(vars())
+         
+        mBlock.atBlockUtils('pivots_setup',
+                            mControl = mIKControl, 
+                            mRigNull = mRigNull, 
+                            pivotResult = mPivotResultDriver,
+                            mBallJoint= mBallPivotJoint,
+                            mBallWiggleJoint = mBallWiggleJoint,
+                            rollSetup = _mode,
+                            front = 'front', back = 'back')#front, back to clear the toe, heel defaults
+        
+        if _mode == 'foot':
+            log.info("|{0}| >> foot ik".format(_str_func))
+            
+            #Create foot IK -----------------------------------------------------------------------------
+            reload(IK)
+            d_ballReturn = IK.handle(mAnkleIK.mNode,mBallIK.mNode,solverType='ikSCsolver',
+                                     baseName=mAnkleIK.cgmName,moduleInstance=mModule)
+            mi_ballIKHandle = d_ballReturn['mHandle']
+            mi_ballIKHandle.parent = mBallPivotJoint.mNode#ballIK to toe
+        
+        
+            #Create toe IK -------------------------------------------------------------------------------
+            d_toeReturn = IK.handle(mBallIK.mNode,mToeIK.mNode,solverType='ikSCsolver',
+                                    baseName=mBallIK.cgmName,moduleInstance=mModule)
+            mi_toeIKHandle = d_toeReturn['mHandle']
+            mi_toeIKHandle.parent = mBallWiggleJoint.mNode#toeIK to wiggle        
+
+
 #@cgmGEN.Timer
 def rig_matchSetup(self):
     try:
@@ -2495,6 +2780,7 @@ def rig_cleanUp(self):
         if ml_buffer:
             log.debug("|{0}| >>  Found: {1}".format(_str_func,msgLink))            
             ml_controlsToSetup.extend(ml_buffer)
+    
     
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []

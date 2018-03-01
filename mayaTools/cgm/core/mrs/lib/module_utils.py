@@ -503,10 +503,9 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
         
         ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+        
         if not ml_targetJoints:
             raise ValueError,"mParentModule has no module joints."
-    
-        
         if mode == 'end':
             mTarget = ml_targetJoints[-1]
         elif mode == 'base':
@@ -516,8 +515,51 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             if noneValid:
                 return log.error(_msg)
             raise ValueError,_msg
-    
         return mTarget
+    
+def get_driverPoint(self, mode = 'end',noneValid = True):
+    _str_func = 'get_driverPoint'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    mParentModule = self.getMessage('moduleParent',asMeta=True)
+    if not mParentModule:
+        if self.modulePuppet:
+            if self.modulePuppet.getMessage('rootJoint'):
+                log.debug("|{0}| >> Root joint on master found".format(_str_func))
+                return self.modulePuppet.rootJoint[0]
+            return False
+        raise RuntimeError,"Shouldn't have gotten here"
+    else:
+        mParentModule = mParentModule[0]
+        log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
+        
+        ml_targetJoints = mParentModule.rigNull.msgList_get('rigJoints',asMeta = True, cull = True)
+        
+        if not ml_targetJoints:
+            raise ValueError,"mParentModule has no rig joints."
+        if mode == 'end':
+            mTarget = ml_targetJoints[-1]
+        elif mode == 'base':
+            mTarget = ml_targetJoints[0]
+        else:
+            _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
+            if noneValid:
+                return log.error(_msg)
+            raise ValueError,_msg
+        
+        if mTarget.getMessage('dynParentGroup'):
+            log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
+            mDynParentGroup = mTarget.dynParentGroup
+            #if not mDynParentGroup.hasAttr('cgmAlias'):
+            mDynParentGroup.doStore('cgmAlias', mTarget.cgmName)
+            log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
+            return mDynParentGroup
+            mTarget = mTarget.dynParentGroup
+            
+            
+            
+        return mTarget
+    
     
 def get_joints(self, skinJoints = False, moduleJoints =False, rigJoints=False, selectResult = False, asMeta = False):
     _str_func = ' get_joints'

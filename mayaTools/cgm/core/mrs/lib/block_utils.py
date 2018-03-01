@@ -1055,6 +1055,7 @@ l_pivotOrder = ['center','back','front','left','right']
 d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
                     'right':{'left':'inner','right':'outer'}}
 
+@cgmGEN.Timer
 def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     """
     Builder of shapes for pivot setup. Excpects to find pivotHelper on block
@@ -1095,8 +1096,13 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
             mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect    
             mPivot.parent = False
     return True
-                
-def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rollSetup = 'default', **kws):
+
+@cgmGEN.Timer
+def pivots_setup(self, mControl = None, mRigNull = None,
+                 mBallJoint = None,
+                 mBallWiggleJoint = None,
+                 jointOrientation = 'zyx',
+                 pivotResult = None, rollSetup = 'default', **kws):
     """
     Builder for pivot setup
     
@@ -1111,9 +1117,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
     _short = self.mNode
     _str_func = 'pivots_setup'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    
-    _start = time.clock()
-    
+        
     _side = get_side(self)
     if _side in ['right']:
         d_bankNames = d_pivotBankNames['right']
@@ -1136,7 +1140,6 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         
     mPivotResult = cgmMeta.validateObjArg(pivotResult,'cgmObject',noneValid=True)
     
-        
     #Find our pivots and create grups ========================================================================
     d_pivots = {}
     #d_twistGroups = {}
@@ -1167,17 +1170,18 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                 mDrivenGroup.parent = mPivot
                 
                 mLastParent = mDrivenGroup
-                
-                
-                
                 continue
             log.error("|{0}| >> No master group on pivot. Wrong stage: {1}".format(_str_func,str_a))
+    if mBallWiggleJoint:
+        mBallWiggleJoint.parent = mLastParent
+    if mBallJoint:
+        mBallJoint.parent = mLastParent
+        mLastParent = mBallJoint
+        
+    
         
     if not d_pivots:
         raise ValueError,"|{0}| >> No pivots found. mBlock: {1}".format(_str_func,self)
-    
-    if mPivotResult:
-        mPivotResult.parent = mLastParent    
     
     #pprint.pprint(vars())
     #Logic ======================================================================================
@@ -1211,13 +1215,22 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         
         
         if rollSetup in ['human','ik','foot']:
-            
             log.info("|{0}| >> foot setup ...".format(_str_func))
-            mToe = d_drivenGroups['front']
-            mHeel = d_drivenGroups['back'] = d_drivenGroups['back']        
-            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'toeLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
-            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'toeStaighten',attrType='float',initialValue = 65,defaultValue = 70,keyable = True)
-        
+            mFrontToe = d_drivenGroups['front']
+            mHeel = d_drivenGroups['back']
+            
+            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'toeRollLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'toeRollStaighten',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
+            
+            if mBallWiggleJoint:
+                mPlug_toeUpDn = cgmMeta.cgmAttr(mControl,'toeUpDn',attrType='float',defaultValue = 0,keyable = True)
+                mPlug_toeTwist= cgmMeta.cgmAttr(mControl,'toeTwist',attrType='float',defaultValue = 0,keyable = True)                
+                mPlug_toeWiggle= cgmMeta.cgmAttr(mControl,'toeWiggle',attrType='float',defaultValue = 0,keyable = True)                
+                
+                mPlug_toeUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
+                mPlug_toeTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
+                mPlug_toeWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                
             #Heel setup ----------------------------------------------------------------------------------------
             log.info("|{0}| >> Heel ...".format(_str_func))        
             mPlug_heelClampResult = cgmMeta.cgmAttr(mControl,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
@@ -1233,7 +1246,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
             NODEFACTORY.argsToNodes(_arg).doBuild()
         
             #Inversion
-            mPlug_heelClampResult.doConnectOut("%s.rx"%(d_drivenGroups['back'].mNode))        
+            mPlug_heelClampResult.doConnectOut("%s.rx"%(mHeel.mNode))        
         
             #Ball setup ----------------------------------------------------------------------------------------------
             """
@@ -1243,7 +1256,6 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                             1               4       3             2                            5
                 """
             log.info("|{0}| >> ball ...".format(_str_func))    
-        
         
             mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',attrType='float',keyable = False,hidden=True)
             mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mControl,'result_range_toeStraightRoll',attrType='float',keyable = False,hidden=True)
@@ -1273,7 +1285,7 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
                 NODEFACTORY.argsToNodes(arg).doBuild()
             
             #>>>Josh - resolve getting this back in and where it need to be in heirarchy
-            #mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mi_jointBallPivot.mNode,orientation[2]))
+            mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mBallJoint.mNode,jointOrientation[2]))
         
         
             #Toe setup -----------------------------------------------------------------------------------------------
@@ -1298,7 +1310,10 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
             for arg in [arg1,arg2]:
                 NODEFACTORY.argsToNodes(arg).doBuild()    
         
-            mPlug_toe_x_rollResult.doConnectOut("%s.rx"%(mToe.mNode))    
+            mPlug_toe_x_rollResult.doConnectOut("%s.rx"%(mFrontToe.mNode))
+            
+            #mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
+            #mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))            
         else:
             log.info("|{0}| >> StandardRoll ...".format(_str_func))
             
@@ -1418,9 +1433,10 @@ def pivots_setup(self, mControl = None, mRigNull = None, pivotResult = None, rol
         else:
             mPlug_bankBall.doConnectOut("{0}.rz".format(mDriven.mNode))         
     
+    if mPivotResult:#Do this at the very end...
+        mPivotResult.parent = mLastParent        
 
 
-    log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
     
 #=============================================================================================================
@@ -1920,7 +1936,6 @@ def skeleton_connectToParent(self):
                 mTargetJoint = ml_targetJoints[0]
             else:
                 raise ValueError,"Not done with {0}".format(_attachPoint)
-        
             ml_moduleJoints[0].p_parent = mTargetJoint
             
     return True
@@ -2088,7 +2103,9 @@ def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = Fal
             if ml_handleChain:mNew.parent = ml_handleChain[-1]#if we have data, parent to last
             else:mNew.parent = False
             if typeModifier or clearType:
-                if typeModifier:mNew.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+                if typeModifier:
+                    mNew.addAttr('cgmTypeModifier',typeModifier,attrType='string',lock=True)
+                    mHandle.connectChildNode(mNew.mNode,'{0}Joint'.format(typeModifier),'sourceJoint')
                 if clearType:
                     try:ATTR.delete(mNew.mNode, 'cgmType')
                     except:pass

@@ -4403,7 +4403,8 @@ class rigFactory(object):
                     i_grp.parent = self.i_faceDeformNull
                     
         self.mDeformNull = self.mModule.deformNull
-        self.attachPoint = self.mModule.atUtils('get_attachPoint')
+        _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
+        self.attachPoint = self.mModule.atUtils('get_attachPoint',_attachPoint )
         if self.attachPoint:
             log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
             mAttach = cgmMeta.validateObjArg(self.attachPoint)

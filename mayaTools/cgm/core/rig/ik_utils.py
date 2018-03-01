@@ -1563,8 +1563,8 @@ def handle(startJoint,
         ml_jointChain = mStart.getListPathTo(mEnd,asMeta=True)
         #ml_jointChain = cgmMeta.validateObjListArg(l_jointChain,'cgmObject',noneValid=False)
         l_jointChain = [mObj.mNode for mObj in ml_jointChain]
-        if len(ml_jointChain)<3:
-            raise ValueError,"|{0}| >> {1} len less than 3 joints.".format(_str_func,len(ml_jointChain))
+        if len(ml_jointChain)<3 and solverType in ['rpSolver']:
+            raise ValueError,"|{0}| >> {1} len less than 3 joints. solver: {2}".format(_str_func,len(ml_jointChain,solverType))
             
         _foundPrerred = False
         for mJnt in ml_jointChain:
