@@ -6813,6 +6813,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
     _cacheKey = None
     _cached = None
     _unicodeArg = unicode( _arg)
+    _change = False
 
     if _UUID in _keys:
         _cacheKey = _UUID
@@ -6866,10 +6867,8 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                 #attributes.storeInfo(_arg, 'mClass', mType, overideMessageCheck=True)
                 #ATTR.add(_arg,'UUID','string')
 
-        else:
+        elif mTypeClass:
             log.debug("No cached mClass or type")
-            _change = True
-            
             try:
                 if issubclass(type(_cached), mTypeClass ):
                     log.debug("subclass match")
@@ -6890,6 +6889,8 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                 else:
                     log.debug("...not a subclass")			
             except Exception, err:
+                log.warning("cachedType: {0}".format(_cachedType))
+                log.warning("mTypeClass: {0}".format(mTypeClass))                
                 log.warning("Change cached subclass check failed | {0}".format(err))                
                 
         if not _change and not _redo:

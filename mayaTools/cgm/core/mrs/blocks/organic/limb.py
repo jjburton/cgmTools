@@ -89,7 +89,6 @@ __l_rigBuildOrder__ = ['rig_prechecks',
                        'rig_segments',
                        'rig_cleanUp']
 
-
 d_wiring_skeleton = {'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
@@ -1165,9 +1164,11 @@ def rig_prechecks(self):
         self.int_handleEndIdx -=1
     
     log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,self.ml_handleTargets))            
-    log.debug("|{0}| >> End idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
+    log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
                                                    ml_handleJoints[self.int_handleEndIdx]))            
     log.debug(cgmGEN._str_subLine)
+    
+    self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
     
     
     #DynParents =============================================================================
@@ -1381,6 +1382,7 @@ def rig_skeleton(self):
                                                                                       mJnt.p_nameShort,
                                                                                       mRigJoint.p_nameShort,
                                                                                       ml_segmentChain[ii].p_nameShort))
+
                 
                 mRigJoint.msgList_append('driverJoints',ml_segmentChain[ii].mNode, connectBack = 'drivenJoint')
 
@@ -1437,12 +1439,18 @@ def rig_skeleton(self):
     for i,mJnt in enumerate(ml_rigJoints):
         log.debug("|{0}| >> RigJoint: {1} ...".format(_str_func,mJnt))
         ml_drivers = mJnt.msgList_get('driverJoints')
+        
         _l = False
         _done = False
         if ml_drivers:
             log.debug("|{0}| >> ... Found special drivers: {1}".format(_str_func,ml_drivers))
             #if len(ml_drivers) == 1:
-            mJnt.p_parent = ml_drivers[-1]
+            
+            if ml_joints[i] == self.mIKEndSkinJnt:#last joint
+                log.debug("|{0}| >> End joint: {1} ".format(_str_func,mJnt))
+                mJnt.p_parent = ml_blendJoints[self.int_handleEndIdx]
+            else:
+                mJnt.p_parent = ml_drivers[-1]
             _done = True
             #else:
                 #_l = [mObj.mNode for mObj in ml_drivers]
@@ -1624,7 +1632,7 @@ def rig_shapes(self):
                     _mTar = ml_targets[self.int_handleEndIdx]
                     
                 
-                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .4,'{0}+'.format(_jointOrientation[2])))
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .4,'{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
     
                 mSettingsShape.doSnapTo(_mTar.mNode)
                 
@@ -1633,15 +1641,16 @@ def rig_shapes(self):
                 #                 mode = 'vector',
                 #                 vectorUp= _mTar.getAxisVector(_jointOrientation[1]+'+'))
                 
-                mSettings = _mTar.doCreateAt(setClass=True)
-                mSettings.parent = _mTar
-                CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
+                #mSettings = _mTar.doCreateAt(setClass=True)
+                mSettingsShape.parent = _mTar
+                mSettings = mSettingsShape
+                #CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
                 
                 ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
     
                 mSettings.doStore('cgmTypeModifier','settings')
                 mSettings.doName()
-                #CORERIG.colorControl(mSettings.mNode,_side,'sub')
+                #CORERIG.colorControl(mSettings.mNode,_side,'sub')                
                 mHandleFactory.color(mSettings.mNode, controlType = 'sub')
             
                 self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
@@ -1838,6 +1847,7 @@ def rig_controls(self):
     ml_controlsAll = []#we'll append to this list and connect them all at the end
     mRootParent = self.mConstrainNull
     mSettings = mRigNull.settings
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
     
     b_cog = False
     if mBlock.getMessage('cogHelper'):
@@ -1971,7 +1981,25 @@ def rig_controls(self):
         
         mControlMidIK = _d['mObj']
         mControlMidIK.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mControlMidIK)    
+        ml_controlsAll.append(mControlMidIK)
+        
+        
+        #Mid IK trace
+        log.debug("|{0}| >> midIK track Crv".format(_str_func, mControlMidIK))
+        trackcrv,clusters = CORERIG.create_at([mControlMidIK.mNode,
+                                               ml_handleJoints[1]],
+                                              'linearTrack',
+                                              baseName = '{0}_midTrack'.format(self.d_module['partName']))
+        
+        mTrackCrv = cgmMeta.asMeta(trackcrv)
+        mTrackCrv.p_parent = self.mModule
+        mHandleFactory = mBlock.asHandleFactory()
+        mHandleFactory.color(trackcrv, controlType = 'sub')
+        
+        for s in mTrackCrv.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2        
+
 
     if not b_cog:#>> settings ========================================================================================
         log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
@@ -1985,7 +2013,6 @@ def rig_controls(self):
         #    mSettings.masterGroup.parent = ml_fkJoints[-1]
     
     #>> handleJoints ========================================================================================
-    ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
     if ml_handleJoints:
         log.debug("|{0}| >> Found Handle Joints...".format(_str_func))
         
@@ -2083,40 +2110,67 @@ def rig_segments(self):
                 log.debug("|{0}| >> Handle: {1} | {2}".format(_str_func,mSegHandle.p_nameShort, ii))            
                 mParent = mSegHandle.getParent(asMeta=1)
                 idx_parent = ml_handleJoints.index(mParent)
+                mBlendParent = mParent.masterGroup.getParent(asMeta=True)
                 
                 if mParent == ml_handleJoints[0]:
+                    #First handle ================================================================
                     log.debug("|{0}| >> First handle...".format(_str_func))
                     _aimForward = ml_handleJoints[idx_parent+1].p_nameShort
                     
-                    mAimForward = mSegHandle.doCreateAt()
-                    mAimForward.p_parent = mSegHandle.p_parent
-                    mAimForward.doStore('cgmName',mSegHandle.mNode)                                
-                    mAimForward.doStore('cgmTypeModifier','forward')
-                    mAimForward.doStore('cgmType','aimer')
-                    mAimForward.doName()                    
-
+                    """
+                    mc.aimConstraint(_aimForward, mSegHandle.mNode, maintainOffset = True,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpObject = mParent.mNode,
+                                     worldUpType = 'objectrotation', 
+                                     worldUpVector = [1,0,0])"""
+                    
+                    #Stable aim ---------------------------------------------------------------
+                    log.debug("|{0}| >> Stable/Aim...".format(_str_func))                    
+                    log.debug("|{0}| >> blendParent: {1} ".format(_str_func,mBlendParent))
+                    
+                    log.debug("|{0}| >> Stable up...".format(_str_func))
+                    mStableUp = mBlendParent.doCreateAt()
+                    mStableUp.p_parent = mRoot
+                    mStableUp.doStore('cgmName',mSegHandle.mNode)                
+                    mStableUp.doStore('cgmTypeModifier','stable')
+                    mStableUp.doStore('cgmType','upObj')
+                    mStableUp.doName()
+                    
+                    #orient contrain one channel
+                    mc.orientConstraint(mBlendParent.mNode, mStableUp.mNode,
+                                        maintainOffset = True,
+                                        skip = [_jointOrientation[0], _jointOrientation[1]])
+                    
+                    
                     mAimStable = mSegHandle.doCreateAt()
-                    #mAimStable.p_parent = mSegHandle.p_parent
-                    mAimStable.p_parent = self.mConstrainNull.p_parent
+                    mAimStable.p_parent = mBlendParent
                     mAimStable.doStore('cgmName',mSegHandle.mNode)                
-                    mAimStable.doStore('cgmTypeModifier','Stable')
+                    mAimStable.doStore('cgmTypeModifier','stableStart')
                     mAimStable.doStore('cgmType','aimer')
                     mAimStable.doName()
                     
-                    mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = True,
+                    mAimFollow = mSegHandle.doCreateAt()
+                    mAimFollow.p_parent = mBlendParent
+                    mAimFollow.doStore('cgmName',mSegHandle.mNode)                
+                    mAimFollow.doStore('cgmTypeModifier','follow')
+                    mAimFollow.doStore('cgmType','aimer')
+                    mAimFollow.doName()                    
+                    
+                    mc.aimConstraint(_aimForward, mAimFollow.mNode, maintainOffset = True,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mParent.mNode,
+                                     worldUpObject = mBlendParent.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = [0,1,0])
                     
                     mc.aimConstraint(_aimForward, mAimStable.mNode, maintainOffset = True,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = self.mConstrainNull.p_parent,
+                                     worldUpObject = mStableUp.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = [0,1,0])                    
                     
                     
-                    const = mc.orientConstraint([mAimStable.mNode,mAimForward.mNode], mSegHandle.mNode, maintainOffset = False)[0]
+                    const = mc.orientConstraint([mAimStable.mNode,mAimFollow.mNode],
+                                                mParent.masterGroup.mNode, maintainOffset = False)[0]
                 
                     d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mParent.mNode,
                                                                           'stable_{0}'.format(i)],
@@ -2137,38 +2191,52 @@ def rig_segments(self):
                     
                     
                     
+                    
                 elif mParent == ml_handleJoints[-1]:
                     log.debug("|{0}| >> Last handles...".format(_str_func))
                     _aimBack = ml_handleJoints[idx_parent-1].p_nameShort
-                    _aimStable = mParent.p_nameShort
                     
-                    
-                    mAimStable = mSegHandle.doCreateAt()
-                    mAimStable.p_parent = mSegHandle.p_parent
-                    mAimStable.doStore('cgmName',mSegHandle.mNode)                
-                    mAimStable.doStore('cgmTypeModifier','Stable')
-                    mAimStable.doStore('cgmType','aimer')
-                    mAimStable.doName()
+                    mFollow = mSegHandle.doCreateAt()
+                    mFollow.p_parent = mBlendParent
+                    mFollow.doStore('cgmName',mSegHandle.mNode)                
+                    mFollow.doStore('cgmTypeModifier','follow')
+                    mFollow.doStore('cgmType','driver')
+                    mFollow.doName()
                 
                     mAimBack = mSegHandle.doCreateAt()
-                    mAimBack.p_parent = mSegHandle.p_parent
+                    mAimBack.p_parent = mBlendParent
                     mAimBack.doStore('cgmName',mSegHandle.mNode)                                
                     mAimBack.doStore('cgmTypeModifier','back')
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
+                    
+                    log.debug("|{0}| >> Stable up...".format(_str_func))
+                    mStableUp = mBlendParent.doCreateAt()
+                    mStableUp.p_parent = mBlendParent.p_parent
+                    mStableUp.doStore('cgmName',mSegHandle.mNode)                
+                    mStableUp.doStore('cgmTypeModifier','stableEnd')
+                    mStableUp.doStore('cgmType','upObj')
+                    mStableUp.rotateOrder = 0#...thing we have to have this to xyz to work right
+                    mStableUp.doName()
+                    
+                    mc.orientConstraint(mBlendParent.mNode, mStableUp.mNode,
+                                        maintainOffset = True,
+                                        skip = [_jointOrientation[2], _jointOrientation[1]])                    
                 
-                    mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = True,
-                                     aimVector = [0,0,-1], upVector = [0,1,0], 
-                                     worldUpObject = mParent.mNode,
+                    mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
+                                     aimVector = [0,0,-1], upVector = [-1,0,0], 
+                                     worldUpObject = mStableUp.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = [-1,0,0])
                 
                 
 
-                    const = mc.orientConstraint([mAimStable.mNode,mAimBack.mNode], mSegHandle.mNode, maintainOffset = False)[0]
+                    const = mc.orientConstraint([mFollow.mNode,mAimBack.mNode],
+                                                mParent.masterGroup.mNode,
+                                                maintainOffset = False)[0]
                 
                     d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mParent.mNode,
-                                                                          'curveSeg_{0}'.format(i)],
+                                                                          'followRoot_{0}'.format(i)],
                                                                          [mParent.mNode,'resRootFollow_{0}'.format(i)],
                                                                          [mParent.mNode,'resAimFollow_{0}'.format(i)],
                                                                          keyable=True)
@@ -2204,13 +2272,13 @@ def rig_segments(self):
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
                 
-                    mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = True,
+                    mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = [-1,0,0])
                     
-                    mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = True,
+                    mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                      aimVector = [0,0,-1], upVector = [0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
@@ -2693,11 +2761,10 @@ def rig_frame(self):
                 mMidControlDriver.addAttr('cgmName','midIK')
                 mMidControlDriver.addAttr('cgmType','driver')
                 mMidControlDriver.doName()
-            
                 mMidControlDriver.addAttr('cgmAlias', 'midDriver')
                 
                 mc.pointConstraint([mRoot.mNode, mIKHandleDriver.mNode], mMidControlDriver.mNode)
-                mMidControlDriver.parent = mRoot
+                mMidControlDriver.parent = mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
                     
             elif _ikSetup == 'spline':
@@ -3072,7 +3139,7 @@ def rig_cleanUp(self):
         mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
         
     ml_targetDynParents.extend(self.ml_dynEndParents)
-    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=2)
+    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)
 
     log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
     pprint.pprint(ml_targetDynParents)
@@ -3080,7 +3147,7 @@ def rig_cleanUp(self):
     for mTar in ml_targetDynParents:
         mDynGroup.addDynParent(mTar)
     mDynGroup.rebuild()
-    mDynGroup.dynFollow.p_parent = self.mConstrainNull
+    #mDynGroup.dynFollow.p_parent = self.mConstrainNull
     
     log.debug(cgmGEN._str_subLine)
     
@@ -3109,13 +3176,13 @@ def rig_cleanUp(self):
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
         ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
-        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
+        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
         #mDynGroup.dynMode = 2
     
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
-        mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
     log.debug("|{0}| >>  IK targets...".format(_str_func))
     pprint.pprint(ml_targetDynParents)        
@@ -3133,17 +3200,18 @@ def rig_cleanUp(self):
         if not mParent.hasAttr('cgmAlias'):
             mParent.addAttr('cgmAlias','midIKBase')
             
-        ml_targetDynParents.append(mParent)
-        ml_targetDynParents.extend([mControlIK] + ml_baseDynParents + ml_endDynParents)
+        ml_targetDynParents = [mControlIK,mParent]
+        
+        ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
         #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
-        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
+        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
         #mDynGroup.dynMode = 2
     
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
-        mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
         log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
         pprint.pprint(ml_targetDynParents)                
@@ -3357,6 +3425,8 @@ def build_proxyMesh(self, forceNew = True):
             
             ml_segProxy.append(mMeshBall)
             ml_rigJoints.append(mBall)
+            
+            mMesh.delete()
 
     for i,mGeo in enumerate(ml_segProxy):
         log.info("{0} : {1}".format(mGeo, ml_rigJoints[i]))
