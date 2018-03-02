@@ -1219,13 +1219,13 @@ def pivots_setup(self, mControl = None, mRigNull = None,
             mFrontToe = d_drivenGroups['front']
             mHeel = d_drivenGroups['back']
             
-            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'toeRollLift',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
-            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'toeRollStaighten',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
+            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'rollToeLift_set',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'rollToeStraight_set',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
             
             if mBallWiggleJoint:
-                mPlug_toeUpDn = cgmMeta.cgmAttr(mControl,'toeUpDn',attrType='float',defaultValue = 0,keyable = True)
+                mPlug_toeUpDn = cgmMeta.cgmAttr(mControl,'toeLift',attrType='float',defaultValue = 0,keyable = True)
                 mPlug_toeTwist= cgmMeta.cgmAttr(mControl,'toeTwist',attrType='float',defaultValue = 0,keyable = True)                
-                mPlug_toeWiggle= cgmMeta.cgmAttr(mControl,'toeWiggle',attrType='float',defaultValue = 0,keyable = True)                
+                mPlug_toeWiggle= cgmMeta.cgmAttr(mControl,'toeSide',attrType='float',defaultValue = 0,keyable = True)                
                 
                 mPlug_toeUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
                 mPlug_toeTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
@@ -1257,11 +1257,17 @@ def pivots_setup(self, mControl = None, mRigNull = None,
                 """
             log.info("|{0}| >> ball ...".format(_str_func))    
         
-            mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',attrType='float',keyable = False,hidden=True)
-            mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mControl,'result_range_toeStraightRoll',attrType='float',keyable = False,hidden=True)
-            mPlug_oneMinusToeResultResult = cgmMeta.cgmAttr(mControl,'result_pma_one_minus_toeStraitRollRange',attrType='float',keyable = False,hidden=True)
-            mPlug_ball_x_toeResult = cgmMeta.cgmAttr(mControl,'result_md_roll_x_toeResult',attrType='float',keyable = False,hidden=True)
-            mPlug_all_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_all_x_rollResult',attrType='float',keyable = False,hidden=True)
+            mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',
+                                                          attrType='float',keyable = False,hidden=True)
+            mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mControl,'result_range_toeStraightRoll',
+                                                          attrType='float',keyable = False,hidden=True)
+            mPlug_oneMinusToeResultResult = cgmMeta.cgmAttr(mControl,
+                                                            'result_pma_one_minus_toeStraitRollRange',
+                                                            attrType='float',keyable = False,hidden=True)
+            mPlug_ball_x_toeResult = cgmMeta.cgmAttr(mControl,'result_md_roll_x_toeResult',
+                                                     attrType='float',keyable = False,hidden=True)
+            mPlug_all_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_all_x_rollResult',
+                                                     attrType='float',keyable = False,hidden=True)
         
             arg1 = "%s = setRange(0,1,0,%s,%s)"%(mPlug_ballToeLiftRollResult.p_combinedShortName,
                                                  mPlug_toeLift.p_combinedShortName,

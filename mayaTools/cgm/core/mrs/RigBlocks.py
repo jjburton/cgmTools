@@ -4404,16 +4404,8 @@ class rigFactory(object):
                     
         self.mDeformNull = self.mModule.deformNull
         _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
-        self.attachPoint = self.mModule.atUtils('get_attachPoint',_attachPoint )
-        if self.attachPoint:
-            log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
-            mAttach = cgmMeta.validateObjArg(self.attachPoint)
-            try:mc.delete(self.mDeformNull.getConstraintsTo())
-            except:pass
-            mc.parentConstraint([mAttach.mNode], self.mDeformNull.mNode, maintainOffset = True, weight = 1)
-            mc.scaleConstraint([mAttach.mNode], self.mDeformNull.mNode, maintainOffset = True, weight = 1)
-                    
-
+        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )
+        
         if not self.mModule.getMessage('constrainNull'):
             #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
                 #Make it and link it
@@ -4425,6 +4417,28 @@ class rigFactory(object):
             i_grp.parent = self.mDeformNull.mNode
             self.mModule.connectChildNode(i_grp,'constrainNull','module')
         self.mConstrainNull = self.mModule.constrainNull
+        
+        
+        if self.attachPoint:
+            log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
+            mAttach = cgmMeta.validateObjArg(self.attachPoint)
+            try:mc.delete(self.mConstrainNull.getConstraintsTo())
+            except:pass
+            
+            mAttachDriver = self.mDeformNull.doCreateAt()
+            mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
+            mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
+            mAttachDriver.doName()
+            
+            mAttachDriver.parent = self.attachPoint
+            
+            mc.parentConstraint([mAttachDriver.mNode],
+                                self.mConstrainNull.mNode,
+                                maintainOffset = True, weight = 1)
+            #mc.scaleConstraint([mAttach.mNode], self.mConstrainNull.mNode, maintainOffset = True, weight = 1)
+        
+        
+        
 
         #>> Roll joint check...
         self.b_noRollMode = False
