@@ -117,7 +117,6 @@ d_block_profiles = {
                'ikSetup':'rp',
                'ikBase':'none',
                'ikEnd':'foot',
-               'side':'left',
                'numControls':3,
                'nameList':['hip','knee','ankle','ball','toe'],
                'baseAim':[0,-1,0],
@@ -127,7 +126,6 @@ d_block_profiles = {
     'arm':{'numShapers':5,
            'addCog':False,
            'cgmName':'leg',
-           'side':'left',
            'loftShape':'square',
            'loftSetup':'default',
            'placeSettings':'start',
@@ -3392,7 +3390,8 @@ def build_proxyMesh(self, forceNew = True):
         
         #...cut it up
         if mBall:
-            #Heel....
+            #Heel.-----------------------------------------------------------------------------------
+            log.debug("|{0}| >> heel... ".format(_str_func))                        
             plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z+'),
                                  width = 50, height = 50,
                                  subdivisionsX=20,subdivisionsY=20,
@@ -3407,11 +3406,13 @@ def build_proxyMesh(self, forceNew = True):
             heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
             
             mMeshHeel = cgmMeta.validateObjArg(heel[0])
+            ml_segProxy.append(mMeshHeel)
             
-            #ball...
+            #ball -----------------------------------------------------------------------------------
+            log.debug("|{0}| >> ball... ".format(_str_func))            
             plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
                                  subdivisionsX=20,subdivisionsY=20,                                 
-                                 width = 50, height = 50, ch=0)
+                                 width = 100, height = 100, ch=0)
             mPlane = cgmMeta.validateObjArg(plane[0])
             mPlane.doSnapTo(mBall.mNode)
             mMeshBall = mMesh.doDuplicate(po=False)
@@ -3419,12 +3420,29 @@ def build_proxyMesh(self, forceNew = True):
             #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
             ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
             mMeshBall = cgmMeta.validateObjArg(ball[0])
-            
-            
-            ml_segProxy.append(mMeshHeel)
-            
             ml_segProxy.append(mMeshBall)
             ml_rigJoints.append(mBall)
+            
+            #toe -----------------------------------------------------------------------------------
+            if mToe:
+                log.debug("|{0}| >> toe... ".format(_str_func))
+                plane = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
+                                     subdivisionsX=20,subdivisionsY=20,                                 
+                                     width = 100, height = 100, ch=0)
+                mPlane = cgmMeta.validateObjArg(plane[0])
+                mPlane.doSnapTo(mToe.mNode)
+                mMeshToe = mMesh.doDuplicate(po=False)
+            
+                #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
+                toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
+                mMeshToe = cgmMeta.validateObjArg(toe[0])
+                
+                ml_segProxy.append(mMeshToe)
+                ml_rigJoints.append(mToe)
+            
+            
+            
+            
             
             mMesh.delete()
 

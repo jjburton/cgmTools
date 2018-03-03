@@ -383,6 +383,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     
             if _side is not None:
+                log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
                 try: ATTR.set(self.mNode,'side',_side)
                 except Exception,err:
                     log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
@@ -416,6 +417,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function which MUST be overloaded
         """	
+        return self.atUtils('controls_get')
         #>>> Gather basic info for module build
         _str_func = " get_controls >> "
         if asMeta:
@@ -576,10 +578,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         if not _blockState_int:
             raise ValueError,'[{0}] not templated yet'.format(_short)
-        elif _blockState_int == 1:
-            _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)            
-        else:
-            _ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)
+            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+        _ml_templateHandles = self.atUtils('controls_get',True,False)
+            
+
 
         if not _ml_templateHandles:
             log.error('[{0}] No template or prerig handles found'.format(_short))
@@ -589,22 +591,28 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         _l_orientHelpers = []
         _l_jointHelpers = []
+        _d_orientHelpers = {}
+        _d_jointHelpers = {}        
         for i,mObj in enumerate(_ml_templateHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
-                _l_orientHelpers.append(mObj.orientHelper.rotate)
-            else:
-                _l_orientHelpers.append(False)
+                #_l_orientHelpers.append(mObj.orientHelper.rotate)
+                _d_orientHelpers[i] = mObj.orientHelper.rotate
+            #else:
+                #_l_orientHelpers.append(False)
+                
             if mObj.getMessage('jointHelper'):
-                _l_jointHelpers.append(mObj.jointHelper.translate)
-            else:
-                _l_jointHelpers.append(False)
-
+                #_l_jointHelpers.append(mObj.jointHelper.translate)
+                _d_jointHelpers[i] = mObj.jointHelper.translate
+                
+            #else:
+                #_l_jointHelpers.append(False)
+                
         _d = {'positions':[mObj.p_position for mObj in _ml_templateHandles],
               'orientations':[mObj.p_orient for mObj in _ml_templateHandles],
               'scales':[mObj.scale for mObj in _ml_templateHandles],
-              'jointHelpers':_l_jointHelpers,
-              'orientHelpers':_l_orientHelpers}
+              'jointHelpers':_d_jointHelpers,
+              'orientHelpers':_d_orientHelpers}
 
         if self.getMessage('orientHelper'):
             _d['rootOrientHelper'] = self.orientHelper.rotate
@@ -617,30 +625,35 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _str_func = '[{0}] getBlockDat_prerigControls'.format(_short)
 
         _ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
+        #_ml_prerigHandles = self.atUtils('controls_get',False,True)
+        
         if not _ml_prerigHandles:
             return False
 
         _ml_controls = [self] + _ml_prerigHandles
 
-        _l_orientHelpers = []
-        _l_jointHelpers = []
+        _d_orientHelpers = {}
+        _d_jointHelpers = {}
 
         for i,mObj in enumerate(_ml_prerigHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
-                _l_orientHelpers.append(mObj.orientHelper.rotate)
-            else:
-                _l_orientHelpers.append(False)
+                #_l_orientHelpers.append(mObj.orientHelper.rotate)
+                _d_orientHelpers[i] = mObj.orientHelper.rotate
+            #else:
+                #_l_orientHelpers.append(False)
             if mObj.getMessage('jointHelper'):
-                _l_jointHelpers.append(mObj.jointHelper.translate)
-            else:
-                _l_jointHelpers.append(False)
+                _d_jointHelpers[i] = mObj.jointHelper.translate
+                
+                #_l_jointHelpers.append(mObj.jointHelper.translate)
+            #else:
+                #_l_jointHelpers.append(False)
 
         _d = {'positions':[mObj.p_position for mObj in _ml_prerigHandles],
               'orientations':[mObj.p_orient for mObj in _ml_prerigHandles],
               'scales':[mObj.scale for mObj in _ml_prerigHandles],
-              'jointHelpers':_l_jointHelpers,
-              'orientHelpers':_l_orientHelpers}
+              'jointHelpers':_d_jointHelpers,
+              'orientHelpers':_d_orientHelpers}
 
         if self.getMessage('orientHelper'):
             _d['rootOrientHelper'] = self.orientHelper.rotate
@@ -726,8 +739,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if _blockState_int >= 1:
                 _d['template'] = self.getBlockDat_templateControls()
 
-            #if _blockState_int >= 2:
-                #_d['prerig'] = self.getBlockDat_prerigControls() 
+            if _blockState_int >= 2:
+                _d['prerig'] = self.getBlockDat_prerigControls() 
 
             for a in self.getAttrs(ud=True):
                 if a not in _l_udMask:
@@ -815,7 +828,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     _a = 's'+'xyz'[ii]
                     if not self.isAttrConnected(_a):
                         ATTR.set(_short,_a,v)
-
+        
+        
         #>>Template Controls ====================================================================================
         _int_state = self.getState(False)
         if _int_state > 0:
@@ -824,10 +838,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if not _d_template:
                 log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
             else:
-                if _int_state == 1:
-                    _ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)            
-                else:
-                    _ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                #if _int_state == 1:
+                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                _ml_templateHandles = self.atUtils('controls_get',True,False)
+                #else:
+                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
 
 
                 #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
@@ -842,17 +857,21 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     if len(_ml_templateHandles) != len(_posTempl):
                         log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
                     else:
-                        for i,mObj in enumerate(_ml_templateHandles):
-                            log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
-                            mObj.p_position = _posTempl[i]
-                            mObj.p_orient = _orientsTempl[i]
-                            _tmp_short = mObj.mNode
-                            for ii,v in enumerate(_scaleTempl[i]):
-                                _a = 's'+'xyz'[ii]
-                                if not self.isAttrConnected(_a):
-                                    ATTR.set(_tmp_short,_a,v)   
-                            if _jointHelpers and _jointHelpers[i]:
-                                mObj.jointHelper.translate = _jointHelpers[i]
+                        for i_loop in range(2):
+                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                            
+                            for i,mObj in enumerate(_ml_templateHandles):
+                                log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                                mObj.p_position = _posTempl[i]
+                                mObj.p_orient = _orientsTempl[i]
+                                _tmp_short = mObj.mNode
+                                for ii,v in enumerate(_scaleTempl[i]):
+                                    _a = 's'+'xyz'[ii]
+                                    if not self.isAttrConnected(_a):
+                                        ATTR.set(_tmp_short,_a,v)   
+                                if _jointHelpers and _jointHelpers.get(i):
+                                    mObj.jointHelper.translate = _jointHelpers[i]
+                                
                 if _d_template.get('rootOrientHelper'):
                     if self.getMessage('orientHelper'):
                         self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
@@ -860,7 +879,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
 
 
-
+        return
         #>>Generators ====================================================================================
         log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
         _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.deleteSkeleton]}
