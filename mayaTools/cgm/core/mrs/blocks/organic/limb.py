@@ -86,6 +86,7 @@ __l_rigBuildOrder__ = ['rig_prechecks',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
+                       'rig_pivotSetup',                       
                        'rig_segments',
                        'rig_cleanUp']
 
@@ -781,6 +782,9 @@ def prerig(self):
         _str_func = 'prerig'
         _short = self.p_nameShort
         _side = self.atUtils('get_side')
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+        _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+        
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         self.atUtils('module_verify')
@@ -854,6 +858,10 @@ def prerig(self):
             crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             _short = mHandle.mNode
+            
+            ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+            mHandle.doStore('cgmType','preHandle')
+            mHandle.doName()
             ml_handles.append(mHandle)
             
             mHandle.doSnapTo(_HandleSnapTo)
@@ -1091,6 +1099,7 @@ def rig_prechecks(self):
     if mPivotHolderHandle.getMessage('pivotHelper'):
         log.debug("|{0}| >> Pivot setup needed".format(_str_func))
         self.b_pivotSetup = True
+        self.mPivotHelper = mPivotHolderHandle.getMessage('pivotHelper',asMeta=True)[0]
         log.debug(cgmGEN._str_subLine)
         
     #Roll joints =============================================================================
@@ -1726,25 +1735,26 @@ def rig_shapes(self):
                                           targets = [mObj.mNode for mObj in self.ml_handleTargets],
                                           mode = 'limbHandle')
         
+        size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
         
         if self.mBall:
-            _size_ball = DIST.get_distance_between_targets([self.mBall.mNode,
-                                                            self.mBall.p_parent])
+            #_size_ball = DIST.get_distance_between_targets([self.mBall.mNode,
+                                                            #self.mBall.p_parent])
         
             crv = CURVES.create_controlCurve(self.mBall.mNode, shape='circle',
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
-                                             size = _size_ball * 1.25)
+                                             size = size_pivotHelper[0])
             ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
             
         if self.mToe:
-            _size_ball = DIST.get_distance_between_targets([self.mToe.mNode,
-                                                            self.mToe.p_parent])
+            #_size_ball = DIST.get_distance_between_targets([self.mToe.mNode,
+            #                                                self.mToe.p_parent])
     
             crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
-                                             size = _size_ball * 1.25)        
+                                             size = size_pivotHelper[0])        
             ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
         
         
@@ -1818,10 +1828,20 @@ def rig_shapes(self):
             CORERIG.shapeParent_in_place(mKnee.mNode, ml_templateHandles[1].mNode)
             
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
+            
+            #Get our point for knee...
+            vec_knee = MATH.get_obj_vector(ml_blendJoints[1], 'y+')
+            pos_knee = mKnee.p_position
+            pos_knee = DIST.get_pos_by_vec_dist(pos_knee,
+                                                vec_knee,
+                                                DIST.get_distance_between_points(ml_blendJoints[0].p_position, pos_knee)/2)
+            
+            mKnee.p_position = pos_knee
+            
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
             #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
-            mHandleFactory.color(mKnee.mNode, controlType = 'sub')        
-
+            mHandleFactory.color(mKnee.mNode, controlType = 'sub')
+            
             mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
             mKnee.doStore('cgmAlias','midIK')            
             mKnee.doName()
@@ -1981,23 +2001,6 @@ def rig_controls(self):
         mControlMidIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlMidIK)
         
-        
-        #Mid IK trace
-        log.debug("|{0}| >> midIK track Crv".format(_str_func, mControlMidIK))
-        trackcrv,clusters = CORERIG.create_at([mControlMidIK.mNode,
-                                               ml_handleJoints[1]],
-                                              'linearTrack',
-                                              baseName = '{0}_midTrack'.format(self.d_module['partName']))
-        
-        mTrackCrv = cgmMeta.asMeta(trackcrv)
-        mTrackCrv.p_parent = self.mModule
-        mHandleFactory = mBlock.asHandleFactory()
-        mHandleFactory.color(trackcrv, controlType = 'sub')
-        
-        for s in mTrackCrv.getShapes(asMeta=True):
-            s.overrideEnabled = 1
-            s.overrideDisplayType = 2        
-
 
     if not b_cog:#>> settings ========================================================================================
         log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
@@ -2323,7 +2326,8 @@ def rig_segments(self):
             reload(IK)
             #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
             mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
-                              baseName = "{0}_seg_{1}".format(mBlock.cgmName,i),
+                              #baseName = "{0}_seg_{1}".format(mBlock.cgmName,i),
+                              baseName = "{0}_seg_{1}".format(self.d_module['partName'],i),                              
                               driverSetup='stable',
                               connectBy='constraint',
                               moduleInstance = mModule)
@@ -2356,7 +2360,7 @@ def rig_segments(self):
         raise NotImplementedError,'Not done here Josh'
     
     else:#Roll setup
-        log.info("|{0}| >> Roll setup".format(_str_func))
+        log.debug("|{0}| >> Roll setup".format(_str_func))
         
         for i,mHandle in enumerate(ml_prerigHandleJoints):
             mHandle.rigJoint.masterGroup.parent = ml_handleJoints[i]
@@ -2736,6 +2740,8 @@ def rig_frame(self):
                     mObj.parent = mRoot
                 ml_distHandlesNF[-1].parent = mIKHandleDriver.mNode#handle to control
                 ml_distHandlesNF[1].parent = mIKMid
+                ml_distHandlesNF[1].t = 0,0,0
+                ml_distHandlesNF[1].r = 0,0,0
                 
                 #>>> Fix our ik_handle twist at the end of all of the parenting
                 IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
@@ -2764,6 +2770,24 @@ def rig_frame(self):
                 mc.pointConstraint([mRoot.mNode, mIKHandleDriver.mNode], mMidControlDriver.mNode)
                 mMidControlDriver.parent = mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
+                
+                #Mid IK trace
+                log.debug("|{0}| >> midIK track Crv".format(_str_func, mIKMid))
+                trackcrv,clusters = CORERIG.create_at([mIKMid.mNode,
+                                                       ml_handleJoints[1]],
+                                                      'linearTrack',
+                                                      baseName = '{0}_midTrack'.format(self.d_module['partName']))
+            
+                mTrackCrv = cgmMeta.asMeta(trackcrv)
+                mTrackCrv.p_parent = self.mModule
+                mHandleFactory = mBlock.asHandleFactory()
+                mHandleFactory.color(trackcrv, controlType = 'sub')
+            
+                for s in mTrackCrv.getShapes(asMeta=True):
+                    s.overrideEnabled = 1
+                    s.overrideDisplayType = 2
+                mTrackCrv.doConnectIn('visibility',"{0}.v".format(mIKGroup.mNode))
+                
                     
             elif _ikSetup == 'spline':
                 log.debug("|{0}| >> spline setup...".format(_str_func))

@@ -695,7 +695,7 @@ def buildFKIK(fkJoints = None,
     d_armPVReturn = rUtils.IKHandle_create(ml_ikJoints[0].mNode,ml_ikJoints[ikLen - 1].mNode,nameSuffix = 'PV',
                                            rpHandle=True, controlObject=mControlIK, addLengthMulti=True,
                                            globalScaleAttr=mPlug_globalScale.p_combinedName, stretch='translate',
-                                           )	
+                                           )
 
     mi_armIKHandlePV = d_armPVReturn['mi_handle']
     ml_distHandlesPV = d_armPVReturn['ml_distHandles']
@@ -890,7 +890,6 @@ def ribbon(jointList = None,
         l_joints = [mJnt.p_nameShort for mJnt in ml_joints]
         int_lenJoints = len(ml_joints)#because it's called repeatedly
         mi_useSurface = cgmMeta.validateObjArg(useSurface,mayaType=['nurbsSurface'],noneValid = True)
-    
         mi_mayaOrientation = VALID.simpleOrientation(orientation)
         str_orientation = mi_mayaOrientation.p_string
         str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)
@@ -960,6 +959,8 @@ def ribbon(jointList = None,
             mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
             mControlSurface.doName()
         
+        log.debug("mControlSurface: {0}".format(mControlSurface))
+        
         if mModule:#if we have a module, connect vis
             mControlSurface.overrideEnabled = 1		
             cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mControlSurface.mNode,'overrideVisibility'))
@@ -980,7 +981,8 @@ def ribbon(jointList = None,
         f_offset = DIST.get_distance_between_targets(l_joints,True)
         
         import cgm.core.lib.node_utils as NODES
-        
+        reload(RIGCONSTRAINTS)
+        reload(NODES)
         for i,mJnt in enumerate(ml_joints):
             if msgDriver:
                 mDriven = mJnt.getMessage(msgDriver,asMeta=True)

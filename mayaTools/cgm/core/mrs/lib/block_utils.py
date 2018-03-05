@@ -1228,8 +1228,22 @@ def pivots_setup(self, mControl = None, mRigNull = None,
                 mPlug_toeWiggle= cgmMeta.cgmAttr(mControl,'toeSide',attrType='float',defaultValue = 0,keyable = True)                
                 
                 mPlug_toeUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
-                mPlug_toeTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
-                mPlug_toeWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                
+                if _side in ['right']:
+                    str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
+                                                       jointOrientation[0].lower(),
+                                                       mPlug_toeTwist.p_combinedShortName)
+                    log.debug("|{0}| >> Toe wiggle Right arg: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()
+                    
+                    str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
+                                                       jointOrientation[1].lower(),
+                                                       mPlug_toeWiggle.p_combinedShortName)
+                    log.debug("|{0}| >> Toe wiggle Right arg: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()                    
+                else:
+                    mPlug_toeTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
+                    mPlug_toeWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
                 
             #Heel setup ----------------------------------------------------------------------------------------
             log.info("|{0}| >> Heel ...".format(_str_func))        
@@ -2014,17 +2028,17 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             log.info("|{0}| >> found preferred angle data on {1}:{2}".format(_str_func,_key,_preferredAngles))              
             #log.info("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
             for i,v in enumerate(_preferredAngles):	
-                if side.lower() == 'right':#negative value
-                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
-                else:
-                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),v)
+                #if side.lower() == 'right':#negative value
+                #    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
+                #else:
+                mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),v)
         elif _preferredAxis:
             for k,v in _preferredAxis.iteritems():
                 _idx = _l_axisAlias.index(k)
-                if side.lower() == 'right':#negative value
-                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),-v)				
-                else:
-                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
+                #if side.lower() == 'right':#negative value
+                    #mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),-v)				
+                #else:
+                mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
             
         if _limitBuffer:
             log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
@@ -2265,9 +2279,12 @@ def blockMirror_create(self, forceNew = False):
         log.debug("|{0}| >> Creating mirror block. {1} | {2}".format(_str_func, _blockType, _side))
         _d = {'blockType':self.blockType, 'side':_side, 'autoTemplate':False, 'blockParent': self.p_blockParent}
         
-        for a in 'blockProfile','buildProfile':
-            if self.hasAttr(a):
-                _d[a] = self.getEnumValueString(a)
+        for a in 'blockProfile','buildProfile','cgmName':
+            if a in ['cgmName']:
+                _d['name'] =  self.getMayaAttr(a)
+            else:
+                if self.hasAttr(a):
+                    _d[a] = self.getEnumValueString(a)
         
         log.debug("|{0}| >> Block settings...".format(_str_func, self.mNode))                    
         pprint.pprint(_d)

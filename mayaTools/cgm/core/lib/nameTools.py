@@ -248,7 +248,7 @@ def get_objNameDict(obj,ignore=[False]):
     nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
     typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
     isType = SEARCH.VALID.get_mayaType(obj)
-    childrenObjects = TRANS.children_get(obj,True)
+    childrenObjects = TRANS.children_get(obj,False)
     """first see if it's a group """
     if isType == 'group' and typeTag == False:
         log.debug("%s >>> group and no typeTag..."%(_str_funcName))            

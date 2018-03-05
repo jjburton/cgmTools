@@ -712,7 +712,7 @@ def shapes_get(node = None, fullPath = False):
     _str_func = 'shapes_get'
     _node =  VALID.mNodeString(node)
 
-    return mc.listRelatives(_node, s=True, fullPath = True) or []
+    return mc.listRelatives(_node, s=True, fullPath = fullPath) or []
   
 def children_get(node = None, fullPath = False):
     """

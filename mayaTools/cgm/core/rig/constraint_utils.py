@@ -63,6 +63,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         _str_func = 'attach_toShape'
         mObj = cgmMeta.validateObjArg(obj,'cgmObject')
         targetShape = VALID.mNodeString(targetShape)
+        log.info("targetShape: {0}".format(targetShape))
         
         #Get our data...
         d_closest = DIST.get_closest_point_data(targetShape,
@@ -74,6 +75,8 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         if d_closest['type'] in ['mesh','nurbsSurface']:
             log.debug("|{0}| >> Follicle mode...".format(_str_func))
             _shape = SHAPES.get_nonintermediate(d_closest['shape'] )
+            log.info("_shape: {0}".format(_shape))
+            
             l_follicleInfo = NODES.createFollicleOnMesh( _shape )
             
             i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)

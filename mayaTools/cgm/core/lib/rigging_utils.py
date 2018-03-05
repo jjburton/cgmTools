@@ -433,7 +433,7 @@ def create_axisProxy(obj=None):
         if VALID.is_shape(obj):
             l_shapes = [obj]
         else:
-            l_shapes = TRANS.shapes_get(_dag)
+            l_shapes = TRANS.shapes_get(_dag,True)
             
         _parent = TRANS.parent_get(_dag)
         _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]

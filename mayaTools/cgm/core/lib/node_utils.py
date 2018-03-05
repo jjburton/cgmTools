@@ -49,7 +49,7 @@ def add_follicle(mesh, name = 'follicle'):
     if SEARCH.is_shape(mesh):
         _surface = mesh
     else:
-        _surface = mc.listRelatives(mesh,shapes=True)[0]
+        _surface = mc.listRelatives(mesh,shapes=True,fullPath = True)[0]
     _type = VALID.get_mayaType(_surface)
     _trans = SEARCH.get_transform(_node)
     
@@ -131,13 +131,13 @@ def createFollicleOnMesh(targetSurface, name = 'follicle'):
     if SEARCH.is_shape(targetSurface):
         l_shapes = [targetSurface]
     else:
-        l_shapes = mc.listRelatives(targetSurface, s=True)
-
+        l_shapes = mc.listRelatives(targetSurface, s=True,fullPath = True)
     if not l_shapes:
         raise ValueError,"Must have shapes to check."
 
 
     _shape = l_shapes[0]
+    log.info("_shape: {0}".format(_shape))
     _type = VALID.get_mayaType(_shape)    
     
     #objType = search.returnObjectType(mesh)
@@ -148,7 +148,7 @@ def createFollicleOnMesh(targetSurface, name = 'follicle'):
     """ make the closest point node """
     #closestPointNode = createNamedNode((targetObj+'_to_'+mesh),'closestPointOnMesh')
     #controlSurface = mc.listRelatives(_shape,shapes=True)[0]
-    follicleTransform = mc.listRelatives(follicleNode,p=True)[0]
+    follicleTransform = mc.listRelatives(follicleNode,p=True,fullPath = True)[0]
     
     attributes.doConnectAttr((_shape+'.worldMatrix[0]'),(follicleNode+'.inputWorldMatrix'))#surface to follicle node 
     

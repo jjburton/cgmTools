@@ -638,16 +638,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
         for i,mObj in enumerate(_ml_prerigHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
-                #_l_orientHelpers.append(mObj.orientHelper.rotate)
                 _d_orientHelpers[i] = mObj.orientHelper.rotate
             #else:
                 #_l_orientHelpers.append(False)
             if mObj.getMessage('jointHelper'):
                 _d_jointHelpers[i] = mObj.jointHelper.translate
-                
-                #_l_jointHelpers.append(mObj.jointHelper.translate)
-            #else:
-                #_l_jointHelpers.append(False)
+
 
         _d = {'positions':[mObj.p_position for mObj in _ml_prerigHandles],
               'orientations':[mObj.p_orient for mObj in _ml_prerigHandles],
@@ -832,6 +828,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         #>>Template Controls ====================================================================================
         _int_state = self.getState(False)
+        
         if _int_state > 0:
             log.info("|{0}| >> template dat....".format(_str_func))             
             _d_template = blockDat.get('template',False)
@@ -877,6 +874,52 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
                     else:
                         log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+                        
+        if _int_state > 1:
+            log.info("|{0}| >> prerig dat....".format(_str_func))             
+            _d_prerig = blockDat.get('prerig',False)
+            if not _d_prerig:
+                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+            else:
+                #if _int_state == 1:
+                _ml_prerigControls = self.msgList_get('prerigHandles',asMeta = True)
+                #_ml_prerigControls = self.atUtils('controls_get',True,False)
+                #else:
+                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+
+
+                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                if not _ml_prerigControls:
+                    log.error("|{0}| >> No prerig handles found".format(_str_func))
+                else:
+                    _posPre = _d_prerig.get('positions')
+                    _orientsPre = _d_prerig.get('orientations')
+                    _scalePre = _d_prerig.get('scales')
+                    _jointHelpersPre = _d_prerig.get('jointHelpers')
+
+                    if len(_ml_prerigControls) != len(_posPre):
+                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
+                    else:
+                        for i_loop in range(2):
+                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                            
+                            for i,mObj in enumerate(_ml_prerigControls):
+                                log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
+                                mObj.p_position = _posPre[i]
+                                mObj.p_orient = _orientsPre[i]
+                                _tmp_short = mObj.mNode
+                                for ii,v in enumerate(_scalePre[i]):
+                                    _a = 's'+'xyz'[ii]
+                                    if not self.isAttrConnected(_a):
+                                        ATTR.set(_tmp_short,_a,v)   
+                                if _jointHelpersPre and _jointHelpersPre.get(i):
+                                    mObj.jointHelper.translate = _jointHelpersPre[i]
+                                
+                #if _d_prerig.get('rootOrientHelper'):
+                    #if self.getMessage('orientHelper'):
+                        #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
+                    #else:
+                        #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
 
 
         return
@@ -1429,11 +1472,13 @@ class handleFactory(object):
                 t = self._mTransform.mNode
                 
             if VALID.is_shape(t):
+                log.debug("|{0}| >> is shape s: {1}".format(_str_func, s))                
                 _shapes = [t]
             else:
-                _shapes = TRANS.shapes_get(t)
+                _shapes = TRANS.shapes_get(t,True)
             
             for s in _shapes:
+                log.debug("|{0}| >> s: {1}".format(_str_func, s))
                 _useType = _controlType
                 if controlType is not None:
                     log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
