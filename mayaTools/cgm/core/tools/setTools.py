@@ -616,14 +616,18 @@ def uiFunc_multiSetsAction(mode = 'active', action = 'report', weight = None):
     l_sel = mc.ls(sl=True)
     
     if mode is None:
-        log.info("|{0}| >> resolving mode...".format(_str_func)) 
-        var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
-        val_mmSetToolsMode = var_mmSetToolsMode.value
-        if val_mmSetToolsMode:
-            if val_mmSetToolsMode == 1:
-                mode = 'active'
-            else:
-                mode = 'loaded'        
+        try:
+            log.info("|{0}| >> resolving mode...".format(_str_func)) 
+            var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
+            val_mmSetToolsMode = var_mmSetToolsMode.value
+            if val_mmSetToolsMode:
+                if val_mmSetToolsMode == 1:
+                    mode = 'active'
+                else:
+                    mode = 'loaded'        
+        except Exception,err:
+            log.error(err)
+            raise Exception,"Failed to resolve mode"
     
     if mode == 'active':
         var = 'cgmVar_activeObjectSets'

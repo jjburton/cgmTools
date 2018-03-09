@@ -1170,12 +1170,24 @@ def rig_prechecks(self):
         log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
         self.int_handleEndIdx -=1
     
-    log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,self.ml_handleTargets))            
+    ml_use = ml_handleJoints[:self.int_handleEndIdx]
+    if len(ml_use) == 1:
+        mid=0
+        mMidHandle = ml_use[0]
+    else:
+        mid = int((len(ml_use))/2)
+        mMidHandle = ml_use[mid]
+    self.int_handleMidIdx = mid
+    log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,self.ml_handleTargets))
+    log.debug("|{0}| >> Mid self.int_handleMidIdx idx: {1} | {2}".format(_str_func,self.int_handleMidIdx,
+                                                                         ml_handleJoints[self.int_handleMidIdx]))    
     log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
-                                                   ml_handleJoints[self.int_handleEndIdx]))            
+                                                                         ml_handleJoints[self.int_handleEndIdx]))
     log.debug(cgmGEN._str_subLine)
     
     self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
+    
+
     
     
     #DynParents =============================================================================
@@ -1639,16 +1651,22 @@ def rig_shapes(self):
                     _mTar = ml_targets[self.int_handleEndIdx]
                     
                 
-                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .4,'{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .4,
+                                                                               '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
     
                 mSettingsShape.doSnapTo(_mTar.mNode)
                 
-                mSettingsShape.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'-', _size * .8)
-                #SNAP.aim_atPoint(mSettingsShape,_mTar.p_position,aimAxis=_jointOrientation[1]+'-',
-                #                 mode = 'vector',
-                #                 vectorUp= _mTar.getAxisVector(_jointOrientation[1]+'+'))
+                mSettingsShape.p_position = _mTar.getPositionByAxisDistance(_jointOrientation[1]+'-',
+                                                                            _size * .8)
+                
+                SNAP.aim_atPoint(mSettingsShape.mNode,
+                                 _mTar.p_position,
+                                 aimAxis=_jointOrientation[0]+'+',
+                                 mode = 'vector',
+                                 vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
                 
                 #mSettings = _mTar.doCreateAt(setClass=True)
+                
                 mSettingsShape.parent = _mTar
                 mSettings = mSettingsShape
                 #CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
@@ -1824,19 +1842,20 @@ def rig_shapes(self):
             
             #Knee...---------------------------------------------------------------------------------
             log.debug("|{0}| >> knee...".format(_str_func))
-            mKnee = ml_templateHandles[1].doCreateAt(setClass=True)
-            CORERIG.shapeParent_in_place(mKnee.mNode, ml_templateHandles[1].mNode)
+            mKnee = ml_templateHandles[self.int_handleMidIdx].doCreateAt(setClass=True)
+            size_knee =  POS.get_bb_size(ml_templateHandles[self.int_handleMidIdx].mNode)
             
+            crv = CURVES.create_controlCurve(mKnee, shape='sphere',
+                                             direction = _jointOrientation[0]+'+',
+                                             sizeMode = 'fixed',
+                                             size = max(size_knee))            
+            
+            CORERIG.shapeParent_in_place(mKnee.mNode, crv, False)
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
             
             #Get our point for knee...
-            vec_knee = MATH.get_obj_vector(ml_blendJoints[1], 'y+')
-            pos_knee = mKnee.p_position
-            pos_knee = DIST.get_pos_by_vec_dist(pos_knee,
-                                                vec_knee,
-                                                DIST.get_distance_between_points(ml_blendJoints[0].p_position, pos_knee)/2)
-            
-            mKnee.p_position = pos_knee
+            mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',False)
+    
             
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
             #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
@@ -2632,7 +2651,8 @@ def rig_frame(self):
             mStart = ml_ikJoints[0]
             mEnd = ml_ikJoints[self.int_handleEndIdx]
             _start = ml_ikJoints[0].mNode
-            _end = ml_ikJoints[self.int_handleEndIdx].mNode            
+            _end = ml_ikJoints[self.int_handleEndIdx].mNode
+            
             
             #>>> Setup a vis blend result
             mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
@@ -2684,6 +2704,11 @@ def rig_frame(self):
             if _ikSetup == 'rp':
                 log.debug("|{0}| >> rp setup...".format(_str_func,_ikSetup))
                 mIKMid = mRigNull.controlIKMid
+                
+                ml_end_children = mEnd.getChildren(asMeta=True)
+                if ml_end_children:
+                    for mChild in ml_end_children:
+                        mChild.parent = False
                 
                 #Build the IK ---------------------------------------------------------------------
                 _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
@@ -2749,6 +2774,12 @@ def rig_frame(self):
                 mc.orientConstraint([mIKControl.mNode],
                                     ml_ikJoints[self.int_handleEndIdx].mNode,
                                     maintainOffset = True)
+                
+                
+                if ml_end_children:
+                    for mChild in ml_end_children:
+                        mChild.parent = mEnd                
+                
                 #mc.scaleConstraint([mIKControl.mNode],
                 #                    ml_ikJoints[self.int_handleEndIdx].mNode,
                 #                    maintainOffset = True)                
@@ -2781,7 +2812,7 @@ def rig_frame(self):
                 mTrackCrv = cgmMeta.asMeta(trackcrv)
                 mTrackCrv.p_parent = self.mModule
                 mHandleFactory = mBlock.asHandleFactory()
-                mHandleFactory.color(trackcrv, controlType = 'sub')
+                mHandleFactory.color(mTrackCrv.mNode, controlType = 'sub')
             
                 for s in mTrackCrv.getShapes(asMeta=True):
                     s.overrideEnabled = 1
@@ -2944,6 +2975,8 @@ def rig_pivotSetup(self):
     mRigNull = self.mRigNull
     mRootParent = self.mConstrainNull
     mModule = self.mModule
+    _jointOrientation = self.d_orientation['str']
+    _side = mBlock.atUtils('get_side')
     
     #ml_rigJoints = mRigNull.msgList_get('rigJoints')
     #ml_fkJoints = mRigNull.msgList_get('fkJoints')
@@ -2971,11 +3004,13 @@ def rig_pivotSetup(self):
         mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)[0]
         
         _pivotSetup = ATTR.get_enumValueString(self.mBlock.mNode,'ikEnd')
+        mToeIK = False
+        mBallIK = False
+        
         if _pivotSetup == 'foot':
             _mode = 'foot'
             
-            mToeIK = False
-            mBallIK = False
+
     
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             if self.mToe:
@@ -2989,10 +3024,6 @@ def rig_pivotSetup(self):
             
             pprint.pprint(vars())
 
-            
-            
-            
-    
         else:
             _mode == 'default'
             
@@ -3008,6 +3039,7 @@ def rig_pivotSetup(self):
                             pivotResult = mPivotResultDriver,
                             mBallJoint= mBallPivotJoint,
                             mBallWiggleJoint = mBallWiggleJoint,
+                            mToeJoint = mToeIK,
                             rollSetup = _mode,
                             front = 'front', back = 'back')#front, back to clear the toe, heel defaults
         
@@ -3020,14 +3052,38 @@ def rig_pivotSetup(self):
                                      baseName=mAnkleIK.cgmName,moduleInstance=mModule)
             mi_ballIKHandle = d_ballReturn['mHandle']
             mi_ballIKHandle.parent = mBallPivotJoint.mNode#ballIK to toe
-        
+            #mi_ballIKHandle.doSnapTo(self.mBall.mNode)
         
             #Create toe IK -------------------------------------------------------------------------------
             d_toeReturn = IK.handle(mBallIK.mNode,mToeIK.mNode,solverType='ikSCsolver',
                                     baseName=mBallIK.cgmName,moduleInstance=mModule)
             mi_toeIKHandle = d_toeReturn['mHandle']
             mi_toeIKHandle.parent = mBallWiggleJoint.mNode#toeIK to wiggle        
-
+            #mi_toeIKHandle.doSnapTo(self.mToe.mNode)
+            
+            
+            if mToeIK:
+                mPlug_toeUpDn = cgmMeta.cgmAttr(mIKControl,'toeLift',attrType='float',defaultValue = 0,keyable = True)
+                mPlug_toeTwist= cgmMeta.cgmAttr(mIKControl,'toeTwist',attrType='float',defaultValue = 0,keyable = True)                
+                mPlug_toeWiggle= cgmMeta.cgmAttr(mIKControl,'toeSide',attrType='float',defaultValue = 0,keyable = True)                
+                
+                mPlug_toeUpDn.doConnectOut("%s.r%s"%(mToeIK.mNode,_jointOrientation[2].lower()))
+                
+                if _side in ['right']:
+                    str_arg = "{0}.r{1} = -{2}".format(mToeIK.mNode,
+                                                       _jointOrientation[0].lower(),
+                                                       mPlug_toeTwist.p_combinedShortName)
+                    log.debug("|{0}| >> Toe Right arg: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()
+                    
+                    str_arg = "{0}.r{1} = -{2}".format(mToeIK.mNode,
+                                                       _jointOrientation[1].lower(),
+                                                       mPlug_toeWiggle.p_combinedShortName)
+                    log.debug("|{0}| >> Toe Right arg: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()                    
+                else:
+                    mPlug_toeTwist.doConnectOut("%s.r%s"%(mToeIK.mNode,_jointOrientation[0].lower()))
+                    mPlug_toeWiggle.doConnectOut("%s.r%s"%(mToeIK.mNode,_jointOrientation[1].lower()))                
 
 #@cgmGEN.Timer
 def rig_matchSetup(self):
@@ -3221,8 +3277,9 @@ def rig_cleanUp(self):
     
         if not mParent.hasAttr('cgmAlias'):
             mParent.addAttr('cgmAlias','midIKBase')
-            
-        ml_targetDynParents = [mControlIK,mParent]
+        
+        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)[0]
+        ml_targetDynParents = [mPivotResultDriver,mControlIK,mParent]
         
         ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
         #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -3421,7 +3478,7 @@ def build_proxyMesh(self, forceNew = True):
                                  subdivisionsX=20,subdivisionsY=20,
                                  ch=0)
             mPlane = cgmMeta.validateObjArg(plane[0])
-            mPlane.doSnapTo(mBall.mNode)
+            mPlane.doSnapTo(mBall.mNode,rotation=False)
             
             mMeshHeel = mMesh.doDuplicate(po=False)
             
@@ -3438,7 +3495,7 @@ def build_proxyMesh(self, forceNew = True):
                                  subdivisionsX=20,subdivisionsY=20,                                 
                                  width = 100, height = 100, ch=0)
             mPlane = cgmMeta.validateObjArg(plane[0])
-            mPlane.doSnapTo(mBall.mNode)
+            mPlane.doSnapTo(mBall.mNode,rotation=False)
             mMeshBall = mMesh.doDuplicate(po=False)
         
             #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
@@ -3454,7 +3511,7 @@ def build_proxyMesh(self, forceNew = True):
                                      subdivisionsX=20,subdivisionsY=20,                                 
                                      width = 100, height = 100, ch=0)
                 mPlane = cgmMeta.validateObjArg(plane[0])
-                mPlane.doSnapTo(mToe.mNode)
+                mPlane.doSnapTo(mToe.mNode,rotation=False)
                 mMeshToe = mMesh.doDuplicate(po=False)
             
                 #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)

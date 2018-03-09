@@ -48,7 +48,7 @@ reload(cgmDrag)
 #>>> Utilities
 #===================================================================
 @cgmGeneral.Timer
-def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fromTarget'):
+def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fromTarget',name=None):
     """
     Return the short name of an object
 
@@ -92,6 +92,8 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
     
         if position:
             mc.move (position[0],position[1],position[2], _loc, ws=True)
+            if name:
+                return mc.rename(_loc, name)            
             return mc.rename("pos_loc")
         if not target:
             return mc.rename("world_center_loc")
@@ -112,7 +114,10 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             
             _target = _targets[0]
             
-            _loc = mc.rename(_loc,"{0}_fromTarget_loc".format( coreNames.get_base(_target)))
+            if name:
+                _loc = mc.rename(_loc, name)
+            else:
+                _loc = mc.rename(_loc,"{0}_fromTarget_loc".format( coreNames.get_base(_target)))
     
             if tag:#store info
                 ATTR.store_info(_loc,'cgmName',coreNames.get_base(_target), lock = True)

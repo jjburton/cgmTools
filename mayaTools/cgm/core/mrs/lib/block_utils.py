@@ -1101,6 +1101,7 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
 def pivots_setup(self, mControl = None, mRigNull = None,
                  mBallJoint = None,
                  mBallWiggleJoint = None,
+                 mToeJoint = None,
                  jointOrientation = 'zyx',
                  pivotResult = None, rollSetup = 'default', **kws):
     """
@@ -1124,11 +1125,13 @@ def pivots_setup(self, mControl = None, mRigNull = None,
     else:
         d_bankNames = d_pivotBankNames['default']
     
+
     d_strCaps = {'front':kws.get('front','toe').capitalize(),
                  'back':kws.get('back','heel').capitalize(),
-                 'left':kws.get('left','inner').capitalize(),
-                 'right':kws.get('right','outer').capitalize(),
+                 'left':kws.get('left','outer').capitalize(),
+                 'right':kws.get('right','inner').capitalize(),
                  'center':kws.get('center','ball').capitalize()}
+
     
     if mRigNull is None:
         mRigNull = self.moduleTarget.rigNull
@@ -1148,6 +1151,14 @@ def pivots_setup(self, mControl = None, mRigNull = None,
     for a in l_pivotOrder:
         str_a = 'pivot' + a.capitalize()
         mPivot = mRigNull.getMessage(str_a,asMeta=True)
+        
+        #remap for right side
+        if _side == 'right':
+            if a == 'left':
+                a = 'right'
+            elif a == 'right':
+                a = 'left'
+                
         if mPivot:
             log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
             if mPivot[0].getMessage('masterGroup'):
@@ -1172,13 +1183,25 @@ def pivots_setup(self, mControl = None, mRigNull = None,
                 mLastParent = mDrivenGroup
                 continue
             log.error("|{0}| >> No master group on pivot. Wrong stage: {1}".format(_str_func,str_a))
-    if mBallWiggleJoint:
-        mBallWiggleJoint.parent = mLastParent
-    if mBallJoint:
-        mBallJoint.parent = mLastParent
-        mLastParent = mBallJoint
+    
         
     
+    if mBallWiggleJoint:
+        mBallWiggleJoint.parent = mLastParent
+        mZeroGroup = mBallWiggleJoint.doGroup(True, True, asMeta=True,typeModifier = 'zero')
+        mBallWiggleJoint.jointOrient = 0,0,0
+        mBallWiggleJoint.rotate = 0,0,0
+        
+        #mPivot.connectChildNode(mDrivenGroup,'drivenGroup','handle')#Connect    
+        
+    if mBallJoint:
+        mBallJoint.parent = mLastParent
+        mZeroGroup = mBallJoint.doGroup(True, True, asMeta=True,typeModifier = 'zero')
+        mBallJoint.jointOrient = 0,0,0
+        mBallJoint.rotate = 0,0,0
+        
+        mLastParent = mBallJoint
+        
         
     if not d_pivots:
         raise ValueError,"|{0}| >> No pivots found. mBlock: {1}".format(_str_func,self)
@@ -1219,31 +1242,32 @@ def pivots_setup(self, mControl = None, mRigNull = None,
             mFrontToe = d_drivenGroups['front']
             mHeel = d_drivenGroups['back']
             
-            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'rollToeLift_set',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
-            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'rollToeStraight_set',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
+            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'rollBallLift_set',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'rollBallStraight_set',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
             
             if mBallWiggleJoint:
-                mPlug_toeUpDn = cgmMeta.cgmAttr(mControl,'toeLift',attrType='float',defaultValue = 0,keyable = True)
-                mPlug_toeTwist= cgmMeta.cgmAttr(mControl,'toeTwist',attrType='float',defaultValue = 0,keyable = True)                
-                mPlug_toeWiggle= cgmMeta.cgmAttr(mControl,'toeSide',attrType='float',defaultValue = 0,keyable = True)                
+                mPlug_ballUpDn = cgmMeta.cgmAttr(mControl,'ballLift',attrType='float',defaultValue = 0,keyable = True)
+                mPlug_ballTwist= cgmMeta.cgmAttr(mControl,'ballTwist',attrType='float',defaultValue = 0,keyable = True)                
+                mPlug_ballWiggle= cgmMeta.cgmAttr(mControl,'ballSide',attrType='float',defaultValue = 0,keyable = True)                
                 
-                mPlug_toeUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
+                mPlug_ballUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
                 
                 if _side in ['right']:
                     str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
                                                        jointOrientation[0].lower(),
-                                                       mPlug_toeTwist.p_combinedShortName)
-                    log.debug("|{0}| >> Toe wiggle Right arg: {1}".format(_str_func,str_arg))        
+                                                       mPlug_ballTwist.p_combinedShortName)
+                    log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
                     NODEFACTORY.argsToNodes(str_arg).doBuild()
                     
                     str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
                                                        jointOrientation[1].lower(),
-                                                       mPlug_toeWiggle.p_combinedShortName)
-                    log.debug("|{0}| >> Toe wiggle Right arg: {1}".format(_str_func,str_arg))        
+                                                       mPlug_ballWiggle.p_combinedShortName)
+                    log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
                     NODEFACTORY.argsToNodes(str_arg).doBuild()                    
                 else:
-                    mPlug_toeTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
-                    mPlug_toeWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                    mPlug_ballTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
+                    mPlug_ballWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                
                 
             #Heel setup ----------------------------------------------------------------------------------------
             log.info("|{0}| >> Heel ...".format(_str_func))        
@@ -1392,7 +1416,7 @@ def pivots_setup(self, mControl = None, mRigNull = None,
         mDriven = d_drivenGroups[k]
         log.debug("|{0}| >> Spin {1} setup".format(_str_func,str_key))        
         
-        if _side in ['right']:
+        if _side in ['right']:# and k not in ['inner','outer']:
             str_arg = "{0}.ry = -{1}".format(mDriven.mNode,
                                              mPlug.p_combinedShortName)
             log.debug("|{0}| >> Spin Right arg: {1}".format(_str_func,str_arg))        
@@ -1410,8 +1434,8 @@ def pivots_setup(self, mControl = None, mRigNull = None,
         
         if _side in ['right']:
             log.debug("|{0}| >> Bank right...".format(_str_func))            
-            mDrivenOutr = d_drivenGroups['right']
-            mDrivenInner =d_drivenGroups['left']
+            mDrivenOutr = d_drivenGroups['left']
+            mDrivenInner =d_drivenGroups['right']
             
             arg1 = "%s = clamp(-360,0,%s)"%(mPlug_innerResult.p_combinedShortName,                                  
                                             mPlug_bank.p_combinedShortName)

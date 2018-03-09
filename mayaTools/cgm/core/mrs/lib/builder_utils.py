@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -41,6 +41,7 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import rigging_utils as RIGGING
+import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
@@ -212,6 +213,90 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
 
+def get_midIK_basePosOrient(self,markPos = False):
+    try:
+        _str_func = 'get_midIK_basePosOrient'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
+        ml_templateHandles = self.mBlock.msgList_get('templateHandles')
+        
+        int_count = self.mBlock.numControls
+        ml_use = ml_prerigHandles[:int_count]
+        log.debug("|{0}| >> Using: {1}".format(_str_func,[mObj.p_nameBase for mObj in ml_use]))
+        
+        #Mid dat... ----------------------------------------------------------------------
+        if len(ml_use) == 1:
+            mid=0
+            mMidHandle = ml_use[0]
+        else:
+            mid = int((len(ml_use))/2)
+            mMidHandle = ml_use[mid]
+            
+        log.debug("|{0}| >> Controls: {1} | mid: {2}".format(_str_func,int_count,mid))
+        
+        #...Main vector -----------------------------------------------------------------------
+        mOrientHelper = ml_templateHandles[0].orientHelper
+        vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
+        log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
+        
+        #...Get vector -----------------------------------------------------------------------
+        pos_mid = mMidHandle.p_position
+        crv = CORERIG.create_at([ml_use[0].mNode,ml_use[-1].mNode], create= 'curveLinear')
+        pos_close = DIST.get_closest_point(pos_mid, crv, markPos)[0]
+        log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))
+        
+        if MATH.is_vector_equivalent(pos_mid,pos_close,3):
+            log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
+            vec_use = vec_base
+        else:
+            vec_use = MATH.get_vector_of_two_points(pos_close,pos_mid)
+            mc.delete(crv)
+        
+        #...Get length -----------------------------------------------------------------------
+        #dist_helper = 0
+        #if ml_use[-1].getMessage('pivotHelper'):
+            #log.debug("|{0}| >> pivotHelper found!".format(_str_func))
+            #dist_helper = max(POS.get_bb_size(ml_use[-1].getMessage('pivotHelper')))
+            
+        dist_min = DIST.get_distance_between_points(ml_use[0].p_position, pos_mid)/4.0
+        dist_base = DIST.get_distance_between_points(pos_mid, pos_close)
+        
+        #...get new pos
+        dist_use = MATH.Clamp(dist_base, dist_min, None)
+        log.debug("|{0}| >> Dist min: {1} | dist base: {2} | use: {3}".format(_str_func,
+                                                                              dist_min,
+                                                                              dist_base,
+                                                                              dist_use))
+        
+        pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
+        pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
+        
+        reload(LOC)
+        if markPos:
+            LOC.create(position=pos_use,name='pos1')
+            LOC.create(position=pos_use2,name='pos2')
+        
+        return pos_use
+        
+        pos_mid = ml_templateHandles[mid].p_position
+    
+    
+        #Get our point for knee...
+        vec_mid = MATH.get_obj_vector(ml_blendJoints[1], 'y+')
+        pos_mid = mKnee.p_position
+        pos_knee = DIST.get_pos_by_vec_dist(pos_knee,
+                                            vec_knee,
+                                            DIST.get_distance_between_points(ml_blendJoints[0].p_position, pos_knee)/2)
+    
+        mKnee.p_position = pos_knee
+    
+        CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)    
+    
+    
+        return True
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0],asMeta = True):
     _str_func = 'build_skeleton'
@@ -1122,6 +1207,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 p = SNAPCALLS.get_special_pos([mObj.mNode,
                                                                str_meshShape],
                                                               'cast',axis+d)
+                                
+                                
+                                
                                 crv = CURVES.create_fromName(name='semiSphere',
                                                              direction = 'z+',
                                                              size = offset*2)
@@ -1131,12 +1219,16 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 if not p:
                                     p = DIST.get_pos_by_axis_dist(mObj.mNode, axis+d, dist)
                                     
-                                mCrv.p_position = p
+                                dist = DIST.get_distance_between_points(p, pos_obj)
+                                
+                                vec_tmp = MATH.get_vector_of_two_points(pos_obj,p)
+                                p_use = DIST.get_pos_by_vec_dist(pos_obj,vec_tmp, dist+offset)
+                                
+                                mCrv.p_position = p_use
                                 
                                 SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
                                 
                                 
-                                dist = DIST.get_distance_between_points(p, pos_obj)
 
                                     
                         for crv in l_shapes[1:]:

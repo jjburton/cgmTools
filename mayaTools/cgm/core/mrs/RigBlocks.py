@@ -1472,7 +1472,7 @@ class handleFactory(object):
                 t = self._mTransform.mNode
                 
             if VALID.is_shape(t):
-                log.debug("|{0}| >> is shape s: {1}".format(_str_func, s))                
+                log.debug("|{0}| >> is shape: {1}".format(_str_func, t))                
                 _shapes = [t]
             else:
                 _shapes = TRANS.shapes_get(t,True)
