@@ -24,6 +24,7 @@ log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
+import maya.mel as mel    
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -1205,7 +1206,10 @@ def rig_prechecks(self):
     if mModuleParent:
         mi_parentRigNull = mModuleParent.rigNull
         if mi_parentRigNull.getMessage('rigRoot'):
-            self.md_dynTargetsParent['root'] = mi_parentRigNull.rigRoot
+            mParentRoot = mi_parentRigNull.rigRoot
+            self.md_dynTargetsParent['root'] = mParentRoot
+            self.ml_dynEndParents.insert(0,mParentRoot)
+            
         else:
             self.md_dynTargetsParent['root'] = False
 
@@ -3186,6 +3190,8 @@ def rig_cleanUp(self):
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
     ml_endDynParents = [mRoot] + self.ml_dynEndParents
+    ml_ikDynParents = []
+    
     
     """
     if mModuleParent:
@@ -3245,7 +3251,10 @@ def rig_cleanUp(self):
         
         #mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = [self.md_dynTargetsParent['puppet'], self.mConstrainNull]
-    
+        
+        if mParentRoot:
+            ml_targetDynParents.append(mParentRoot)
+            
         #if not mParent.hasAttr('cgmAlias'):
             #mParent.addAttr('cgmAlias','conIK_base')
         #ml_targetDynParents.append(mParent)    
@@ -3471,11 +3480,13 @@ def build_proxyMesh(self, forceNew = True):
         
         #...cut it up
         if mBall:
+            _bool_size = 200
+            _bool_divs = 40
             #Heel.-----------------------------------------------------------------------------------
             log.debug("|{0}| >> heel... ".format(_str_func))                        
             plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z+'),
-                                 width = 50, height = 50,
-                                 subdivisionsX=20,subdivisionsY=20,
+                                 width = _bool_size, height = _bool_size,
+                                 subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,
                                  ch=0)
             mPlane = cgmMeta.validateObjArg(plane[0])
             mPlane.doSnapTo(mBall.mNode,rotation=False)
@@ -3483,7 +3494,6 @@ def build_proxyMesh(self, forceNew = True):
             mMeshHeel = mMesh.doDuplicate(po=False)
             
             #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-            import maya.mel as mel
             heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
             
             mMeshHeel = cgmMeta.validateObjArg(heel[0])
@@ -3492,8 +3502,8 @@ def build_proxyMesh(self, forceNew = True):
             #ball -----------------------------------------------------------------------------------
             log.debug("|{0}| >> ball... ".format(_str_func))            
             plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
-                                 subdivisionsX=20,subdivisionsY=20,                                 
-                                 width = 100, height = 100, ch=0)
+                                 subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
+                                 width = _bool_size, height = _bool_size, ch=0)
             mPlane = cgmMeta.validateObjArg(plane[0])
             mPlane.doSnapTo(mBall.mNode,rotation=False)
             mMeshBall = mMesh.doDuplicate(po=False)
@@ -3508,8 +3518,8 @@ def build_proxyMesh(self, forceNew = True):
             if mToe:
                 log.debug("|{0}| >> toe... ".format(_str_func))
                 plane = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
-                                     subdivisionsX=20,subdivisionsY=20,                                 
-                                     width = 100, height = 100, ch=0)
+                                     subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
+                                     width = _bool_size, height = _bool_size, ch=0)
                 mPlane = cgmMeta.validateObjArg(plane[0])
                 mPlane.doSnapTo(mToe.mNode,rotation=False)
                 mMeshToe = mMesh.doDuplicate(po=False)

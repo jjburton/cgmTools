@@ -2313,18 +2313,20 @@ def blockMirror_create(self, forceNew = False):
         log.debug("|{0}| >> Block settings...".format(_str_func, self.mNode))                    
         pprint.pprint(_d)
         
-        
         mMirror = cgmMeta.createMetaNode('cgmRigBlock',
                                          **_d)
         
+        
         blockDat = self.getBlockDat()
         blockDat['ud']['side'] = _side
+        #if blockDat['ud'].get('cgmDirection'):
+            #blockDat['ud']['cgmDirection'] = _side
         #blockDat_load(mMirror, blockDat, mirror = False)
         mMirror.loadBlockDat(blockDat)
         
         controls_mirror(self,mMirror)
         
-        #mMirror.p_blockParent = self.p_blockParent
+        mMirror.p_blockParent = self.p_blockParent
         self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
         
         return mMirror
@@ -2637,7 +2639,212 @@ def blockDat_reset(self):
     #This needs more work.
     self._factory.verify(self.blockType, forceReset=True) 
 
-def blockDat_load(self, blockDat = None, mirror=False, reflectionVector = MATH.Vector3(1,0,0), controls=True):
+def blockDat_load(self,blockDat = None):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] loadBlockDat'.format(_short)
+    
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+
+    if blockDat is None:
+        log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+        blockDat = self.blockDat
+
+    if not issubclass(type(blockDat),dict):
+        raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
+
+    _blockType = blockDat.get('blockType')
+    if _blockType != self.blockType:
+        raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
+
+    #.>>>..UD ====================================================================================
+    log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
+    _ud = blockDat.get('ud')
+    _udFail = {}
+    if not blockDat.get('ud'):
+        raise ValueError,"|{0}| >> No ud data found".format(_str_func)
+    
+    for a,v in _ud.iteritems():
+        _current = ATTR.get(_short,a)
+        if _current != v:
+            try:
+                if ATTR.get_type(_short,a) in ['message']:
+                    log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                else:
+                    log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    ATTR.set(_short,a,v)
+            except Exception,err:
+                _udFail[a] = v
+                log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                #r9Meta.printMetaCacheRegistry()                
+                for arg in err.args:
+                    log.error(arg)                      
+
+    if _udFail:
+        log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
+        pprint.pprint(_udFail)
+
+    #>>State ====================================================================================
+    log.debug("|{0}| >> State".format(_str_func) + '-'*80)
+    _stateArgs = BLOCKGEN.validate_stateArg(blockDat.get('blockState'))
+    _target_state_idx = _stateArgs[0]
+    _target_state = _stateArgs[1]
+    
+    _current_state = self.getState()
+    
+    _current_state_idx = self.getState(False)
+    if _target_state != _current_state:
+        log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
+        #self.p_blockState = _state
+        
+     
+    #>>Controls ====================================================================================
+    log.debug("|{0}| >> Controls".format(_str_func)+ '-'*80)
+    _pos = blockDat.get('positions')
+    _orients = blockDat.get('orientations')
+    _scale = blockDat.get('scale')
+
+    _ml_controls = self.getControls(True)
+    #if len(_ml_controls) != len(_pos):
+    #    log.error("|{0}| >> Control dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_controls),len(_pos))) 
+    #else:
+    log.debug("|{0}| >> loading Controls...".format(_str_func))
+    for i,mObj in enumerate(_ml_controls):
+        log.debug("|{0}| >> First load: {1} ...".format(_str_func,mObj))        
+        mObj.p_position = _pos[i]
+        mObj.p_orient = _orients[i]
+        for ii,v in enumerate(_scale[i]):
+            _a = 's'+'xyz'[ii]
+            if not self.isAttrConnected(_a):
+                ATTR.set(_short,_a,v)
+
+    
+    #>>Template Controls ====================================================================================
+
+    if _target_state >= 1:
+        log.info("|{0}| >> template dat....".format(_str_func))
+        if _current_state_idx < 1:
+            log.info("|{0}| >> Pushing to template....".format(_str_func))
+            self.p_blockState = 1
+            
+        _d_template = blockDat.get('template',False)
+        if not _d_template:
+            log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+        else:
+            #if _int_state == 1:
+            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+            _ml_templateHandles = self.atUtils('controls_get',True,False)
+            #else:
+            #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+
+
+            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+            if not _ml_templateHandles:
+                log.error("|{0}| >> No template handles found".format(_str_func))
+            else:
+                _posTempl = _d_template.get('positions')
+                _orientsTempl = _d_template.get('orientations')
+                _scaleTempl = _d_template.get('scales')
+                _jointHelpers = _d_template.get('jointHelpers')
+
+                if len(_ml_templateHandles) != len(_posTempl):
+                    log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                else:
+                    for i_loop in range(2):
+                        log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+
+                        for i,mObj in enumerate(_ml_templateHandles):
+                            log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                            mObj.p_position = _posTempl[i]
+                            mObj.p_orient = _orientsTempl[i]
+                            _tmp_short = mObj.mNode
+                            for ii,v in enumerate(_scaleTempl[i]):
+                                _a = 's'+'xyz'[ii]
+                                if not self.isAttrConnected(_a):
+                                    ATTR.set(_tmp_short,_a,v)   
+                            if _jointHelpers and _jointHelpers.get(i):
+                                mObj.jointHelper.translate = _jointHelpers[i]
+
+            if _d_template.get('rootOrientHelper'):
+                if self.getMessage('orientHelper'):
+                    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                else:
+                    log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+    
+    
+    if _target_state >= 2:
+        log.info("|{0}| >> prerig dat....".format(_str_func))
+        if _current_state_idx < 2:
+            log.info("|{0}| >> Pushing to prerig....".format(_str_func))
+            self.p_blockState = 2
+        _d_prerig = blockDat.get('prerig',False)
+        if not _d_prerig:
+            log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+        else:
+            #if _int_state == 1:
+            _ml_prerigControls = self.msgList_get('prerigHandles',asMeta = True)
+            #_ml_prerigControls = self.atUtils('controls_get',True,False)
+            #else:
+            #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+
+
+            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+            if not _ml_prerigControls:
+                log.error("|{0}| >> No prerig handles found".format(_str_func))
+            else:
+                _posPre = _d_prerig.get('positions')
+                _orientsPre = _d_prerig.get('orientations')
+                _scalePre = _d_prerig.get('scales')
+                _jointHelpersPre = _d_prerig.get('jointHelpers')
+
+                if len(_ml_prerigControls) != len(_posPre):
+                    log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
+                else:
+                    for i_loop in range(2):
+                        log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+
+                        for i,mObj in enumerate(_ml_prerigControls):
+                            log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
+                            mObj.p_position = _posPre[i]
+                            mObj.p_orient = _orientsPre[i]
+                            _tmp_short = mObj.mNode
+                            for ii,v in enumerate(_scalePre[i]):
+                                _a = 's'+'xyz'[ii]
+                                if not self.isAttrConnected(_a):
+                                    ATTR.set(_tmp_short,_a,v)   
+                            if _jointHelpersPre and _jointHelpersPre.get(i):
+                                mObj.jointHelper.translate = _jointHelpersPre[i]
+
+            #if _d_prerig.get('rootOrientHelper'):
+                #if self.getMessage('orientHelper'):
+                    #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
+                #else:
+                    #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
+    if _target_state > 2:
+        self.p_blockState = _target_state
+        
+
+    return
+    #>>Generators ====================================================================================
+    log.debug("|{0}| >> Generators".format(_str_func)+ '-'*80)
+    _d = {"isSkeletonized":[self.isSkeletonized,self.doSkeletonize,self.deleteSkeleton]}
+
+    for k,calls in _d.iteritems():
+        _block = bool(blockDat.get(k))
+        _current = calls[0]()
+        if _state != _current:
+            log.debug("|{0}| >> {1} States don't match. self: {2} | blockDat: {3}".format(_str_func,k,_current,_block)) 
+            if _block == False:
+                calls[2]()                         
+            else:
+                calls[1]()     
+
+
+
+    return True
+
+
+
+def blockDat_loadBAK(self, blockDat = None, mirror=False, reflectionVector = MATH.Vector3(1,0,0), controls=True):
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     ml_processed = []

@@ -763,7 +763,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def printBlockDat(self):
         cgmGEN.walk_dat(self.blockDat,'[{0}] blockDat'.format(self.p_nameShort))
 
-    def loadBlockDat(self,blockDat = None):
+    def loadBlockDat(self,*args,**kws):
+        reload(BLOCKUTILS)
+        return BLOCKUTILS.blockDat_load(self,*args,**kws)
         _short = self.p_nameShort        
         _str_func = '[{0}] loadBlockDat'.format(_short)
 
