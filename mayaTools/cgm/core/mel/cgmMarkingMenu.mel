@@ -3,9 +3,20 @@ global proc cgmMarkingMenu() {
 	}
 
 
-global proc cgmMarkingMenuKillUI () {
+global proc cgmMarkingMenu() {
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
+	}
+
+global proc cgmMarkingMenuKillUI() {
 	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;cgmMM_tool.killUI();");
 	}
+	
+global proc cgmMarkingMenuKillUIBAK () {
+	undoInfo -state off;
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;cgmMM_tool.killUI();");
+	undoInfo -state on;
+	}
+	
 	
 global proc cgmMarkingMenuBak() {
 	python("from cgm.core.tools.markingMenus import cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
