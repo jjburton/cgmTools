@@ -2629,8 +2629,10 @@ def blockDat_get(self,report = True):
     Carry from Bokser stuff...
     """
     try:
+        
         _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
-        _ml_controls = self.getControls(True)
+        #_ml_controls = self.getControls(True,True)
+        _ml_controls = []
         _short = self.p_nameShort
         _blockState_int = self.getState(False)
         #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
@@ -2638,6 +2640,9 @@ def blockDat_get(self,report = True):
               "blockType":self.blockType,
               "blockState":self.p_blockState,
               "baseName":self.getMayaAttr('cgmName'), 
+              'position':self.p_position,
+              'orient':self.p_orient,
+              'scale':self.scale,
               #"part":self.part,
               ##"blockPosition":self.getEnumValueString('position'),
               ##"blockDirection":self.getEnumValueString('side'),
@@ -2648,10 +2653,10 @@ def blockDat_get(self,report = True):
               #"_attach":self._attach.name if self._attach else None, 
               #"_noTouch":self._noTouch.name if self._noTouch else None, 
               #"controls":[mObj.mNode for mObj in _ml_controls],
-              "positions":[mObj.p_position for mObj in _ml_controls],
-              "orientations":[mObj.p_orient for mObj in _ml_controls],
-              "scale":[mObj.scale for mObj in _ml_controls],
-              "isSkeletonized":self.isSkeletonized(),
+              #"positions":[mObj.p_position for mObj in _ml_controls],
+              #"orientations":[mObj.p_orient for mObj in _ml_controls],
+              #"scale":[mObj.scale for mObj in _ml_controls],
+              #"isSkeletonized":self.isSkeletonized(),
               #...these will be indexed against the number of handles
               #"templatePositions":[x.name for x in self.templatePositions or []], 
               #"templateOrientation":[x.name for x in self.templateOrientation or []], 
@@ -2675,12 +2680,15 @@ def blockDat_get(self,report = True):
             _d["size"] = POS.get_axisBox_size(self.mNode,False),
         else:
             _d['size'] = self.baseSize
-
+            
+        if self.getMessage('orientHelper'):
+                _d['rootOrientHelper'] = self.orientHelper.rotate
+                
         if _blockState_int >= 1:
-            _d['template'] = self.getBlockDat_templateControls()
+            _d['template'] = blockDat_getControlDat(self,'template')#self.getBlockDat_templateControls()
 
-        #if _blockState_int >= 2:
-            #_d['prerig'] = self.getBlockDat_prerigControls() 
+        if _blockState_int >= 2:
+            _d['prerig'] = blockDat_getControlDat(self,'prerig')#self.getBlockDat_prerigControls() 
 
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
@@ -2704,6 +2712,71 @@ def blockDat_reset(self):
     #This needs more work.
     self._factory.verify(self.blockType, forceReset=True) 
 
+def blockDat_getControlDat(self,mode = 'template',report = True):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] blockDat_getControlDat [{1}]'.format(_short,mode)
+    log.debug(_str_func+ '-'*80)
+    
+    _mode_int,_mode_str = BLOCKGEN.validate_stateArg(mode)
+    
+    _modeToState = {'template':1,
+                    'prerig':2}
+    
+    if _mode_str not in _modeToState.keys():
+        raise ValueError,"Unknown mode: {0}".format(_mode_str)
+    
+    _blockState_int = self.getState(False)
+    
+    if not _blockState_int >= _modeToState[_mode_str]:
+        raise ValueError,'[{0}] not {1} yet. State: {2}'.format(_short,_mode_str,_blockState_int)
+        #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+    
+    _d_controls = {'template':False,'prerig':False}
+    _d_controls[_mode_str] = True
+    ml_handles = controls_get(self, **_d_controls)
+    pprint.pprint(vars())
+    
+    if not ml_handles:
+        log.error('[{0}] No template or prerig handles found'.format(_short))
+        return False
+
+    _ml_controls = ml_handles
+
+    _l_orientHelpers = []
+    _l_jointHelpers = []
+    _d_orientHelpers = {}
+    _d_jointHelpers = {}        
+    for i,mObj in enumerate(ml_handles):
+        log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+        if mObj.getMessage('orientHelper'):
+            #_l_orientHelpers.append(mObj.orientHelper.rotate)
+            _d_orientHelpers[i] = mObj.orientHelper.rotate
+        #else:
+            #_l_orientHelpers.append(False)
+
+        if mObj.getMessage('jointHelper'):
+            #_l_jointHelpers.append(mObj.jointHelper.translate)
+            _d_jointHelpers[i] = mObj.jointHelper.translate
+
+        #else:
+            #_l_jointHelpers.append(False)
+    _d = {'positions':[mObj.p_position for mObj in ml_handles],
+          'orients':[mObj.p_orient for mObj in ml_handles],
+          'scales':[mObj.scale for mObj in ml_handles],
+          'orientHelpers':_d_orientHelpers}
+    
+    if _d_jointHelpers:
+        _d['jointHelpers'] =_d_jointHelpers
+
+
+    #if self.getMessage('orientHelper'):
+    #    _d['rootOrientHelper'] = self.orientHelper.rotate
+
+    if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
+    return _d
+
+
+@cgmGEN.Timer
 def blockDat_load(self,blockDat = None):
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
@@ -2763,15 +2836,37 @@ def blockDat_load(self,blockDat = None):
         
      
     #>>Controls ====================================================================================
-    log.debug("|{0}| >> Controls".format(_str_func)+ '-'*80)
-    _pos = blockDat.get('positions')
-    _orients = blockDat.get('orientations')
+    def setAttr(node,attr,value):
+        try:ATTR.set(node,attr,value)
+        except Exception,err:
+            log.warning("|{0}| >> Failed to set: {1} | attr:{2} | value:{3} | err: {4}".format(_str_func,
+                                                                                               node,
+                                                                                               attr,value))
+            
+    log.debug("|{0}| >> Block main controls".format(_str_func)+ '-'*80)
+    _pos = blockDat.get('position')
+    _orients = blockDat.get('orient')
     _scale = blockDat.get('scale')
-
-    _ml_controls = self.getControls(True)
+    _orientHelper = blockDat.get('rootOrientHelper')
+    
+    self.p_position = blockDat.get('position')
+    self.p_orient = blockDat.get('orient')
+    for ii,v in enumerate(_scale):
+        _a = 's'+'xyz'[ii]
+        #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
+        setAttr(_short,_a,v)
+        
+    if _orientHelper:
+        _ctrl = self.orientHelper.mNode
+        for ii,v in enumerate(_orientHelper):
+            _a = 'r'+'xyz'[ii]
+            setAttr(_ctrl,_a,v)
+        
+    #_ml_controls = self.getControls(True)
     #if len(_ml_controls) != len(_pos):
     #    log.error("|{0}| >> Control dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_controls),len(_pos))) 
     #else:
+    """
     log.debug("|{0}| >> loading Controls...".format(_str_func))
     for i,mObj in enumerate(_ml_controls):
         log.debug("|{0}| >> First load: {1} ...".format(_str_func,mObj))        
@@ -2781,11 +2876,11 @@ def blockDat_load(self,blockDat = None):
             _a = 's'+'xyz'[ii]
             if not self.isAttrConnected(_a):
                 ATTR.set(_short,_a,v)
-
+                """
+    
     
     #>>Template Controls ====================================================================================
-
-    if _target_state >= 1:
+    if _target_state_idx >= 1:
         log.info("|{0}| >> template dat....".format(_str_func))
         if _current_state_idx < 1:
             log.info("|{0}| >> Pushing to template....".format(_str_func))
@@ -2807,7 +2902,7 @@ def blockDat_load(self,blockDat = None):
                 log.error("|{0}| >> No template handles found".format(_str_func))
             else:
                 _posTempl = _d_template.get('positions')
-                _orientsTempl = _d_template.get('orientations')
+                _orientsTempl = _d_template.get('orients')
                 _scaleTempl = _d_template.get('scales')
                 _jointHelpers = _d_template.get('jointHelpers')
 
@@ -2830,14 +2925,14 @@ def blockDat_load(self,blockDat = None):
                             if _jointHelpers and _jointHelpers.get(i):
                                 mObj.jointHelper.translate = _jointHelpers[i]
 
-            if _d_template.get('rootOrientHelper'):
-                if self.getMessage('orientHelper'):
-                    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
-                else:
-                    log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+            #if _d_template.get('rootOrientHelper'):
+                #if self.getMessage('orientHelper'):
+                #    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                #else:
+                    #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+    #pprint.pprint(vars())
     
-    return
-    if _target_state >= 2:
+    if _target_state_idx >= 2:
         log.info("|{0}| >> prerig dat....".format(_str_func))
         if _current_state_idx < 2:
             log.info("|{0}| >> Pushing to prerig....".format(_str_func))
@@ -2846,24 +2941,19 @@ def blockDat_load(self,blockDat = None):
         if not _d_prerig:
             log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
         else:
-            #if _int_state == 1:
-            _ml_prerigControls = self.msgList_get('prerigHandles',asMeta = True)
-            #_ml_prerigControls = self.atUtils('controls_get',True,False)
-            #else:
-            #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+            _ml_prerigControls = self.atUtils('controls_get',prerig=True)
 
-
-            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
             if not _ml_prerigControls:
                 log.error("|{0}| >> No prerig handles found".format(_str_func))
             else:
                 _posPre = _d_prerig.get('positions')
-                _orientsPre = _d_prerig.get('orientations')
+                _orientsPre = _d_prerig.get('orients')
                 _scalePre = _d_prerig.get('scales')
                 _jointHelpersPre = _d_prerig.get('jointHelpers')
 
                 if len(_ml_prerigControls) != len(_posPre):
-                    log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
+                    log.error("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
+                    pprint.pprint(_ml_prerigControls)
                 else:
                     for i_loop in range(2):
                         log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
@@ -2885,9 +2975,8 @@ def blockDat_load(self,blockDat = None):
                     #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
                 #else:
                     #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
-    if _target_state > 2:
+    if _target_state_idx > 2:
         self.p_blockState = _target_state
-        
 
     return
     #>>Generators ====================================================================================
@@ -3132,21 +3221,23 @@ def get_blockDagNodes(self,):
         return ml_controls
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
-def controls_get(self,template = True, prerig= True):
+def controls_get(self,template = False, prerig= False):
     try:
-        
         _short = self.p_nameShort        
         _str_func = '[{0}] controls_get'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         
         def addMObj(mObj):
+            log.debug("|{0}| >> Storing: {1} ".format(_str_func,mObj))
             if mObj in ml_controls:
                 log.debug("|{0}| >> Already stored: {1} ".format(_str_func,mObj))                    
                 return
             ml_controls.append(mObj)
             if mObj.getMessage('orientHelper'):
+                log.debug("|{0}| >> ... has orient helper".format(_str_func))                                    
                 addMObj(mObj.orientHelper)
             if mObj.getMessage('jointHelper'):
+                log.debug("|{0}| >> has joint helper...".format(_str_func))                                                    
                 addMObj(mObj.jointHelper)
         
         def addPivotHelper(mPivotHelper):
@@ -3155,11 +3246,10 @@ def controls_get(self,template = True, prerig= True):
                 if mChild.getMayaAttr('cgmType') == 'pivotHelper':
                     addMObj(mChild)
             
+        ml_controls = []
         
-        ml_controls = [self]
-        
-        if self.getMessage('orientHelper'):
-            ml_controls.append(self.orientHelper)
+        #if self.getMessage('orientHelper'):
+            #ml_controls.append(self.orientHelper)
             
         if template:
             log.debug("|{0}| >> template pass...".format(_str_func))            

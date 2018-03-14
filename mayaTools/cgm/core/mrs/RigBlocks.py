@@ -581,8 +581,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
         _ml_templateHandles = self.atUtils('controls_get',True,False)
             
-
-
         if not _ml_templateHandles:
             log.error('[{0}] No template or prerig handles found'.format(_short))
             return False
@@ -684,6 +682,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Carry from Bokser stuff...
         """
+        return BLOCKUTILS.blockDat_get(self,report)
         try:
             _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
             _ml_controls = self.getControls(True)
@@ -766,6 +765,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def loadBlockDat(self,*args,**kws):
         reload(BLOCKUTILS)
         return BLOCKUTILS.blockDat_load(self,*args,**kws)
+    
         _short = self.p_nameShort        
         _str_func = '[{0}] loadBlockDat'.format(_short)
 
@@ -1246,6 +1246,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
     atUtils = atBlockUtils
+    UTILS = BLOCKUTILS
 
 
     def string_methodCall(self, func = 'getShortName', *args,**kws):
@@ -1630,7 +1631,7 @@ class handleFactory(object):
                                                        sizeMode = 'fixed', size = _sizeSub)
                     mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                     mPivot.addAttr('cgmName',_strPivot)
-
+                    
                     #mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
                     SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
 
@@ -2158,7 +2159,9 @@ class handleFactory(object):
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
-    def addJointHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', loftHelper = True, lockChannels = ['rotate','scale']):
+    def addJointHelper(self,baseShape=None, baseSize = None,
+                       shapeDirection = 'z-', loftHelper = True,
+                       lockChannels = ['rotate','scale']):
         try:
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
@@ -2173,7 +2176,7 @@ class handleFactory(object):
 
 
             #Joint helper ======================================================================================
-            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,'sphere',  direction= shapeDirection, sizeMode = 'fixed', size = _size)
+            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,'jack',  direction= shapeDirection, sizeMode = 'fixed', size = _size)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
 
             if mHandle.hasAttr('cgmName'):

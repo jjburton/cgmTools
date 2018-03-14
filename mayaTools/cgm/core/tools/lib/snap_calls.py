@@ -577,7 +577,7 @@ def get_special_pos(targets = None,
             sp
             boundingBoxEach
             boundingBoxAll - all targets bounding box cumulative
-            localAxisBox
+            axisBox
             castFar
             castNear
             groundPos
@@ -651,10 +651,19 @@ def get_special_pos(targets = None,
             l_res.append(pos)
         elif _arg == 'axisBox':
             log.warning("|{0}| >> axisBox mode is still wip".format(_str_func))
+            if not targets:
+                raise ValueError,"No targets in axisBox cast!"
             for t in targets:
+                log.debug("|{0}| >> AxisBox cast: {1} ".format(_str_func,t))
                 _proxy = CORERIG.create_axisProxy(t)
                 #Start point is bb center because rp can sometimes be in odd places and we care about the axisBox
-                pos = RAYS.get_cast_pos(t, mode,'near', _proxy, startPoint= POS.get(_proxy,'bb') ,mark=False, maxDistance=100000)
+                pos = RAYS.get_cast_pos(t, mode,'near', _proxy,
+                                        startPoint= POS.get(_proxy,'bb'),
+                                        mark=False, maxDistance=100000)
+                
+                log.debug("|{0}| >> AxisBox dat: {1}".format(_str_func,pos))
+                #if not pos:
+                #    pprint.pprint(vars())
                 l_res.append(pos)
                 mc.delete(_proxy)
         else:
