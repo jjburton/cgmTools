@@ -701,7 +701,7 @@ class ui(cgmUI.cgmGUI):
         self._ml_blocks = l
         return self._ml_blocks
                 
-    def uiFunc_block_setActive(self, index = None):
+    def uiFunc_block_setActive(self, index = None, mBlock = None):
         try:
             _str_func = 'uiFunc_block_setActive'
             
@@ -724,13 +724,17 @@ class ui(cgmUI.cgmGUI):
     
             log.debug("|{0}| >> Current: {1}".format(_str_func, _idx_current))    
             
-    
             if index is not None:
                 if index in self._ml_blocks:
                     index = self._ml_blocks.index(index)
                 if index not in range(len(_ml)):
                     log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
                     return
+            elif mBlock:
+                if mBlock in self._ml_blocks:
+                    index = self._ml_blocks.index(mBlock)
+                else:
+                    raise ValueError,"mBlock not found in list: {0}".format(mBlock)
             else:
                 _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
                 log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    

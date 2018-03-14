@@ -70,6 +70,47 @@ def get_sideMirror(self):
     elif _side == 'right':return 'left'
     return False
 
+
+def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
+    _str_func = 'get_attachPoint'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >> NOT SURE WE NEED THIS!!!!!".format(_str_func,self)+ '-'*80)
+    
+    mBlockParent = self.p_blockParent
+    if not mBlockParent:
+        log.error("|{0}| >> Must have block parent".format(_str_func))        
+        return False
+    
+    mParentModule = mBlockParent.getMessage('moduleTarget',asMeta=True)
+    
+    if not mParentModule:
+        log.debug("|{0}| >> mParentModule: {1}".format(_str_func,mParentModule))        
+        if mBlockParent.getMessage('modulePuppet'):
+            if mBlockParent.modulePuppet.getMessage('rootJoint'):
+                log.debug("|{0}| >> Root joint on master found".format(_str_func))
+                return mBlockParent.modulePuppet.rootJoint[0]
+            return False
+        raise RuntimeError,"Shouldn't have gotten here"    
+    
+    else:
+        mParentModule = mParentModule[0]
+        log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
+        
+        ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+        
+        if not ml_targetJoints:
+            raise ValueError,"mParentModule has no module joints."
+        if mode == 'end':
+            mTarget = ml_targetJoints[-1]
+        elif mode == 'base':
+            mTarget = ml_targetJoints[0]
+        else:
+            _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
+            if noneValid:
+                return log.error(_msg)
+            raise ValueError,_msg
+        return mTarget
+
 def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True):
     """
     Verify the attributes of a given block type
@@ -363,7 +404,31 @@ def get_infoBlock_report(self):
 #=============================================================================================================
 #>> define
 #=============================================================================================================
-def define(self):pass
+def define(self):
+    _str_func = 'define'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
+
+    _str_state = self.blockState
+    
+    if _str_state != 'define':
+        raise ValueError,"[{0}] is not in define template. state: {1}".format(self.mNode, _str_state)
+
+    #>>>Children ------------------------------------------------------------------------------------
+
+    #>>>Meat ------------------------------------------------------------------------------------
+    mBlockModule = self.p_blockModule
+    
+    for c in ['define']:
+        if c in mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
+            self.atBlockModule(c)
+
+    self.blockState = 'define'#...yes now in this state
+    return True
+    
 
 
 #=============================================================================================================
@@ -2755,7 +2820,8 @@ def blockDat_load(self,blockDat = None):
                         for i,mObj in enumerate(_ml_templateHandles):
                             log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
                             mObj.p_position = _posTempl[i]
-                            mObj.p_orient = _orientsTempl[i]
+                            if ATTR.is_keyable(mObj.mNode,'rotate'):
+                                mObj.p_orient = _orientsTempl[i]
                             _tmp_short = mObj.mNode
                             for ii,v in enumerate(_scaleTempl[i]):
                                 _a = 's'+'xyz'[ii]
@@ -2770,7 +2836,7 @@ def blockDat_load(self,blockDat = None):
                 else:
                     log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
     
-    
+    return
     if _target_state >= 2:
         log.info("|{0}| >> prerig dat....".format(_str_func))
         if _current_state_idx < 2:
@@ -3642,7 +3708,11 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
     
         if currentState == _idx_target:
             if not forceNew:
-                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
+                if _idx_target == 0:
+                    define(self)
+                    return True
+                else:
+                    log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
                 return True
             elif currentState > 0:
                 log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
@@ -3683,8 +3753,11 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False 
                 elif self.getState(True)  != doState:
-                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
-                    return False                
+                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))
+                    return False
+                
+                if _idx_target == 0:
+                    define(self)
             return True
         else:
             log.error('Forcing recreate')
