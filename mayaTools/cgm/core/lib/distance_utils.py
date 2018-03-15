@@ -394,13 +394,19 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
     If origin is None, juse the center of each shape
     """
     _str_func = 'offsetShape_byVector'
+    log.info("|{0}| >> dag: {1} | distance: {2} | origin: {3} | component: {4}".format(_str_func,
+                                                                                       dag,
+                                                                                       distance,
+                                                                                       origin,
+                                                                                       component))
+    
     _originUse = None
     
-    if VALID.objString(origin,noneValid=True):
+    if VALID.isListArg(origin):
+        _originUse = origin
+    elif VALID.objString(origin,noneValid=True):
         log.info("|{0}| >> Getting origin from transform of origin string: {1}".format(_str_func, origin))
         _originUse = POS.get(origin)
-    elif VALID.isListArg(origin):
-        _originUse = origin
     
     if VALID.is_shape(dag):
         l_shapes = [dag]

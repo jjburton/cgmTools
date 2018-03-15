@@ -213,16 +213,20 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
 
-def get_midIK_basePosOrient(self,markPos = False):
+def get_midIK_basePosOrient(self,ml_handles = [], markPos = False):
     try:
         _str_func = 'get_midIK_basePosOrient'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
-        ml_templateHandles = self.mBlock.msgList_get('templateHandles')
-        
-        int_count = self.mBlock.numControls
-        ml_use = ml_prerigHandles[:int_count]
+        if ml_handles:
+            ml_use = ml_handles
+        else:
+            ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
+            ml_templateHandles = self.mBlock.msgList_get('templateHandles')
+            
+            int_count = self.mBlock.numControls
+            ml_use = ml_prerigHandles[:int_count]
+            
         log.debug("|{0}| >> Using: {1}".format(_str_func,[mObj.p_nameBase for mObj in ml_use]))
         
         #Mid dat... ----------------------------------------------------------------------
@@ -233,10 +237,10 @@ def get_midIK_basePosOrient(self,markPos = False):
             mid = int((len(ml_use))/2)
             mMidHandle = ml_use[mid]
             
-        log.debug("|{0}| >> Controls: {1} | mid: {2}".format(_str_func,int_count,mid))
+        log.debug("|{0}| >> mid: {1}".format(_str_func,mid))
         
         #...Main vector -----------------------------------------------------------------------
-        mOrientHelper = ml_templateHandles[0].orientHelper
+        mOrientHelper = self.mBlock.orientHelper
         vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
         log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
         
@@ -942,8 +946,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         ml_fkJoints = ml_targets
                     else:
                         ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
+                        
                     if len(ml_fkJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))                
+                        return log.error("|{0}| >> Need at least two joints".format(_str_func))                
                     
                     #...Get our vectors...
                     l_vectors = []
