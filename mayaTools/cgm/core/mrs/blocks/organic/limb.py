@@ -97,6 +97,7 @@ d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull','prerigLoftMesh','orientHelper'],
                      'msgLists':['templateHandles']}
+d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
@@ -154,13 +155,15 @@ d_block_profiles = {
               'ikSetup':'rp',
               'ikEnd':'tip',
               'numControls':4,
+              'numRoll':0,
+              'rigSetup':'finger',              
               'buildLeverBase':True,
               'hasLeverJoint':True,
               'hasEndJoint':False,
               'nameList':['index'],
-              'baseAim':[1,0,0],
+              #'baseAim':[1,0,0],
               'baseUp':[0,1,0],
-              'baseSize':[1,5,1]},
+              'baseSize':[1.4,1,6.4]},
     
     'thumb':{'numShapers':1,
              'addCog':False,
@@ -172,13 +175,15 @@ d_block_profiles = {
              'ikSetup':'rp',
              'ikEnd':'tip',
              'numControls':4,
+             'numRoll':0,
+             'rigSetup':'finger',
              'buildLeverBase':False,
              'hasLeverJoint':False,
              'hasEndJoint':False,
              'nameList':['thumb'],
-             'baseAim':[1,0,0],
+             #'baseAim':[1,0,0],
              'baseUp':[0,1,0],
-             'baseSize':[1,5,1]}    
+             'baseSize':[1.4,1,6.4]},
    }
 
 #>>>Attrs =====================================================================================================
@@ -206,6 +211,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'placeSettings':'start:end',
                  'settingsDirection':'up:down:out:in',
                  'blockProfile':':'.join(d_block_profiles.keys()),
+                 'rigSetup':'default:finger',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tip:proxy',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
@@ -259,41 +265,113 @@ def define(self):
             
     _shapes = self.getShapes()
     if _shapes:
+        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
         mc.delete(_shapes)
+        defineNull = self.getMessage('defineNull')
+        if defineNull:
+            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+            mc.delete(defineNull)
     
-    _size = MATH.average(self.baseSize)
-    _crv = CURVES.create_controlCurve(self.mNode, shape='jack', 
-                                      direction = 'z+', sizeMode = 'fixed', size = _size)
+    _size = MATH.average(self.baseSize[1:])
+    _crv = CURVES.create_controlCurve(self.mNode, shape='arrowsAxis',#'arrowsAxis', 
+                                      direction = 'z+', sizeMode = 'fixed', size = _size/2)
     CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     
     mHandleFactory = self.asHandleFactory()
     mHandleFactory.color(self.mNode,controlType='main')
     #CORERIG.colorControl(self.mNode,_side,'main',transparent = True)
     
-    return
-    log.debug("|{0}| >>  globalAxis helpers...".format(_str_func))
+    mDefineNull = self.atUtils('stateNull_verify','define')
     
-    _arrowUp = CURVES.create_fromName('arrowForm', _size/2 )
-    CORERIG.override_color(_arrowUp,'green')
-    _arrowAim = CURVES.create_fromName('arrowForm', _size/2 )
-    CORERIG.override_color(_arrowAim,'blue')
-    p_crv = DIST.get_pos_by_axis_dist(self.mNode,'z+', _size * 2)
+    #Bounding box ==================================================================
+    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
+    mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    mBBShape.p_parent = mDefineNull    
+    mBBShape.tz = .5
     
-    for i,crv in enumerate([_arrowAim,_arrowUp]):
-        mCrv = cgmMeta.validateObjArg(crv)
-        mCrv.doStore('cgmName',self.mNode)        
-        if i == 0:
-            mCrv.doStore('cgmType','blockAimAxis')
-        else:
-            mCrv.doStore('cgmType','blockUpAxis')
-        mCrv.doName()        
-        
-        mCrv.p_position = p_crv
-        CORERIG.copy_pivot(mCrv.mNode,self.mNode)
+    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    mHandleFactory.color(mBBShape.mNode,controlType='sub')
+    mBBShape.setAttrFlags()
+    
+    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmType','bbVisualize')
+    mBBShape.doName()    
+    
+    self.connectChildNode(mBBShape.mNode,'bbHelper')
 
+    #Up helper ==================================================================
+    mTarget = self.doCreateAt()
+    mTarget.p_parent = mDefineNull
+    mTarget.rename('aimTarget')
+    self.doConnectOut('baseSizeZ', "{0}.tz".format(mTarget.mNode))
+    mTarget.setAttrFlags()
+    
+    _arrowUp = CURVES.create_fromName('pyramid', _size/5, direction= 'y+')
+    mArrow = cgmMeta.validateObjArg(_arrowUp, 'cgmObject',setClass=True)
+    mArrow.p_parent = mDefineNull    
+    mArrow.resetAttrs()
+    mHandleFactory.color(mArrow.mNode,controlType='sub')
+    
+    mArrow.doStore('cgmName', self.mNode)
+    mArrow.doStore('cgmType','upVector')
+    mArrow.doName()
+    mArrow.setAttrFlags()
     
     
+    #self.doConnectOut('baseSizeY', "{0}.ty".format(mArrow.mNode))
+    NODEFACTORY.argsToNodes("{0}.ty = {1}.baseSizeY + {2}".format(mArrow.mNode,
+                                                                self.mNode,
+                                                                self.baseSize[1])).doBuild()
     
+    mAimGroup = cgmMeta.validateObjArg(mArrow.doGroup(True,True,asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
+    mAimGroup.resetAttrs()
+    
+    _const = mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
+                              aimVector = [0,0,1], upVector = [0,1,0], 
+                              worldUpObject = self.mNode,
+                              worldUpType = 'objectrotation', 
+                              worldUpVector = [0,1,0])
+    cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))    
+    mAimGroup.setAttrFlags()
+    
+    self.connectChildNode(mAimGroup.mNode,'rootUpHelper')
+    
+ 
+    #Plane helper ==================================================================
+    plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),
+                          width = 1, #height = 1,
+                          #subdivisionsX=1,subdivisionsY=1,
+                          ch=0)
+    mPlane = cgmMeta.validateObjArg(plane[0])
+    mPlane.doSnapTo(self.mNode)
+    mPlane.p_parent = mAimGroup
+    mPlane.tz = .5
+    CORERIG.copy_pivot(mPlane.mNode,self.mNode)
+
+    self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
+
+    mHandleFactory.color(mPlane.mNode,controlType='sub')
+
+    mPlane.doStore('cgmName', self.mNode)
+    mPlane.doStore('cgmType','planeVisualize')
+    mPlane.doName() 
+    
+    mPlane.setAttrFlags()
+    
+    
+    """mAimGroup = mPlane.doGroup(True,True,asMeta=True,typeModifier = 'aim')
+    mAimGroup.resetAttrs()
+    
+    mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
+                     aimVector = [0,0,1], upVector = [0,1,0], 
+                     worldUpObject = self.rootUpHelper.mNode,
+                     worldUpType = 'objectrotation', 
+                     worldUpVector = [0,1,0])    """
+
+ 
+    return
+
     
 #=============================================================================================================
 #>> Template
@@ -304,6 +382,8 @@ def define(self):
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    self.defineNull.template = True
     
     ATTR.datList_connect(self.mNode, 'rollCount', [self.numRoll for i in range(self.numControls - 1)])
     l_rollattrs = ATTR.datList_getAttrs(self.mNode,'rollCount')
@@ -321,7 +401,6 @@ def template(self):
     _baseUp = self.baseUp
     _baseSize = self.baseSize
     _baseAim = self.baseAim
-    _size_width = _baseSize[0]#...x width
     
     _ikSetup = self.getEnumValueString('ikSetup')
     _ikEnd = self.getEnumValueString('ikEnd')
@@ -334,25 +413,49 @@ def template(self):
     if _loftSetup not in ['default']:
         return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))    
     
+    #Old method...
+    """
     _mVectorAim = MATH.get_vector_of_two_points(_l_basePos[0],_l_basePos[-1],asEuclid=True)
     _mVectorUp = _mVectorAim.up()
     _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
+    """
+    _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
+    
+    mRootUpHelper = self.rootUpHelper
+    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
+    
+    mBBHelper = self.bbHelper
+    #Generate more posData if necessary...
+    #if not len(_l_basePos)>1:
+    _v_range = max(TRANS.bbSize_get(self.mNode)) *2
+    
+    _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
+    _size_width = _bb_axisBox[0]#...x width
+    
+    log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,mBBHelper.p_nameShort, _v_range))
+    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _bb_axisBox[2])
+    _l_basePos.append(_end)
+    
+    #for i,p in enumerate(_l_basePos):
+    #    LOC.create(position=p,name="{0}_loc".format(i))
+    
+    mBBHelper.v = False
+    
     cgmGEN.func_snapShot(vars())
     
-    #Create temple Null...
-    mTemplateNull = self.atUtils('templateNull_verify')
+    
+    #Create temple Null ------------------------------------------------------------------------------------
+    #mTemplateNull = self.atUtils('templateNull_verify')
+    mTemplateNull = self.atUtils('stateNull_verify','template')
+    
     mNoTransformNull = self.atUtils('noTransformNull_verify','template')
     
     #Our main rigBlock shape ...
     mHandleFactory = self.asHandleFactory()
     
-    #Generate more posData if necessary...
-    if not len(_l_basePos)>1:
-        log.debug("|{0}| >> Generating more pos dat".format(_str_func))
-        _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _baseAim, max(_baseSize))
-        _l_basePos.append(_end)    
-        
+
     
+    #Lever ==================================================================================================
     _b_lever = False
     if self.buildLeverBase:
         _b_lever = True
@@ -387,10 +490,11 @@ def template(self):
         else:
             log.debug("|{0}| >> no blockParent...".format(_str_func))
             #_mVectorAimNeg = _mVectorAim.reflect(MATH.Vector3(0,0,1))
-            _vec_AimNeg = MATH.list_mult(_baseAim,[-1,-1,-1])
+            #_vec_AimNeg = MATH.list_mult(_baseAim,[-1,-1,-1])
+            _vec_AimNeg = MATH.get_obj_vector(self.mNode,'z-')
             
             log.debug("|{0}| >> VecAimNeg: {1} ".format(_str_func,_vec_AimNeg))
-            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _baseSize[2]*.3)
+            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _bb_axisBox[2]*.3)
             
         log.debug("|{0}| >> pos_lever: {1} ".format(_str_func,pos_lever))
         #LOC.create(position=pos_lever, name='lever_pos_loc')
@@ -415,6 +519,8 @@ def template(self):
             mHandle = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
             mHandle.p_parent = mTemplateNull
             
+            mHandle.resetAttrs()
+            
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
             mHandle.doStore('cgmType','blockHandle')
             mHandle.doStore('cgmNameModifier',n)
@@ -437,9 +543,10 @@ def template(self):
             md_loftHandles[n] = mLoftCurve                
             ml_loftHandles.append(mLoftCurve)
             
-            mBaseAttachGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'attach')
+            mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
 
+        
         #>> Base Orient Helper ==================================================================================================
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
@@ -450,15 +557,19 @@ def template(self):
         self.copyAttrTo('cgmName',mBaseOrientCurve.mNode,'cgmName',driven='target')
         mBaseOrientCurve.doName()
         
-        mBaseOrientCurve.p_parent =  ml_handles[0]
-        mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')        
-    
+        mBaseOrientCurve.p_parent =  mTemplateNull
+        mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
+        mc.pointConstraint(md_handles['start'].mNode, mOrientHelperAimGroup.mNode )
         _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
-                                  aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = ml_handles[0].mNode, #skip = 'z',
-                                  worldUpType = 'vector', worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
+                                  aimVector = [0,0,1], upVector = [0,1,0], 
+                                  worldUpObject = mRootUpHelper.mNode,
+                                  worldUpType = 'objectrotation', 
+                                  worldUpVector = [0,1,0])
+                                  #worldUpType = 'vector',
+                                  #worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
         
         self.connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
-        cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
+        #cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
         #mBaseOrientCurve.p_parent = mStartAimGroup
         
         mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])
@@ -495,7 +606,7 @@ def template(self):
             ml_midLoftHandles = []
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-                crv = CURVES.create_fromName('sphere', _size_width, direction = 'y+')
+                crv = CURVES.create_fromName('sphere', _size_width * .75, direction = 'y+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -508,6 +619,7 @@ def template(self):
                 mHandle.p_position = p
 
                 mHandle.p_parent = mTemplateNull
+                #mHandle.resetAttrs()
                 
                 mHandleFactory.setHandle(mHandle.mNode)
                 mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_loftShape,
@@ -519,6 +631,7 @@ def template(self):
                 mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
                 mAimGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'aim')
                 
+                
                 _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,
                                                               [ml_handles[0].mNode,ml_handles[-1].mNode])
 
@@ -527,7 +640,10 @@ def template(self):
         
                 _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
                 TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
-
+                
+                mGroup.resetAttrs('rotate')
+                
+                
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
         
@@ -541,7 +657,7 @@ def template(self):
             
             #Lever Handle ===============================================================================
             if _b_lever:
-                crv = CURVES.create_fromName('sphere', _size_width, direction = 'y+')
+                crv = CURVES.create_fromName('sphere', _size_width * .75, direction = 'y+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 md_handles['lever'] = mHandle
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -550,9 +666,11 @@ def template(self):
                 mHandle.doName()                
                 
                 _short = mHandle.mNode
-                mHandle.p_position = pos_lever
                 mHandle.p_parent = mTemplateNull
-            
+                mHandle.resetAttrs()
+                
+                mHandle.p_position = pos_lever
+                
                 mHandleFactory.setHandle(mHandle.mNode)
                 mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget('loftWideDown',#_loftShape,
                                                                      _size_width,
@@ -563,30 +681,40 @@ def template(self):
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
                 CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
+                
+                
+                SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorUp)
                 """
                 mc.aimConstraint(md_handles['start'].mNode, mHandle.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
-                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpObject = mRootUpHelper.mNode,
                                  worldUpType = 'objectrotation', 
-                                 worldUpVector = [0,1,0])"""                
+                                 worldUpVector = [0,1,0])"""
                 
             #AimEndHandle ============================================================================
             #mAimGroup = md_handles['end'].doGroup(True, asMeta=True,typeModifier = 'aim')
+            #...not doing this now...
+            SNAP.go(md_handles['end'].mNode, self.mNode, position=False)
+            
+            """
             _const = mc.aimConstraint(self.mNode, md_handles['end'].mNode, maintainOffset = False,
                                       aimVector = [0,0,-1], upVector = [0,1,0], 
                                       worldUpObject = mBaseOrientCurve.mNode,
-                                      worldUpType = 'vector', 
-                                      worldUpVector = [0,1,0])
-            cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
+                                      worldUpType = 'objectrotation', 
+                                      worldUpVector = [0,1,0])"""
+            
+            #cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
             
             
-            #AimEndHandle ============================================================================
+            #AimStartHandle ============================================================================
             _const = mc.aimConstraint(md_handles['end'].mNode, md_handles['start'].mNode,
                                       maintainOffset = False,
-                                      aimVector = [0,0,1], upVector = [0,1,0], 
-                                      worldUpType = 'vector', 
-                                      worldUpVector = [0,1,0])            
-            cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
+                                      aimVector = [0,0,1],
+                                      upVector = [0,1,0], 
+                                      worldUpObject = mRootUpHelper.mNode,
+                                      worldUpType = 'objectrotation', 
+                                      worldUpVector = [0,1,0])
+            
             
             #Main Track curve ============================================================================
             ml_handles_chain = [ml_handles[0]] + ml_midHandles + [ml_handles[-1]]
@@ -607,6 +735,8 @@ def template(self):
             ml_handles_chain.insert(0,md_handles['lever'])
             
         for i,mHandle in enumerate(ml_handles_chain):
+            if mHandle in [md_handles['lever'],md_handles['end']]:
+                continue
             mLoft = mHandle.loftCurve
             _str_handle = mHandle.mNode
             
@@ -684,11 +814,12 @@ def template(self):
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = [0,1,0])
 
-            if mHandle != md_handles['lever']:
+            if mHandle == md_handles['lever']:
+                pass
+                #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
+            elif mHandle not in [md_handles['end']]:
                 ATTR.set_standardFlags( mHandle.mNode, ['rotate','sz'])
                 ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))                
-            else:
-                ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
                 
         #>>> Connections ==========================================================================================
         self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
@@ -1007,21 +1138,11 @@ def prerig(self):
         _str_func = 'prerig'
         _short = self.p_nameShort
         _side = self.atUtils('get_side')
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-        _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+
         
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))   
         
-        self.atUtils('module_verify')
-        
-        log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))   
-        
-        
-        #Create some nulls Null  ==================================================================================
-        mPrerigNull = self.atUtils('prerigNull_verify')
-        mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
-        
-        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self)
     
         #> Get our stored dat ==================================================================================================
         mHandleFactory = self.asHandleFactory()
@@ -1030,6 +1151,32 @@ def prerig(self):
         _ikEnd = self.getEnumValueString('ikEnd')
 
         ml_templateHandles = self.msgList_get('templateHandles')
+        
+        #Names dat.... -----------------------------------------------------------------
+        _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')        
+        #b_iterNames = False
+        if len(_l_baseNames) < len(ml_templateHandles):
+            log.debug("|{0}| >>  Not enough nameList attrs, need to generate".format(_str_func))
+            #b_iterNames = True
+            baseName = _l_baseNames[0]
+            _l_baseNamesNEW = []
+            for i in range(len(ml_templateHandles)):
+                _l_baseNamesNEW.append("{0}_{1}".format(baseName,i))
+            ATTR.datList_connect(self.mNode,'nameList',_l_baseNamesNEW)
+            _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
+            
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+        
+        #pprint.pprint(vars())
+        
+        #Create some nulls Null  =========================================================================
+        self.atUtils('module_verify')
+        
+        
+        mPrerigNull = self.atUtils('stateNull_verify','prerig')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
+    
+        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self)
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
@@ -1088,6 +1235,11 @@ def prerig(self):
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             _short = mHandle.mNode
             
+            #if b_iterNames:
+                #ATTR.copy_to(self.mNode,_baseNameAttrs[0],_short, 'cgmName', driven='target')
+                #mHandle.doStore('cgmIterator',i)
+            #    mHandle.doStore('cgmName',"{0}_{1}".format(_l_baseNames[0],i))
+            #else:
             ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
             mHandle.doStore('cgmType','preHandle')
             mHandle.doName()
@@ -1217,14 +1369,19 @@ def skeleton_build(self, forceNew = True):
         _int_rollStart = 1
     _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
     
-
+    
     if len(_l_names) != len(ml_jointHelpers):
         return log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
     
+
     _d_base['cgmType'] = 'skinJoint'
     
     #Build our handle chain ======================================================
     l_pos = []
+    
+    if not self.hasEndJoint:
+        log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
+        ml_jointHelpers = ml_jointHelpers[:-1]
     
     for mObj in ml_jointHelpers:
         l_pos.append(mObj.p_position)
@@ -1234,7 +1391,6 @@ def skeleton_build(self, forceNew = True):
                                         worldUpAxis= mOrientHelper.getAxisVector('y+'), orient= False)
     
     if _b_lever:
-        
         ml_handleJoints[1].p_parent = False
         #Lever...
         mLever = ml_handleJoints[0]
@@ -1243,7 +1399,8 @@ def skeleton_build(self, forceNew = True):
         #                          worldUpType = 'Vector', 
         #                          worldUpVector = self.baseUp)
         #mc.delete()
-        SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',self.baseUp)
+        SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
+                 self.rootUpHelper.getAxisVector('y+'))
         JOINT.freezeOrientation(mLever.mNode)
         
         #Rest...
@@ -1255,6 +1412,7 @@ def skeleton_build(self, forceNew = True):
         JOINT.orientChain(ml_handleJoints,
                           worldUpAxis= mOrientHelper.getAxisVector('y+'))        
     
+
     ml_joints = []
     d_rolls = {}
     
@@ -1925,6 +2083,7 @@ def rig_shapes(self):
         _side = mBlock.atUtils('get_side')
         _short_module = self.mModule.mNode
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+        str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         
         mHandleFactory = mBlock.asHandleFactory()
         mOrientHelper = mBlock.orientHelper

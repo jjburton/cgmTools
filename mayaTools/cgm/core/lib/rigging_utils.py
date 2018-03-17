@@ -439,7 +439,7 @@ def create_axisProxy(obj=None):
         _dup = mc.duplicate(l_shapes,po=False,rc=True)[0]
         #TRANS.pivots_recenter(_dup)
         _dup = TRANS.parent_set(_dup,False)
-        
+        ATTR.set_standardFlags(_dup,lock=False,keyable=True)
         #Get some values...
         l_reset = ['t','r','s','shear','rotateAxis']
         t = ATTR.get(_dup,'translate')

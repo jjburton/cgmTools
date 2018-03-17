@@ -502,8 +502,14 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         mParentModule = mParentModule[0]
         log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
         
-        ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+        mParentRigNull = mParentModule.rigNull
         
+        for plug in ['blendJoints','fkJoints','moduleJoints']:
+            if mParentRigNull.msgList_get(plug):
+                ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
+                log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))                
+                break
+            
         if not ml_targetJoints:
             raise ValueError,"mParentModule has no module joints."
         if mode == 'end':
@@ -532,8 +538,13 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
     else:
         mParentModule = mParentModule[0]
         log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
-        
-        ml_targetJoints = mParentModule.rigNull.msgList_get('rigJoints',asMeta = True, cull = True)
+        mParentRigNull = mParentModule.rigNull
+        #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
+        for plug in ['blendJoints','fkJoints','moduleJoints']:
+            if mParentRigNull.msgList_get(plug):
+                ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
+                log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))                
+                break        
         
         if not ml_targetJoints:
             raise ValueError,"mParentModule has no rig joints."

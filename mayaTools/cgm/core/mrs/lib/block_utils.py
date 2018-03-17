@@ -69,8 +69,7 @@ def get_sideMirror(self):
     if _side == 'left':return 'right'
     elif _side == 'right':return 'left'
     return False
-
-
+    
 def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
     _str_func = 'get_attachPoint'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -474,8 +473,32 @@ def templateNull_verify(self):
         templateNull.setAttrFlags()
     else:
         templateNull = self.templateNull   
-        
     return templateNull
+
+def snap_toBaseDat(self):
+    _str_func = 'snap_toBaseDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    pos = DIST.get_pos_by_vec_dist(self.p_position, self.baseAim, 100)
+    log.debug("|{0}| >>  pos: {1}".format(_str_func,pos))
+    
+    SNAP.aim_atPoint(self.mNode, pos, mode='vector',vectorUp=self.baseUp )
+    
+def stateNull_verify(self,state='define'):
+    _strPlug = state.lower() + 'Null'
+    
+    if not self.getMessage(_strPlug):
+        str_null = RIGGING.create_at(self.mNode)
+        mNull = cgmMeta.validateObjArg(str_null, mType = 'cgmObject',setClass = True)
+        mNull.connectParentNode(self, 'rigBlock',_strPlug) 
+        mNull.doStore('cgmName', self.mNode)
+        mNull.doStore('cgmType',_strPlug)
+        mNull.doName()
+        #mNull.rename(_strPlug)
+        mNull.p_parent = self
+        mNull.setAttrFlags()
+    else:
+        mNull = self.getMessageAsMeta(_strPlug)
+    return mNull
 
 def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNull = None,
                             uAttr = 'neckControls',baseName = 'test'):
@@ -2909,14 +2932,15 @@ def blockDat_load(self,blockDat = None):
                 if len(_ml_templateHandles) != len(_posTempl):
                     log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
                 else:
-                    for i_loop in range(2):
+                    for i_loop in range(3):
                         log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
 
                         for i,mObj in enumerate(_ml_templateHandles):
                             log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
                             mObj.p_position = _posTempl[i]
-                            if ATTR.is_keyable(mObj.mNode,'rotate'):
+                            if not ATTR.is_locked(mObj.mNode,'rotate'):
                                 mObj.p_orient = _orientsTempl[i]
+                                
                             _tmp_short = mObj.mNode
                             for ii,v in enumerate(_scaleTempl[i]):
                                 _a = 's'+'xyz'[ii]
@@ -2955,7 +2979,7 @@ def blockDat_load(self,blockDat = None):
                     log.error("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
                     pprint.pprint(_ml_prerigControls)
                 else:
-                    for i_loop in range(2):
+                    for i_loop in range(3):
                         log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
 
                         for i,mObj in enumerate(_ml_prerigControls):
@@ -3390,7 +3414,6 @@ def controls_mirror(blockSource, blockMirror = None,
         return l_dat,md_remap
     
     except Exception,err:cgmGEN.cgmException(Exception,err)
-    
 def controlsRig_reset(self):
     try:
         
@@ -3509,7 +3532,7 @@ def templateDelete(self):
         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
         self.atBlockModule('define')
     
-    mc.delete(self.getShapes())
+    #mc.delete(self.getShapes())
     
     d_links = get_stateLinks(self, 'template')
     delete_msgDat(self,d_links)

@@ -318,6 +318,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
                 self._blockModule = _blockModule
                 
+                if self.__justCreatedState__:
+                    if 'define' in _blockModule.__dict__.keys():
+                        log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+                        _blockModule.define(self)                          
+                
 
             if blockParent is not None:
                 try:
@@ -398,10 +403,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
     
             #try:self.atBlockModule('define')
             #except:pass
-            #_mBlockModule = get_blockModule(self.blockType)
+            #_mBlockModule = self.p_blockModule
             #if 'define' in _mBlockModule.__dict__.keys():
-                #log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-                #_mBlockModule.define(self)      
+            #    log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+            #    _mBlockModule.define(self)      
             #self._blockModule = _mBlockModule
     
             self.doName()

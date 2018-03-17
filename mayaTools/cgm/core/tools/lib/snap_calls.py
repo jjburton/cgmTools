@@ -523,7 +523,7 @@ def snap(obj = None, targets = None,
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 
-def get_axisBox_size(targets = None, maxDistance = 10000000):
+def get_axisBox_size(targets = None, maxDistance = 10000000, mark=False):
     try:
         _str_func = 'get_axisBox_size'
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
@@ -548,6 +548,10 @@ def get_axisBox_size(targets = None, maxDistance = 10000000):
                 pos_neg = RAYS.get_cast_pos(t, k+'-','near', _proxy, startPoint= _startPoint ,
                                                  mark=False, maxDistance=maxDistance)
                 
+                if mark:
+                    LOCINATOR.LOC.create(position=pos_positive,name="{0}_{1}Pos_loc".format(t,k))
+                    LOCINATOR.LOC.create(position=pos_neg,name="{0}_{1}Neg_loc".format(t,k))
+                    
                 dist = DIST.get_distance_between_points(pos_positive,pos_neg)
                 d_res[k].append(dist)
             mc.delete(_proxy)            
