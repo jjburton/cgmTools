@@ -4505,6 +4505,9 @@ class rigFactory(object):
             mAttachDriver.doName()
             
             mAttachDriver.parent = self.attachPoint
+            self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
+            mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
+            self.mConstrainNull.connectChildNode(mAttachDriver,'attachPoint','module')
             
             mc.parentConstraint([mAttachDriver.mNode],
                                 self.mConstrainNull.mNode,

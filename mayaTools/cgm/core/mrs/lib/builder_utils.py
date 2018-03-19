@@ -770,7 +770,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             offset = self.mPuppet.atUtils('get_shapeOffset')
             #offset = self.d_module.get('f_shapeOffset',1.0)
             
-        if mode in ['default','segmentHandle','ikHandle','frameHandle','loftHandle','limbHandle','limbSegmentHandle']:
+        if mode in ['default','segmentHandle','ikHandle','frameHandle','loftHandle','limbHandle','limbSegmentHandle','simpleCast']:
             #Get our cast mesh        
             
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
@@ -819,9 +819,17 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
                     
-            elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle']:
+            elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast']:
                 f_factor = (maxU-minU)/(30)
-    
+                if targets:
+                    ml_fkJoints = ml_targets
+                else:
+                    ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
+                    
+                if len(ml_fkJoints)<2:
+                    return log.error("|{0}| >> Need at least two joints".format(_str_func))
+                
+                
                 if mode == 'segmentHandleBAK':
                     log.debug("|{0}| >> segmentHandle cast...".format(_str_func))                        
                     
@@ -942,14 +950,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     if not mRigNull.msgList_get('fkJoints'):
                         return log.error("|{0}| >> No fk joints found".format(_str_func))
                     
-                    if targets:
-                        ml_fkJoints = ml_targets
-                    else:
-                        ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
-                        
-                    if len(ml_fkJoints)<2:
-                        return log.error("|{0}| >> Need at least two joints".format(_str_func))                
-                    
                     #...Get our vectors...
                     l_vectors = []
                     for i,mObj in enumerate(ml_fkJoints[:-1]):
@@ -1023,8 +1023,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         ml_fkJoints = ml_targets
                     else:
                         ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
+                        
                     if len(ml_fkJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))                
+                        return log.error("|{0}| >> Need at least two targets".format(_str_func))                
                     
                     #...Get our vectors...
                     l_vectors = []
@@ -1094,7 +1095,85 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                    
+                elif mode == 'simpleCast':#================================================================
+                    if targets:
+                        ml_fkJoints = ml_targets
+                    else:
+                        ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
+                        
+                    if len(ml_fkJoints)<2:
+                        return log.error("|{0}| >> Need at least two targets".format(_str_func))                
+                    
+                    #...Get our vectors...
+                    """
+                    l_vectors = []
+                    for i,mObj in enumerate(ml_fkJoints[:-1]):
+                        l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_fkJoints[i+1].p_position) )
+                    l_vectors.append(  MATH.get_vector_of_two_points(ml_fkJoints[-2].p_position, ml_fkJoints[-1].p_position) )
+                    l_vectors.append( l_vectors[-1])#...add it again"""
+                    
+                    
+                    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                                          len(ml_fkJoints))                    
+                    
+                    #...Get our uValues...
+                    l_uValues = []
+                    for i,mObj in enumerate(ml_fkJoints):
+                        _short = mObj.mNode
+                        _d = RAYS.cast(str_meshShape, _short, str_aim)
+                        log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+                        #cgmGEN.log_info_dict(_d,j)
+                        try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
+                        except:
+                            log.warning("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                            _v = l_failSafes[i]
+                        l_uValues.append( _v )
+                        
+                    #l_uValues.append( l_uValues[-1] + (maxU - l_uValues[-1])/2 )
+                    #l_uValues.append(maxU)
+                
+                    ml_shapes = []
+                    _add = f_factor/2
+                    
+                    for i,v in enumerate(l_uValues):
+                        l_mainCurves = []
+                        log.debug("|{0}| >> {1} | {2} ...".format(_str_func,i,v))
+                        
+                        #if v == l_uValues[-2]:
+                            #log.debug("|{0}| >> {1} | Last one...".format(_str_func,i))
+                            #_add = - _add
 
+                        baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+_add), ch = 0, rn = 0, local = 0)[0]
+                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
+                        l_mainCurves.append(baseCrv)
+                        
+                        endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+(_add *2)), ch = 0, rn = 0, local = 0)[0]
+                        #endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,l_uValues[i+1]-_add), ch = 0, rn = 0, local = 0)[0]
+                        DIST.offsetShape_byVector(endCrv,offset,component='cv')
+                        
+                        l_mainCurves.append(endCrv)
+                        
+                        """
+                        log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
+                        d_epPos = {}
+                        for i,crv in enumerate(l_mainCurves):
+                            mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                            for ii,ep in enumerate(mCrv.getComponents('ep',True)):
+                                if not d_epPos.get(ii):
+                                    d_epPos[ii] = []
+                                    
+                                _l = d_epPos[ii]
+                                _l.append(POS.get(ep))
+                                
+                        for k,points in d_epPos.iteritems():
+                            crv_connect = CURVES.create_fromList(posList=points)
+                            l_mainCurves.append(crv_connect)
+                        """
+                        for crv in l_mainCurves[1:]:
+                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                            
+                        ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
+                                        
                 elif mode == 'segmentHandle':#=============================================================
                     if targets:
                         ml_fkJoints = ml_targets
