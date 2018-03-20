@@ -213,7 +213,10 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
 
-def get_midIK_basePosOrient(self,ml_handles = [], markPos = False):
+def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHandle=False):
+    """
+    
+    """
     try:
         _str_func = 'get_midIK_basePosOrient'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -230,14 +233,23 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False):
         log.debug("|{0}| >> Using: {1}".format(_str_func,[mObj.p_nameBase for mObj in ml_use]))
         
         #Mid dat... ----------------------------------------------------------------------
-        if len(ml_use) == 1:
+        _len_handles = len(ml_use)
+        if _len_handles == 1:
             mid=0
             mMidHandle = ml_use[0]
         else:
-            mid = int((len(ml_use))/2)
+            
+            mid = int(_len_handles)/2
             mMidHandle = ml_use[mid]
             
         log.debug("|{0}| >> mid: {1}".format(_str_func,mid))
+        
+        b_absMid = False
+        if MATH.is_even(_len_handles) and not forceMidToHandle:
+            log.debug("|{0}| >> absolute mid mode...".format(_str_func,mid))
+            b_absMid = True
+            
+        
         
         #...Main vector -----------------------------------------------------------------------
         mOrientHelper = self.mBlock.orientHelper
@@ -245,7 +257,13 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False):
         log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
         
         #...Get vector -----------------------------------------------------------------------
-        pos_mid = mMidHandle.p_position
+        if b_absMid:
+            crvCubic = CORERIG.create_at(ml_use, create= 'curve')
+            pos_mid = CURVES.getMidPoint(crvCubic)
+            mc.delete(crvCubic)
+        else:
+            pos_mid = mMidHandle.p_position
+            
         crv = CORERIG.create_at([ml_use[0].mNode,ml_use[-1].mNode], create= 'curveLinear')
         pos_close = DIST.get_closest_point(pos_mid, crv, markPos)[0]
         log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))

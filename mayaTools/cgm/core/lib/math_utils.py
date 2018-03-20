@@ -270,6 +270,12 @@ def ut_isFloatEquivalent():
     assert is_float_equivalent(0.0,-0.0),"0.0>-0.0 fail"
     assert is_float_equivalent(0.0,0),"0.0>0 fail"
     
+    
+def is_even(f1):
+    if f1%2 == 0:
+        return True
+    return False
+
 def is_float_equivalent(f1,f2,places=4):
     """
     Compare two floats, returns if equivalent

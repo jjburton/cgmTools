@@ -153,7 +153,7 @@ d_block_profiles = {
               'loftSetup':'default',
               'placeSettings':'end',
               'ikSetup':'rp',
-              'ikEnd':'bankTip',
+              'ikEnd':'tipEnd',
               'numControls':4,
               'numRoll':0,
               'rigSetup':'finger',
@@ -174,7 +174,7 @@ d_block_profiles = {
              'loftSetup':'default',
              'placeSettings':'end',
              'ikSetup':'rp',
-             'ikEnd':'bankTip',
+             'ikEnd':'tipEnd',
              'numControls':4,
              'numRoll':0,
              'rigSetup':'finger',
@@ -214,7 +214,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'settingsDirection':'up:down:out:in',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:finger',#...this is to account for some different kinds of setup
-                 'ikEnd':'none:bank:foot:hand:tip:bankTip:proxy',
+                 'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
                  'offsetMode':'default:proxyAverage',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
@@ -1225,9 +1225,10 @@ def prerig(self):
             ml_templateHandles.append(mFootHelper.pivotFront)
             
         #Finger Tip ============================================================================
-        if _ikSetup != 'none' and _ikEnd == 'bankTip':
+        if _ikSetup != 'none' and _ikEnd == 'catInTheHat':#bankTip
             log.debug("|{0}| >> bankTip setup...".format(_str_func))
-            mEndHandle = ml_templateHandles[-1]            
+            mEndHandle = ml_templateHandles[-1]
+            
             """
             #Make a tip last mesh segment to build our pivot setup from...
             l_curves = []
@@ -1241,7 +1242,6 @@ def prerig(self):
             
             log.debug("|{0}| >> ikSetup. End: {1}".format(_str_func,mEndHandle))
             mHandleFactory.setHandle(mEndHandle.mNode)
-        
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
                 
         #return 
@@ -1669,16 +1669,29 @@ def rig_prechecks(self):
     self.mToe = False
     self.mBall = False
     self.int_handleEndIdx = -1
+    self.b_ikNeedEnd = False
     l= []
     
-    if mBlock.hasEndJoint:
-        self.mToe = self.ml_handleTargets.pop(-1)
-        log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
-        self.int_handleEndIdx -=1
-    if mBlock.hasBallJoint:
-        self.mBall = self.ml_handleTargets.pop(-1)
-        log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
-        self.int_handleEndIdx -=1
+    str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
+    log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
+    
+    if str_ikEnd in ['foot','hand']:
+        if mBlock.hasEndJoint:
+            self.mToe = self.ml_handleTargets.pop(-1)
+            log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
+            self.int_handleEndIdx -=1
+        if mBlock.hasBallJoint:
+            self.mBall = self.ml_handleTargets.pop(-1)
+            log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
+            self.int_handleEndIdx -=1
+    elif str_ikEnd in ['tipEnd','tipBase']:
+        log.debug("|{0}| >> tip setup...".format(_str_func))        
+        if not mBlock.hasEndJoint:
+            self.b_ikNeedEnd = True
+            log.debug("|{0}| >> Need IK end joint".format(_str_func))
+        else:
+            self.int_handleEndIdx -=1
+            
     
     ml_use = ml_handleJoints[:self.int_handleEndIdx]
     if len(ml_use) == 1:
@@ -1691,11 +1704,14 @@ def rig_prechecks(self):
     
     self.int_templateHandleMidIdx = mid
     
-    if self.b_lever:
-        self.int_templateHandleMidIdx +=1
+    #if self.b_lever:
+        #log.debug("|{0}| >> lever pop...".format(_str_func))        
+        #self.int_templateHandleMidIdx +=1
     
     
-    log.debug("|{0}| >> self.ml_handleTargets: {1}".format(_str_func,self.ml_handleTargets))
+    log.debug("|{0}| >> self.ml_handleTargets: {1} | {2}".format(_str_func,
+                                                                 len(self.ml_handleTargets),
+                                                                 self.ml_handleTargets))
     log.debug("|{0}| >> Mid self.int_handleMidIdx idx: {1} | {2}".format(_str_func,self.int_handleMidIdx,
                                                                          ml_handleJoints[self.int_handleMidIdx]))    
     log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
@@ -1703,16 +1719,21 @@ def rig_prechecks(self):
     log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1} | {2}".format(_str_func,self.int_templateHandleMidIdx,
                                                                          ml_templateHandles[self.int_templateHandleMidIdx]))
         
-    log.debug(cgmGEN._str_subLine)
+
     
+    self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
     self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
+    
+    log.debug("|{0}| >> self.ml_handleTargetsCulled: {1} | {2}".format(_str_func,
+                                                                 len(self.ml_handleTargetsCulled),
+                                                                 self.ml_handleTargetsCulled))
+    log.debug(cgmGEN._str_subLine)
     
     #Offset ============================================================================    
     str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
     if not mBlock.offsetMode:
         log.debug("|{0}| >> default offsetMode...".format(_str_func))
         self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
-        
     else:
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
@@ -2137,6 +2158,7 @@ def rig_fingerShapes(self):
         _side = mBlock.atUtils('get_side')
         _short_module = self.mModule.mNode
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+        str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
         str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         
         mHandleFactory = mBlock.asHandleFactory()
@@ -2230,7 +2252,10 @@ def rig_fingerShapes(self):
                 """
                 ml_curves = []
                 
-                mIKCrv = self.ml_handleTargets[-1].doCreateAt()
+                if str_ikEnd == 'tipBase':
+                    mIKCrv = self.ml_handleTargets[self.int_handleEndIdx].doCreateAt()
+                else:
+                    mIKCrv = self.ml_handleTargets[-1].doCreateAt()
 
                 for mObj in ml_templateHandles[-2:]:
                     mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
@@ -2334,7 +2359,8 @@ def rig_fingerShapes(self):
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
     
             #Get our point for knee...
-            mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargets,False)
+            mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',
+                                                   self.ml_handleTargetsCulled,False)
     
             
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
@@ -2538,10 +2564,14 @@ def rig_fingerShapes(self):
         
         
         #FK/Ik ==========================================================================================    
-        log.debug("|{0}| >> Frame shape cast...".format(_str_func))        
+        log.debug("|{0}| >> Frame shape cast...".format(_str_func))
+        ml_targets = [mObj.mNode for mObj in self.ml_handleTargets]
+        if mBlock.hasEndJoint:
+            ml_targets.pop(-1)
+            
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
-                                          targets = [mObj.mNode for mObj in self.ml_handleTargets],
+                                          targets = ml_targets,
                                           mode = 'simpleCast')
         """
         if self.mPivotHelper:
@@ -3317,6 +3347,9 @@ def rig_segments(self):
     ml_prerigHandleJoints = mPrerigNull.msgList_get('handleJoints')
     _jointOrientation = self.d_orientation['str']
     
+    if not ml_handleJoints and not self.md_roll:
+        log.info("|{0}| >> No segment setup...".format(_str_func))
+        return True    
     
     if ml_handleJoints:
         log.debug("|{0}| >> Handle Joints...".format(_str_func))
@@ -3683,6 +3716,7 @@ def rig_frame(self):
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
         
+        
         b_cog = False
         if mBlock.getMessage('cogHelper'):
             b_cog = True
@@ -3721,11 +3755,12 @@ def rig_frame(self):
             #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
             mLeverFK = mRigNull.leverFK
             
-            mLeverFK.masterGroup.p_parent = mRootParent
+            mLeverFK.masterGroup.p_parent = mRoot#mRootParent
             
             log.debug("|{0}| >> Lever rig aim".format(_str_func))
             
             mLeverDirect = mRigNull.leverDirect
+            mRoot = mLeverFK#...reconnect this for later data..
             """
             mAimGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'aim')
             mc.aimConstraint(ml_handleJoints[0].mNode,
@@ -3737,7 +3772,7 @@ def rig_frame(self):
                              worldUpObject = mLeverFK.mNode,
                              worldUpType = 'objectRotation' )"""
             
-            mRoot.p_parent = mLeverFK
+            #mRoot.p_parent = mLeverFK
             
             
             """
@@ -3956,6 +3991,7 @@ def rig_frame(self):
                         mChild.parent = False
                 
                 #Build the IK ---------------------------------------------------------------------
+                reload(IK)
                 _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
                         'stretch':'translate',
                         'lockMid':True,
@@ -4430,7 +4466,7 @@ def rig_cleanUp(self):
     
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
-    ml_endDynParents = [mRoot] + self.ml_dynEndParents
+    ml_endDynParents = self.ml_dynEndParents# + [mRoot]
     ml_ikDynParents = []
     
     #Lever =================================================================================================
@@ -4438,8 +4474,9 @@ def rig_cleanUp(self):
         log.debug("|{0}| >> Lever...".format(_str_func))
         #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
         mLeverFK = mRigNull.leverFK
-        
         ml_baseDynParents.append(mLeverFK)
+    else:
+        ml_baseDynParents.append(mRoot)
 
     
     """
@@ -4464,7 +4501,7 @@ def rig_cleanUp(self):
     #...Root controls ================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
     
-    ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull]
+    ml_targetDynParents = [self.mConstrainNull]
     #[self.md_dynTargetsParent['driverPoint']]#[self.mDeformNull]
     
     if not self.mConstrainNull.hasAttr('cgmAlias'):
@@ -4501,7 +4538,7 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))                
         
         #mParent = mHandle.masterGroup.getParent(asMeta=True)
-        ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['puppet'], self.mConstrainNull]
+        ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull,self.md_dynTargetsParent['puppet']]
         
         #if mParentRoot:
         #    ml_targetDynParents.append(mParentRoot)

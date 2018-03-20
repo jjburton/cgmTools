@@ -1655,7 +1655,6 @@ def handle(startJoint,
             if len(ml_jointChain) == 3 and lockMid:
                 log.debug("|{0}| >> MidLock setup possible...".format(_str_func))
                 
-            
                 if lockMid:mPlug_lockMid = cgmMeta.cgmAttr(mControl,'lockMid',initialValue = 0, attrType = 'float', keyable = True, minValue = 0, maxValue = 1)
         
         
@@ -1813,7 +1812,7 @@ def handle(startJoint,
                 mi_blend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
                 mi_blend.addAttr('cgmName','%s_stretch_to_lockMid'%(i_jnt.getBaseName()),lock=True)
                 mi_blend.doName()
-                if lockMid:
+                if mPlug_lockMid:
                     mPlug_lockMid.doConnectOut("%s.attributesBlender"%mi_blend.mNode)
     
                 if stretch == 'translate':
@@ -1884,7 +1883,7 @@ def handle(startJoint,
     
         #>>> Return dict
         d_return = {'mHandle':mIKHandle,'mEffector':mIKEffector}
-        if lockMid:
+        if mPlug_lockMid:
             d_return['mPlug_lockMid'] = mPlug_lockMid	
             d_return['ml_measureObjects']=ml_distanceObjects	
         if stretch:
