@@ -338,7 +338,7 @@ def rotateAxis_get(node=None, asEuclid = False):
         return EUCLID.Vector3(_res[0],_res[1],_res[2])
     return _res
 
-def rotateAxis_set(node=None, new_rot = None):
+def rotateAxis_set(node=None, new_rot = None, preserve = False):
     """
     Set the rotateAxis of a given obj
     
@@ -358,7 +358,7 @@ def rotateAxis_set(node=None, new_rot = None):
     
     log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_rot,_node))
     
-    mc.xform (_node,  ws=True, ra= new_rot,p=False)
+    mc.xform (_node,  ws=True, ra= new_rot,p=preserve)
 
 
 def rotate_get(node=None, asEuclid = False):
@@ -1230,7 +1230,7 @@ def worldMatrix_get(node = None, asEuclid = False):
 
 def group_me(obj = None,
              parent = False, maintainParent = True, rotateAxis = True,
-             rotatePivot = True, scalePivot = True,zeroScale = False):
+             rotatePivot = True, scalePivot = True, zeroScale = False, cleanRotates = True):
     """
     A bridge function utilizing both copy_pivot and copy_orientation in a single call
 
@@ -1242,7 +1242,7 @@ def group_me(obj = None,
         rotatePivot(bool): whether to copy the rotatePivot
         scalePivot(bool): whether to copy the scalePivot
         zeroScale(bool): whether to take the childs scale to zero it
-
+        cleanRotates(bool): whether to zero the rotate data after parent
     :returns
         success(bool)
     """   
@@ -1277,15 +1277,19 @@ def group_me(obj = None,
         group = parent_set(group,_oldParent)
 
     if parent:
-        _wasLocked = []  
-        for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+        _wasLocked = []
+            
+        for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:#'rx','ry','rz'
             attrBuffer = '%s.%s'%(obj,attr)
             if mc.getAttr(attrBuffer,lock=True):
                 _wasLocked.append(attr)
                 mc.setAttr(attrBuffer,lock=False)                
             #attributes.doSetAttr(obj,attr,0)    
             
-        obj = parent_set(obj,group)        
+        obj = parent_set(obj,group)
+        
+        if cleanRotates:
+            ATTR.reset(obj,['rotate','rotateAxis'])
 
         if _wasLocked:
             for attr in _wasLocked:
