@@ -56,7 +56,7 @@ def get_transform(node = None):
     if is_transform(_root):
         return _root
     if is_shape(_root):
-        _buffer = mc.listRelatives(_root, parent=True) or False
+        _buffer = mc.listRelatives(_root, parent=True, fullPath = True) or False
         if _buffer:
             return _buffer[0]
             return NAME.get_short(_buffer[0])

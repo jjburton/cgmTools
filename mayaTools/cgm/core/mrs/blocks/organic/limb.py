@@ -156,12 +156,13 @@ d_block_profiles = {
               'ikEnd':'tipEnd',
               'numControls':4,
               'numRoll':0,
-              'rigSetup':'finger',
+              'rigSetup':'digit',
               'offsetMode':'proxyAverage',
               'buildLeverBase':True,
               'hasLeverJoint':True,
               'hasEndJoint':False,
               'nameList':['index'],
+              'scaleSetup':False,
               #'baseAim':[1,0,0],
               'baseUp':[0,1,0],
               'baseSize':[1.4,1,6.4]},
@@ -177,12 +178,13 @@ d_block_profiles = {
              'ikEnd':'tipEnd',
              'numControls':4,
              'numRoll':0,
-             'rigSetup':'finger',
+             'rigSetup':'digit',
              'offsetMode':'proxyAverage',
              'buildLeverBase':False,
              'hasLeverJoint':False,
              'hasEndJoint':False,
              'nameList':['thumb'],
+             'scaleSetup':False,
              #'baseAim':[1,0,0],
              'baseUp':[0,1,0],
              'baseSize':[1.4,1,6.4]},
@@ -213,9 +215,10 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'placeSettings':'start:end',
                  'settingsDirection':'up:down:out:in',
                  'blockProfile':':'.join(d_block_profiles.keys()),
-                 'rigSetup':'default:finger',#...this is to account for some different kinds of setup
+                 'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
                  'offsetMode':'default:proxyAverage',
+                 'scaleSetup':'bool',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
                  'hasLeverJoint':'bool',
@@ -1491,6 +1494,8 @@ def skeleton_build(self, forceNew = True):
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     mPrerigNull.msgList_connect('handleJoints', ml_handleJoints)
+    #mPrerigNull.msgList_connect('moduleJoints', ml_joints)
+    
     for i,l in d_rolls.iteritems():
         mPrerigNull.msgList_connect('rollJoints_{0}'.format(i), l)
         for mJnt in l:
@@ -1575,11 +1580,19 @@ def rig_prechecks(self):
     
     self.mRootTemplateHandle = ml_templateHandles[0]
     
+    #Initial option checks ============================================================================    
+    if mBlock.scaleSetup:
+        raise NotImplementedError,"Haven't setup scale yet."
+    
     #Lever ============================================================================    
     _b_lever = False
+    self.b_leverJoint = False
     if mBlock.buildLeverBase:
+        _b_lever = True        
         if mBlock.hasLeverJoint:
-            _b_lever = True
+            self.b_leverJoint = True
+        else:
+            log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
         self.mRootTemplateHandle = ml_templateHandles[1]
         
     self.b_lever = _b_lever
@@ -1638,7 +1651,7 @@ def rig_prechecks(self):
     #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
     #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
     
-    if self.b_lever:
+    if self.b_leverJoint:
         log.debug("|{0}| >> lever roll remap...".format(_str_func))
         md_rollRemap = {}
         for i,v in self.md_roll.iteritems():
@@ -1661,7 +1674,7 @@ def rig_prechecks(self):
     
     #Frame Handles =============================================================================
     self.ml_handleTargets = mPrerigNull.msgList_get('handleJoints')
-    if self.b_lever:
+    if self.b_leverJoint:
         log.debug("|{0}| >> handleJoint lever cull...".format(_str_func))        
         self.ml_handleTargets = self.ml_handleTargets[1:]
         ml_handleJoints = ml_handleJoints[1:]
@@ -1721,12 +1734,17 @@ def rig_prechecks(self):
         
 
     
-    self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
+    if self.int_handleEndIdx ==  -1:
+        self.ml_handleTargetsCulled = copy.copy(ml_handleJoints)
+    else:
+        self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
     self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
     
     log.debug("|{0}| >> self.ml_handleTargetsCulled: {1} | {2}".format(_str_func,
                                                                  len(self.ml_handleTargetsCulled),
                                                                  self.ml_handleTargetsCulled))
+    log.debug("|{0}| >> self.mIKEndSkinJnt: {1}".format(_str_func,
+                                                        self.mIKEndSkinJnt))    
     log.debug(cgmGEN._str_subLine)
     
     #Offset ============================================================================    
@@ -1737,9 +1755,16 @@ def rig_prechecks(self):
     else:
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
-        _size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
-        self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1
         
+        l_sizes = []
+        for mHandle in ml_templateHandles:
+            #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
+            #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
+            _size_sub = POS.get_bb_size(mHandle,True)
+            l_sizes.append( MATH.average(_size_sub) * .1 )            
+        self.v_offset = MATH.average(l_sizes)
+        #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
+        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
     
     
@@ -1760,8 +1785,7 @@ def rig_prechecks(self):
         if mi_parentRigNull.getMessage('rigRoot'):
             mParentRoot = mi_parentRigNull.rigRoot
             self.md_dynTargetsParent['root'] = mParentRoot
-            self.ml_dynEndParents.insert(0,mParentRoot)
-            
+            #self.ml_dynEndParents.insert(0,mParentRoot)
         else:
             self.md_dynTargetsParent['root'] = False
 
@@ -1833,22 +1857,40 @@ def rig_skeleton(self):
     
     #...lever -------------------------------------------------------------------------------------------------
     if self.b_lever:
-        log.debug("|{0}| >> Lever handle joint remap...".format(_str_func))  
+        if self.b_leverJoint:
+            log.debug("|{0}| >> Lever handle joint remap...".format(_str_func))  
+            
+            ml_fkJointsToUse = ml_fkJoints[1:]
+            ml_fkJoints[1].parent = False
+            ml_rigJoints[1].parent = False
         
-        ml_fkJointsToUse = ml_fkJoints[1:]
-        ml_fkJoints[1].parent = False
-        ml_rigJoints[1].parent = False
+            mRigNull.connectChildNode(ml_rigJoints[0],'leverDirect','rigNull')
+            mRigNull.connectChildNode(ml_fkJoints[0],'leverFK','rigNull')
+            ml_rigJoints[0].p_parent = ml_fkJoints[0]
+            
+            mRigNull.msgList_connect('fkJoints', ml_fkJointsToUse,'rigNull')#connect	        
+            ml_parentJoints = ml_fkJointsToUse
+            
+        else:
+            log.debug("|{0}| >> Creating lever joint for rig setup...".format(_str_func))  
+            #Lever...
+            mLever = ml_fkJoints[0].doDuplicate(po=True)
+            mLever.cgmName = '{0}_lever'.format(mBlock.cgmName)
+            mLever.p_parent = False
+            mLever.doName()
+            
+            ml_jointHelpers = mBlock.msgList_get('jointHelpers',asMeta = True)
+            if not ml_jointHelpers:
+                raise ValueError,"No jointHelpers connected"            
+            
+            mLever.p_position = ml_jointHelpers[0].p_position
+            
+            SNAP.aim(mLever.mNode, ml_fkJoints[0].mNode, 'z+','y+','vector',
+                     mBlock.rootUpHelper.getAxisVector('y+'))
+            reload(JOINT)
+            JOINT.freezeOrientation(mLever.mNode)
+            mRigNull.connectChildNode(mLever,'leverFK','rigNull')
         
-        mRigNull.connectChildNode(ml_rigJoints[0],'leverDirect','rigNull')
-        mRigNull.connectChildNode(ml_fkJoints[0],'leverFK','rigNull')
-        
-        ml_rigJoints[0].p_parent = ml_fkJoints[0]
-        
-        mRigNull.msgList_connect('fkJoints', ml_fkJointsToUse,'rigNull')#connect	        
-        
-        
-    ml_parentJoints = ml_fkJointsToUse
-
     
     #...fk chain -----------------------------------------------------------------------------------------------
     if mBlock.ikSetup:
@@ -2130,7 +2172,7 @@ def rig_skeleton(self):
     return
 
 @cgmGEN.Timer
-def rig_fingerShapes(self):
+def rig_digitShapes(self):
     try:
         _short = self.d_block['shortName']
         _str_func = 'rig_shapes'
@@ -2256,6 +2298,10 @@ def rig_fingerShapes(self):
                     mIKCrv = self.ml_handleTargets[self.int_handleEndIdx].doCreateAt()
                 else:
                     mIKCrv = self.ml_handleTargets[-1].doCreateAt()
+                    if self.b_ikNeedEnd:
+                        SNAP.go(mIKCrv.mNode,
+                                ml_prerigHandles[-1].jointHelper,
+                                rotation = False)
 
                 for mObj in ml_templateHandles[-2:]:
                     mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
@@ -2420,9 +2466,12 @@ def rig_fingerShapes(self):
             self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect
         
         #Lever =============================================================================
-        if self.b_lever:
+        if self.b_lever:            
             log.debug("|{0}| >> Lever...".format(_str_func))
-            mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)[0]
+            
+            mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)
+            if mLeverRigJnt:
+                mLeverRigJnt = mLeverRigJnt[0]
             mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
             log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
             log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
@@ -2432,8 +2481,8 @@ def rig_fingerShapes(self):
             log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
     
             #Dup our rig joint and move it 
-            mDup = mLeverRigJnt.doDuplicate()
-            mDup.p_parent = mLeverRigJnt
+            mDup = mLeverFKJnt.doDuplicate(po=True)
+            mDup.p_parent = mLeverFKJnt
             mDup.resetAttrs()
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
     
@@ -2466,6 +2515,29 @@ def rig_fingerShapes(self):
             mHandleFactory.color(mLeverFKJnt.mNode, controlType = 'main')
             mDup.delete()
             
+            #limbRoot ------------------------------------------------------------------------------
+            log.debug("|{0}| >> Lever -- limbRoot".format(_str_func))
+            mLimbRootHandle = ml_prerigHandles[1]
+            mLimbRoot = ml_fkJoints[0].doCreateAt()
+        
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode)) * .75
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
+            mRootCrv.doSnapTo(mLimbRootHandle)
+        
+            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+        
+            CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
+        
+            for a in 'cgmName','cgmDirection','cgmModifier':
+                if ATTR.get(_short_module,a):
+                    ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+                    
+            mLimbRoot.doStore('cgmTypeModifier','limbRoot')
+            mLimbRoot.doName()
+        
+            mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
+        
+            self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect
         
         #Settings =============================================================================
         if ml_blendJoints:
@@ -2688,8 +2760,8 @@ def rig_shapes(self):
         
         str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         
-        if str_rigSetup == 'finger':
-            return rig_fingerShapes(self)
+        if str_rigSetup == 'digit':
+            return rig_digitShapes(self)
         
         mRigNull = self.mRigNull
         
@@ -3133,14 +3205,16 @@ def rig_controls(self):
     
     mRoot = _d['mObj']
     mRoot.masterGroup.parent = mRootParent
-    mRootParent = mRoot#Change parent going forward...
     ml_controlsAll.append(mRoot)
+    mRootParent = mRoot#Change parent going forward...
     
+        
+    #Settings overall =========================================================================================
     if not b_cog:
         for mShape in mRoot.getShapes(asMeta=True):
             ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
-        #>> settings ========================================================================================
+        #>> settings -------------------------------------------------------------------------------------
         log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
         MODULECONTROL.register(mSettings)
         ml_controlsAll.append(mSettings)
@@ -3153,6 +3227,31 @@ def rig_controls(self):
 
     #Lever =================================================================================================
     if self.b_lever:
+        #LimbRoot -----------------------------------------------------------------------------------------
+        log.debug("|{0}| >> limbRoot...".format(_str_func))
+        
+        if not mRigNull.getMessage('limbRoot'):
+            raise ValueError,"No limbRoot found"
+    
+        mLimbRoot = mRigNull.limbRoot
+        log.debug("|{0}| >> Found rigRoot : {1}".format(_str_func, mLimbRoot))
+    
+        _d = MODULECONTROL.register(mLimbRoot,
+                                    addDynParentGroup = True,
+                                    mirrorSide= self.d_module['mirrorDirection'],
+                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    makeAimable = True)
+    
+        mLimbRoot = _d['mObj']
+        mLimbRoot.masterGroup.parent = mRootParent
+        mRootParent = mLimbRoot#Change parent going forward...
+        ml_controlsAll.append(mLimbRoot)
+        
+        
+        for mShape in mLimbRoot.getShapes(asMeta=True):
+            ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))        
+        
+        #Lever ---------------------------------------------------------------------------------------        
         log.debug("|{0}| >> Lever...".format(_str_func))
         #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
         mLeverFK = mRigNull.getMessage('leverFK',asMeta=True)[0]
@@ -3162,6 +3261,7 @@ def rig_controls(self):
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = False)        
         ml_controlsAll.append(mLeverFK)
+        
         
 
     
@@ -3203,7 +3303,6 @@ def rig_controls(self):
                                           makeAimable = True)
 
         mObj = d_buffer['instance']
-        ATTR.set_hidden(mObj.mNode,'radius',True)
             
     
     #ControlIK ========================================================================================
@@ -3319,7 +3418,13 @@ def rig_controls(self):
             for mPivot in ml_pivots:
                 mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
 
-        
+    _nameMatches = False
+    for mCtrl in ml_controlsAll:
+        if mCtrl.getNameMatches(True):
+            _nameMatches = True
+    if _nameMatches:
+        raise ValueError,"Fix this name match"
+    
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
@@ -3733,7 +3838,7 @@ def rig_frame(self):
         if mPivotHolderHandle.getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot setup initial".format(_str_func))
             
-            if str_rigSetup == 'finger':
+            if str_rigSetup == 'digit':
                 mPivotDriverHandle = ml_templateHandles[-2]
             else:
                 mPivotDriverHandle = mPivotHolderHandle
@@ -3751,17 +3856,14 @@ def rig_frame(self):
             
         #Lever ===============================================================================================
         if self.b_lever:
-            log.debug("|{0}| >> Lever main...".format(_str_func))
+            log.debug("|{0}| >> Lever setup | main".format(_str_func))            
             #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
             mLeverFK = mRigNull.leverFK
-            
             mLeverFK.masterGroup.p_parent = mRoot#mRootParent
-            
-            log.debug("|{0}| >> Lever rig aim".format(_str_func))
-            
-            mLeverDirect = mRigNull.leverDirect
-            mRoot = mLeverFK#...reconnect this for later data..
+            #mLeverDirect = mRigNull.leverDirect
             """
+            log.debug("|{0}| >> Lever rig aim".format(_str_func))
+
             mAimGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'aim')
             mc.aimConstraint(ml_handleJoints[0].mNode,
                              mAimGroup.mNode,
@@ -3771,17 +3873,15 @@ def rig_frame(self):
                              worldUpVector = self.d_orientation['vectorOut'],
                              worldUpObject = mLeverFK.mNode,
                              worldUpType = 'objectRotation' )"""
-            
-            #mRoot.p_parent = mLeverFK
-            
-            
-            """
-            mBlock.atBlockUtils('pivots_setup', mControl = mIKControl, 
-                                mRigNull = mRigNull, 
-                                pivotResult = mPivotResultDriver,
-                                rollSetup = 'default',
-                                front = 'front', back = 'back')#front, back to clear the toe, heel defaults
-            """
+        
+        
+            log.debug("|{0}| >> Lever setup | LimbRoot".format(_str_func))            
+            if not mRigNull.getMessage('limbRoot'):
+                raise ValueError,"No limbRoot found"
+        
+            mLimbRoot = mRigNull.limbRoot
+            log.debug("|{0}| >> Found limbRoot : {1}".format(_str_func, mLimbRoot))
+            mRoot = mLimbRoot
 
         
         """
@@ -4246,7 +4346,7 @@ def rig_frame(self):
 def rig_pivotSetup(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_pivotSetup'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     if not self.b_pivotSetup:
         log.info("|{0}| >> No pivot setup...".format(_str_func))
@@ -4436,13 +4536,13 @@ def rig_matchSetup(self):
     
 
 
-
+@cgmGEN.Timer
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_cleanUp'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
-    
+    mBlock = self.mBlock
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
     mRoot = mRigNull.rigRoot
@@ -4463,7 +4563,10 @@ def rig_cleanUp(self):
             log.debug("|{0}| >>  Found: {1}".format(_str_func,msgLink))            
             ml_controlsToSetup.extend(ml_buffer)
     
-    
+    if not self.mConstrainNull.hasAttr('cgmAlias'):
+        self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
+        
+        
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
     ml_endDynParents = self.ml_dynEndParents# + [mRoot]
@@ -4471,32 +4574,35 @@ def rig_cleanUp(self):
     
     #Lever =================================================================================================
     if self.b_lever:
-        log.debug("|{0}| >> Lever...".format(_str_func))
+        log.debug("|{0}| >> Lever Setup...".format(_str_func))
         #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
         mLeverFK = mRigNull.leverFK
+        mLimbRoot = mRigNull.limbRoot
+        
+        ml_targetDynParents = [mLeverFK, self.mConstrainNull] + ml_endDynParents
+        
+        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mLimbRoot.mNode,dynMode=0)
+        
+        log.debug("|{0}| >>  Root Targets...".format(_str_func,mLimbRoot))
+        pprint.pprint(ml_targetDynParents)
+        
+        if not mLimbRoot.hasAttr('cgmAlias'):
+            mLimbRoot.addAttr('cgmAlias','{0}_limbRoot'.format(self.d_module['partName']))
+            
+        if not mLeverFK.hasAttr('cgmAlias'):
+            mLeverFK.addAttr('cgmAlias','{0}_lever'.format(self.d_module['partName']))
+                
+        for mTar in ml_targetDynParents:
+            mDynGroup.addDynParent(mTar)
+        mDynGroup.rebuild()
+        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
+        log.debug(cgmGEN._str_subLine)        
         ml_baseDynParents.append(mLeverFK)
+        ml_baseDynParents.append(mLimbRoot)
     else:
         ml_baseDynParents.append(mRoot)
-
-    
-    """
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('rigRoot'):
-            ml_baseDynParents.append( mi_parentRigNull.rigRoot )        
-        if mi_parentRigNull.getMessage('controlIK'):
-            ml_baseDynParents.append( mi_parentRigNull.controlIK )	    
-        if mi_parentRigNull.getMessage('controlIKBase'):
-            ml_baseDynParents.append( mi_parentRigNull.controlIKBase )
-        ml_parentRigJoints =  mi_parentRigNull.msgList_get('rigJoints')
-        if ml_parentRigJoints:
-            ml_used = []
-            for mJnt in ml_parentRigJoints:
-                if mJnt in ml_used:continue
-                if mJnt in [ml_parentRigJoints[0],ml_parentRigJoints[-1]]:
-                    ml_baseDynParents.append( mJnt.masterGroup)
-                    ml_used.append(mJnt)"""
-    
+        
     
     #...Root controls ================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
@@ -4504,9 +4610,6 @@ def rig_cleanUp(self):
     ml_targetDynParents = [self.mConstrainNull]
     #[self.md_dynTargetsParent['driverPoint']]#[self.mDeformNull]
     
-    if not self.mConstrainNull.hasAttr('cgmAlias'):
-        self.mConstrainNull.addAttr('cgmAlias','{0}_base'.format(self.d_module['partName']))
-        
     if not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
         
@@ -4538,7 +4641,7 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))                
         
         #mParent = mHandle.masterGroup.getParent(asMeta=True)
-        ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull,self.md_dynTargetsParent['puppet']]
+        ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull] + ml_endDynParents
         
         #if mParentRoot:
         #    ml_targetDynParents.append(mParentRoot)
@@ -4659,9 +4762,28 @@ def rig_cleanUp(self):
         pprint.pprint(ml_targetDynParents)                
         log.debug(cgmGEN._str_subLine)    
     
-    #Close out ====================================================================================================
+    
+    #Lock and hide =================================================================================
+    ml_controls = mRigNull.msgList_get('controlsAll')
+    
+    for mCtrl in ml_controls:
+        if mCtrl.hasAttr('radius'):
+            ATTR.set_hidden(mCtrl.mNode,'radius',True)
+        
+        if mCtrl.getMessage('masterGroup'):
+            mCtrl.masterGroup.setAttrFlags()
+    
+    if not mBlock.scaleSetup:
+        log.debug("|{0}| >> No scale".format(_str_func))
+        
+        for mCtrl in ml_controls:
+            ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
+    
+    
+    
+    #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
-    cgmGEN.func_snapShot(vars())
+    #cgmGEN.func_snapShot(vars())
     return
 
 
@@ -4705,7 +4827,7 @@ def build_proxyMesh(self, forceNew = True):
     mToe = False
     mBall = False
     int_handleEndIdx = -1    
-    if _str_rigSetup != 'finger':
+    if _str_rigSetup != 'digit':
         l= []
         
         if mBlock.hasEndJoint:
@@ -4738,7 +4860,7 @@ def build_proxyMesh(self, forceNew = True):
     
     
     #Proxyhelper-----------------------------------------------------------------------------------
-    if _str_rigSetup != 'finger':
+    if _str_rigSetup != 'digit':
         log.debug("|{0}| >> proxyHelper... ".format(_str_func))
         mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=1)
         if mProxyHelper:

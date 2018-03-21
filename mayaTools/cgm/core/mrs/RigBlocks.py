@@ -1057,7 +1057,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.debug("|{0}| >> blockModule check...".format(_str_func))                                
             return _call(self)
 
-        return True    
+        return True
+    
+    def delete(self):
+        return BLOCKUTILS.delete(self)
 
 
     #========================================================================================================     

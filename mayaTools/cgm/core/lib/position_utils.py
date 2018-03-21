@@ -333,7 +333,7 @@ def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
     """   
     _str_func = 'get_bb_size'
     #_arg = VALID.stringListArg(arg,False,_str_func)   
-    
+    arg = VALID.mNodeString(arg)
     if shapes:
         log.debug("|{0}| >> shapes mode ".format(_str_func))        
         arg = VALID.listArg(arg)

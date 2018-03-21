@@ -489,7 +489,7 @@ class cgmNode(r9Meta.MetaClass):
             _v =  mc.promptDialog(query=True, text=True)
             self.rename(_v)
         else:
-            log.error("|{0}| Name change cancelled".format(self.name))
+            log.error("|{0}| Name change cancelled".format(self.mNode))
             return False 
     
     def getNameShort(self):
@@ -499,7 +499,26 @@ class cgmNode(r9Meta.MetaClass):
         return NAMES.long(self.mNode)
     
     def getNameBase(self):
-        return NAMES.base(self.mNode)	
+        return NAMES.base(self.mNode)
+    
+    def getNameMatches(self,report=False):
+        """Get any other nodes sharing the same base node as this one"""
+        _str_func = 'getNameMatches'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        _str_short = self.p_nameShort
+        res = []
+        for o in mc.ls(self.p_nameBase):
+            if o != _str_short:
+                log.debug("|{0}| >> found: {1}".format(_str_func,o)+ '-'*80)
+                res.append(o)
+        if report and res:
+            log.info("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+            log.info("Self long: '{0}'".format(self.p_nameLong))
+            for i,v in enumerate(res):
+                log.info("idx: {0} | obj: '{1}'".format(i,v))
+                
+            log.info(cgmGEN._str_subLine)
+        return res
     
     getShortName = getNameShort
     getLongName = getNameLong
@@ -1228,6 +1247,7 @@ class cgmNode(r9Meta.MetaClass):
             #t1 = time.time()     
             if fastMode:
                 buffer = cgmObject(mc.spaceLocator()[0])
+                buffer.rotateOrder = self.rotateOrder
                 
                 objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
                 objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
@@ -1237,7 +1257,6 @@ class cgmNode(r9Meta.MetaClass):
                 mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
                 for i,a in enumerate(['X','Y','Z']):
                     ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
-                buffer.rotateOrder = self.rotateOrder
             else:
                 buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
         if not buffer:
@@ -2832,7 +2851,7 @@ class cgmObject(cgmNode):
             return validateObjListArg(_res)
         return _res  
     
-    def getShapes(self, asMeta = False, fullPath = False):
+    def getShapes(self, asMeta = False, fullPath = True):
         """
         Get all the shapes of a given node where the last parent is the top of the heirarchy
         

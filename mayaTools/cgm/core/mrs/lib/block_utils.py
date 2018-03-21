@@ -670,6 +670,25 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
+def delete(self):
+    _str_func = 'delete'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    int_state = self.getState(False)
+    _range = range(int_state+1)
+    _range.reverse()
+    for i in _range:
+        try:
+            int_state,state = BLOCKGEN.validate_stateArg(i)
+            d_links = get_stateLinks(self, state)
+            delete_msgDat(self,d_links)
+        except Exception,err:
+            log.error(err)
+    
+    self.delete()
+    pprint.pprint(vars())
+    return True
+
+
 def delete_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
     _str_func = 'delete_msgDat'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
@@ -688,7 +707,6 @@ def delete_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
                 log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, dat))                
                 mc.delete(dat)
                 #self.msgList_purge(l)
-            
     return True
 
 def check_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
@@ -748,14 +766,18 @@ def is_skeleton(self):
         _str_func = 'is_skeleton'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        
         mBlockModule = self.p_blockModule
     
         if 'skeleton_check' in mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule skeleton_check call found...".format(_str_func))            
             return self.atBlockModule('skeleton_check')
+        else:
+            log.error("|{0}| >> Need skeleton_check for: {1}".format(_str_func,self.blockType))            
+            
+        return True
+        
     
-        return True        
+        #return False        
         
         return check_msgDat(self, get_stateLinks(self,'skeleton'))
     except Exception,err:
@@ -2356,7 +2378,7 @@ def blockParent_set(self, parent = False, attachPoint = None):
 #=============================================================================================================
 #>> Mirror/Duplicate
 #=============================================================================================================
-def duplicate(self):
+def duplicate2(self):
     """
     Call to duplicate a block module and load data
     """
@@ -2367,6 +2389,86 @@ def duplicate(self):
         mDup.doName()
         return mDup
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def duplicate(self, uiPrompt = True, forceNew = False):
+    """
+    Call to duplicate a block module and load data
+    """
+    try:
+        _str_func = 'duplicate'
+        _blockType = self.blockType
+        _side = get_side(self)
+        
+        
+        _d = {'blockType':self.blockType,
+              'autoTemplate':False,
+              'side':_side,
+              'blockParent': self.p_blockParent}
+        
+        for a in 'cgmName','blockProfile','buildProfile':
+            if a in ['cgmName']:
+                _d['name'] =  self.getMayaAttr(a)
+            else:
+                if self.hasAttr(a):
+                    _d[a] = self.getEnumValueString(a)        
+        
+        _title = 'New name for duplicate'.format(_blockType)
+        result = mc.promptDialog(title=_title,
+                                 message='Current: {0} | type: {1} | build: {2} | block:{3} '.format(_d['name'],_blockType,_d.get('blockProfile'),_d.get('buildProfile')),
+                                 button=['OK', 'Cancel'],
+                                 text = _d['name'],
+                                 defaultButton='OK',
+                                 cancelButton='Cancel',
+                                 dismissString='Cancel')
+        if result == 'OK':
+            _v =  mc.promptDialog(query=True, text=True)
+            _d['name'] =  _v
+            
+        else:
+            log.error("Duplication cancelled for |{0}|".format(self))
+            return False
+        
+        log.debug("|{0}| >> Creating duplicate block. {1} | source: {2}".format(_str_func, _blockType, self))
+
+        
+        log.debug("|{0}| >> Block settings...".format(_str_func))                    
+        pprint.pprint(_d)
+        
+        mDup = cgmMeta.createMetaNode('cgmRigBlock',
+                                      **_d)
+        
+        
+        mDup.doSnapTo(self)
+        
+        blockDat = self.getBlockDat()
+        
+        blockDat['baseName'] = _v
+        blockDat['ud']['cgmName'] = _v
+        
+        if blockDat['ud'].get('rigSetup') in ['finger']:
+            log.debug("|{0}| >> Clearing nameList".format(_str_func))
+            for a in blockDat['ud'].iteritems():
+                if 'nameList' in a:
+                    blockDat['ud'].remove(a)
+            blockDat['nameList_0'] = _v
+            
+        
+        
+        
+        mDup.blockDat = blockDat
+        
+        
+        
+        mDup.loadBlockDat(blockDat)
+        
+        
+        mDup.p_blockParent = self.p_blockParent
+        #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
+        
+        return mDup
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
     
 def blockMirror_create(self, forceNew = False):
     """
@@ -2879,11 +2981,6 @@ def blockDat_load(self,blockDat = None):
         #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
         setAttr(_short,_a,v)
         
-    if _orientHelper:
-        _ctrl = self.orientHelper.mNode
-        for ii,v in enumerate(_orientHelper):
-            _a = 'r'+'xyz'[ii]
-            setAttr(_ctrl,_a,v)
         
     #_ml_controls = self.getControls(True)
     #if len(_ml_controls) != len(_pos):
@@ -2909,6 +3006,13 @@ def blockDat_load(self,blockDat = None):
             log.info("|{0}| >> Pushing to template....".format(_str_func))
             self.p_blockState = 1
             
+            
+        if _orientHelper:
+            _ctrl = self.orientHelper.mNode
+            for ii,v in enumerate(_orientHelper):
+                _a = 'r'+'xyz'[ii]
+                setAttr(_ctrl,_a,v)
+
         _d_template = blockDat.get('template',False)
         if not _d_template:
             log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
