@@ -294,16 +294,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                     #self.atUtils('doSize', _sizeMode)
 
-                #Template -------------------------------------------------
-                if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
-                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))
-                    if _sizeMode:
-                        _postState = 'template'
-                        
-                    else:
-                        self.p_blockState = 'template'
-
-
                 #Snap with selection mode --------------------------------------
                 if _size in ['selection']:
                     log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
@@ -323,6 +313,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                         _blockModule.define(self)                          
                 
+                #Template -------------------------------------------------
+                if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
+                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))
+                    if _sizeMode:
+                        _postState = 'template'
+            
+                    else:
+                        self.p_blockState = 'template'                
 
             if blockParent is not None:
                 try:
@@ -1060,7 +1058,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return True
     
     def delete(self):
-        return BLOCKUTILS.delete(self)
+        BLOCKUTILS.delete(self)
 
 
     #========================================================================================================     
@@ -4703,10 +4701,11 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 
             self.addAttr('cgmType','puppetNetwork')
             self.addAttr('version',initialValue = 1.0, lock=True)  
-            self.addAttr('masterNull',attrType = 'messageSimple',lock=True)  
+            self.addAttr('masterNull',attrType = 'messageSimple',lock=True)
             self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
             self.addAttr('moduleChildren',attrType = 'message',lock=True) 
             self.addAttr('unifiedGeo',attrType = 'messageSimple',lock=True) 
+            self.addAttr('displayLayer',attrType = 'messageSimple',lock=True)              
     
             #Settings 
             #---------------------------------------------------------------------------
@@ -4741,6 +4740,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             # Groups
             #---------------------------------------------------------------------------
             self.verify_groups()
+            
+            self.atUtils('layer_verify')
     
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -4766,6 +4767,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 except:pass
                 self.doName()
                 #self.__verify__()
+                
+            self.masterNull.displayLayer.doName()
 
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
@@ -4789,8 +4792,10 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             except:pass
             
             try:self.getMessage('rootJoint',asMeta=True)[0].doName()
-            except:pass            
-
+            except:pass
+            
+            try:self.displayLayer.doName()
+            except:pass
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
 
@@ -4890,7 +4895,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         try:
             _str_func = "cgmRigPuppet.delete"
             log.debug("|{0}| >> ...".format(_str_func))
-
+            
+            try:self.displayLayer.delete()
+            except:pass
             mc.delete(self.masterNull.mNode)
             mc.delete(self.mNode)
             #del(self)
@@ -5013,12 +5020,20 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             #>>>Connect some flags
             #--------------------------------------------------------------------------
             log.debug("|{0}| >> Geo connections...".format(_str_func))            
-            
-            mGeoGroup = self.masterNull.geoGroup
-            mGeoGroup.overrideEnabled = 1		
-            cgmMeta.cgmAttr(mSettings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,'overrideVisibility'))
-            cgmMeta.cgmAttr(mSettings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,'overrideDisplayType'))  
-    
+            if not mMasterNull.getMessage('geoGroup'):
+                mGeoGroup = self.masterNull.geoGroup
+                mGeoGroup.overrideEnabled = 1
+                cgmMeta.cgmAttr(mSettings.mNode,
+                                'geoVis',
+                                lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,
+                                                                  'overrideVisibility'))
+                cgmMeta.cgmAttr(mSettings.mNode,
+                                'geoLock',
+                                lock=False).doConnectOut("%s.%s"%(mGeoGroup.mNode,
+                                                                  'overrideDisplayType'))  
+            else:
+                mGrp = mMasterNull.geoGroup
+                
             try:mMasterNull.puppetSpaceObjectsGroup.parent = mMasterControl
             except:pass
             
@@ -5556,7 +5571,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 self.rebuildMasterShapes(**kws)
 
             self.doName()
-    
+                
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
 

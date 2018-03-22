@@ -444,6 +444,8 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return
             
+            self.uiFunc_block_setActive(mBlock=_mBlock)
+            
             _mActiveBlock = self._blockCurrent
             _str_activeBlock = False
             if _mActiveBlock:
@@ -561,8 +563,12 @@ class ui(cgmUI.cgmGUI):
                             label = "Delete",
                             ann = '[{0}] delete the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.delete))           
-            
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'delete'))
+            mUI.MelMenuItem(_popUp,
+                            label = "Duplicate",
+                            ann = '[{0}] Duplicate the block'.format(_short),                        
+                            en=True,
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))            
             #>>Queries -----------------------------------------------------------------------------------------------
             _queries = mUI.MelMenuItem(_popUp, subMenu = True,
                                        label = "Queries",
@@ -1065,7 +1071,7 @@ class ui(cgmUI.cgmGUI):
         
         _LeftColumn = mUI.MelObjectScrollList(_MainForm, ut='cgmUISubTemplate',
                                               allowMultiSelection=False,en=True,
-                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                              #dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
                                               selectCommand = self.uiScrollList_block_select,
                                               
                                               w = 200)
@@ -1393,4 +1399,6 @@ class uiCallback_withUpdate(object):
         else:
             self._ui.uiUpdate_building()
         self._ui.uiUpdate_building()
+        
+        
         

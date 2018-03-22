@@ -68,7 +68,7 @@ def validate_stateArg(stateArg = None):
     else:
         log.warning(_failMsg)        
         return False
-    return stateIndex,stateName  
+    return [stateIndex,stateName]  
 
 def get_from_scene():
     """

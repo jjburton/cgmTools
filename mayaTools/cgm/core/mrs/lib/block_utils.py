@@ -237,6 +237,7 @@ def set_nameTag(self,nameTag = None):
             
         self.cgmName = nameTag
         self.doName()
+        
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def doName(self):
@@ -294,6 +295,8 @@ def doName(self):
         self.templateNull.doName()
     if self.getMessage('prerigNull'):
         self.prerigNull.doName()
+    if self.getMessage('moduleTarget'):
+        self.moduleTarget.doName()
         
         
         
@@ -443,7 +446,7 @@ def is_template(self):
     try:
         _str_func = 'is_template'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-        return check_msgDat(self, get_stateLinks(self,'template'))
+        return msgDat_check(self, get_stateLinks(self,'template'))
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
@@ -673,44 +676,54 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
 def delete(self):
     _str_func = 'delete'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    int_state = self.getState(False)
-    _range = range(int_state+1)
+    _int_state,_state = BLOCKGEN.validate_stateArg(self.blockState)
+    
+    _range = range(_int_state+1)
     _range.reverse()
     for i in _range:
         try:
             int_state,state = BLOCKGEN.validate_stateArg(i)
             d_links = get_stateLinks(self, state)
-            delete_msgDat(self,d_links)
+            log.info("|{0}| >> links {1} | {2}".format(_str_func,i,d_links))  
+            msgDat_delete(self,d_links)
         except Exception,err:
             log.error(err)
     
-    self.delete()
-    pprint.pprint(vars())
+    mc.delete(self.mNode)
     return True
 
 
-def delete_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
-    _str_func = 'delete_msgDat'
+def msgDat_delete(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
+    _str_func = 'msgDat_delete'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
     
     _l_missing = []
     for l in d_wiring.get('msgLinks',[]) + msgLinks:
-        l_dat = self.getMessage(l)
-        if l_dat:
-            log.debug("|{0}| >>  Found msgLink: {1} | {2}".format(_str_func,l,l_dat))
-            mc.delete(l_dat)
-            
+        if l in ['moduleTarget']:
+            if self.getMessage(l):
+                log.debug("|{0}| >>  Found msgLink: {1} ".format(_str_func,l))
+                self.moduleTarget.delete()
+        else:
+            l_dat = self.getMessage(l)
+            if l_dat:
+                log.debug("|{0}| >>  Found msgLink: {1} | {2}".format(_str_func,l,l_dat))
+                try:mc.delete(l_dat)
+                except Exception,err:
+                    log.error("|{0}| >>  Failed to delete: {1} | {2} | {3}".format(_str_func,l,l_dat,err))
+                
     for l in d_wiring.get('msgLists',[]) + msgLists:
         if self.msgList_exists(l):
             dat = self.msgList_get(l,asMeta=False)
             if dat:
                 log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, dat))                
-                mc.delete(dat)
+                try:mc.delete(dat)
+                except Exception,err:
+                    log.error("|{0}| >>  Failed to delete msgList: {1} | {2}".format(_str_func,l,err))                
                 #self.msgList_purge(l)
     return True
 
-def check_msgDat(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
-    _str_func = 'check_msgDat'
+def msgDat_check(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
+    _str_func = 'msgDat_check'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
     
     _l_missing = []
@@ -740,7 +753,6 @@ def get_stateLinks(self, mode = 'template' ):
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        
         d_wiring = {}
         try:
             d_wiring.update(getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
@@ -757,7 +769,7 @@ def is_prerig(self):
     try:
         _str_func = 'is_prerig'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-        return check_msgDat(self, get_stateLinks(self,'prerig'))
+        return msgDat_check(self, get_stateLinks(self,'prerig'))
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
@@ -779,7 +791,7 @@ def is_skeleton(self):
     
         #return False        
         
-        return check_msgDat(self, get_stateLinks(self,'skeleton'))
+        return msgDat_check(self, get_stateLinks(self,'skeleton'))
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
@@ -3639,7 +3651,7 @@ def templateDelete(self):
     #mc.delete(self.getShapes())
     
     d_links = get_stateLinks(self, 'template')
-    delete_msgDat(self,d_links)
+    msgDat_delete(self,d_links)
     
     self.blockState = 'define'#...yes now in this state
     return True
@@ -3730,7 +3742,7 @@ def prerigDelete(self):
         self.atBlockModule('prerigDelete')
     
     d_links = get_stateLinks(self, 'prerig')
-    delete_msgDat(self,d_links)
+    msgDat_delete(self,d_links)
     
     self.blockState = 'template'#...yes now in this state
     return True
@@ -3791,7 +3803,7 @@ def skeleton_delete(self):
         self.atBlockModule('skeleton_delete')
     
     d_links = get_stateLinks(self, 'skeleton')
-    delete_msgDat(self,d_links)
+    msgDat_delete(self,d_links)
     
     self.blockState = 'prerig'#...yes now in this state
     return True

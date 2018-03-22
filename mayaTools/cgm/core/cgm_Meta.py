@@ -864,9 +864,14 @@ class cgmNode(r9Meta.MetaClass):
         _res = []    
         for t in target:
             if '.' in t:
-                _res.append( ATTR.connect(self.getMayaAttrString(attr),t,transferConnections, lock) ) 
+                _res.append( ATTR.connect(self.getMayaAttrString(attr),
+                                          t,
+                                          transferConnections,
+                                          lock) ) 
             else:
-                _res.append( ATTR.connect(self.getMayaAttrString(attr),self.getMayaAttrString(t),transferConnections, lock) )             
+                _res.append( ATTR.connect(self.getMayaAttrString(attr),
+                                          self.getMayaAttrString(t),
+                                          transferConnections, lock) )             
             
         return _res
     

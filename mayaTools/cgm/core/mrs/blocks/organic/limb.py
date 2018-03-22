@@ -1552,7 +1552,6 @@ def skeleton_build(self, forceNew = True):
     
     return ml_joints
 
-
 #=============================================================================================================
 #>> rig
 #=============================================================================================================
@@ -1583,7 +1582,8 @@ def rig_prechecks(self):
     #Initial option checks ============================================================================    
     if mBlock.scaleSetup:
         raise NotImplementedError,"Haven't setup scale yet."
-    
+    if mBlock.ikSetup >=1:
+        raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
     #Lever ============================================================================    
     _b_lever = False
     self.b_leverJoint = False

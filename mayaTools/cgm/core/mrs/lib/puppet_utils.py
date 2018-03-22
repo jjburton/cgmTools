@@ -289,3 +289,22 @@ def anim_key(self,**kws):
         return _result
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+@cgmGEN.Timer
+def layer_verify(self,**kws):
+    try:
+        _str_func = ' layer_verify'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        if not self.getMessage('displayLayer'):
+            self.masterNull.select()
+            mLayer = cgmMeta.validateObjArg(mc.createDisplayLayer(),'cgmNode',setClass=True)
+            
+            ATTR.copy_to(self.mNode,'cgmName',mLayer.mNode,driven='target')
+            #mLayer.doStore('cgmType')
+            mLayer.doName()
+            
+            self.connectChildNode(mLayer.mNode,'displayLayer')
+            return mLayer
+        return self.displayLayer
+    except Exception,err:cgmGEN.cgmException(Exception,err)

@@ -316,3 +316,19 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
         return b_matchFound
     #log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
+
+
+
+def check_nameMatches(self,mlControls,justReport = False):
+    _str_func = 'check_nameMatches'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    
+    _nameMatches = False
+    mlControls  = cgmMeta.validateObjListArg(mlControls)
+    
+    for mCtrl in mlControls:
+        if mCtrl.getNameMatches(True):
+            _nameMatches = True
+    if _nameMatches and not justReport:
+        raise ValueError,"Fix this name match"
+    return True

@@ -52,8 +52,9 @@ import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
+import cgm.core.rig.general_utils as RIGGEN
 
-for m in BLOCKSHARE,MATH,DIST,RAYS:
+for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
     reload(m)
 
 from cgm.core.cgmPy import os_Utils as cgmOS
@@ -1532,8 +1533,8 @@ def joints_connectToParent(self):
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 
-
-
+check_nameMatches = RIGGEN.check_nameMatches
+#...just linking for now because I want to only check against asset names in future and not scene wide
 
 
     

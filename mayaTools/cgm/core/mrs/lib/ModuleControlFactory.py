@@ -72,6 +72,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
              addExtraGroups = False,#'(int - False) -- Number of nested extra groups desired
              addConstraintGroup = False,#'(bool - False) -- If a group just above the control is desired for consraining
              freezeAll = False,#'(bool - False) -- Freeze all transforms on the control object
+             noFreeze = False,
              addSpacePivots = False,#'(int - False) -- Number of space pivots to generate and connect
              controlType = None,#'(string - None) -- Tag for cgmType
              aim = None,#'(string/int - None) -- aim axis to use
@@ -264,7 +265,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
                 ATTR.store_info(mObj.mNode,'mirrorSide',"{0}.mirrorSide".format(mi_control.mNode))
     
         #Freeze ============================================================================================
-        if not shapeParentTo:
+        if not shapeParentTo and noFreeze is not True:
             if not freezeAll:
                 if mi_control.getAttr('cgmName') == 'cog' or controlType in __l_fullFreezeTypes__:
                     mc.makeIdentity(mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)	
