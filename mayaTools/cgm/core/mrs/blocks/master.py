@@ -391,7 +391,7 @@ def rig_cleanUp(self):
                                mirrorSide= 'Centre',
                                mirrorAxis="translateX,rotateY,rotateZ",
                                noFreeze = True)
-    
+        mMasterControl.masterGroup.setAttrFlags()
         ml_dynParents = [mMasterNull]
         
         ml_dynParents.extend(mMasterControl.msgList_get('spacePivots',asMeta = True))    

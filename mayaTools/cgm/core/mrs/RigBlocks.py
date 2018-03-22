@@ -2143,14 +2143,13 @@ class handleFactory(object):
 
             mCurve = cgmMeta.validateObjArg(_str_curve, mType = 'cgmObject',setClass=True)
 
-
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
+                
             mCurve.doStore('cgmType','rootMotionHelper')
             mCurve.doName()    
 
             mCurve.p_parent = mHandle
-
 
             CORERIG.match_transform(mCurve.mNode, mHandle)
 
@@ -4700,7 +4699,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 ATTR.set(_short, 'cgmName', 'puppet')
                 
             self.addAttr('cgmType','puppetNetwork')
-            self.addAttr('version',initialValue = 1.0, lock=True)  
+            self.addAttr('version',initialValue = '', lock=True)  
             self.addAttr('masterNull',attrType = 'messageSimple',lock=True)
             self.addAttr('masterControl',attrType = 'messageSimple',lock=True)  	
             self.addAttr('moduleChildren',attrType = 'message',lock=True) 

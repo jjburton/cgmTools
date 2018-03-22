@@ -3119,6 +3119,8 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
     if _combined == _d_targetAttr['combined']:
         raise ValueError,"Cannot copy to self."
         
+    log.debug("|{0}| >> source: {1}".format(_str_func,_combined))    
+    log.debug("|{0}| >> target: {1} | {2}".format(_str_func,_toObject,_toAttr))    
     
     #>>> Gather info --------------------------------------------------------------------------------------
     _d_sourceFlags = get_standardFlagsDict(_d)
@@ -3168,15 +3170,15 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         except Exception,err:
             log.error("|{0}| >> Failed to set back data buffer {1} | data: {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],_data,err))        
    
-    if _driver:
+    if _driver and inConnection:
         if _d_sourceFlags['type'] != 'message':
-            log.debug("|{0}| >> Driver: {1}".format(_str_func,_driver))
+            log.debug("|{0}| >> Current Driver: {1}".format(_str_func,_driver))
             try:connect(_driver,_d_targetAttr['combined'])
             except Exception,err:
                 log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_driver,_d_targetAttr['combined'],err))        
                     
-    if _driven:
-        log.debug("|{0}| >> Driven: {1}".format(_str_func,_driven))
+    if _driven and outConnections:
+        log.debug("|{0}| >> Current Driven: {1}".format(_str_func,_driven))
         for c in _driven:
             _d_driven = validate_arg(c)
             if _d_driven['combined'] != _d_targetAttr['combined']:
