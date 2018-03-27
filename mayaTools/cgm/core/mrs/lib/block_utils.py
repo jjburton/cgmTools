@@ -583,6 +583,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         return mLoft
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
@@ -758,8 +759,13 @@ def get_stateLinks(self, mode = 'template' ):
             d_wiring.update(getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
             log.debug("|{0}| >>  Found {1} wiring dat in BlockModule".format(_str_func,mode))
         except Exception,err:
-            log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))            
+            log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))
             pass
+        
+        _noTrans = 'NoTrans' + mode.capitalize() + 'Null'
+        if _noTrans not in d_wiring and self.getMessage(_noTrans):
+            if not d_wiring.get('msgLinks'):d_wiring['msgLinks'] = []            
+            d_wiring['msgLinks'].append(a)
         return d_wiring
         
     except Exception,err:
@@ -1728,7 +1734,9 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
         list
     """
     _str_func = 'skeleton_getNameDicts'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+
     l_res = []
     if count is not None:
         _number = count
@@ -1756,24 +1764,25 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
     else:
         _nameDict['cgmName'] = self.blockType
         
-    _nameDict['cgmType'] = 'joint'
+    _nameDict['cgmType'] = 'skinJoint'
     
     
     for a,v in kws.iteritems():
         _nameDict[a] = v
     
+    log.debug("|{0}| >>  baseDict: {1}".format(_str_func,_nameDict))
+
     _cnt = 0
     l_range = range(_number)
     for i in l_range:
         _nameDictTemp = copy.copy(_nameDict)
         _specialName = False
         _cnt+=1
-        
         if i == 0:
             if self.getMayaAttr(_baseNameAttrs[0]):
                 log.debug("|{0}| >>  First and name attr...interupting default name".format(_str_func))                            
                 _nameDictTemp['cgmName'] = _l_baseNames[0]
-                _nameDict['cgmName'] = _l_baseNames[0]#...interupt the default name...
+                #_nameDict['cgmName'] = _l_baseNames[0]#...interupt the default name...
                 _cnt = 0
                 _specialName = True
         elif i == len(l_range) -1:
@@ -1784,8 +1793,8 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
                 _specialName = True
                 _cnt = 0
 
-        #if not _specialName:
-        _nameDictTemp['cgmIterator'] = _cnt
+        if not _specialName:
+            _nameDictTemp['cgmIterator'] = _cnt
             
         #mJoint.rename(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
         if combined:
@@ -2766,6 +2775,9 @@ def blockDat_get(self,report = True):
     Carry from Bokser stuff...
     """
     try:
+        _str_func = 'blockDat_get'        
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
         
         _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
         #_ml_controls = self.getControls(True,True)
@@ -2829,14 +2841,16 @@ def blockDat_get(self,report = True):
 
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
-                _type = ATTR.get_type(_short,a)
-                if _type in ['message']:
-                    continue
-                elif _type == 'enum':
-                    _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
-                else:
-                    _d['ud'][a] = ATTR.get(_short,a)
-
+                try:
+                    _type = ATTR.get_type(_short,a)
+                    if _type in ['message']:
+                        continue
+                    elif _type == 'enum':
+                        _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
+                    else:
+                        _d['ud'][a] = ATTR.get(_short,a)
+                except Exception,err:
+                    log.error("Failed to query attr: {0} | type: {1} | err: {2}".format(a,_type,err))
         if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
         return _d
     except Exception,err:
@@ -3801,9 +3815,28 @@ def skeleton_delete(self):
     if 'skeleton_delete' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule skeleton_delete call found...".format(_str_func))
         self.atBlockModule('skeleton_delete')
-    
+        
+    ml_joints = self.moduleTarget.rigNull.msgList_get('moduleJoints')
+    if not ml_joints:
+        return log.error("|{0}| >> No joints found".format(_str_func))
+    else:
+        ml_children = []
+        for mJnt in ml_joints:
+            ml_childrenTmp = mJnt.getChildren(asMeta=True)
+            log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
+            for mChild in ml_childrenTmp:
+                if mChild not in ml_children and mChild not in ml_joints:
+                    ml_children.append(mChild)
+                    
+        for mChild in ml_children:
+            log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
+            mChild.p_parent = False
+            
+        ml_joints[0].delete()
+        
     d_links = get_stateLinks(self, 'skeleton')
     msgDat_delete(self,d_links)
+    
     
     self.blockState = 'prerig'#...yes now in this state
     return True

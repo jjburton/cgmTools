@@ -1938,11 +1938,25 @@ class handleFactory(object):
             _baseSize = _baseDat[1]
             _plug = 'cogHelper'
             _side = self.get_side()
-            upAxis = 'y+'
+            
+            _d_shapeDirectionOptions = {'z+':{'up':'y+',
+                                       'directions':{'back':'z-',
+                                                     'front':'z+',
+                                                     'left':'x+',
+                                                     'right':'x-'}},
+                                        'y+':{'up':'z+',
+                                              'directions':{'back':'y-',
+                                                            'front':'y+',
+                                                            'left':'x+',
+                                                            'right':'x-'}},
+                                 }
+            _d_shapeDirection = _d_shapeDirectionOptions.get(shapeDirection)
+            if not _d_shapeDirection:
+                raise ValueError,"shapeDirection {0} not setup".format(shapeDirection)
 
             mHandle = self._mTransform
             mBlock = self.mBlock
-            
+            upAxis = _d_shapeDirection['up']
             _short = mHandle.mNode
 
             _bfr = mHandle.getMessage(_plug)
@@ -1956,10 +1970,8 @@ class handleFactory(object):
             
             mCurve = cgmMeta.validateObjArg(self._mTransform.doCreateAt(),'cgmObject',setClass=True)
             #helper ======================================================================================
-            d_shapeDirections = {'back':'z-',
-                                 'front':'z+',
-                                 'left':'x+',
-                                 'right':'x-'}
+            d_shapeDirections = _d_shapeDirection['directions']
+            
             ml_shapes = []
             for d,axis in d_shapeDirections.iteritems():
                 mAxis = VALID.simpleAxis(axis)
@@ -1972,7 +1984,8 @@ class handleFactory(object):
                 mShape.p_position = _pos
                 #import cgm.core.lib.locator_utils as LOC
                 #LOC.create(position=_pos)
-                SNAP.aim_atPoint(mShape.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
+                SNAP.aim_atPoint(mShape.mNode,self_pos, _inverse, upAxis, mode='vector',
+                                 vectorUp = self_upVector)
 
                 ml_shapes.append(mShape)
 
@@ -4451,14 +4464,14 @@ class rigFactory(object):
                 """
                 #Make it and link it ------------------------------------------------------
                 buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-                i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                i_grp.addAttr('cgmName',self.partName,lock=True)
-                i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                i_grp.doName()
-                i_grp.parent = self.i_faceDeformNull	
-                self.mModule.connectChildNode(i_grp,'deformNull','module')
-                self.mModule.connectChildNode(i_grp,'constrainNull','module')
-                self.i_deformNull = i_grp#link"""
+                mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+                mGrp.addAttr('cgmName',self.partName,lock=True)
+                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
+                mGrp.doName()
+                mGrp.parent = self.i_faceDeformNull	
+                self.mModule.connectChildNode(mGrp,'deformNull','module')
+                self.mModule.connectChildNode(mGrp,'constrainNull','module')
+                self.i_deformNull = mGrp#link"""
             else:
                 #Make it and link it
                 if _str_partType in ['eyelids']:
@@ -4466,15 +4479,15 @@ class rigFactory(object):
                 else:
                     buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
 
-                i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                i_grp.addAttr('cgmName',_str_partName,lock=True)
-                i_grp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                i_grp.doName()
-                i_grp.parent = self.d_module['mMasterDeformGroup'].mNode
-                self.mModule.connectChildNode(i_grp,'deformNull','module')
+                mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+                mGrp.addAttr('cgmName',_str_partName,lock=True)
+                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
+                mGrp.doName()
+                mGrp.parent = self.d_module['mMasterDeformGroup'].mNode
+                self.mModule.connectChildNode(mGrp,'deformNull','module')
                 if _str_partType in ['eyeball']:
-                    self.mModule.connectChildNode(i_grp,'constrainNull','module')
-                    i_grp.parent = self.i_faceDeformNull
+                    self.mModule.connectChildNode(mGrp,'constrainNull','module')
+                    mGrp.parent = self.i_faceDeformNull
                     
         self.mDeformNull = self.mModule.deformNull
         _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
@@ -4484,12 +4497,12 @@ class rigFactory(object):
             #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
                 #Make it and link it
             buffer =  CORERIG.group_me(self.mDeformNull.mNode,False)
-            i_grp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-            i_grp.addAttr('cgmName',_str_partName,lock=True)
-            i_grp.addAttr('cgmTypeModifier','constrain',lock=True)	 
-            i_grp.doName()
-            i_grp.parent = self.mDeformNull.mNode
-            self.mModule.connectChildNode(i_grp,'constrainNull','module')
+            mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
+            mGrp.addAttr('cgmName',_str_partName,lock=True)
+            mGrp.addAttr('cgmTypeModifier','constrain',lock=True)	 
+            mGrp.doName()
+            mGrp.parent = self.mDeformNull.mNode
+            self.mModule.connectChildNode(mGrp,'constrainNull','module')
         self.mConstrainNull = self.mModule.constrainNull
         
         
@@ -4497,18 +4510,22 @@ class rigFactory(object):
             log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
             mAttach = cgmMeta.validateObjArg(self.attachPoint)
             try:mc.delete(self.mConstrainNull.getConstraintsTo())
-            except:pass
-            
-            mAttachDriver = self.mDeformNull.doCreateAt()
-            mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
-            mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
-            mAttachDriver.doName()
+            except:pass            
+            if not self.mConstrainNull.getMessage('attachDriver'):
+                mAttachDriver = self.mDeformNull.doCreateAt()
+                mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
+                mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
+                mAttachDriver.doName()
+                
+                self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
+                mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
+                self.mConstrainNull.connectChildNode(mAttachDriver,'attachDriver','module')
+                
+            else:
+                mAttachDriver = self.mRigNull.getMessageAsMeta('attachDriver')
             
             mAttachDriver.parent = self.attachPoint
-            self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
-            mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
-            self.mConstrainNull.connectChildNode(mAttachDriver,'attachPoint','module')
-            
+           
             mc.parentConstraint([mAttachDriver.mNode],
                                 self.mConstrainNull.mNode,
                                 maintainOffset = True, weight = 1)
@@ -5043,7 +5060,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             #=====================================================================	
             if not self.masterNull.getMessage('skeletonGroup'):
                 #Make it and link it
-                #i_grp = mi_masterControl.doDuplicateTransform()
+                #mGrp = mi_masterControl.doDuplicateTransform()
                 mGrp = cgmMeta.createMetaNode('cgmObject')
                 mGrp.doSnapTo(mi_masterControl.mNode)
                 
@@ -5461,7 +5478,7 @@ class cgmRigPuppetHOLDER(cgmMeta.cgmNode):
             #=====================================================================	
             if not self.masterNull.getMessage('skeletonGroup'):
                 #Make it and link it
-                #i_grp = mi_masterControl.doDuplicateTransform()
+                #mGrp = mi_masterControl.doDuplicateTransform()
                 mGrp = cgmMeta.createMetaNode('cgmObject')
                 mGrp.doSnapTo(mi_masterControl.mNode)
                 

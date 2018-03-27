@@ -420,29 +420,53 @@ def rig_reset(self,):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
-def set_parentModule(self,mModuleParent = None):
-    _str_func = ' set_parentModule'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    try:
-        mModuleParent  = cgmMeta.validateObjArg(mModuleParent,'cgmRigModule',noneValid=True)
-        if not mModuleParent:
-            log.debug("|{0}| >> Failed to register as cgmRigModule: {1}".format(_str_func,mModuleParent))            
-            return False
-        
-        ml_children = mModuleParent.moduleChildren or []
+def parentModule_set(self,mModuleParent = None):
+    _str_func = ' parentModule_set'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+    #try:
+    mModuleParent  = cgmMeta.validateObjArg(mModuleParent,'cgmRigModule',noneValid=True)
+    if not mModuleParent:
+        log.debug("|{0}| >> Failed to register as cgmRigModule: {1}".format(_str_func,mModuleParent))            
+        return False
     
-        if self in ml_children:
-            log.debug("|{0}| >> Already connected to parent: {1}".format(_str_func,mModuleParent))
-            if self.moduleParent is not mModuleParent:
-                self.moduleParent = mModuleParent.mNode
-        else:
-            log.debug("|{0}| >> Not in children...".format(_str_func))            
-            ml_children.append(self) #Revist when children has proper add/remove handling
-            mModuleParent.moduleChildren = ml_children
+    ml_children = mModuleParent.moduleChildren or []
+
+    if self in ml_children:
+        log.debug("|{0}| >> Already connected to parent: {1}".format(_str_func,mModuleParent))
+        if self.moduleParent is not mModuleParent:
             self.moduleParent = mModuleParent.mNode
-        self.parent = mModuleParent.parent
-        return True
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    else:
+        log.debug("|{0}| >> Not in children...".format(_str_func))            
+        ml_children.append(self) #Revist when children has proper add/remove handling
+        mModuleParent.moduleChildren = ml_children
+        self.moduleParent = mModuleParent.mNode
+    self.parent = mModuleParent.parent
+    return True
+    #except Exception,err:cgmGEN.cgmException(Exception,err)
+set_parentModule = parentModule_set
+
+def parentModule_get(self):
+    _str_func = ' parentModule_get'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+    
+    #try:
+    mModuleParent  = self.getMessage('moduleParent',asMeta=True)
+    
+    if mModuleParent:
+        return mModuleParent[0]
+    log.debug("|{0}| >> Failed to get a moduleParent".format(_str_func))
+        
+    mModulePuppet = self.getMessage('modulePuppet',asMeta=True)
+    if mModulePuppet:
+        return mModulePuppet[0]
+    log.debug("|{0}| >> Failed to find a modulePuppet".format(_str_func))
+    
+    return False
+    #except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
     
 def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
@@ -528,12 +552,14 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     mParentModule = self.getMessage('moduleParent',asMeta=True)
+    b_parentMode = False
     if not mParentModule:
         if self.modulePuppet:
-            if self.modulePuppet.getMessage('rootJoint'):
-                log.debug("|{0}| >> Root joint on master found".format(_str_func))
-                return self.modulePuppet.rootJoint[0]
-            return False
+            log.debug("|{0}| >> Master found".format(_str_func))            
+            #if self.modulePuppet.getMessage('rootJoint'):
+                #log.debug("|{0}| >> Root joint on master found".format(_str_func))
+                #return self.modulePuppet.rootJoint[0]
+            return self.modulePuppet.masterNull.skeletonGroup
         raise RuntimeError,"Shouldn't have gotten here"
     else:
         mParentModule = mParentModule[0]
@@ -543,7 +569,8 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         for plug in ['blendJoints','fkJoints','moduleJoints']:
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
-                log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))                
+                log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))
+                
                 break        
         
         if not ml_targetJoints:
@@ -566,9 +593,7 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
             log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
             return mDynParentGroup
             mTarget = mTarget.dynParentGroup
-            
-            
-            
+
         return mTarget
     
     

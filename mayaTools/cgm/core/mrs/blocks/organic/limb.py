@@ -75,7 +75,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.02052018'
+__version__ = 'alpha.1.03222018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -205,7 +205,10 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'loftShape',
                    'ikSetup',
+                   'scaleSetup',
                    'numControls',
+                   'offsetMode',
+                   'settingsDirection',
                    'numShapers',#...with limb this is the sub shaper count as you must have one per handle
                    'buildProfile',
                    'moduleTarget']
@@ -213,12 +216,9 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
                  'placeSettings':'start:end',
-                 'settingsDirection':'up:down:out:in',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
-                 'offsetMode':'default:proxyAverage',
-                 'scaleSetup':'bool',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
                  'hasLeverJoint':'bool',
@@ -266,10 +266,7 @@ def define(self):
     ATTR.set_min(_short, 'loftSplit', 1)
     ATTR.set_min(_short, 'numShapers', 1)
     
-    #_side = 'center'
-    #if self.getMayaAttr('side'):
-    #    _side = self.getEnumValueString('side')
-            
+
     _shapes = self.getShapes()
     if _shapes:
         log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
@@ -388,7 +385,8 @@ def define(self):
         
 def template(self):
     _str_func = 'template'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     self.defineNull.template = True
     
@@ -396,12 +394,10 @@ def template(self):
     l_rollattrs = ATTR.datList_getAttrs(self.mNode,'rollCount')
     for a in l_rollattrs:
         ATTR.set_standardFlags(self.mNode, l_rollattrs, lock=False,visible=True,keyable=True)
+    
     #Initial checks =====================================================================================
     _short = self.p_nameShort
-    
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')
+    _side = self.UTILS.get_side(self)
         
     _l_basePosRaw = self.datList_get('basePos') or [(0,0,0)]
     _l_basePos = [self.p_position]
@@ -420,6 +416,7 @@ def template(self):
     if _loftSetup not in ['default']:
         return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))    
     
+    #Get base dat =====================================================================================    
     #Old method...
     """
     _mVectorAim = MATH.get_vector_of_two_points(_l_basePos[0],_l_basePos[-1],asEuclid=True)
@@ -427,19 +424,16 @@ def template(self):
     _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
     """
     _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
-    
     mRootUpHelper = self.rootUpHelper
     _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
     
     mBBHelper = self.bbHelper
-    #Generate more posData if necessary...
-    #if not len(_l_basePos)>1:
     _v_range = max(TRANS.bbSize_get(self.mNode)) *2
-    
     _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
     _size_width = _bb_axisBox[0]#...x width
-    
-    log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,mBBHelper.p_nameShort, _v_range))
+    log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
+                                                                                     mBBHelper.p_nameShort,
+                                                                                     _v_range))
     _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _bb_axisBox[2])
     _l_basePos.append(_end)
     
@@ -451,10 +445,9 @@ def template(self):
     cgmGEN.func_snapShot(vars())
     
     
-    #Create temple Null ------------------------------------------------------------------------------------
+    #Create temple Null ==================================================================================
     #mTemplateNull = self.atUtils('templateNull_verify')
-    mTemplateNull = self.atUtils('stateNull_verify','template')
-    
+    mTemplateNull = self.UTILS.stateNull_verify(self,'template')
     mNoTransformNull = self.atUtils('noTransformNull_verify','template')
     
     #Our main rigBlock shape ...
@@ -866,7 +859,6 @@ def template(self):
             elif _ikEnd == 'foot':
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
                 mFoot,mFootLoftTop = mHandleFactory.addFootHelper()
-                
                 mFoot.p_parent = mTemplateNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
@@ -878,21 +870,8 @@ def template(self):
                 
                 log.debug("|{0}| >> posProxy: {1}".format(_str_func,pos_proxy))
                 mProxy.p_position = pos_proxy
-                
                 CORERIG.copy_pivot(mProxy.mNode,mEndHandle.mNode)
                 
-                #mProxy.overrideEnabled = 1
-                #ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mProxy.mNode) )
-                #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mProxy.mNode) )        
-                #for mShape in mProxy.getShapes(asMeta=1):
-                    #str_shape = mShape.mNode
-                    #mShape.overrideEnabled = 0
-                    #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
-                    #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) #)                        
-                
-                #Add names...
-                #for n in 'ball','toe':
-                #    ATTR.datList_append(self.mNode, )
                 
         self.blockState = 'template'#...buffer
 
@@ -1493,6 +1472,7 @@ def skeleton_build(self, forceNew = True):
         mJoint.radius = _radius
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
+    
     mPrerigNull.msgList_connect('handleJoints', ml_handleJoints)
     #mPrerigNull.msgList_connect('moduleJoints', ml_joints)
     
@@ -1582,8 +1562,8 @@ def rig_prechecks(self):
     #Initial option checks ============================================================================    
     if mBlock.scaleSetup:
         raise NotImplementedError,"Haven't setup scale yet."
-    if mBlock.ikSetup >=1:
-        raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
+    #if mBlock.ikSetup >=1:
+        #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
     #Lever ============================================================================    
     _b_lever = False
     self.b_leverJoint = False
@@ -3027,22 +3007,18 @@ def rig_shapes(self):
                                  aimAxis=_jointOrientation[0]+'+',
                                  mode = 'vector',
                                  vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
-                
-                #mSettings = _mTar.doCreateAt(setClass=True)
-                
+                                
                 mSettingsShape.parent = _mTar
                 mSettings = mSettingsShape
                 CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
-                #CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsShape.mNode,False)            
                 
                 ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
     
                 mSettings.doStore('cgmTypeModifier','settings')
                 mSettings.doName()
-                #CORERIG.colorControl(mSettings.mNode,_side,'sub')                
                 mHandleFactory.color(mSettings.mNode, controlType = 'sub')
             
-                self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
+                mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
             
         
          

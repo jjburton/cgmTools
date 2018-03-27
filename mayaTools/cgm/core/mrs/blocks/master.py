@@ -47,7 +47,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03212018'
+__version__ = 'alpha.1.03212018'
 __autoTemplate__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
@@ -62,16 +62,17 @@ l_attrsStandard = ['addMotionJoint',
                    'moduleTarget',
                    'baseSize',
                    'controlOffset',
+                   'numSpacePivots',
                    'buildProfile']
 
 d_attrsToMake = {'rootJoint':'messageSimple',
-                 'spacePivots':'int'}
+                 }
 
 d_defaultSettings = {'version':__version__,
                      'baseName':'MasterBlock',
                      'addMotionJoint':True,
                      'controlOffset':1,
-                     'spacePivots':1,
+                     'numSpacePivots':1,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget'],
@@ -173,13 +174,13 @@ def resize_masterShape(self,sizeBy=None):
         
         CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
         self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
-        mHandleFactory.color(mBBShape.mNode,controlType='sub')
+        #mHandleFactory.color(mBBShape.mNode,controlType='sub')
         mBBShape.setAttrFlags()
         
         mBBShape.doStore('cgmName', self.mNode)
         mBBShape.doStore('cgmType','bbVisualize')
         mBBShape.doName()
-        
+        mBBShape.template = True
         self.connectChildNode(mBBShape.mNode,'bbHelper')        
         
         return
@@ -269,14 +270,13 @@ def template(self):
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
 
 
-    _average = MATH.average([self.baseSize[0],self.baseSize[2]])
-    _size = _average * 1.5
-    _offsetSize = _average * .1
-    log.info(_size)
+    #_average = MATH.average([self.baseSize[0],self.baseSize[2]])
+    #_size = _average * 1.5
+    #_offsetSize = _average * .1
+    #log.info(_size)
     
-    mHandleFactory = self.asHandleFactory(_short)
+    #mHandleFactory = self.asHandleFactory(_short)
     mc.select(cl=True)
-    
     resize_masterShape(self)
     
     
@@ -372,7 +372,7 @@ def rig_cleanUp(self):
     mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
     mMasterNull = self.d_module['mMasterNull']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
-    _spacePivots = mBlock.spacePivots
+    _spacePivots = mBlock.numSpacePivots
     
     ml_controlsAll = []
     

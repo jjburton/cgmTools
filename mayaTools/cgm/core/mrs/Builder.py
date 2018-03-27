@@ -67,7 +67,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = 'ALPHA 0.11162017'
+__version__ = 'ALPHA 0.03222018'
 
 
 class ui(cgmUI.cgmGUI):
@@ -412,6 +412,9 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_scrollList_blocks(mBlock)
         self.uiUpdate_blockDat()
         
+    def uiFunc_block_select_dcc(self,*args,**kws):
+        if self._blockCurrent:
+            self._blockCurrent.select()
             
     def uiScrollList_block_select(self): 
         try:
@@ -509,16 +512,13 @@ class ui(cgmUI.cgmGUI):
     
             
             #>>Utilities ------------------------------------------------------------------------------------------       
+            """
             mUI.MelMenuItem(_popUp,
                             label = "Select",
                             en=True,
                             ann = '[{0}] Select the block'.format(_short),                        
                             c=cgmGEN.Callback(_mBlock.select))
-            
-            mUI.MelMenuItem(_popUp,
-                            label ='Set Name',
-                            ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
-                            c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
+            """
             
             _sizeMode = mBlockModule.__dict__.get('__sizeMode__',None)
             if _sizeMode:
@@ -526,6 +526,12 @@ class ui(cgmUI.cgmGUI):
                                 label ='Size',
                                 ann = 'Size by: {0}'.format(_sizeMode),
                                 c=cgmGEN.Callback(_mBlock.atUtils, 'size', _sizeMode))
+                
+            mUI.MelMenuItemDiv(_popUp)
+            mUI.MelMenuItem(_popUp,
+                            label ='Set Name',
+                            ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
+                            c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
             #...side ----------------------------------------------------------------------------------------
             sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = 'Set side')
@@ -545,6 +551,7 @@ class ui(cgmUI.cgmGUI):
                                 ann = 'Specify the position for the current block to : {0}'.format(position),
                                 c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',i))
             
+            mUI.MelMenuItemDiv(_popUp)
             
             mUI.MelMenuItem(_popUp,
                             label = "Recolor",
@@ -1072,6 +1079,8 @@ class ui(cgmUI.cgmGUI):
         _LeftColumn = mUI.MelObjectScrollList(_MainForm, ut='cgmUISubTemplate',
                                               allowMultiSelection=False,en=True,
                                               #dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                              #dcc = cgmGEN.Callback(self._blockCurrent.select()),
+                                              dcc = self.uiFunc_block_select_dcc,
                                               selectCommand = self.uiScrollList_block_select,
                                               
                                               w = 200)
