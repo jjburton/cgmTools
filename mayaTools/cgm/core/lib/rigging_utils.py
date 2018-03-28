@@ -965,10 +965,16 @@ def override_clear(target = None, pushToShapes = True):
     return True
         
             
-def getControlShader(direction = 'center', controlType = 'main', transparent = False):
+def getControlShader(direction = 'center', controlType = 'main', transparent = False, proxy = False):
+    """
+    Proxy mode modifies the base value and setups up a different shader
+    """
     _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
     if transparent:
         _node = _node + '_trans'
+    if proxy:
+        _node = _node + '_proxy'
+        
     log.debug(_node)
     _set = False
     if not mc.objExists(_node):
@@ -978,10 +984,14 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
 
         _color = SHARED._d_side_colors[direction][controlType]
         _rgb = SHARED._d_colors_to_RGB[_color]
+        
+        if proxy:
+            _rgb = [v * .75 for v in _rgb]
     
         ATTR.set(_node,'colorR',_rgb[0])
         ATTR.set(_node,'colorG',_rgb[1])
         ATTR.set(_node,'colorB',_rgb[2])
+        ATTR.set(_node,'diffuse',1.0)
         
         if transparent:
             ATTR.set(_node,'ambientColorR',_rgb[0])
@@ -997,7 +1007,8 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
     
     
     
-def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True, rgb = True, shaderSetup = True, transparent = False):
+def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,
+                 rgb = True, shaderSetup = True,transparent = False,proxy=False):
     """
     Sets the override color on shapes and more
     
@@ -1031,7 +1042,7 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         
         if shaderSetup and VALID.get_mayaType(t) in ['nurbsSurface','mesh']:
             if not _shader:
-                _shader, _set = getControlShader(direction,controlType,transparent)
+                _shader, _set = getControlShader(direction,controlType,transparent,proxy)
             mc.sets(t, e=True, forceElement = _set)        
             
     return True

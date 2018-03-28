@@ -59,6 +59,26 @@ for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
 
 from cgm.core.cgmPy import os_Utils as cgmOS
 
+
+def get_controlSpaceSetupDict(self):
+    _str_func = 'get_controlSpaceSetupDict'
+    
+    #SpacePivots ============================================================================
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    mBlock = self.mBlock
+    
+    if not mBlock.hasAttr('numSpacePivots'):
+        return False
+    
+    _spacePivots = mBlock.numSpacePivots
+    if _spacePivots:
+        d_controlSpaces = {'addSpacePivots':_spacePivots}
+    else:
+        d_controlSpaces = {'addConstrainGroup':True}
+    log.debug("|{0}| >> d_controlSpaces {1}".format(_str_func,d_controlSpaces))
+    return d_controlSpaces
+
 def gather_rigBlocks():
     mGroup = get_blockGroup()
     
@@ -789,7 +809,15 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             offset = self.mPuppet.atUtils('get_shapeOffset')
             #offset = self.d_module.get('f_shapeOffset',1.0)
             
-        if mode in ['default','segmentHandle','ikHandle','frameHandle','loftHandle','limbHandle','limbSegmentHandle','simpleCast']:
+        if mode in ['default','segmentHandle',
+                    'ikHandle',
+                    'ikEnd',
+                    'ikBase',
+                    'frameHandle',
+                    'loftHandle',
+                    'limbHandle',
+                    'limbSegmentHandle',
+                    'simpleCast']:
             #Get our cast mesh        
             
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
@@ -838,7 +866,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
                     
-            elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast']:
+            elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast',
+                          'ikEnd','ikBase']:
                 f_factor = (maxU-minU)/(30)
                 if targets:
                     ml_fkJoints = ml_targets
@@ -964,7 +993,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                     #ml_shapes = mc.loft(l_loftShapes, o = True, d = 3, po = 0,ch=False)
                     #mc.delete(l_loftShapes)
-                    
                 elif mode == 'frameHandle':#================================================================
                     if not mRigNull.msgList_get('fkJoints'):
                         return log.error("|{0}| >> No fk joints found".format(_str_func))

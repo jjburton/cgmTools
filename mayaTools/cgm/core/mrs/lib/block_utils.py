@@ -2232,11 +2232,14 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
         #pprint.pprint(_d)
         l_pos = []
         if jointHelpers:
-            for mObj in ml_prerigHandles:
-                l_pos.append(mObj.jointHelper.p_position)
+            ml_jointHandles = self.msgList_get('jointHelpers',asMeta = True)
+            if not ml_jointHandles:
+                raise ValueError,"No jointHelpers connected"            
+            for mObj in ml_jointHandles:
+                l_pos.append(mObj.p_position)
         else:
             for mObj in ml_prerigHandles:
-                l_pos.append(mObj.p_position)            
+                l_pos.append(mObj.p_position)
             
         ml_fkJoints = COREJOINTS.build_chain(posList = l_pos,
                                              axisAim='z+',

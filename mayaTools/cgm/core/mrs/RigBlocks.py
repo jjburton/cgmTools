@@ -1964,10 +1964,12 @@ class handleFactory(object):
                 mc.delete(_bfr)
                 
             _sizeSub, _size, _absize = self.get_subSize(.25)
-            _sizeByBB = [_absize[0] * .5, _absize[1] * .15, _absize[2]*.5]
+            #_sizeByBB = [_absize[0] * .5, _absize[1] * .15, _absize[2]*.5]
+            _sizeByBB = [_absize[0] * .25, _absize[1] * .25, _absize[2]*.25]
+            
             self_pos = mHandle.p_position
             self_upVector = mHandle.getAxisVector(upAxis)
-            
+            _sizeArrow = (MATH.average(_absize)) * .25
             mCurve = cgmMeta.validateObjArg(self._mTransform.doCreateAt(),'cgmObject',setClass=True)
             #helper ======================================================================================
             d_shapeDirections = _d_shapeDirection['directions']
@@ -1976,9 +1978,9 @@ class handleFactory(object):
             for d,axis in d_shapeDirections.iteritems():
                 mAxis = VALID.simpleAxis(axis)
                 _inverse = mAxis.inverse.p_string
-                shape = CURVES.create_controlCurve(mHandle.mNode, shape='arrowSingleFat3d',
+                shape = CURVES.create_controlCurve(mHandle.mNode, shape='pyramid',
                                                    direction = axis,
-                                                   sizeMode = 'fixed', size = _sizeByBB)
+                                                   sizeMode = 'fixed', size = [_sizeArrow,_sizeArrow,_sizeArrow])
                 mShape = cgmMeta.validateObjArg(shape,'cgmObject',setClass=True)
                 _pos = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size)
                 mShape.p_position = _pos
@@ -2014,8 +2016,6 @@ class handleFactory(object):
 
             #CORERIG.colorControl(mCurve.mNode,_side,'sub')
             self.color(mCurve.mNode,_side,'sub')
-
-            mBlock.msgList_append('prerigHandles',mCurve.mNode)
             
             #Transform ---------------------------------------------------------------------------
             mTrans = cgmMeta.validateObjArg( CURVES.create_text('COG',MATH.average(_sizeByBB)),'cgmObject',setClass=True)
@@ -2040,7 +2040,10 @@ class handleFactory(object):
                 mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
                 mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
             
-            return mTrans    
+            mBlock.msgList_append('prerigHandles',mTrans.mNode)
+            mBlock.msgList_append('prerigHandles',mCurve.mNode)
+            
+            return mTrans
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
@@ -4047,7 +4050,7 @@ class rigFactory(object):
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err)
         return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
-
+    atUtils = atBuilderUtils
     def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
         _str_func = 'fnc_connect_toRigGutsVis' 
         mRigNull = self.d_module['mRigNull']
