@@ -1411,7 +1411,11 @@ def rig_skeleton(self):
             
         if str_ikBase == 'hips':
             log.info("|{0}| >> Simple setup. Need single handle.".format(_str_func))
-            ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_fkJoints, 'handle', mRigNull,'handleJoints', cgmType = 'handle', indices=[1])
+            ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                        ml_fkJoints, 
+                                                                        'handle', mRigNull,
+                                                                        'handleJoints',
+                                                                        cgmType = 'handle', indices=[1])
             
         
     #...joint hide -----------------------------------------------------------------------------------
@@ -1602,7 +1606,7 @@ def rig_shapes(self):
             ml_handleShapes = self.atBuilderUtils('shapes_fromCast',
                                                   targets = ml_handleJoints,
                                                   offset = _offset,
-                                                  mode = 'limbSegmentHandle')#'segmentHandle')
+                                                  mode = 'limbSegmentHandle')#'segmentHandle') limbSegmentHandle
             """
             if str_ikBase == 'hips':
                 mHandleFactory.color(ml_handleShapes[1].mNode, controlType = 'sub')            
@@ -1941,7 +1945,18 @@ def rig_controls(self):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
     
-    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    mHandleFactory = mBlock.asHandleFactory()
+    for mCtrl in ml_controlsAll:
+        ATTR.set(mCtrl.mNode,'rotateOrder','zyx')
+        
+        ml_pivots = mCtrl.msgList_get('spacePivots')
+        if ml_pivots:
+            log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+            for mPivot in ml_pivots:
+                mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
+
+    
+    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
@@ -2040,7 +2055,11 @@ def rig_frame(self):
             b_cog = True
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
         
-        #>> handleJoints ========================================================================================
+        mIKBaseControl = False
+        if mRigNull.getMessage('controlIKBase'):
+            mIKBaseControl = mRigNull.controlIKBase        
+        
+        #>> handleJoints =====================================================================================
         if ml_handleJoints:
             log.debug("|{0}| >> Handles setup...".format(_str_func))
             
@@ -2056,119 +2075,239 @@ def rig_frame(self):
                 if not ml_ribbonIkHandles:
                     raise ValueError,"No ribbon IKDriversFound"
                 
+
+            if len(ml_handleJoints) == 1:
+                mHipHandle = ml_handleJoints[0]
+                
                 reload(RIGCONSTRAINT)
                 RIGCONSTRAINT.build_aimSequence(ml_handleJoints,
                                                 ml_ribbonIkHandles,
                                                 [mRigNull.controlIKBase.mNode],#ml_handleParents,
                                                 mode = 'singleBlend',
                                                 upMode = 'objectRotation')
-                
-                mHipHandle = ml_handleJoints[0]
-                mHipHandle.masterGroup.p_parent = mRoot
-                mc.pointConstraint(mRigNull.controlIKBase.mNode,
-                                   mHipHandle.masterGroup.mNode,
-                                   maintainOffset = True)
-                
             else:
-
-                for i,mHandle in enumerate(ml_handleJoints):
-                    mHandle.masterGroup.parent = ml_handleParents[i]
-                    s_rootTarget = False
-                    s_targetForward = False
-                    s_targetBack = False
-                    mMasterGroup = mHandle.masterGroup
-                    b_first = False
-                    if mHandle == ml_handleJoints[0]:
-                        log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
-                        if len(ml_handleJoints) <=2:
-                            s_targetForward = ml_handleParents[-1].mNode
+                if str_ikBase == 'hips':
+                    log.debug("|{0}| >> hips handles...".format(_str_func))                    
+                    ml_handleJoints[0].masterGroup.p_parent = mIKBaseControl
+                    mHipHandle = ml_handleJoints[1]
+                    mHipHandle.masterGroup.p_parent = mRoot
+                    mc.pointConstraint(mIKBaseControl.mNode,
+                                       mHipHandle.masterGroup.mNode,
+                                       maintainOffset = True)
+                    
+                    RIGCONSTRAINT.build_aimSequence(ml_handleJoints[1],
+                                                    ml_ribbonIkHandles,
+                                                    [mRigNull.controlIKBase.mNode],#ml_handleParents,
+                                                    mode = 'singleBlend',
+                                                    upMode = 'objectRotation')                    
+                    """
+                    RIGCONSTRAINT.build_aimSequence(ml_handleJoints[-1],
+                                                    ml_ribbonIkHandles,
+                                                     #[mRigNull.controlIK.mNode],#ml_handleParents,
+                                                    mode = 'singleBlend',
+                                                    upMode = 'objectRotation')"""
+                    
+                    for i,mHandle in enumerate(ml_handleJoints):
+                        if mHandle in ml_handleJoints[:2]:# + [ml_handleJoints[-1]]:
+                            continue
+                        
+                        mHandle.masterGroup.parent = ml_handleParents[i]
+                        s_rootTarget = False
+                        s_targetForward = False
+                        s_targetBack = False
+                        mMasterGroup = mHandle.masterGroup
+                        b_first = False
+                        if mHandle == ml_handleJoints[0]:
+                            log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
+                            if len(ml_handleJoints) <=2:
+                                s_targetForward = ml_handleParents[-1].mNode
+                            else:
+                                s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                            s_rootTarget = mRoot.mNode
+                            b_first = True
+                    
+                        elif mHandle == ml_handleJoints[-1]:
+                            log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
+                            s_rootTarget = ml_handleParents[i].mNode                
+                            s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
                         else:
+                            log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
                             s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
-                        s_rootTarget = mRoot.mNode
-                        b_first = True
-                        
-                    elif mHandle == ml_handleJoints[-1]:
-                        log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
-                        s_rootTarget = ml_handleParents[i].mNode                
-                        s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
-                    else:
-                        log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
-                        s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
-                        s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
-                        
-                    #Decompose matrix for parent...
-                    mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                    mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
-                    mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
-                    mUpDecomp.doName()
+                            s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
                     
-                    ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
+                        #Decompose matrix for parent...
+                        mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                        mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                        mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
+                        mUpDecomp.doName()
                     
-                    if s_targetForward:
-                        mAimForward = mHandle.doCreateAt()
-                        mAimForward.parent = mMasterGroup            
-                        mAimForward.doStore('cgmTypeModifier','forward')
-                        mAimForward.doStore('cgmType','aimer')
-                        mAimForward.doName()
+                        ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
+                    
+                        if s_targetForward:
+                            mAimForward = mHandle.doCreateAt()
+                            mAimForward.parent = mMasterGroup            
+                            mAimForward.doStore('cgmTypeModifier','forward')
+                            mAimForward.doStore('cgmType','aimer')
+                            mAimForward.doName()
+                    
+                            _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                                                    aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                    worldUpType = 'vector', worldUpVector = [0,0,0])            
+                            s_targetForward = mAimForward.mNode
+                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
+                    
+                        else:
+                            s_targetForward = ml_handleParents[i].mNode
+                    
+                        if s_targetBack:
+                            mAimBack = mHandle.doCreateAt()
+                            mAimBack.parent = mMasterGroup                        
+                            mAimBack.doStore('cgmTypeModifier','back')
+                            mAimBack.doStore('cgmType','aimer')
+                            mAimBack.doName()
+                    
+                            _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                                      aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                      worldUpType = 'vector', worldUpVector = [0,0,0])  
+                            s_targetBack = mAimBack.mNode
+                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
+                        else:
+                            s_targetBack = s_rootTarget
+                            #ml_handleParents[i].mNode
+                    
+                        pprint.pprint([s_targetForward,s_targetBack])
+                        mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
+                    
+                        mHandle.parent = False
+                    
+                        if b_first:
+                            const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
+                        else:
+                            const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
+                    
+                    
+                        d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,'followRoot'],
+                                                                             [mHandle.mNode,'resultRootFollow'],
+                                                                             [mHandle.mNode,'resultAimFollow'],
+                                                                             keyable=True)
+                        targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
+                    
+                        #Connect                                  
+                        d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                        d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                        d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                        d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+                    
+                        mHandle.parent = mAimGroup#...parent back
+                    
+                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
+                            mHandle.followRoot = 1
+                        else:
+                            mHandle.followRoot = .5
+                            
+                    
+
+
+                else:
+                    log.debug("|{0}| >> reg handles...".format(_str_func))
+                    for i,mHandle in enumerate(ml_handleJoints):
+                        mHandle.masterGroup.parent = ml_handleParents[i]
+                        s_rootTarget = False
+                        s_targetForward = False
+                        s_targetBack = False
+                        mMasterGroup = mHandle.masterGroup
+                        b_first = False
+                        if mHandle == ml_handleJoints[0]:
+                            log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
+                            if len(ml_handleJoints) <=2:
+                                s_targetForward = ml_handleParents[-1].mNode
+                            else:
+                                s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                            s_rootTarget = mRoot.mNode
+                            b_first = True
+                            
+                        elif mHandle == ml_handleJoints[-1]:
+                            log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
+                            s_rootTarget = ml_handleParents[i].mNode                
+                            s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
+                        else:
+                            log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
+                            s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                            s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
+                            
+                        #Decompose matrix for parent...
+                        mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                        mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                        mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
+                        mUpDecomp.doName()
                         
-                        _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
-                                                aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                                worldUpType = 'vector', worldUpVector = [0,0,0])            
-                        s_targetForward = mAimForward.mNode
-                        ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
+                        ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
                         
-                    else:
-                        s_targetForward = ml_handleParents[i].mNode
+                        if s_targetForward:
+                            mAimForward = mHandle.doCreateAt()
+                            mAimForward.parent = mMasterGroup            
+                            mAimForward.doStore('cgmTypeModifier','forward')
+                            mAimForward.doStore('cgmType','aimer')
+                            mAimForward.doName()
+                            
+                            _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                                                    aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                    worldUpType = 'vector', worldUpVector = [0,0,0])            
+                            s_targetForward = mAimForward.mNode
+                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
+                            
+                        else:
+                            s_targetForward = ml_handleParents[i].mNode
+                            
+                        if s_targetBack:
+                            mAimBack = mHandle.doCreateAt()
+                            mAimBack.parent = mMasterGroup                        
+                            mAimBack.doStore('cgmTypeModifier','back')
+                            mAimBack.doStore('cgmType','aimer')
+                            mAimBack.doName()
+                            
+                            _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                                      aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                      worldUpType = 'vector', worldUpVector = [0,0,0])  
+                            s_targetBack = mAimBack.mNode
+                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
+                        else:
+                            s_targetBack = s_rootTarget
+                            #ml_handleParents[i].mNode
                         
-                    if s_targetBack:
-                        mAimBack = mHandle.doCreateAt()
-                        mAimBack.parent = mMasterGroup                        
-                        mAimBack.doStore('cgmTypeModifier','back')
-                        mAimBack.doStore('cgmType','aimer')
-                        mAimBack.doName()
+                        pprint.pprint([s_targetForward,s_targetBack])
+                        mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
                         
-                        _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
-                                                  aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                                  worldUpType = 'vector', worldUpVector = [0,0,0])  
-                        s_targetBack = mAimBack.mNode
-                        ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
-                    else:
-                        s_targetBack = s_rootTarget
-                        #ml_handleParents[i].mNode
-                    
-                    pprint.pprint([s_targetForward,s_targetBack])
-                    mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
-                    
-                    mHandle.parent = False
-                    
-                    if b_first:
-                        const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
-                    else:
-                        const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
+                        mHandle.parent = False
                         
-        
-                    d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,'followRoot'],
-                                                                         [mHandle.mNode,'resultRootFollow'],
-                                                                         [mHandle.mNode,'resultAimFollow'],
-                                                                         keyable=True)
-                    targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-                    
-                    #Connect                                  
-                    d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
-                    d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
-                    d_blendReturn['d_result1']['mi_plug'].p_hidden = True
-                    d_blendReturn['d_result2']['mi_plug'].p_hidden = True
-                    
-                    mHandle.parent = mAimGroup#...parent back
-                    
-                    if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                        mHandle.followRoot = 1
-                    else:
-                        mHandle.followRoot = .5
-                        
-                
-                
+                        if b_first:
+                            const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
+                        else:
+                            const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
+                            
             
+                        d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,'followRoot'],
+                                                                             [mHandle.mNode,'resultRootFollow'],
+                                                                             [mHandle.mNode,'resultAimFollow'],
+                                                                             keyable=True)
+                        targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
+                        
+                        #Connect                                  
+                        d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                        d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                        d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                        d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+                        
+                        mHandle.parent = mAimGroup#...parent back
+                        
+                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
+                            mHandle.followRoot = 1
+                        else:
+                            mHandle.followRoot = .5
+                        
+
+    
+
             
             """
             ml_handleJoints[-1].masterGroup.parent = mHeadFK

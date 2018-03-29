@@ -868,14 +868,15 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
             elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast',
                           'ikEnd','ikBase']:
+                
                 f_factor = (maxU-minU)/(30)
                 if targets:
                     ml_fkJoints = ml_targets
                 else:
                     ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
                     
-                if len(ml_fkJoints)<2:
-                    return log.error("|{0}| >> Need at least two joints".format(_str_func))
+                #if len(ml_fkJoints)<2:
+                    #return log.error("|{0}| >> Need at least two joints. Mode: {1}".format(_str_func,mode))
                 
                 
                 if mode == 'segmentHandleBAK':
@@ -1324,8 +1325,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     else:
                         ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
 
-                    if len(ml_fkJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
+                    #if len(ml_fkJoints)<2:
+                        #return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
                     
                     for mObj in ml_targets:
                         str_orientation = self.d_orientation['str']
