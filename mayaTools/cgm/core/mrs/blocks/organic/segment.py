@@ -180,8 +180,8 @@ l_attrsStandard = ['side',
                    'numControls',
                    'numShapers',
                    'numJoints',
+                   'buildProfile',                   
                    'numSpacePivots',
-                   'buildProfile',
                    'scaleSetup',
                    'offsetMode',
                    'settingsDirection',
@@ -229,9 +229,9 @@ d_skeletonSetup = {'mode':'curveCast',
 #d_rotationOrders = {'head':'yxz'}
 
 
-#=============================================================================================================
+#=================================================================================================
 #>> Define
-#=============================================================================================================
+#================================================================================================
 @cgmGEN.Timer
 def define(self):
     _str_func = 'define'
@@ -373,9 +373,9 @@ def define(self):
     return    
     
     
-#=============================================================================================================
+#================================================================================================
 #>> Template
-#=============================================================================================================  
+#===============================================================================================  
 @cgmGEN.Timer
 def template(self):
     _str_func = 'template'
@@ -385,7 +385,7 @@ def template(self):
     self.defineNull.template = True
     
 
-    #Initial checks =====================================================================================
+    #Initial checks ===============================================================================
     _short = self.p_nameShort
     _side = self.UTILS.get_side(self)
         
@@ -408,7 +408,7 @@ def template(self):
     
 
     
-    #Get base dat =====================================================================================    
+    #Get base dat =============================================================================    
     """#OLD METHOD...
     if not len(_l_basePos)>1:
         log.debug("|{0}| >> Generating more pos dat".format(_str_func))
@@ -1295,6 +1295,15 @@ def rig_prechecks(self):
     log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
     pprint.pprint(self.ml_dynEndParents)
     log.debug(cgmGEN._str_subLine)
+    
+    
+    #rotateOrder =============================================================================
+    _str_orientation = self.d_orientation['str']
+    self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+    log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+
+    log.debug(cgmGEN._str_subLine)
+
     return True
 
 
@@ -1947,7 +1956,7 @@ def rig_controls(self):
     
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
-        ATTR.set(mCtrl.mNode,'rotateOrder','zyx')
+        ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
         
         ml_pivots = mCtrl.msgList_get('spacePivots')
         if ml_pivots:
@@ -2981,7 +2990,7 @@ def build_proxyMesh(self, forceNew = True):
             return _bfr
         
     # Create ---------------------------------------------------------------------------
-    ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints),'cgmObject')
+    ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
     
     for i,mGeo in enumerate(ml_segProxy):
         mGeo.parent = ml_rigJoints[i]

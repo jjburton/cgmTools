@@ -3660,6 +3660,8 @@ def templateDelete(self):
     
     if self.getMessage('templateNull'):
         mc.delete(self.getMessage('templateNull'))
+    if self.getMessage('noTransTemplateNull'):
+            mc.delete(self.getMessage('noTransTemplateNull'))
     
     if 'define' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))

@@ -258,7 +258,9 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 def define(self):
     _str_func = 'define'    
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
+    log.debug("|{0}| >>  {1}".format(_str_func)+ '-'*80)
+    log.debug(self)
+    
     _short = self.mNode
     ATTR.set_min(_short, 'numControls', 2)
     ATTR.set_min(_short, 'numRoll', 0)
@@ -328,7 +330,10 @@ def define(self):
                                                                 self.mNode,
                                                                 self.baseSize[1])).doBuild()
     
-    mAimGroup = cgmMeta.validateObjArg(mArrow.doGroup(True,True,asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
+    mAimGroup = cgmMeta.validateObjArg(mArrow.doGroup(True,True,
+                                                      asMeta=True,
+                                                      typeModifier = 'aim'),
+                                       'cgmObject',setClass=True)
     mAimGroup.resetAttrs()
     
     _const = mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
@@ -2207,7 +2212,7 @@ def rig_digitShapes(self):
         d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
         str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')        
 
-        #Pivots =======================================================================================
+        #Pivots ==================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
         mPivotHelper = False
         if mPivotHolderHandle.getMessage('pivotHelper'):
@@ -2369,7 +2374,7 @@ def rig_digitShapes(self):
             self.mRigNull.connectChildNode(mIKCrv,'controlIK','rigNull')#Connect            
     
     
-            #Mid IK...---------------------------------------------------------------------------------
+            #Mid IK...----------------------------------------------------------------------------
             log.debug("|{0}| >> midIK...".format(_str_func))
             mKnee = ml_fkJoints[self.int_templateHandleMidIdx].doCreateAt(setClass=True)
             #size_knee =  POS.get_bb_size(ml_templateHandles[self.int_templateHandleMidIdx].mNode)
@@ -3782,7 +3787,7 @@ def rig_frame(self):
     try:
         _short = self.d_block['shortName']
         _str_func = 'rig_rigFrame'.format(_short)
-        log.info("|{0}| >> ...".format(_str_func))  
+        log.debug("|{0}| >> ...".format(_str_func))  
         
         mBlock = self.mBlock
         mRigNull = self.mRigNull
@@ -4584,7 +4589,6 @@ def rig_cleanUp(self):
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
     
     ml_targetDynParents = [self.mConstrainNull]
-    #[self.md_dynTargetsParent['driverPoint']]#[self.mDeformNull]
     
     if not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
@@ -4616,15 +4620,7 @@ def rig_cleanUp(self):
     for mHandle in ml_ikControls:
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))                
         
-        #mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull] + ml_endDynParents
-        
-        #if mParentRoot:
-        #    ml_targetDynParents.append(mParentRoot)
-            
-        #if not mParent.hasAttr('cgmAlias'):
-            #mParent.addAttr('cgmAlias','conIK_base')
-        #ml_targetDynParents.append(mParent)    
         
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
         ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -4751,7 +4747,6 @@ def rig_cleanUp(self):
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
-        
         for mCtrl in ml_controls:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     

@@ -1449,7 +1449,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         return ml_shapes
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
+def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False):
     _short = self.mBlock.mNode
     _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
     _start = time.clock()	
@@ -1478,7 +1478,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     str_meshShape = mMesh_tmp.getShapes()[0]    
 
     
-    #Process -----------------------------------------------------------------------------------
+    #Process ----------------------------------------------------------------------------------
     l_newCurves = []
     str_meshShape = mMesh_tmp.getShapes()[0]
     log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
@@ -1491,6 +1491,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))
     
     l_uValues = []
+    str_start = False
     for i,mTar in enumerate(ml_targets):
         j = mTar.mNode
         _d = RAYS.cast(str_meshShape,j,upVector)
@@ -1512,12 +1513,20 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
         if mTar == ml_targets[-1]:
             crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
             l_newCurves.append(crv[0])
+            
+        str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
+                                            ch = 0, rn = 0, local = 0)[0]
+
 
     #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
     log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,l_newCurves))        
     l_new = []
     for i,c in enumerate(l_newCurves[:-1]):
-        _pair = [c,l_newCurves[i+1]]
+        
+        if i == 0 and str_start:
+            _pair = [str_start,c,l_newCurves[i+1]]
+        else:
+            _pair = [c,l_newCurves[i+1]]
         _mesh = create_loftMesh(_pair, name="{0}_{1}".format('test',i), divisions=1)
         RIGGING.match_transform(_mesh,ml_targets[i])
         l_new.append(_mesh)
@@ -1525,6 +1534,9 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1):
     #...clean up 
     mc.delete(l_newCurves)# + [str_tmpMesh]
     mMesh_tmp.delete()
+    
+    if str_start:
+        mc.delete(str_start)
     #>>Parent to the joints ----------------------------------------------------------------- 
     return l_new
     
