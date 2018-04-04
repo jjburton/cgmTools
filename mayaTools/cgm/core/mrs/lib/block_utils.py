@@ -1756,6 +1756,7 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
         _nameDict['cgmPosition']=mModule.cgmPosition
     
     if iterName:
+        log.debug("|{0}| >>  iterName: {1}".format(_str_func,iterName))        
         _nameDict['cgmName'] = iterName
     elif self.getMayaAttr('nameIter'):
         _nameDict['cgmName'] = self.nameIter
@@ -1774,6 +1775,7 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
 
     _cnt = 0
     l_range = range(_number)
+    l_dicts = []
     for i in l_range:
         _nameDictTemp = copy.copy(_nameDict)
         _specialName = False
@@ -1792,16 +1794,19 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
                 _nameDictTemp['cgmName'] = _l_baseNames[-1]
                 _specialName = True
                 _cnt = 0
-
+        
         if not _specialName:
             _nameDictTemp['cgmIterator'] = _cnt
             
-        #mJoint.rename(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
-        if combined:
-            l_res.append(NAMETOOLS.returnCombinedNameFromDict(_nameDictTemp))
-        else:
-            l_res.append( _nameDictTemp )
-    return l_res
+            if _cnt == 1 and not l_dicts[-1].get('cgmIterator'):
+                l_dicts[-1]['cgmIterator'] = 0
+            
+        l_dicts.append(_nameDictTemp)
+        log.debug("|{0}| >>  [{1}]: {2}".format(_str_func,i,_nameDict))
+    
+    if combined:
+        return [NAMETOOLS.returnCombinedNameFromDict(d) for d in l_dicts]
+    return l_dicts
 
 
 
@@ -3661,7 +3666,7 @@ def templateDelete(self):
     if self.getMessage('templateNull'):
         mc.delete(self.getMessage('templateNull'))
     if self.getMessage('noTransTemplateNull'):
-            mc.delete(self.getMessage('noTransTemplateNull'))
+        mc.delete(self.getMessage('noTransTemplateNull'))
     
     if 'define' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))

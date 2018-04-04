@@ -1170,7 +1170,7 @@ d_preferredAngles = {}
 
 d_rotateOrders = {'default':'yxz'}
 
-#Rig build stuff goes through the rig build factory ------------------------------------------------------
+#Rig build stuff goes through the rig build factory --------------------------------------------
 @cgmGEN.Timer
 def rig_prechecks(self):
     _short = self.d_block['shortName']
@@ -1954,6 +1954,8 @@ def rig_controls(self):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
     
+    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
         ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
@@ -1965,7 +1967,6 @@ def rig_controls(self):
                 mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
 
     
-    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
@@ -2707,7 +2708,7 @@ def rig_cleanUp(self):
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     
     if not self.mConstrainNull.hasAttr('cgmAlias'):
-        self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))    
+        self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
     
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []

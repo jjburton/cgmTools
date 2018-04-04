@@ -809,7 +809,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             offset = self.mPuppet.atUtils('get_shapeOffset')
             #offset = self.d_module.get('f_shapeOffset',1.0)
             
-        if mode in ['default','segmentHandle',
+        if mode in ['default',
+                    'segmentHandle',
                     'ikHandle',
                     'ikEnd',
                     'ikBase',

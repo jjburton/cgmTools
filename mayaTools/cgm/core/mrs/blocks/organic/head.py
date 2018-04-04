@@ -90,7 +90,7 @@ d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh','orientHelper'],
+d_wiring_template = {'msgLinks':['templateNull'],
                      'msgLists':['templateHandles']}
 
 #>>>Profiles =====================================================================================================
@@ -117,13 +117,13 @@ d_block_profiles = {
            'baseSize':[22,22,22],
            'loftShape':'square',           
            },
-    'human':{'neckShapers':3,
-             'neckBuild':True,
-             'baseAim':[0,-1,0],
-             'baseUp':[0,0,-1],
-             'baseSize':[15.2, 23.2, 19.7],
-             'loftShape':'wideUp',
-             'proxyType':'geo'
+    'head':{'neckShapers':3,
+            'neckBuild':True,
+            'baseAim':[0,-1,0],
+            'baseUp':[0,0,-1],
+            'baseSize':[15.2, 23.2, 19.7],
+            'loftShape':'wideUp',
+            'proxyType':'geo'
              }
 }
 
@@ -492,6 +492,8 @@ def template(self):
         mGeoProxies = self.doCreateAt()
         mGeoProxies.rename("proxyGeo")
         mGeoProxies.parent = mHeadHandle
+        #mGeoProxies.parent = mTemplateNull
+        
         #_bb = DIST.get_bb_size(self.mNode,True)
         
         ATTR.connect(self.mNode + '.headRotate', mGeoProxies.mNode + '.rotate')
@@ -500,7 +502,8 @@ def template(self):
             mProxy = cgmMeta.validateObjArg(o,'cgmObject',setClass=True)
             ml_proxies.append(mProxy)
             mProxy.doSnapTo(self.mNode)                
-            TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
+            #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
+            TRANS.scale_to_boundingBox(mProxy.mNode,[1,1,1])            
             CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)                
             mProxy.parent = mGeoProxies
             mProxy.rename('head_{0}'.format(i))
@@ -510,7 +513,9 @@ def template(self):
                 mShape.overrideDisplayType = 2                  
             
         NODEFACTORY.build_conditionNetworkFromGroup(mGeoProxies.mNode,'headGeo',self.mNode)
-        ATTR.set_keyable(self.mNode,'headGeo',False)    
+        ATTR.set_keyable(self.mNode,'headGeo',False)
+        self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
+        #mc.parentConstraint([mHeadHandle.mNode],mGeoProxies.mNode,maintainOffset = True)
         
     else:
         raise NotImplementedError,"|{0}| >> Unknown proxyType: [{1}:{2}]".format(_str_func,
@@ -864,8 +869,8 @@ def prerig(self):
     #Initial validation ================================================================================
     self.atUtils('module_verify')
     mPrerigNull = BLOCKUTILS.prerigNull_verify(self)   
-    mNoTransformNull = self.atUtils('noTransformNull_verify')
-        
+    #mNoTransformNull = self.atUtils('noTransformNull_verify')
+    mNoTransformNull = self.UTILS.noTransformNull_verify(self,'prerig')
     ml_templateHandles = self.msgList_get('templateHandles')
     
     
@@ -1085,16 +1090,12 @@ def prerig(self):
             """
 
         
-
-        
-        
-        
         for t in targets:
             ATTR.set(t,'v',0)
         
         cgmGEN.func_snapShot(vars())
         #Neck ==================================================================================================
-        self.noTransformNull.v = False
+        mNoTransformNull.v = False
     
     self.blockState = 'prerig'#...buffer
     return True
@@ -1134,8 +1135,7 @@ def skeleton_build(self, forceNew = True):
     if not ml_prerigHandles:
         raise ValueError,"No prerigHandles connected"
     
-    
-    #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
+    #>> If skeletons there, delete -------------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
     if _bfr:
         log.debug("|{0}| >> Joints detected...".format(_str_func))            
@@ -1147,8 +1147,8 @@ def skeleton_build(self, forceNew = True):
 
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
-    _l_namesToUse = self.atUtils('skeleton_getNameDicts',True, self.neckJoints +1, iterName = _l_baseNames[-1])        
-    
+    _l_namesToUse = self.atUtils('skeleton_getNameDicts',True, self.neckJoints +1,
+                                 iterName = _l_baseNames[0])        
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
@@ -1252,12 +1252,133 @@ d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation 
 d_rotateOrders = {'head':'yxz'}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
+@cgmGEN.Timer
+def rig_prechecks(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_prechecks'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mBlock = self.mBlock
+    mModule = self.mModule
+    mRigNull = self.mRigNull
+    mPrerigNull = mBlock.prerigNull
+    ml_templateHandles = mBlock.msgList_get('templateHandles')
+    ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
+    mMasterNull = self.d_module['mMasterNull']
+    
+    self.mRootTemplateHandle = ml_templateHandles[0]
+    
+    #Initial option checks ============================================================================    
+    if mBlock.scaleSetup:
+        raise NotImplementedError,"Haven't setup scale yet."
+    if mBlock.neckIK not in [0,3]:
+        raise NotImplementedError,"Haven't setup neck IK: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK'))
+    #if mBlock.ikSetup > 1:
+        #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
+        
+
+    
+    #Offset ============================================================================    
+    str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
+    if not mBlock.offsetMode:
+        log.debug("|{0}| >> default offsetMode...".format(_str_func))
+        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+    else:
+        str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
+        log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
+        
+        l_sizes = []
+        for mHandle in ml_templateHandles:
+            #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
+            #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
+            _size_sub = POS.get_bb_size(mHandle,True)
+            l_sizes.append( MATH.average(_size_sub) * .1 )            
+        self.v_offset = MATH.average(l_sizes)
+        #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
+        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
+    log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
+    
+    
+    #DynParents =============================================================================
+    log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func))
+    
+    mModuleParent = self.d_module['mModuleParent']
+    self.md_dynTargetsParent = {}
+    self.ml_dynEndParents = [mMasterNull.puppetSpaceObjectsGroup, mMasterNull.worldSpaceObjectsGroup]
+    self.ml_dynParentsAbove = []
+    self.md_dynTargetsParent['world'] = mMasterNull.worldSpaceObjectsGroup
+    self.md_dynTargetsParent['puppet'] = mMasterNull.puppetSpaceObjectsGroup
+    
+    self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
+                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    
+    
+    if mModuleParent:
+        mi_parentRigNull = mModuleParent.rigNull
+        if mi_parentRigNull.getMessage('rigRoot'):
+            mParentRoot = mi_parentRigNull.rigRoot
+            self.md_dynTargetsParent['root'] = mParentRoot
+            #self.ml_dynEndParents.insert(0,mParentRoot)
+            self.ml_dynParentsAbove.append(mParentRoot)
+        else:
+            self.md_dynTargetsParent['root'] = False
+            
+        _mBase = mModule.atUtils('get_driverPoint','base')
+        _mEnd = mModule.atUtils('get_driverPoint','end')
+        
+        if _mBase:
+            self.md_dynTargetsParent['base'] = _mBase
+            self.ml_dynParentsAbove.append(_mBase)
+        if _mEnd:
+            self.md_dynTargetsParent['end'] = _mEnd
+            self.ml_dynParentsAbove.append(_mEnd)
+            
+
+            
+
+        """
+        if mi_parentRigNull.getMessage('controlIK'):
+            self.md_dynTargetsParent['controlIK'] = mi_parentRigNull.controlIK
+        else:
+            self.md_dynTargetsParent['controlIK'] = False
+            
+        if mi_parentRigNull.getMessage('controlIKBase'):
+            self.md_dynTargetsParent['controlIKBase'] = mi_parentRigNull.controlIKBase 
+        else:
+            self.md_dynTargetsParent['controlIKBase'] = False"""
+            
+    log.debug(cgmGEN._str_subLine)
+    log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
+    pprint.pprint(self.md_dynTargetsParent)
+    log.debug(cgmGEN._str_subLine)    
+    log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
+    pprint.pprint(self.ml_dynEndParents)
+    log.debug(cgmGEN._str_subLine)
+    log.debug("|{0}| >> dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
+    pprint.pprint(self.ml_dynParentsAbove)    
+    log.debug(cgmGEN._str_subLine)
+    
+    #rotateOrder =============================================================================
+    _str_orientation = self.d_orientation['str']
+    self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+    self.rotateOrderHead = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+    
+    log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+    log.debug("|{0}| >> rotateOrder | self.rotateOrderHead: {1}".format(_str_func,self.rotateOrderHead))
+
+    log.debug(cgmGEN._str_subLine)
+
+    return True
+
+
+@cgmGEN.Timer
 def rig_skeleton(self):
     _short = self.d_block['shortName']
     
-    _str_func = '[{0}] > rig_skeleton'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = 'rig_skeleton'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
         
     mBlock = self.mBlock
     mRigNull = self.mRigNull
@@ -1266,8 +1387,8 @@ def rig_skeleton(self):
     ml_joints = mRigNull.msgList_get('moduleJoints')
     self.d_joints['ml_moduleJoints'] = ml_joints
     
-    BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
-                                     d_rotateOrders, d_preferredAngles)
+    BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'])
+                                     #d_rotateOrders, d_preferredAngles)
     
     log.info("|{0}| >> Head...".format(_str_func))  
     
@@ -1309,6 +1430,10 @@ def rig_skeleton(self):
             ml_jointsToConnect.extend(ml_ikJoints)
             ml_jointsToHide.extend(ml_blendJoints)
             
+            for i,mJnt in enumerate(ml_ikJoints):
+                if mJnt not in [ml_ikJoints[0],ml_ikJoints[-1]]:
+                    mJnt.preferredAngle = mJnt.jointOrient                    
+            
         
         if mBlock.neckControls > 1:
             log.info("|{0}| >> Handles...".format(_str_func))            
@@ -1341,16 +1466,16 @@ def rig_skeleton(self):
             mJnt.radius = .00001
             
     #...connect... 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     
     return
 
+@cgmGEN.Timer
 def rig_shapes(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_shapes'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = 'rig_shapes'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     ml_prerigHandles = self.mBlock.atBlockUtils('prerig_getHandleTargets')
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
@@ -1382,7 +1507,7 @@ def rig_shapes(self):
         
         _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
                                        MATH.get_obj_vector(ml_templateHandles[0].orientHelper.mNode,'z+'),
-                                       _size * 2)
+                                       _size * 1.5)
         
         ikCurve = CURVES.create_fromName('sphere2',_size/3)
         textCrv = CURVES.create_text('head',_size/4)
@@ -1530,8 +1655,8 @@ def rig_shapes(self):
         
         
         
-        #FK/Ik =============================================================================================    
-        ml_fkShapes = self.atBuilderUtils('shapes_fromCast', mode = 'frameHandle')
+        #FK/Ik =======================================================================================    
+        ml_fkShapes = self.atBuilderUtils('shapes_fromCast', mode = 'frameHandle')#frameHandle
         
         mHandleFactory.color(ml_fkShapes[0].mNode, controlType = 'main')        
         CORERIG.shapeParent_in_place(ml_fkJoints[0].mNode, ml_fkShapes[0].mNode, True, replaceShapes=True)
@@ -1546,15 +1671,15 @@ def rig_shapes(self):
             for mShape in ml_fkJoints[i].getShapes(asMeta=True):
                 mShape.doName()"""
 
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    
+@cgmGEN.Timer
 def rig_controls(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_controls'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = 'rig_controls'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
   
     mRigNull = self.mRigNull
+    mBlock = self.mBlock
     ml_controlsAll = []#we'll append to this list and connect them all at the end
     mRootParent = self.mDeformNull
     mSettings = mRigNull.settings
@@ -1565,18 +1690,25 @@ def rig_controls(self):
         
     mHeadIK = mRigNull.headIK
     
-    # Drivers ==============================================================================================    
+    d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')    
+    
+    # Drivers ==========================================================================================    
     if self.mBlock.neckBuild:
         if self.mBlock.neckIK:
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
     
-        #>> vis Drivers ================================================================================================	
+        #>> vis Drivers ==============================================================================	
         mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-    mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        
+    mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
+                                      attrType='bool', defaultValue = False,
+                                      keyable = False,hidden = False)
     
     if self.mBlock.headAim:        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',
+                                    minValue=0,maxValue=1,
+                                    lock=False,keyable=True)
         
         
     #>> Neck build ======================================================================================
@@ -1631,11 +1763,11 @@ def rig_controls(self):
     #ikHead ========================================================================================
     log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))    
     _d = MODULECONTROL.register(mHeadIK,
-                                addSpacePivots = 2,
-                                addDynParentGroup = True, addConstraintGroup=False,
+                                addDynParentGroup = True,
                                 mirrorSide= self.d_module['mirrorDirection'],
                                 mirrorAxis="translateX,rotateY,rotateZ",
-                                makeAimable = True)
+                                makeAimable = True,
+                                **d_controlSpaces)
     
     mHeadIK = _d['mObj']
     mHeadIK.masterGroup.parent = mRootParent
@@ -1647,11 +1779,12 @@ def rig_controls(self):
         mHeadLookAt = mRigNull.headLookAt
         log.info("|{0}| >> Found headLookAt : {1}".format(_str_func, mHeadLookAt))
         MODULECONTROL.register(mHeadLookAt,
-                               typeModifier='lookAt',addSpacePivots = 2,
-                               addDynParentGroup = True, addConstraintGroup=False,
+                               typeModifier='lookAt',
+                               addDynParentGroup = True, 
                                mirrorSide= self.d_module['mirrorDirection'],
                                mirrorAxis="translateX,rotateY,rotateZ",
-                               makeAimable = False)
+                               makeAimable = False,
+                               **d_controlSpaces)
         mHeadLookAt.masterGroup.parent = mRootParent
         ml_controlsAll.append(mHeadLookAt)
         
@@ -1705,12 +1838,26 @@ def rig_controls(self):
         for mShape in mObj.getShapes(asMeta=True):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
-
+            
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    
+    mHandleFactory = mBlock.asHandleFactory()
+    for mCtrl in ml_controlsAll:
+        ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
+        
+        ml_pivots = mCtrl.msgList_get('spacePivots')
+        if ml_pivots:
+            log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+            for mPivot in ml_pivots:
+                mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+    
+    if mHeadIK:
+        ATTR.set(mHeadIK.mNode,'rotateOrder',self.rotateOrderHead)
+        
+    
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
     
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
     
     
     
@@ -1730,10 +1877,12 @@ def rig_controls(self):
     except Exception,error:raise Exception,"IK Segments! | error: {0}".format(error)
 
 
-
+@cgmGEN.Timer
 def rig_segments(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_neckSegment'.format(_short)
+    _str_func = 'rig_neckSegment'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
     
     if not self.mBlock.neckBuild:
         log.info("|{0}| >> No neck build optioned".format(_str_func))                      
@@ -1775,13 +1924,15 @@ def rig_segments(self):
 
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
-    
+
+@cgmGEN.Timer
 def rig_frame(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_rigFrame'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = ' rig_rigFrame'
     
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     mRootParent = self.mDeformNull
@@ -1848,6 +1999,23 @@ def rig_frame(self):
         mc.orientConstraint(mHeadBlendJoint.mNode,
                             mHeadFK_aimFollowGroup.mNode,
                             maintainOffset = False)"""
+        
+        #Trace crv ---------------------------------------------------------------------------------
+        log.debug("|{0}| >> head look at track Crv".format(_str_func))
+        trackcrv,clusters = CORERIG.create_at([mHeadLookAt.mNode,
+                                               mHeadAimJoint.mNode],#ml_handleJoints[1]],
+                                              'linearTrack',
+                                              baseName = '{0}_headAimTrack'.format(self.d_module['partName']))
+    
+        mTrackCrv = cgmMeta.asMeta(trackcrv)
+        mTrackCrv.p_parent = self.mModule
+        mHandleFactory = mBlock.asHandleFactory()
+        mHandleFactory.color(mTrackCrv.mNode, controlType = 'sub')
+    
+        for s in mTrackCrv.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+        mTrackCrv.doConnectIn('visibility',mPlug_aim.p_combinedShortName)        
         
         
     else:
@@ -2007,14 +2175,11 @@ def rig_frame(self):
                                         driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])            
             
     
-
-    
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > rig_cleanUp'.format(_short)
-    log.info("|{0}| >> ...".format(_str_func))  
+    _str_func = 'rig_cleanUp'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
@@ -2031,12 +2196,18 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     
+    if not self.mConstrainNull.hasAttr('cgmAlias'):
+        self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))    
+    
     #>>  Parent and constraining joints and rig parts =======================================================
     if mSettings != mHeadIK:
         mSettings.masterGroup.parent = mHeadIK
     
     #>>  DynParentGroups - Register parents for various controls ============================================
-
+    ml_baseDynParents = []
+    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
+    ml_ikDynParents = []    
+    """
     #...head -----------------------------------------------------------------------------------
     ml_baseHeadDynParents = []
     
@@ -2058,18 +2229,18 @@ def rig_cleanUp(self):
                     ml_baseHeadDynParents.append( mJnt.masterGroup)
                     ml_used.append(mJnt)
                     
-    ml_baseHeadDynParents.append(mMasterNull.puppetSpaceObjectsGroup)
+    ml_baseHeadDynParents.append(mMasterNull.puppetSpaceObjectsGroup)"""
     
     #...Root controls ================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
-    mParent = mRoot.getParent(asMeta=True)
-    ml_targetDynParents = []
+    #mParent = mRoot.getParent(asMeta=True)
+    ml_targetDynParents = [self.mConstrainNull]
 
-    if not mParent.hasAttr('cgmAlias'):
-        mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
-    ml_targetDynParents.append(mParent)    
+    #if not mParent.hasAttr('cgmAlias'):
+    #    mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
+    #ml_targetDynParents.append(mParent)    
     
-    ml_targetDynParents.extend(ml_baseHeadDynParents)
+    ml_targetDynParents.extend(ml_endDynParents)
 
     mDynGroup = mRoot.dynParentGroup
     mDynGroup.dynMode = 2
@@ -2083,9 +2254,8 @@ def rig_cleanUp(self):
     #Head -------------------------------------------------------------------------------------------
     ml_headDynParents = []
   
-    ml_headDynParents = copy.copy(ml_baseHeadDynParents)
     ml_headDynParents.extend(mHeadIK.msgList_get('spacePivots',asMeta = True))
-    ml_headDynParents.append(mMasterNull.worldSpaceObjectsGroup)
+    ml_headDynParents.extend(ml_endDynParents)
     
     mBlendDriver =  mHeadIK.getMessage('blendDriver',asMeta=True)
     if mBlendDriver:
@@ -2120,9 +2290,9 @@ def rig_cleanUp(self):
         mHeadLookAt.setAttrFlags(attrs='v')
         
         #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseHeadDynParents)
+        ml_headLookAtDynParents = []
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
-        ml_headLookAtDynParents.append(mMasterNull.worldSpaceObjectsGroup)    
+        ml_headLookAtDynParents.extend(ml_endDynParents)    
         
         ml_headDynParents.insert(0, mHeadIK)
         #mHeadIK.masterGroup.addAttr('cgmAlias','headRoot')
@@ -2135,8 +2305,20 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(o)
         mDynGroup.rebuild()
         
-    #...root ---------------------------------------------------------------------------------------
-
+    #Lock and hide =================================================================================
+    ml_controls = mRigNull.msgList_get('controlsAll')
+    
+    for mCtrl in ml_controls:
+        if mCtrl.hasAttr('radius'):
+            ATTR.set_hidden(mCtrl.mNode,'radius',True)
+        
+        if mCtrl.getMessage('masterGroup'):
+            mCtrl.masterGroup.setAttrFlags()
+    
+    if not mBlock.scaleSetup:
+        log.debug("|{0}| >> No scale".format(_str_func))
+        for mCtrl in ml_controls:
+            ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     
         
     #>>  Lock and hide ======================================================================================
@@ -2195,9 +2377,10 @@ def build_proxyMesh(self, forceNew = True):
     Build our proxyMesh
     """
     _short = self.d_block['shortName']
-    _str_func = '[{0}] > build_proxyMesh'.format(_short)
-    log.debug("|{0}| >> ...".format(_str_func))  
-    _start = time.clock()
+    _str_func = 'build_proxyMesh'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     mHeadIK = mRigNull.headIK
