@@ -1470,7 +1470,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
     
 
     ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
-    l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+    #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
     #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
     #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
     #str_tmpMesh = mMesh_tmp.mNode

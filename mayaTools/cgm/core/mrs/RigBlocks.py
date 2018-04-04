@@ -4051,6 +4051,7 @@ class rigFactory(object):
             cgmGEN.cgmExceptCB(Exception,err)
         return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
     atUtils = atBuilderUtils
+    UTILS = BUILDERUTILS
     def fnc_connect_toRigGutsVis(self, ml_objects, vis = True, doShapes = False):
         _str_func = 'fnc_connect_toRigGutsVis' 
         mRigNull = self.d_module['mRigNull']
@@ -4175,7 +4176,7 @@ class rigFactory(object):
             if not _mModule.atUtils('is_skeletonized'):
                 log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
 
-                if not self.mBlock.atBlockModule('build_skeleton'):
+                if not self.mBlock.atBlockModule('skeleton_build'):
                     log.warning("|{0}| >> Skeletonization failed".format(_str_func))            
                     _res = False
             #self.mBlock.atUtils('skeleton_connectToParent')
@@ -4521,6 +4522,7 @@ class rigFactory(object):
                 mAttachDriver.doName()
                 
                 self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
+                self.mRigNull.connectChildNode(mAttachDriver,'attachDriver')                
                 mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
                 self.mConstrainNull.connectChildNode(mAttachDriver,'attachDriver','module')
                 

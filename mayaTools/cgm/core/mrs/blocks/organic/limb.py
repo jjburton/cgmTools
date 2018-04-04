@@ -258,7 +258,7 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 def define(self):
     _str_func = 'define'    
-    log.debug("|{0}| >>  {1}".format(_str_func)+ '-'*80)
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug(self)
     
     _short = self.mNode
@@ -289,13 +289,19 @@ def define(self):
     
     mDefineNull = self.atUtils('stateNull_verify','define')
     
+    #Rotate Group ==================================================================
+    mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
+                                          'cgmObject',setClass=True)
+    mRotateGroup.p_parent = mDefineNull
+    mRotateGroup.setAttrFlags()    
+    
     #Bounding box ==================================================================
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-    mBBShape.p_parent = mDefineNull    
+    mBBShape.p_parent = mRotateGroup    
     mBBShape.tz = .5
+    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)    
     
-    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
     self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
@@ -305,17 +311,17 @@ def define(self):
     mBBShape.doName()    
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
-
+    
     #Up helper ==================================================================
     mTarget = self.doCreateAt()
-    mTarget.p_parent = mDefineNull
+    mTarget.p_parent = mRotateGroup
     mTarget.rename('aimTarget')
     self.doConnectOut('baseSizeZ', "{0}.tz".format(mTarget.mNode))
     mTarget.setAttrFlags()
     
     _arrowUp = CURVES.create_fromName('pyramid', _size/5, direction= 'y+')
     mArrow = cgmMeta.validateObjArg(_arrowUp, 'cgmObject',setClass=True)
-    mArrow.p_parent = mDefineNull    
+    mArrow.p_parent = mRotateGroup    
     mArrow.resetAttrs()
     mHandleFactory.color(mArrow.mNode,controlType='sub')
     
@@ -354,7 +360,7 @@ def define(self):
                           ch=0)
     mPlane = cgmMeta.validateObjArg(plane[0])
     mPlane.doSnapTo(self.mNode)
-    mPlane.p_parent = mAimGroup
+    mPlane.p_parent = mRotateGroup
     mPlane.tz = .5
     CORERIG.copy_pivot(mPlane.mNode,self.mNode)
 
@@ -378,6 +384,7 @@ def define(self):
                      worldUpType = 'objectrotation', 
                      worldUpVector = [0,1,0])    """
 
+    mRotateGroup.doConnectIn('rotate',"{0}.baseAim".format(_short))
  
     return
 
@@ -390,7 +397,7 @@ def define(self):
         
 def template(self):
     _str_func = 'template'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
     self.defineNull.template = True
@@ -428,7 +435,7 @@ def template(self):
     _mVectorUp = _mVectorAim.up()
     _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
     """
-    _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
+    _mVectorAim = MATH.get_obj_vector(self.rootUpHelper.mNode,asEuclid=True)
     mRootUpHelper = self.rootUpHelper
     _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
     
@@ -1126,13 +1133,13 @@ def template(self):
 def prerig(self):
     try:
         _str_func = 'prerig'
-        _short = self.p_nameShort
-        _side = self.atUtils('get_side')
 
-        
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
         #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))   
         
+        _short = self.p_nameShort
+        _side = self.atUtils('get_side')        
     
         #> Get our stored dat ==================================================================================================
         mHandleFactory = self.asHandleFactory()

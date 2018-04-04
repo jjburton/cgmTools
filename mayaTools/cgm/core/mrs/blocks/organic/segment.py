@@ -1393,7 +1393,7 @@ def rig_skeleton(self):
         
     
     if mBlock.numJoints > mBlock.numControls:
-        log.info("|{0}| >> Handles...".format(_str_func))            
+        log.debug("|{0}| >> Handles...".format(_str_func))            
         ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
         if mBlock.ikSetup:
             for i,mJnt in enumerate(ml_segmentHandles):
@@ -1403,7 +1403,7 @@ def rig_skeleton(self):
                 mJnt.parent = ml_fkJoints[i]        
         
         
-        log.info("|{0}| >> segment necessary...".format(_str_func))
+        log.debug("|{0}| >> segment necessary...".format(_str_func))
             
         ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None, mRigNull,'segmentJoints', cgmType = 'segJnt',blockNames=True)
         for i,mJnt in enumerate(ml_rigJoints):
@@ -1411,7 +1411,7 @@ def rig_skeleton(self):
             mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
         ml_jointsToHide.extend(ml_segmentChain)
     else:
-        log.info("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))
+        log.debug("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))
         ml_rigParents = ml_fkJoints
         if ml_blendJoints:
             ml_rigParents = ml_blendJoints
@@ -2037,7 +2037,6 @@ def rig_segments(self):
     mSkinCluster.doName()    
     
     cgmGEN.func_snapShot(vars())
-
     ml_segJoints[0].parent = mRoot
 
     
