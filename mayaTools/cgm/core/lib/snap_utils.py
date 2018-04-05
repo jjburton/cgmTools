@@ -173,7 +173,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
         
         
         _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-        
+        _loc = False
         try:position = position.x,position.y,position.z
         except:pass
         try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
@@ -246,44 +246,48 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                            worldUpType = 'scene',)
             mc.delete(_constraint + [_loc])"""
         elif mode in ['local','world','vector','object']:
-                _loc = mc.spaceLocator()[0]
-                mc.move (position[0],position[1],position[2], _loc, ws=True)  
-                mAxis_aim = VALID.simpleAxis(aimAxis)
-                mAxis_up = VALID.simpleAxis(upAxis) 
-                
-                if mode == 'world':                
-                    _constraint = mc.aimConstraint(_loc,_obj,
-                                                   maintainOffset = False,
-                                                   aimVector = mAxis_aim.p_vector,
-                                                   upVector = mAxis_up.p_vector,
-                                                   worldUpType = 'scene',) 
-                elif mode == 'object':
-                    vectorUp = VALID.mNodeString(vectorUp)
-                    _constraint = mc.aimConstraint(_loc,_obj,
-                                                   maintainOffset = False,
-                                                   aimVector = mAxis_aim.p_vector,
-                                                   upVector = mAxis_up.p_vector,
-                                                   worldUpType = 'object',
-                                                   worldUpObject = vectorUp)
-                                                   #worldUpVector = _vUp)
+            _loc = mc.spaceLocator(name='test')[0]
+            mc.move (position[0],position[1],position[2], _loc, ws=True)  
+            mAxis_aim = VALID.simpleAxis(aimAxis)
+            mAxis_up = VALID.simpleAxis(upAxis) 
+            
+            if mode == 'world':                
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'scene',) 
+            elif mode == 'object':
+                vectorUp = VALID.mNodeString(vectorUp)
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'object',
+                                               worldUpObject = vectorUp)
+                                               #worldUpVector = _vUp)
+            else:
+                if mode == 'vector':
+                    _vUp = vectorUp
                 else:
-                    if mode == 'vector':
-                        _vUp = vectorUp
-                    else:
-                        _vUp = MATH.get_obj_vector(_obj,upAxis)
-                    _constraint = mc.aimConstraint(_loc,_obj,
-                                                   maintainOffset = False,
-                                                   aimVector = mAxis_aim.p_vector,
-                                                   upVector = mAxis_up.p_vector,
-                                                   worldUpType = 'vector',
-                                                   worldUpVector = _vUp)                 
-                    
-                mc.delete(_constraint + [_loc])    
+                    _vUp = MATH.get_obj_vector(_obj,upAxis)
+                _constraint = mc.aimConstraint(_loc,_obj,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'vector',
+                                               worldUpVector = _vUp)                 
+                
+            mc.delete(_constraint)    
         else:
             raise NotImplementedError,"mode: {0}".format(mode)
-    
+        
+        if _loc:mc.delete(_loc)
         return True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    except Exception,err:
+        if _loc:mc.delete(_loc)
+        log.error( "aim_atPoint | obj: {0} | err: {1}".format(obj,err) )
+        #cgmGEN.cgmExceptCB(Exception,err)
     
 
 def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local',vectorUp = None):

@@ -2538,9 +2538,32 @@ def blockMirror_create(self, forceNew = False):
         
         blockDat = self.getBlockDat()
         blockDat['ud']['side'] = _side
+        """
+        #Mirror some specfic dat
+        if blockDat.get('template'):
+            _subShapers = blockDat['template'].get('subShapers',{})
+            log.debug("|{0}| >> subShaper dat mirror...".format(_str_func, self.mNode))                    
+            
+            for i,d_sub in _subShapers.iteritems():
+                l_t = d_sub.get('t')
+                l_r = d_sub.get('r')
+                l_s = d_sub.get('s')
+                
+                for ii,d_list in enumerate(l_t):
+                    d_list[0] = d_list[0]*-1
+                for ii,d_list in enumerate(l_r):
+                    d_list[0] = d_list[0]*-1  
+                    d_list[1] = d_list[1]*-1
+                    
+                _subShapers[str(i)]['r'][ii] = l_r
+                _subShapers[str(i)]['r'][ii] = l_t"""
+            
+                    
         #if blockDat['ud'].get('cgmDirection'):
             #blockDat['ud']['cgmDirection'] = _side
         #blockDat_load(mMirror, blockDat, mirror = False)
+        
+        
         mMirror.loadBlockDat(blockDat)
         
         controls_mirror(self,mMirror)
@@ -2873,8 +2896,9 @@ def blockDat_reset(self):
 
 def blockDat_getControlDat(self,mode = 'template',report = True):
     _short = self.p_nameShort        
-    _str_func = '[{0}] blockDat_getControlDat [{1}]'.format(_short,mode)
-    log.debug(_str_func+ '-'*80)
+    _str_func = 'blockDat_getControlDat'
+    log.info("|{0}| >>  ".format(_str_func)+ '='*80)
+    log.info("|{0}| {1}".format(_str_func,self))
     
     _mode_int,_mode_str = BLOCKGEN.validate_stateArg(mode)
     
@@ -2893,7 +2917,7 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
     _d_controls = {'template':False,'prerig':False}
     _d_controls[_mode_str] = True
     ml_handles = controls_get(self, **_d_controls)
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     if not ml_handles:
         log.error('[{0}] No template or prerig handles found'.format(_short))
@@ -2906,8 +2930,10 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
     _d_orientHelpers = {}
     _d_jointHelpers = {}
     _d_loftCurves = {}
+    _d_subShapers = {}
     
     for i,mObj in enumerate(ml_handles):
+        _str_short = mObj.mNode
         log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
         if mObj.getMessage('orientHelper'):
             #_l_orientHelpers.append(mObj.orientHelper.rotate)
@@ -2920,10 +2946,9 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
             _d_jointHelpers[i] = mObj.jointHelper.translate
             
         if mObj.getMessage('loftCurve'):
-            #_l_jointHelpers.append(mObj.jointHelper.translate)
+            log.info("|{0}| >>  loftcurve...".format(_str_func))
             if mObj.loftCurve.v:
                 _d = {}
-                
                 _rot = mObj.loftCurve.rotate
                 _scale = mObj.loftCurve.scale
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
@@ -2933,7 +2958,22 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
                     
                 if _d:
                     _d_loftCurves[i] = _d
-                    
+        
+        ml_subShapers = mObj.msgList_get('subShapers')
+        if ml_subShapers:
+            _d = {}
+            log.info("|{0}| >>  subShapers...".format(_str_func))
+            _d = {'p':[mObj.p_position for mObj in ml_subShapers],
+                  'o':[mObj.p_orient for mObj in ml_subShapers],
+                  'r':[mObj.rotate for mObj in ml_subShapers],
+                  't':[mObj.translate for mObj in ml_subShapers],
+                  's':[mObj.scale for mObj in ml_subShapers]}            
+            if _d:
+                _d_subShapers[i] = _d            
+        
+        log.info(cgmGEN._str_subLine)    
+
+
         #else:
             #_l_jointHelpers.append(False)
     _d = {'positions':[mObj.p_position for mObj in ml_handles],
@@ -2946,6 +2986,9 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
         
     if _d_loftCurves:
         _d['loftCurves'] =_d_loftCurves
+    
+    if _d_subShapers:
+        _d['subShapers'] =_d_subShapers
         
 
 
@@ -3088,6 +3131,7 @@ def blockDat_load(self,blockDat = None):
                 _scaleTempl = _d_template.get('scales')
                 _jointHelpers = _d_template.get('jointHelpers')
                 _loftCurves = _d_template.get('loftCurves',{})
+                _subShapers = _d_template.get('subShapers',{})
                 
 
                 if len(_ml_templateHandles) != len(_posTempl):
@@ -3122,6 +3166,23 @@ def blockDat_load(self,blockDat = None):
                                     ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                                 if _s:
                                     ATTR.set(mLoftCurve.mNode,'scale',_s)
+                    
+                    for i,d_sub in _subShapers.iteritems():
+                        ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
+                        log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                        if not ml_subs:
+                            raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                        _t = d_sub.get('t')
+                        _r = d_sub.get('r')
+                        _s = d_sub.get('s')
+                        
+                        for ii,mObj in enumerate(ml_subs):
+                            ATTR.set(mObj.mNode,'t',_t[ii])
+                            ATTR.set(mObj.mNode,'r',_r[ii])
+                            ATTR.set(mObj.mNode,'s',_s[ii])
+                            
+                            
+                        
 
             #if _d_template.get('rootOrientHelper'):
                 #if self.getMessage('orientHelper'):
@@ -3476,14 +3537,16 @@ def controls_mirror(blockSource, blockMirror = None,
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         
         ml_controls = controls_get(blockSource, template, prerig)
-        
+        ml_controls.insert(0,blockSource)        
         int_lenSource = len(ml_controls)
+        
         if blockMirror is None:
             log.debug("|{0}| >> Self mirror....".format(_str_func))
             ml_targetControls = ml_controls
         else:
             log.debug("|{0}| >> Mirror Target: {1}....".format(_str_func,blockMirror.p_nameShort))
             ml_targetControls = controls_get(blockMirror,template,prerig)
+            ml_targetControls.insert(0,blockMirror)
             int_lenTarget = len(ml_targetControls)
             
             if int_lenTarget!=int_lenSource:
@@ -3513,45 +3576,133 @@ def controls_mirror(blockSource, blockMirror = None,
         reflectUp  = mRoot.getTransformDirection( MATH.Vector3(0,-1,0)).reflect( reflectionVector )
         reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
         log.debug("|{0}| >> Root rot: aim: {1} | up: {2} | point: {3}".format(_str_func, reflectAim,reflectUp,reflectAimPoint))
-
+        
         #SNAP.aim_atPoint(mRoot.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
 
         #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
         l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim,'scale':mRoot.scale})
         
-
         #Other controls ------------------------------------------------------------------------
         #rootReflectionVector = TRANS.transformDirection(_short,reflectionVector).normalized()
         #log.debug("|{0}| >> reg Reflect: {1}".format(_str_func,rootReflectionVector))
         log.debug("|{0}| >> control dat...".format(_str_func))
         
-        for i_loop in range(2):
-            for i,mObj in enumerate(ml_controls[1:]):
-                log.debug("|{0}| >> Get mObj: {1}".format(_str_func,mObj.p_nameShort))
-                
-                posBase = mObj.p_positionEuclid
-                #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
-                posNew = mObj.p_positionEuclid.reflect(reflectionVector)            
-                log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
-                #mObj.p_positionEuclid = posNew
+        for i,mObj in enumerate(ml_controls[1:]):
+            log.debug(cgmGEN._str_subLine)                        
+            log.debug("|{0}| >> Get {1} | {2}".format(_str_func,i,mObj.p_nameBase))
+            str_obj = mObj.mNode
+            _dat = {}
             
+            #Pos... ----------------------------------------------------------------------------------------
+            posBase = mObj.p_positionEuclid
+            #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
+            posNew = mObj.p_positionEuclid.reflect(reflectionVector)            
+            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
+            #mObj.p_positionEuclid = posNew
+            
+            _dat ={'pos':posNew}
+            
+            #Reflect/Orient ---------------------------------------------------------------------------------
+            '''If we have locked rotates we can't reflect properly and instead do a attr check'''
+            _lock_rot = False
+            _rot_good = []
+            for a in 'xyz':
+                if ATTR.is_locked(str_obj,'r{0}'.format(a)):
+                    _lock_rot = True
+                else:
+                    _rot_good.append(a)
+                    
+            if _lock_rot:
+                _rot = {}
+                log.debug("|{0}| >> lock rot detected...".format(_str_func))
+                for a in _rot_good:
+                    if a in list('zy'):
+                        _rot[a] = -ATTR.get(str_obj,'r{0}'.format(a))
+                    else:
+                        _rot[a] = ATTR.get(str_obj,'r{0}'.format(a))
+                if _rot:
+                    log.debug("|{0}| >> lock rot detected. Good: {1} | fixed: {2}".format(_str_func, _rot_good, _rot))                    
+                    _dat['simpleRot'] = _rot
+                else:
+                    _dat['simpleRot'] = False
+            else:
                 reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
                 reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
-                #reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
-                #reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+
                 reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
                 log.debug("|{0}| >> Mirror rot [{1}] | aim: {2} | up: {3} | point: {4}".format(_str_func, i, reflectAim,reflectUp,reflectAimPoint))
-        
-                #mObj.LookRotation( reflectAim, reflectUp )
-                #SNAP.aim_atPoint(mObj.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
-                #reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
-                #reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
-                #mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )            
-                #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
-                l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim, 'scale':mObj.scale})
+                
+                _dat['aimPoint']=reflectAimPoint
+                _dat['up'] = reflectUp
+                _dat['aim'] = reflectAim
+                
+            #Scale ---------------------------------------------------------------------------------
+            _lock_scale = False
+            _scale_good = []
+            for a in 'xyz':
+                if ATTR.is_locked(str_obj,'s{0}'.format(a)):
+                    _lock_scale = True
+                else:
+                    _scale_good.append(a)
+                    
+            if _lock_scale:
+                _scale = {}
+                log.debug("|{0}| >> lock scale detected...".format(_str_func))
+                for a in _scale_good:
+                    _scale[a] = ATTR.get(str_obj,'s{0}'.format(a))
+                if _scale:
+                    log.debug("|{0}| >> lock scale detected. Good: {1} | fixed: {2}".format(_str_func, _scale_good, _scale))
+                    
+                    _dat['simpleScale'] = _scale
+                else:
+                    _dat['simpleScale'] = False
+            else:
+                _dat['scale'] = mObj.scale
             
-        
-            log.debug("|{0}| >> remap pass values...".format(_str_func))
+            
+            #Sub shapers ---------------------------------------------------------------------------------
+            ml_subShapers = mObj.msgList_get('subShapers')
+            if ml_subShapers:
+                _d = {}
+                log.info("|{0}| >>  subShapers...".format(_str_func))
+                for i,mShaper in enumerate(ml_subShapers):
+                    str_shaper = mShaper.mNode
+                    _d_sub = {}
+                    
+                    for atr in 'trs':
+                        _l_sub = []
+                        for axs in 'xyz':
+                            if atr == 't':
+                                if axs == 'x':
+                                    _l_sub.append(-ATTR.get(str_shaper,"{0}{1}".format(atr,axs)))
+                                    continue
+                            elif atr == 'r':
+                                if axs in list('zy'):
+                                    _l_sub.append(-ATTR.get(str_shaper,"{0}{1}".format(atr,axs)))
+                                    continue
+                            _l_sub.append(ATTR.get(str_shaper,"{0}{1}".format(atr,axs)))
+                        _d_sub[atr] = _l_sub
+                    if _d_sub:
+                        _d[i] = _d_sub
+                if _d:
+                    _dat['subShapers'] = _d                        
+                    pprint.pprint(_d)
+            
+    
+            #mObj.LookRotation( reflectAim, reflectUp )
+            #SNAP.aim_atPoint(mObj.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
+            #reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+            #reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+            #mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )            
+            #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
+            l_dat.append(_dat)
+            #l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim, 'scale':mObj.scale})
+            
+        #pprint.pprint(l_dat)
+        #return
+        for i_loop in range(2):
+            log.debug(cgmGEN._str_subLine)            
+            log.debug("|{0}| >> {1} remap pass values...".format(_str_func,i_loop))
             md_remap = {}
             for i,mObj in enumerate(ml_targetControls):
                 if 'pivotHelper' in mObj.p_nameShort:
@@ -3565,9 +3716,13 @@ def controls_mirror(blockSource, blockMirror = None,
                         md_remap['pivotHelper']['left'] = i
     
             log.debug("|{0}| >> push values...".format(_str_func))
+            
             for i,mObj in enumerate(ml_targetControls):
                 try:
+                    log.debug("|{0}| >> [{1}] | {2}".format(_str_func,i,mObj.p_nameShort))            
+                    
                     _dat = l_dat[i]
+                    str_obj = mObj.mNode
                     
                     if 'pivotHelper' in mObj.p_nameShort:
                         _cgmName = mObj.cgmName
@@ -3578,13 +3733,45 @@ def controls_mirror(blockSource, blockMirror = None,
                     log.debug("|{0}| >> Push mObj: {1}".format(_str_func,mObj.p_nameShort))            
                     mObj.p_positionEuclid = _dat['pos']
                     
-                    SNAP.aim_atPoint(mObj.mNode, _dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
+                    if _dat.has_key('simpleRot'):
+                        _rot = _dat.get('simpleRot')
+                        if _rot != False:
+                            log.debug("|{0}| >> Simple rot mObj: {1} | {2}".format(_str_func,
+                                                                                   mObj.p_nameBase,
+                                                                                   _rot))            
+                            for a,v in _rot.iteritems():
+                                ATTR.set(str_obj,'r{0}'.format(a),v)
+                    else:
+                        SNAP.aim_atPoint(mObj.mNode, _dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
+                        
+                    #Subshapers ----------------------------------------------------------------------
+                    if _dat.has_key('subShapers'):
+                        ml_subShapers = mObj.msgList_get('subShapers')
+                        if not ml_subShapers:
+                            raise ValueError, "SubShaper data but not datList: {0}".format(mObj)
+                        
+                        for i_sub,mObj in enumerate(ml_subShapers):
+                            _d_sub = _dat['subShapers'][i_sub]
+                            for a,d in _d_sub.iteritems():
+                                ATTR.set(mObj.mNode,a,d)
                     
-                    try:mObj.scale = _dat['scale']
-                    except Exception,err:log.debug("|{0}| >> scale err: {1}".format(_str_func,err))            
+                    #Scale -----------------------------------------------------------------------
+                    if _dat.has_key('simpleScale'):
+                        _scale = _dat.get('simpleScale')
+                        if _scale != False:
+                            log.debug("|{0}| >> Simple scale mObj: {1} | {2}".format(_str_func,
+                                                                                   mObj.p_nameBase,
+                                                                                   _scale))            
+                            for a,v in _scale.iteritems():
+                                ATTR.set(str_obj,'s{0}'.format(a),v)
+                        else:
+                            continue
+                    else:
+                        try:mObj.scale = _dat['scale']
+                        except Exception,err:log.debug("|{0}| >> scale err: {1}".format(_str_func,err))            
                 except Exception,err:
                     log.debug("|{0}| >> mObj failure: {1} | {2}".format(_str_func,mObj.p_nameShort,err))            
-            
+                
         return l_dat,md_remap
     
     except Exception,err:cgmGEN.cgmException(Exception,err)

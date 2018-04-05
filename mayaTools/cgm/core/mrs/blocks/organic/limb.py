@@ -209,6 +209,7 @@ l_attrsStandard = ['side',
                    'numControls',
                    'offsetMode',
                    'settingsDirection',
+                   'numSpacePivots',
                    'numShapers',#...with limb this is the sub shaper count as you must have one per handle
                    'buildProfile',
                    'moduleTarget']
@@ -225,7 +226,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'buildLeverBase':'bool',#...fkRoot is our clav like setup
                  'hasEndJoint':'bool',
                  'hasBallJoint':'bool',
-                 'buildSpacePivots':'bool',
+                 #'buildSpacePivots':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
                  #'numShapers':'int',
@@ -239,6 +240,7 @@ d_defaultSettings = {'version':__version__,
                      'loftShape':0,
                      'numShapers':3,
                      'settingsDirection':'up',
+                     'numSpacePivots':2,
                      'placeSettings':1,
                      'loftSides': 10,
                      'loftSplit':1,
@@ -849,8 +851,7 @@ def template(self):
                 ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
         
-        ml_shapers = copy.copy(ml_handles_chain)
-        
+        #ml_shapers = copy.copy(ml_handles_chain)
         #>>> shaper handles =======================================================================
         if self.numShapers:
             _numShapers = self.numShapers
@@ -950,8 +951,8 @@ def template(self):
                     #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
                     self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
             
+                    mHandle.doStore('cgmName','subHandle_{0}_{1}'.format(i,ii))
                     mHandle.doStore('cgmType','blockHandle')
-                    mHandle.doStore('cgmIterator',ii+1)
                     mHandle.doName()
             
                     mHandle.p_parent = mTemplateNull
@@ -983,6 +984,8 @@ def template(self):
                     
                 ml_shapers.append(mPair[1])
                 mc.delete(_res_body)
+                
+                _mStart.msgList_connect('subShapers',[mObj.mNode for mObj in ml_shapersTmp])                    
             
                 #Push scale back...
                 #for mHandle in mPair:
@@ -1007,11 +1010,11 @@ def template(self):
                 
                 
         #>>> Connections =======================================================================================
-        self.msgList_connect('templateHandlesMain',[mObj.mNode for mObj in ml_handles_chain])                    
-        if ml_shapers:
-            self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_shapers])
-        else:
-            self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
+        self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])                    
+        #if ml_shapers:
+        #    self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_shapers])
+        #else:
+        #    self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
             
         #>>Loft Mesh =========================================================================================
         if self.numShapers:
@@ -1026,7 +1029,6 @@ def template(self):
                     'uAttr2':'loftSplit',
                     'polyType':'bezier',
                     'baseName':self.cgmName}"""
-    
     
         self.atUtils('create_prerigLoftMesh',
                      targets,
