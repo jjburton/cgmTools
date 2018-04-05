@@ -2904,7 +2904,9 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
     _l_orientHelpers = []
     _l_jointHelpers = []
     _d_orientHelpers = {}
-    _d_jointHelpers = {}        
+    _d_jointHelpers = {}
+    _d_loftCurves = {}
+    
     for i,mObj in enumerate(ml_handles):
         log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
         if mObj.getMessage('orientHelper'):
@@ -2916,7 +2918,22 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
         if mObj.getMessage('jointHelper'):
             #_l_jointHelpers.append(mObj.jointHelper.translate)
             _d_jointHelpers[i] = mObj.jointHelper.translate
-
+            
+        if mObj.getMessage('loftCurve'):
+            #_l_jointHelpers.append(mObj.jointHelper.translate)
+            if mObj.loftCurve.v:
+                _d = {}
+                
+                _rot = mObj.loftCurve.rotate
+                _scale = mObj.loftCurve.scale
+                if not MATH.is_float_equivalent(sum(_rot),0.0):
+                    _d['r'] = _rot
+                if not MATH.is_float_equivalent(MATH.multiply(_scale), 1.0):
+                    _d['s'] = _scale
+                    
+                if _d:
+                    _d_loftCurves[i] = _d
+                    
         #else:
             #_l_jointHelpers.append(False)
     _d = {'positions':[mObj.p_position for mObj in ml_handles],
@@ -2926,6 +2943,10 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
     
     if _d_jointHelpers:
         _d['jointHelpers'] =_d_jointHelpers
+        
+    if _d_loftCurves:
+        _d['loftCurves'] =_d_loftCurves
+        
 
 
     #if self.getMessage('orientHelper'):
@@ -3066,6 +3087,8 @@ def blockDat_load(self,blockDat = None):
                 _orientsTempl = _d_template.get('orients')
                 _scaleTempl = _d_template.get('scales')
                 _jointHelpers = _d_template.get('jointHelpers')
+                _loftCurves = _d_template.get('loftCurves',{})
+                
 
                 if len(_ml_templateHandles) != len(_posTempl):
                     log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
@@ -3086,6 +3109,19 @@ def blockDat_load(self,blockDat = None):
                                     ATTR.set(_tmp_short,_a,v)   
                             if _jointHelpers and _jointHelpers.get(i):
                                 mObj.jointHelper.translate = _jointHelpers[i]
+                            
+                            _d_loft = _loftCurves.get(str(i))
+                            if _d_loft:
+                                if not i_loop:
+                                    log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                                
+                                mLoftCurve = mObj.loftCurve
+                                _rot = _d_loft.get('r')
+                                _s = _d_loft.get('s')
+                                if _rot:
+                                    ATTR.set(mLoftCurve.mNode,'rotate',_rot)
+                                if _s:
+                                    ATTR.set(mLoftCurve.mNode,'scale',_s)
 
             #if _d_template.get('rootOrientHelper'):
                 #if self.getMessage('orientHelper'):
