@@ -180,10 +180,11 @@ l_attrsStandard = ['side',
                    'numControls',
                    'numShapers',
                    'numJoints',
-                   'buildProfile',                   
+                   'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
+                   'proxyDirect',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -211,6 +212,7 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',
                      'numSpacePivots':2,
                      'numJoints':5,
+                     'proxyDirect':True,
                      'spaceSwitch_direct':False,
                      'nameList':['',''],
                      #'blockProfile':'spine',
@@ -1942,6 +1944,9 @@ def rig_controls(self):
     for mCtrl in ml_controlsAll:
         ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
         
+        if mCtrl.hasAttr('radius'):
+            ATTR.set(mCtrl.mNode,'radius',0)        
+        
         ml_pivots = mCtrl.msgList_get('spacePivots')
         if ml_pivots:
             log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
@@ -1982,6 +1987,10 @@ def rig_segments(self):
         return True
     
     ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    
+    for mJnt in ml_segJoints:
+        mJnt.drawStyle = 2
+        ATTR.set(mJnt.mNode,'radius',0)    
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -2932,13 +2941,11 @@ def rig_cleanUp(self):
     
     
     #Close out ========================================================================================
+    mBlock.blockState = 'rig'
     mRigNull.version = self.d_block['buildVersion']
     #cgmGEN.func_snapShot(vars())
     return
 
-
-
-    
 
 def build_proxyMesh(self, forceNew = True):
     """
@@ -2948,11 +2955,13 @@ def build_proxyMesh(self, forceNew = True):
     _str_func = '[{0}] > build_proxyMesh'.format(_short)
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug(self)
-    _start = time.clock()
+    
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
+    
+    directProxy = mBlock.proxyDirect
     
     _side = BLOCKUTILS.get_side(self.mBlock)
     ml_proxy = []
@@ -2974,12 +2983,25 @@ def build_proxyMesh(self, forceNew = True):
     # Create ---------------------------------------------------------------------------
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
     
+    
+    if directProxy:
+        _settings = self.mRigNull.settings.mNode
+        log.debug("|{0}| >> directProxy... ".format(_str_func))    
+    
     for i,mGeo in enumerate(ml_segProxy):
         mGeo.parent = ml_rigJoints[i]
         ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
         mGeo.addAttr('cgmIterator',i+1)
         mGeo.addAttr('cgmType','proxyGeo')
-        mGeo.doName()            
+        mGeo.doName()
+        
+        if directProxy:
+            CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
+            CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)
+            
+            for mShape in ml_rigJoints[i].getShapes(asMeta=True):
+                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+            
     
     for mProxy in ml_segProxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)

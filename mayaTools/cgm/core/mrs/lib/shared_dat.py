@@ -74,7 +74,9 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'offsetMode':'default:proxyAverage',
                    'moduleTarget':'messageSimple',
                    'scaleSetup':'bool',
+                   'settingsPlace':'start:end',
                    'settingsDirection':'up:down:out:in',
+                   'proxyDirect':'bool',
                    'proxyType':'none:castMesh'}
 
 #>> State Attr Masks =================================================================================

@@ -1515,7 +1515,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False):
     _short = self.mBlock.mNode
     _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
-    _start = time.clock()	
     mRigNull = self.mRigNull
     ml_shapes = []
     
@@ -1577,10 +1576,10 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
             crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
             l_newCurves.append(crv[0])
             
-        str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
-                                            ch = 0, rn = 0, local = 0)[0]
+        #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
+        #                                    ch = 0, rn = 0, local = 0)[0]
 
-
+    
     #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
     log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,l_newCurves))        
     l_new = []
@@ -1602,12 +1601,6 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
         mc.delete(str_start)
     #>>Parent to the joints ----------------------------------------------------------------- 
     return l_new
-    
-    
-    
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-_start)) + "-"*75)	
-    
-    return ml_shapes
 
 
 def joints_connectToParent(self):

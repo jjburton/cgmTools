@@ -965,15 +965,20 @@ def override_clear(target = None, pushToShapes = True):
     return True
         
             
-def getControlShader(direction = 'center', controlType = 'main', transparent = False, proxy = False):
+def getControlShader(direction = 'center', controlType = 'main',
+                     transparent = False, proxy = False,
+                     directProxy = False):
     """
     Proxy mode modifies the base value and setups up a different shader
     """
-    _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
-    if transparent:
-        _node = _node + '_trans'
-    if proxy:
-        _node = _node + '_proxy'
+    if directProxy:
+        _node = "cgmShader_directProxy"
+    else:
+        _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
+        if transparent:
+            _node = _node + '_trans'
+        if proxy:
+            _node = _node + '_proxy'
         
     log.debug(_node)
     _set = False
@@ -981,24 +986,28 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
         _node = mc.shadingNode('phong',n =_node, asShader = True)
         _set = mc.sets(renderable=True, noSurfaceShader = True, em=True, name = _node + 'SG')
         ATTR.connect("{0}.outColor".format(_node), "{0}.surfaceShader".format(_set))
-
-        _color = SHARED._d_side_colors[direction][controlType]
-        _rgb = SHARED._d_colors_to_RGB[_color]
         
-        if proxy:
-            _rgb = [v * .75 for v in _rgb]
-    
-        ATTR.set(_node,'colorR',_rgb[0])
-        ATTR.set(_node,'colorG',_rgb[1])
-        ATTR.set(_node,'colorB',_rgb[2])
-        ATTR.set(_node,'diffuse',1.0)
+        if directProxy:
+            ATTR.set(_node,'transparency',1)
+            
+        else:
+            _color = SHARED._d_side_colors[direction][controlType]
+            _rgb = SHARED._d_colors_to_RGB[_color]
+            
+            if proxy:
+                _rgb = [v * .75 for v in _rgb]
         
-        if transparent:
-            ATTR.set(_node,'ambientColorR',_rgb[0])
-            ATTR.set(_node,'ambientColorG',_rgb[1])
-            ATTR.set(_node,'ambientColorB',_rgb[2])        
-            ATTR.set(_node,'transparency',.9)
-            ATTR.set(_node,'incandescence',0)
+            ATTR.set(_node,'colorR',_rgb[0])
+            ATTR.set(_node,'colorG',_rgb[1])
+            ATTR.set(_node,'colorB',_rgb[2])
+            ATTR.set(_node,'diffuse',1.0)
+            
+            if transparent:
+                ATTR.set(_node,'ambientColorR',_rgb[0])
+                ATTR.set(_node,'ambientColorG',_rgb[1])
+                ATTR.set(_node,'ambientColorB',_rgb[2])        
+                ATTR.set(_node,'transparency',.9)
+                ATTR.set(_node,'incandescence',0)
       
     if not _set:
         _set = ATTR.get_driven(_node,'outColor',True)[0] 
@@ -1008,13 +1017,21 @@ def getControlShader(direction = 'center', controlType = 'main', transparent = F
     
     
 def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,
-                 rgb = True, shaderSetup = True,transparent = False,proxy=False):
+                 rgb = True, shaderSetup = True,transparent = False,proxy=False, directProxy=False):
     """
     Sets the override color on shapes and more
     
     :parameters
         target(str): What to color - shape or transform with shapes
-       
+        direction
+        controlType
+        pushToShapes
+        rgb
+        shaderSetup
+        transparent
+        proxy - offsets the color down to not match curve color exactly
+        directProxy(bool) - Setpu transparent shader for 'invisible' controls
+        
 
     :returns
         info(dict)
@@ -1031,19 +1048,33 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         
     _shader = False
     _set = False
-   
+    
+    if shaderSetup:
+        _shader, _set = getControlShader(direction,controlType,transparent,proxy,directProxy)
+        
     for t in l_targets:
+        log.debug("|{0}| >> t: {1} ...".format(_str_func,t))
+        _type = VALID.get_mayaType(t)
+        log.debug("|{0}| >> shapes: {1} ...".format(_str_func,TRANS.shapes_get(t,True)))  
+        log.debug("|{0}| >> type: {1} ...".format(_str_func,_type))
+        
         if rgb:
             override_color(t,_color,pushToShapes=pushToShapes )
         else:
             _v = SHARED._d_colors_to_index[_color]
             override_color(t,index=_v,pushToShapes=pushToShapes )
             
-        
-        if shaderSetup and VALID.get_mayaType(t) in ['nurbsSurface','mesh']:
-            if not _shader:
-                _shader, _set = getControlShader(direction,controlType,transparent,proxy)
-            mc.sets(t, e=True, forceElement = _set)        
+        if shaderSetup:
+            if _type in ['nurbsSurface','mesh']:
+                mc.sets(t, e=True, forceElement = _set)                
+            else:
+                for s in TRANS.shapes_get(t,True):
+                    log.debug("|{0}| >> s: {1} ...".format(_str_func,s))  
+                    _type = VALID.get_mayaType(s)
+                    if _type in ['nurbsSurface','mesh']:
+                        mc.sets(s, e=True, forceElement = _set)
+                    else:
+                        log.debug("|{0}|  >> Not a valid target: {1} | {2}".format(_str_func,s,_type))            
             
     return True
 

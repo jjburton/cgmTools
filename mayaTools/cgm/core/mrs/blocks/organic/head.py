@@ -150,6 +150,7 @@ l_attrsStandard = ['side',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
+                   'proxyDirect',
                    'settingsDirection',
                    'moduleTarget',]
 
@@ -161,7 +162,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'neckControls':'int',
                  'neckShapers':'int',
                  'neckJoints':'int',
-                 'loftSetup':'default:neck',                 
+                 'loftSetup':'default:neck',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
                  }
@@ -174,8 +175,9 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'end',
                      'loftSides': 10,
                      'loftSplit':4,
-                     'loftDegree':'cubic',                     
+                     'loftDegree':'cubic',
                      'neckJoints':3,
+                     'proxyDirect':True,
                      'attachPoint':'base',
                      'neckIK':'ribbon',
                      'proxyShape':'cube',
@@ -1870,6 +1872,9 @@ def rig_controls(self):
     for mCtrl in ml_controlsAll:
         ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
         
+        if mCtrl.hasAttr('radius'):
+            ATTR.set(mCtrl.mNode,'radius',0)        
+        
         ml_pivots = mCtrl.msgList_get('spacePivots')
         if ml_pivots:
             log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
@@ -1934,6 +1939,11 @@ def rig_segments(self):
     if not ml_segJoints:
         log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
         return True    
+    
+    for mJnt in ml_segJoints:
+        mJnt.drawStyle = 2
+        ATTR.set(mJnt.mNode,'radius',0)    
+    
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -2437,6 +2447,8 @@ def build_proxyMesh(self, forceNew = True):
     mSettings = mRigNull.settings
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
     
+    directProxy = mBlock.proxyDirect
+    
     _side = BLOCKUTILS.get_side(self.mBlock)
     ml_neckProxy = []
     
@@ -2456,11 +2468,16 @@ def build_proxyMesh(self, forceNew = True):
         
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
+    if directProxy:
+        log.debug("|{0}| >> directProxy... ".format(_str_func))
+        _settings = self.mRigNull.settings.mNode
+        
     
     mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
     l_headGeo = mGroup.getChildren(asMeta=False)
     l_vis = mc.ls(l_headGeo, visible = True)
     ml_headStuff = []
+    
     for i,o in enumerate(l_vis):
         log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))
         
@@ -2473,6 +2490,9 @@ def build_proxyMesh(self, forceNew = True):
         mObj.addAttr('cgmType','proxyGeo')
         mObj.doName()
         
+        if directProxy:
+            CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,True)
+            CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)        
         
     if mBlock.neckBuild:#...Neck =====================================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))
@@ -2488,6 +2508,11 @@ def build_proxyMesh(self, forceNew = True):
             mProxy.doName()
             mProxy.parent = ml_rigJoints[0]
             ml_neckProxy = [mProxy]
+            
+            if directProxy:
+                CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,True)
+                CORERIG.colorControl(ml_rigJoints[0].mNode,_side,'main',directProxy=True)            
+            
         else:
             ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints),'cgmObject')
             log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
@@ -2497,7 +2522,11 @@ def build_proxyMesh(self, forceNew = True):
                 ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyGeo')
-                mGeo.doName()            
+                mGeo.doName()
+                
+                if directProxy:
+                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
+                    CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                
     
     for mProxy in ml_neckProxy + ml_headStuff:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
@@ -2513,6 +2542,13 @@ def build_proxyMesh(self, forceNew = True):
             mShape.overrideEnabled = 0
             #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+            
+    if directProxy:
+        for mObj in ml_rigJoints:
+            for mShape in mObj.getShapes(asMeta=True):
+                #mShape.overrideEnabled = 0
+                mShape.overrideDisplayType = 0
+                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
     mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
 

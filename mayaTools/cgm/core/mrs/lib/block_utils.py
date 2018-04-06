@@ -3573,13 +3573,11 @@ def controls_mirror(blockSource, blockMirror = None,
         #mRoot.p_positionEuclid = posNew
         
         reflectAim = mRoot.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
-        reflectUp  = mRoot.getTransformDirection( MATH.Vector3(0,-1,0)).reflect( reflectionVector )
+        reflectUp  = mRoot.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
         reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
         log.debug("|{0}| >> Root rot: aim: {1} | up: {2} | point: {3}".format(_str_func, reflectAim,reflectUp,reflectAimPoint))
         
-        #SNAP.aim_atPoint(mRoot.mNode,reflectAimPoint, vectorUp=reflectUp,mode='vector')
 
-        #l_dat.append([posNew,reflectAimPoint,reflectUp,reflectAim])
         l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim,'scale':mRoot.scale})
         
         #Other controls ------------------------------------------------------------------------
@@ -3658,6 +3656,8 @@ def controls_mirror(blockSource, blockMirror = None,
                     _dat['simpleScale'] = False
             else:
                 _dat['scale'] = mObj.scale
+                log.debug("|{0}| >> scale: {1}".format(_str_func, _dat['scale']))
+                
             
             
             #Sub shapers ---------------------------------------------------------------------------------
@@ -3750,10 +3750,10 @@ def controls_mirror(blockSource, blockMirror = None,
                         if not ml_subShapers:
                             raise ValueError, "SubShaper data but not datList: {0}".format(mObj)
                         
-                        for i_sub,mObj in enumerate(ml_subShapers):
+                        for i_sub,mSub in enumerate(ml_subShapers):
                             _d_sub = _dat['subShapers'][i_sub]
                             for a,d in _d_sub.iteritems():
-                                ATTR.set(mObj.mNode,a,d)
+                                ATTR.set(mSub.mNode,a,d)
                     
                     #Scale -----------------------------------------------------------------------
                     if _dat.has_key('simpleScale'):

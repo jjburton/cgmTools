@@ -112,7 +112,7 @@ d_build_profiles = {
                           }}}
 
 d_block_profiles = {
-    'leg_bi':{'numShapers':5,
+    'leg_bi':{'numShapers':2,
                'addCog':False,
                'cgmName':'leg',
                'loftShape':'square',
@@ -129,7 +129,7 @@ d_block_profiles = {
                'baseUp':[0,0,1],
                'baseSize':[2,8,2]},
     
-    'arm':{'numShapers':5,
+    'arm':{'numShapers':2,
            'addCog':False,
            'attachPoint':'end',
            'cgmName':'arm',
@@ -146,7 +146,7 @@ d_block_profiles = {
            'baseUp':[0,1,0],
            'baseSize':[2,8,2]},
     
-    'finger':{'numShapers':1,
+    'finger':{'numShapers':2,
               'addCog':False,
               'attachPoint':'end',
               'cgmName':'finger',
@@ -211,6 +211,7 @@ l_attrsStandard = ['side',
                    'offsetMode',
                    'settingsDirection',
                    'numSpacePivots',
+                   'proxyDirect',
                    'numShapers',#...with limb this is the sub shaper count as you must have one per handle
                    'buildProfile',
                    'moduleTarget']
@@ -247,6 +248,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numRoll':1,
+                     'proxyDirect':True,
                      'nameList':['',''],
                      'blockProfile':'leg_bi',
                      'attachPoint':'base',}
@@ -369,7 +371,7 @@ def define(self):
 
     self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
 
-    mHandleFactory.color(mPlane.mNode,controlType='sub')
+    mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
 
     mPlane.doStore('cgmName', self.mNode)
     mPlane.doStore('cgmType','planeVisualize')
@@ -664,7 +666,7 @@ def template(self):
         
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
-                CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
+                CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
                 
             #Push scale back...
             for i,mHandle in enumerate(ml_handles):
@@ -863,10 +865,13 @@ def template(self):
             
             log.debug("|{0}| >> pairs...".format(_str_func))
             
-            ml_pairs = LISTS.get_listPairs(ml_handles_chain)
+
+            ml_handlesToShaper = ml_handles_chain
+            ml_shapers = [ml_handlesToShaper[0]]
+                
+            ml_pairs = LISTS.get_listPairs(ml_handlesToShaper)
             pprint.pprint(ml_pairs)
             
-            ml_shapers = [ml_handles_chain[0]]
             
             for i,mPair in enumerate(ml_pairs):
                 log.debug(cgmGEN._str_subLine)
@@ -880,11 +885,17 @@ def template(self):
                 _pos_start = _mStart.p_position
                 _pos_end = _mEnd.p_position 
                 
+                if i == 0 and self.buildLeverBase:
+                    _numShapers = 1
+                else:
+                    _numShapers = self.numShapers
+
+                
                 _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
-                _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (self.numShapers)
+                _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (_numShapers+1)
                 _l_pos_seg = [ DIST.get_pos_by_vec_dist(_pos_start,
                                                         _vec,
-                                                        (_offsetDist * ii)) for ii in range(self.numShapers)] + [_pos_end]
+                                                        (_offsetDist * ii)) for ii in range(_numShapers+1)] + [_pos_end]
             
                 _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
                 _mVectorUp = _mVectorAim.up()
@@ -1429,7 +1440,7 @@ def skeleton_build(self, forceNew = True):
 
     ml_joints[0].parent = False
     
-    _radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
+    _radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 20
     #MATH.get_space_value(5)
     
     for mJoint in ml_joints:
@@ -1634,7 +1645,7 @@ def rig_prechecks(self):
     str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
     log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
     
-    if str_ikEnd in ['foot','hand']:
+    if str_ikEnd in ['foot']:
         if mBlock.hasEndJoint:
             self.mToe = self.ml_handleTargets.pop(-1)
             log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
@@ -2826,7 +2837,6 @@ def rig_shapes(self):
             #Get our point for knee...
             mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargets,False)
     
-    
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
             #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
             mHandleFactory.color(mKnee.mNode, controlType = 'sub')
@@ -2865,6 +2875,29 @@ def rig_shapes(self):
             
             mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode])
             
+            #limbRoot ------------------------------------------------------------------------------
+            log.debug("|{0}| >> Lever -- limbRoot".format(_str_func))
+            mLimbRootHandle = ml_prerigHandles[1]
+            mLimbRoot = ml_fkJoints[0].doCreateAt()
+        
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode)) * .75
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
+            mRootCrv.doSnapTo(mLimbRootHandle)
+        
+            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+        
+            CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
+        
+            for a in 'cgmName','cgmDirection','cgmModifier':
+                if ATTR.get(_short_module,a):
+                    ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+        
+            mLimbRoot.doStore('cgmTypeModifier','limbRoot')
+            mLimbRoot.doName()
+        
+            mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
+        
+            self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect            
             
             
         
@@ -2896,7 +2929,7 @@ def rig_shapes(self):
             mRoot = ml_fkJoints[0].doCreateAt()
             
             _size_root =  MATH.average(mHandleFactory.get_axisBox_size(self.mRootTemplateHandle.mNode))
-            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root * 1.5),'cgmObject',setClass=True)
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cube', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
         
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
@@ -3065,13 +3098,22 @@ def rig_shapes(self):
         
 
         log.debug("|{0}| >> FK...".format(_str_func))    
-        for i,mCrv in enumerate(ml_fkShapes):
+        for i,mShape in enumerate(ml_fkShapes):
             mJnt = ml_fkJoints[i]
-            #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
+            
+            if mShape == ml_fkShapes[-1]:
+                log.debug("|{0}| >> Last fk shape...".format(_str_func))                
+                mIKTemplateHandle = ml_templateHandles[self.int_handleEndIdx]
+                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                _fk_shape = CURVES.create_fromName('square', size = bb_ik)
+                ATTR.set(_fk_shape,'scale', 1.5)
+                SNAP.go(_fk_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
+                mHandleFactory.color(_fk_shape, controlType = 'main')        
+                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
 
-            mHandleFactory.color(mCrv.mNode, controlType = 'main')        
-            CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
-        
+            else:
+                mHandleFactory.color(mShape.mNode, controlType = 'main')        
+                CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
 
         return
     except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -3613,6 +3655,10 @@ def rig_segments(self):
             ml_segJoints = mRigNull.msgList_get('segJoints_{0}'.format(i))
             log.debug("|{0}| >> Segment joints...".format(_str_func,i))
             pprint.pprint(ml_segJoints)
+            
+            for mJnt in ml_segJoints:
+                mJnt.drawStyle = 2
+                ATTR.set(mJnt.mNode,'radius',0)
             
             #Ribbon...
             log.debug("|{0}| >> Ribbon {1} setup...".format(_str_func,i))
@@ -4719,6 +4765,8 @@ def build_proxyMesh(self, forceNew = True):
     mSettings = mRigNull.settings
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
     
+    directProxy = mBlock.proxyDirect
+    
     _side = BLOCKUTILS.get_side(self.mBlock)
     ml_proxy = []
     
@@ -4740,10 +4788,13 @@ def build_proxyMesh(self, forceNew = True):
         
     #Figure out our rig joints --------------------------------------------------------
     _str_rigSetup = mBlock.getEnumValueString('rigSetup')
+    _str_ikEnd = mBlock.getEnumValueString('ikEnd')
+    
     mToe = False
     mBall = False
-    int_handleEndIdx = -1    
-    if _str_rigSetup != 'digit':
+    int_handleEndIdx = -1
+    
+    if _str_ikEnd in ['foot']:
         l= []
         
         if mBlock.hasEndJoint:
@@ -4759,7 +4810,7 @@ def build_proxyMesh(self, forceNew = True):
             mEnd = ml_rigJoints.pop(-1)
             log.debug("|{0}| >> mEnd: {1}".format(_str_func,mEnd))        
             int_handleEndIdx -=1
-    else:
+    elif _str_rigSetup == 'digit':
         if mBlock.hasEndJoint:
             pass
             #mEnd = ml_rigJoints.pop(-1)
@@ -4922,7 +4973,13 @@ def build_proxyMesh(self, forceNew = True):
                     ml_segProxy.append(mMeshBall)
                     ml_rigJoints.append(mBall)                    
                     
+                #mMesh.p_parent=False
                 mMesh.delete()
+                
+    if directProxy:
+        log.debug("|{0}| >> directProxy... ".format(_str_func))
+        _settings = self.mRigNull.settings.mNode
+        
 
     for i,mGeo in enumerate(ml_segProxy):
         log.info("{0} : {1}".format(mGeo, ml_rigJoints[i]))
@@ -4932,8 +4989,15 @@ def build_proxyMesh(self, forceNew = True):
         
         mGeo.addAttr('cgmIterator',i+1)
         mGeo.addAttr('cgmType','proxyGeo')
-        mGeo.doName()            
-    
+        mGeo.doName()
+        
+        if directProxy:
+            CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
+            CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)
+            for mShape in ml_rigJoints[i].getShapes(asMeta=True):
+                #mShape.overrideEnabled = 0
+                mShape.overrideDisplayType = 0
+                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))    
     for mProxy in ml_segProxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         
@@ -4942,11 +5006,13 @@ def build_proxyMesh(self, forceNew = True):
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
         ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
-        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
+        
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode
             mShape.overrideEnabled = 0
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+            
         
     mRigNull.msgList_connect('proxyMesh', ml_segProxy)
 
