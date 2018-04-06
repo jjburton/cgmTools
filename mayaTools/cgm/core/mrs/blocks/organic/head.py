@@ -1308,6 +1308,9 @@ def rig_prechecks(self):
     
     
     #DynParents =============================================================================
+    self.UTILS.get_dynParentTargetsDat(self)
+    
+    """
     log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func))
     
     mModuleParent = self.d_module['mModuleParent']
@@ -1343,18 +1346,6 @@ def rig_prechecks(self):
             
 
             
-
-        """
-        if mi_parentRigNull.getMessage('controlIK'):
-            self.md_dynTargetsParent['controlIK'] = mi_parentRigNull.controlIK
-        else:
-            self.md_dynTargetsParent['controlIK'] = False
-            
-        if mi_parentRigNull.getMessage('controlIKBase'):
-            self.md_dynTargetsParent['controlIKBase'] = mi_parentRigNull.controlIKBase 
-        else:
-            self.md_dynTargetsParent['controlIKBase'] = False"""
-            
     log.debug(cgmGEN._str_subLine)
     log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
     pprint.pprint(self.md_dynTargetsParent)
@@ -1365,7 +1356,7 @@ def rig_prechecks(self):
     log.debug("|{0}| >> dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
     pprint.pprint(self.ml_dynParentsAbove)    
     log.debug(cgmGEN._str_subLine)
-    
+    """
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
     self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
@@ -2381,13 +2372,12 @@ def rig_cleanUp(self):
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     
         
-    #>>  Lock and hide ======================================================================================
     
     
     #>>  Attribute defaults =================================================================================
     
     mRigNull.version = self.d_block['buildVersion']
-    
+    mBlock.blockState = 'rig'
 
     #>>  Parent and constraining joints and rig parts =======================================================
 
@@ -2510,7 +2500,7 @@ def build_proxyMesh(self, forceNew = True):
                 mGeo.doName()            
     
     for mProxy in ml_neckProxy + ml_headStuff:
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 

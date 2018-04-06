@@ -117,7 +117,8 @@ d_block_profiles = {
                'cgmName':'leg',
                'loftShape':'square',
                'loftSetup':'default',
-               'placeSettings':'end',
+               'settingsPlace':'end',
+               'settingsDirection':'down',
                'ikSetup':'rp',
                'ikEnd':'foot',
                'numControls':3,
@@ -134,7 +135,7 @@ d_block_profiles = {
            'cgmName':'arm',
            'loftShape':'square',
            'loftSetup':'default',
-           'placeSettings':'end',
+           'settingsPlace':'end',
            'ikSetup':'rp',
            'ikEnd':'hand',
            'numControls':3,
@@ -151,7 +152,7 @@ d_block_profiles = {
               'cgmName':'finger',
               'loftShape':'wideUp',
               'loftSetup':'default',
-              'placeSettings':'end',
+              'settingsPlace':'end',
               'ikSetup':'rp',
               'ikEnd':'tipEnd',
               'numControls':4,
@@ -173,7 +174,7 @@ d_block_profiles = {
              'cgmName':'thumb',
              'loftShape':'wideUp',
              'loftSetup':'default',
-             'placeSettings':'end',
+             'settingsPlace':'end',
              'ikSetup':'rp',
              'ikEnd':'tipEnd',
              'numControls':4,
@@ -216,7 +217,7 @@ l_attrsStandard = ['side',
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
-                 'placeSettings':'start:end',
+                 'settingsPlace':'start:end',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
@@ -241,7 +242,7 @@ d_defaultSettings = {'version':__version__,
                      'numShapers':3,
                      'settingsDirection':'up',
                      'numSpacePivots':2,
-                     'placeSettings':1,
+                     'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'linear',
@@ -1010,7 +1011,8 @@ def template(self):
                 
                 
         #>>> Connections =======================================================================================
-        self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])                    
+        self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
+        
         #if ml_shapers:
         #    self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_shapers])
         #else:
@@ -1018,7 +1020,9 @@ def template(self):
             
         #>>Loft Mesh =========================================================================================
         if self.numShapers:
-            targets = [mObj.loftCurve.mNode for mObj in ml_shapers]                    
+            targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+            self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
+            
         else:
             targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]        
         
@@ -1525,6 +1529,7 @@ def rig_prechecks(self):
         raise NotImplementedError,"Haven't setup scale yet."
     #if mBlock.ikSetup >=1:
         #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
+        
     #Lever ============================================================================    
     _b_lever = False
     self.b_leverJoint = False
@@ -1710,45 +1715,19 @@ def rig_prechecks(self):
     
     
     #DynParents =============================================================================
-    log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func,self.ml_handleTargets))            
+    self.UTILS.get_dynParentTargetsDat(self)
     
-    mModuleParent = self.d_module['mModuleParent']
-    self.md_dynTargetsParent = {}
-    self.ml_dynEndParents = [mMasterNull.puppetSpaceObjectsGroup, mMasterNull.worldSpaceObjectsGroup]
-    self.md_dynTargetsParent['world'] = mMasterNull.worldSpaceObjectsGroup
-    self.md_dynTargetsParent['puppet'] = mMasterNull.puppetSpaceObjectsGroup
+    #rotateOrder =============================================================================
+    _str_orientation = self.d_orientation['str']
     
-    self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
-                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+    self.rotateOrderIK = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
     
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('rigRoot'):
-            mParentRoot = mi_parentRigNull.rigRoot
-            self.md_dynTargetsParent['root'] = mParentRoot
-            #self.ml_dynEndParents.insert(0,mParentRoot)
-        else:
-            self.md_dynTargetsParent['root'] = False
+    log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+    log.debug("|{0}| >> rotateOrder | self.rotateOrderIK: {1}".format(_str_func,self.rotateOrderIK))
 
-        
-        if mi_parentRigNull.getMessage('controlIK'):
-            self.md_dynTargetsParent['controlIK'] = mi_parentRigNull.controlIK
-        else:
-            self.md_dynTargetsParent['controlIK'] = False
-            
-        if mi_parentRigNull.getMessage('controlIKBase'):
-            self.md_dynTargetsParent['controlIKBase'] = mi_parentRigNull.controlIKBase 
-        else:
-            self.md_dynTargetsParent['controlIKBase'] = False        
-            
     log.debug(cgmGEN._str_subLine)
-    log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
-    pprint.pprint(self.md_dynTargetsParent)
-    log.debug(cgmGEN._str_subLine)    
-    log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
-    pprint.pprint(self.ml_dynEndParents)
     
-    log.debug(cgmGEN._str_subLine)
 
 @cgmGEN.Timer
 def rig_skeleton(self):
@@ -1913,16 +1892,17 @@ def rig_skeleton(self):
         log.debug("|{0}| >> Targets: {1} | {2} ".format(_str_func, self.int_handleEndIdx, ml_parentJoints))
         
         ml_handleJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                  ml_parentJoints,#ml_parentJoints[:self.int_handleEndIdx+1],
+                                                                  self.ml_handleTargetsCulled,#ml_parentJoints,#ml_parentJoints[:self.int_handleEndIdx+1],
                                                                   None, 
                                                                   mRigNull,
                                                                   'handleJoints',
                                                                   connectToSource = 'handleJoint',
                                                                   cgmType = 'handle')
         for i,mJnt in enumerate(ml_handleJoints):
-            if mJnt.hasAttr('cgmTypeModifier'):
-                ATTR.delete(mJnt.mNode,'cgmTypeModifier')
-                mJnt.doName()
+            #if mJnt.hasAttr('cgmTypeModifier'):
+                #ATTR.delete(mJnt.mNode,'cgmTypeModifier')
+            mJnt.doStore('cgmTypeModifier','seg')
+            mJnt.doName()
             mJnt.parent = ml_parentJoints[i]
             
         
@@ -2530,16 +2510,16 @@ def rig_digitShapes(self):
             mHandleFactory.color(mLeverFKJnt.mNode, controlType = 'sub')"""
             
             
-        _placeSettings = mBlock.getEnumValueString('placeSettings')
+        _settingsPlace = mBlock.getEnumValueString('settingsPlace')
         
-        if _placeSettings == 'cog':
+        if _settingsPlace == 'cog':
             log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
-            _placeSettings = 'start'
+            _settingsPlace = 'start'
 
         else:
-            log.debug("|{0}| >> settings: {1}...".format(_str_func,_placeSettings))
+            log.debug("|{0}| >> settings: {1}...".format(_str_func,_settingsPlace))
 
-            if _placeSettings == 'start':
+            if _settingsPlace == 'start':
                 _mTar = ml_targets[0]
                 bbSize_handle = TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True)
             else:
@@ -2857,7 +2837,7 @@ def rig_shapes(self):
     
             self.mRigNull.connectChildNode(mKnee,'controlIKMid','rigNull')#Connect
 
-        return
+        
         #Lever =============================================================================
         if self.b_lever:
             log.debug("|{0}| >> Lever...".format(_str_func))
@@ -2887,7 +2867,7 @@ def rig_shapes(self):
             
             
             
-        return
+        
         #Cog =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -2916,7 +2896,7 @@ def rig_shapes(self):
             mRoot = ml_fkJoints[0].doCreateAt()
             
             _size_root =  MATH.average(mHandleFactory.get_axisBox_size(self.mRootTemplateHandle.mNode))
-            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root * 1.5),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
         
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
@@ -2933,13 +2913,13 @@ def rig_shapes(self):
         
             
             #Settings =============================================================================
-            _placeSettings = mBlock.getEnumValueString('placeSettings')
-            if _placeSettings == 'cog':
+            _settingsPlace = mBlock.getEnumValueString('settingsPlace')
+            if _settingsPlace == 'cog':
                 log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
-                _placeSettings = 'start'
+                _settingsPlace = 'start'
             
-            if _placeSettings is not 'cog':
-                log.debug("|{0}| >> settings: {1}...".format(_str_func,_placeSettings))
+            if _settingsPlace is not 'cog':
+                log.debug("|{0}| >> settings: {1}...".format(_str_func,_settingsPlace))
                 
                 
                 if ml_blendJoints:
@@ -2947,7 +2927,7 @@ def rig_shapes(self):
                 else:
                     ml_targets = ml_fkJoints
                     
-                if _placeSettings == 'start':
+                if _settingsPlace == 'start':
                     _mTar = ml_targets[0]
                     _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
                 else:
@@ -3007,7 +2987,7 @@ def rig_shapes(self):
                 mJnt.radius = .00001
 
         
-        #Handles =============================================================================================    
+        #Handles ============================================================================================    
         ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
             log.debug("|{0}| >> Found Handle joints...".format(_str_func))
@@ -3017,7 +2997,9 @@ def rig_shapes(self):
                                                   mode = 'limbSegmentHandle')
             
             for i,mCrv in enumerate(ml_handleShapes):
-                log.debug("|{0}| >> Shape: {1} | Handle: {2}".format(_str_func,mCrv.mNode,ml_handleJoints[i].mNode ))                
+                log.debug("|{0}| >> Shape: {1} | Handle: {2}".format(_str_func,
+                                                                     mCrv.mNode,
+                                                                     ml_handleJoints[i].mNode ))                
                 mHandleFactory.color(mCrv.mNode, controlType = 'sub')            
                 CORERIG.shapeParent_in_place(ml_handleJoints[i].mNode, 
                                              mCrv.mNode, False,
@@ -3053,7 +3035,7 @@ def rig_shapes(self):
         log.debug("|{0}| >> Frame shape cast...".format(_str_func))        
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           targets = [mObj.mNode for mObj in self.ml_handleTargets],
-                                          mode = 'limbHandle')
+                                          mode = 'frameHandle')#limbHandle
         
         if self.mPivotHelper:
             size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
@@ -3111,6 +3093,8 @@ def rig_controls(self):
     if mBlock.getMessage('cogHelper'):
         b_cog = True
     str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+    d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')    
+    ml_controlsIKRO = []
         
     # Drivers ==============================================================================================
     log.debug("|{0}| >> Attr drivers...".format(_str_func))    
@@ -3118,7 +3102,7 @@ def rig_controls(self):
         log.debug("|{0}| >> Build IK drivers...".format(_str_func))
         mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
     
-    #>> vis Drivers ================================================================================================	
+    #>> vis Drivers ==========================================================================================	
     mPlug_visSub = self.atBuilderUtils('build_visSub')
     
     if not b_cog:
@@ -3194,8 +3178,8 @@ def rig_controls(self):
         mLeverFK = mRigNull.getMessage('leverFK',asMeta=True)[0]
         d_buffer = MODULECONTROL.register(mLeverFK,
                                           typeModifier='FK',
-                                          mirrorSide= self.d_module['mirrorDirection'],
-                                          mirrorAxis="translateX,rotateY,rotateZ",
+                                          mirrorSide = self.d_module['mirrorDirection'],
+                                          mirrorAxis ="translateX,rotateY,rotateZ",
                                           makeAimable = False)        
         ml_controlsAll.append(mLeverFK)
         
@@ -3248,39 +3232,37 @@ def rig_controls(self):
         mControlIK = mRigNull.controlIK
         log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
         
-        _spacePivots = False
-        if mBlock.buildSpacePivots:
-            _spacePivots = 2
+
         _d = MODULECONTROL.register(mControlIK,
-                                    addSpacePivots = _spacePivots,
-                                    addDynParentGroup = True, addConstraintGroup=False,
+                                    addDynParentGroup = True,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = True,
+                                    **d_controlSpaces)
         
         mControlIK = _d['mObj']
         mControlIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlIK)
+        ml_controlsIKRO.append(mControlIK)
         
     mControlBaseIK = False
     if mRigNull.getMessage('controlIKBase'):
         mControlBaseIK = mRigNull.controlIKBase
         log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mControlBaseIK))
         
-        _spacePivots = False
-        if mBlock.buildSpacePivots:
-            _spacePivots = 1
+
             
         _d = MODULECONTROL.register(mControlBaseIK,
-                                    addSpacePivots = _spacePivots,
-                                    addDynParentGroup = True, addConstraintGroup=False,
+                                    addDynParentGroup = True,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = True,
+                                    **d_controlSpaces)
         
         mControlBaseIK = _d['mObj']
         mControlBaseIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlBaseIK)
+        ml_controlsIKRO.append(mControlBaseIK)
         
         
     mControlMidIK = False
@@ -3288,20 +3270,19 @@ def rig_controls(self):
         mControlMidIK = mRigNull.controlIKMid
         log.debug("|{0}| >> Found controlIKMid : {1}".format(_str_func, mControlMidIK))
         
-        _spacePivots = False
-        if mBlock.buildSpacePivots:
-            _spacePivots = 1
+
                 
         _d = MODULECONTROL.register(mControlMidIK,
-                                    addSpacePivots = _spacePivots,
-                                    addDynParentGroup = True, addConstraintGroup=False,
+                                    addDynParentGroup = True,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = True,
+                                    **d_controlSpaces)
         
         mControlMidIK = _d['mObj']
         mControlMidIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlMidIK)
+        ml_controlsIKRO.append(mControlMidIK)
         
 
     
@@ -3345,22 +3326,25 @@ def rig_controls(self):
         for mShape in mObj.getShapes(asMeta=True):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
 
+    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
-        ATTR.set(mCtrl.mNode,'rotateOrder','zyx')
+        ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
         
         ml_pivots = mCtrl.msgList_get('spacePivots')
         if ml_pivots:
             log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
             for mPivot in ml_pivots:
-                mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
+                mHandleFactory.color(mPivot.mNode, controlType = 'sub')
+                
+        if mCtrl.hasAttr('radius'):
+            ATTR.set(mCtrl.mNode,'radius',0)
 
-    _nameMatches = False
-    for mCtrl in ml_controlsAll:
-        if mCtrl.getNameMatches(True):
-            _nameMatches = True
-    if _nameMatches:
-        raise ValueError,"Fix this name match"
+    for mCtrl in ml_controlsIKRO:
+        ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrderIK)
+    
+
     
     ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
@@ -4333,13 +4317,16 @@ def rig_pivotSetup(self):
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             if self.mToe:
                 mToeIK = ml_ikJoints.pop(-1)
+                
             if self.mBall:
                 mBallIK = ml_ikJoints.pop(-1)
             
             mAnkleIK = ml_ikJoints[-1]
             mBallPivotJoint = mRigNull.getMessage('pivot_ballJoint',asMeta=True)[0]
             mBallWiggleJoint = mRigNull.getMessage('pivot_ballWiggle',asMeta=True)[0]
-            
+            for mObj in mBallPivotJoint,mBallWiggleJoint:
+                if mObj:
+                    mObj.radius = 0
             pprint.pprint(vars())
 
         else:
@@ -4506,7 +4493,7 @@ def rig_cleanUp(self):
         
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
-    ml_endDynParents = self.ml_dynEndParents# + [mRoot]
+    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
     ml_ikDynParents = []
     
     #Lever =================================================================================================
@@ -4710,6 +4697,8 @@ def rig_cleanUp(self):
     
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
+    mBlock.blockState = 'rig'
+    
     #cgmGEN.func_snapShot(vars())
     return
 
@@ -4848,8 +4837,8 @@ def build_proxyMesh(self, forceNew = True):
             
             #...cut it up
             if mBall:
-                _bool_size = 200
-                _bool_divs = 40
+                _bool_size = 50
+                _bool_divs = 80
                 #Heel.-----------------------------------------------------------------------------------
                 log.debug("|{0}| >> heel... ".format(_str_func))                        
                 plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z+'),
@@ -4867,28 +4856,44 @@ def build_proxyMesh(self, forceNew = True):
                 mMeshHeel = cgmMeta.validateObjArg(heel[0])
                 ml_segProxy.append(mMeshHeel)
                 
-                #ball -----------------------------------------------------------------------------------
-                log.debug("|{0}| >> ball... ".format(_str_func))            
-                plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
-                                     subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
-                                     width = _bool_size, height = _bool_size, ch=0)
-                mPlane = cgmMeta.validateObjArg(plane[0])
-                mPlane.doSnapTo(mBall.mNode,rotation=False)
-                mMeshBall = mMesh.doDuplicate(po=False)
-            
-                #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
-                mMeshBall = cgmMeta.validateObjArg(ball[0])
-                ml_segProxy.append(mMeshBall)
-                ml_rigJoints.append(mBall)
-                
+
                 #toe -----------------------------------------------------------------------------------
                 if mToe:
-                    log.debug("|{0}| >> toe... ".format(_str_func))
-                    plane = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
+                    #ball -----------------------------------------------------------------------------------
+                    log.debug("|{0}| >> ball... ".format(_str_func))            
+                    plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
                                          subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
                                          width = _bool_size, height = _bool_size, ch=0)
                     mPlane = cgmMeta.validateObjArg(plane[0])
+                    mPlane.doSnapTo(mBall.mNode,rotation=False)
+                    mMeshBall = mMesh.doDuplicate(po=False)
+                
+                    #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    mMeshBall = cgmMeta.validateObjArg(ball[0])
+                    
+                    
+                    #resplit ball...
+                    """
+                    log.debug("|{0}| >> ball resplit... ".format(_str_func))            
+                    
+                    planeToe = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
+                                            subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
+                                        width = _bool_size, height = _bool_size, ch=0)
+                    mPlane = cgmMeta.validateObjArg(planeToe[0])
+                    mPlane.doSnapTo(mToe.mNode,rotation=False)
+                    mMeshBallDup = mMeshBall.doDuplicate(po=False)
+                    #mc.select(cl=1)
+                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
+                    mMeshBall.delete()
+                    mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
+                    
+                    
+                    log.debug("|{0}| >> toe... ".format(_str_func))
+                    planeToe = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
+                                         subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
+                                         width = _bool_size, height = _bool_size, ch=0)
+                    mPlane = cgmMeta.validateObjArg(planeToe[0])
                     mPlane.doSnapTo(mToe.mNode,rotation=False)
                     mMeshToe = mMesh.doDuplicate(po=False)
                 
@@ -4896,20 +4901,41 @@ def build_proxyMesh(self, forceNew = True):
                     toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
                     mMeshToe = cgmMeta.validateObjArg(toe[0])
                     
+                    
+                    ml_segProxy.append(mMeshBall)
+                    ml_rigJoints.append(mBall)
                     ml_segProxy.append(mMeshToe)
                     ml_rigJoints.append(mToe)
+                else:
+                    #ball -----------------------------------------------------------------------------------
+                    log.debug("|{0}| >> ball... ".format(_str_func))            
+                    plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
+                                         subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
+                                         width = _bool_size, height = _bool_size, ch=0)
+                    mPlane = cgmMeta.validateObjArg(plane[0])
+                    mPlane.doSnapTo(mBall.mNode,rotation=False)
+                    mMeshBall = mMesh.doDuplicate(po=False)
+                
+                    #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    mMeshBall = cgmMeta.validateObjArg(ball[0])
+                    ml_segProxy.append(mMeshBall)
+                    ml_rigJoints.append(mBall)                    
+                    
                 mMesh.delete()
 
     for i,mGeo in enumerate(ml_segProxy):
         log.info("{0} : {1}".format(mGeo, ml_rigJoints[i]))
         mGeo.parent = ml_rigJoints[i]
-        ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+        #ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+        mGeo.doStore('cgmName',self.d_module['partName'])
+        
         mGeo.addAttr('cgmIterator',i+1)
         mGeo.addAttr('cgmType','proxyGeo')
         mGeo.doName()            
     
     for mProxy in ml_segProxy:
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 

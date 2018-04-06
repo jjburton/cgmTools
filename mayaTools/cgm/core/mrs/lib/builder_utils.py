@@ -757,6 +757,68 @@ def register_mirrorIndices(self, ml_controls = []):
     return ml_controls
 
 @cgmGEN.Timer
+def get_dynParentTargetsDat(self):
+    """
+    :parameters:
+
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _str_func = 'get_dynParentTargetsDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func))
+    
+    mBlock = self.mBlock
+    mModule = self.mModule
+    mMasterNull = self.d_module['mMasterNull']
+    mModuleParent = self.d_module['mModuleParent']
+    self.md_dynTargetsParent = {}
+    self.ml_dynEndParents = [mMasterNull.puppetSpaceObjectsGroup, mMasterNull.worldSpaceObjectsGroup]
+    self.ml_dynParentsAbove = []
+    self.md_dynTargetsParent['world'] = mMasterNull.worldSpaceObjectsGroup
+    self.md_dynTargetsParent['puppet'] = mMasterNull.puppetSpaceObjectsGroup
+    
+    self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
+                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    
+    if mModuleParent:
+        mi_parentRigNull = mModuleParent.rigNull
+        if mi_parentRigNull.getMessage('rigRoot'):
+            mParentRoot = mi_parentRigNull.rigRoot
+            self.md_dynTargetsParent['root'] = mParentRoot
+            #self.ml_dynEndParents.insert(0,mParentRoot)
+            self.ml_dynParentsAbove.append(mParentRoot)
+        else:
+            self.md_dynTargetsParent['root'] = False
+            
+        _mBase = mModule.atUtils('get_driverPoint','base')
+        _mEnd = mModule.atUtils('get_driverPoint','end')
+        
+        if _mBase:
+            self.md_dynTargetsParent['base'] = _mBase
+            self.ml_dynParentsAbove.append(_mBase)
+        if _mEnd:
+            self.md_dynTargetsParent['end'] = _mEnd
+            self.ml_dynParentsAbove.append(_mEnd)
+            
+    log.debug(cgmGEN._str_subLine)
+    log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
+    pprint.pprint(self.md_dynTargetsParent)
+    log.debug(cgmGEN._str_subLine)    
+    log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
+    pprint.pprint(self.ml_dynEndParents)
+    log.debug(cgmGEN._str_subLine)
+    log.debug("|{0}| >> dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
+    pprint.pprint(self.ml_dynParentsAbove)    
+    log.debug(cgmGEN._str_subLine)    
+
+
+@cgmGEN.Timer
 def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None):
     """
     :parameters:

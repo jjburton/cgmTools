@@ -632,7 +632,6 @@ def template(self):
             l_scales = []
         
             for mHandle in mStartHandle, mEndHandle:
-                #ml_jointHandles.append(self.asHandleFactory(mHandle.mNode).addJointHelper(baseSize = _sizeSub,shapeDirection='z+'))
                 l_scales.append(mHandle.scale)
                 mHandle.scale = 1,1,1
 
@@ -673,39 +672,22 @@ def template(self):
                 mGroup.p_parent = mTemplateNull
                 
                 _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mStartHandle.mNode,mEndHandle.mNode])
-                #_point = mc.pointConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+
                 _scale = mc.scaleConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
-                #reload(CURVES)
-                #mLoc = mGroup.doLoc()
-                #mLoc.parent = mNoTransformNull
-                #mLoc.inheritsTransform = False
-        
-                #CURVES.attachObjToCurve(mLoc.mNode, mLinearCurve.mNode)
+
                 _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
                                                            mLinearCurve.mNode,
                                                            'conPoint')
                 TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
                 
-                #print cgmGEN._str_hardBreak
-                #pprint.pprint(_res_attach)
-                #print cgmGEN._str_hardBreak
-                
-                
-                #_point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-        
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
         
                 #Convert to loft curve setup ----------------------------------------------------
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
-                #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
-        
                 mHandleFactory.rebuildAsLoftTarget('self', _size, shapeDirection = 'z+')
-                #ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
-                #mRootCurve.setAttrFlags(['rotate','tx','tz'])
-                #mc.transformLimits(mRootCurve.mNode,  tz = [-.25,.25], etz = [1,1], ty = [.1,1], ety = [1,0])
-                #mTopLoftCurve = mRootCurve.loftCurve
+
         
                 CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
                 #LOC.create(position = p)
