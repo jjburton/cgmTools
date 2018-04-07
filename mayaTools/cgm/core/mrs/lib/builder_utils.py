@@ -932,7 +932,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast',
                           'ikEnd','ikBase']:
                 
-                f_factor = (maxU-minU)/(30)
+                f_factor = (maxU-minU)/(20)
                 if targets:
                     ml_fkJoints = ml_targets
                 else:
@@ -1111,6 +1111,19 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
                         d_epPos = {}
+                        
+                        for i,crv in enumerate(l_mainCurves):
+                            mCrv = cgmMeta.cgmObject(crv,'cgmObject')
+                            _l = CURVES.getUSplitList(crv,5,rebuild=True,rebuildSpans=30)[:-1]
+                            
+                            for ii,p in enumerate(_l):
+                                if not d_epPos.get(ii):
+                                    d_epPos[ii] = []
+                                _l = d_epPos[ii]
+                                _l.append(p)
+
+                        
+                        """
                         for i,crv in enumerate(l_mainCurves):
                             mCrv = cgmMeta.cgmObject(crv,'cgmObject')
                             for ii,ep in enumerate(mCrv.getComponents('ep',True)):
@@ -1118,7 +1131,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                     d_epPos[ii] = []
                                     
                                 _l = d_epPos[ii]
-                                _l.append(POS.get(ep))
+                                _l.append(POS.get(ep))"""
                                 
                         for k,points in d_epPos.iteritems():
                             crv_connect = CURVES.create_fromList(posList=points)

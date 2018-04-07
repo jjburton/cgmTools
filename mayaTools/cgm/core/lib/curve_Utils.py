@@ -23,8 +23,8 @@ from Red9.core import Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
+from cgm.core import cgm_General as cgmGEN
+reload(cgmGEN)
 from cgm.core.cgmPy import validateArgs as cgmValid
 reload(cgmValid)
 from cgm.core.lib import search_utils as SEARCH
@@ -88,7 +88,7 @@ def get_python_call(crvShape,printInfo=False):
     #Get our message ready
     print ''
     #print (guiFactory.doPrintReportStart())
-    print cgmGeneral._str_hardLine
+    print cgmGEN._str_hardLine
     print ('import maya.cmds as mc')
     if len(shapeNodes)>1:print ('from cgm.core.lib import shape_utils as SHAPES')
     print ''
@@ -103,7 +103,7 @@ def get_python_call(crvShape,printInfo=False):
         print (commandsReturn[0])
 
     print ''
-    print cgmGeneral._str_hardLine
+    print cgmGEN._str_hardLine
     #print (guiFactory.doPrintReportEnd())
     return commandsReturn
 
@@ -822,7 +822,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
                     
     return _res
 
-@cgmGeneral.Timer
+@cgmGEN.Timer
 def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
     """
     Create a unified text curve
@@ -858,9 +858,199 @@ def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
 
     return _curve
     
+def getUSplitList(curve=None, points=3, markPoints=False,
+                      startSplitFactor=None, insetSplitFactor=None,
+                      rebuild=False, rebuildSpans=10,minU=None,maxU=None,
+                      reverse=False):
+    """
+    Function to split a curve up u positionally 
+    
+    :parameters:
+        'curve'(None)  -- Curve to split
+        'points'(3)  -- Number of points to generate positions for
+        'markPoints'(False)  -- If you want the positions marked with locators
+        'startSplitFactor'(None)  -- inset factor for subsequent splits after then ends
+        'insetSplitFactor'(None)  -- Multiplier for pushing splits one way or another on a curve
+        'rebuild'(True)  -- Whether to rebuild before split (for smoother splitting)
+        'rebuildSpans'(10)  -- How many spans for the rebuild
+        'minU'(None) -- specify minU to use
+        'maxU'(None) -- specify maxU to use
+        'reverse'(False) -- Reverse before split
+    :returns
+        list of positions(list)
+    """ 
+    try:
+        _str_func = 'getUSplitList'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        
+        l_spanUPositions = []
+        
+        #>>> Rebuild curve =====================================================================
+        if rebuild:
+            log.debug("|{0}| >> rebuild...".format(_str_func))                                
+            useCurve = mc.rebuildCurve (curve, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=rebuildSpans, d=3, tol=0.001)[0]
+        else:
+            useCurve = mc.duplicate(curve)[0]
+        
+        if cgmValid.is_shape(useCurve):
+            _shapeUse = useCurve
+        else:
+            _shapeUse = []
+            for shape in TRANS.shapes_get(useCurve,True):
+                _type = cgmValid.get_mayaType(shape)
+                if _type in ['nurbsCurve']:
+                    _shapeUse.append(shape)
+                else:
+                    log.debug("|{0}| >> invalid shape: {1} | {2}".format(_str_func,_type,shape))
+            if len(_shapeUse)==1:
+                _shapeUse=_shapeUse[0]
+            else:
+                return log.error("|{0}| >> too many shapes({1}). Specify. | {2}".format(_str_func,len(
+                                                                                                     _shapeUse),shape))
 
+                    
+        log.debug("|{0}| >> rebuild: {1} | useCurve: {2} | useShape: {3}".format(_str_func,rebuild,useCurve,_shapeUse))
 
-#>>>>PRE Refactor ====================================================================================================================================
+        if reverse:
+            log.debug("|{0}| >> reverse...".format(_str_func))                    
+            _shapeUse = mc.reverseCurve(_shapeUse,rpo = True)[0]
+        
+        #>>> Divide stuff#===========================================================================
+        f_maxU = ATTR.get(_shapeUse,'maxValue')
+        f_minU = ATTR.get(_shapeUse,'minValue')
+        int_points = int(points)
+        f_points = float(points)
+        
+        if minU is not None:
+            if minU < f_minU:
+                return log.error("|{0}| >> minU [{1}] is less than detected: {2}".format(_str_func,
+                                                                                         minU,
+                                                                                         f_minU))
+            else:
+                f_minU = minU
+        if maxU is not None:
+            if maxU > f_maxU:
+                return log.error("|{0}| >> maxU [{1}] is greater than detected: {2}".format(_str_func,
+                                                                                         maxU,
+                                                                                         f_maxU))
+            else:
+                f_maxU = maxU
+        
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> minU: {1} | maxU: {2} | divide...".format(_str_func,f_minU,f_maxU))                
+        
+
+        _range = (f_minU - f_maxU)
+        l_uValues = [f_minU]
+        if points == 1:
+            l_uValues = [_range/2]
+            
+        elif startSplitFactor:
+            if points < 5:
+                raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
+            log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))
+            
+            #Figure out our u's
+            f_base = startSplitFactor * _range 
+            l_uValues.append( f_base )
+            f_len = f_maxU - (f_base *2)	
+            int_toMake = f_points-4
+            f_factor = f_len/(int_toMake+1)
+            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
+            log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
+            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
+            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+            for i in range(1,int_points-3):
+                l_uValues.append(((i*f_factor + f_base)))
+            l_uValues.append(f_maxU - f_base)
+            l_uValues.append(f_maxU)
+            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
+
+        elif insetSplitFactor:
+            log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
+            #Figure out our u's
+            f_base = insetSplitFactor * _range 
+            f_len = f_maxU - (f_base *2)	
+            f_factor = f_len/(f_points-1)
+            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
+            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
+            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+            for i in range(1,int_points-1):
+                l_uValues.append((i*f_factor))
+            l_uValues.append(f_maxU)
+            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
+            """
+        elif f_kwMinU is not False or f_kwMaxU is not False:
+            log.debug("%s >> Sub mode. "%(_str_func))
+            if f_kwMinU is not False:
+                if f_kwMinU > f_maxU:
+                    raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
+                f_useMinU = f_kwMinU
+            else:f_useMinU = 0.0
+            if f_kwMaxU is not False:
+                if f_kwMaxU > f_maxU:
+                    raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
+                f_useMaxU = f_kwMaxU
+            else:f_useMaxU = f_maxU
+
+            if int_points == 1:
+                l_uValues = [(f_useMaxU - f_useMinU)/2]
+            elif int_points == 2:
+                l_uValues = [f_useMaxU,f_useMinU]		    
+            else:
+                l_uValues = [f_useMinU]
+                f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
+                log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
+                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                for i in range(1,int_points-1):
+                    l_uValues.append((i*f_factor) + f_useMinU)
+                l_uValues.append(f_useMaxU)"""
+        else:
+            #Figure out our u's
+            log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))
+            if int_points == 3:
+                l_uValues.append(f_maxU/2)
+                l_uValues.append(f_maxU)
+            else:
+                f_factor = f_maxU/(f_points-1)
+                log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                for i in range(1,int_points-1):
+                    l_uValues.append(i*f_factor)
+                l_uValues.append(f_maxU)
+            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
+
+        for u in l_uValues:
+            l_spanUPositions.append(POS.get("{0}.u[{1}]".format(_shapeUse,u)))
+            #l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
+            #except StandardError,error:raise StandardError,"Failed on pointPositioning: %s"%u			
+        log.debug("%s >> l_spanUPositions | len: %s | list: %s"%(_str_func,len(l_spanUPositions),l_spanUPositions))  
+
+        if markPoints:
+            ml_built = []
+            for i,pos in enumerate(l_spanUPositions):
+                buffer =  mc.spaceLocator(n = "%s_u_%f"%(useCurve,(l_uValues[i])))[0] 
+                ml_built.append( cgmMeta.cgmObject(buffer))
+                log.debug("%s >> created : %s | at: %s"%(_str_func,ml_built[-1].p_nameShort,pos))              											
+                mc.xform(ml_built[-1].mNode, t = (pos[0],pos[1],pos[2]), ws=True)
+
+            if len(ml_built)>1:
+                try:f_distance = distance.returnAverageDistanceBetweenObjects([o.mNode for o in ml_built]) * .5
+                except StandardError,error:raise StandardError,"Average distance fail. Objects: %s| error: %s"%([o.mNode for o in ml_built],error)
+                try:
+                    for o in ml_built:
+                        o.scale = [f_distance,f_distance,f_distance]
+                except StandardError,error:raise StandardError,"Scale fail : %s"%error
+        
+        mc.delete(useCurve)#Delete our use curve
+        return l_spanUPositions
+
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+#>>>>PRE Refactor ============================================================================================
 def returnSplitCurveList(*args, **kws):
     """
     Function to split a curve up u positionally 
@@ -874,7 +1064,7 @@ def returnSplitCurveList(*args, **kws):
     Arg 5 | kw 'rebuildForSplit'(True)  -- Whether to rebuild before split (for smoother splitting)
     Arg 6 | kw 'rebuildSpans'(10)  -- How many spans for the rebuild
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             """	
@@ -906,6 +1096,8 @@ def returnSplitCurveList(*args, **kws):
             """
             """
             _str_funcName = self._str_funcCombined
+            log.error("STOP USING THIS CALL: {0}".format(_str_funcName))
+            
             curve = self.d_kws['curve']
             points = self.d_kws['points']
             mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],cgmMeta.cgmObject,mayaType='nurbsCurve',noneValid=False)
@@ -934,7 +1126,7 @@ def returnSplitCurveList(*args, **kws):
                 #==========================	
                 l_spanUPositions = []
                 str_bufferU = mc.ls("%s.u[*]"%useCurve)[0]
-                log.debug("%s >> u list : %s"%(_str_funcName,str_bufferU))       
+                log.debug("%s >> u list : %s"%(_str_funcName,str_bufferU))
                 f_maxU = float(str_bufferU.split(':')[-1].split(']')[0])
                 l_uValues = [0]
 
@@ -1017,8 +1209,8 @@ def returnSplitCurveList(*args, **kws):
             except Exception,error:raise StandardError,"Divide fail | %s"%error
 
             for u in l_uValues:
-                try:l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
-                except StandardError,error:raise StandardError,"Failed on pointPositioning: %s"%u			
+                l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
+                #except StandardError,error:raise StandardError,"Failed on pointPositioning: %s"%u			
             log.debug("%s >> l_spanUPositions | len: %s | list: %s"%(_str_funcName,len(l_spanUPositions),l_spanUPositions))  
 
             try:
@@ -1273,7 +1465,7 @@ def isEP(*args, **kws):
     @kws
     baseCurve -- curve on check
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             """	
@@ -1302,7 +1494,7 @@ def getMidPoint(*args, **kws):
     @kws
     baseCurve -- curve on check
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             """	
@@ -1333,7 +1525,7 @@ def getPercentPointOnCurve(*args, **kws):
     baseCurve -- curve on check
     factor -- value on that curve
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             """	
@@ -1362,7 +1554,7 @@ def convertCurve(*args, **kws):
     """
     Function to convert a curve
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             @kws
@@ -1414,7 +1606,7 @@ def mirrorCurve(*args, **kws):
     Function to mirror a curve or push mirror settings to a second curve
     if a second curve is specified
     """
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):
             """
             @kws
