@@ -1114,7 +1114,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         for i,crv in enumerate(l_mainCurves):
                             mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                            _l = CURVES.getUSplitList(crv,5,rebuild=True,rebuildSpans=30)[:-1]
+                            _l = CURVES.getUSplitList(crv,9,rebuild=True,rebuildSpans=30)[:-1]
                             
                             for ii,p in enumerate(_l):
                                 if not d_epPos.get(ii):

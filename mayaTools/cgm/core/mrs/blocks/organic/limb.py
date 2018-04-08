@@ -65,6 +65,7 @@ import cgm.core.rig.ik_utils as IK
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
+from cgm.core.cgmPy import validateArgs as VALID
 
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 reload(CURVES)
@@ -122,6 +123,7 @@ d_block_profiles = {
                'ikSetup':'rp',
                'ikEnd':'foot',
                'numControls':3,
+               'mainRotAxis':'out',               
                'buildBaseLever':False,
                'hasLeverJoint':False,
                'nameList':['hip','knee','ankle','ball','toe'],
@@ -138,6 +140,7 @@ d_block_profiles = {
            'settingsPlace':'end',
            'ikSetup':'rp',
            'ikEnd':'hand',
+           'mainRotAxis':'up',
            'numControls':3,
            'buildLeverBase':True,
            'hasLeverJoint':True,
@@ -218,6 +221,7 @@ l_attrsStandard = ['side',
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
+                 'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
@@ -1739,6 +1743,20 @@ def rig_prechecks(self):
 
     log.debug(cgmGEN._str_subLine)
     
+    #mainRot axis =============================================================================
+    """For twist stuff"""
+    _mainAxis = ATTR.get_enumValueString(mBlock.mNode,'mainRotAxis')
+    _axis = ['aim','up','out']
+    if _mainAxis == 'up':
+        _upAxis = 'out'
+    else:
+        _upAxis = 'up'
+    
+    self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
+    log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))
+
+    log.debug(cgmGEN._str_subLine)    
+    
 
 @cgmGEN.Timer
 def rig_skeleton(self):
@@ -2863,12 +2881,13 @@ def rig_shapes(self):
             #Dup our rig joint and move it 
             mDup = mLeverRigJnt.doDuplicate()
             mDup.resetAttrs()
-            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .75)
+            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever)
             
             ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mLeverFKJnt.mNode,
+                                                                       #ml_fkJoints[0].mNode],
                                                                         mDup.mNode],
                                                              offset=_offset,
-                                                              mode = 'frameHandle')
+                                                             mode = 'frameHandle')
             
             mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
             CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
@@ -3101,16 +3120,31 @@ def rig_shapes(self):
         for i,mShape in enumerate(ml_fkShapes):
             mJnt = ml_fkJoints[i]
             
-            if mShape == ml_fkShapes[-1]:
-                log.debug("|{0}| >> Last fk shape...".format(_str_func))                
-                mIKTemplateHandle = ml_templateHandles[self.int_handleEndIdx]
-                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                _fk_shape = CURVES.create_fromName('square', size = bb_ik)
-                ATTR.set(_fk_shape,'scale', 1.5)
-                SNAP.go(_fk_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
+            if mJnt == ml_fkJoints[self.int_handleEndIdx]:
+                log.debug("|{0}| >> Last fk handle before toes/ball...".format(_str_func))                
+                mIKTemplateHandle = ml_templateHandles[-1]
+                
+                mShape1 = mIKTemplateHandle.loftCurve.doDuplicate(po = False)
+                mShape2 = mIKTemplateHandle.loftCurve.doDuplicate(po = False)
+                
+                for mShp in mShape1,mShape2:
+                    ATTR.set_standardFlags(mShp.mNode,lock=False,keyable=True)
+                    mShp.p_parent = False
+                    SNAP.go(mShp.mNode,mJnt.mNode)
+                
+                _p = mJnt.p_position
+                DIST.offsetShape_byVector(mShape1.mNode,_offset,_p)
+                DIST.offsetShape_byVector(mShape2.mNode,_offset * 2,_p)
+                
+                CORERIG.combineShapes([mShape2.mNode,mShape1.mNode])
+                _fk_shape = mShape1.mNode
+                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                #_fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
+                #ATTR.set(_fk_shape,'scale', 2)
+                #SNAP.go(_fk_shape,mJnt.mNode)
                 mHandleFactory.color(_fk_shape, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
-
+                mShape.delete()
             else:
                 mHandleFactory.color(mShape.mNode, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
@@ -3560,10 +3594,10 @@ def rig_segments(self):
                                         skip = [_jointOrientation[2], _jointOrientation[1]])                    
                 
                     mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
-                                     aimVector = [0,0,-1], upVector = [-1,0,0], 
+                                     aimVector = [0,0,-1], upVector = self.v_twistUp,#[-1,0,0], 
                                      worldUpObject = mStableUp.mNode,
                                      worldUpType = 'objectrotation', 
-                                     worldUpVector = [-1,0,0])
+                                     worldUpVector = self.v_twistUp)#[-1,0,0])
                 
                 
 
@@ -3612,13 +3646,13 @@ def rig_segments(self):
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
-                                     worldUpVector = [-1,0,0])
+                                     worldUpVector = self.v_twistUp)
                     
                     mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                      aimVector = [0,0,-1], upVector = [0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
-                                     worldUpVector = [-1,0,0])                
+                                     worldUpVector = self.v_twistUp)                
                     
                     if ii == 0:
                         const = mc.orientConstraint([mAimBack.mNode,mAimForward.mNode], mSegHandle.mNode, maintainOffset = False)[0]
@@ -4725,6 +4759,7 @@ def rig_cleanUp(self):
     
     
     #Lock and hide =================================================================================
+    log.debug("|{0}| >> lock and hide..".format(_str_func))
     ml_controls = mRigNull.msgList_get('controlsAll')
     
     for mCtrl in ml_controls:
@@ -4738,7 +4773,9 @@ def rig_cleanUp(self):
         log.debug("|{0}| >> No scale".format(_str_func))
         for mCtrl in ml_controls:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
-    
+            
+    #Lock and hide =================================================================================
+    log.debug("|{0}| >> lock and hide..".format(_str_func))
     
     
     #Close out ===============================================================================================
