@@ -153,7 +153,7 @@ d_block_profiles = {
               'addCog':False,
               'attachPoint':'end',
               'cgmName':'finger',
-              'loftShape':'wideUp',
+              'loftShape':'wideDown',
               'loftSetup':'default',
               'settingsPlace':'end',
               'ikSetup':'rp',
@@ -161,6 +161,7 @@ d_block_profiles = {
               'numControls':4,
               'numRoll':0,
               'rigSetup':'digit',
+              'mainRotAxis':'out',                             
               'offsetMode':'proxyAverage',
               'buildLeverBase':True,
               'hasLeverJoint':True,
@@ -183,6 +184,7 @@ d_block_profiles = {
              'numControls':4,
              'numRoll':0,
              'rigSetup':'digit',
+             'mainRotAxis':'out',                            
              'offsetMode':'proxyAverage',
              'buildLeverBase':False,
              'hasLeverJoint':False,
@@ -568,7 +570,7 @@ def template(self):
             
 
         
-        #>> Base Orient Helper ==================================================================================================
+        #>> Base Orient Helper =================================================================================
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
                                                           shapeDirection = 'y+',
@@ -770,7 +772,7 @@ def template(self):
             
             mLoftAimGroup = mLoft.doGroup(True,asMeta=True,typeModifier = 'aim')
             mLoft.visibility = 1
-            mLoft.setAttrFlags(['translate'])
+            #mLoft.setAttrFlags(['translate'])
             
             for mShape in mLoft.getShapes(asMeta=True):
                 mShape.overrideDisplayType = 0
@@ -780,8 +782,8 @@ def template(self):
             
             if mHandle == md_handles['lever']:
                 _worldUpType = 'vector'
-            elif mHandle == md_handles['start'] and _b_lever:
-                _worldUpBack = 'vector'
+            #elif mHandle == md_handles['start'] and _b_lever:
+                #_worldUpBack = 'vector'
                 
             _aimBack = None
             _aimForward = None
@@ -902,8 +904,8 @@ def template(self):
                                                         (_offsetDist * ii)) for ii in range(_numShapers+1)] + [_pos_end]
             
                 _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-                _mVectorUp = _mVectorAim.up()
-                _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
+                #_mVectorUp = _mVectorAim.up()
+                #_worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
             
             
                 #Linear track curve ----------------------------------------------------------------------
@@ -916,7 +918,7 @@ def template(self):
                 for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                     _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
                     TRANS.parent_set(_res[1], mTemplateNull)
-                    mc.pointConstraint(mPair[ii].getMessage('loftCurve')[0],
+                    mc.pointConstraint(mPair[ii].mNode,#getMessage('loftCurve')[0],
                                        _res[1],maintainOffset=True)
                     ATTR.set(_res[1],'v',False)                
                     l_clusters.append(_res)
@@ -978,7 +980,7 @@ def template(self):
             
                     _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mPair[0].mNode,mPair[1].mNode])
             
-                    _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
+                    _scale = mc.scaleConstraint([mPair[0].loftCurve.mNode,mPair[1].loftCurve.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
             
                     _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
                                                                mLinearCurve.mNode,
@@ -4775,8 +4777,9 @@ def rig_cleanUp(self):
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
             
     #Lock and hide =================================================================================
-    log.debug("|{0}| >> lock and hide..".format(_str_func))
-    
+    log.debug("|{0}| >> Settings...".format(_str_func))
+    mSettings.visRoot = 0
+    mSettings.visDirect = 0
     
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']

@@ -78,15 +78,15 @@ reload(meshTools)
 reload(MMCONTEXT)
 reload(RBUILDER)"""
 
-from cgm.lib.ml import (ml_breakdownDragger,
-                        ml_resetChannels,
-                        ml_deleteKey,
-                        ml_setKey,
-                        ml_hold,
-                        ml_stopwatch,
-                        ml_arcTracer,
-                        ml_convertRotationOrder,
-                        ml_copyAnim)
+from cgm.core.lib.ml_tools import (ml_breakdownDragger,
+                                   ml_resetChannels,
+                                   ml_deleteKey,
+                                   ml_setKey,
+                                   ml_hold,
+                                   ml_stopwatch,
+                                   ml_arcTracer,
+                                   ml_convertRotationOrder,
+                                   ml_copyAnim)
 
 def run():
     try:

@@ -16,6 +16,7 @@ import os.path
 import pprint
 import maya.cmds as mc
 import maya.mel as mel
+import copy
 
 # From Red9 =============================================================
 
@@ -60,9 +61,54 @@ def get_transform(node = None):
         if _buffer:
             return _buffer[0]
             return NAME.get_short(_buffer[0])
-    
-    return False   
+    return False
 
+def shapeArg(node = None, types = None, singleReturn = False, noneValid = True):
+    """
+    Get shape(s) of given node
+    
+    :parameters:
+        node(str): Object to check
+        types: valid types if you want validation
+        singleReturn: Only return first
+
+    :returns
+        status(bool)
+    """   
+    _str_func = 'shapeArg'
+    _node = mNodeString(node)
+    _node = stringArg(node, False,_str_func) 
+    _res = []
+    
+    if is_shape(_node):
+        _res = [_node]
+    else:
+        _res = mc.listRelatives(_node,s=True,fullPath=True)
+
+    if types:
+        _types = listArg(types)
+        _l_test = copy.copy(_res)
+        _res = []
+        for s in _l_test:
+            _type = get_mayaType(s)
+            
+            if _type in _types:
+                _res.append(s)
+            else:
+                log.warning("|{0}| >> invalid type: {1} | sought {2} | shape: {3}".format(_str_func,_type,_types,s))
+    
+    if not _res:
+        if noneValid:
+            return False
+        raise ValueError,"No valid shape detected. node: {0} | types:{1}".format(node,types)
+    
+    if singleReturn:
+        if len(_res)>1:
+            log.error("|{0}| >> too many shapes({1}). Using first: {2}".format(_str_func,len(_res), _res))
+        return _res[0]
+    return _res
+                
+                
 def get_mayaType(node = None):
     """
     What kind of nodeect is this as maya's type return isn't always great

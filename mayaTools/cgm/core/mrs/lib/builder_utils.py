@@ -53,6 +53,7 @@ import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.lib.surface_Utils as SURF
 
 for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
     reload(m)
@@ -1565,44 +1566,87 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
                                           len(ml_targets))
     log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))
     
+    l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+    log.debug("|{0}| >> Isoparms U: {1}".format(_str_func,l_uIsos))
+    
     l_uValues = []
     str_start = False
+    l_sets = []
+    #First loop through and get our base U Values for each point
     for i,mTar in enumerate(ml_targets):
         j = mTar.mNode
         _d = RAYS.cast(str_meshShape,j,upVector)
         log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
         #cgmGEN.log_info_dict(_d,j)
         if not _d:
-            log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))            
+            log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
             _v = l_failSafes[i]
         else:
             _v = _d['uvsRaw'][str_meshShape][0][0]
         log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
         
-        #>>For each v value, make a new curve -----------------------------------------------------------------        
+        l_uValues.append(_v)
+        
+    for i,v in enumerate(l_uValues):
+        _l = [v]
+        
+        for uKnot in l_uIsos:
+            if uKnot > v:
+                if v == l_uValues[-1]:
+                    if uKnot < maxU:
+                        _l.append(uKnot)
+                elif uKnot < l_uValues[i+1]:
+                    _l.append(uKnot)
+                
+        if v == l_uValues[-1]:
+            _l.append(maxU)
+        else:
+            _l.append(l_uValues[i+1])
+            
+        if i == 0:
+            _l.insert(0,minU)
+            
+        l_sets.append(_l)
+
+        
+        #>>For each v value, make a new curve ---------------------------------------------------------
         #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
         #l_uValues.append(_v)
-        crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
-        log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
-        l_newCurves.append(crv[0])
-        if mTar == ml_targets[-1]:
-            crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
-            l_newCurves.append(crv[0])
+        #crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
+        #log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
+        #l_newCurves.append(crv[0])
+        #if mTar == ml_targets[-1]:
+        #    crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
+        #    l_newCurves.append(crv[0])
             
         #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
         #                                    ch = 0, rn = 0, local = 0)[0]
 
-    
-    #>>Reloft those sets of curves and cap them -----------------------------------------------------------------
-    log.debug("|{0}| >> Create new mesh objs. Curves: {1} ...".format(_str_func,l_newCurves))        
-    l_new = []
-    for i,c in enumerate(l_newCurves[:-1]):
+    l_newCurves = []
+    d_curves = {}
+    def getCurve(uValue,l_curves):
+        _crv = d_curves.get(uValue)
+        if _crv:return _crv
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,uValue), ch = 0, rn = 0, local = 0)[0]
+        d_curves[uValue] = _crv
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
+        l_curves.append(_crv)
+        return _crv
         
+    #>>Reloft those sets of curves and cap them ------------------------------------------------------------
+    log.debug("|{0}| >> Create new mesh objs.".format(_str_func))
+    l_new = []
+    for i,uSet in enumerate(l_sets):
+        log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+        """
         if i == 0 and str_start:
             _pair = [str_start,c,l_newCurves[i+1]]
         else:
-            _pair = [c,l_newCurves[i+1]]
-        _mesh = create_loftMesh(_pair, name="{0}_{1}".format('test',i), divisions=1)
+            _pair = [c,l_newCurves[i+1]]"""
+        
+        _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
+            
+        _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), divisions=1)
         RIGGING.match_transform(_mesh,ml_targets[i])
         l_new.append(_mesh)
     

@@ -1047,7 +1047,7 @@ def buildSection_animOptions(self,parent):
     uiRC = mUI.MelRadioCollection()
     _on = self.var_resetMode.value
 
-    for i,item in enumerate(['Default','Transform Attrs']):
+    for i,item in enumerate(['All Keyable','Transform Only']):
         if i == _on:
             _rb = True
         else:_rb = False

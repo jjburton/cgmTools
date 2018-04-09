@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -31,6 +31,11 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.name_utils as NAMES
+import cgm.core.lib.attribute_utils as ATTR
+
+import cgm.core.lib.shared_data as SHARED
+reload(SHARED)
+
 from cgm.lib import (distance,
                      locators,
                      attributes,
@@ -47,6 +52,38 @@ from cgm.lib import (distance,
 
 #>>> Utilities
 #===================================================================   
+def get_dat(surface = None, uKnots = True, vKnots = False):
+    """
+    Function to split a curve up u positionally 
+    
+    :parameters:
+        'curve'(None)  -- Curve to split
+    :returns
+        list of values(list)
+        
+    hat tip: http://ewertb.soundlinker.com/mel/mel.074.php
+    """
+    _str_func = 'get_dat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    
+    surface = VALID.shapeArg(surface,'nurbsSurface',True)
+    
+    mSurfaceInfo = False
+    _res = {}
+    
+    _short = NAMES.short(surface)
+    mSurfaceInfo = cgmMeta.asMeta( NODES.create(_short,'surfaceInfo') )
+    
+    mSurfaceInfo.doConnectIn('inputSurface','{0}.worldSpace'.format(surface))
+    
+    if uKnots:
+        _res['uKnots'] = [u for u in mSurfaceInfo.knotsU[0]]
+    if vKnots:
+        _res['vKnots'] = [u for u in mSurfaceInfo.knotsV[0]]
+
+    if mSurfaceInfo:mSurfaceInfo.delete()
+    return _res
+
 def attachObjToSurface(*args,**kws):
     """
     objToAttach = None

@@ -859,9 +859,9 @@ def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
     return _curve
     
 def getUSplitList(curve=None, points=3, markPoints=False,
-                      startSplitFactor=None, insetSplitFactor=None,
-                      rebuild=False, rebuildSpans=10,minU=None,maxU=None,
-                      reverse=False):
+                  startSplitFactor=None, insetSplitFactor=None,
+                  rebuild=False, rebuildSpans=10,minU=None,maxU=None,
+                  reverse=False):
     """
     Function to split a curve up u positionally 
     

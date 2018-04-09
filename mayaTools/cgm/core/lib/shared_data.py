@@ -157,7 +157,7 @@ _d_attrTypes_toShort = {'matrix':'mtrx','float':'fl','double':'d','double3':'d3'
 
 #>>> Naming
 #==================================================================
-_d_node_to_suffix = {'follicle':'foll','curveInfo':'crvInfo','condition':'condNode','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode'}
+_d_node_to_suffix = {'follicle':'foll','curveInfo':'crvInfo','condition':'condNode','multiplyDivide':'mdNode','pointOnSurfaceInfo':'posInfoNode','closestPointOnSurface':'cPntOnSurfNode','closestPointOnMesh':'cPntOnMeshNode','plusMinusAverage':'pmAvNode','frameCache':'fCacheNode','surfaceInfo':'surfInfo'}
 
 
 #>>> Positional data

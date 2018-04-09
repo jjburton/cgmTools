@@ -2950,12 +2950,14 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
             if mObj.loftCurve.v:
                 _d = {}
                 _rot = mObj.loftCurve.rotate
+                _trans = mObj.loftCurve.translate                
                 _scale = mObj.loftCurve.scale
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
                 if not MATH.is_float_equivalent(MATH.multiply(_scale), 1.0):
                     _d['s'] = _scale
-                    
+                if not MATH.is_float_equivalent(sum(_trans),0.0):
+                    _d['t'] = _trans
                 if _d:
                     _d_loftCurves[i] = _d
         
@@ -3162,10 +3164,14 @@ def blockDat_load(self,blockDat = None):
                                 mLoftCurve = mObj.loftCurve
                                 _rot = _d_loft.get('r')
                                 _s = _d_loft.get('s')
+                                _t = _d_loft.get('t')
                                 if _rot:
                                     ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                                 if _s:
                                     ATTR.set(mLoftCurve.mNode,'scale',_s)
+                                if _t:
+                                    ATTR.set(mLoftCurve.mNode,'translate',_t)
+                                    
                     
                     for i,d_sub in _subShapers.iteritems():
                         ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
