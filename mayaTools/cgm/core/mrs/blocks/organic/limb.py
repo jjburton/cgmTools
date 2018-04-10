@@ -2596,7 +2596,8 @@ def rig_digitShapes(self):
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
                                           targets = ml_targets,
-                                          mode = 'simpleCast')
+                                          connectionPoints = 5,
+                                          mode = 'frameHandle')#'simpleCast')
         """
         if self.mPivotHelper:
             size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
@@ -4552,8 +4553,9 @@ def rig_cleanUp(self):
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
     mRoot = mRigNull.rigRoot
+    
     if not mRoot.hasAttr('cgmAlias'):
-        mRoot.addAttr('cgmAlias','root')
+        mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
         
     mRootParent = self.mConstrainNull
     mMasterControl= self.d_module['mMasterControl']

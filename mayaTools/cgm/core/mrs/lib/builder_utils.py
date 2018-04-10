@@ -54,6 +54,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.lib.transform_utils as TRANS
 
 for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
     reload(m)
@@ -820,7 +821,7 @@ def get_dynParentTargetsDat(self):
 
 
 @cgmGEN.Timer
-def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None):
+def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,connectionPoints=9):
     """
     :parameters:
         self(RigBlocks.rigFactory)
@@ -1115,7 +1116,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         for i,crv in enumerate(l_mainCurves):
                             mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                            _l = CURVES.getUSplitList(crv,9,rebuild=True,rebuildSpans=30)[:-1]
+                            _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
                             
                             for ii,p in enumerate(_l):
                                 if not d_epPos.get(ii):
@@ -1267,8 +1268,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #if v == l_uValues[-2]:
                             #log.debug("|{0}| >> {1} | Last one...".format(_str_func,i))
                             #_add = - _add
-
-                        baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+_add), ch = 0, rn = 0, local = 0)[0]
+                        baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
                         DIST.offsetShape_byVector(baseCrv,offset,component='cv')
                         l_mainCurves.append(baseCrv)
                         
@@ -1526,7 +1526,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         return ml_shapes
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False):
+def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False, ballBase = True):
     _short = self.mBlock.mNode
     _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
     mRigNull = self.mRigNull
@@ -1648,6 +1648,25 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
             
         _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), divisions=1)
         RIGGING.match_transform(_mesh,ml_targets[i])
+        
+        if ballBase and i != 0:
+            RIGGING.match_transform(_loftCurves[0],ml_targets[i])
+            TRANS.pivots_recenter(_loftCurves[0])
+            
+            _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
+            _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
+            _size = [v*.8 for v in _size]
+            _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
+            TRANS.scale_to_boundingBox(_sphere[0], _size)
+            
+            SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+            #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
+            SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+            
+            _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
+            
+        RIGGING.match_transform(_mesh,ml_targets[i])
+        
         l_new.append(_mesh)
     
     #...clean up 

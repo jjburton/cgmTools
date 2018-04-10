@@ -2950,7 +2950,7 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
             if mObj.loftCurve.v:
                 _d = {}
                 _rot = mObj.loftCurve.rotate
-                _trans = mObj.loftCurve.translate                
+                _trans = mObj.loftCurve.translate
                 _scale = mObj.loftCurve.scale
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
