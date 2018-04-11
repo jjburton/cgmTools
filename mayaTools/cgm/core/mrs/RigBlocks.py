@@ -4590,7 +4590,7 @@ class rigFactory(object):
                 #_str_subFunc = fnc.__name__
 
                 mc.progressBar(mayaMainProgressBar, edit=True,
-                               status = "|{0}| >>Rigging>> step: {1}...".format(_str_func,fnc), progress=i+1)    
+                               status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)    
 
                 getattr(self.d_block['buildModule'],fnc)(self)
 
