@@ -46,7 +46,10 @@ from cgm.core.lib import attribute_utils as ATTR
 #from cgm.core.cgmPy import path_Utils as PATH
 #from cgm.core.cgmPy import os_Utils as cgmOS
 
-def validate_stateArg(stateArg = None):
+def validate_stateArg(stateArg = None,):
+    """
+    returns [stateIndex,stateName]  
+    """
     _str_func = 'valid_stateArg'
     _failMsg = "|{0}| >> Invalid: {1} | valid: {2}".format(_str_func,stateArg,BLOCKSHARED._l_blockStates)
     

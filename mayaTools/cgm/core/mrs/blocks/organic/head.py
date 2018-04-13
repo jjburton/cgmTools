@@ -178,7 +178,7 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',
                      'neckJoints':3,
                      'proxyDirect':True,
-                     'attachPoint':'base',
+                     'attachPoint':'end',
                      'neckIK':'ribbon',
                      'proxyShape':'cube',
                      'nameList':['neck','head'],#...our datList values

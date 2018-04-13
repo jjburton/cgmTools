@@ -249,7 +249,7 @@ def rotatePivot_set(node=None, new_pos = None):
     
     log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_pos,_node))
     
-    mc.xform (_node,  ws=True, rp= new_pos, p=True)
+    mc.xform (_node,  ws=True, rp= new_pos, p=False)
     
 def scalePivot_set(node=None, new_pos = None):
     """

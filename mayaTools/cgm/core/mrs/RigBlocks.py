@@ -1722,7 +1722,44 @@ class handleFactory(object):
                 mAxis = VALID.simpleAxis(d_pivotDirections['front'])
                 p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
                 
+                #Main Handle -----------------------------------------------------------------------------
+                pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
+                                                         shape='loftCircle',
+                                                         direction = 'y-',
+                                                         sizeMode = 'fixed',
+                                                         size = _size)
+                mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
+                mPivotRootHandle.addAttr('cgmName','base')
+                mPivotRootHandle.addAttr('cgmType','pivotHelper')            
+                mPivotRootHandle.doName()
+            
+                mPivotRootHandle.p_position = self_pos
+                #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
+                self.color(mPivotRootHandle.mNode,_side,'sub')
+            
+                #mPivotRootHandle.parent = mPrerigNull
+                mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
+            
+                if mHandle.hasAttr('addPivot'):
+                    mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
+            
+                self.mBlock.msgList_append('prerigHandles',mPivotRootHandle)
+            
+                #Top loft ----------------------------------------------------------------
+                mTopLoft = mPivotRootHandle.doDuplicate(po=False)
+                mTopLoft.addAttr('cgmName','topLoft')
+                mTopLoft.addAttr('cgmType','pivotHelper')            
+                mTopLoft.doName()
+            
+                mTopLoft.parent = mPivotRootHandle
+            
                 
+
+                
+                if not _axisBox:
+                    _axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+                    
+                #Sub pivots =============================================================================
                 for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
                     _strPivot = a.split('pivot')[-1]
                     _strPivot = _strPivot[0].lower() + _strPivot[1:]
@@ -1736,13 +1773,13 @@ class handleFactory(object):
                         mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                         mPivot.addAttr('cgmName',_strName)
                         ml_pivots.append(mPivot)
+                        mPivot.p_parent = mPivotRootHandle
                         
                         mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
                         
                         #mPivot.p_position = p_ballPush
                     else:
-                        if not _axisBox:
-                            _axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+
     
                         mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
                         _inverse = mAxis.inverse.p_string
@@ -1751,10 +1788,14 @@ class handleFactory(object):
                                                            sizeMode = 'fixed', size = _sizeSub)
                         mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                         mPivot.addAttr('cgmName',_strName)
+                        mPivot.p_parent = mPivotRootHandle
+                        
+                        mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
     
                         #mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
                         SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
-    
+                        #SNAPCALLS.get_special_pos()
+                        #mPivot.p_position = #SNAPCALLS.get_special_pos(mPivotRootHandle.p_nameLong,'axisBox',mAxis.p_string,True)
                         SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
     
                         ml_pivots.append(mPivot)
@@ -1762,47 +1803,18 @@ class handleFactory(object):
                         #if _strPivot in ['left','right']:
                             #mPivot.p_position = p_ballPush
                             #mPivot.tz = .75
-    
-                        if not mPivotRootHandle:
-                            pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
-                                                                     shape='loftCircle',
-                                                                     direction = 'y-',
-                                                                     sizeMode = 'fixed',
-                                                                     size = _size)
-                            mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-                            mPivotRootHandle.addAttr('cgmName','base')
-                            mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-                            mPivotRootHandle.doName()
-    
-                            #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
-                            self.color(mPivotRootHandle.mNode,_side,'sub')
-    
-                            #mPivotRootHandle.parent = mPrerigNull
-                            mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-    
-                            if mHandle.hasAttr('addPivot'):
-                                mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-                            
-                            self.mBlock.msgList_append('prerigHandles',mPivotRootHandle)
-                            
-                            #Top loft
-                            mTopLoft = mPivotRootHandle.doDuplicate(po=False)
-                            mTopLoft.addAttr('cgmName','topLoft')
-                            mTopLoft.addAttr('cgmType','pivotHelper')            
-                            mTopLoft.doName()
-                            
-                            mTopLoft.parent = mPivotRootHandle
-                            
-                            mAxis = VALID.simpleAxis(d_pivotDirections['back'])
-                            p_Base = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/4 )
-                            TRANS.rotatePivot_set(mPivotRootHandle.mNode,
-                                                  p_Base )
-                            TRANS.scalePivot_set(mPivotRootHandle.mNode,
-                                                 p_Base )
-                            
-                        mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
-                        
-                            
+                                
+                #Clean up Pivot root after all else --------------------------------------------------
+                mAxis = VALID.simpleAxis(d_pivotDirections['back'])
+                p_Base = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,
+                                                   d_pivotDirections['back'],
+                                                   _size/4 )
+                
+                mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
+                
+                for mPivot in ml_pivots:#Unparent for loft
+                    mPivot.p_parent = False
+                    
                 if self._mTransform.getMessage('loftCurve'):
                     log.info("|{0}| >> LoftSetup...".format(_str_func))
                     
@@ -1876,7 +1888,7 @@ class handleFactory(object):
                     mc.delete(_axisBox)
                     
                 log.info(_bbsize)
-                TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
+                #TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
                 #mPivotRootHandle.scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2]
                 #mc.xform(mPivotRootHandle.mNode,
                          #scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2],
@@ -2310,9 +2322,9 @@ class handleFactory(object):
             mCrv.p_parent = self._mTransform
             self.color(mCrv.mNode,controlType='sub')
 
-            for s in mCrv.getShapes(asMeta=True):
-                s.overrideEnabled = 1
-                s.overrideDisplayType = 2
+            #for s in mCrv.getShapes(asMeta=True):
+                #s.overrideEnabled = 1
+                #s.overrideDisplayType = 2
             mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
 
             return mCrv
@@ -4686,7 +4698,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             #    if a not in self.UNMANAGED:
             #        self.UNMANAGED.append(a) 	
             #self._UTILS = pFactory
-    
+            self.UTILS = PUPPETUTILS
             if self.__justCreatedState__ or doVerify:
                 if self.isReferenced():
                     log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
@@ -4772,7 +4784,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         Function to call a blockModule function by string. For menus and other reasons
         """
         return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
-    
+
     def changeName(self,name = None):
         try:
             _str_func = 'cgmRigPuppet.changeName'
@@ -5871,7 +5883,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             reload(MODULEUTILS)
         except Exception,err:cgmGEN.cgmException(Exception,err)
         return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
-
+    UTILS = MODULEUTILS
     def __verify__(self,**kws):
         """"""
         """ 

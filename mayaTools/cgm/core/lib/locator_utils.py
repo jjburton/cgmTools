@@ -120,7 +120,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 _loc = mc.rename(_loc,"{0}_fromTarget_loc".format( coreNames.get_base(_target)))
     
             if tag:#store info
-                ATTR.store_info(_loc,'cgmName',coreNames.get_base(_target), lock = True)
+                ATTR.store_info(_loc,'cgmName',coreNames.get_base(_target), attrType='string', lock = True)
                 ATTR.store_info(_loc,'cgmLocMode','fromTarget',lock = True)
                 ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
                 if not VALID.is_component(_target):

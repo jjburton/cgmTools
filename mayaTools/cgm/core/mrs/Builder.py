@@ -228,7 +228,12 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.info("Snap menu rebuilt")
-            
+        
+    def buildMenu_help(self):
+        self.uiMenu_Help.clear()
+        
+        cgmUI.uiSection_help(self.uiMenu_Help)
+        
     def buildMenu_add( self, force=False, *args, **kws):
         if self.uiMenu_add and force is not True:
             log.info("No load...")
@@ -298,9 +303,11 @@ class ui(cgmUI.cgmGUI):
         _sel = mc.ls(sl=1) or []
         
         mActiveBlock = None
+        side = None
+        
         if self._blockCurrent:
             mActiveBlock = self._blockCurrent.mNode
-            
+            side = self._blockCurrent.UTILS.get_side(self._blockCurrent)
         _sizeMode = self.var_rigBlockCreateSizeMode.value
         if _sizeMode == 'selection' and not mc.ls(sl=True):
             #if blockType not in ['master']:
@@ -308,7 +315,11 @@ class ui(cgmUI.cgmGUI):
                 #return False
             _sizeMode = None
         
-        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, size = _sizeMode, blockParent = mActiveBlock, blockProfile = blockProfile)
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',blockType = blockType, 
+                                         size = _sizeMode,
+                                         blockParent = mActiveBlock,
+                                         side = side,
+                                         blockProfile = blockProfile)
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         

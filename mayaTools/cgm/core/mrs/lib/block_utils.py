@@ -3554,7 +3554,20 @@ def controls_mirror(blockSource, blockMirror = None,
         _str_func = '[{0}] controls_mirror'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         
-        ml_controls = controls_get(blockSource, template, prerig)
+        d_controlCall = {'template':template,'prerig':prerig}
+        
+        if blockMirror is not None:
+            _mirrorState = BLOCKGEN.validate_stateArg(blockMirror.blockState)
+            #_mirrorState = blockMirror.getState()
+            if prerig and _mirrorState[0]<2:
+                log.debug("|{0}| >> blockMirror not prerigged. Removing controls".format(_str_func))
+                d_controlCall['prerig'] = False
+            if template and _mirrorState[0]<1:
+                log.debug("|{0}| >> blockMirror not templated. Removing controls".format(_str_func))
+                d_controlCall['template'] = False                
+            
+        
+        ml_controls = controls_get(blockSource, **d_controlCall)
         ml_controls.insert(0,blockSource)        
         int_lenSource = len(ml_controls)
         
@@ -3563,7 +3576,7 @@ def controls_mirror(blockSource, blockMirror = None,
             ml_targetControls = ml_controls
         else:
             log.debug("|{0}| >> Mirror Target: {1}....".format(_str_func,blockMirror.p_nameShort))
-            ml_targetControls = controls_get(blockMirror,template,prerig)
+            ml_targetControls = controls_get(blockMirror,**d_controlCall)
             ml_targetControls.insert(0,blockMirror)
             int_lenTarget = len(ml_targetControls)
             
@@ -3607,7 +3620,7 @@ def controls_mirror(blockSource, blockMirror = None,
             log.debug(cgmGEN._str_subLine)                        
             log.debug("|{0}| >> Get {1} | {2}".format(_str_func,i,mObj.p_nameBase))
             str_obj = mObj.mNode
-            _dat = {}
+            _dat = {'source':str_obj,'target':ml_targetControls[i+1].mNode}
             
             #Pos... ----------------------------------------------------------------------------------------
             posBase = mObj.p_positionEuclid
@@ -3616,7 +3629,7 @@ def controls_mirror(blockSource, blockMirror = None,
             log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
             #mObj.p_positionEuclid = posNew
             
-            _dat ={'pos':posNew}
+            _dat['pos'] = posNew
             
             #Reflect/Orient ---------------------------------------------------------------------------------
             '''If we have locked rotates we can't reflect properly and instead do a attr check'''
@@ -3644,8 +3657,9 @@ def controls_mirror(blockSource, blockMirror = None,
             else:
                 reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
                 reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
-
-                reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 100)
+                #reflectUp = MATH.get_obj_vector(mObj.mNode,'y+')
+                
+                reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 10)
                 log.debug("|{0}| >> Mirror rot [{1}] | aim: {2} | up: {3} | point: {4}".format(_str_func, i, reflectAim,reflectUp,reflectAimPoint))
                 
                 _dat['aimPoint']=reflectAimPoint
@@ -3743,22 +3757,23 @@ def controls_mirror(blockSource, blockMirror = None,
             #l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim, 'scale':mObj.scale})
             
         #pprint.pprint(l_dat)
+        
+        log.debug(cgmGEN._str_subLine)            
+        log.debug("|{0}| >> remap pass values...".format(_str_func))
+        md_remap = {}
+        for i,mObj in enumerate(ml_targetControls):
+            if 'pivotHelper' in mObj.p_nameShort:
+                if not md_remap.get('pivotHelper'):
+                    md_remap['pivotHelper'] = {}
+                    
+                _cgmName = mObj.cgmName
+                if _cgmName == 'left':
+                    md_remap['pivotHelper']['right'] = i
+                elif _cgmName == 'right':
+                    md_remap['pivotHelper']['left'] = i        
+        
         #return
         for i_loop in range(2):
-            log.debug(cgmGEN._str_subLine)            
-            log.debug("|{0}| >> {1} remap pass values...".format(_str_func,i_loop))
-            md_remap = {}
-            for i,mObj in enumerate(ml_targetControls):
-                if 'pivotHelper' in mObj.p_nameShort:
-                    if not md_remap.get('pivotHelper'):
-                        md_remap['pivotHelper'] = {}
-                        
-                    _cgmName = mObj.cgmName
-                    if _cgmName == 'left':
-                        md_remap['pivotHelper']['right'] = i
-                    elif _cgmName == 'right':
-                        md_remap['pivotHelper']['left'] = i
-    
             log.debug("|{0}| >> push values...".format(_str_func))
             
             for i,mObj in enumerate(ml_targetControls):
@@ -3767,6 +3782,9 @@ def controls_mirror(blockSource, blockMirror = None,
                     
                     _dat = l_dat[i]
                     str_obj = mObj.mNode
+                    if str_obj != _dat.get('target'):
+                        log.warning("|{0}| >> [{1}] | {2} data mismatch | {3}".format(_str_func,i,mObj.p_nameShort,_dat.get('target')))            
+                        
                     
                     if 'pivotHelper' in mObj.p_nameShort:
                         _cgmName = mObj.cgmName
@@ -3787,7 +3805,13 @@ def controls_mirror(blockSource, blockMirror = None,
                                 ATTR.set(str_obj,'r{0}'.format(a),v)
                     else:
                         SNAP.aim_atPoint(mObj.mNode, _dat['aimPoint'], vectorUp=_dat['up'],mode='vector')
-                        
+                        """
+                        if not i_loop:
+                            import cgm.core.lib.locator_utils as LOC
+                            LOC.create(position=_dat['aimPoint'], name='{0}_aim__loc'.format(str_obj))
+                            print mObj.mNode
+                            print _dat['aimPoint']
+                            print _dat['up']"""
                     #Subshapers ----------------------------------------------------------------------
                     if _dat.has_key('subShapers'):
                         ml_subShapers = mObj.msgList_get('subShapers')

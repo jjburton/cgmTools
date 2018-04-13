@@ -127,6 +127,7 @@ d_block_profiles = {
                'mainRotAxis':'out',               
                'buildBaseLever':False,
                'hasLeverJoint':False,
+               'hasEndJoint':True,
                'nameList':['hip','knee','ankle','ball','toe'],
                'baseAim':[0,-1,0],
                'baseUp':[0,0,1],
@@ -145,6 +146,7 @@ d_block_profiles = {
            'numControls':3,
            'buildLeverBase':True,
            'hasLeverJoint':True,
+           'hasEndJoint':True,
            'nameList':['clav','shoulder','elbow','wrist'],
            'baseAim':[-1,0,0],
            'baseUp':[0,1,0],
@@ -251,6 +253,7 @@ d_defaultSettings = {'version':__version__,
                      'settingsDirection':'up',
                      'numSpacePivots':2,
                      'settingsPlace':1,
+                     'hasEndJoint':True,
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'linear',
@@ -4567,6 +4570,7 @@ def rig_cleanUp(self):
     mMasterNull = self.d_module['mMasterNull']
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
+    _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')        
     
     ml_controlsToSetup = []
     for msgLink in ['rigJoints','controlIK']:
@@ -4602,6 +4606,7 @@ def rig_cleanUp(self):
             mLimbRoot.addAttr('cgmAlias','{0}_limbRoot'.format(self.d_module['partName']))
             
         if not mLeverFK.hasAttr('cgmAlias'):
+            ATTR.copy_to(mBlock.mNode,_baseNameAttrs[0],mLeverFK.mNode, 'cgmAlias', driven='target')            
             mLeverFK.addAttr('cgmAlias','{0}_lever'.format(self.d_module['partName']))
                 
         for mTar in ml_targetDynParents:

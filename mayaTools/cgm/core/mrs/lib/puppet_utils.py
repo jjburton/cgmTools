@@ -241,7 +241,8 @@ def modules_settings_set(self,**kws):
                     try:
                         ATTR.set(_short_settings,k,v)
                     except Exception,err:
-                        log.debug("|{0}| >>  Failed to set: mModule:{1} | k:{2} | v:{3}".format(_str_func,mModule.mNode,k,v))
+                        #if mSettings.hasAttr(k):
+                        log.debug("|{0}| >>  Failed to set: mModule:{1} | k:{2} | v:{3} | {4}".format(_str_func,mModule.mNode,k,v,err))
             else:
                 log.debug("|{0}| >>  Missing settings: {1}".format(_str_func,mModule))
         return True        

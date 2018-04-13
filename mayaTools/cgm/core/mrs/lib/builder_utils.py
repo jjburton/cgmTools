@@ -592,6 +592,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         
     #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
         
+    mc.polyNormal(_res_body[0],nm=0)
     #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     
     if merge:

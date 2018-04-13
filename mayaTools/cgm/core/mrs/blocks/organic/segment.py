@@ -1241,44 +1241,8 @@ def rig_prechecks(self):
     
     
     #DynParents =============================================================================
-    log.debug("|{0}| >> Resolve moduleParent dynTargets".format(_str_func))
-    
-    mModuleParent = self.d_module['mModuleParent']
-    self.md_dynTargetsParent = {}
-    self.ml_dynEndParents = [mMasterNull.puppetSpaceObjectsGroup, mMasterNull.worldSpaceObjectsGroup]
-    self.md_dynTargetsParent['world'] = mMasterNull.worldSpaceObjectsGroup
-    self.md_dynTargetsParent['puppet'] = mMasterNull.puppetSpaceObjectsGroup
-    
-    self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
-                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
-    
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('rigRoot'):
-            mParentRoot = mi_parentRigNull.rigRoot
-            self.md_dynTargetsParent['root'] = mParentRoot
-            #self.ml_dynEndParents.insert(0,mParentRoot)
-        else:
-            self.md_dynTargetsParent['root'] = False
+    self.UTILS.get_dynParentTargetsDat(self)
 
-        
-        if mi_parentRigNull.getMessage('controlIK'):
-            self.md_dynTargetsParent['controlIK'] = mi_parentRigNull.controlIK
-        else:
-            self.md_dynTargetsParent['controlIK'] = False
-            
-        if mi_parentRigNull.getMessage('controlIKBase'):
-            self.md_dynTargetsParent['controlIKBase'] = mi_parentRigNull.controlIKBase 
-        else:
-            self.md_dynTargetsParent['controlIKBase'] = False        
-            
-    log.debug(cgmGEN._str_subLine)
-    log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
-    pprint.pprint(self.md_dynTargetsParent)
-    log.debug(cgmGEN._str_subLine)    
-    log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
-    pprint.pprint(self.ml_dynEndParents)
-    log.debug(cgmGEN._str_subLine)
     
     
     #rotateOrder =============================================================================
@@ -2702,7 +2666,7 @@ def rig_cleanUp(self):
     
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
-    ml_endDynParents = self.ml_dynEndParents# + [mRoot]
+    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
     ml_ikDynParents = []
     
     """
@@ -2737,6 +2701,7 @@ def rig_cleanUp(self):
         
     ml_targetDynParents.extend(self.ml_dynEndParents)
     mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)
+    ml_targetDynParents.extend(mRoot.msgList_get('spacePivots',asMeta = True))
 
     log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
     pprint.pprint(ml_targetDynParents)
@@ -2887,11 +2852,11 @@ def rig_cleanUp(self):
             
             mDynGroup.dynFollow.p_parent = mRoot
     
-    #...fk controls =================================================================================================
-    log.debug("|{0}| >>  FK...".format(_str_func))                
+    #...fk controls ============================================================================================
+    log.debug("|{0}| >>  FK...".format(_str_func)+'-'*80)                
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
-    for i,mObj in enumerate(ml_fkJoints[1:]):
+    for i,mObj in enumerate(ml_fkJoints):
         log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))                        
         ml_targetDynParents = copy.copy(ml_baseDynParents)
         ml_targetDynParents.append(self.mConstrainNull)
@@ -2915,15 +2880,20 @@ def rig_cleanUp(self):
     
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
-            
-        #if i == 0:
-            #mDynGroup.dynFollow.p_parent = mRoot    
+        mDynGroup.rebuild()
+
+        if i == 0:
+            mDynGroup.dynFollow.p_parent = mRoot    
         
         log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
         pprint.pprint(ml_targetDynParents)                
         log.debug(cgmGEN._str_subLine)    
     
-
+    #Settings =================================================================================
+    log.debug("|{0}| >> Settings...".format(_str_func))
+    mSettings.visRoot = 0
+    mSettings.visDirect = 0
+        
     #Lock and hide =================================================================================
     ml_controls = mRigNull.msgList_get('controlsAll')
     

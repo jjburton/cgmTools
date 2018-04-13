@@ -22,6 +22,11 @@ def mrsUI():
     reload(MRSBUILDER)
     MRSBUILDER.ui()
     
+def mrsANIMATE():
+    import cgm.core.mrs.Animate as MRSANIMATE
+    reload(MRSANIMATE)
+    MRSANIMATE.ui()
+    
 def cgmSnapTools():
     try:
         import cgm.core.tools.snapTools as SNAP
