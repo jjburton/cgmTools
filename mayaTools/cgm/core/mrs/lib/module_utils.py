@@ -719,7 +719,46 @@ def anim_key(self,**kws):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def mirror_get(self):
-    return False
+    _str_func = 'mirror_get'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    
+    l_direction = ['left','right']
+    if not self.hasAttr('cgmDirection'):
+        log.debug("|{0}| >>  has no cgmDirection".format(_str_func))
+        return False
+
+    int_direction = l_direction.index(self.cgmDirection)
+    d = {'cgmName':self.cgmName,'moduleType':self.moduleType,'cgmDirection':l_direction[not int_direction]}
+    log.debug("|{0}| >>  looking for: {1}".format(_str_func,d))
+
+    
+    mModuleParent  = self.getMessage('moduleParent',asMeta=True)
+    log.debug("|{0}| >> ModuleParent: {1}".format(_str_func,mModuleParent))
+    if not mModuleParent:
+        return False
+    
+    ml_match = []
+    ml_children = mModuleParent[0].atUtils('moduleChildren_get')
+    for mChild in ml_children:
+        #log.debug("|{0}| >> mChild: {1}".format(_str_func,mChild))        
+        _match = True
+        for a,v in d.iteritems():
+            if not str(mChild.getMayaAttr(a)) == str(v):
+                #log.debug("|{0}| >> fail: {1}:{2} | {3}".format(_str_func,a,v,str(mChild.getMayaAttr(a))))                        
+                _match = False
+                break
+        if not mChild.moduleParent == mModuleParent[0]:
+            _match = False
+        if _match:ml_match.append(mChild)
+    
+    if len(ml_match)>1:
+        raise ValueError,"Shouldn't have found more than one mirror module!"
+    elif not ml_match:
+        return False
+    return ml_match[0]
+    
+    
 
 def mirror(self,mode = 'self'):
     """

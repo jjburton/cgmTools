@@ -43,6 +43,13 @@ import cgm.core.tools.toolbox as TOOLBOX
 #>>> Root settings =============================================================
 __version__ = '0.04122018 - ALPHA'
 __toolname__ ='MRSAnimate'
+_d_contexts = {'control':{'short':'ctrl'},
+               'part':{},
+               'puppet':{},
+               'scene':{}}
+_l_contexts = _d_contexts.keys()
+
+
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -53,7 +60,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 300,350
+    DEFAULT_SIZE = 275,500
     TOOLNAME = '{0}.ui'.format(__toolname__)
     
     def insert_init(self,*args,**kws):
@@ -75,6 +82,10 @@ class ui(cgmUI.cgmGUI):
         
         self.uiMenu_snap = None
         self.uiMenu_help = None
+        self._l_contexts = _l_contexts
+        try:self.var_mrsContext
+        except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext',
+                                                          defaultValue = _l_contexts[0])
         
     def build_menus(self):
         log.debug("build menus... "+'-'*50)
@@ -119,8 +130,6 @@ class ui(cgmUI.cgmGUI):
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         pprint.pprint(self._ml_objList)
         DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
-
-
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
@@ -205,57 +214,216 @@ def buildTab_mrs(self,parent):
                  (_column,"right",0),                        
                  (_column,"bottom",0)])    
 
-    #>>>Shape Creation ====================================================================================
     mc.setParent(_column)
     
-    mc.button(parent = _column,
+    
+    #>>>Context set -------------------------------------------------------------------------------
+    _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate')
+    
+    mUI.MelSpacer(_row,w=1)                      
+    #mUI.MelLabel(_row,l='Context: ')
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    uiRC = mUI.MelRadioCollection()
+    
+    mVar = self.var_mrsContext
+    _on = mVar.value
+
+    for i,item in enumerate(_l_contexts):
+        if item == _on:
+            _rb = True
+        else:_rb = False
+        _label = str(_d_contexts[item].get('short',item))
+        uiRC.createButton(_row,label=_label,sl=_rb,
+                          onCommand = cgmGEN.Callback(mVar.setValue,item))
+
+        mUI.MelSpacer(_row,w=1)       
+    _row.layout() 
+    
+    
+    #>>>Context Options -------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    _d = {}
+    
+    mUI.MelSpacer(_row,w=5)                          
+    mUI.MelLabel(_row,l='Options: ')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    _d_defaults = {}
+    _l_order = ['children','sibblings','mirror']
+    self._dCB_contextOptions = {}
+    for k in _l_order:
+        _plug = 'cgmVar_mrsContext_' + k
+        try:self.__dict__[_plug]
+        except:
+            _default = _d_defaults.get(k,0)
+            #log.debug("{0}:{1}".format(_plug,_default))
+            self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+
+        l = _d.get(k,k)
+        
+        _cb = mUI.MelCheckBox(_row,label=l,
+                              annotation = 'Include {0} in context.'.format(k),
+                              value = self.__dict__[_plug].value,
+                              onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                              offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+        self._dCB_contextOptions[k] = _cb
+    _row.layout()
+    
+    
+
+    buildSection_MRSFunctions(self,_column)
+
+def buildSection_MRSFunctions(self,parent):
+    try:self.var_mrsFuncFrameCollapse
+    except:self.create_guiOptionVar('mrsFuncFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsFuncFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Functions',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                #ann='Contextual MRS functionality',
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Anim ===================================================================================== 
+
+    #>>>Key snap -------------------------------------------------------------------------------------
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+
+    d_anim = {'key':{'ann':'',
+                     'arg':{}}}
+    
+    l_anim = ['<<','key','>>','reset','delete']
+    for b in l_anim:
+        _d = d_anim.get(b,{})
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  en=False,
+                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = _d.get('ann',b))
+    _row.layout()
+    
+    #>>>Select -------------------------------------------------------------------------------------
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    d_select = {'select':{'ann':'Select objects in context',
+                          'arg':{'mode':'select'}},
+                'report':{'ann':'Report objects in context',
+                          'arg':{'mode':'report'}},                
+                }
+    
+    l_select = ['select','report']
+    for b in l_select:
+        _d = d_select.get(b,{})
+        _arg = _d.get('arg',{})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    _row.layout()
+    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
+    """
+    mc.button(parent = _inside,
               ut = 'cgmUITemplate',
               l='Test context',
-              c=lambda *a: get_context(self))    
+              c=lambda *a: get_context(self))
+              """
+    #>>>Mirror ===================================================================================== 
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    cgmUI.add_Header('Mirror')
+    cgmUI.add_LineSubBreak()
     
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    d_mirror = {'<Pull':{'ann':'Select objects in context',
+                          'arg':{}},
+                'Push>':{'ann':'Report objects in context',
+                          'arg':{}},
+                }
     
-    #>>>Key snap -------------------------------------------------------------------------------------    
-    mc.setParent(_column)
-    
-    _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding=1)
-
-
-    mc.button(parent=_row,
-              l = '<<',
-              ut = 'cgmUITemplate',                                    
-              #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
-              ann = "Aim snap in a from:to selection")
-
-    mc.button(parent=_row,
-              l = 'Key',
-              ut = 'cgmUITemplate',                                    
-              #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
-              ann = "Aim snap in a from:to selection")
-
-    mc.button(parent=_row,
-              l = '>>',
-              ut = 'cgmUITemplate',                                    
-              #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
-              ann = "Aim snap in a from:to selection")
-
-
-    mc.button(parent=_row,
-              l = 'Breakdown',
-              ut = 'cgmUITemplate',                                    
-              #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
-              ann = "Aim snap in a from:to selection")
-
-    mc.button(parent=_row,
-              l = 'Reset',
-              ut = 'cgmUITemplate',                                    
-              #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
-              ann = "Aim snap in a from:to selection")    
-
-    _row.layout()       
+    l_mirror = ['<Pull','Flip','Push>']
+    for b in l_mirror:
+        _d = d_mirror.get(b,{})
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  en=False,
+                  ut = 'cgmUITemplate',
+                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = _d.get('ann',b))
+    _row.layout()
     
     
     
-    buildSection_puppet(self,_column)
+    #>>>Switch ===================================================================================== 
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()        
+    cgmUI.add_Header('Switch')
+    cgmUI.add_LineSubBreak()
+    
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    d_switch = {'<Pull':{'ann':'Select objects in context',
+                          'arg':{}},
+                'Push>':{'ann':'Report objects in context',
+                          'arg':{}},
+                }
+    
+    l_switch = ['FKsnap','FKon','IKon','IKSnap']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        mc.button(parent=_row,
+                  en=False,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  ann = _d.get('ann',b))
+    _row.layout()
+    
+    
+        
+    #>>>Settings ===================================================================================== 
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()        
+    cgmUI.add_Header('Settings')
+    l_settings = ['visSub','visDirect','visRoot']
+    l_enums = ['skeleton','geo','proxy']
+
+    for n in l_settings + l_enums:
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l=' {0}:'.format(n))
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        if n in l_settings:
+            l_options = ['hide','show']
+            _mode = 'moduleSettings'
+        else:
+            l_options = ['off','lock','on']
+            _mode = 'puppetSettings'
+        
+        for v,o in enumerate(l_options):
+            mc.button(parent = _row,
+                      ut = 'cgmUITemplate',
+                      l=o,
+                      c=cgmGEN.Callback(uiFunc_contextSetValue,self,'puppet',n,v,_mode))
+                      #c=lambda *a: LOCINATOR.ui())             
+            
+        mUI.MelSpacer(_row,w=2)
+        _row.layout()
 
 
 def buildSection_puppet(self,parent):
@@ -337,6 +505,13 @@ def get_context(self):
     _str_func='get_context'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     
+    b_children = bool(self.cgmVar_mrsContext_children.value)
+    b_sibblings = bool(self.cgmVar_mrsContext_sibblings.value)
+    b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+    context = self.var_mrsContext.value
+    
+    log.debug("|{0}| >> context: {1} | children: {2} | sibblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_sibblings,b_mirror))
+    
     #>>  Individual objects....  ============================================================================
     ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
     self._sel = ml_sel
@@ -344,36 +519,161 @@ def get_context(self):
                          'mPuppets':[],
                          'mModules':[]}
     
+    res = []
+    
     #------------------------------------------------------
     for i,mObj in enumerate(ml_sel):
-        log.debug("|{0}| >> checking: {1}".format(_str_func,mObj))  
+        log.debug("|{0}| >> First pass check: {1}".format(_str_func,mObj))  
         
         #>>> Module --------------------------------------------------------------------------
         if mObj.getMessage('rigNull'):
-            
             if mObj not in self.d_puppetData['mControls']:
-                self.d_puppetData['mControls'].append(mObj)                            
-            
+                self.d_puppetData['mControls'].append(mObj)
+                if context == 'control':
+                    res.append(mObj)
+
+
             mRigNull = mObj.rigNull
-            
             mModule = mRigNull.module
+            
             if mModule not in self.d_puppetData['mModules']:
                 self.d_puppetData['mModules'].append(mModule)
+                if context == 'part':
+                    res.append(mModule)
             
             if mModule.getMessage('modulePuppet'):
                 mPuppet = mModule.modulePuppet
-                
                 if mPuppet not in self.d_puppetData['mPuppets']:
-                    self.d_puppetData['mPuppets'].append(mPuppet)                
-                    
-    log.debug(cgmGEN._str_subLine)
-    pprint.pprint(self.d_puppetData)
-    return self.d_puppetData
+                    self.d_puppetData['mPuppets'].append(mPuppet)
+                    if context == 'puppet':
+                        res.append(mPuppet)
+
+
+    if b_sibblings:
+
+        log.debug(cgmGEN._str_subLine)        
+        log.debug("|{0}| >> sibbling check...".format(_str_func))
+        if context == 'part':
+            print(cgmGEN._str_hardBreak)        
+            log.warning(cgmGEN._str_hardBreak)        
+            log.warning("|{0}| >> JOSH ... part Sibblings won't work right until you tag build profile for matching ".format(_str_func))
+            log.warning(cgmGEN._str_hardBreak)        
+            print(cgmGEN._str_hardBreak)                    
+            
+            res = []
+            for mModule in self.d_puppetData['mModules']:
+                log.debug("|{0}| >> sibbling check: {1}".format(_str_func,mModule))
+                mModuleParent  = mModule.getMessage('moduleParent',asMeta=True)
+                log.debug("|{0}| >> ModuleParent: {1}".format(_str_func,mModuleParent))
+                if mModuleParent:
+                    ml_children = mModuleParent[0].atUtils('moduleChildren_get')
+                    for mChild in ml_children:
+                        if mChild.getMessage('moduleParent',asMeta=True) == mModuleParent:
+                            if mChild not in res:
+                                res.append(mChild)
+                            
+            self.d_puppetData['mModules'] = res#...push new data back
+            
+        elif context == 'control':
+            res = []
+            for mModule in self.d_puppetData['mModules']:
+                log.debug("|{0}| >> sibbling gathering for control | {1}".format(_str_func,mModule))
+                res.extend(mModule.rigNull.msgList_get("controlsAll"))
+            
+                
+    if b_children:
+        log.debug(cgmGEN._str_subLine)        
+        log.debug("|{0}| >> Children check...".format(_str_func))
+        
+        if context == 'part':
+            for mModule in self.d_puppetData['mModules']:
+                log.debug("|{0}| >> child check: {1}".format(_str_func,mModule))
+                ml_children = mModule.atUtils('moduleChildren_get')
+                for mChild in ml_children:
+                    if mChild not in res:
+                        res.append(mChild)
+            self.d_puppetData['mModules'] = res
+
+            
+        elif context == 'puppet':
+            log.warning('Puppet context with children is [parts] contextually. Changing for remainder of query.')
+            context = 'part'
+            res = []
+            for mPuppet in self.d_puppetData['mPuppets']:
+                res.extend(mPuppet.atUtils('modules_get'))
+                
     
+    if b_mirror:
+        log.debug(cgmGEN._str_subLine)        
+        log.debug("|{0}| >> Mirror check...".format(_str_func))
+        
+        if context == 'control':
+            for mModule in self.d_puppetData['mModules']:
+                mMirror = mModule.atUtils('mirror_get')
+                if mMirror:
+                    log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))                    
+                    ml_mirrorControls = mMirror.rigNull.msgList_get('controlsAll')
+                    for mControl in self.d_puppetData['mControls']:
+                        if not mControl.hasAttr('mirrorIndex'):
+                            log.debug("|{0}| >> Missing mirrorIndex: {1}".format(_str_func,mControl))
+                            break
+                        _idx = mControl.mirrorIndex
+                        for mControlMirrorOption in ml_mirrorControls:
+                            if mControlMirrorOption.hasAttr('mirrorIndex'):
+                                if mControlMirrorOption.mirrorIndex == _idx:
+                                    log.debug("|{0}| >> Match: {1}".format(_str_func,mControlMirrorOption))
+                                    res.append(mControlMirrorOption)
+        elif context == 'part':
+            for mModule in self.d_puppetData['mModules']:
+                mMirror = mModule.atUtils('mirror_get')
+                if mMirror:
+                    log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
+                    if mMirror not in res:
+                        res.append(mMirror)
+                    
+
+    if context == 'scene':
+        return self.d_puppetData['mPuppets']
+    pprint.pprint(self.d_puppetData)
+    return res
+
+
+def uiFunc_contextualAction(self, **kws):
+    _str_func='uiFunc_contextualAction'
+    l_kws = []
+    for k,v in kws.iteritems():
+        l_kws.append("{0}:{1}".format(k,v))
+    
+    _mode = kws.get('mode',False)
+    _context = self.var_mrsContext.value
+    log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
+    res_context = get_context(self)
+    
+    if _mode == 'report':
+        log.info("Context: {0} ".format(_context))
+        for i,v in enumerate(res_context):
+            log.info("[{0}] : {1}".format(i,v))
+        log.debug(cgmGEN._str_subLine)
+    elif _mode == 'select':
+        if _context == 'control':
+            return mc.select([mObj.mNode for mObj in res_context])
+        if _context == 'part':
+            _ls = []
+            for mPart in res_context:
+                _ls.extend(mPart.rigNull.moduleSet.getList())
+            return mc.select(_ls)
+        if _context == 'puppet':
+            for mPuppet in self.d_puppetData['mPuppets']:
+                mPuppet.puppetSet.select()
+                
+    else:
+        return log.error("Unknown contextual action: {0}".format(_mode))
+    return 
+
+
 def uiFunc_contextSetValue(self, context = 'puppet',attr=None,value=None, mode = None):
     _str_func='uiFunc_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
-    
     
     d_context = get_context(self)
     
@@ -404,8 +704,8 @@ def buildColumn_main(self,parent, asScroll = False):
     else:
         _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
-    buildSection_puppet(self,_inside)
-    
+    #buildSection_puppet(self,_inside)
+    buildSection_MRSFunctions(self,_inside)
     
     return _inside
     
