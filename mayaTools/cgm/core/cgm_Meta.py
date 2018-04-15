@@ -886,7 +886,7 @@ class cgmNode(r9Meta.MetaClass):
         log.warning("|{0}| >> please remove call...".format(_str_func))
         return self.delAttr(a)
     
-    def resetAttrs(self, attrs = None):
+    def resetAttrs(self, attrs = None, transformsOnly = None, visible = None):
         """   
         Reset specified attributes to their default values
         
@@ -903,9 +903,13 @@ class cgmNode(r9Meta.MetaClass):
             attrs = mc.listAttr(obj, keyable=True, unlocked=True) or False
         else:
             attrs = VALID.listArg(attrs)
+        l_trans = ['translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ']
         _reset = []
         for attr in attrs:
             try:
+                if transformsOnly is not None and transformsOnly:
+                    if ATTR.get_nameLong(obj,attr) not in l_trans:
+                        continue
                 default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
                 ATTR.set(obj,attr,default)
                 _reset.append(attr)

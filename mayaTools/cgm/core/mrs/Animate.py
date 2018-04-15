@@ -21,6 +21,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
+import maya.mel as mel
+
+from Red9.core import Red9_Meta as r9Meta
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core import cgm_RigMeta as cgmRigMeta
@@ -39,9 +43,19 @@ import cgm.core.tools.dynParentTool as DYNPARENTTOOL
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
+import cgm.core.lib.search_utils as SEARCH
 
+from cgm.core.lib.ml_tools import (ml_breakdownDragger,
+                                   ml_resetChannels,
+                                   ml_deleteKey,
+                                   ml_setKey,
+                                   ml_hold,
+                                   ml_stopwatch,
+                                   ml_arcTracer,
+                                   ml_convertRotationOrder,
+                                   ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '0.04122018 - ALPHA'
+__version__ = '1.04122018 - ALPHA'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
@@ -250,7 +264,7 @@ def buildTab_mrs(self,parent):
     _row.setStretchWidget( mUI.MelSeparator(_row) )
     
     _d_defaults = {}
-    _l_order = ['children','sibblings','mirror']
+    _l_order = ['children','siblings','mirror']
     self._dCB_contextOptions = {}
     for k in _l_order:
         _plug = 'cgmVar_mrsContext_' + k
@@ -297,19 +311,31 @@ def buildSection_MRSFunctions(self,parent):
     cgmUI.add_LineSubBreak()
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
 
-    d_anim = {'key':{'ann':'',
-                     'arg':{}}}
+    d_anim = {'key':{'ann':'Key all controls in context',
+                     'arg':{'mode':'key'},},
+              'bKey':{'ann':'Set a breakdown key',
+                     'arg':{'mode':'bdKey'},},              
+              '<<':{'ann':'Find previous contexual key',
+                     'arg':{'mode':'prevKey'},},
+              '>>':{'ann':'Find next contexual key',
+                     'arg':{'mode':'nextKey'},},
+              'delete':{'ann':'Clear current contextual keys',
+                     'arg':{'mode':'delete'},},              
+              }
     
-    l_anim = ['<<','key','>>','reset','delete']
+    l_anim = ['<<','key','bKey','>>','delete']
     for b in l_anim:
         _d = d_anim.get(b,{})
+        _arg = _d.get('arg',{'mode':b})
         mc.button(parent=_row,
                   l = _d.get('short',b),
                   ut = 'cgmUITemplate',
-                  en=False,
-                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  en = _d.get('en',True),
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
     _row.layout()
+    
+    
     
     #>>>Select -------------------------------------------------------------------------------------
     mc.setParent(_inside)
@@ -318,14 +344,16 @@ def buildSection_MRSFunctions(self,parent):
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     d_select = {'select':{'ann':'Select objects in context',
                           'arg':{'mode':'select'}},
+                'reset':{'ann':'Reset all controls in context',
+                         'arg':{'mode':'reset'},},                
                 'report':{'ann':'Report objects in context',
                           'arg':{'mode':'report'}},                
                 }
     
-    l_select = ['select','report']
+    l_select = ['select','reset','report']
     for b in l_select:
         _d = d_select.get(b,{})
-        _arg = _d.get('arg',{})        
+        _arg = _d.get('arg',{'mode':b})
         mc.button(parent=_row,
                   l = _d.get('short',b),
                   ut = 'cgmUITemplate',
@@ -348,22 +376,34 @@ def buildSection_MRSFunctions(self,parent):
     cgmUI.add_Header('Mirror')
     cgmUI.add_LineSubBreak()
     
-    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
-    d_mirror = {'<Pull':{'ann':'Select objects in context',
-                          'arg':{}},
-                'Push>':{'ann':'Report objects in context',
-                          'arg':{}},
+    d_mirror = {'push':{'ann':'Push to the opposite side',
+                        'arg':{'mode':'mirrorPush'}},
+                'pull':{'ann':'Pull from the opposite side',
+                        'arg':{'mode':'mirrorPull'}},
+                'symLeft':{'ann':'Symmetrical to the left',
+                        'arg':{'mode':'symLeft'}},
+                'symRight':{'ann':'Symmetrical to the right',
+                            'arg':{'mode':'symRight'}},
+                'flip':{'ann':'Flip the pose',
+                        'arg':{'mode':'mirrorFlip'}},
                 }
     
-    l_mirror = ['<Pull','Flip','Push>']
-    for b in l_mirror:
+    l_mirror = ['push','pull','flip','symLeft','symRight']
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    
+    for i,b in enumerate(l_mirror):
         _d = d_mirror.get(b,{})
+        _arg = _d.get('arg',{'mode':b})
+        
         mc.button(parent=_row,
                   l = _d.get('short',b),
-                  en=False,
                   ut = 'cgmUITemplate',
-                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
+        if i == 2:#New row
+            _row.layout()
+            _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+            
     _row.layout()
     
     
@@ -501,30 +541,47 @@ def buildSection_puppet(self,parent):
                                                rb = b_state )    
     """
 
+@cgmGEN.Timer
 def get_context(self):
     _str_func='get_context'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     
     b_children = bool(self.cgmVar_mrsContext_children.value)
-    b_sibblings = bool(self.cgmVar_mrsContext_sibblings.value)
+    b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
     b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
     context = self.var_mrsContext.value
     
-    log.debug("|{0}| >> context: {1} | children: {2} | sibblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_sibblings,b_mirror))
+    log.debug("|{0}| >> context: {1} | children: {2} | siblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_siblings,b_mirror))
     
     #>>  Individual objects....  ============================================================================
+    sel = mc.ls(sl=True)
     ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
-    self._sel = ml_sel
+    self._sel = sel
     self.d_puppetData = {'mControls':[],
                          'mPuppets':[],
-                         'mModules':[]}
+                         'mModules':[],
+                         'mModulesBase':[]}
+    
+    if context == 'scene':
+        self.d_puppetData['mPuppets'] = r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
+        ls=[]
+        for mPuppet in self.d_puppetData['mPuppets']:
+            mPuppet.puppetSet.select()
+            ls.extend(mc.ls(sl=True))
+        self.d_puppetData['sControls'] = ls
+        return self.d_puppetData['mPuppets']
+    
+
     
     res = []
     
     #------------------------------------------------------
+    _cap = 5
     for i,mObj in enumerate(ml_sel):
         log.debug("|{0}| >> First pass check: {1}".format(_str_func,mObj))  
-        
+        if i > _cap:
+            log.debug("|{0}| >> Large number of items selected, stopping processing at {1}".format(_str_func,i))              
+            break
         #>>> Module --------------------------------------------------------------------------
         if mObj.getMessage('rigNull'):
             if mObj not in self.d_puppetData['mControls']:
@@ -549,20 +606,20 @@ def get_context(self):
                         res.append(mPuppet)
 
 
-    if b_sibblings:
-
+    #process...
+    if b_siblings:
         log.debug(cgmGEN._str_subLine)        
-        log.debug("|{0}| >> sibbling check...".format(_str_func))
+        log.debug("|{0}| >> sibling check...".format(_str_func))
         if context == 'part':
             print(cgmGEN._str_hardBreak)        
             log.warning(cgmGEN._str_hardBreak)        
-            log.warning("|{0}| >> JOSH ... part Sibblings won't work right until you tag build profile for matching ".format(_str_func))
+            log.warning("|{0}| >> JOSH ... part siblings won't work right until you tag build profile for matching ".format(_str_func))
             log.warning(cgmGEN._str_hardBreak)        
             print(cgmGEN._str_hardBreak)                    
             
             res = []
             for mModule in self.d_puppetData['mModules']:
-                log.debug("|{0}| >> sibbling check: {1}".format(_str_func,mModule))
+                log.debug("|{0}| >> sibling check: {1}".format(_str_func,mModule))
                 mModuleParent  = mModule.getMessage('moduleParent',asMeta=True)
                 log.debug("|{0}| >> ModuleParent: {1}".format(_str_func,mModuleParent))
                 if mModuleParent:
@@ -577,9 +634,9 @@ def get_context(self):
         elif context == 'control':
             res = []
             for mModule in self.d_puppetData['mModules']:
-                log.debug("|{0}| >> sibbling gathering for control | {1}".format(_str_func,mModule))
+                log.debug("|{0}| >> sibling gathering for control | {1}".format(_str_func,mModule))
                 res.extend(mModule.rigNull.msgList_get("controlsAll"))
-            
+            self.d_puppetData['mControls'] = res
                 
     if b_children:
         log.debug(cgmGEN._str_subLine)        
@@ -601,8 +658,12 @@ def get_context(self):
             res = []
             for mPuppet in self.d_puppetData['mPuppets']:
                 res.extend(mPuppet.atUtils('modules_get'))
-                
+            self.d_puppetData['mPuppets'] = res
+            
     
+    #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
+    self.d_puppetData['mModulesBase'] = copy.copy(self.d_puppetData['mModules'])
+
     if b_mirror:
         log.debug(cgmGEN._str_subLine)        
         log.debug("|{0}| >> Mirror check...".format(_str_func))
@@ -623,6 +684,8 @@ def get_context(self):
                                 if mControlMirrorOption.mirrorIndex == _idx:
                                     log.debug("|{0}| >> Match: {1}".format(_str_func,mControlMirrorOption))
                                     res.append(mControlMirrorOption)
+            self.d_puppetData['mControls'] = res
+            
         elif context == 'part':
             for mModule in self.d_puppetData['mModules']:
                 mMirror = mModule.atUtils('mirror_get')
@@ -630,10 +693,23 @@ def get_context(self):
                     log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
                     if mMirror not in res:
                         res.append(mMirror)
-                    
-
-    if context == 'scene':
-        return self.d_puppetData['mPuppets']
+            self.d_puppetData['mModules'] = res
+    
+    #Repopulate controls with final dat
+    if context != 'control':
+        log.debug("|{0}| >> Reaquiring control list...".format(_str_func))
+        ls = []
+        if context == 'part':
+            for mPart in self.d_puppetData['mModules']:
+                ls.extend(mPart.rigNull.moduleSet.getList())
+        elif context == 'puppet':
+            for mPuppet in self.d_puppetData['mPuppets']:
+                mPuppet.puppetSet.select()
+                ls.extend(mc.ls(sl=True))
+        self.d_puppetData['sControls'] = ls
+    else:
+        self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
+        
     pprint.pprint(self.d_puppetData)
     return res
 
@@ -649,23 +725,60 @@ def uiFunc_contextualAction(self, **kws):
     log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     res_context = get_context(self)
     
+    def endCall(self):
+        mc.select(self._sel)
+        return 
+    
+    self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
+    
     if _mode == 'report':
-        log.info("Context: {0} ".format(_context))
+        log.info("Context: {0} | controls: {1}".format(_context, len(self.d_puppetData['sControls'])))
         for i,v in enumerate(res_context):
             log.info("[{0}] : {1}".format(i,v))
+            
         log.debug(cgmGEN._str_subLine)
+        return endCall(self)
     elif _mode == 'select':
-        if _context == 'control':
-            return mc.select([mObj.mNode for mObj in res_context])
-        if _context == 'part':
-            _ls = []
-            for mPart in res_context:
-                _ls.extend(mPart.rigNull.moduleSet.getList())
-            return mc.select(_ls)
-        if _context == 'puppet':
-            for mPuppet in self.d_puppetData['mPuppets']:
-                mPuppet.puppetSet.select()
-                
+        return  mc.select(self.d_puppetData['sControls'])
+    elif _mode in ['key','bdKey','reset','delete','nextKey','prevKey']:
+        mc.select(self.d_puppetData['sControls'])
+        if _mode == 'reset':
+            ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
+        elif _mode == 'key':
+            setKey('default')
+        elif _mode == 'bdKey':
+            setKey('breakdown')
+        elif _mode == 'delete':
+            deleteKey()
+        elif _mode == 'nextKey':
+            mel.eval('NextKey;')
+        elif _mode == 'prevKey':
+            mel.eval('PreviousKey;')
+        return endCall(self)
+    elif _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip']:
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> Mirroring...".format(_str_func,_context))
+        _primeAxis = 'Left'
+        if _mode == 'mirrorFlip':
+            r9Anim.MirrorHierarchy().mirrorData(self.d_puppetData['sControls'],mode = '')
+        elif _mode == 'pull':
+            log.error( "Pull not done")
+            return endCall(self)
+        elif _mode == 'push':
+            log.error( "Push not done")
+            return endCall(self)
+        elif _mode == 'symLeft':
+            _primeAxis = 'Left'
+        else:
+            _primeAxis = 'Right'
+            
+        log.debug("|{0}| >> Mirror | primeAxis: {1}.".format(_str_func,_primeAxis))
+
+        r9Anim.MirrorHierarchy().makeSymmetrical(self.d_puppetData['sControls'],mode = '',primeAxis = _primeAxis )        
+        return endCall(self)
+            
+        
+
     else:
         return log.error("Unknown contextual action: {0}".format(_mode))
     return 
@@ -765,4 +878,62 @@ def uiFunc_updateTargetDisplay(self):
     return
 
 
- 
+def setKey(keyModeOverride = None):
+    _str_func = "setKey"        
+    KeyTypeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+    KeyModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	
+    selection = False
+
+    log.debug("|{0}| >> keyType: {1} | keyMode: {2} |  keyModeOverride: {3}".format(_str_func,KeyTypeOptionVar.value,KeyModeOptionVar.value,keyModeOverride))  
+
+    if not KeyModeOptionVar.value:#This is default maya keying mode
+        selection = mc.ls(sl=True) or []
+        if not selection:
+            return log.error("Nothing selected,can't key.")
+
+
+        """if not KeyTypeOptionVar.value:
+            mc.setKeyframe(selection)
+        else:
+            mc.setKeyframe(breakdown = True)"""
+    else:#Let's check the channel box for objects
+        selection = SEARCH.get_selectedFromChannelBox(False) or []
+        if not selection:
+            log.debug("|{0}| >> No channel box selection. ".format(_str_func))
+            selection = mc.ls(sl=True) or []
+
+    if not selection:
+        return log.warning('cgmPuppetKey.setKey>>> Nothing selected!')
+
+    if keyModeOverride:
+        log.debug("|{0}| >> Key override mode. ".format(_str_func))
+        if keyModeOverride== 'breakdown':
+            mc.setKeyframe(selection,breakdown = True)     
+        else:
+            mc.setKeyframe(selection)
+
+    else:
+        if not KeyTypeOptionVar.value:
+            mc.setKeyframe(selection)
+        else:
+            mc.setKeyframe(selection,breakdown = True)     
+
+def deleteKey():
+    KeyTypeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyType', defaultValue = 0)
+    KeyModeOptionVar = cgmMeta.cgmOptionVar('cgmVar_KeyMode', defaultValue = 0)	
+
+    if not KeyModeOptionVar.value:#This is default maya keying mode
+        selection = mc.ls(sl=True) or []
+        if not selection:
+            return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
+
+        mel.eval('timeSliderClearKey;')
+
+    else:#Let's check the channel box for objects
+        selection = search.returnSelectedAttributesFromChannelBox(False) or []
+        if not selection:
+            selection = mc.ls(sl=True) or []
+            if not selection:
+                return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
+
+        mel.eval('timeSliderClearKey;') 
