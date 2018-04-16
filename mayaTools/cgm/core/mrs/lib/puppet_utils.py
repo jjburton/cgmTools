@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -164,6 +164,212 @@ def module_connect(self,mModule,**kws):
 #=============================================================================================================
 #>> Mirror
 #=============================================================================================================
+def mirror_verify(self):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' mirror_verify'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    md_data = {}
+    ml_modules = modules_get(self)
+    ml_noMatch = []
+    d_runningSideIdxes = {'Centre':[0],
+                               'Left':[0],
+                               'Right':[0]}
+    
+    ml_modules = modules_get(self)
+    int_lenModules = len(ml_modules)
+    
+    #>>>Controls map ========================================================================================
+    for i,mModule in enumerate(ml_modules):
+        _str_module = mModule.p_nameShort
+        md_data[mModule.mNode] = {}#...Initize a dict for this object
+        _d = md_data[mModule.mNode]#...link it
+        _d['str_name'] = _str_module
+        _d['ml_controls'] = mModule.rigNull.moduleSet.getMetaList()
+        _d['mi_mirror'] = mModule.atUtils('mirror_get')
+        _d['str_side'] = cgmGEN.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center')
+
+        if _d['str_side'] not in d_runningSideIdxes.keys():
+            d_runningSideIdxes[_d['str_side']] = [0]
+            
+            #log.infoDict(_d,_str_module)
+        #log.infoDict(d_runningSideIdxes,"Side idxs")
+        
+    #pprint.pprint(vars())
+    #return vars()
+
+
+    #>>>Processing ========================================================================================
+    ml_processed = []
+    #for our first loop, we're gonna create our cull dict of sides of data to then match 
+    for mModule in ml_modules:		
+        log.info("|{0}| >> On: {1}".format(_str_func,mModule))
+        if mModule in ml_processed:
+            log.info("|{0}| >> Already processed...".format(_str_func,mModule))
+            continue
+        
+        md_buffer = md_data[mModule.mNode]#...get the modules dict
+
+        ml_modulesToDo = [mModule]#...append
+        mi_mirror = md_buffer.get('mi_mirror',False)
+        if mi_mirror:
+                md_mirror = md_data[mi_mirror.mNode]
+                int_controls = len(md_buffer['ml_controls'])
+                int_mirrorControls = len(md_data[mi_mirror.mNode]['ml_controls'])
+                if int_controls != int_mirrorControls:
+                    raise ValueError,"Control lengths of mirrors do not match | mModule: {0} | mMirror: {1}".format(md_buffer['str_name'],md_mirror['str_name'])
+                
+                ml_modulesToDo.append(mi_mirror)#...append if we have it
+
+        md_culling_controlLists = {'Centre':[],
+                                    'Left':[],
+                                    'Right':[]}
+        
+        for mi_module in ml_modulesToDo:
+            log.info("|{0}| >> Sub module: {1}".format(_str_func,mi_module))
+            md_buffer = md_data[mi_module.mNode]#...get the modules dict	
+
+            str_mirrorSide = cgmGEN.verify_mirrorSideArg(mi_module.getMayaAttr('cgmDirection') or 'center')
+            #log.info("module: {0} | str_mirrorSide: {1}".format(mi_module.p_nameShort,str_mirrorSide))
+            for i,mObj in enumerate(md_buffer['ml_controls']):
+                if not issubclass(type(mObj), cgmMeta.cgmControl):
+                    mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
+                    md_buffer[i] = mObj#...push back
+
+                mObj._verifyMirrorable()#...veryify the mirrorsetup
+                
+                #if str_mode == 'template':
+                #    if mObj.getMayaAttr('cgmType') in ['templateObject','templateOrientHelper','templateOrientRoot']:
+                #        mObj.mirrorAxis = 'translateX,translateZ,rotateZ'                                        
+                
+                
+                _mirrorSideFromCGMDirection = cgmGEN.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
+                _mirrorSideCurrent = cgmGEN.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
+                #if not _mirrorSideCurrent:
+                    #raise ValueError,"Mirror side is wrong {0} | {1}".format(mObj,ATTR.get(mObj.mNode,'mirrorSide'))
+                #log.info("_mirrorSideFromCGMDirection: {0} ".format(_mirrorSideFromCGMDirection))
+                #log.info("_mirrorSideCurrent: {0}".format(_mirrorSideCurrent))
+                
+                _setMirrorSide = False
+                if _mirrorSideFromCGMDirection:
+                    if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
+                        log.info("{0}'s cgmDirection ({1}) is not it's mirror side({2}). Resolving...".format(mObj.p_nameShort,_mirrorSideFromCGMDirection,_mirrorSideCurrent))
+                        _setMirrorSide = _mirrorSideFromCGMDirection                                            
+                elif not _mirrorSideCurrent:
+                    _setMirrorSide = str_mirrorSide
+                    
+                if _setMirrorSide:
+                    if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
+                        mObj.doStore('mirrorSide',_setMirrorSide)
+                        
+                        #mObj.mirrorSide = _setMirrorSide
+                        #log.info("{0} mirrorSide set to: {1}".format(mObj.p_nameShort,_setMirrorSide))
+                    else:
+                        pass
+                        #log.info("{0} mirrorSide driven".format(mObj.p_nameShort))
+                   
+                #append the control to our lists to process                                    
+                md_culling_controlLists[mObj.getEnumValueString('mirrorSide')].append(mObj)
+
+            ml_processed.append(mi_module)#...append
+        
+        cgmGEN.log_info_dict(md_culling_controlLists, "Culling lists")
+        
+        #...Map...
+        _d_mapping = {'Centre':{'ml':md_culling_controlLists['Centre'],
+                                'startIdx':max(d_runningSideIdxes['Centre'])+1},
+                      'Sides':{'Left':{'ml':md_culling_controlLists['Left'],
+                                       'startIdx':max(d_runningSideIdxes['Left'])+1},
+                               'Right':{'ml':md_culling_controlLists['Right'],
+                                       'startIdx':max(d_runningSideIdxes['Right'])+1}}}                                            
+        
+        for key,_d in _d_mapping.iteritems():
+            if key is 'Centre':
+                int_idxRunning = _d['startIdx']
+                _ml = _d['ml']
+                for mObj in _ml:
+                    log.info("'{0}' idx:{1}".format(mObj.p_nameShort,int_idxRunning))
+                    ATTR.set(mObj.mNode,'mirrorIndex',int_idxRunning)
+                    d_runningSideIdxes['Centre'].append(int_idxRunning)
+                    int_idxRunning+=1
+            else:
+                _ml_left = _d['Left']['ml']
+                _ml_right = _d['Right']['ml']
+                _ml_left_cull = copy.copy(_ml_left)
+                _ml_right_cull = copy.copy(_ml_right)                            
+                int_idxRun_left = _d['Left']['startIdx']
+                int_idxRun_right = _d['Right']['startIdx']
+                _md_tags_l = {}
+                _md_tags_r = {}
+                for mObj in _ml_left:
+                    _md_tags_l[mObj] = mObj.getCGMNameTags(['cgmDirection'])
+                for mObj in _ml_right:
+                    _md_tags_r[mObj] = mObj.getCGMNameTags(['cgmDirection'])
+                    
+                for mObj in _ml_left:
+                    #See if we can find a match
+                    _match = []
+                    l_tags = _md_tags_l[mObj]
+                    for mObj2, r_tags in _md_tags_r.iteritems():#first try to match by tags
+                        if l_tags == r_tags:
+                            _match.append(mObj2)
+                            
+                    if not _match:
+                        #Match by name
+                        _str_l_nameBase = str(mObj.p_nameBase)
+                        if _str_l_nameBase.startswith('l_'):
+                            _lookfor = 'r_' + ''.join(_str_l_nameBase.split('l_')[1:])
+                            log.info("Startwith check. Looking for {0}".format(_lookfor))                                        
+                            for mObj2 in _ml_right:
+                                if str(mObj2.p_nameBase) == _lookfor:
+                                    _match.append(mObj2)
+                                    log.info("Found startswithNameMatch: {0}".format(_lookfor))
+                        elif _str_l_nameBase.count('left'):
+                            _lookfor = _str_l_nameBase.replace('left','right')
+                            log.info("Contains 'left' check. Looking for {0}".format(_lookfor))                                                                                                                        
+                            for mObj2 in _ml_right:
+                                if str(mObj2.p_nameBase) == _lookfor:
+                                    _match.append(mObj2)
+                                    log.info("Found contains 'left name match: {0}".format(_lookfor))                                        
+                    if len(_match) == 1:
+                        while int_idxRun_left in d_runningSideIdxes['Left'] or int_idxRun_right in d_runningSideIdxes['Right']:
+                            #log.info("Finding available indexes...")
+                            int_idxRun_left+=1
+                            int_idxRun_right+=1
+                            
+                        ATTR.set(mObj.mNode,'mirrorIndex',int_idxRun_left)
+                        ATTR.set(_match[0].mNode,'mirrorIndex',int_idxRun_right)                                    
+                        d_runningSideIdxes['Left'].append(int_idxRun_left)
+                        d_runningSideIdxes['Right'].append(int_idxRun_right)
+                        _ml_left_cull.remove(mObj)
+                        _ml_right_cull.remove(_match[0])
+                        mObj.connectChildNode(_match[0],'cgmMirrorMatch','cgmMirrorMatch')
+                        log.info("'{0}' idx:{1} <---Match--> '{2}' idx:{3}".format(mObj.p_nameShort,int_idxRun_left,_match[0].p_nameShort,int_idxRun_right))
+                    elif len(_match)>1:
+                        raise ValueError,"Too many matches! mObj:{0} | Matches:{1}".format(mObj.p_nameShort,[mObj2.p_nameShort for mObj2 in _match])
+                for mObj in _ml_left_cull + _ml_right_cull:
+                    ml_noMatch.append(mObj)
+                    #log.info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameShort))
+        #_l_centre = md_culling_controlLists['Centre']
+        #_l_right = md_culling_controlLists['Left']
+        #_l_left = md_culling_controlLists['Right']
+        #Centre
+        #int_idxStart = max(d_runningSideIdxes['Centre'])
+        #int_idxStart = max(d_runningSideIdxes[str_mirrorSide])
+        #int_idxRunning = int_idxStart + 1                    
+        
+        #for k in md_culling_controlLists.keys():
+
+
+    for mObj in ml_noMatch:
+        log.info("NO MATCH >>>> mObj:'{0}' NO MATCH".format(mObj.p_nameBase))
+    return True
+    
+    
+    
+
 def mirror_getNextIndex(self,side):
     try:
         _str_func = ' mirror_getNextIndex'.format(self)
@@ -174,7 +380,7 @@ def mirror_getNextIndex(self,side):
         int_lenModules = len(ml_modules)
         str_side = cgmGEN.verify_mirrorSideArg(side)
         for i,mModule in enumerate(ml_modules):
-            #self.log_info("Checking: '%s'"%mModule.p_nameShort)
+            #self.log.info("Checking: '%s'"%mModule.p_nameShort)
             _str_module = mModule.p_nameShort
             if mModule.get_mirrorSideAsString() == str_side :
                 #self.progressBar_set(status = "Checking Module: '%s' "%(_str_module),progress = i, maxValue = int_lenModules)		    				    
@@ -192,6 +398,8 @@ def mirror_getNextIndex(self,side):
         else:return 0        
      
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
     
 def mirror_getDict(self):
     try:

@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -717,7 +717,43 @@ def anim_key(self,**kws):
         return _result
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+def siblings_get(self,matchType = False, excludeSelf = True, matchName=False):
+    _str_func = 'siblings_get'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
+    
+
+    d = {}
+    if matchType:
+        d['moduleType'] = self.moduleType
+    if matchName:
+        d['cgmName'] = self.cgmName
+
+
+    mModuleParent  = self.getMessage('moduleParent',asMeta=True)
+    log.debug("|{0}| >> ModuleParent: {1}".format(_str_func,mModuleParent))
+    if not mModuleParent:
+        return False
+    
+    ml_match = []
+    ml_children = mModuleParent[0].atUtils('moduleChildren_get')
+    for mChild in ml_children:
+        log.debug("|{0}| >> mChild: {1}".format(_str_func,mChild))        
+        _match = True
+        for a,v in d.iteritems():
+            if not str(mChild.getMayaAttr(a)) == str(v):
+                _match = False
+                continue
+        if not mChild.moduleParent == mModuleParent[0]:
+            _match = False
+            continue
+        if _match:ml_match.append(mChild)
+    
+    if excludeSelf:
+        ml_match.remove(self)
+    return ml_match
+
 def mirror_get(self):
     _str_func = 'mirror_get'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -732,24 +768,23 @@ def mirror_get(self):
     d = {'cgmName':self.cgmName,'moduleType':self.moduleType,'cgmDirection':l_direction[not int_direction]}
     log.debug("|{0}| >>  looking for: {1}".format(_str_func,d))
 
+    mModulePuppet  = self.getMessage('modulePuppet',asMeta=True)
     
-    mModuleParent  = self.getMessage('moduleParent',asMeta=True)
-    log.debug("|{0}| >> ModuleParent: {1}".format(_str_func,mModuleParent))
-    if not mModuleParent:
+    log.debug("|{0}| >> mModulePuppet: {1}".format(_str_func,mModulePuppet))
+    if not mModulePuppet:
         return False
     
     ml_match = []
-    ml_children = mModuleParent[0].atUtils('moduleChildren_get')
+    ml_children = mModulePuppet[0].atUtils('modules_get')
+    #print ml_children
     for mChild in ml_children:
-        #log.debug("|{0}| >> mChild: {1}".format(_str_func,mChild))        
+        log.debug("|{0}| >> mChild: {1}".format(_str_func,mChild))        
         _match = True
         for a,v in d.iteritems():
             if not str(mChild.getMayaAttr(a)) == str(v):
-                #log.debug("|{0}| >> fail: {1}:{2} | {3}".format(_str_func,a,v,str(mChild.getMayaAttr(a))))                        
+                log.debug("|{0}| >> fail: {1}:{2} | {3}".format(_str_func,a,v,str(mChild.getMayaAttr(a))))                        
                 _match = False
-                break
-        if not mChild.moduleParent == mModuleParent[0]:
-            _match = False
+                continue
         if _match:ml_match.append(mChild)
     
     if len(ml_match)>1:

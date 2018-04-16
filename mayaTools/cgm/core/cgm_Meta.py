@@ -3871,6 +3871,13 @@ class cgmControl(cgmObject):
         _str_func = "%s._verifyMirrorable()"%self.p_nameShort
         #log.debug(">>> %s "%(_str_func) + "="*75)    	
         try:
+            if self.hasAttr('mirrorSide'):
+                if ATTR.get_type(self.mNode,'mirrorSide')!='enum':
+                    ATTR.delete(self.mNode,'mirrorSide')
+                    #self.delAttr('mirrorSide')
+                    #ATTR.delete()
+                    #ATTR.add(self.mNode,'mirrorSide',enumOptions=['Centre','Left','Right'])
+                    
             self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', initialValue = 0,keyable = False, hidden = True, lock =True)
             self.addAttr('mirrorIndex',attrType = 'int',keyable = False, hidden = True, lock = True)
             self.addAttr('mirrorAxis',initialValue = '',attrType = 'string',lock=True)
@@ -4104,7 +4111,9 @@ class cgmObjectSet(cgmNode):
     def getMetaList(self):
         return validateObjListArg(self.getList(),noneValid=True)   
 
-    def getList(self):
+    def getList(self,asMeta=False):
+        if asMeta:
+            return getMetaList()
         return mc.sets(self.mNode, q = True) or []   
     
     def log(self):
