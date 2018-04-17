@@ -587,7 +587,18 @@ def uiSection_layout(parent):
             ann = "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD.",
             c=lambda *a: mel.eval('zooHUDCtrl'))
 
+def uiSection_mrs(parent):
+    _str_func = 'uiSection_layout'  
     
+    mc.menuItem(parent = parent,
+                l='mrsAnimate',
+                ann = "WIP",
+                c=lambda *a:TOOLCALLS.mrsANIMATE())
+                
+    mc.menuItem(parent = parent,
+                l='mrsBuilder',
+                ann = "WIP",
+                c=lambda *a:TOOLCALLS.mrsUI())
     
 def uiSection_hotkeys(parent):
     _str_func = 'uiSection_hotkeys'  

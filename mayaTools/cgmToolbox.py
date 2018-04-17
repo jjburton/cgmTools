@@ -531,6 +531,10 @@ def uiBuild_cgmMenu( *args ):
     #>>Layout ----------------------------------------------------------------------
     _layout = mc.menuItem(p=menu,l='Layout',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_layout(_layout)
+    
+    #>>Mrs ----------------------------------------------------------------------
+    _layout = mc.menuItem(p=menu,l='MRS',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrs(_layout)    
 
     #>>Hotkeys ----------------------------------------------------------------------
     _hotkeys = mc.menuItem(p=menu,l='Hotkeys',subMenu = True, tearOff = False)

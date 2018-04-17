@@ -53,7 +53,7 @@ from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.classes.NodeFactory as NODEFAC
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
-from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
+import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
 import cgm.core.mrs.lib.module_utils as MODULEUTILS
@@ -527,6 +527,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     p_blockParent = property(getBlockParent,setBlockParent)
 
+    def getBlockChildrenAll(self,asMeta=True):
+        ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(self,'below',True,False)
+        if not asMeta:
+            return [mObj.mNode for mObj in ml_context]
+        return ml_context
+        
     def getBlockChildren(self,asMeta=True):
         _str_func = 'getBlockChildren'
         #ml_nodeChildren = self.getChildMetaNodes(mType = ['cgmRigBlock'])

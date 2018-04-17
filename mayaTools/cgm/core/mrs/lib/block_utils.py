@@ -52,6 +52,10 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.name_utils as NAMES
+import cgm.core.lib.surface_Utils as SURF
+import cgm.core.mrs.lib.builder_utils as BUILDUTILS
+
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
 
@@ -4668,3 +4672,330 @@ def doSize(self, mode = None, postState = None):
     
     #except Exception,err:
         #cgmGEN.cgmException(Exception,err)
+
+
+def get_loftCurves(self):
+    _str_func = 'get_loftCurves'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    ml_templateHandles = self.msgList_get('templateHandles')
+    ml_loftCurves = []
+    for mHandle in ml_templateHandles:
+        if mHandle.getMessage('loftCurve'):
+            ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
+        ml_subShapers = mHandle.msgList_get('subShapers')
+        if ml_subShapers:
+            for mSub in ml_subShapers:
+                if mSub.getMessage('loftCurve'):
+                    ml_loftCurves.append(mSub.getMessage('loftCurve',asMeta=1)[0])
+        
+    if ml_templateHandles[-1].getMessage('pivotHelper'):
+        mPivotHelper = ml_templateHandles[-1].pivotHelper
+        log.debug("|{0}| >> pivot helper found ".format(_str_func))
+    
+        #make the foot geo....    
+        mBaseCrv = mPivotHelper.doDuplicate(po=False)
+        mBaseCrv.parent = False
+        mShape2 = False
+    
+        for mChild in mBaseCrv.getChildren(asMeta=True):
+            if mChild.cgmName == 'topLoft':
+                mShape2 = mChild.doDuplicate(po=False)
+                mShape2.parent = False
+                ml_loftCurves.append(mShape2)
+            mChild.delete()
+            
+        ml_loftCurves.append(mBaseCrv)
+    """
+    ml_newLoft = []
+    for mCrv in ml_loftCurves:
+        mCrv.doDuplicate(po=True)
+        mCrv.p_parent = False
+        ml_newLoft.append(mCrv)"""
+    reload(BUILDUTILS)
+    _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
+                                       name= 'test',
+                                       divisions=1,
+                                       form=2,
+                                       degree=1)
+
+
+
+
+    return ml_loftCurves
+
+def create_puppetMesh(self,unified=True,skin=False):
+    _str_func = 'create_puppetMesh'
+    log.debug("|{0}| >>  Unified: {1} | Skin: {2} ".format(_str_func,unified,skin)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    #Get if skin data -------------------------------------------------------------------------------
+    if skin:
+        log.debug("|{0}| >> skinnable? ...".format(_str_func))        
+        mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+        if not mModuleTarget:
+            return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+        mModuleTarget = mModuleTarget[0]
+        ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+        if not ml_moduleJoints:
+            return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
+        mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+        if not mPuppet:
+            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
+        mPuppet = mPuppet[0]
+        mGeoGroup = mPuppet.masterNull.geoGroup
+        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
+        log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
+        log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
+        log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))    
+    
+    
+    #Process-------------------------------------------------------------------------------------
+    mRoot = self.getBlockParents()[-1]
+    log.debug("|{0}| >> mRoot: {1}".format(_str_func,mRoot))
+    ml_ordered = mRoot.getBlockChildrenAll()
+    ml_moduleJoints = []
+    ml_mesh = []
+    subSkin = False
+    if skin:
+        if not unified:
+            subSkin=True
+    for mBlock in ml_ordered:
+        if mBlock.blockType in ['master']:
+            log.debug("|{0}| >> unmeshable: {1}".format(_str_func,mBlock))
+            continue
+        log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
+        
+        ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin))
+        
+        if skin:
+            mModuleTarget = mBlock.getMessage('moduleTarget',asMeta=True)
+            if not mModuleTarget:
+                return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+            mModuleTarget = mModuleTarget[0]
+            mModuleTarget.atUtils('rig_connect')
+            ml_joints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+            if not ml_joints:
+                return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
+            ml_moduleJoints.extend(ml_joints)
+        
+    if unified:
+        ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
+        ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
+        
+        if skin:
+            #self.msgList_connect('simpleMesh',ml_mesh)        
+            log.debug("|{0}| >> skinning..".format(_str_func))
+            for mMesh in ml_mesh:
+                log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
+                mMesh.p_parent = mGeoGroup
+                skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                       mMesh.mNode,
+                                       tsb=True,
+                                       bm=0,
+                                       wd=0,
+                                       heatmapFalloff = 1.0,
+                                       maximumInfluences = 2,
+                                       normalizeWeights = 1, dropoffRate=10.0)
+                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        
+        
+        
+        
+    return ml_mesh
+    
+            
+    
+
+def create_simpleMesh(self, forceNew = True, skin = False):
+    """
+    Main call for creating a skinned or single mesh from a rigBlock
+    """
+    _str_func = 'create_simpleMesh'
+    log.debug("|{0}| >>  forceNew: {1} | skin: {2} ".format(_str_func,forceNew,skin)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    #Check for existance of mesh ========================================================================
+    bfr = self.msgList_get('simpleMesh',asMeta=True)
+    if skin and bfr:
+        log.debug("|{0}| >> simpleMesh detected...".format(_str_func))            
+        if forceNew:
+            log.debug("|{0}| >> force new...".format(_str_func))                            
+            mc.delete([mObj.mNode for mObj in bfr])
+        else:
+            return bfr
+        
+    #Get if skin data -------------------------------------------------------------------------------
+    if skin:
+        log.debug("|{0}| >> skinnable? ...".format(_str_func))        
+        mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+        if not mModuleTarget:
+            return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+        mModuleTarget = mModuleTarget[0]
+        ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+        if not ml_moduleJoints:
+            return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
+        mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+        if not mPuppet:
+            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
+        mPuppet = mPuppet[0]
+        mGeoGroup = mPuppet.masterNull.geoGroup
+        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
+        log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
+        log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
+        log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))
+        
+    #BlockModule call? ====================================================================================
+    mBlockModule = self.p_blockModule
+    if mBlockModule.__dict__.has_key('create_simpleMesh'):
+        log.debug("|{0}| >> BlockModule 'create_simpleMesh' call found...".format(_str_func))            
+        ml_mesh = mBlockModule.create_simpleMesh(self)
+    
+    else:#Create ======================================================================================
+        ml_mesh = create_simpleLoftMesh(self)
+    
+    
+    if skin:
+        self.msgList_connect('simpleMesh',ml_mesh)        
+        log.debug("|{0}| >> skinning..".format(_str_func))
+        for mMesh in ml_mesh:
+            log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
+            mMesh.p_parent = mGeoGroup
+            skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                   mMesh.mNode,
+                                   tsb=True,
+                                   bm=0,
+                                   wd=0,
+                                   heatmapFalloff = 1.0,
+                                   maximumInfluences = 2,
+                                   normalizeWeights = 1, dropoffRate=10)
+            skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))
+    return ml_mesh
+            
+
+def create_simpleLoftMesh(self,  deleteHistory = True, cap=True):
+    _str_func = 'create_simpleLoftMesh'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+
+
+    mBlockModule = self.p_blockModule
+
+    ml_delete = []
+    ml_templateHandles = self.msgList_get('templateHandles')
+    ml_loftCurves = []
+    
+    for mHandle in ml_templateHandles:
+        if mHandle.getMessage('loftCurve'):
+            ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
+        ml_subShapers = mHandle.msgList_get('subShapers')
+        if ml_subShapers:
+            for mSub in ml_subShapers:
+                if mSub.getMessage('loftCurve'):
+                    ml_loftCurves.append(mSub.getMessage('loftCurve',asMeta=1)[0])
+        
+    if ml_templateHandles[-1].getMessage('pivotHelper'):
+        mPivotHelper = ml_templateHandles[-1].pivotHelper
+        log.debug("|{0}| >> pivot helper found ".format(_str_func))
+    
+        #make the foot geo....    
+        mBaseCrv = mPivotHelper.doDuplicate(po=False)
+        mBaseCrv.parent = False
+        mShape2 = False
+        ml_delete.append(mBaseCrv)
+        for mChild in mBaseCrv.getChildren(asMeta=True):
+            if mChild.cgmName == 'topLoft':
+                mShape2 = mChild.doDuplicate(po=False)
+                mShape2.parent = False
+                ml_loftCurves.append(mShape2)
+                ml_delete.append(mShape2)                
+            mChild.delete()
+            
+        ml_loftCurves.append(mBaseCrv)
+
+    _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
+                                       divisions=1,
+                                       cap = cap,
+                                       form=3,
+                                       degree=1)
+
+    _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
+    
+    if deleteHistory:
+        log.debug("|{0}| >> delete history...".format(_str_func))        
+        mc.delete(_mesh, ch=True)
+        if ml_delete:mc.delete([mObj.mNode for mObj in ml_delete])
+    
+    return cgmMeta.validateObjListArg(_mesh,'cgmObject',setClass=True)
+
+
+    ml_shapes = []
+    
+    mMesh_tmp =  get_castMesh(self)
+    str_meshShape = mMesh_tmp.getShapes()[0]
+    
+    _l_targets = ATTR.msgList_get(self.mNode,'loftTargets')
+
+
+    mc.select(cl=True)
+    log.debug("|{0}| >> loftTargets: {1}".format(_str_func,_l_targets))
+
+    #>>Body -----------------------------------------------------------------
+    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 1 )
+
+    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+    _tessellate = _inputs[0]
+
+    _d = {'format':2,#General
+          'polygonType':1,#'quads',
+          'uNumber': 1 + jointCount}
+    for a,v in _d.iteritems():
+        ATTR.set(_tessellate,a,v)
+
+    #>>Top/Bottom bottom -----------------------------------------------------------------
+    if cap:
+        _l_combine = [_res_body[0]]        
+        for crv in _l_targets[0],_l_targets[-1]:
+            _res = mc.planarSrf(crv,po=1)
+            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+            _tessellate = _inputs[0]        
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'vNumber':1,
+                  'uNumber':1}
+            for a,v in _d.iteritems():
+                ATTR.set(_tessellate,a,v)
+            _l_combine.append(_res[0])
+
+        _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(root))
+        if merge:
+            mc.polyMergeVertex(_res[0], d= .01, ch = 0, am = 1 )
+            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
+        mc.polySetToFaceNormal(_res[0],setUserNormal = True) 
+    else:
+        _res = _res_body
+    return _res[0]
+    
+    
+    
+    
+    return 
+    l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+    log.debug("|{0}| >> Isoparms U: {1}".format(_str_func,l_uIsos))
+    
+    #Process ----------------------------------------------------------------------------------
+    l_newCurves = []
+    d_curves = {}
+    
+    def getCurve(uValue,l_curves):
+        _crv = d_curves.get(uValue)
+        if _crv:return _crv
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,uValue), ch = 0, rn = 0, local = 0)[0]
+        mCrv = cgmMeta.asMeta(_crv)
+        mCrv.p_parent=False
+        d_curves[uValue] = mCrv
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
+        l_curves.append(mCrv)
+        return mCrv
+    
+    for uValue in l_uIsos:
+        mCrv = getCurve(uValue,l_newCurves)

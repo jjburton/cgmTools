@@ -259,10 +259,13 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
                     #log.debug("%s >> %s >> str_mirrorAxis set: %s"%(_str_funcCombined,"mirrorSetup",str_mirrorAxis))				    
             for mObj in mi_control.msgList_get('spacePivots'):
                 mObj._verifyMirrorable()
+                mi_control.doConnectOut('mirrorAxis',mObj.mNode + '.mirrorAxis')
+                mi_control.doConnectOut('mirrorSide',mObj.mNode + '.mirrorSide')
+                
                 #cgmMeta.cgmAttr(mObj,'mirrorSide').doConnectIn(mi_control,'mirrorSide')
                 #cgmMeta.cgmAttr(mi_control,'mirrorAxis').doCopyTo(mObj,connectTargetToSource = 1)
-                ATTR.store_info(mObj.mNode,'mirrorAxis',"{0}.mirrorAxis".format(mi_control.mNode))
-                ATTR.store_info(mObj.mNode,'mirrorSide',"{0}.mirrorSide".format(mi_control.mNode))
+                #ATTR.connect(mObj.mNode + '.mirrorAxis',"{0}.mirrorAxis".format(mi_control.mNode))
+                #ATTR.connect(mObj.mNode + 'mirrorSide',"{0}.mirrorSide".format(mi_control.mNode))
     
         #Freeze ============================================================================================
         if not shapeParentTo and noFreeze is not True:
