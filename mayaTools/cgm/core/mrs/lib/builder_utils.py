@@ -546,7 +546,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True ):
+def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True, form = 1 ):
     """
     Create lofted mesh from target curves.
 
@@ -583,7 +583,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
-    _d = {'format':1,#Fit
+    _d = {'format':form,#Fit
           'polygonType':1,#'quads',
           'vNumber':points,
           'uNumber': 1 + divisions}
@@ -1526,10 +1526,19 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if mMesh_tmp:mMesh_tmp.delete()
         return ml_shapes
     except Exception,err:cgmGEN.cgmException(Exception,err)
-    
+
+
+
+
+
+
+
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False, ballBase = True):
     _short = self.mBlock.mNode
-    _str_func = 'mesh_proxyCreate ( {0} )'.format(_short)
+    _str_func = 'mesh_proxyCreate'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
     mRigNull = self.mRigNull
     ml_shapes = []
     

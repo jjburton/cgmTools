@@ -341,7 +341,7 @@ def print_heirarchy_dict(arg = None, tag = None, counter = 0):
         elif counter == 1:
             print('{0} '.format(tag))	
         else:
-            print(' '* _int + ' |'+'_'* _int + ' {0} '.format(tag))
+            print(' '* (_int*2) + ' |'+'_'* 2 + ' {0} '.format(tag))
             #print('-'* counter + '> {0} '.format(tag))		            
         #else:
             #print(' '* _int + '|||'+'_'* _int + ' {0} '.format(tag) + cgmGEN._str_subLine)		

@@ -4724,31 +4724,97 @@ def get_loftCurves(self):
 
     return ml_loftCurves
 
-def create_puppetMesh(self,unified=True,skin=False):
-    _str_func = 'create_puppetMesh'
+
+def get_module(self):
+    _str_func = 'get_module'
+    log.debug("|{0}| >>... ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+    if not mModuleTarget:
+        return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+    log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget[0]))
+    return mModuleTarget[0]
+
+    
+def get_puppet(self):
+    _str_func = 'get_puppet'
+    log.debug("|{0}| >>... ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+
+    mModuleTarget = get_module(self)
+    mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+    if not mPuppet:
+        return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
+    log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet[0]))
+    return mPuppet[0]
+
+def puppetMesh_delete(self):
+    _str_func = 'puppetMesh_delete'
+    log.debug("|{0}| >>... ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mPuppet = get_puppet(self)
+    if not mPuppet:
+        return log.error("|{0}| >> Must have puppet to check".format(_str_func))
+
+    #Check for existance of mesh ========================================================================
+    bfr = mPuppet.msgList_get('puppetMesh',asMeta=True)
+    if bfr:
+        log.debug("|{0}| >> puppetMesh detected...".format(_str_func))            
+        mc.delete([mObj.mNode for mObj in bfr])
+        return True
+    return False
+
+def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True):
+    _str_func = 'puppetMesh_create'
     log.debug("|{0}| >>  Unified: {1} | Skin: {2} ".format(_str_func,unified,skin)+ '-'*80)
     log.debug("{0}".format(self))
     
-    #Get if skin data -------------------------------------------------------------------------------
-    if skin:
-        log.debug("|{0}| >> skinnable? ...".format(_str_func))        
-        mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
-        if not mModuleTarget:
-            return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
-        mModuleTarget = mModuleTarget[0]
-        ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
-        if not ml_moduleJoints:
-            return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
-        mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
-        if not mPuppet:
-            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
-        mPuppet = mPuppet[0]
-        mGeoGroup = mPuppet.masterNull.geoGroup
-        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
-        log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
-        log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
-        log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))    
     
+    
+    mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+    if not mModuleTarget:
+        return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+    mModuleTarget = mModuleTarget[0]
+    ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+    if not ml_moduleJoints:
+        return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
+    mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+    if not mPuppet:
+        return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
+    mPuppet = mPuppet[0]
+    mGeoGroup = mPuppet.masterNull.geoGroup
+    log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
+    log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
+    log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
+    log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))    
+    
+    
+    if proxy:
+        mPuppet = self.UTILS.get_puppet(self)
+        if not mPuppet.masterControl.controlSettings.skeleton:
+            log.warning("|{0}| >> Skeleton was off. proxy mesh in puppetMeshMode needs a visible skeleton to see. Feel free to turn it back off if you like.".format(_str_func, self.mNode))            
+            mPuppet.masterControl.controlSettings.skeleton = 1        
+    
+    
+    #Check for existance of mesh ========================================================================
+    bfr = mPuppet.msgList_get('puppetMesh',asMeta=True)
+    if skin and bfr:
+        log.debug("|{0}| >> puppetMesh detected...".format(_str_func))            
+        if forceNew:
+            log.debug("|{0}| >> force new...".format(_str_func))                            
+            mc.delete([mObj.mNode for mObj in bfr])
+        else:
+            return bfr
+    
+    if proxy:
+        if unified:
+            log.warning("|{0}| >> Proxy mode detected, unified option overridden".format(_str_func))            
+            unified = False
+        if skin:
+            log.warning("|{0}| >> Proxy mode detected, skin option overridden".format(_str_func))
+            skin = False
     
     #Process-------------------------------------------------------------------------------------
     mRoot = self.getBlockParents()[-1]
@@ -4760,13 +4826,17 @@ def create_puppetMesh(self,unified=True,skin=False):
     if skin:
         if not unified:
             subSkin=True
+            
     for mBlock in ml_ordered:
         if mBlock.blockType in ['master']:
             log.debug("|{0}| >> unmeshable: {1}".format(_str_func,mBlock))
             continue
         log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
         
-        ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin))
+        if proxy:
+            ml_mesh.extend(mBlock.verify_proxyMesh(puppetMeshMode=True))
+        else:
+            ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin))
         
         if skin:
             mModuleTarget = mBlock.getMessage('moduleTarget',asMeta=True)
@@ -4784,7 +4854,8 @@ def create_puppetMesh(self,unified=True,skin=False):
         ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
         
         if skin:
-            #self.msgList_connect('simpleMesh',ml_mesh)        
+            #self.msgList_connect('simpleMesh',ml_mesh)       
+            
             log.debug("|{0}| >> skinning..".format(_str_func))
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
@@ -4800,7 +4871,8 @@ def create_puppetMesh(self,unified=True,skin=False):
                 skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        
         
         
-        
+    if skin or proxy:
+        mPuppet.msgList_connect('puppetMesh',ml_mesh)        
     return ml_mesh
     
             

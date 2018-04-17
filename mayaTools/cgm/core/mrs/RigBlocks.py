@@ -954,9 +954,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
     p_blockDat = property(getBlockDat,loadBlockDat)
 
 
-    #========================================================================================================     
+    #==================================================================================================
     #>>> States 
-    #========================================================================================================      
+    #==================================================================================================
     def rebuild(self,*args,**kws):
         raise NotImplementedError,"Not done"
         return self._factory.rebuild_rigBlock(*args,**kws)
@@ -1011,9 +1011,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
     p_blockState = property(getState,changeState)
 
 
-    #========================================================================================================     
+    #================================================================================================
     #>>> Skeleton and Mesh generation 
-    #========================================================================================================      
+    #================================================================================================
+    """
     def isSkeletonized(self):
         _str_func = '[{0}] isSkeletonized'.format(self.p_nameShort)
 
@@ -1062,14 +1063,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
             return _call(self)
 
         return True
-    
+    """
     def delete(self):
         BLOCKUTILS.delete(self)
+        
+    def puppetMesh_create(self,*args,**kws):
+        reload(BLOCKUTILS)
+        return BLOCKUTILS.puppetMesh_create(self,*args,**kws)
+    def puppetMesh_delete(self,*args,**kws):
+        reload(BLOCKUTILS)
+        return BLOCKUTILS.puppetMesh_delete(self,*args,**kws)
 
-
-    #========================================================================================================     
+    #==============================================================================================
     #>>> Mirror 
-    #========================================================================================================      
+    #==============================================================================================
     @staticmethod
     def MirrorBlock(rootBlock = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
         try:
@@ -1212,7 +1219,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         :returns
             list of results(list)
         """        
-        return contextual_method_call(self, context, func, *args, **kws)
+        return contextual_rigBlock_method_call(self, context, func, *args, **kws)
 
     def atBlockModule(self, func = '', *args,**kws):
         """
@@ -1311,7 +1318,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         print res
         return res
 
-    def verify_proxyMesh(self, forceNew = True):
+    def verify_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
@@ -1322,8 +1329,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         if not 'build_proxyMesh' in self.p_blockModule.__dict__.keys():
             log.error("|{0}| >> [{1}] Block module lacks 'build_proxyMesh' call.".format(_str_func, self.blockType))                        
             return False
+        
         mRigFac = rigFactory(self, autoBuild = False)
-        return mRigFac.atBlockModule('build_proxyMesh', forceNew)
+        return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
     
 
 class handleFactory(object):
@@ -3914,7 +3922,7 @@ def is_blockType_valid(blockType):
 #========================================================================================================     
 #>>> Contextual call 
 #========================================================================================================
-def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):
+def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):
     """
     Function to contextually call a series of rigBlocks and run a methodCall on them with 
     args and kws
@@ -3928,7 +3936,7 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
     :returns
         list of results(list)
     """
-    _str_func = 'contextual_method_call'
+    _str_func = 'contextual_rigBlock_method_call'
 
     if func == 'VISUALIZEHEIRARCHY':
         BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,False,True)
@@ -3980,10 +3988,77 @@ def contextual_method_call(mBlock, context = 'self', func = 'getShortName',*args
                 log.error(a)
             _res.append('ERROR')
             log.error(cgmGEN._str_subLine)
-
     return _res
 
+def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):
+    """
+    Function to contextually call a series of rigBlocks and run a methodCall on their modules with 
+    args and kws
 
+    :parameters:
+        mBlock(str): rigBlock starting point
+        context(str): self,below,root,scene
+        func(str): string of the method call to use. mBlock.getShortName(), is just 'getShortName'
+        *args,**kws - pass through for method call
+
+    :returns
+        list of results(list)
+    """
+    _str_func = 'contextual_rigBlock_method_call'
+
+    if func == 'VISUALIZEHEIRARCHY':
+        BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,False,True)
+        return True
+    
+    _l_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,True,False)
+    _res = []
+
+    if not args:
+        args = []
+
+    if not kws:
+        kws = {}
+        _kwString = None  
+    else:
+        _l = []
+        for k,v in kws.iteritems():
+            _l.append("{0}={1}".format(k,v))
+        _kwString = ','.join(_l)
+
+    if not _l_context:
+        log.error("|{0}| >> No data in context".format(_str_func,))
+        return False
+
+    if func in ['select']:
+        mc.select([mBlock.atUtils('get_module').mNode for mBlock in _l_context])
+        return
+
+    for mBlock in _l_context:
+        _short = mBlock.p_nameShort
+        try:
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))
+            mModule = mBlock.UTILS.get_module(mBlock)
+            res = getattr(mModule,func)(*args,**kws) or None
+            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(a for a in args),_kwString, res))                        
+            _res.append(res)
+        except Exception,err:
+            log.error(cgmGEN._str_hardLine)
+            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+            log.error("block: {0} | func: {1}".format(_short,func))            
+            if args:
+                log.error("Args...")
+                for a in args:
+                    log.error("      {0}".format(a))
+            if kws:
+                log.error(" KWS...".format(_str_func))
+                for k,v in kws.iteritems():
+                    log.error("      {0} : {1}".format(k,v))   
+            log.error("Errors...")
+            for a in err.args:
+                log.error(a)
+            _res.append('ERROR')
+            log.error(cgmGEN._str_subLine)
+    return _res
 
 class rigFactory(object):
     @cgmGEN.Timer    
@@ -6030,6 +6105,14 @@ class cgmRigModule(cgmMeta.cgmObject):
         return get_blockModule(blockType)
     p_blockModule = property(getBlockModule)
     
+    def rig_reset(self):
+        return self.UTILS.rig_reset(self)
+    def rig_connect(self):
+        return self.UTILS.rig_connect(self)
+    def rig_disconnect(self):
+        return self.UTILS.rig_disconnect(self)
+    def rig_isConnected(self):
+        return self.UTILS.rig_isConnected(self)    
 #Profile stuff ==============================================================================================
 def get_blockProfile_options(arg):
     try:

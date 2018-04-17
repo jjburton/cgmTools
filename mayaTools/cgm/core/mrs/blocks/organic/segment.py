@@ -2917,7 +2917,7 @@ def rig_cleanUp(self):
     return
 
 
-def build_proxyMesh(self, forceNew = True):
+def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     """
     Build our proxyMesh
     """
@@ -2940,15 +2940,25 @@ def build_proxyMesh(self, forceNew = True):
     if not ml_rigJoints:
         raise ValueError,"No rigJoints connected"
     
-    #>> If proxyMesh there, delete ----------------------------------------------------------------------------------- 
-    _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
-    if _bfr:
-        log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
-        if forceNew:
-            log.debug("|{0}| >> force new...".format(_str_func))                            
-            mc.delete([mObj.mNode for mObj in _bfr])
-        else:
-            return _bfr
+    #>> If proxyMesh there, delete ------------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+    else:
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
         
     # Create ---------------------------------------------------------------------------
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
@@ -2958,6 +2968,21 @@ def build_proxyMesh(self, forceNew = True):
         _settings = self.mRigNull.settings.mNode
         log.debug("|{0}| >> directProxy... ".format(_str_func))    
     
+    if puppetMeshMode:
+        log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
+        ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
+        
+        for i,mGeo in enumerate(ml_segProxy):
+            log.info("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            mGeo.parent = ml_moduleJoints[i]
+            mGeo.doStore('cgmName',self.d_module['partName'])
+            mGeo.addAttr('cgmIterator',i+1)
+            mGeo.addAttr('cgmType','proxyPuppetGeo')
+            mGeo.doName()
+            
+        mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
+        return ml_segProxy
+        
     for i,mGeo in enumerate(ml_segProxy):
         mGeo.parent = ml_rigJoints[i]
         ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')

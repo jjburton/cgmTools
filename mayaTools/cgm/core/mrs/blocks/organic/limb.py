@@ -4803,7 +4803,7 @@ def rig_cleanUp(self):
 
     
 
-def build_proxyMesh(self, forceNew = True):
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
@@ -4827,15 +4827,25 @@ def build_proxyMesh(self, forceNew = True):
     if not ml_rigJoints:
         raise ValueError,"No rigJoints connected"
     
-    #>> If proxyMesh there, delete ----------------------------------------------------------------------------------- 
-    _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
-    if _bfr:
-        log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
-        if forceNew:
-            log.debug("|{0}| >> force new...".format(_str_func))                            
-            mc.delete([mObj.mNode for mObj in _bfr])
-        else:
-            return _bfr
+    #>> If proxyMesh there, delete -------------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+    else:
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
         
     #Figure out our rig joints --------------------------------------------------------
     _str_rigSetup = mBlock.getEnumValueString('rigSetup')
@@ -4912,7 +4922,9 @@ def build_proxyMesh(self, forceNew = True):
                     
             l_targets.append(mBaseCrv.mNode)
             reload(BUILDUTILS)
-            _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'), divisions=1, degree=1)
+            _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),
+                                               divisions=3,
+                                               degree=1, form= 3)
             
             _l_combine = []
             for i,crv in enumerate([l_targets[0],l_targets[-1]]):
@@ -4941,11 +4953,11 @@ def build_proxyMesh(self, forceNew = True):
             
             #...cut it up
             if mBall:
-                _bool_size = 50
-                _bool_divs = 80
+                _bool_size = 30
+                _bool_divs = 50
                 #Heel.-----------------------------------------------------------------------------------
                 log.debug("|{0}| >> heel... ".format(_str_func))                        
-                plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z+'),
+                plane = mc.polyPlane(axis =  [0,0,1], #MATH.get_obj_vector(mBall.mNode, 'z+'),
                                      width = _bool_size, height = _bool_size,
                                      subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,
                                      ch=0)
@@ -4980,7 +4992,7 @@ def build_proxyMesh(self, forceNew = True):
                 if mToe:
                     #ball -----------------------------------------------------------------------------------
                     log.debug("|{0}| >> ball... ".format(_str_func))            
-                    plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
+                    plane = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mBall.mNode, 'z-'),
                                          subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
                                          width = _bool_size, height = _bool_size, ch=0)
                     mPlane = cgmMeta.validateObjArg(plane[0])
@@ -5009,7 +5021,7 @@ def build_proxyMesh(self, forceNew = True):
                     
                     
                     log.debug("|{0}| >> toe... ".format(_str_func))
-                    planeToe = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
+                    planeToe = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mToe.mNode, 'z-'),
                                          subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
                                          width = _bool_size, height = _bool_size, ch=0)
                     mPlane = cgmMeta.validateObjArg(planeToe[0])
@@ -5028,7 +5040,7 @@ def build_proxyMesh(self, forceNew = True):
                 else:
                     #ball -----------------------------------------------------------------------------------
                     log.debug("|{0}| >> ball... ".format(_str_func))            
-                    plane = mc.polyPlane(axis =  MATH.get_obj_vector(mBall.mNode, 'z-'),
+                    plane = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mBall.mNode, 'z-'),
                                          subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
                                          width = _bool_size, height = _bool_size, ch=0)
                     mPlane = cgmMeta.validateObjArg(plane[0])
@@ -5048,6 +5060,20 @@ def build_proxyMesh(self, forceNew = True):
         log.debug("|{0}| >> directProxy... ".format(_str_func))
         _settings = self.mRigNull.settings.mNode
         
+    if puppetMeshMode:
+        log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
+        ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
+        
+        for i,mGeo in enumerate(ml_segProxy):
+            log.info("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            mGeo.parent = ml_moduleJoints[i]
+            mGeo.doStore('cgmName',self.d_module['partName'])
+            mGeo.addAttr('cgmIterator',i+1)
+            mGeo.addAttr('cgmType','proxyPuppetGeo')
+            mGeo.doName()        
+        
+        mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
+        return ml_segProxy
 
     for i,mGeo in enumerate(ml_segProxy):
         log.info("{0} : {1}".format(mGeo, ml_rigJoints[i]))
