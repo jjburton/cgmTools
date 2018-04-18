@@ -596,8 +596,107 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
 
         return mTarget
     
+reload(BLOCKSHARE)
+l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
+d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
+                  'fk':['fkJoints','leverFK'],
+                  'ik':['controlIK','controlIKBase','controlIKMid','leverIK','headLookAt','eyeLookAt','lookAt'],
+                  'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
+                  'segmentHandles':['handleJoints'],
+                  'direct':['rigJoints']}
+
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+    """
+    Function to find all the control data for comparison for mirroing or other reasons
+    """
+    def addMObj(mObj,mList):
+        if mObj not in mList:
+            if ml_objs is not None:
+                if mObj in ml_objs:
+                    ml_objs.remove(mObj)
+                else:
+                    log.warning("|{0}| >> Not in list. Skipped: {1}".format(_str_func,mObj))
+                    return
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)
+                
+                    
+    _str_func = ' controls_getDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    ignore = VALID.listArg(ignore)
     
-def get_joints(self, skinJoints = False, moduleJoints =False, rigJoints=False, selectResult = False, asMeta = False):
+    mRigNull = self.rigNull
+    ml_objs = mRigNull.moduleSet.getMetaList() or []
+    #l_objs = [mObj.mNode for mObj in ml_objs]
+    md_controls = {}
+    ml_controls = []
+    
+    if keys:
+        l_useKeys = VALID.listArg(keys)
+        
+    else:
+        l_useKeys = l_controlOrder
+    
+    if ignore:
+        for k in ignore:
+            if k in l_useKeys:
+                l_useKeys.remove(k)
+                
+    for key in l_useKeys:
+        l_options = d_controlLinks.get(key,[key])
+        log.debug("|{0}| >>  {1}:{2}".format(_str_func,key,l_options))
+        md_controls[key] = []
+        _ml = md_controls[key]
+        for o in l_options:
+            if mRigNull.getMessage(o):
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                mObj = mRigNull.getMessage(o,asMeta=True)[0]
+                addMObj(mObj,_ml)
+            elif mRigNull.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = mRigNull.msgList_get(o)
+                for mObj in _msgList:
+                    addMObj(mObj,_ml)
+        ml_controls.extend(_ml)
+    
+    if not keys and 'spacePivots' not in ignore:
+        md_controls['spacePivots'] = []
+        _ml = md_controls['spacePivots']
+        for mObj in ml_controls:
+            mBuffer = mObj.msgList_get('spacePivots')
+            for mSpace in mBuffer:
+                addMObj(mSpace,_ml)
+                ml_controls.append(mSpace)
+    
+    if report:
+        log.info("|{0}| >> Dict... ".format(_str_func))
+        pprint.pprint( md_controls)
+        
+        log.info("|{0}| >> List... ".format(_str_func))
+        pprint.pprint( ml_controls)
+    
+    if ml_objs and keys is None and not ignore:
+        log.debug("|{0}| >> remaining... ".format(_str_func))
+        pprint.pprint( ml_objs)    
+        return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+    
+    if report:
+        return
+    
+    if keys or listOnly:
+        return ml_controls
+    return md_controls,ml_controls
+    
+def controls_get(self, mirror = False):
+    _str_func = ' controls_get'    
+    if mirror:
+        return controls_getDat(self,ignore='spacePivots',listOnly=True)
+    log.error("|{0}| >> No options specified".format(_str_func))
+    return False
+    
+def get_joints(self, skinJoints = False, moduleJoints =False, rigJoints=False,
+               selectResult = False, asMeta = False):
     _str_func = ' get_joints'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
@@ -754,11 +853,15 @@ def siblings_get(self,matchType = False, excludeSelf = True, matchName=False):
         ml_match.remove(self)
     return ml_match
 
-def mirror_get(self):
+def mirror_get(self,recheck=False):
     _str_func = 'mirror_get'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
-    
+    if not recheck:
+        mMirror = self.getMessage('moduleMirror',asMeta=True)
+        if mMirror:
+            log.debug("|{0}| >>  Stored moduleMirror found: {1}".format(_str_func,mMirror))
+            return mMirror[0]
     l_direction = ['left','right']
     if not self.hasAttr('cgmDirection'):
         log.debug("|{0}| >>  has no cgmDirection".format(_str_func))
@@ -782,7 +885,7 @@ def mirror_get(self):
         _match = True
         for a,v in d.iteritems():
             if not str(mChild.getMayaAttr(a)) == str(v):
-                log.debug("|{0}| >> fail: {1}:{2} | {3}".format(_str_func,a,v,str(mChild.getMayaAttr(a))))                        
+                log.debug("|{0}| >> fail: {1}:{2} | {3}".format(_str_func,a,v,str(mChild.getMayaAttr(a))))
                 _match = False
                 continue
         if _match:ml_match.append(mChild)
@@ -791,10 +894,139 @@ def mirror_get(self):
         raise ValueError,"Shouldn't have found more than one mirror module!"
     elif not ml_match:
         return False
+    
+    self.doStore('moduleMirror',ml_match[0].mNode)
     return ml_match[0]
     
+def mirror_verifySetup(self, d_startIndices = {'Centre':0,'Left':0,'Right':0}, l_processed = None):
+    _str_func = ' mirror_verifySetup'
+    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.info("{0}".format(self))
     
+    for k in ['Centre','Left','Right']:
+        if not d_startIndices.has_key(k):
+            d_startIndices[k] = 0
+    
+    if l_processed is not None and self in l_processed:
+        log.info("|{0}| >> Already processed: {1}".format(_str_func,self))        
+        return
+    
+    md_data = {}
+    ml_noMatch = []
+    d_runningSideIdxes = {}
+    ml_modules = []
 
+    def get_mirrorDat(mModule):
+        _str_module = mModule.p_nameShort
+        ml_modules.append(mModule)
+        _d = {}
+        _d['str_name'] = _str_module
+        
+        md,ml = controls_getDat(mModule,ignore=['spacePivots'])
+        _d['md_controls'] = md
+        _d['ml_controls'] = ml#mModule.rigNull.moduleSet.getMetaList()
+        _d['mMirror'] = mirror_get(mModule)
+        _d['str_side'] = cgmGEN.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center')
+        _d['i_start'] = d_startIndices[_d['str_side']]
+        
+        #if _d['str_side'] not in d_runningSideIdxes.keys():
+            #d_runningSideIdxes[_d['str_side']] = [startIdx]    
+        
+        md_data[mModule] = _d
+        return _d
+    
+    def validate_controls(ml):
+        for i,mObj in enumerate(ml):
+            log.info("|{0}| >> First pass: {1}".format(_str_func,mObj))
+            
+            if not issubclass(type(mObj), cgmMeta.cgmControl):
+                log.info("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
+                
+                mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
+                ml[i] = mObj#...push back
+                
+            mObj._verifyMirrorable()#...veryify the mirrorsetup
+            
+            _mirrorSideFromCGMDirection = cgmGEN.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
+            
+            _mirrorSideCurrent = cgmGEN.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
+
+            _setMirrorSide = False
+            if _mirrorSideFromCGMDirection:
+                if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
+                    log.info("|{0}| >> {1}'s cgmDirection ({2}) is not it's mirror side({3}). Resolving...".format(_str_func,mObj.p_nameShort,_mirrorSideCurrent,_mirrorSideFromCGMDirection))
+                    _setMirrorSide = _mirrorSideFromCGMDirection                                            
+            elif not _mirrorSideCurrent:
+                _setMirrorSide = str_mirrorSide
+        
+            if _setMirrorSide:
+                if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
+                    mObj.doStore('mirrorSide',_setMirrorSide)
+                else:
+                    #log.info("{0} mirrorSide driven".format(mObj.p_nameShort))
+                    log.info("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
+        
+            #append the control to our lists to process                                    
+            #md_culling_controlLists[_mirrorSideCurrent].append(mObj)    
+    
+    #>>>Module control maps ===============================================================================
+    d_self = get_mirrorDat(self)
+    d_mirror = {}
+    if d_self.get('mMirror'):
+        d_mirror = get_mirrorDat(d_self.get('mMirror'))
+    
+    if not d_mirror:
+        log.info("|{0}| >> No mirror found...".format(_str_func))
+        validate_controls(d_self['ml_controls'])
+        log.info(cgmGEN._str_subLine)
+        for i,mObj in enumerate(d_self['ml_controls']):
+            _v = i+d_self['i_start']+1
+            log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
+            mObj.mirrorIndex = _v
+            
+        if l_processed is not None:l_processed.append(self)
+        d_startIndices[d_self['str_side']] = _v
+        return _v
+    else:
+        log.info("|{0}| >>  Mirror module found...".format(_str_func))
+        mMirror = d_self['mMirror']
+        
+        i_start = max([d_startIndices['Left'],d_startIndices['Right']])
+        i_running = copy.copy(i_start)
+        log.info("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
+        
+        validate_controls(d_self['ml_controls'])
+        validate_controls(d_mirror['ml_controls'])
+        
+        
+        for key in l_controlOrder:
+            self_keyDat = d_self['md_controls'].get(key,[])
+            mirr_keyDat = d_mirror['md_controls'].get(key,[])
+            len_self = len(self_keyDat)
+            len_mirr = len(mirr_keyDat)
+            log.info("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr))
+            
+            for i,mObj in enumerate(self_keyDat):
+                _v = i+i_running+1
+                log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
+                mObj.mirrorIndex = _v
+                
+            for i,mObj in enumerate(mirr_keyDat):
+                _v = i+i_running+1
+                log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
+                mObj.mirrorIndex = _v
+                    
+            i_running = i_running + max(len_self,len_mirr)
+            log.info("|{0}| >>  i_running: {1}".format(_str_func,i_running))
+            d_startIndices[d_self['str_side']] = i_running
+            d_startIndices[d_mirror['str_side']] = i_running
+            
+        if l_processed is not None:l_processed.extend([self,mMirror])
+        return i_running
+        
+    
+    #return ml_modules,md_data
+    
 def mirror(self,mode = 'self'):
     """
     Module based mirror functions
@@ -853,3 +1085,5 @@ def mirror(self,mode = 'self'):
         return _result
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    

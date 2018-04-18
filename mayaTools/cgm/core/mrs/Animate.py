@@ -748,8 +748,8 @@ def get_context(self, addMirrors = False):
         
     #pprint.pprint(self.d_puppetData)
     return res
-
-def get_contextualControls(self):
+@cgmGEN.Timer
+def get_contextualControls(self,mirrorQuery=False):
     _str_func='get_contextualControls'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     
@@ -772,12 +772,22 @@ def get_contextualControls(self):
         log.debug("|{0}| >> Reaquiring control list...".format(_str_func))
         ls = []
         if context == 'part':
-            for mPart in self.d_puppetData['mModules']:
-                ls.extend(mPart.rigNull.moduleSet.getList())
+            if mirrorQuery:
+                for mPart in self.d_puppetData['mModules']:
+                    ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,mirror=True)])            
+            else:
+                for mPart in self.d_puppetData['mModules']:
+                    ls.extend(mPart.rigNull.moduleSet.getList())
         elif context == 'puppet':
-            for mPuppet in self.d_puppetData['mPuppets']:
-                mPuppet.puppetSet.select()
-                ls.extend(mc.ls(sl=True))
+            if mirrorQuery:
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    for mPart in mPuppet.UTILS.modules_get(mPuppet):
+                        ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,mirror=True)])            
+            else:
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    mPuppet.puppetSet.select()
+                    ls.extend(mc.ls(sl=True))
+                
         self.d_puppetData['sControls'] = ls
     else:
         self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
@@ -796,8 +806,10 @@ def uiFunc_contextualAction(self, **kws):
     log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
     d_context = {}
+    _mirrorQuery = False
     if _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect']:
         d_context['addMirrors'] = True
+        _mirrorQuery = True
     res_context = get_context(self,**d_context)
     
     def endCall(self):
@@ -805,7 +817,7 @@ def uiFunc_contextualAction(self, **kws):
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-    _l_controls = get_contextualControls(self)
+    _l_controls = get_contextualControls(self,_mirrorQuery)
     if _mode == 'report':
         log.info("Context: {0} | controls: {1}".format(_context, len(_l_controls)))
         for i,v in enumerate(res_context):

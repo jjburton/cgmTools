@@ -79,6 +79,10 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyDirect':'bool',
                    'proxyType':'none:castMesh'}
 
+_l_pivotOrder = ['center','back','front','left','right']
+_d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
+                      'right':{'left':'inner','right':'outer'}}
+
 #>> State Attr Masks =================================================================================
 _l_attrMask_all = ['visibility']
 _l_attrMask_template = ['baseSize','blockScale']

@@ -510,7 +510,7 @@ def buildSection_snap(self,parent):
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
 
 
-    #>>>Base snap -------------------------------------------------------------------------------------
+    #>>>Base snap -------------------------------------------------------------------------------------    
     _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
     mc.button(parent=_row_base,
@@ -1425,7 +1425,7 @@ def buildSection_shape(self,parent):
     #mUI.MelSpacer(_row_curveCreate,w=10)                                              
     cgmUI.add_Button(_row_curveCreate,'One of each',
                      lambda *a:UICHUNKS.uiFunc_createOneOfEach(),
-                     'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )       
+                     'Create one of each curve stored in cgm libraries. Size: {0} '.format(self.var_createSizeValue.value) )
 
     _row_curveCreate.layout()  
     

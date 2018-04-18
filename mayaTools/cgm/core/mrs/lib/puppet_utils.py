@@ -164,6 +164,7 @@ def module_connect(self,mModule,**kws):
 #=============================================================================================================
 #>> Mirror
 #=============================================================================================================
+@cgmGEN.Timer
 def mirror_verify(self):
     """
     Verify the mirror setup of the puppet modules
@@ -173,36 +174,46 @@ def mirror_verify(self):
     
     md_data = {}
     ml_modules = modules_get(self)
-    ml_noMatch = []
-    d_runningSideIdxes = {'Centre':[0],
-                               'Left':[0],
-                               'Right':[0]}
+    
+    d_runningSideIdxes = {'Centre':0,
+                          'Left':0,
+                          'Right':0}
+    ml_processed = []
     
     ml_modules = modules_get(self)
     int_lenModules = len(ml_modules)
     
-    #>>>Controls map ========================================================================================
+    for i,mModule in enumerate(ml_modules):
+        mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes, ml_processed)
+    
+    
+    return
+    
+    #>>>Module control maps ===============================================================================
     for i,mModule in enumerate(ml_modules):
         _str_module = mModule.p_nameShort
-        md_data[mModule.mNode] = {}#...Initize a dict for this object
-        _d = md_data[mModule.mNode]#...link it
+        md_data[mModule] = {}#...Initize a dict for this object
+        _d = md_data[mModule]#...link it
         _d['str_name'] = _str_module
-        _d['ml_controls'] = mModule.rigNull.moduleSet.getMetaList()
+        
+        md,ml = mModule.atUtils('controls_getDat')
+        _d['md_controls'] = md
+        _d['ml_controls'] = ml#mModule.rigNull.moduleSet.getMetaList()
         _d['mi_mirror'] = mModule.atUtils('mirror_get')
         _d['str_side'] = cgmGEN.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center')
 
         if _d['str_side'] not in d_runningSideIdxes.keys():
             d_runningSideIdxes[_d['str_side']] = [0]
             
-            #log.infoDict(_d,_str_module)
-        #log.infoDict(d_runningSideIdxes,"Side idxs")
-        
+
+            #log.infoDict(_d,_str_module)        
+    
     #pprint.pprint(vars())
     #return vars()
-
-
+    return ml_modules
     #>>>Processing ========================================================================================
     ml_processed = []
+    
     #for our first loop, we're gonna create our cull dict of sides of data to then match 
     for mModule in ml_modules:		
         log.info("|{0}| >> On: {1}".format(_str_func,mModule))

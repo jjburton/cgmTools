@@ -1182,10 +1182,13 @@ def rigDeleteBAK(self,msgLinks = []):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
-
+"""
 l_pivotOrder = ['center','back','front','left','right']
 d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
-                    'right':{'left':'inner','right':'outer'}}
+                    'right':{'left':'inner','right':'outer'}}"""
+
+l_pivotOrder = BLOCKSHARE._l_pivotOrder
+d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
 
 @cgmGEN.Timer
 def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
