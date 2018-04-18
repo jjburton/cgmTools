@@ -897,43 +897,133 @@ def mirror_get(self,recheck=False):
     
     self.doStore('moduleMirror',ml_match[0].mNode)
     return ml_match[0]
+
+def mirror_reportSetup(self):
+    _str_func = ' mirror_reportSetup'
+    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.info("{0}".format(self))
     
-def mirror_verifySetup(self, d_startIndices = {'Centre':0,'Left':0,'Right':0}, l_processed = None):
+    d_self = get_mirrorDat(self)
+    d_mirror = {}
+    if d_self.get('mMirror'):
+        d_mirror = get_mirrorDat(d_self.get('mMirror'))
+        
+    md_controls = {'Centre':{},'Left':{},'Right':{}}
+    
+    def registerObj(mObj):
+        _side = mObj.getEnumValueString('mirrorSide')
+        _v = mObj.mirrorIndex
+        
+        if md_controls[_side].get(_v):
+            raise ValueError,"Already stored: {0} | {1} | stored: {2} | mObj: {3}".format(_v,
+                                                                                          _side,
+                                                                                          md_controls[_side].get(_v),mObj)
+        
+        md_controls[_side][_v] = mObj
+        
+        
+        
+    if not d_mirror:
+        for mObj in d_self['ml_controls']:
+            registerObj(mObj)
+            
+            """
+            print("{0} [{1}] | {2} | {3}".format(mObj.mirrorIndex,
+                                                         mObj.getEnumValueString('mirrorSide'),
+                                                         mObj.p_nameShort,
+                                                         mObj.mirrorAxis))"""
+    else:
+        for dSet in d_self,d_mirror:
+            for mObj in dSet['ml_controls']:
+                registerObj(mObj)
+                       
+    if md_controls.get('Centre'):
+        print(cgmGEN._str_subLine)
+        print("Centre...")
+        l_keys = md_controls['Centre'].keys()
+        l_keys.sort()
+        for i in l_keys:
+            mObj = md_controls['Centre'][i]
+            print("[{0}] : {1} | {2}".format(mObj.mirrorIndex,
+                                             mObj.p_nameShort,
+                                             mObj.mirrorAxis))
+    
+    if md_controls.get('Left') and md_controls.get('Right'):
+        print(cgmGEN._str_subLine)
+        print("Sides...")
+        
+        l_keysLeft = md_controls['Left'].keys()
+        l_keysRight = md_controls['Right'].keys()
+        
+        minLeft = min(l_keysLeft)
+        minRight = min(l_keysRight)
+        maxLeft = max(l_keysLeft)
+        maxRight = max(l_keysRight)
+        
+        i_min = minLeft
+        if minRight<i_min:
+            i_min = minRight
+        
+        i_max = maxLeft
+        if maxRight>i_max:
+            i_max = maxRight
+            
+        for i in range(i_min,i_max):
+            print("[{0}] | Left: {1} | Right: {2}".format(i,
+                                                          md_controls['Left'][i].p_nameShort,
+                                                          md_controls['Right'][i].p_nameShort,
+))                        
+    
+    else:
+        for t in ['Left','Right']:
+            print("{0}...".format(t))
+            l_keys = md_controls[t].keys()
+            l_keys.sort()
+            for i in l_keys:
+                mObj = md_controls[t][i]
+                print("[{0}] : {1} | {2}".format(mObj.mirrorIndex,
+                                                 mObj.p_nameShort,
+                                                 mObj.mirrorAxis))            
+    
+def get_mirrorDat(self):
+    _str_module = self.p_nameShort
+    _d = {}
+    _d['str_name'] = _str_module
+    md,ml = controls_getDat(self,ignore=['spacePivots'])
+    _d['md_controls'] = md
+    _d['ml_controls'] = ml#self.rigNull.moduleSet.getMetaList()
+    _d['mMirror'] = mirror_get(self)
+    _d['str_side'] = cgmGEN.verify_mirrorSideArg(self.getMayaAttr('cgmDirection') or 'center')
+    
+    #if _d['str_side'] not in d_runningSideIdxes.keys():
+        #d_runningSideIdxes[_d['str_side']] = [startIdx]    
+    
+    return _d
+
+def mirror_verifySetup(self, d_Indices = {},
+                       l_processed = None,
+                       md_data = None):
     _str_func = ' mirror_verifySetup'
     log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.info("{0}".format(self))
     
+    md_indicesToControls = {}
     for k in ['Centre','Left','Right']:
-        if not d_startIndices.has_key(k):
-            d_startIndices[k] = 0
-    
+        if not d_Indices.has_key(k):
+            d_Indices[k] = 0
+        if not md_indicesToControls.has_key(k):
+            md_indicesToControls[k] = {}
+            
     if l_processed is not None and self in l_processed:
         log.info("|{0}| >> Already processed: {1}".format(_str_func,self))        
         return
     
-    md_data = {}
+    if md_data is None:
+        md_data = {}
     ml_noMatch = []
     d_runningSideIdxes = {}
-    ml_modules = []
-
-    def get_mirrorDat(mModule):
-        _str_module = mModule.p_nameShort
-        ml_modules.append(mModule)
-        _d = {}
-        _d['str_name'] = _str_module
-        
-        md,ml = controls_getDat(mModule,ignore=['spacePivots'])
-        _d['md_controls'] = md
-        _d['ml_controls'] = ml#mModule.rigNull.moduleSet.getMetaList()
-        _d['mMirror'] = mirror_get(mModule)
-        _d['str_side'] = cgmGEN.verify_mirrorSideArg(mModule.getMayaAttr('cgmDirection') or 'center')
-        _d['i_start'] = d_startIndices[_d['str_side']]
-        
-        #if _d['str_side'] not in d_runningSideIdxes.keys():
-            #d_runningSideIdxes[_d['str_side']] = [startIdx]    
-        
-        md_data[mModule] = _d
-        return _d
+    #ml_modules = []
+    md_cgmTags = {}
     
     def validate_controls(ml):
         for i,mObj in enumerate(ml):
@@ -945,8 +1035,10 @@ def mirror_verifySetup(self, d_startIndices = {'Centre':0,'Left':0,'Right':0}, l
                 mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
                 ml[i] = mObj#...push back
                 
+            md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmDirection'])
             mObj._verifyMirrorable()#...veryify the mirrorsetup
             
+            """
             _mirrorSideFromCGMDirection = cgmGEN.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
             
             _mirrorSideCurrent = cgmGEN.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
@@ -965,7 +1057,7 @@ def mirror_verifySetup(self, d_startIndices = {'Centre':0,'Left':0,'Right':0}, l
                 else:
                     #log.info("{0} mirrorSide driven".format(mObj.p_nameShort))
                     log.info("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
-        
+        """
             #append the control to our lists to process                                    
             #md_culling_controlLists[_mirrorSideCurrent].append(mObj)    
     
@@ -980,49 +1072,120 @@ def mirror_verifySetup(self, d_startIndices = {'Centre':0,'Left':0,'Right':0}, l
         validate_controls(d_self['ml_controls'])
         log.info(cgmGEN._str_subLine)
         for i,mObj in enumerate(d_self['ml_controls']):
-            _v = i+d_self['i_start']+1
-            log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
+            _side = mObj.getEnumValueString('mirrorSide')
+            i_start = d_Indices[_side]
+            _v = i_start+1
+            log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
             mObj.mirrorIndex = _v
-            
+            d_Indices[_side] = _v#...push it back
+            md_indicesToControls[_side][_v] = mObj
         if l_processed is not None:l_processed.append(self)
-        d_startIndices[d_self['str_side']] = _v
-        return _v
+        d_Indices[d_self['str_side']] = _v
+        return md_indicesToControls
+    
     else:
         log.info("|{0}| >>  Mirror module found...".format(_str_func))
         mMirror = d_self['mMirror']
         
-        i_start = max([d_startIndices['Left'],d_startIndices['Right']])
-        i_running = copy.copy(i_start)
-        log.info("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
+        #i_start = max([d_Indices['Left'],d_Indices['Right']])
+        #i_running = copy.copy(i_start)
+        #log.info("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
         
         validate_controls(d_self['ml_controls'])
         validate_controls(d_mirror['ml_controls'])
         
-        
         for key in l_controlOrder:
-            self_keyDat = d_self['md_controls'].get(key,[])
-            mirr_keyDat = d_mirror['md_controls'].get(key,[])
-            len_self = len(self_keyDat)
-            len_mirr = len(mirr_keyDat)
+            self_keyControls = d_self['md_controls'].get(key,[])
+            mirr_keyControls = d_mirror['md_controls'].get(key,[])
+            len_self = len(self_keyControls)
+            len_mirr = len(mirr_keyControls)
+            
             log.info("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr))
             
-            for i,mObj in enumerate(self_keyDat):
-                _v = i+i_running+1
-                log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
-                mObj.mirrorIndex = _v
+            ml_primeControls = self_keyControls #...longer list of controls
+            ml_secondControls = mirr_keyControls
+            if len_mirr>len_self:
+                ml_primeControls = mirr_keyControls 
+                ml_secondControls = self_keyControls
+            
+            ml_cull = copy.copy(ml_secondControls)
+            
+            for i,mObj in enumerate(ml_primeControls):
+                _side = mObj.getEnumValueString('mirrorSide')                
+                i_start = d_Indices[_side]
+                _v = i_start+1
+                tags_prime = md_cgmTags[mObj]
                 
-            for i,mObj in enumerate(mirr_keyDat):
-                _v = i+i_running+1
-                log.info("|{0}| >> Setting index: [{1}] | {2}".format(_str_func,_v,mObj))        
                 mObj.mirrorIndex = _v
+                d_Indices[_side] = _v#...push it back                
+                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                md_indicesToControls[_side][_v] = mObj
+                
+                #l_baseSplit = mObj.p_nameBase.split('_')
+                for mCandidate in ml_cull:
+                    #First try a simple name match
+                    #l_candSplit = mCandidate.p_nameBase.split('_')
+                    _match = True
+                    tags_second = md_cgmTags[mCandidate]
+                    for a,v in tags_second.iteritems():
+                        if tags_prime[a] != v:
+                            _match = False
+                            break
+                    if _match:
+                        log.info("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
+                        
+                        mObj.doStore('mirrorControl',mCandidate.mNode)
+                        mCandidate.doStore('mirrorControl',mObj.mNode)                        
+                        
+                        mCandidate.mirrorIndex = _v
+                        
+                        _sideMirror = mCandidate.getEnumValueString('mirrorSide')                
+                        d_Indices[_sideMirror] = _v#...push it back                
+                        ml_cull.remove(mCandidate)
+                        md_indicesToControls[_sideMirror][_v] = mCandidate
+                        
+
+                        
+            for mObj in ml_cull:
+                log.info("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                _side = mObj.getEnumValueString('mirrorSide')                
+                i_start = d_Indices[_side]
+                _v = i_start+1
+                tags_prime = md_cgmTags[mObj]
+                
+                mObj.mirrorIndex = _v
+                d_Indices[_side] = _v#...push it back                
+                md_indicesToControls[_side][_v] = mObj
+                
                     
+            
+            
+            """
+            for i,mObj in enumerate(self_keyControls):
+                _side = mObj.getEnumValueString('mirrorSide')                
+                i_start = d_Indices[_side]
+                _v = i_start+1
+                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                mObj.mirrorIndex = _v
+                d_Indices[_side] = _v#...push it back
+                md_indicesToControls[_side][_v] = mObj
+                
+            for i,mObj in enumerate(mirr_keyControls):
+                _side = mObj.getEnumValueString('mirrorSide')                
+                i_start = d_Indices[_side]
+                _v = i_start+1
+                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                mObj.mirrorIndex = _v
+                d_Indices[_side] = _v#...push it back
+                md_indicesToControls[_side][_v] = mObj
+                
             i_running = i_running + max(len_self,len_mirr)
-            log.info("|{0}| >>  i_running: {1}".format(_str_func,i_running))
-            d_startIndices[d_self['str_side']] = i_running
-            d_startIndices[d_mirror['str_side']] = i_running
+            log.info("|{0}| >>  i_running: {1}".format(_str_func,i_running))"""
+            #d_Indices[d_self['str_side']] = i_running
+            #d_Indices[d_mirror['str_side']] = i_running
             
         if l_processed is not None:l_processed.extend([self,mMirror])
-        return i_running
+        return md_indicesToControls
         
     
     #return ml_modules,md_data

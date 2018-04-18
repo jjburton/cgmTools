@@ -3878,9 +3878,9 @@ class cgmControl(cgmObject):
                     #ATTR.delete()
                     #ATTR.add(self.mNode,'mirrorSide',enumOptions=['Centre','Left','Right'])
                     
-            self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', initialValue = 0,keyable = False, hidden = True, lock =True)
+            self.addAttr('mirrorSide',attrType = 'enum', enumName = 'Centre:Left:Right', initialValue = 0,keyable = False, hidden = True, lock =False)
             self.addAttr('mirrorIndex',attrType = 'int',keyable = False, hidden = True, lock = True)
-            self.addAttr('mirrorAxis',initialValue = '',attrType = 'string',lock=True)
+            self.addAttr('mirrorAxis',initialValue = '',attrType = 'string',lock=False)
             return True
         except Exception,error:
             raise StandardError,"%s >>> error: %s"%(_str_func,error) 
