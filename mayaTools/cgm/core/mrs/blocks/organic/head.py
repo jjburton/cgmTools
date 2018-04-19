@@ -1361,11 +1361,13 @@ def rig_prechecks(self):
     """
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
-    self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
-    self.rotateOrderHead = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
-    
-    log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
-    log.debug("|{0}| >> rotateOrder | self.rotateOrderHead: {1}".format(_str_func,self.rotateOrderHead))
+    _l_orient = [_str_orientation[0],_str_orientation[1],_str_orientation[2]]
+    self.ro_base = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+    self.ro_head = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+    self.ro_headLookAt = "{0}{2}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+    log.debug("|{0}| >> rotateOrder | self.ro_base: {1}".format(_str_func,self.ro_base))
+    log.debug("|{0}| >> rotateOrder | self.ro_head: {1}".format(_str_func,self.ro_head))
+    log.debug("|{0}| >> rotateOrder | self.ro_headLookAt: {1}".format(_str_func,self.ro_headLookAt))
 
     log.debug(cgmGEN._str_subLine)
 
@@ -1530,7 +1532,7 @@ def rig_shapes(self):
         
         CORERIG.colorControl(mLookAt.mNode,_side,'main')
         
-        self.mRigNull.connectChildNode(mLookAt,'headLookAt','rigNull')#Connect
+        self.mRigNull.connectChildNode(mLookAt,'lookAt','rigNull')#Connect
     
     #IK ----------------------------------------------------------------------------------
     mIK = ml_rigJoints[-1].doCreateAt()
@@ -1778,7 +1780,7 @@ def rig_controls(self):
                                               mirrorAxis="translateX,rotateY,rotateZ",
                                               makeAimable = True)
     
-            mObj = d_buffer['instance']
+            mObj = d_buffer['mObj']
             #mObj.axisAim = "%s+"%self._go._jointOrientation[0]
             #mObj.axisUp= "%s+"%self._go._jointOrientation[1]	
             #mObj.axisOut= "%s+"%self._go._jointOrientation[2]
@@ -1788,7 +1790,9 @@ def rig_controls(self):
             
     
     #ikHead ========================================================================================
-    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))    
+    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
+    
     _d = MODULECONTROL.register(mHeadIK,
                                 addDynParentGroup = True,
                                 mirrorSide= self.d_module['mirrorDirection'],
@@ -1798,13 +1802,16 @@ def rig_controls(self):
     
     mHeadIK = _d['mObj']
     mHeadIK.masterGroup.parent = mRootParent
-    ml_controlsAll.append(mHeadIK)            
+    ml_controlsAll.append(mHeadIK)
+    
+    self.atUtils('get_switchTarget', mHeadIK,ml_blendJoints[-1])
     
     
     #>> headLookAt ========================================================================================
-    if mRigNull.getMessage('headLookAt'):
-        mHeadLookAt = mRigNull.headLookAt
-        log.info("|{0}| >> Found headLookAt : {1}".format(_str_func, mHeadLookAt))
+    mHeadLookAt = False
+    if mRigNull.getMessage('lookAt'):
+        mHeadLookAt = mRigNull.lookAt
+        log.info("|{0}| >> Found lookAt : {1}".format(_str_func, mHeadLookAt))
         MODULECONTROL.register(mHeadLookAt,
                                typeModifier='lookAt',
                                addDynParentGroup = True, 
@@ -1815,13 +1822,23 @@ def rig_controls(self):
         mHeadLookAt.masterGroup.parent = mRootParent
         ml_controlsAll.append(mHeadLookAt)
         
+        if mHeadIK:
+            mHeadLookAt.doStore('controlIK', mHeadIK.mNode)
+        if mHeadFK:
+            mHeadLookAt.doStore('controlFK', mHeadFK.mNode)
+            
+        
+        
+        
     
     #>> settings ========================================================================================
     if mHeadFK:
         mSettings = mRigNull.settings
         log.info("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
         
-        MODULECONTROL.register(mSettings)
+        MODULECONTROL.register(mSettings,
+                               mirrorSide= self.d_module['mirrorDirection'],
+                               )
         
         ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
         mSettings.masterGroup.parent = ml_blendJoints[-1]
@@ -1839,7 +1856,7 @@ def rig_controls(self):
                                               mirrorAxis="translateX,rotateY,rotateZ",
                                               makeAimable = False)
     
-            mObj = d_buffer['instance']
+            mObj = d_buffer['mObj']
             ATTR.set_hidden(mObj.mNode,'radius',True)
             
             for mShape in mObj.getShapes(asMeta=True):
@@ -1856,8 +1873,7 @@ def rig_controls(self):
                                           mirrorSide= self.d_module['mirrorDirection'],
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = False)
-
-        mObj = d_buffer['instance']
+        mObj = d_buffer['mObj']
         ATTR.set_hidden(mObj.mNode,'radius',True)        
         if mObj.hasAttr('cgmIterator'):
             ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
@@ -1866,11 +1882,12 @@ def rig_controls(self):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
             
-    ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
-        ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
+        ATTR.set(mCtrl.mNode,'rotateOrder',self.ro_base)
         
         if mCtrl.hasAttr('radius'):
             ATTR.set(mCtrl.mNode,'radius',0)        
@@ -1882,7 +1899,9 @@ def rig_controls(self):
                 mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
     
     if mHeadIK:
-        ATTR.set(mHeadIK.mNode,'rotateOrder',self.rotateOrderHead)
+        ATTR.set(mHeadIK.mNode,'rotateOrder',self.ro_head)
+    if mHeadLookAt:
+        ATTR.set(mHeadLookAt.mNode,'rotateOrder',self.ro_headLookAt)
         
     
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
@@ -2014,8 +2033,6 @@ def rig_frame(self):
     if mRigNull.getMessage('headFK'):
         mHeadFK = mRigNull.headFK
 
-        
-    
     #>> headFK ========================================================================================
     """We use the ik head sometimes."""
     
@@ -2029,20 +2046,41 @@ def rig_frame(self):
         mHeadAimJoint = mRigNull.getMessage('aimHeadJoint', asMeta=True)[0]
         mHeadBlendJoint = mRigNull.getMessage('blendHeadJoint', asMeta=True)[0]
         mTopHandleDriver = mHeadBlendJoint
-        mHeadLookAt = mRigNull.headLookAt
+        mHeadLookAt = mRigNull.lookAt
+        
+        mHeadLookAt.doStore('drivenBlend', mHeadBlendJoint.mNode)
+        mHeadLookAt.doStore('drivenAim', mHeadAimJoint.mNode)
+        
+        self.atUtils('get_switchTarget', mHeadLookAt,mHeadBlendJoint)
+        
         
         ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mHeadLookAt.mNode))
         
-        #Setup Aim -------------------------------------------------------------------------------------
+        #Setup Aim Main -------------------------------------------------------------------------------------
         mc.aimConstraint(mHeadLookAt.mNode,
                          mHeadAimJoint.mNode,
                          maintainOffset = False, weight = 1,
                          aimVector = self.d_orientation['vectorAim'],
                          upVector = self.d_orientation['vectorUp'],
                          worldUpVector = self.d_orientation['vectorUp'],
-                         worldUpObject = mHeadIK.mNode,#mHeadIK.masterGroup.mNode
+                         worldUpObject = mHeadLookAt.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
                          worldUpType = 'objectRotation' )
-
+        
+        #Setup Aim back on head -------------------------------------------------------------------------------------
+        _str_orientation = self.d_orientation['str']
+        mc.aimConstraint(mHeadIK.mNode,
+                         mHeadLookAt.mNode,
+                         maintainOffset = False, weight = 1,
+                         aimVector = self.d_orientation['vectorAimNeg'],
+                         upVector = self.d_orientation['vectorUp'],
+                         worldUpVector = self.d_orientation['vectorUp'],
+                         skip = _str_orientation[0],
+                         worldUpObject = mHeadIK.masterGroup.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
+                         worldUpType = 'objectRotation' )
+        
+        ATTR.set_alias(mHeadLookAt.mNode,'r{0}'.format(_str_orientation[0]),'tilt')
+        mHeadLookAt.setAttrFlags(attrs=['r{0}'.format(v) for v in _str_orientation[1:]])
+        
         #Setup blend ----------------------------------------------------------------------------------
         RIGCONSTRAINT.blendChainsBy(mHeadFKJoint,mHeadAimJoint,mHeadBlendJoint,
                                     driver = mPlug_aim.p_combinedName,l_constraints=['orient'])
@@ -2347,7 +2385,7 @@ def rig_cleanUp(self):
         #mHeadBlendJoint = mRigNull.getMessage('blendHeadJoint', asMeta=True)[0]
         #mHeadFKDynParentGroup = mHeadIK.dynParentGroup
         
-        mHeadLookAt = mRigNull.headLookAt        
+        mHeadLookAt = mRigNull.lookAt        
         mHeadLookAt.setAttrFlags(attrs='v')
         
         #...dynParentGroup...
@@ -2578,10 +2616,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             for shape in mJnt.getShapes():
                 mc.delete(shape)
     mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
+    
     l_headGeo = mGroup.getChildren(asMeta=False)
     #l_vis = mc.ls(l_headGeo, visible = True)
     ml_segProxy = []
-    
+    ml_headStuff = []
     if puppetMeshMode:
         log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
         ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
@@ -2640,10 +2679,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
             ml_headStuff.append(  mObj )
             mObj.p_parent = False
-            
-        
-            mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
-            ml_headStuff.append( mObj )
             mObj.parent = ml_rigJoints[-1]
             
             ATTR.copy_to(ml_rigJoints[-1].mNode,'cgmName',mObj.mNode,driven = 'target')
@@ -2655,7 +2690,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
                 CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)        
         
-    if mBlock.neckBuild:#...Neck =====================================================================
+    if mBlock.neckBuild:#...Neck =====================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))
         
         # Create ---------------------------------------------------------------------------
@@ -2689,18 +2724,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
                     CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                
     
-
-    
-    
     for mProxy in ml_neckProxy + ml_headStuff:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
-        
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
         ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
-        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode
             mShape.overrideEnabled = 0

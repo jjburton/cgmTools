@@ -729,7 +729,26 @@ def build_visSub(self):
     
     return mPlug_result_moduleSubDriver
 
+def get_switchTarget(self,mControl,parentTo=False):
+    _str_func = 'switchMode'
+    log.info("|{0}| >> ".format(_str_func)+ '-'*80)
+    log.info("Control: {0} | parentTo: {1}".format(mControl,parentTo))
+    
+    if mControl.getMessage('switchTarget'):
+        mSwitchTarget = mControl.getMessage('switchTarget',asMeta=True)[0]
+        mSwitchTarget.setAttrFlags(lock=False)
+    else:
+        mSwitchTarget = mControl.doCreateAt(setClass=True)
+        mControl.doStore('switchTarget',mSwitchTarget.mNode)
+        mSwitchTarget.rename("{0}_switchTarget".format(mControl.p_nameBase))
+        
+    log.debug("|{0}| >> Controlsnap target : {1} | from: {2}".format(_str_func, mSwitchTarget, mControl))
+    mSwitchTarget.p_parent = parentTo
+    mSwitchTarget.setAttrFlags()    
+
+
 def register_mirrorIndices(self, ml_controls = []):
+    raise ValueError,"Don't use this"
     _start = time.clock()    
     _str_func = 'register_mirrorIndices'
     

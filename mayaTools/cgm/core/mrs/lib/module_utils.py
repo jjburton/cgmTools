@@ -1257,13 +1257,63 @@ def switchMode(self,mode = 'fkOn'):
     log.info("{0}".format(self))
     
     mRigNull = self.rigNull
+    mSettings = mRigNull.settings
     
-    if mode == 'fkOn':
-        mRigNull.settings.FKIK = 0
-    elif mode == 'ikOn':
-        mRigNull.settings.FKIK = 1
-    elif mode == 'fkSnap':
+    _mode = mode.lower()
+    
+    if _mode == 'fkon':
+        mSettings.FKIK = 0
         
+    elif _mode == 'ikon':
+        mSettings.FKIK = 1
+        
+    elif _mode in ['aimon','aimoff','aimtofk','aimtoik','aimsnap']:
+        if not mRigNull.getMessage('lookAt'):
+            return log.warning("|{0}| >> No lookAt/aim setup detected ".format(_str_func))        
+        mLookAt = mRigNull.lookAt
+        
+        if _mode == 'aimon':
+            mSettings.blend_aim = 1
+        elif _mode == 'aimoff':
+            mSettings.blend_aim = 0
+            
+        elif _mode in ['aimtoik','aimtofk']:
+            if _mode == 'aimtoik':
+                if not mLookAt.getMessage('controlIK'):
+                    return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))        
+                mControl = mLookAt.controlIK
+                _v = 1
+            else:
+                if not mLookAt.getMessage('controlFK'):
+                    return log.warning("|{0}| >> No FK control on lookAt detected ".format(_str_func))        
+                mControl = mLookAt.controlFK
+                _v = 0
+            mBlendTarget = mLookAt.getMessage('drivenBlend',asMeta=True)[0]
+            
+            mLoc = mBlendTarget.doLoc(fastMode=True)
+            
+            mSettings.blend_aim = 0
+            mSettings.FKIK = _v
+            
+            SNAP.go(mControl.mNode,mLoc.mNode,position=False)
+            mControl.select()
+            mLoc.delete()
+            
+        elif _mode == 'aimsnap':
+            if not mLookAt.getMessage('switchTarget'):
+                return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))
+            
+            mSwitchTarget = mLookAt.switchTarget            
+            mLoc = mSwitchTarget.doLoc(fastMode=True)
+            
+            mSettings.blend_aim = 1
+            
+            SNAP.go(mLookAt.mNode,mLoc.mNode)
+            mLookAt.select()        
+            mLoc.delete()
+        
+        
+    elif _mode == 'fksnap':
         ml_controls= self.atUtils('controls_get','fk')
         ml_blends = []
         ml_targets = []
@@ -1285,7 +1335,7 @@ def switchMode(self,mode = 'fkOn'):
             l_rot.append(mBlend.p_orient)
             md_locs[i] = mBlend.doLoc(fastMode = True)
             
-        mRigNull.settings.FKIK = 0
+        mSettings.FKIK = 0
         
         for i,mObj in enumerate(ml_controls):
             mLoc = md_locs.get(i)
@@ -1298,16 +1348,27 @@ def switchMode(self,mode = 'fkOn'):
         for i,mLoc in md_locs.iteritems():
             mLoc.delete()
             
-    elif mode == 'ikSnap':
-        mRigNull = self.rigNull
-        mSettings = mRigNull.settings
+    elif _mode in ['iksnap','iksnapall']:
+        if not mRigNull.getMessage('controlIK'):
+            return log.info("|{0}| >> No IK mode detected ".format(_str_func))
         if MATH.is_float_equivalent(mSettings.FKIK,1.0):
             return log.info("|{0}| >> Already in IK mode ".format(_str_func))
 
+        mControlIK = mRigNull.controlIK
+        
         ml_ikJoints = mRigNull.msgList_get('ikJoints')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         
-        mSettings = mRigNull.settings
+        #IKsnapAll ========================================================================
+        if _mode == 'iksnapall':
+            log.info("|{0}| >> iksnapall prep...".format(_str_func))
+            mSettings.visDirect=True
+            ml_rigLocs = []
+            ml_rigJoints = mRigNull.msgList_get('rigJoints')
+            for i,mObj in enumerate(ml_rigJoints):
+                ml_rigLocs.append( mObj.doLoc(fastMode = True) )
+                
+        #Main IK control =====================================================================
         mControlIK = mRigNull.controlIK
         
         #dat we need
@@ -1319,7 +1380,15 @@ def switchMode(self,mode = 'fkOn'):
         SNAP.go(mControlIK.mNode,mLoc.mNode)
         mLoc.delete()
         
+        #IKsnapAll close========================================================================
+        if _mode == 'iksnapall':
+            log.info("|{0}| >> iksnapall end...".format(_str_func))
+            for i,mObj in enumerate(ml_rigJoints):
+                SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
+        
+            return log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))
+        
     else:
-        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,mode,self)            
+        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)            
     
     

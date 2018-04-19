@@ -425,25 +425,64 @@ def buildSection_MRSFunctions(self,parent):
     cgmUI.add_LineSubBreak()
     
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
-    d_switch = {'<Pull':{'ann':'Select objects in context',
-                          'arg':{}},
-                'Push>':{'ann':'Report objects in context',
-                          'arg':{}},
+    d_switch = {'FKsnap':{'ann':'Snap fk controls to blend chain for modules in context',
+                          'arg':{'mode':'FKsnap'}},
+                'FKon':{'ann':'Turn fk on to all modules in context',
+                        'arg':{'mode':'FKon'}},
+                'IKsnap':{'ann':'Snap main ik controls to blend chain for modules in context',
+                          'arg':{'mode':'IKsnap'}},
+                'IKon':{'ann':'Turn ik on to all modules in context',
+                        'arg':{'mode':'IKon'}},
+                'IKforce':{'ann':'Snap main ik/direct controls to blend chain for modules in context',
+                         'arg':{'mode':'IKsnapAll'}},
+                
+                'aimOn':{'ann':'Turn aim on contexually',
+                         'short':'on',
+                         'arg':{'mode':'aimOn'}},                
+                'aimOff':{'ann':'Turn aim off contexually',
+                          'short':'off',                          
+                          'arg':{'mode':'aimOff'}},
+                'aimToIK':{'ann':'Snap aim to controls in context',
+                           'short':'toIK',                           
+                           'arg':{'mode':'aimToIK'}},
+                'aimToFK':{'ann':'Snap aim to controls in context',
+                           'short':'toFK',                           
+                           'arg':{'mode':'aimToFK'}},
+                'aimSnap':{'ann':'Snap aim controls on in context',
+                           'short':'snap',                           
+                           'arg':{'mode':'aimSnap'}},                
                 }
     
-    l_switch = ['FKsnap','FKon','IKon','IKSnap']
+    l_switch = ['FKsnap','FKon','IKon','IKsnap','IKforce']
     for b in l_switch:
         _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
         mc.button(parent=_row,
-                  en=False,
                   l = _d.get('short',b),
                   ut = 'cgmUITemplate',
-                  #c = lambda *a:SNAPCALLS.snap_action(None,'aim','eachToLast'),
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
     _row.layout()
     
+    #Aim row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='Aim:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
     
-        
+    l_switch = ['aimOn','aimOff','aimToFK','aimToIK','aimSnap']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()    
+    
     #>>>Settings ===================================================================================== 
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()        
@@ -779,8 +818,9 @@ def uiFunc_contextualAction(self, **kws):
     if not res_context:
         return log.error("Nothing found in context: {0} ".format(_context))
     
-    def endCall(self):
+    def endCall(self,report=True):
         mc.select(self._sel)
+        if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
@@ -791,8 +831,12 @@ def uiFunc_contextualAction(self, **kws):
             log.info("[{0}] : {1}".format(i,v))
         log.debug(cgmGEN._str_subLine)
         return endCall(self)
+    
+    
     elif _mode == 'select':
         return  mc.select(_l_controls)
+    
+    
     elif _mode in ['key','bdKey','reset','delete','nextKey','prevKey']:
         mc.select(_l_controls)
         if _mode == 'reset':
@@ -808,6 +852,8 @@ def uiFunc_contextualAction(self, **kws):
         elif _mode == 'prevKey':
             mel.eval('PreviousKey;')
         return endCall(self)
+    
+    
     elif _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect']:
         log.debug(cgmGEN._str_subLine)
         mBaseModule = self.d_puppetData['mModulesBase'][0]
@@ -835,14 +881,30 @@ def uiFunc_contextualAction(self, **kws):
                                                  primeAxis = _primeAxis )        
         return endCall(self)
             
-        
     elif _mode == 'mirrorVerify':
         log.info("Context: {0} | Mirror verify".format(_context))
         if not self.d_puppetData['mPuppets']:
             return log.error("No puppets detected".format(_mode))
         for mPuppet in self.d_puppetData['mPuppets']:
             mPuppet.atUtils('mirror_verify')
-            
+        return endCall(self)
+    
+    
+    elif _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
+                   'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+        log.info("Context: {0} | Switch call".format(_context))
+        res = []
+        if not self.d_puppetData['mModules']:
+            return log.error("No modules detected".format(_mode))
+        for mModule in self.d_puppetData['mModules']:
+            res.append(mModule.atUtils('switchMode',_mode))
+        
+        if _mode in ['aimSnap','aimToIK','aimToFK']:#no reselect
+            return res
+        endCall(self,False)
+        return res
+        #sreturn mc.select(_l_controls)
+        
     else:
         return log.error("Unknown contextual action: {0}".format(_mode))
     return 
