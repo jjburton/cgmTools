@@ -4134,24 +4134,25 @@ def skeleton_delete(self):
     if 'skeleton_delete' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule skeleton_delete call found...".format(_str_func))
         self.atBlockModule('skeleton_delete')
-        
-    ml_joints = self.moduleTarget.rigNull.msgList_get('moduleJoints')
-    if not ml_joints:
-        return log.error("|{0}| >> No joints found".format(_str_func))
+    
     else:
-        ml_children = []
-        for mJnt in ml_joints:
-            ml_childrenTmp = mJnt.getChildren(asMeta=True)
-            log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
-            for mChild in ml_childrenTmp:
-                if mChild not in ml_children and mChild not in ml_joints:
-                    ml_children.append(mChild)
-                    
-        for mChild in ml_children:
-            log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
-            mChild.p_parent = False
-            
-        ml_joints[0].delete()
+        ml_joints = self.moduleTarget.rigNull.msgList_get('moduleJoints')
+        if not ml_joints:
+            return log.error("|{0}| >> No joints found".format(_str_func))
+        else:
+            ml_children = []
+            for mJnt in ml_joints:
+                ml_childrenTmp = mJnt.getChildren(asMeta=True)
+                log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
+                for mChild in ml_childrenTmp:
+                    if mChild not in ml_children and mChild not in ml_joints:
+                        ml_children.append(mChild)
+                        
+            for mChild in ml_children:
+                log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
+                mChild.p_parent = False
+                
+            ml_joints[0].delete()
         
     d_links = get_stateLinks(self, 'skeleton')
     msgDat_delete(self,d_links)

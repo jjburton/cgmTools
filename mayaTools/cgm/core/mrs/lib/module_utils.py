@@ -688,10 +688,13 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
     
-def controls_get(self, mirror = False):
+def controls_get(self, mode = 'mirror'):
     _str_func = ' controls_get'    
-    if mirror:
+    if mode == 'mirror':
         return controls_getDat(self,ignore='spacePivots',listOnly=True)
+    else:
+        return controls_getDat(self,mode,listOnly=True)
+        
     log.error("|{0}| >> No options specified".format(_str_func))
     return False
     
@@ -820,8 +823,6 @@ def anim_key(self,**kws):
 def siblings_get(self,matchType = False, excludeSelf = True, matchName=False):
     _str_func = 'siblings_get'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    
-    
 
     d = {}
     if matchType:
@@ -1248,5 +1249,77 @@ def mirror(self,mode = 'self'):
         return _result
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+def switchMode(self,mode = 'fkOn'):
+    _str_func = 'switchMode'
+    log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+    log.info("{0}".format(self))
+    
+    mRigNull = self.rigNull
+    
+    if mode == 'fkOn':
+        mRigNull.settings.FKIK = 0
+    elif mode == 'ikOn':
+        mRigNull.settings.FKIK = 1
+    elif mode == 'fkSnap':
+        
+        ml_controls= self.atUtils('controls_get','fk')
+        ml_blends = []
+        ml_targets = []
+        l_pos = []
+        l_rot = []
+        md_locs = {}
+        for i,mObj in enumerate(ml_controls):
+            log.info("|{0}| >> On: {1} ".format(_str_func,mObj))
+            
+            mBlend = mObj.getMessage('blendJoint',asMeta=True)
+            if not mBlend:
+                log.warning("|{0}| >> No blend joint found! ".format(_str_func))
+                break
+            mBlend = mBlend[0]
+            log.info("|{0}| >> blend: {1} ".format(_str_func,mBlend.mNode))
+            
+            ml_blends.append(mBlend)
+            l_pos.append(mBlend.p_position)
+            l_rot.append(mBlend.p_orient)
+            md_locs[i] = mBlend.doLoc(fastMode = True)
+            
+        mRigNull.settings.FKIK = 0
+        
+        for i,mObj in enumerate(ml_controls):
+            mLoc = md_locs.get(i)
+            if not mLoc:
+                continue
+            #mObj.p_position = l_pos[i]
+            #mObj.p_orient = l_rot[i]
+            SNAP.go(mObj.mNode,mLoc.mNode)
+        
+        for i,mLoc in md_locs.iteritems():
+            mLoc.delete()
+            
+    elif mode == 'ikSnap':
+        mRigNull = self.rigNull
+        mSettings = mRigNull.settings
+        if MATH.is_float_equivalent(mSettings.FKIK,1.0):
+            return log.info("|{0}| >> Already in IK mode ".format(_str_func))
+
+        ml_ikJoints = mRigNull.msgList_get('ikJoints')
+        ml_blendJoints = mRigNull.msgList_get('blendJoints')
+        
+        mSettings = mRigNull.settings
+        mControlIK = mRigNull.controlIK
+        
+        #dat we need
+        #We need to store the blendjoint target for the ik control or loc it
+        mLoc = mControlIK.switchTarget.doLoc(fastMode=True)
+        
+        mSettings.FKIK = 1
+        
+        SNAP.go(mControlIK.mNode,mLoc.mNode)
+        mLoc.delete()
+        
+    else:
+        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,mode,self)            
     
     

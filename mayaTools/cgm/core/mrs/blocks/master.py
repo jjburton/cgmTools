@@ -98,11 +98,11 @@ def uiBuilderMenu(self,parent = None):
 #=============================================================================================================
 def define(self):
     _short = self.mNode
-    self.translate = 0,0,0
-    self.rotate = 0,0,0
-    self.setAttrFlags(attrs=['sx','sz'])
+    #self.translate = 0,0,0
+    #self.rotate = 0,0,0
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz','sz'])
     self.doConnectOut('sy',['sx','sz'])
-    ATTR.set_alias(_short,'sy','blockScale')
     
     try:mc.delete(self.getShapes())
     except:pass

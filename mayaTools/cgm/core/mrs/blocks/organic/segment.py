@@ -1809,13 +1809,15 @@ def rig_controls(self):
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = True)
 
-        mObj = d_buffer['instance']
+        mObj = d_buffer['mObj']
         ATTR.set_hidden(mObj.mNode,'radius',True)
             
     
     #ControlIK ========================================================================================
     mControlIK = False
     if mRigNull.getMessage('controlIK'):
+        ml_blend = mRigNull.msgList_get('blendJoints')
+        
         mControlIK = mRigNull.controlIK
         log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
         
@@ -1829,6 +1831,14 @@ def rig_controls(self):
         mControlIK = _d['mObj']
         mControlIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlIK)
+        
+        #Register our snapToTarget -------------------------------------------------------------
+        mSnapTarget = mControlIK.doCreateAt(setClass=True)
+        mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
+        mControlIK.doStore('switchTarget',mSnapTarget.mNode)
+        mSnapTarget.rename("{0}_switchTarget".format(mControlIK.p_nameBase))
+        log.debug("|{0}| >> IK handle snap target : {1}".format(_str_func, mSnapTarget))
+        mSnapTarget.setAttrFlags()
         
     mControlBaseIK = False
     if mRigNull.getMessage('controlIKBase'):
@@ -1845,13 +1855,23 @@ def rig_controls(self):
         
         mControlBaseIK = _d['mObj']
         mControlBaseIK.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mControlBaseIK)            
+        ml_controlsAll.append(mControlBaseIK)
+        
+        #Register our snapToTarget -------------------------------------------------------------
+        mSnapTarget = mControlBaseIK.doCreateAt(setClass=True)
+        mSnapTarget.p_parent = ml_blend[0]
+        mControlBaseIK.doStore('switchTarget',mSnapTarget.mNode)
+        mSnapTarget.rename("{0}_switchTarget".format(mControlBaseIK.p_nameBase))
+        log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
+        mSnapTarget.setAttrFlags()        
     
 
     if not b_cog:#>> settings ========================================================================================
         log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
         
-        MODULECONTROL.register(mSettings)
+        MODULECONTROL.register(mSettings,
+                               mirrorSide= self.d_module['mirrorDirection'],
+                               )
     
         #ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
         #if ml_blendJoints:
@@ -1873,7 +1893,7 @@ def rig_controls(self):
                                               mirrorAxis="translateX,rotateY,rotateZ",
                                               makeAimable = False)
     
-            mObj = d_buffer['instance']
+            mObj = d_buffer['mObj']
             ATTR.set_hidden(mObj.mNode,'radius',True)
             
             for mShape in mObj.getShapes(asMeta=True):
@@ -1893,7 +1913,7 @@ def rig_controls(self):
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = False)
 
-        mObj = d_buffer['instance']
+        mObj = d_buffer['mObj']
         ATTR.set_hidden(mObj.mNode,'radius',True)        
         if mObj.hasAttr('cgmIterator'):
             ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
@@ -1918,7 +1938,7 @@ def rig_controls(self):
                 mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
 
     
-    ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
     
@@ -2857,7 +2877,10 @@ def rig_cleanUp(self):
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
     for i,mObj in enumerate(ml_fkJoints):
-        log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))                        
+        if not mObj.getMessage('masterGroup'):
+            log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
+            continue
+        log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
         ml_targetDynParents = copy.copy(ml_baseDynParents)
         ml_targetDynParents.append(self.mConstrainNull)
         

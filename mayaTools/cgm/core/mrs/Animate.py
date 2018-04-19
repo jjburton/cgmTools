@@ -735,7 +735,7 @@ def get_contextualControls(self,mirrorQuery=False):
         if context == 'part':
             if mirrorQuery:
                 for mPart in self.d_puppetData['mModules']:
-                    ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,mirror=True)])            
+                    ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
             else:
                 for mPart in self.d_puppetData['mModules']:
                     ls.extend(mPart.rigNull.moduleSet.getList())
@@ -743,7 +743,7 @@ def get_contextualControls(self,mirrorQuery=False):
             if mirrorQuery:
                 for mPuppet in self.d_puppetData['mPuppets']:
                     for mPart in mPuppet.UTILS.modules_get(mPuppet):
-                        ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,mirror=True)])            
+                        ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
             else:
                 for mPuppet in self.d_puppetData['mPuppets']:
                     mPuppet.puppetSet.select()

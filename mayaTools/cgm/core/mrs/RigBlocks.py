@@ -5076,8 +5076,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             mMasterControl.parent = mMasterNull.mNode
             #mMasterControl.doName()
             
-            #Vis network
-            #--------------------------------------------------------------------------
+            
+            """
+            #Vis network#--------------------------------------------------------------------------
             log.debug("|{0}| >> visNetwork...".format(_str_func))                        
             iVis = mMasterControl.controlVis
             visControls = 'left','right','sub','main'
@@ -5087,7 +5088,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                       {'result':[iVis,'leftControls_out'],'drivers':[[iVis,'left'],[iVis,'controls']]},
                       {'result':[iVis,'rightControls_out'],'drivers':[[iVis,'right'],[iVis,'controls']]}
                       ]
-            NODEFAC.build_mdNetwork(visArg)            
+            NODEFAC.build_mdNetwork(visArg)
+            """
+            
             
             # Setup the settings
             #--------------------------------------------------------------------------
@@ -5109,6 +5112,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mMasterNull.deformGroup.parent = mMasterControl.mNode
             mMasterControl.addAttr('cgmAlias','world',lock = True)
             
+            
+            """
             #>>> Skeleton Group
             #--------------------------------------------------------------------------
             log.debug("|{0}| >> skeletonGroup...".format(_str_func))                        
@@ -5121,8 +5126,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
                 mGrp.parent = mMasterControl.mNode
                 mMasterNull.connectChildNode(mGrp,'skeletonGroup','module')
-                
                 mGrp.doName('skeleton_grp')
+                
                 #mGrp.doName()
             else:
                 mGrp = mMasterNull.skeletonGroup
@@ -5133,7 +5138,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
          
             #>>>Connect some flags
             #--------------------------------------------------------------------------
-            log.debug("|{0}| >> Geo connections...".format(_str_func))            
+            log.info("|{0}| >> Geo connections...".format(_str_func))            
             if not mMasterNull.getMessage('geoGroup'):
                 mGeoGroup = self.masterNull.geoGroup
                 mGeoGroup.overrideEnabled = 1
@@ -5152,38 +5157,43 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             except:pass
             
             return True            
-
+            """
 
             #>>> Skeleton Group
             #=====================================================================	
+            """
             if not self.masterNull.getMessage('skeletonGroup'):
-                #Make it and link it
-                #mGrp = mi_masterControl.doDuplicateTransform()
-                mGrp = cgmMeta.createMetaNode('cgmObject')
-                mGrp.doSnapTo(mi_masterControl.mNode)
+                mSkeletonGrp = cgmMeta.createMetaNode('cgmObject')
+                mSkeletonGrp.doSnapTo(mi_masterControl.mNode)
                 
-                #mGrp.doRemove('cgmName')
-                mGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
-                mGrp.parent = mi_masterControl.mNode
+                mSkeletonGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+                mSkeletonGrp.parent = mi_masterControl.mNode
                 self.masterNull.connectChildNode(mGrp,'skeletonGroup','module')
-    
-                mGrp.doName()
+                mSkeletonGrp.doName()
             else:
-                mGrp = self.masterNull.skeletonGroup
-    
-    
+                mSkeletonGrp = self.masterNull.skeletonGroup
+            """
+            log.debug("|{0}| >> skeletonGroup...".format(_str_func))                                    
+            mSkeletonGrp = self.masterNull.skeletonGroup
+            _skeletonGrp = mSkeletonGrp.mNode
+            
             #Verify the connections
-            mGrp.overrideEnabled = 1             
-            cgmMeta.cgmAttr(i_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideVisibility'))    
-            cgmMeta.cgmAttr(i_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(mGrp.mNode,'overrideDisplayType'))    
+            ATTR.set(_skeletonGrp,'overrideEnabled',1)
+            #mSkeletonGrp.overrideEnabled = 1             
+            cgmMeta.cgmAttr(str_settings,'skeletonVis',lock=False).doConnectOut("%s.%s"%(_skeletonGrp,'overrideVisibility'))    
+            cgmMeta.cgmAttr(str_settings,'skeletonLock',lock=False).doConnectOut("%s.%s"%(_skeletonGrp,'overrideDisplayType'))    
     
     
             #>>>Connect some flags
             #=====================================================================
-            i_geoGroup = self.masterNull.geoGroup
-            i_geoGroup.overrideEnabled = 1		
-            cgmMeta.cgmAttr(i_settings.mNode,'geoVis',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideVisibility'))
-            cgmMeta.cgmAttr(i_settings.mNode,'geoLock',lock=False).doConnectOut("%s.%s"%(i_geoGroup.mNode,'overrideDisplayType'))  
+            log.debug("|{0}| >> geoGroup...".format(_str_func))                                    
+            
+            mGeoGrp = self.masterNull.geoGroup
+            _geoGrp = mGeoGrp.mNode
+            
+            ATTR.set(_geoGrp,'overrideEnabled',1)
+            cgmMeta.cgmAttr(str_settings,'geoVis',lock=False).doConnectOut("%s.%s"%(_geoGrp,'overrideVisibility'))
+            cgmMeta.cgmAttr(str_settings,'geoLock',lock=False).doConnectOut("%s.%s"%(_geoGrp,'overrideDisplayType'))  
     
             try:self.masterNull.puppetSpaceObjectsGroup.parent = mi_masterControl
             except:pass
