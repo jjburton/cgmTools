@@ -3223,7 +3223,9 @@ def rig_controls(self):
             
         #>> settings -------------------------------------------------------------------------------------
         log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
-        MODULECONTROL.register(mSettings)
+        MODULECONTROL.register(mSettings,
+                               mirrorSide= self.d_module['mirrorDirection'],
+                               )
         ml_controlsAll.append(mSettings)
         #ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
         #if ml_blendJoints:
@@ -3288,7 +3290,7 @@ def rig_controls(self):
                                               mirrorAxis="translateX,rotateY,rotateZ",
                                               makeAimable = False)
             
-            mPivot = d_buffer['instance']
+            mPivot = d_buffer['mObj']
             for mShape in mPivot.getShapes(asMeta=True):
                 ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
             ml_controlsAll.append(mPivot)
@@ -3309,12 +3311,13 @@ def rig_controls(self):
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = True)
 
-        mObj = d_buffer['instance']
+        mObj = d_buffer['mObj']
             
     
     #ControlIK ========================================================================================
     mControlIK = False
     if mRigNull.getMessage('controlIK'):
+        ml_blend = mRigNull.msgList_get('blendJoints')
         mControlIK = mRigNull.controlIK
         log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
         
@@ -3330,6 +3333,10 @@ def rig_controls(self):
         mControlIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlIK)
         ml_controlsIKRO.append(mControlIK)
+        
+        self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
+                
+        
         
     mControlBaseIK = False
     if mRigNull.getMessage('controlIKBase'):
@@ -3350,6 +3357,8 @@ def rig_controls(self):
         ml_controlsAll.append(mControlBaseIK)
         ml_controlsIKRO.append(mControlBaseIK)
         
+        self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
+        
         
     mControlMidIK = False
     if mRigNull.getMessage('controlIKMid'):
@@ -3369,6 +3378,8 @@ def rig_controls(self):
         mControlMidIK.masterGroup.parent = mRootParent
         ml_controlsAll.append(mControlMidIK)
         ml_controlsIKRO.append(mControlMidIK)
+        
+        self.atUtils('get_switchTarget', mControlMidIK,ml_blend[self.int_handleMidIdx])
         
 
     
@@ -3412,7 +3423,6 @@ def rig_controls(self):
         for mShape in mObj.getShapes(asMeta=True):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
 
-    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
 
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
@@ -3430,11 +3440,10 @@ def rig_controls(self):
     for mCtrl in ml_controlsIKRO:
         ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrderIK)
     
-
-    
-    ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
+    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
     return 
 
@@ -5112,7 +5121,119 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
 
 
+def switchMode(self,mode = 'fkOn'):
+    _str_func = 'switchMode'
+    log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+    log.info("{0}".format(self))
+    
+    _mode = mode.lower()
+    
+    if _mode not in ['iksnap','iksnapall']:#If we don't 
+        log.info("|{0}| >> Standard call. Passing back...".format(_str_func))
+        return self.atUtils('switchMode',mode,True)
+    
+    log.info("|{0}| >> Special call. Processing...".format(_str_func))
+    
+    mRigNull = self.rigNull
+    mSettings = mRigNull.settings
+    
+    if not mRigNull.getMessage('controlIK'):
+        return log.info("|{0}| >> No IK mode detected ".format(_str_func))
+    if MATH.is_float_equivalent(mSettings.FKIK,1.0):
+        return log.info("|{0}| >> Already in IK mode ".format(_str_func))
+    
+    mControlIK = mRigNull.controlIK
+    mControlMid = False
+    mControlIKBase = False
+    
+    ml_ikJoints = mRigNull.msgList_get('ikJoints')
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')    
+    
+    ml_controls = [mControlIK]
+    md_controls = {}        
+    md_locs = {}
+    if mRigNull.getMessage('controlIKBase'):
+        mControlIKBase = mRigNull.controlIKBase
+        ml_controls.append(mControlIKBase)
+    if mRigNull.getMessage('controlIKMid'):
+        mControlMid = mRigNull.controlIKMid
+        ml_controls.append(mControlMid)
+        #mid_point = IK.get_midIK_basePos(ml_blendJoints,'y+', markPos=True)
 
+    md_datPostCompare = {}
+    for i,mObj in enumerate (ml_blendJoints):
+        md_datPostCompare[i] = {}
+        md_datPostCompare[i]['pos'] = mObj.p_position
+        md_datPostCompare[i]['orient'] = mObj.p_orient
+
+    #IKsnapAll ========================================================================
+    if _mode == 'iksnapall':
+        log.info("|{0}| >> ik snap all prep...".format(_str_func))
+        mSettings.visDirect=True
+        ml_rigLocs = []
+        ml_rigJoints = mRigNull.msgList_get('rigJoints')
+        for i,mObj in enumerate(ml_rigJoints):
+            ml_rigLocs.append( mObj.doLoc(fastMode = True) )
+            
+        ml_handleLocs = []
+        ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        for i,mObj in enumerate(ml_handleJoints):
+            ml_handleLocs.append( mObj.doLoc(fastMode = True) )        
+
+    #Main IK control =====================================================================
+
+    #dat we need
+    #We need to store the blendjoint target for the ik control or loc it
+    for i,mCtrl in enumerate(ml_controls):
+        if mCtrl.getMessage('switchTarget'):
+            mCtrl.resetAttrs()
+            md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
+            md_controls[i] = mCtrl
+        else:
+            raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
+        
+
+    mSettings.FKIK = 1
+
+    for i,mLoc in md_locs.iteritems():
+        SNAP.go(md_controls[i].mNode,mLoc.mNode)
+        mLoc.delete()
+        
+    #if mControlMid:
+        #mControlMid.p_position = mid_point
+        
+
+    #IKsnapAll close========================================================================
+    if _mode == 'iksnapall':
+        log.info("|{0}| >> ik snap all end...".format(_str_func))
+        
+        
+        for ii in range(2):
+            for i,mObj in enumerate(ml_handleJoints):
+                SNAP.go(mObj.mNode,ml_handleLocs[i].mNode)
+                if ii==1:
+                    ml_handleLocs[i].delete()
+
+        for i,mObj in enumerate(ml_rigJoints):
+            SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
+            ml_rigLocs[i].delete()
+        log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))    
+    #Pose compare =========================================================================
+    for i,v in md_datPostCompare.iteritems():
+        mBlend = ml_blendJoints[i]
+        dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
+
+        if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
+            log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
+            log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
+            log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+
+        if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
+            log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
+            log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
+            log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))
+    
+    
 
 
 

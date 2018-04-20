@@ -1833,12 +1833,14 @@ def rig_controls(self):
         ml_controlsAll.append(mControlIK)
         
         #Register our snapToTarget -------------------------------------------------------------
+        self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
+        """
         mSnapTarget = mControlIK.doCreateAt(setClass=True)
         mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
         mControlIK.doStore('switchTarget',mSnapTarget.mNode)
         mSnapTarget.rename("{0}_switchTarget".format(mControlIK.p_nameBase))
         log.debug("|{0}| >> IK handle snap target : {1}".format(_str_func, mSnapTarget))
-        mSnapTarget.setAttrFlags()
+        mSnapTarget.setAttrFlags()"""
         
     mControlBaseIK = False
     if mRigNull.getMessage('controlIKBase'):
@@ -1858,12 +1860,14 @@ def rig_controls(self):
         ml_controlsAll.append(mControlBaseIK)
         
         #Register our snapToTarget -------------------------------------------------------------
+        self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
+        """
         mSnapTarget = mControlBaseIK.doCreateAt(setClass=True)
-        mSnapTarget.p_parent = ml_blend[0]
         mControlBaseIK.doStore('switchTarget',mSnapTarget.mNode)
         mSnapTarget.rename("{0}_switchTarget".format(mControlBaseIK.p_nameBase))
         log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
-        mSnapTarget.setAttrFlags()        
+        mSnapTarget.p_parent = ml_blend[0]        
+        mSnapTarget.setAttrFlags()"""
     
 
     if not b_cog:#>> settings ========================================================================================
@@ -1900,7 +1904,7 @@ def rig_controls(self):
                 ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
         
             
-    #>> Direct Controls ========================================================================================
+    #>> Direct Controls ==================================================================================
     log.debug("|{0}| >> Direct controls...".format(_str_func))
     
     ml_rigJoints = self.mRigNull.msgList_get('rigJoints')

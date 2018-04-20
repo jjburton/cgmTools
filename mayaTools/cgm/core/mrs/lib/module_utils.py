@@ -600,7 +600,7 @@ reload(BLOCKSHARE)
 l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK'],
-                  'ik':['controlIK','controlIKBase','controlIKMid','leverIK','headLookAt','eyeLookAt','lookAt'],
+                  'ik':['controlIK','controlIKBase','controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints'],
                   'direct':['rigJoints']}
@@ -1251,11 +1251,20 @@ def mirror(self,mode = 'self'):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
-def switchMode(self,mode = 'fkOn'):
-    _str_func = 'switchMode'
+def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
+    _str_func = 'switchMode'    
+    if not bypassModuleCheck:
+        log.info("checking blockModule")        
+        mBlockModule = self.p_blockModule
+        reload(mBlockModule)
+        _blockCall = mBlockModule.__dict__.get('switchMode')
+        if _blockCall:
+            log.info("|{0}| >> Found swich mode in block module ".format(_str_func))
+            return _blockCall(self,mode)
+        
     log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
     log.info("{0}".format(self))
-    
+        
     mRigNull = self.rigNull
     mSettings = mRigNull.settings
     
@@ -1320,9 +1329,16 @@ def switchMode(self,mode = 'fkOn'):
         l_pos = []
         l_rot = []
         md_locs = {}
+        
+        ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        
         for i,mObj in enumerate(ml_controls):
             log.info("|{0}| >> On: {1} ".format(_str_func,mObj))
             
+            #if ml_handleJoints:
+            #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
+                
+            #else:
             mBlend = mObj.getMessage('blendJoint',asMeta=True)
             if not mBlend:
                 log.warning("|{0}| >> No blend joint found! ".format(_str_func))
@@ -1348,16 +1364,32 @@ def switchMode(self,mode = 'fkOn'):
         for i,mLoc in md_locs.iteritems():
             mLoc.delete()
             
+        for mObj in mRigNull.msgList_get('handleJoints'):
+            mObj.resetAttrs()
+            
     elif _mode in ['iksnap','iksnapall']:
         if not mRigNull.getMessage('controlIK'):
             return log.info("|{0}| >> No IK mode detected ".format(_str_func))
         if MATH.is_float_equivalent(mSettings.FKIK,1.0):
             return log.info("|{0}| >> Already in IK mode ".format(_str_func))
-
-        mControlIK = mRigNull.controlIK
         
+        mControlIK = mRigNull.controlIK        
+        ml_controls = [mControlIK]
+        md_controls = {}        
+        md_locs = {}
+        if mRigNull.getMessage('controlIKBase'):
+            ml_controls.append(mRigNull.controlIKBase)
+        if mRigNull.getMessage('controlIKMid'):
+            ml_controls.append(mRigNull.controlIKMid)
+            
         ml_ikJoints = mRigNull.msgList_get('ikJoints')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
+        
+        md_datPostCompare = {}
+        for i,mObj in enumerate (ml_blendJoints):
+            md_datPostCompare[i] = {}
+            md_datPostCompare[i]['pos'] = mObj.p_position
+            md_datPostCompare[i]['orient'] = mObj.p_orient
         
         #IKsnapAll ========================================================================
         if _mode == 'iksnapall':
@@ -1369,17 +1401,38 @@ def switchMode(self,mode = 'fkOn'):
                 ml_rigLocs.append( mObj.doLoc(fastMode = True) )
                 
         #Main IK control =====================================================================
-        mControlIK = mRigNull.controlIK
         
         #dat we need
         #We need to store the blendjoint target for the ik control or loc it
-        mLoc = mControlIK.switchTarget.doLoc(fastMode=True)
+        for i,mCtrl in enumerate(ml_controls):
+            if mCtrl.getMessage('switchTarget'):
+                mCtrl.resetAttrs()
+                md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
+                md_controls[i] = mCtrl
+            else:
+                raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
         
         mSettings.FKIK = 1
         
-        SNAP.go(mControlIK.mNode,mLoc.mNode)
-        mLoc.delete()
+        for i,mLoc in md_locs.iteritems():
+            SNAP.go(md_controls[i].mNode,mLoc.mNode)
+            #mLoc.delete()
         
+        for i,v in md_datPostCompare.iteritems():
+            mBlend = ml_blendJoints[i]
+            dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
+            
+            if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
+                log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
+                log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
+                log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+                
+            if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
+                log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
+                log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
+                log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))                
+                
+
         #IKsnapAll close========================================================================
         if _mode == 'iksnapall':
             log.info("|{0}| >> iksnapall end...".format(_str_func))
@@ -1389,6 +1442,6 @@ def switchMode(self,mode = 'fkOn'):
             return log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))
         
     else:
-        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)            
+        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)
     
     

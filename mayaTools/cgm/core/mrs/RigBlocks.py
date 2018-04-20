@@ -6109,10 +6109,11 @@ class cgmRigModule(cgmMeta.cgmObject):
         return self.atUtils('rig_getSkinJoints',asMeta)
     
     def getBlockModule(self,update = False):
-        if self._blockModule and not update:
+        if self._blockModule and update != False:
             return self._blockModule
         blockType = self.getMayaAttr('moduleType')
-        return get_blockModule(blockType)
+        self._blockModule = get_blockModule(blockType)
+        return self._blockModule
     p_blockModule = property(getBlockModule)
     
     def rig_reset(self):

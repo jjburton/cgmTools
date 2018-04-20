@@ -41,6 +41,8 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
+import cgm.core.lib.rigging_utils as CORERIG
+import cgm.core.lib.locator_utils as LOC
 
 import cgm.core.lib.math_utils as MATH
 
@@ -1952,3 +1954,80 @@ def handle_fixTwist(ikHandle, aimAxis = None):
         
         #log.debug("rUtils.matchValue_iterator(drivenAttr='%s.r%s',driverAttr='%s.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001)"%(mStartJoint.getShortName(),str_localAimSingle,mIKHandle.getShortName()))
     return True
+
+
+def get_midIK_basePos(ml_handles = [], baseAxis = 'y+', markPos = False, forceMidToHandle=False):
+    _str_func = 'get_midIK_basePos'
+    log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+    
+    ml_handles = cgmMeta.validateObjListArg(ml_handles,'cgmObject')
+    
+    log.debug("|{0}| >> Using: {1}".format(_str_func,[mObj.p_nameBase for mObj in ml_handles]))
+    
+    #Mid dat... ----------------------------------------------------------------------
+    _len_handles = len(ml_handles)
+    if _len_handles == 1:
+        mid=0
+        mMidHandle = ml_handles[0]
+    else:
+        
+        mid = int(_len_handles)/2
+        mMidHandle = ml_handles[mid]
+        
+    log.debug("|{0}| >> mid: {1}".format(_str_func,mid))
+    
+    b_absMid = False
+    if MATH.is_even(_len_handles) and not forceMidToHandle:
+        log.debug("|{0}| >> absolute mid mode...".format(_str_func,mid))
+        b_absMid = True
+        
+    
+    #...Main vector -----------------------------------------------------------------------
+    #mOrientHelper = self.mBlock.orientHelper
+    vec_base = MATH.get_obj_vector(ml_handles[0], 'y+')
+    log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
+    
+    #...Get vector -----------------------------------------------------------------------
+    if b_absMid:
+        crvCubic = CORERIG.create_at(ml_handles, create= 'curve')
+        pos_mid = CURVES.getMidPoint(crvCubic)
+        mc.delete(crvCubic)
+    else:
+        pos_mid = mMidHandle.p_position
+        
+    crv = CORERIG.create_at([ml_handles[0].mNode,ml_handles[-1].mNode], create= 'curveLinear')
+    pos_close = DIST.get_closest_point(pos_mid, crv, markPos)[0]
+    log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))
+    
+    if MATH.is_vector_equivalent(pos_mid,pos_close,3):
+        log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
+        vec_use = vec_base
+    else:
+        vec_use = MATH.get_vector_of_two_points(pos_close,pos_mid)
+        mc.delete(crv)
+    
+    #...Get length -----------------------------------------------------------------------
+    #dist_helper = 0
+    #if ml_handles[-1].getMessage('pivotHelper'):
+        #log.debug("|{0}| >> pivotHelper found!".format(_str_func))
+        #dist_helper = max(POS.get_bb_size(ml_handles[-1].getMessage('pivotHelper')))
+        
+    dist_min = DIST.get_distance_between_points(ml_handles[0].p_position, pos_mid)/4.0
+    dist_base = DIST.get_distance_between_points(pos_mid, pos_close)
+    
+    #...get new pos
+    dist_use = MATH.Clamp(dist_base, dist_min, None)
+    log.debug("|{0}| >> Dist min: {1} | dist base: {2} | use: {3}".format(_str_func,
+                                                                          dist_min,
+                                                                          dist_base,
+                                                                          dist_use))
+    
+    pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
+    pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
+    
+    reload(LOC)
+    if markPos:
+        LOC.create(position=pos_use,name='pos1')
+        LOC.create(position=pos_use2,name='pos2')
+    
+    return pos_use
