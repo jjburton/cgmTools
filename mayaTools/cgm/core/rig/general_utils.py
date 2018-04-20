@@ -82,22 +82,33 @@ def fbx_cleaner(delete = False, spaceString = '03FBXASC032'):
     print cgmGEN._str_hardBreak
 
 
-def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, drivenAttr = None, driverAttr = None, 
-                        minIn = -180, maxIn = 180, maxIterations = 40, matchValue = None):
+def matchValue_iterator(matchObj = None,
+                        matchAttr = None,
+                        drivenObj = None,
+                        drivenAttr = None,
+                        driverAttr = None, 
+                        minIn = -179, maxIn = 179, maxIterations = 40, matchValue = None,
+                        iterMode = 'step'):
     """
     Started with Jason Schleifer's afr js_iterator and 'tweaked'
+    
+    matchObj - The object to match to the driven
+    driven - the object moved by the driver
+    
+    
     """
     _str_func = 'matchValue_iterator'
     log.debug("|{0}| >> ...".format(_str_func))    
     
-    if type(minIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad minIn: %s"%minIn
-    if type(maxIn) not in [float,int]:raise StandardError,"matchValue_iterator>>> bad maxIn: %s"%maxIn
+    if type(minIn) not in [float,int]:raise ValueError,"matchValue_iterator>>> bad minIn: %s"%minIn
+    if type(maxIn) not in [float,int]:raise ValueError,"matchValue_iterator>>> bad maxIn: %s"%maxIn
 
     __matchMode__ = False
     
     #>>> Data gather and arg check        
     mi_matchObj = cgmMeta.validateObjArg(matchObj,'cgmObject',noneValid=True)
     d_matchAttr = cgmMeta.validateAttrArg(matchAttr,noneValid=True)
+    
     if mi_matchObj:
         __matchMode__ = 'matchObj'
         minValue = minIn
@@ -109,11 +120,18 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
         __matchMode__ = 'value'
     else:
         raise ValueError,"|{0}| >> No match given. No matchValue given".format(_str_func)
-        
+
+
     __drivenMode__ = False
-    mi_drivenObj = cgmMeta.validateObjArg(drivenObj,'cgmObject',noneValid=True)
-    d_drivenAttr = cgmMeta.validateAttrArg(drivenAttr,noneValid=True)    
-    if mi_drivenObj:#not an object match but a value
+    mi_drivenObj = None
+    
+    if drivenObj and drivenAttr:
+        d_drivenAttr = cgmMeta.validateAttrArg("{0}.{1}".format(drivenObj,drivenAttr),noneValid=True)        
+    else:
+        mi_drivenObj = cgmMeta.validateObjArg(drivenObj,'cgmObject',noneValid=True)
+        d_drivenAttr = cgmMeta.validateAttrArg(drivenAttr,noneValid=True)
+    
+    if mi_drivenObj and not drivenAttr:#not an object match but a value
         __drivenMode__ = 'object'
     elif d_drivenAttr:
         __drivenMode__ = 'attr'
@@ -135,67 +153,171 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 
     
     log.debug("|{0}| >> Source mode: {1} | Target mode: {2}| Driver: {3}".format(_str_func,__matchMode__,__drivenMode__,mPlug_driver.p_combinedShortName))
-    
-    #===========================================================================================================
-    #>>>>>>> Meat
-    #>>> Check autokey
+        
+    # Meat ==========================================================================================
     b_autoFrameState = mc.autoKeyframe(q=True, state = True)
     if b_autoFrameState:
         mc.autoKeyframe(state = False)
 
     minValue = float(minIn)
-    maxValue = float(maxIn)  
+    maxValue = float(maxIn)
+    
+    minUse = copy.copy(minValue)
+    maxUse = copy.copy(maxValue)
     f_lastClosest = None
     f_lastValue = None
     cnt_sameValue = 0
     b_matchFound = None
     b_firstIter = True
     d_valueToSetting = {}
-
+    
     #Source type: value
     for i in range(maxIterations):
         if __matchMode__ == 'value':
             if __drivenMode__ == 'attr':
-                log.debug("matchValue_iterator>>> Step : %s | min: %s | max: %s | baseValue: %s | current: %s"%(i,minValue,maxValue,f_baseValue,mPlug_driven.value))  					
-                if MATH.is_float_equivalent(mPlug_driven.value,matchValue,3):
-                    log.debug("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_driven.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
-                    b_matchFound = minValue
-                    break
-                f_currentDist = abs(matchValue-mPlug_driven.value)
-                mPlug_driver.value = minValue#Set to min
-                f_minDist = abs(matchValue-mPlug_driven.value)#get Dif
-                f_minSetValue = mPlug_driven.value
-                mPlug_driver.value = maxValue#Set to max
-                f_maxDist = abs(matchValue-mPlug_driven.value)#Get dif
-                f_maxSetValue = mPlug_driven.value
+                if iterMode == 'bounce':
+                    log.debug("matchValue_iterator>>> Step : %s | min: %s | max: %s | baseValue: %s | current: %s"%(i,minValue,maxValue,f_baseValue,mPlug_driven.value))
+                    if MATH.is_float_equivalent(mPlug_driven.value,matchValue,3):
+                        log.debug("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_driven.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
+                        b_matchFound = minValue
+                        break
+                    
+                    f_currentDist = abs(matchValue-mPlug_driven.value)
+                    mPlug_driver.value = minValue#Set to min
+                    f_minDist = abs(matchValue-mPlug_driven.value)#get Dif
+                    f_minSetValue = mPlug_driven.value
+                    mPlug_driver.value = maxValue#Set to max
+                    f_maxDist = abs(matchValue-mPlug_driven.value)#Get dif
+                    f_maxSetValue = mPlug_driven.value
 
-                f_half = ((maxValue-minValue)/2.0) + minValue#get half
-                #First find range
-                if f_minSetValue > matchValue or f_maxSetValue < matchValue:
-                    log.error("Bad range, alternate range find. minSetValue = %s > %s < maxSetValue = %s"%(f_minSetValue,matchValue,f_maxSetValue))
-
-                if not MATH.is_float_equivalent(matchValue,0) and not MATH.is_float_equivalent(minValue,0) and not MATH.is_float_equivalent(f_minSetValue,0):
-                    #if none of our values are 0, this is really fast
-                    minValue = (minValue * matchValue)/f_minSetValue
-                    log.debug("matchValue_iterator>>> Equated: %s"%minValue)		    
-                    f_closest = f_minDist
-                    mPlug_driver.value = minValue#Set to min			
-                else:	
-                    if f_minDist>f_maxDist:#if min dif greater, use half as new min
-                        if f_half < minIn:
-                            raise StandardError, "half min less than minValue"
-                            f_half = minIn
-                        minValue = f_half
-                        #log.debug("matchValue_iterator>>>Going up")
+                    f_half = ((maxValue-minValue)/2.0) + minValue#get half
+                    #First find range
+                    if f_minSetValue > matchValue or f_maxSetValue < matchValue:
+                        log.error("Bad range, alternate range find. minSetValue = %s > %s < maxSetValue = %s"%(f_minSetValue,matchValue,f_maxSetValue))
+    
+                    if not MATH.is_float_equivalent(matchValue,0) and not MATH.is_float_equivalent(minValue,0) and not MATH.is_float_equivalent(f_minSetValue,0):
+                        #if none of our values are 0, this is really fast
+                        minValue = (minValue * matchValue)/f_minSetValue
+                        log.debug("matchValue_iterator>>> Equated: %s"%minValue)		    
                         f_closest = f_minDist
-                    else:
-                        if f_half > maxIn:
-                            raise StandardError, "half max less than maxValue"			    
-                            f_half = maxIn			
-                        maxValue = f_half
-                        #log.debug("matchValue_iterator>>>Going down")  
-                        f_closest = f_maxDist
+                        mPlug_driver.value = minValue#Set to min			
+                    else:	
+                        if f_minDist>f_maxDist:#if min dif greater, use half as new min
+                            if f_half < minIn:
+                                raise StandardError, "half min less than minValue"
+                                f_half = minIn
+                            minValue = f_half
+                            #log.debug("matchValue_iterator>>>Going up")
+                            f_closest = f_minDist
+                        else:
+                            if f_half > maxIn:
+                                raise StandardError, "half max less than maxValue"			    
+                                f_half = maxIn			
+                            maxValue = f_half
+                            #log.debug("matchValue_iterator>>>Going down")  
+                            f_closest = f_maxDist
 
+                elif iterMode == 'step':
+                    currentDriven = mPlug_driven.value
+                    if i == 0:
+                        log.debug("|{0}| >> First step getting base data...".format(_str_func))                        
+                        f_lastValue = currentDriven
+                        _stepSmall = .000001
+                        minStep = _stepSmall
+                        _stepBig = 10
+                        f_stepBase = mPlug_driver.value
+                        f_stepEnd = f_stepBase + _stepBig
+                        
+                        """
+                        mPlug_driver.value = currentDriven + .1
+                        f_up = mPlug_driven.value 
+                        
+                        mPlug_driver.value = currentDriven - .1
+                        f_down = mPlug_driven.value
+                        
+                        diff_up = abs(f_baseValue - f_down)
+                        diff_dn = abs(f_baseValue - f_up)
+                        log.debug("|{0}| >> up :{1} | down: {2}".format(_str_func,diff_up,diff_dn))
+                        if diff_up > diff_dn:
+                            _dir = 'up'
+                            _mult = 1
+                        else:
+                            _dir = 'dn'
+                            _mult = -1"""
+                            
+                    log.info(cgmGEN._str_subLine)
+                    
+                    log.debug("|{0}| >> Iter :{1} | stepBase: {2} | stepEnd: {5} | step: {6} | current: {3} | match: {4}".format(_str_func,
+                                                                                                  i,
+                                                                                                  f_stepBase,
+                                                                                                  currentDriven,
+                                                                                                  matchValue,
+                                                                                                  f_stepEnd,
+                                                                                                  _stepBig))
+                    if MATH.is_float_equivalent(currentDriven,matchValue,3):
+                        log.debug("|{0}| >> Match found...".format(_str_func))
+                        b_matchFound = f_stepBase
+                        break
+                    
+                    f_currentDist = (matchValue-currentDriven)
+                    mPlug_driver.value = f_stepBase#setp min
+                    f_minValue = mPlug_driven.value
+                    f_minDist = (matchValue-mPlug_driven.value)#get Dif
+                    
+                    mPlug_driver.value = f_stepEnd
+                    f_maxDist = (matchValue-mPlug_driven.value)#Get dif
+                    f_maxValue = mPlug_driven.value
+                    
+                    
+                    f_stepHalf = f_stepBase + ((_stepBig/2.0))
+                    f_half = f_stepHalf
+                    mPlug_driver.value = f_half
+                    f_halfDist = (matchValue-mPlug_driven.value)#Get dif
+                    f_halfValue = mPlug_driven.value
+                    
+                    log.debug("|{0}| >> minValue: {1} | halfValue: {3} | maxValue: {2} | current: {4}".format(_str_func,f_minValue,f_maxValue,f_halfValue,currentDriven))
+                    
+                    log.debug("|{0}| >> minDist: {1} | halfDist: {3} | maxDist: {2} |  | currentDist: {4}".format(_str_func,f_minDist,f_maxDist,f_halfDist,f_currentDist))
+                    
+                    log.debug("|{0}| >> baseStep: {1} | halfStep: {3} | endStep: {2} | ".format(_str_func,f_stepBase,f_stepEnd,f_stepHalf))
+                    
+                    if matchValue > f_minValue and matchValue < f_maxValue:
+                        log.debug("|{0}| >> Between...".format(_str_func))
+                        #(minStep *_mult)
+                        if matchValue < f_halfValue:
+                            log.debug("|{0}| >> Less than half".format(_str_func))
+                            f_stepBase = f_stepBase
+                            f_stepEnd = f_stepHalf
+                        elif matchValue > f_halfValue:
+                            log.debug("|{0}| >> more than half".format(_str_func))
+                            f_stepBase = f_stepHalf
+                            f_stepEnd = f_stepBase + (_stepBig)
+                        else:
+                            f_stepBase = f_stepBase + (_stepSmall)
+                            
+                        _stepBig = _stepBig/2.0
+                        
+                        #minStep = f_lastValue + minStep
+                    elif matchValue > f_maxValue:
+                        log.debug("|{0}| >> Greater".format(_str_func))
+                        _dir = 'up'
+                        _mult = 1
+                        _stepBig = 10
+                        f_stepBase = f_stepEnd
+                        f_stepEnd = f_stepEnd + (_stepBig)
+                        
+                    elif matchValue < f_minValue:
+                        log.debug("|{0}| >> Less...".format(_str_func))
+                        _dir = 'dn'
+                        _stepBig = -10
+                        f_stepBase = f_stepBase + (_stepBig)
+                        f_stepEnd = f_stepBase + (_stepBig)
+                    else:
+                        raise ValueError,"nope"
+                        
+                    f_closest = f_stepBase
+                    
+                    
                 #Old method
                 """
 		mPlug_driver.value = minValue#Set to min
@@ -247,8 +369,8 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
 			#log.debug("matchValue_iterator>>>Going down")  
 			f_closest = f_maxDist"""
 
-                log.debug("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
-                log.debug("#"+'-'*50)
+                #log.debug("matchValue_iterator>>>f1: %s | f2: %s | f_half: %s"%(f_minDist,f_maxDist,f_half))  
+                #log.debug("#"+'-'*50)
 
                 if f_closest == f_lastClosest:
                     cnt_sameValue +=1
@@ -267,7 +389,7 @@ def matchValue_iterator(matchObj = None, matchAttr = None, drivenObj = None, dri
             pos_match = mc.xform(mi_matchObj.mNode, q=True, ws=True, rp=True)
             pos_driven = mc.xform(mi_drivenObj.mNode, q=True, ws=True, rp=True)
             log.debug("matchValue_iterator>>> min: %s | max: %s | pos_match: %s | pos_driven: %s"%(minValue,maxValue,pos_match,pos_driven))  						    
-            if MATH.isVectorEquivalent(pos_match,pos_driven,2):
+            if MATH.is_vector_equivalent(pos_match,pos_driven,2):
                 log.debug("matchValue_iterator>>> Match found: %s <<pos>> %s | %s: %s | step: %s"%(mi_matchObj.getShortName(),mi_drivenObj.getShortName(),mPlug_driver.p_combinedShortName,minValue,i))  			    
                 b_matchFound = mPlug_driver.value
                 break

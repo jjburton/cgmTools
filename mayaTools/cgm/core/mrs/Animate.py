@@ -56,7 +56,7 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.04122018 - ALPHA'
+__version__ = '1.04202018 - ALPHA'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
@@ -64,6 +64,7 @@ _d_contexts = {'control':{'short':'ctrl'},
                'scene':{}}
 _l_contexts = _d_contexts.keys()
 
+_subLineBGC = [.75,.75,.75]
 
 
 class ui(cgmUI.cgmGUI):
@@ -239,9 +240,9 @@ def buildTab_mrs(self,parent):
     
     
     #>>>Context set -------------------------------------------------------------------------------
-    _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate')
+    _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding=10)
     
-    mUI.MelSpacer(_row,w=1)                      
+    #mUI.MelSpacer(_row,w=1)                      
     #mUI.MelLabel(_row,l='Context: ')
     #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
@@ -258,7 +259,7 @@ def buildTab_mrs(self,parent):
         uiRC.createButton(_row,label=_label,sl=_rb,
                           onCommand = cgmGEN.Callback(mVar.setValue,item))
 
-        mUI.MelSpacer(_row,w=1)       
+        #mUI.MelSpacer(_row,w=1)       
     _row.layout() 
     
     
@@ -291,16 +292,18 @@ def buildTab_mrs(self,parent):
         self._dCB_contextOptions[k] = _cb
     _row.layout()
     
+    buildSection_mrsAnim(self,_column)
+    buildSection_mrsMirror(self,_column)
+    buildSection_mrsSwitch(self,_column)
+    buildSection_mrsSettings(self,_column)
     
 
-    buildSection_MRSFunctions(self,_column)
-
-def buildSection_MRSFunctions(self,parent):
-    try:self.var_mrsFuncFrameCollapse
-    except:self.create_guiOptionVar('mrsFuncFrameCollapse',defaultValue = 0)
-    mVar_frame = self.var_mrsFuncFrameCollapse
+def buildSection_mrsAnim(self,parent):
+    try:self.var_mrsAnimFrameCollapse
+    except:self.create_guiOptionVar('mrsAnimFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsAnimFrameCollapse
     
-    _frame = mUI.MelFrameLayout(parent,label = 'Functions',vis=True,
+    _frame = mUI.MelFrameLayout(parent,label = 'Anim',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
                                 enable=True,
@@ -351,13 +354,20 @@ def buildSection_MRSFunctions(self,parent):
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     d_select = {'select':{'ann':'Select objects in context',
                           'arg':{'mode':'select'}},
-                'reset':{'ann':'Reset all controls in context',
-                         'arg':{'mode':'reset'},},                
                 'report':{'ann':'Report objects in context',
-                          'arg':{'mode':'report'}},                
+                          'arg':{'mode':'report'}},
+                'reset':{'ann':'Reset all controls in context',
+                         'short':'all',
+                         'arg':{'mode':'reset'},},
+                'resetDirect':{'ann':'Reset all direct controls in context',
+                               'short':'direct',
+                               'arg':{'mode':'resetDirect'},},
+                'resetHandles':{'ann':'Reset all segment handle controls in context',
+                                'short':'seg',
+                               'arg':{'mode':'resetSegHandles'},},                
                 }
     
-    l_select = ['select','reset','report']
+    l_select = ['select','report']
     for b in l_select:
         _d = d_select.get(b,{})
         _arg = _d.get('arg',{'mode':b})
@@ -377,6 +387,26 @@ def buildSection_MRSFunctions(self,parent):
               l='Test context',
               c=lambda *a: get_context(self))
               """
+    #Reset row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5,bgc=_subLineBGC)
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='Reset:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    l_switch = ['resetDirect','resetHandles','reset']
+    for b in l_switch:
+        _d = d_select.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()        
+    
+    return
     #>>>Mirror ===================================================================================== 
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
@@ -513,6 +543,249 @@ def buildSection_MRSFunctions(self,parent):
             
         mUI.MelSpacer(_row,w=2)
         _row.layout()
+
+def buildSection_mrsMirror(self,parent):
+    try:self.var_mrsMirrorFrameCollapse
+    except:self.create_guiOptionVar('mrsMirrorFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsMirrorFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Mirror',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Mirror ===================================================================================== 
+    """
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    cgmUI.add_Header('Mirror')
+    cgmUI.add_LineSubBreak()
+    """
+    cgmUI.add_LineSubBreak()
+    
+    d_mirror = {'push':{'ann':'Push to the opposite side',
+                        'arg':{'mode':'mirrorPush'}},
+                'pull':{'ann':'Pull from the opposite side',
+                        'arg':{'mode':'mirrorPull'}},
+                'symLeft':{'ann':'Symmetrical to the left',
+                        'arg':{'mode':'symLeft'}},
+                'symRight':{'ann':'Symmetrical to the right',
+                            'arg':{'mode':'symRight'}},
+                'flip':{'ann':'Flip the pose',
+                        'arg':{'mode':'mirrorFlip'}},
+                'mirrorSelect':{'ann':'Select objects in mirror context',
+                                'short':'select',
+                                'arg':{'mode':'mirrorSelect'}},                
+                }
+    
+    l_mirror = ['push','pull','flip','symLeft','mirrorSelect','symRight']
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    
+    for i,b in enumerate(l_mirror):
+        _d = d_mirror.get(b,{})
+        _arg = _d.get('arg',{'mode':b})
+        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+        if i == 2:#New row
+            _row.layout()
+            _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+            
+    _row.layout()
+
+def buildSection_mrsSwitch(self,parent):
+    try:self.var_mrsSwitchFrameCollapse
+    except:self.create_guiOptionVar('mrsSwitchFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsSwitchFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Switch',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+ 
+    #>>>Switch ===================================================================================== 
+    cgmUI.add_LineSubBreak()        
+    
+    d_switch = {'FKsnap':{'ann':'Snap fk controls to blend chain for modules in context',
+                          'short':'snap',
+                          'arg':{'mode':'FKsnap'}},
+                'FKon':{'ann':'Turn fk on to all modules in context',
+                        'short':'on',
+                        'arg':{'mode':'FKon'}},
+                'IKsnap':{'ann':'Snap main ik controls to blend chain for modules in context',
+                          'short':'snap',                          
+                          'arg':{'mode':'IKsnap'}},
+                'IKon':{'ann':'Turn ik on to all modules in context',
+                        'short':'on',                        
+                        'arg':{'mode':'IKon'}},
+                'IKforce':{'ann':'Snap main ik/direct controls to blend chain for modules in context',
+                           'short':'force',                           
+                           'arg':{'mode':'IKsnapAll'}},
+                
+                'aimOn':{'ann':'Turn aim on contexually',
+                         'short':'on',
+                         'arg':{'mode':'aimOn'}},                
+                'aimOff':{'ann':'Turn aim off contexually',
+                          'short':'off',                          
+                          'arg':{'mode':'aimOff'}},
+                'aimToIK':{'ann':'Snap aim to controls in context',
+                           'short':'toIK',                           
+                           'arg':{'mode':'aimToIK'}},
+                'aimToFK':{'ann':'Snap aim to controls in context',
+                           'short':'toFK',                           
+                           'arg':{'mode':'aimToFK'}},
+                'aimSnap':{'ann':'Snap aim controls on in context',
+                           'short':'snap',                           
+                           'arg':{'mode':'aimSnap'}},                
+                }
+    """
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    
+    l_switch = ['FKsnap','FKon','IKon','IKsnap','IKforce']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    _row.layout()"""
+    
+    #FK row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate', )
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='FK:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    l_switch = ['FKsnap','FKon']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  #l = '    {0}    '.format(_d.get('short',b)),
+                  l = '    {0}    '.format(b),                  
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()
+    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
+    
+    #IK row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='IK:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    l_switch = ['IKsnap','IKforce','IKon']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  #l = '    {0}    '.format(_d.get('short',b)),
+                  l = '   {0}   '.format(b),                                    
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()
+    
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
+    #Aim row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5, bgc = _subLineBGC)
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='Aim:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    l_switch = ['aimOn','aimOff','aimToFK','aimToIK','aimSnap']
+    for b in l_switch:
+        _d = d_switch.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()
+    
+def buildSection_mrsSettings(self,parent):
+    try:self.var_mrsSettingsFrameCollapse
+    except:self.create_guiOptionVar('mrsSettingsFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsSettingsFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Settings',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Settings ===================================================================================== 
+    cgmUI.add_LineSubBreak()
+    l_settings = ['visSub','visDirect','visRoot']
+    l_enums = ['skeleton','geo','proxy']
+
+    for n in l_settings + l_enums:
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                      
+        mUI.MelLabel(_row,l=' {0}:'.format(n))
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        if n in l_settings:
+            l_options = ['hide','show']
+            _mode = 'moduleSettings'
+        else:
+            l_options = ['off','lock','on']
+            _mode = 'puppetSettings'
+        
+        for v,o in enumerate(l_options):
+            mc.button(parent = _row,
+                      ut = 'cgmUITemplate',
+                      l = '    {0}    '.format(o),
+                      c=cgmGEN.Callback(uiFunc_contextSetValue,self,n,v,_mode))
+                      #c=lambda *a: LOCINATOR.ui())             
+            
+        mUI.MelSpacer(_row,w=2)
+        _row.layout()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def buildSection_puppet(self,parent):
@@ -793,6 +1066,7 @@ def get_contextualControls(self,mirrorQuery=False):
         self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
         
     self.d_puppetData['sControls'] = LISTS.get_noDuplicates(self.d_puppetData['sControls'])
+    self.d_puppetData['mControls'] = cgmMeta.validateObjListArg(self.d_puppetData['sControls'])
     return self.d_puppetData['sControls']
         
 #@cgmGEN.Timer
@@ -825,6 +1099,7 @@ def uiFunc_contextualAction(self, **kws):
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
     _l_controls = get_contextualControls(self,_mirrorQuery)
+    
     if _mode == 'report':
         log.info("Context: {0} | controls: {1}".format(_context, len(_l_controls)))
         for i,v in enumerate(res_context):
@@ -836,6 +1111,20 @@ def uiFunc_contextualAction(self, **kws):
     elif _mode == 'select':
         return  mc.select(_l_controls)
     
+    elif _mode in ['resetDirect','resetSegHandles']:
+        if _mode == 'resetDirect':
+            _tag = 'direct'
+        else:
+            _tag = 'seg'
+        l_new = []
+        for mObj in self.d_puppetData['mControls']:
+            print mObj
+            if mObj.getMayaAttr('cgmTypeModifier') == _tag:
+                l_new.append(mObj.mNode)
+        mc.select(l_new)
+        ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
+        return endCall(self)
+        
     
     elif _mode in ['key','bdKey','reset','delete','nextKey','prevKey']:
         mc.select(_l_controls)
@@ -952,7 +1241,8 @@ def buildColumn_main(self,parent, asScroll = False):
         _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     #buildSection_puppet(self,_inside)
-    buildSection_MRSFunctions(self,_inside)
+    buildSection_MRSAnim(self,_inside)
+    #buildSection_MRSAnim(self,_inside)
     
     return _inside
     

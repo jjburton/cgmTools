@@ -41,6 +41,7 @@ path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
+import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
@@ -5147,8 +5148,35 @@ def switchMode(self,mode = 'fkOn'):
     mControlIKBase = False
     
     ml_ikJoints = mRigNull.msgList_get('ikJoints')
-    ml_blendJoints = mRigNull.msgList_get('blendJoints')    
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
+    #Find our ball and toe ===========================================================
+    mBall = False
+    mToe = False
+    _str_orient = 'zyx'
+    
+    for mJnt in ml_ikJoints:
+        _cgmName = mJnt.getMayaAttr('cgmName') 
+        if _cgmName == 'ball':
+            mBall = mJnt
+            log.info("|{0}| >> mBall found: {1}".format(_str_func,mBall))
+            mBallBlend = mBall.getMessage('blendJoint',asMeta=1)[0]
+            log.info("|{0}| >> mBallBlend found: {1}".format(_str_func,mBallBlend))
+            
+            d_ball = {'attrs':['x','y','z'],
+                      'drivers':['ballLift','ballSide','ballTwist'],
+                      'match':[v for v in mBallBlend.rotate]}
+                        
+        elif _cgmName == 'toe':
+            mToe = mJnt
+            log.info("|{0}| >> mToe found: {1}".format(_str_func,mToe))
+            mToeBlend = mToe.getMessage('blendJoint',asMeta=1)[0]
+            log.info("|{0}| >> mToeBlend found: {1}".format(_str_func,mToeBlend))
+            
+            d_toe = {'attrs':['x','y','z'],
+                     'drivers':['toeLift','toeSide','toeTwist'],
+                     'match':[v for v in mToeBlend.rotate]}            
+            
     ml_controls = [mControlIK]
     md_controls = {}        
     md_locs = {}
@@ -5202,6 +5230,27 @@ def switchMode(self,mode = 'fkOn'):
     #if mControlMid:
         #mControlMid.p_position = mid_point
         
+        
+    if mBall:
+        for i in range(3):
+            _a = d_ball['attrs'][i]
+            _driver = d_ball['drivers'][i]
+            _match = d_ball['match'][i]
+            CORERIGGEN.matchValue_iterator(drivenObj = mBallBlend.mNode,
+                                           drivenAttr = "r{0}".format(_a),
+                                           driverAttr = "{0}.{1}".format(mControlIK.mNode, _driver),
+                                           matchValue = _match,
+                                           maxIterations=40)
+    if mToe:
+        for i in range(3):
+            _a = d_toe['attrs'][i]
+            _driver = d_toe['drivers'][i]
+            _match = d_toe['match'][i]
+            CORERIGGEN.matchValue_iterator(drivenObj = mToeBlend.mNode,
+                                           drivenAttr = "r{0}".format(_a),
+                                           driverAttr = "{0}.{1}".format(mControlIK.mNode, _driver),
+                                           matchValue = _match,
+                                           maxIterations=40)
 
     #IKsnapAll close========================================================================
     if _mode == 'iksnapall':
@@ -5217,7 +5266,8 @@ def switchMode(self,mode = 'fkOn'):
         for i,mObj in enumerate(ml_rigJoints):
             SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
             ml_rigLocs[i].delete()
-        log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))    
+        log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))
+        
     #Pose compare =========================================================================
     for i,v in md_datPostCompare.iteritems():
         mBlend = ml_blendJoints[i]
@@ -5234,7 +5284,38 @@ def switchMode(self,mode = 'fkOn'):
             log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))
     
     
-
+def snapBall(self,driven = 'L_ball_blend_frame',
+             target = 'L_ball_blend_frame_fromTarget_loc',
+             handle = 'L_ankle_ik_anim'):
+    _str_func = 'snapBall'
+    log.info("|{0}| >>".format(_str_func)+ '-'*80)
+    log.info("{0}".format(self))
+    
+    #Get data -----------------------------------------------------------
+    mDriven = cgmMeta.validateObjArg(driven)
+    mTarget = cgmMeta.validateObjArg(target)
+    mHandle = cgmMeta.validateObjArg(handle)
+    
+    d_targetDat = {'v':[]}
+    
+    d_drivers = {'x':'ballLift',
+                 'y':'ballSide',
+                 'z':'ballTwist'}
+    
+    v_targets = [-34.242,0,0]#...store rotation before we turn off fk
+                   
+    #for a in 'xyz':
+        #d_targetDat['v'].append(MATH.get_obj_vector(target, "{0}+".format(a)))
+    
+    pprint.pprint(vars())
+    
+    _d  = {'matchObj' : None,
+           'matchAttr' : None,
+           'drivenObj' : 'L_ball_blend_frame',
+           'drivenAttr' : 'rx',
+           'driverAttr' : 'L_ankle_ik_anim.ballLift', 
+           'minIn' : -179, 'maxIn' : 179, 'maxIterations' : 40, 'matchValue' : -63.858}
+    CORERIGGEN.matchValue_iterator(**_d)    
 
 
 

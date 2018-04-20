@@ -6115,6 +6115,15 @@ class cgmRigModule(cgmMeta.cgmObject):
         self._blockModule = get_blockModule(blockType)
         return self._blockModule
     p_blockModule = property(getBlockModule)
+    def atBlockModule(self, func = '', *args,**kws):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        try:
+            reload(self.getBlockModule())
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        return self.stringModuleCall(self._blockModule,func,*args, **kws)    
+    
     
     def rig_reset(self):
         return self.UTILS.rig_reset(self)
