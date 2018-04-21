@@ -2766,7 +2766,7 @@ def rig_shapes(self):
         #IK End ================================================================================
         if mBlock.ikSetup:
             log.debug("|{0}| >> ikHandle...".format(_str_func))
-            
+            _ikDefault = False
             if mPivotHelper:
                 mIKCrv = mPivotHelper.doDuplicate(po=False)
                 mIKCrv.parent = False
@@ -2809,6 +2809,7 @@ def rig_shapes(self):
                 #CORERIG.match_transform(mIKShape.mNode, self.ml_handleTargets[self.int_handleEndIdx].mNode)
                 
             else:
+                _ikDefault = True
                 log.debug("|{0}| >> default IK shape...".format(_str_func))                
                 mIKTemplateHandle = ml_templateHandles[self.int_handleEndIdx]
                 bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
@@ -3132,7 +3133,17 @@ def rig_shapes(self):
             mJnt = ml_fkJoints[i]
             
             if mJnt == ml_fkJoints[self.int_handleEndIdx]:
-                log.debug("|{0}| >> Last fk handle before toes/ball...".format(_str_func))                
+                log.debug("|{0}| >> Last fk handle before toes/ball...".format(_str_func))
+                mIKTemplateHandle = ml_templateHandles[-1]
+                
+                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                _fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
+                ATTR.set(_fk_shape,'scale', 1.50)
+                SNAP.go(_fk_shape,mJnt.mNode)
+                
+                mHandleFactory.color(_fk_shape, controlType = 'main')        
+                
+                """
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
                 mShape1 = mIKTemplateHandle.loftCurve.doDuplicate(po = False)
@@ -3149,15 +3160,17 @@ def rig_shapes(self):
                 
                 CORERIG.combineShapes([mShape2.mNode,mShape1.mNode])
                 _fk_shape = mShape1.mNode
-                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                #_fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
-                #ATTR.set(_fk_shape,'scale', 2)
-                #SNAP.go(_fk_shape,mJnt.mNode)
+
                 mHandleFactory.color(_fk_shape, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
-                mShape.delete()
+                mShape.delete()"""
+                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
+                
+                
             else:
-                mHandleFactory.color(mShape.mNode, controlType = 'main')        
+                mHandleFactory.color(mShape.mNode, controlType = 'main')
+                if _ikDefault:
+                    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
                 CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
 
         return
@@ -3444,7 +3457,7 @@ def rig_controls(self):
     #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
-    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
     return 
 

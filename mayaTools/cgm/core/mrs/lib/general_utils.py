@@ -140,8 +140,19 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     if not l_keys:
         return [],[]
         
-    l_keys.sort()
-    
+    d_keys_to_idx = {}
+    d_idx_to_keys = {}
+    l_mNodeKeys = []
+    for i,k in enumerate(l_keys):
+        l_mNodeKeys.append(k.mNode)
+        d_keys_to_idx[k.mNode] = i
+        d_idx_to_keys[i] = k
+        
+    l_mNodeKeys.sort()
+    l_keys = []#.reset and fill...
+    for KmNode in l_mNodeKeys:
+        l_keys.append( d_idx_to_keys[ d_keys_to_idx[KmNode]] )
+        
     
     counter+=1
     
@@ -209,10 +220,6 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     else:
         print('-'* counter + '> {0} '.format(mBlock.mNode) )"""	
         
-   
-
-    
-                            
 
     return blockList,stringList
 
