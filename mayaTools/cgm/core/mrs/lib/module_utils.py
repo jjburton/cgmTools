@@ -1444,4 +1444,57 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
     else:
         raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)
     
+
+def is_upToDate(self,report=False):
+    _str_func = ' is_upToDate'
+    log.debug("|{0}| >>".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
+    v_build = self.rigNull.version
+    v_blockBuild = self.getBlockModule().__version__
+    
+    b_upToDate = False
+    if v_build == v_blockBuild:
+        b_upToDate = True
+
+    if report:
+        _short = self.p_nameBase        
+        if b_upToDate:
+            print("|{0}| >> build current. ".format(_short))
+        else:
+            print("|{0}| >> OUT OF DATE | buildVersion: {1} | blockVersion: {2}".format(_short,
+                                                                          v_build,
+                                                                          v_blockBuild))        
+    if b_upToDate:
+        return True
+    return False
+
+    
+def get_report(self, mode='rig'):
+    _str_func = ' get_report'
+    log.debug("|{0}| >>".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    if mode == 'rig':
+        mBlockModule = self.getBlockModule()
+        v_build = self.rigNull.version
+        v_blockBuild = mBlockModule.__version__
+        _short = self.p_nameBase
+        
+        b_upToDate = False
+        if v_build == v_blockBuild:
+            b_upToDate = True
+            
+        if b_upToDate:
+            print("|{0}| >> build current. ".format(_short))
+        else:
+            print("|{0}| >> buildVersion: {1} | blockVersion: {2}".format(_short,v_build, v_blockBuild))
+        
+        
+        
+    else:
+        return log.error("|{0}| >> uknown mode: {1}".format(_str_func,mode))
+
+
+
+    return True

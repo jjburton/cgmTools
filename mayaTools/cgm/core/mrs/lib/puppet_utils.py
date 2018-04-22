@@ -161,6 +161,30 @@ def module_connect(self,mModule,**kws):
        
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+    
+def is_upToDate(self,report = True):
+    _res = []
+    
+    if report:
+        _short = self.p_nameBase
+        print cgmGEN._str_hardBreak        
+        print("|{0}| >> ".format(_short) + cgmGEN._str_subLine)
+    
+    for mModule in modules_get(self):
+        #mModule.UTILS.is_upToDate(mModule,report)
+        _res.append( mModule.atUtils('is_upToDate',report) )
+        
+    if report:
+        if _res:
+            print("|{0}| >> OUT OF DATE ".format(_short))
+        else:
+            print("|{0}| >> build current. ".format(_short))
+        print cgmGEN._str_hardBreak
+        
+    if False in _res:
+        return False
+    return True
+    
 #=============================================================================================================
 #>> Mirror
 #=============================================================================================================

@@ -155,6 +155,9 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_mDev, l="Puppet - Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c = cgmGEN.Callback(uiFunc_contextualAction,self,**{'mode':'mirrorVerify','context':'puppet'}))
+        mUI.MelMenuItem(_mDev, l="Puppet - Up to date?",
+                        ann = "Please don't mess with this if you don't know what you're doing ",
+                        c = cgmGEN.Callback(uiFunc_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))        
         
     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
@@ -1177,6 +1180,14 @@ def uiFunc_contextualAction(self, **kws):
         for mPuppet in self.d_puppetData['mPuppets']:
             mPuppet.atUtils('mirror_verify')
         return endCall(self)
+    
+    elif _mode == 'upToDate':
+        log.info("Context: {0} | {1}".format(_context,_mode))
+        if not self.d_puppetData['mPuppets']:
+            return log.error("No puppets detected".format(_mode))
+        for mPuppet in self.d_puppetData['mPuppets']:
+            mPuppet.atUtils('is_upToDate',True)
+        return endCall(self)    
     
     
     elif _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
