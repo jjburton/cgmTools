@@ -2166,7 +2166,7 @@ class handleFactory(object):
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
-    def addRootMotionHelper(self,baseShape='arrowsAxis', baseSize = None, shapeDirection = 'z+'):
+    def addRootMotionHelper(self,baseShape='pivotLocator', baseSize = None, shapeDirection = 'z+'):
         try:
             _baseDat = self.get_baseDat(baseShape,baseSize)
             _baseShape = _baseDat[0]
@@ -5165,18 +5165,18 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             #>>> Skeleton Group
             #=====================================================================	
-            """
+            
             if not self.masterNull.getMessage('skeletonGroup'):
                 mSkeletonGrp = cgmMeta.createMetaNode('cgmObject')
-                mSkeletonGrp.doSnapTo(mi_masterControl.mNode)
+                mSkeletonGrp.doSnapTo(mMasterControl.mNode)
                 
                 mSkeletonGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
-                mSkeletonGrp.parent = mi_masterControl.mNode
-                self.masterNull.connectChildNode(mGrp,'skeletonGroup','module')
+                mSkeletonGrp.parent = mMasterControl.mNode
+                self.masterNull.connectChildNode(mSkeletonGrp,'skeletonGroup','module')
                 mSkeletonGrp.doName()
             else:
                 mSkeletonGrp = self.masterNull.skeletonGroup
-            """
+            
             log.debug("|{0}| >> skeletonGroup...".format(_str_func))                                    
             mSkeletonGrp = self.masterNull.skeletonGroup
             _skeletonGrp = mSkeletonGrp.mNode
@@ -5199,7 +5199,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             cgmMeta.cgmAttr(str_settings,'geoVis',lock=False).doConnectOut("%s.%s"%(_geoGrp,'overrideVisibility'))
             cgmMeta.cgmAttr(str_settings,'geoLock',lock=False).doConnectOut("%s.%s"%(_geoGrp,'overrideDisplayType'))  
     
-            try:self.masterNull.puppetSpaceObjectsGroup.parent = mi_masterControl
+            try:self.masterNull.puppetSpaceObjectsGroup.parent = mMasterControl
             except:pass
             
             return True

@@ -488,7 +488,7 @@ def rig_cleanUp(self):
     #Connect -------------------------------------------------------------
     mPuppet.msgList_connect('controlsAll', ml_controlsAll)
     mPuppet.puppetSet.extend( ml_controlsAll)
-    self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    #self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
     self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
 
