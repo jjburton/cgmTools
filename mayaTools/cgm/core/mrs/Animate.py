@@ -47,12 +47,14 @@ import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.list_utils as LISTS
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
+                                   ml_breakdown,
                                    ml_resetChannels,
                                    ml_deleteKey,
                                    ml_setKey,
                                    ml_hold,
                                    ml_stopwatch,
                                    ml_arcTracer,
+                                   ml_utilities,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
@@ -89,7 +91,7 @@ class ui(cgmUI.cgmGUI):
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
-
+        self._sel = None
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
@@ -296,6 +298,8 @@ def buildTab_mrs(self,parent):
     _row.layout()
     
     buildSection_mrsAnim(self,_column)
+    buildSection_mrsTween(self,_column)
+    buildSection_mrsHold(self,_column)        
     buildSection_mrsMirror(self,_column)
     buildSection_mrsSwitch(self,_column)
     buildSection_mrsSettings(self,_column)
@@ -546,6 +550,59 @@ def buildSection_mrsAnim(self,parent):
             
         mUI.MelSpacer(_row,w=2)
         _row.layout()
+        
+
+def buildSection_mrsHold(self,parent):
+    try:self.var_mrsHoldFrameCollapse
+    except:self.create_guiOptionVar('mrsHoldFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsHoldFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Hold',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Hold ===================================================================================== 
+    cgmUI.add_LineSubBreak()
+    
+    d_hold = {'holdCurrent':{'short':'current',
+                             'ann':'ml_hold + context | Creates a hold for the selected range, or the surrounding keys, based on current frame.',
+                             'arg':{'mode':'holdCurrent'}},
+              
+              'holdAverage':{'short':'average',
+                             'ann':'ml_hold + context | Creates a hold for the selected range, or the surrounding keys, based on average of keys.',
+                             'arg':{'mode':'holdAverage'}},              
+
+              'holdPrev':{'short':'<<Prev',
+                             'ann':'ml_hold + context | Matches selected key or current frame to the previous keyframe value.',
+                             'arg':{'mode':'holdPrev'}},            
+
+              'holdNext':{'short':'Next>>',
+                             'ann':'ml_hold + context | Matches selected key or current frame to the next keyframe value.',
+                             'arg':{'mode':'holdNext'}},}
+    
+    l_hold = ['holdCurrent','holdAverage','holdPrev','holdNext']
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    
+    for i,b in enumerate(l_hold):
+        _d = d_hold.get(b,{})
+        _arg = _d.get('arg',{'mode':b})
+        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+        if i == 1:#New row
+            _row.layout()
+            _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+            
+    _row.layout()
 
 def buildSection_mrsMirror(self,parent):
     try:self.var_mrsMirrorFrameCollapse
@@ -563,12 +620,6 @@ def buildSection_mrsMirror(self,parent):
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
     
     #>>>Mirror ===================================================================================== 
-    """
-    mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()
-    cgmUI.add_Header('Mirror')
-    cgmUI.add_LineSubBreak()
-    """
     cgmUI.add_LineSubBreak()
     
     d_mirror = {'push':{'ann':'Push to the opposite side',
@@ -603,6 +654,144 @@ def buildSection_mrsMirror(self,parent):
             _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
             
     _row.layout()
+
+def buildSection_mrsTween(self,parent):
+    try:self.var_mrsTweenFrameCollapse
+    except:self.create_guiOptionVar('mrsTweenFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsTweenFrameCollapse
+    _frame = mUI.MelFrameLayout(parent,label = 'Tween',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    d_tween = {'tweenDrag':{'ann':'Initialze Morgan Loomis fantastic breakdown dragger',
+                        'arg':{'mode':'tweenDrag'}},
+               'tweenAverage':{'ann':'mlBreakdown + context | Weight toward the average of the next and previous frame.',
+                               'short':'avg',
+                               'arg':{'mode':'tweenAverage'}},               
+               'tweenPrev':{'ann':'mlBreakdown + context | Weight toward the previous key.',
+                            'short':'<<',
+                            'arg':{'mode':'tweenPrev'}},                
+               'tweenNext':{'ann':'mlBreakdown + context | Weight toward the next key.',
+                            'short':'>>',
+                            'arg':{'mode':'tweenNext'}}}
+    
+    
+    #>>>Reset ===================================================================================== 
+    cgmUI.add_LineSubBreak()
+    
+    _uiRow_reset = mUI.MelHSingleStretchLayout(_inside, height = 27)
+
+    mUI.MelSpacer(_uiRow_reset, w = 2)
+    mUI.MelLabel(_uiRow_reset,l='Reset')
+    """
+    self.uiFF_relax = mUI.MelFloatField(_uiRow_relax, w = 50, value = .2,
+                                        #cc = lambda *a: self.uiSlider_relax.setValue(self.uiFF_relax.getValue()),
+                                        )"""
+
+    self.uiSlider_reset = mUI.MelFloatSlider(_uiRow_reset, 0, 1.0, defaultValue=0, 
+                                             #bgc = cgmUI.guiBackgroundColor,
+                                             value = 0,
+                                             cc = lambda *a: uiFunc_resetSlider(self))
+                                             #cc = lambda *a: self.uiFF_relax.setValue(self.uiSlider_relax.getValue()),
+                                             #dragCommand = lambda *a: log.info(self.uiSlider_relax.getValue()),
+                                             
+    self.uiSlider_reset.setPostChangeCB(cgmGEN.Callback(uiFunc_resetSliderDrop,self))
+    
+    mUI.MelSpacer(_uiRow_reset, w = 1)
+    """
+    mc.button(parent=_uiRow_relax ,
+              ut = 'cgmUITemplate',
+              l = 'R',
+              c = lambda *a: self.uiSlider_relax.reset(),
+              ann = "Reset relaxer")
+    """
+    mUI.MelSpacer(_uiRow_reset, w = 2)
+    _uiRow_reset.setStretchWidget(self.uiSlider_reset)
+    _uiRow_reset.layout() 
+    
+    #>>>Tween ===================================================================================== 
+    cgmUI.add_LineSubBreak()
+    
+    _uiRow_tween = mUI.MelHSingleStretchLayout(_inside, height = 27)
+
+    mUI.MelSpacer(_uiRow_tween, w = 2)
+    mUI.MelLabel(_uiRow_tween,l='Tween')
+
+    self.uiSlider_tween = mUI.MelFloatSlider(_uiRow_tween, -1.5, 1.5, defaultValue=0, 
+                                             #bgc = cgmUI.guiBackgroundColor,
+                                             value = 0,
+                                             cc = lambda *a: uiFunc_tweenSlider(self))
+                                             
+    self.uiSlider_tween.setPostChangeCB(cgmGEN.Callback(uiFunc_tweenSliderDrop,self))
+    cgmUI.add_Button(_uiRow_tween,'Drag',
+                     cgmGEN.Callback(uiFunc_contextualAction,self,**d_tween['tweenDrag']['arg']),
+                     d_tween['tweenDrag']['ann'])        
+    
+    mUI.MelSpacer(_uiRow_tween, w = 1)
+    """
+    mc.button(parent=_uiRow_tween ,
+              ut = 'cgmUITemplate',
+              l = 'R',
+              c = lambda *a: self.uiSlider_tween.reset(),
+              ann = "Reset tweener")
+    """
+    mUI.MelSpacer(_uiRow_tween, w = 2)
+    _uiRow_tween.setStretchWidget(self.uiSlider_tween)
+    _uiRow_tween.layout() 
+    
+    
+    #Amount slider ------------------------------------------------------------------------------------
+    _uiRow_twnAmount = mUI.MelHSingleStretchLayout(_inside, height = 27)
+
+    mUI.MelSpacer(_uiRow_twnAmount, w = 2)
+    mUI.MelLabel(_uiRow_twnAmount,l='Amount')
+
+    self.uiFF_tweenBase = mUI.MelFloatField(_uiRow_twnAmount, w = 50, value = .2,
+                                            cc = lambda *a: self.uiSlider_tweenBase.setValue(self.uiFF_tweenBase.getValue()))    
+
+    self.uiSlider_tweenBase = mUI.MelFloatSlider(_uiRow_twnAmount, 0, 2.0, defaultValue=.2, 
+                                                 #bgc = cgmUI.guiBackgroundColor,
+                                                 value = .2,
+                                                 cc = lambda *a: self.uiFF_tweenBase.setValue(self.uiSlider_tweenBase.getValue()),
+                                                 #dragCommand = lambda *a: log.info(self.uiSlider_tweenBase.getValue()),
+                                                 )
+    mUI.MelSpacer(_uiRow_twnAmount, w = 1)
+    """
+    mc.button(parent=_uiRow_tween ,
+              ut = 'cgmUITemplate',
+              l = 'R',
+              c = lambda *a: self.uiSlider_tween.reset(),
+              ann = "Reset tweener")
+    """
+    mUI.MelSpacer(_uiRow_twnAmount, w = 2)
+    _uiRow_twnAmount.setStretchWidget(self.uiSlider_tweenBase)
+    _uiRow_twnAmount.layout()    
+    
+    
+    #Tween buttons ------------------------------------------------------------------------------------
+    l_tween = ['tweenPrev','tweenAverage','tweenNext']
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    
+    for i,b in enumerate(l_tween):
+        _d = d_tween.get(b,{})
+        _arg = _d.get('arg',{'mode':b})
+        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    _row.layout() 
+    
+    
+    return
+    
 
 def buildSection_mrsSwitch(self,parent):
     try:self.var_mrsSwitchFrameCollapse
@@ -1089,7 +1278,6 @@ def uiFunc_contextualAction(self, **kws):
     if _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect']:
         d_context['addMirrors'] = True
         _mirrorQuery = True
-        
     res_context = get_context(self,**d_context)
     
     if not res_context:
@@ -1128,8 +1316,25 @@ def uiFunc_contextualAction(self, **kws):
         ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
         return endCall(self)
         
+    elif _mode in ['nextKey','prevKey']:
+        if _mode == 'nextKey':
+            l_keys = []
+            for o in _l_controls:
+                l_keys.extend( SEARCH.get_key_indices_from(o,'next') )
+            if l_keys:
+                mc.currentTime(min(l_keys))
+            log.error('No keys detected')
+            #mel.eval('NextKey;')
+        elif _mode == 'prevKey':
+            l_keys = []
+            for o in _l_controls:
+                l_keys.extend( SEARCH.get_key_indices_from(o,'previous') )
+            if l_keys:
+                mc.currentTime(min(l_keys))
+            log.error('No keys detected')
+        return endCall(self)
     
-    elif _mode in ['key','bdKey','reset','delete','nextKey','prevKey']:
+    elif _mode in ['key','bdKey','reset','delete',]:
         mc.select(_l_controls)
         if _mode == 'reset':
             ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
@@ -1139,10 +1344,6 @@ def uiFunc_contextualAction(self, **kws):
             setKey('breakdown')
         elif _mode == 'delete':
             deleteKey()
-        elif _mode == 'nextKey':
-            mel.eval('NextKey;')
-        elif _mode == 'prevKey':
-            mel.eval('PreviousKey;')
         return endCall(self)
     
     
@@ -1187,7 +1388,46 @@ def uiFunc_contextualAction(self, **kws):
             return log.error("No puppets detected".format(_mode))
         for mPuppet in self.d_puppetData['mPuppets']:
             mPuppet.atUtils('is_upToDate',True)
-        return endCall(self)    
+        return endCall(self)
+    
+    elif _mode == 'tweenDrag':
+        mc.select(_l_controls)
+        return ml_breakdownDragger.drag()
+
+    elif _mode in ['tweenNext','tweenPrev','tweenAverage']:
+        v_tween = kws.get('tweenValue', None)
+        if v_tween is None:
+            try:v_tween = self.uiFF_tweenBase.getValue()
+            except:pass
+            if not v_tween:
+                return log.error("No tween value detected".format(_mode))
+        log.info("Context: {0} | {1} | tweenValue: {2}".format(_context,_mode,v_tween))
+        mc.select(_l_controls)
+        
+        if _mode == 'tweenNext':
+            ml_mode = 'next'
+        elif _mode == 'tweenPrev':
+            ml_mode = 'previous'
+        else:
+            ml_mode = 'average'
+            
+        ml_breakdown.weightBreakdownStep(ml_mode,v_tween)
+        
+        return endCall(self)
+    
+    elif _mode in ['holdCurrent','holdAverage','holdPrev','holdNext']:
+        mc.select(_l_controls)
+        
+        if _mode == 'holdCurrent':
+            ml_hold.current()
+        elif _mode == 'holdAverage':
+            ml_hold.average()
+        elif _mode == 'holdPrev':
+            ml_hold.previous()
+        elif _mode == 'holdNext':
+            ml_hold.next()
+            
+        return endCall(self)
     
     
     elif _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
@@ -1283,9 +1523,103 @@ def uiFunc_load_selected(self, bypassAttrCheck = False):
 def uiFunc_clear_loaded(self):
     _str_func = 'uiFunc_clear_loaded'  
     self._mTransformTarget = False
-    self.uiTF_objLoad(edit=True, l='',en=False)      
+    self.uiTF_objLoad(edit=True, l='',en=False)
 
+def uiFunc_tweenSliderDrop(self):
+    _str_func='uiFunc_tweenSliderDrop'
+    """
+    _context = self.var_mrsContext.value
+    
+    #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
+    
+    v_tween = self.uiSlider_tween.getValue()
+    if v_tween >= 0.0:
+        mode = 'tweenNext'
+    else:
+        mode = 'tweenPrev'
+        
+    uiFunc_contextualAction(self,**{'mode':mode,'tweenValue':v_tween})
+    """
 
+    log.info("Last drag value: {0}".format(self.uiSlider_tween.getValue()))
+    self.uiSlider_tween.setValue(0)
+    self.keySel = {}#...clear thiss
+    if not self._sel:
+        return log.error("Nothing in context")    
+    mc.select(self._sel)
+    #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
+    return     
+    
+def uiFunc_tweenSlider(self):
+    _str_func='uiFunc_tweenSlider'
+    
+    try:self.keySel
+    except:self.keySel = {}
+    
+    if not self.keySel:
+        uiFunc_contextualAction(self,mode='select')
+        
+        self.keySel = ml_utilities.KeySelection()
+        if self.keySel.selectedKeys():
+            pass
+        elif self.keySel.visibleInGraphEditor():
+            self.keySel.setKeyframe()
+        elif self.keySel.keyedChannels():
+            self.keySel.setKeyframe()
+        
+        if not self.keySel.curves:
+            return
+        
+        #setup tangent type
+        itt,ott = ml_utilities.getHoldTangentType()
+        
+        self.time = dict()
+        self.value = dict()
+        self.next = dict()
+        self.prev = dict()
+        self.average = dict()
+        
+        for curve in self.keySel.curves:
+            if self.keySel.selected:
+                self.time[curve] = mc.keyframe(curve, query=True, timeChange=True, sl=True)
+                self.value[curve] = mc.keyframe(curve, query=True, valueChange=True, sl=True)
+            else:
+                self.time[curve] = self.keySel.time
+                self.value[curve] = mc.keyframe(curve, time=self.keySel.time, query=True, valueChange=True)
+                
+            self.next[curve] = list()
+            self.prev[curve] = list()
+            self.average[curve] = list()
+            
+            for i in self.time[curve]:
+                next = mc.findKeyframe(curve, time=(i,), which='next')
+                prev = mc.findKeyframe(curve, time=(i,), which='previous')
+                n = mc.keyframe(curve, time=(next,), query=True, valueChange=True)[0]
+                p = mc.keyframe(curve, time=(prev,), query=True, valueChange=True)[0]
+                
+                self.next[curve].append(n)
+                self.prev[curve].append(p)
+                self.average[curve].append((n+p)/2)
+                
+                #set the tangents on this key, and the next and previous, so they flatten properly
+                mc.keyTangent(curve, time=(i,), itt=itt, ott=ott)
+                mc.keyTangent(curve, time=(next,), itt=itt)
+                mc.keyTangent(curve, time=(prev,), ott=ott)
+
+    if not self._sel:
+        return     
+    v_tween = self.uiSlider_tween.getValue()
+    if v_tween > 0:
+        for curve in self.keySel.curves:
+            for i,v,n in zip(self.time[curve],self.value[curve],self.next[curve]):
+                mc.keyframe(curve, time=(i,), valueChange=v+((n-v)*v_tween))
+    elif v_tween <0:
+        for curve in self.keySel.curves:
+            for i,v,p in zip(self.time[curve],self.value[curve],self.prev[curve]):
+                mc.keyframe(curve, time=(i,), valueChange=v+((p-v)*(-1*v_tween)))
+    
+    #log.info(self.uiSlider_tween.getValue())
+    
      
 def uiFunc_updateTargetDisplay(self):
     _str_func = 'uiFunc_updateTargetDisplay'  
@@ -1372,3 +1706,76 @@ def deleteKey():
                 return log.warning('cgmPuppetKey.deleteKey>>> Nothing l_selected!')
 
         mel.eval('timeSliderClearKey;') 
+        
+        
+        
+        
+def uiFunc_resetSliderDrop(self):
+    _str_func='uiFunc_resetSliderDrop'
+    """
+    _context = self.var_mrsContext.value
+    
+    #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
+    
+    v_tween = self.uiSlider_tween.getValue()
+    if v_tween >= 0.0:
+        mode = 'tweenNext'
+    else:
+        mode = 'tweenPrev'
+        
+    uiFunc_contextualAction(self,**{'mode':mode,'tweenValue':v_tween})
+    """
+    mc.undoInfo(closeChunk=True)
+    if self.b_autoKey:mc.autoKeyframe(state=True)
+    log.info("Last drag value: {0}".format(self.uiSlider_tween.getValue()))
+    self.uiSlider_reset.setValue(0)
+    #pprint.pprint(self.d_resetDat)
+    self.d_resetDat = {}#...clear thiss
+    if not self._sel:
+        return log.error("Nothing in context")
+    
+    mc.select(self._sel)
+    #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
+    return     
+    
+def uiFunc_resetSlider(self):
+    _str_func='uiFunc_tweenSlider'
+    
+    try:self.d_resetDat
+    except:self.d_resetDat = {}
+    self.b_autoKey = mc.autoKeyframe(q=True,state=True)
+    
+    if not self.d_resetDat:
+        mc.undoInfo(openChunk=True)
+        if self.b_autoKey:mc.autoKeyframe(state=False)
+        
+        uiFunc_contextualAction(self,mode='select')
+        
+        for i,mCtrl in enumerate(self.d_puppetData['mControls']):
+            attrs = mc.listAttr(mCtrl.mNode, keyable=True, unlocked=True) or False
+            self.d_resetDat[mCtrl] = {}
+            _short = mCtrl.mNode
+            for a in attrs:
+                if a in ['visibility']:
+                    continue
+                try:
+                    _d = ATTR.get_default(_short,a) or 0
+                    _v = ATTR.get(mCtrl.mNode,a)
+                    self.d_resetDat[mCtrl][a] = {'default':_d,
+                                                 'value':_v}
+                except Exception,err:
+                    pass
+                
+        
+    if not self._sel:
+        return
+    
+    
+    v_reset = self.uiSlider_reset.getValue()
+    
+    for mCtrl,aDat in self.d_resetDat.iteritems():
+        for a,vDat in aDat.iteritems():
+            #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
+            current = vDat['value']
+            setValue = current + ((vDat['default'] - current)*v_reset)            
+            ATTR.set(mCtrl.mNode,a,setValue)

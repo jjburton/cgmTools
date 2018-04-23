@@ -4306,6 +4306,7 @@ class MirrorHierarchy(object):
                                             dismissString='Cancel')
                 if result == 'Continue':
                     return True
+
                 return False
         return True
 

@@ -80,7 +80,7 @@ d_attrCategoryLists = {'transform':('translateX','translateY','translateZ',
 
 #>>> Utilities
 #===================================================================
-def reset(node, attrs = None):
+def reset(node, attrs = None, amount = None):
     """   
     Reset specified attributes to their default values
 
@@ -101,13 +101,19 @@ def reset(node, attrs = None):
         _reset = []
         for attr in attrs:
             try:
-                default = mc.attributeQuery(attr, listDefault=True, node=node)[0]
-                set(node,attr,default)
+                setValue = mc.attributeQuery(attr, listDefault=True, node=node)[0]
+                if amount:
+                    #x + ((y - x) * blend) -----------------------------------------
+                    current = get(node,attr)
+                    setValue = current + ((setValue - current)*amount)
+                set(node,attr,setValue)
                 _reset.append(attr)
             except Exception,err:
                 log.error("{0}.{1} resetAttrs | error: {2}".format(node, attr,err))   	
         return _reset
     except Exception,err:cgmGeneral.cgmExceptCB(Exception,err,localDat=vars())
+
+    
         
 def get_nameNice_string(attr):
     """
@@ -1429,8 +1435,23 @@ def get_default(*a):
     _node = _d['node']
     _attr = _d['attr']
     
+    #if not is_dynamic(_d):
+    #    return False
+    
     if not is_dynamic(_d):
-        return False    
+        _long = get_nameLong(_d)
+        if _long in ['translateX','translateY','translateZ','translate',
+                     'rotateX','rotateY','rotateZ','rotate',
+                     'scaleX','scaleY','scaleZ','scale']:
+            if 'scale' in _long:
+                if _long == 'scale':
+                    return [1.0,1.0,1.0]
+                return 1.0
+            else:
+                if _long in ['rotate','translate']:
+                    return [0.0,0.0,0.0]
+                return 0.0
+        return False
     if type(mc.addAttr(_combined,q=True,defaultValue = True)) is int or float:
         _res = mc.attributeQuery(_attr, node = _node, listDefault=True)
         if _res is not False:
