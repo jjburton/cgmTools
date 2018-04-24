@@ -43,10 +43,10 @@ import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.locator_utils as LOC
-
+import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.math_utils as MATH
 
-for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH:
+for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES:
     reload(m)
 
 def spline(jointList = None,
@@ -126,12 +126,12 @@ def spline(jointList = None,
         raise ValueError,"needs at least three joints"
     
     if parentGutsTo is None:
-        mi_grp = cgmMeta.cgmObject(name = 'newgroup')
-        mi_grp.addAttr('cgmName', str(str_baseName), lock=True)
-        mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
-        mi_grp.doName()
+        mGroup = cgmMeta.cgmObject(name = 'newgroup')
+        mGroup.addAttr('cgmName', str(str_baseName), lock=True)
+        mGroup.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+        mGroup.doName()
     else:
-        mi_grp = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+        mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
 
     #Good way to verify an instance list? #validate orientation             
     #> axis -------------------------------------------------------------
@@ -199,9 +199,9 @@ def spline(jointList = None,
     mIKEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
     mIKEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
     mIKEffector.doName()
-    mIKHandle.parent = mi_grp
+    mIKHandle.parent = mGroup
     
-    mSegmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')
+    mSegmentCurve.connectChildNode(mGroup,'segmentGroup','owner')
     
     if mi_useCurve:
         log.debug("|{0}| >> useCurve fix. setIk handle offset to: {1}".format(_str_func,f_MatchPosOffset))                                            
@@ -253,7 +253,7 @@ def spline(jointList = None,
             mi_distanceObject.doStore('cgmName',mJnt.mNode)
             mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
             mi_distanceObject.doName(nameShapes = True)
-            mi_distanceObject.parent = mi_grp.mNode#parent it
+            mi_distanceObject.parent = mGroup.mNode#parent it
             mi_distanceObject.overrideEnabled = 1
             mi_distanceObject.overrideVisibility = 1
 
@@ -778,7 +778,7 @@ def buildFKIK(fkJoints = None,
     return True
 
 
-def ribbon_createSurface(jointList=[], outAxis = 'x'):
+def ribbon_createSurface(jointList=[], createAxis = 'x'):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDMENT:
@@ -800,7 +800,7 @@ def ribbon_createSurface(jointList=[], outAxis = 'x'):
     """ return a good length for out loft curves """
     try:
         _str_func = 'ribbon_createSurface'
-        mAxis_out = VALID.simpleAxis(outAxis)
+        mAxis_out = VALID.simpleAxis(createAxis)
         crvUp = mAxis_out.p_string
         crvDn = mAxis_out.inverse.p_string
         
@@ -834,9 +834,11 @@ def ribbon(jointList = None,
            useSurface = None,
            orientation = 'zyx',
            secondaryAxis = 'y+',
+           loftAxis = 'x',
            baseName = None,
            connectBy = 'constraint',
            stretchBy = 'translate',
+           squashStretch = None, 
            driverSetup = None,#...aim.stable
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            #advancedTwistSetup = False,
@@ -861,13 +863,18 @@ def ribbon(jointList = None,
         secondaryAxis(maya axis arg(y+) | Only necessary when no module provide for orientating
         baseName(string - None) | baseName string
         connectBy(str)
+        squashStretch(str)
+            None
+            single
+            both
+        
         stretchBy(string - trans/scale/None) | How the joint will scale
         driverSetup(string) | Extra setup on driver
+            None
             stable - two folicle stable setup
+            stableBlend - two follicle with blend aim
             aim - aim along the chain
 
-        
-        
         advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
         moduleInstance(cgmModule - None) | cgmModule to use for connecting on build
@@ -912,7 +919,7 @@ def ribbon(jointList = None,
         if not str_baseName:str_baseName = 'testRibbon' 
         #...
         
-        str_stretchBy = VALID.stringArg(stretchBy,noneValid=True)		
+        #str_stretchBy = VALID.stringArg(stretchBy,noneValid=True)		
         #b_advancedTwistSetup = VALID.boolArg(advancedTwistSetup)
         #b_extendTwistToEnd= VALID.boolArg(extendTwistToEnd)
     
@@ -921,14 +928,15 @@ def ribbon(jointList = None,
             raise ValueError,"needs at least three joints"
         
         if parentGutsTo is None:
-            mi_grp = cgmMeta.cgmObject(name = 'newgroup')
-            mi_grp.addAttr('cgmName', str(str_baseName), lock=True)
-            mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
-            mi_grp.doName()
+            mGroup = cgmMeta.cgmObject(name = 'newgroup')
+            mGroup.addAttr('cgmName', str(str_baseName), lock=True)
+            mGroup.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+            mGroup.doName()
         else:
-            mi_grp = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+            mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+            
         if mModule:
-            mi_grp.parent = mModule.rigNull
+            mGroup.parent = mModule.rigNull
     
         #Good way to verify an instance list? #validate orientation             
         #> axis -------------------------------------------------------------
@@ -944,22 +952,58 @@ def ribbon(jointList = None,
         
         str_up = axis_up.p_string
         
+        loftAxis2 = False
+        #Figure out our loft axis stuff
+        if loftAxis not in  orientation:
+            _lower_loftAxis = loftAxis.lower()
+            if _lower_loftAxis in ['out','up']:
+                if _lower_loftAxis == 'out':
+                    loftAxis = str_orientation[2]
+                else:
+                    loftAxis = str_orientation[1]
+            else:
+                raise ValueError,"Not sure what to do with loftAxis: {0}".format(loftAxis)
+        
+        #Squash stretch -------------------------------------------------------------------------
+        b_squashStretch = False
+        if squashStretch is not None:
+            b_squashStretch = True
+            if squashStretch == 'both':
+                loftAxis2 = str_orientation[1]
+        
         outChannel = str_orientation[2]#outChannel
-        upChannel = '{0}up'.format(str_orientation[1])#upChannel
+        upChannel = str_orientation[1]
+        #upChannel = '{0}up'.format(str_orientation[1])#upChannel
         l_param = []  
         
         
+        mControlSurface2 = False
+        ml_surfaces = []
         #>>> Ribbon Surface ===========================================================================================        
         if mi_useSurface:
             raise NotImplementedError,'Not done with passed surface'
         else:
             log.debug("|{0}| >> Creating surface...".format(_str_func))
-            l_surfaceReturn = ribbon_createSurface(jointList,outChannel)
+            l_surfaceReturn = ribbon_createSurface(jointList,loftAxis)
         
             mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
             mControlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
             mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
             mControlSurface.doName()
+            
+            ml_surfaces.append(mControlSurface)
+            
+            if loftAxis2:
+                log.debug("|{0}| >> Creating surface...".format(_str_func))
+                l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2)
+            
+                mControlSurface2 = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
+                mControlSurface2.addAttr('cgmName',str(baseName),attrType='string',lock=True)
+                mControlSurface2.addAttr('cgmTypeModifier','up',attrType='string',lock=True)
+                mControlSurface2.addAttr('cgmType','controlSurface',attrType='string',lock=True)
+                mControlSurface2.doName()
+        
+                ml_surfaces.append(mControlSurface2)
         
         log.debug("mControlSurface: {0}".format(mControlSurface))
         
@@ -970,11 +1014,15 @@ def ribbon(jointList = None,
             mControlSurface.parent = mModule.rigNull
         
         #>>> Follicles ===========================================================================================        
+        log.debug("|{0}| >> Follicles...".format(_str_func)+cgmGEN._str_subLine)
+        
         ml_follicles = []
         ml_follicleShapes = []
         ml_upGroups = []
         ml_aimDrivers = []
         ml_upTargets = []
+        ml_folliclesStable = []
+        ml_folliclesStableShapes = []
         
         minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')        
         #maxU = ATTR.get(mControlSurface.getShapes()[0],'maxValueU')
@@ -982,9 +1030,7 @@ def ribbon(jointList = None,
         #maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
         f_offset = DIST.get_distance_between_targets(l_joints,True)
         
-        import cgm.core.lib.node_utils as NODES
-        reload(RIGCONSTRAINTS)
-        reload(NODES)
+
         for i,mJnt in enumerate(ml_joints):
             if msgDriver:
                 mDriven = mJnt.getMessage(msgDriver,asMeta=True)
@@ -1002,9 +1048,7 @@ def ribbon(jointList = None,
             ml_follicleShapes.append(mFollShape)
             ml_follicles.append(mFollicle)
             
-            
-    
-            mFollicle.parent = mi_grp.mNode
+            mFollicle.parent = mGroup.mNode
     
             if mModule:#if we have a module, connect vis
                 mFollicle.overrideEnabled = 1
@@ -1021,7 +1065,7 @@ def ribbon(jointList = None,
                 ml_aimDrivers.append(mDriver)
                 ml_upGroups.append(mUpGroup)
                 
-                if driverSetup == 'stable':
+                if driverSetup in ['stable','stableBlend']:
                     mUpDriver = mJnt.doCreateAt(setClass=True)
                     mDriver.rename("{0}_upTarget".format(mFollicle.p_nameBase))                    
                     pos = DIST.get_pos_by_axis_dist(mJnt.mNode, str_up, f_offset)
@@ -1034,6 +1078,7 @@ def ribbon(jointList = None,
             mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
             
         if ml_aimDrivers:
+            log.debug("|{0}| >> aimDrivers...".format(_str_func)+cgmGEN._str_subLine)            
             if driverSetup == 'aim':
                 for i,mDriver in enumerate(ml_aimDrivers):
                     v_aimUse = v_aim
@@ -1053,31 +1098,64 @@ def ribbon(jointList = None,
                 
                     mStableFollicle = cgmMeta.asMeta(l_stableFollicleInfo[1],'cgmObject',setClass=True)
                     mStableFollicleShape = cgmMeta.asMeta(l_stableFollicleInfo[0],'cgmNode')
-                    mStableFollicle.parent = mi_grp.mNode
-                
+                    mStableFollicle.parent = mGroup.mNode
+                    
+                    ml_folliclesStable.append(mStableFollicle)
+                    ml_folliclesStableShapes.append(ml_folliclesStableShapes)
+                    
                     #> Name...
                     #mStableFollicleTrans.doStore('cgmName',mObj.mNode)
                     #mStableFollicleTrans.doStore('cgmTypeModifier','surfaceStable')            
                     #mStableFollicleTrans.doName()
                     mStableFollicle.rename('{0}_surfaceStable'.format(ml_joints[i].p_nameBase))
                 
-                
                     mStableFollicleShape.parameterU = minU
                     mStableFollicleShape.parameterV = ml_follicleShapes[i].parameterV
                     
+                    if driverSetup == 'stable':
+                        if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
+                            #...now aim it
+                            mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)                     
+                        else:
+                            mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)
+                    else: #stableBlend....
+                        if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
+                            #...now aim it
+                            mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)
+                        else:
+                            mAimForward = mDriver.doCreateAt()
+                            mAimForward.parent = mDriver.p_parent
+                            mAimForward.doStore('cgmTypeModifier','forward')
+                            mAimForward.doStore('cgmType','aimer')
+                            mAimForward.doName()
+                        
+
+                            mAimBack = mDriver.doCreateAt()
+                            mAimBack.parent = mDriver.p_parent
+                            mAimBack.doStore('cgmTypeModifier','back')
+                            mAimBack.doStore('cgmType','aimer')
+                            mAimBack.doName()
+                            
+                            mc.aimConstraint(ml_follicles[i+1].mNode, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)
+                            mc.aimConstraint(ml_follicles[i-1].mNode, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aimNeg, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)                        
+
+                            mc.orientConstraint([mAimForward.mNode,mAimBack.mNode], ml_aimDrivers[i].mNode, maintainOffset=True)
+                            #mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                            #                 aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                            #                 worldUpType = 'object', worldUpVector = v_up)                                                            
+
+                        
                     
-                    
-                    if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
-                        #...now aim it
-                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)                     
-                    else:
-                        mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)                                    
-                    
-            
             """
             if mJnt != ml_joints[-1]:
                 mUpLoc = mJnt.doLoc()#Make up Loc
@@ -1110,9 +1188,311 @@ def ribbon(jointList = None,
             
             else:#if last...
                 pass"""
+            
+        if b_squashStretch:
+            log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
+            
+            
+            log.debug("|{0}| >> Making our base dist stuff".format(_str_func))
+            
+            ml_distanceObjectsBase = []
+            ml_distanceShapesBase = []
+            
+            ml_distanceObjectsActive = []
+            ml_distanceShapesActive = []
+            
+            md_distDat = {}
+            for k in ['aim','up','out']:
+                md_distDat[k] = {}
+                for k2 in 'base','active':
+                    md_distDat[k][k2] = {'mTrans':[],
+                                         'mDist':[]}
+
+            #mSegmentCurve.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
+            ml_outFollicles = []
+            if ml_folliclesStable:
+                log.debug("|{0}| >> Found out follicles via stable...".format(_str_func))                
+                ml_outFollicles = ml_folliclesStable
+            else:
+                raise ValueError,"Must create out follicles"
+            
+            #Up follicles =================================================================================
+            ml_upFollicles = []
+            ml_upFollicleShapes = []
+            
+            if mControlSurface2:
+                log.debug("|{0}| >> up follicle setup...".format(_str_func,)+cgmGEN._str_subLine)
+                
+                for i,mJnt in enumerate(ml_joints):
+                    #We need to make new follicles
+                    l_FollicleInfo = NODES.createFollicleOnMesh( mControlSurface2.mNode )
+                
+                    mUpFollicle = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
+                    mUpFollicleShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
+                    
+                    mUpFollicle.parent = mGroup.mNode
+                    
+                    ml_upFollicles.append(mUpFollicle)
+                    ml_upFollicleShapes.append(mUpFollicleShape)
+                    
+                    #> Name...
+                    mUpFollicle.rename('{0}_surfaceUp'.format(ml_joints[i].p_nameBase))
+                
+                    mUpFollicleShape.parameterU = minU
+                    mUpFollicleShape.parameterV = ml_follicleShapes[i].parameterV
+                    
+                
+            def createDist(mJnt, typeModifier = None):
+                mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+                mObject = mShape.getTransform(asMeta=True) 
+                mObject.doStore('cgmName',mJnt.mNode)
+                if typeModifier:
+                    mObject.addAttr('cgmTypeModifier',typeModifier,lock=True)                
+                mObject.addAttr('cgmType','measureNode',lock=True)
+                mObject.doName(nameShapes = True)
+                mObject.parent = mGroup.mNode#parent it
+                mObject.overrideEnabled = 1
+                mObject.overrideVisibility = 1
+                
+                if mModule:#Connect hides if we have a module instance:
+                    ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mObject.mNode))
+                    ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideDisplayType".format(mObject.mNode))
+                
+                return mObject,mShape
+                
+            for i,mJnt in enumerate(ml_joints[:-1]):#Base measure ===================================================
+                log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
+                
+                mi_distanceObject,mi_distanceShape = createDist(mJnt, 'base')
+                
+                #Connect things
+                ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                
+                ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
+                ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                
+                md_distDat['aim']['base']['mTrans'].append(mi_distanceObject)
+                md_distDat['aim']['base']['mDist'].append(mi_distanceShape)
+                
+                #ml_distanceObjectsBase.append(mi_distanceObject)
+                #ml_distanceShapesBase.append(mi_distanceShape)
     
+                #Active measures ---------------------------------------------------------------------
+                log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
+                #>> Distance nodes
+                mi_distanceObject,mi_distanceShape = createDist(mJnt, 'active')
+
+                #Connect things
+                #.on loc = position
+                ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                
+                #ml_distanceObjectsActive.append(mi_distanceObject)
+                #ml_distanceShapesActive.append(mi_distanceShape)
+                md_distDat['aim']['active']['mTrans'].append(mi_distanceObject)
+                md_distDat['aim']['active']['mDist'].append(mi_distanceShape)
+
+            if ml_outFollicles or ml_upFollicles:
+                for i,mJnt in enumerate(ml_joints):
+                    if ml_outFollicles:
+                        #Out Base ---------------------------------------------------------------------------------
+                        log.debug("|{0}| >> Out base measure for: {1}".format(_str_func,mJnt))
+                        
+                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'baseOut')
+                                        
+                        #Connect things
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        
+                        ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
+                        ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                        
+                        md_distDat['out']['base']['mTrans'].append(mi_distanceObject)
+                        md_distDat['out']['base']['mDist'].append(mi_distanceShape)
+                        #ml_distanceObjectsBase.append(mi_distanceObject)
+                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        
+                        #Out Active---------------------------------------------------------------------------------
+                        log.debug("|{0}| >> Out active measure for: {1}".format(_str_func,mJnt))
+                        
+                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'activeOut')
+                                        
+                        #Connect things
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        
+                        #ml_distanceObjectsBase.append(mi_distanceObject)
+                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        md_distDat['out']['active']['mTrans'].append(mi_distanceObject)
+                        md_distDat['out']['active']['mDist'].append(mi_distanceShape)
+                    
+                    if ml_upFollicles:
+                        #Up Base ---------------------------------------------------------------------------------
+                        log.debug("|{0}| >> Up base measure for: {1}".format(_str_func,mJnt))
+                        
+                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'baseUp')
+                                        
+                        #Connect things
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        
+                        ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
+                        ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                        
+                        md_distDat['up']['base']['mTrans'].append(mi_distanceObject)
+                        md_distDat['up']['base']['mDist'].append(mi_distanceShape)
+                        #ml_distanceObjectsBase.append(mi_distanceObject)
+                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        
+                        #Up Active---------------------------------------------------------------------------------
+                        log.debug("|{0}| >> Up active measure for: {1}".format(_str_func,mJnt))
+                        
+                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'activeUp')
+                                        
+                        #Connect things
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        
+                        #ml_distanceObjectsBase.append(mi_distanceObject)
+                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        md_distDat['up']['active']['mTrans'].append(mi_distanceObject)
+                        md_distDat['up']['active']['mDist'].append(mi_distanceShape)                
+
+
+            #>>>Hook up stretch/scale #========================================================================= 
+            
+            for i,mJnt in enumerate(ml_joints[:-1]):#Nodes =======================================================
+                mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                               "aimScaleResult_{0}".format(i),
+                                               attrType = 'float',
+                                               initialValue=0,
+                                               lock=True,
+                                               minValue = 0)
+
+                
+                #baseSquashScale = distBase / distActual
+                #out scale = baseSquashScale * (outBase / outActual)
+                mBase_aim =  md_distDat['aim']['base']['mDist'][i]
+                mActive_aim =  md_distDat['aim']['active']['mDist'][i]
+
+                
+                l_argBuild = []
+                l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
+                                                           '{0}.distance'.format(mBase_aim.mNode),
+                                                           "{0}.distance".format(mActive_aim.mNode)))
+                
+                
+                for arg in l_argBuild:
+                    log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                    NodeF.argsToNodes(arg).doBuild()
+                    
+                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+            
+                if not ml_outFollicles:
+                    for axis in ['scaleX','scaleY']:
+                        mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                    
+                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+            
+            if ml_outFollicles or ml_upFollicles:
+                for i,mJnt in enumerate(ml_joints):
+                    if mJnt == ml_joints[-1]:
+                        pass #...we'll pick up the last on the loop
+                    else:
+                        mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                          "aimScaleResult_{0}".format(i))
+                        mBase_aim =  md_distDat['aim']['base']['mDist'][i]
+                        mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
+                        
+                    
+                    if ml_outFollicles:
+                        mPlug_outBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                        "outBaseScaleResult_{0}".format(i),
+                                                        attrType = 'float',
+                                                        initialValue=0,
+                                                        lock=True,
+                                                        minValue = 0)
+                        mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                          "outScaleResult_{0}".format(i),
+                                                          attrType = 'float',
+                                                          initialValue=0,
+                                                          lock=True,
+                                                          minValue = 0)
+                        
+                        #baseSquashScale = distBase / distActual
+                        #out scale = baseSquashScale * (outBase / outActual)
+    
+                        
+                        mBase_out =  md_distDat['out']['base']['mDist'][i]
+                        mActive_out =  md_distDat['out']['active']['mDist'][i]                
+                        
+                        l_argBuild = []
+                        
+                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBase.p_combinedShortName,
+                                                                   '{0}.distance'.format(mActive_out.mNode),
+                                                                   "{0}.distance".format(mBase_out.mNode)))
+                        
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
+                                                                   mPlug_aimResult.p_combinedShortName,
+                                                                   mPlug_outBase.p_combinedShortName))
+                        
+                        
+                        for arg in l_argBuild:
+                            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                            NodeF.argsToNodes(arg).doBuild()
+                            
+                            
+                        #out scale ---------------------------------------------------------------
+                        for axis in ['scaleX','scaleY']:
+                            mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
+                            
+                    if ml_upFollicles:
+                        mPlug_upBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                        "upBaseScaleResult_{0}".format(i),
+                                                        attrType = 'float',
+                                                        initialValue=0,
+                                                        lock=True,
+                                                        minValue = 0)
+                        mPlug_upResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                          "upScaleResult_{0}".format(i),
+                                                          attrType = 'float',
+                                                          initialValue=0,
+                                                          lock=True,
+                                                          minValue = 0)
+                        
+                        #baseSquashScale = distBase / distActual
+                        #up scale = baseSquashScale * (upBase / upActual)
+    
+                        
+                        mBase_up =  md_distDat['up']['base']['mDist'][i]
+                        mActive_up =  md_distDat['up']['active']['mDist'][i]                
+                        
+                        l_argBuild = []
+                        
+                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBase.p_combinedShortName,
+                                                                   '{0}.distance'.format(mActive_up.mNode),
+                                                                   "{0}.distance".format(mBase_up.mNode)))
+                        
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedShortName,
+                                                                   mPlug_aimResult.p_combinedShortName,
+                                                                   mPlug_upBase.p_combinedShortName))
+                        
+                        
+                        for arg in l_argBuild:
+                            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                            NodeF.argsToNodes(arg).doBuild()
+                            
+                            
+                        #up scale ---------------------------------------------------------------
+                        for axis in ['scaleY']:
+                            mPlug_upResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                
+
+   
+            
         #>>> Connect our iModule vis stuff
         if mModule:#if we have a module, connect vis
+            log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
+            
             for mObj in ml_rigObjectsToConnect:
                 mObj.overrideEnabled = 1		
                 cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
@@ -1120,8 +1500,9 @@ def ribbon(jointList = None,
             for mObj in ml_rigObjectsToParent:
                 mObj.parent = mModule.rigNull.mNode
 
-                
-        return mControlSurface
+        
+        return ml_surfaces
+    
         #>>> SplineIK ===========================================================================================
         if mi_useCurve:
             log.debug("|{0}| >> useCurve. SplineIk...".format(_str_func))    
@@ -1174,9 +1555,9 @@ def ribbon(jointList = None,
         mIKEffector = cgmMeta.validateObjArg( buffer[1],'cgmObject',setClass=True )
         mIKEffector.addAttr('cgmName',str_baseName,attrType='string',lock=True)  
         mIKEffector.doName()
-        mIKHandle.parent = mi_grp
+        mIKHandle.parent = mGroup
         
-        mSegmentCurve.connectChildNode(mi_grp,'segmentGroup','owner')
+        mSegmentCurve.connectChildNode(mGroup,'segmentGroup','owner')
         
         if mi_useCurve:
             log.debug("|{0}| >> useCurve fix. setIk handle offset to: {1}".format(_str_func,f_MatchPosOffset))                                            
@@ -1228,7 +1609,7 @@ def ribbon(jointList = None,
                 mi_distanceObject.doStore('cgmName',mJnt.mNode)
                 mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
                 mi_distanceObject.doName(nameShapes = True)
-                mi_distanceObject.parent = mi_grp.mNode#parent it
+                mi_distanceObject.parent = mGroup.mNode#parent it
                 mi_distanceObject.overrideEnabled = 1
                 mi_distanceObject.overrideVisibility = 1
     
@@ -1472,12 +1853,12 @@ def handleHOLDER(jointList = None,
         raise ValueError,"needs at least three joints"
     
     if parentGutsTo is None:
-        mi_grp = cgmMeta.cgmObject(name = 'newgroup')
-        mi_grp.addAttr('cgmName', str(str_baseName), lock=True)
-        mi_grp.addAttr('cgmTypeModifier','segmentStuff', lock=True)
-        mi_grp.doName()
+        mGroup = cgmMeta.cgmObject(name = 'newgroup')
+        mGroup.addAttr('cgmName', str(str_baseName), lock=True)
+        mGroup.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+        mGroup.doName()
     else:
-        mi_grp = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+        mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
 
     #Good way to verify an instance list? #validate orientation             
     #> axis -------------------------------------------------------------
