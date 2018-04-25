@@ -248,27 +248,27 @@ def spline(jointList = None,
         
         for i,mJnt in enumerate(ml_joints[:-1]):
             #>> Distance nodes
-            mi_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
-            mi_distanceObject = mi_distanceShape.getTransform(asMeta=True) 
-            mi_distanceObject.doStore('cgmName',mJnt.mNode)
-            mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
-            mi_distanceObject.doName(nameShapes = True)
-            mi_distanceObject.parent = mGroup.mNode#parent it
-            mi_distanceObject.overrideEnabled = 1
-            mi_distanceObject.overrideVisibility = 1
+            mDistanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+            mDistanceDag = mDistanceShape.getTransform(asMeta=True) 
+            mDistanceDag.doStore('cgmName',mJnt.mNode)
+            mDistanceDag.addAttr('cgmType','measureNode',lock=True)
+            mDistanceDag.doName(nameShapes = True)
+            mDistanceDag.parent = mGroup.mNode#parent it
+            mDistanceDag.overrideEnabled = 1
+            mDistanceDag.overrideVisibility = 1
 
             #Connect things
-            ATTR.connect(ml_pointOnCurveInfos[i].mNode+'.position',mi_distanceShape.mNode+'.startPoint')
-            ATTR.connect(ml_pointOnCurveInfos[i+1].mNode+'.position',mi_distanceShape.mNode+'.endPoint')
+            ATTR.connect(ml_pointOnCurveInfos[i].mNode+'.position',mDistanceShape.mNode+'.startPoint')
+            ATTR.connect(ml_pointOnCurveInfos[i+1].mNode+'.position',mDistanceShape.mNode+'.endPoint')
 
-            ml_distanceObjects.append(mi_distanceObject)
-            ml_distanceShapes.append(mi_distanceShape)
+            ml_distanceObjects.append(mDistanceDag)
+            ml_distanceShapes.append(mDistanceShape)
 
             if mModule:#Connect hides if we have a module instance:
-                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
+                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mDistanceDag.mNode))
                 ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
+                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideVisibility'))
+                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideDisplayType'))    
 
 
         #>>>Hook up stretch/scale #========================================================================= 
@@ -841,6 +841,9 @@ def ribbon(jointList = None,
            squashStretch = None, 
            driverSetup = None,#...aim.stable
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
+           settingsControl = None,
+           extraSquashControl = False,#...setup extra attributes
+           
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
@@ -935,6 +938,8 @@ def ribbon(jointList = None,
         else:
             mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
             
+            
+            
         if mModule:
             mGroup.parent = mModule.rigNull
     
@@ -970,6 +975,11 @@ def ribbon(jointList = None,
             b_squashStretch = True
             if squashStretch == 'both':
                 loftAxis2 = str_orientation[1]
+                
+            mTransGroup = cgmMeta.cgmObject(name = 'newgroup')
+            mTransGroup.addAttr('cgmName', str(str_baseName), lock=True)
+            mTransGroup.addAttr('cgmTypeModifier','segmentTransStuff', lock=True)
+            mTransGroup.doName()            
         
         outChannel = str_orientation[2]#outChannel
         upChannel = str_orientation[1]
@@ -1006,6 +1016,11 @@ def ribbon(jointList = None,
                 ml_surfaces.append(mControlSurface2)
         
         log.debug("mControlSurface: {0}".format(mControlSurface))
+        
+        if settingsControl:
+            mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
+        else:
+            mSettings = mControlSurface
         
         if mModule:#if we have a module, connect vis
             mControlSurface.overrideEnabled = 1		
@@ -1192,6 +1207,14 @@ def ribbon(jointList = None,
         if b_squashStretch:
             log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
             
+            if extraSquashControl:
+                mPlug_segScale = cgmMeta.cgmAttr(mSettings.mNode,
+                                                 "{0}_segScale".format(str_baseName),
+                                                 attrType = 'float',
+                                                 hidden = False,                                                 
+                                                 initialValue=1.0,
+                                                 lock=False,
+                                                 minValue = 0)
             
             log.debug("|{0}| >> Making our base dist stuff".format(_str_func))
             
@@ -1263,35 +1286,36 @@ def ribbon(jointList = None,
             for i,mJnt in enumerate(ml_joints[:-1]):#Base measure ===================================================
                 log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
                 
-                mi_distanceObject,mi_distanceShape = createDist(mJnt, 'base')
+                mDistanceDag,mDistanceShape = createDist(mJnt, 'base')
+                mDistanceDag.p_parent = mTransGroup
                 
                 #Connect things
-                ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                 
-                ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
-                ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
+                ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
                 
-                md_distDat['aim']['base']['mTrans'].append(mi_distanceObject)
-                md_distDat['aim']['base']['mDist'].append(mi_distanceShape)
-                
-                #ml_distanceObjectsBase.append(mi_distanceObject)
-                #ml_distanceShapesBase.append(mi_distanceShape)
+                md_distDat['aim']['base']['mTrans'].append(mDistanceDag)
+                md_distDat['aim']['base']['mDist'].append(mDistanceShape)
+
+                #ml_distanceObjectsBase.append(mDistanceDag)
+                #ml_distanceShapesBase.append(mDistanceShape)
     
                 #Active measures ---------------------------------------------------------------------
                 log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
                 #>> Distance nodes
-                mi_distanceObject,mi_distanceShape = createDist(mJnt, 'active')
+                mDistanceDag,mDistanceShape = createDist(mJnt, 'active')
 
                 #Connect things
                 #.on loc = position
-                ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                 
-                #ml_distanceObjectsActive.append(mi_distanceObject)
-                #ml_distanceShapesActive.append(mi_distanceShape)
-                md_distDat['aim']['active']['mTrans'].append(mi_distanceObject)
-                md_distDat['aim']['active']['mDist'].append(mi_distanceShape)
+                #ml_distanceObjectsActive.append(mDistanceDag)
+                #ml_distanceShapesActive.append(mDistanceShape)
+                md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
+                md_distDat['aim']['active']['mDist'].append(mDistanceShape)
 
             if ml_outFollicles or ml_upFollicles:
                 for i,mJnt in enumerate(ml_joints):
@@ -1299,72 +1323,73 @@ def ribbon(jointList = None,
                         #Out Base ---------------------------------------------------------------------------------
                         log.debug("|{0}| >> Out base measure for: {1}".format(_str_func,mJnt))
                         
-                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'baseOut')
-                                        
+                        mDistanceDag,mDistanceShape = createDist(mJnt, 'baseOut')
+                        mDistanceDag.p_parent = mTransGroup
+
                         #Connect things
-                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                         
-                        ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
-                        ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                        ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
+                        ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
                         
-                        md_distDat['out']['base']['mTrans'].append(mi_distanceObject)
-                        md_distDat['out']['base']['mDist'].append(mi_distanceShape)
-                        #ml_distanceObjectsBase.append(mi_distanceObject)
-                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        md_distDat['out']['base']['mTrans'].append(mDistanceDag)
+                        md_distDat['out']['base']['mDist'].append(mDistanceShape)
+                        #ml_distanceObjectsBase.append(mDistanceDag)
+                        #ml_distanceShapesBase.append(mDistanceShape)
                         
                         #Out Active---------------------------------------------------------------------------------
                         log.debug("|{0}| >> Out active measure for: {1}".format(_str_func,mJnt))
                         
-                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'activeOut')
+                        mDistanceDag,mDistanceShape = createDist(mJnt, 'activeOut')
                                         
                         #Connect things
-                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                         
-                        #ml_distanceObjectsBase.append(mi_distanceObject)
-                        #ml_distanceShapesBase.append(mi_distanceShape)
-                        md_distDat['out']['active']['mTrans'].append(mi_distanceObject)
-                        md_distDat['out']['active']['mDist'].append(mi_distanceShape)
+                        #ml_distanceObjectsBase.append(mDistanceDag)
+                        #ml_distanceShapesBase.append(mDistanceShape)
+                        md_distDat['out']['active']['mTrans'].append(mDistanceDag)
+                        md_distDat['out']['active']['mDist'].append(mDistanceShape)
                     
                     if ml_upFollicles:
                         #Up Base ---------------------------------------------------------------------------------
                         log.debug("|{0}| >> Up base measure for: {1}".format(_str_func,mJnt))
                         
-                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'baseUp')
-                                        
+                        mDistanceDag,mDistanceShape = createDist(mJnt, 'baseUp')
+                        mDistanceDag.p_parent = mTransGroup
+
                         #Connect things
-                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                         
-                        ATTR.break_connection(mi_distanceShape.mNode+'.startPoint')
-                        ATTR.break_connection(mi_distanceShape.mNode+'.endPoint')
+                        ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
+                        ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
                         
-                        md_distDat['up']['base']['mTrans'].append(mi_distanceObject)
-                        md_distDat['up']['base']['mDist'].append(mi_distanceShape)
-                        #ml_distanceObjectsBase.append(mi_distanceObject)
-                        #ml_distanceShapesBase.append(mi_distanceShape)
+                        md_distDat['up']['base']['mTrans'].append(mDistanceDag)
+                        md_distDat['up']['base']['mDist'].append(mDistanceShape)
+                        #ml_distanceObjectsBase.append(mDistanceDag)
+                        #ml_distanceShapesBase.append(mDistanceShape)
                         
                         #Up Active---------------------------------------------------------------------------------
                         log.debug("|{0}| >> Up active measure for: {1}".format(_str_func,mJnt))
                         
-                        mi_distanceObject,mi_distanceShape = createDist(mJnt, 'activeUp')
+                        mDistanceDag,mDistanceShape = createDist(mJnt, 'activeUp')
                                         
                         #Connect things
-                        ATTR.connect(ml_follicles[i].mNode+'.translate',mi_distanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mi_distanceShape.mNode+'.endPoint')
+                        ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
                         
-                        #ml_distanceObjectsBase.append(mi_distanceObject)
-                        #ml_distanceShapesBase.append(mi_distanceShape)
-                        md_distDat['up']['active']['mTrans'].append(mi_distanceObject)
-                        md_distDat['up']['active']['mDist'].append(mi_distanceShape)                
+                        #ml_distanceObjectsBase.append(mDistanceDag)
+                        #ml_distanceShapesBase.append(mDistanceShape)
+                        md_distDat['up']['active']['mTrans'].append(mDistanceDag)
+                        md_distDat['up']['active']['mDist'].append(mDistanceShape)                
 
 
             #>>>Hook up stretch/scale #========================================================================= 
-            
             for i,mJnt in enumerate(ml_joints[:-1]):#Nodes =======================================================
                 mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                               "aimScaleResult_{0}".format(i),
+                                               "{0}_aimScaleResult_{1}".format(str_baseName,i),
                                                attrType = 'float',
                                                initialValue=0,
                                                lock=True,
@@ -1378,9 +1403,56 @@ def ribbon(jointList = None,
 
                 
                 l_argBuild = []
-                l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
-                                                           '{0}.distance'.format(mBase_aim.mNode),
-                                                           "{0}.distance".format(mActive_aim.mNode)))
+                
+                if extraSquashControl:
+                    #mPlug_segScale
+                    mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                     "{0}_baseRes_{1}".format(str_baseName,i),
+                                                     attrType = 'float')                    
+                    mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
+                                                        "{0}_factor_{1}".format(str_baseName,i),
+                                                        attrType = 'float',
+                                                        hidden = False,
+                                                        initialValue=1,
+                                                        defaultValue=1.0,
+                                                        lock=False,
+                                                        minValue = 0)
+                    mPlug_jointRes = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                     "{0}_factorRes_{1}".format(str_baseName,i),
+                                                     attrType = 'float')
+                    
+                    mPlug_jointDiff = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_factorDiff_{1}".format(str_baseName,i),
+                                                      attrType = 'float')
+                    #mPlug_jointAdd = cgmMeta.cgmAttr(mControlSurface.mNode,
+                    #                                  "{0}_factorAdd_{1}".format(str_baseName,i),
+                    #                                  attrType = 'float')
+                    mPlug_jointMult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_factorMult_{1}".format(str_baseName,i),
+                                                      attrType = 'float')                    
+                    
+                    #>> x + (y - x) * blend --------------------------------------------------------
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedShortName,
+                                                               '{0}.distance'.format(mBase_aim.mNode),
+                                                               "{0}.distance".format(mActive_aim.mNode)))
+                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedShortName,
+                                                               mPlug_jointMult.p_combinedShortName))
+                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedShortName,
+                                                             mPlug_baseRes.p_combinedShortName))
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedShortName,
+                                                               mPlug_jointDiff.p_combinedShortName,
+                                                               mPlug_jointRes.p_combinedShortName))
+                    
+                    
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedShortName,
+                                                               mPlug_jointFactor.p_combinedShortName,
+                                                               mPlug_segScale.p_combinedShortName))                    
+
+                    
+                else:
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
+                                                               '{0}.distance'.format(mBase_aim.mNode),
+                                                               "{0}.distance".format(mActive_aim.mNode)))
                 
                 
                 for arg in l_argBuild:
@@ -1400,20 +1472,20 @@ def ribbon(jointList = None,
                         pass #...we'll pick up the last on the loop
                     else:
                         mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                          "aimScaleResult_{0}".format(i))
+                                                          "{0}_aimScaleResult_{1}".format(str_baseName,i))
                         mBase_aim =  md_distDat['aim']['base']['mDist'][i]
                         mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
                         
                     
                     if ml_outFollicles:
                         mPlug_outBase = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                        "outBaseScaleResult_{0}".format(i),
+                                                        "{0}_outBaseScaleResult_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         initialValue=0,
                                                         lock=True,
                                                         minValue = 0)
                         mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                          "outScaleResult_{0}".format(i),
+                                                          "{0}_outScaleResult_{1}".format(str_baseName,i),
                                                           attrType = 'float',
                                                           initialValue=0,
                                                           lock=True,
@@ -1448,13 +1520,13 @@ def ribbon(jointList = None,
                             
                     if ml_upFollicles:
                         mPlug_upBase = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                        "upBaseScaleResult_{0}".format(i),
+                                                        "{0}_upBaseScaleResult_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         initialValue=0,
                                                         lock=True,
                                                         minValue = 0)
                         mPlug_upResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                          "upScaleResult_{0}".format(i),
+                                                          "{0}_upScaleResult_{1}".format(str_baseName,i),
                                                           attrType = 'float',
                                                           initialValue=0,
                                                           lock=True,
@@ -1501,7 +1573,7 @@ def ribbon(jointList = None,
                 mObj.parent = mModule.rigNull.mNode
 
         
-        return ml_surfaces
+        return {'mlSurfaces':ml_surfaces}
     
         #>>> SplineIK ===========================================================================================
         if mi_useCurve:
@@ -1604,27 +1676,27 @@ def ribbon(jointList = None,
             
             for i,mJnt in enumerate(ml_joints[:-1]):
                 #>> Distance nodes
-                mi_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
-                mi_distanceObject = mi_distanceShape.getTransform(asMeta=True) 
-                mi_distanceObject.doStore('cgmName',mJnt.mNode)
-                mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
-                mi_distanceObject.doName(nameShapes = True)
-                mi_distanceObject.parent = mGroup.mNode#parent it
-                mi_distanceObject.overrideEnabled = 1
-                mi_distanceObject.overrideVisibility = 1
+                mDistanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+                mDistanceDag = mDistanceShape.getTransform(asMeta=True) 
+                mDistanceDag.doStore('cgmName',mJnt.mNode)
+                mDistanceDag.addAttr('cgmType','measureNode',lock=True)
+                mDistanceDag.doName(nameShapes = True)
+                mDistanceDag.parent = mGroup.mNode#parent it
+                mDistanceDag.overrideEnabled = 1
+                mDistanceDag.overrideVisibility = 1
     
                 #Connect things
-                ATTR.connect(ml_pointOnCurveInfos[i].mNode+'.position',mi_distanceShape.mNode+'.startPoint')
-                ATTR.connect(ml_pointOnCurveInfos[i+1].mNode+'.position',mi_distanceShape.mNode+'.endPoint')
+                ATTR.connect(ml_pointOnCurveInfos[i].mNode+'.position',mDistanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_pointOnCurveInfos[i+1].mNode+'.position',mDistanceShape.mNode+'.endPoint')
     
-                ml_distanceObjects.append(mi_distanceObject)
-                ml_distanceShapes.append(mi_distanceShape)
+                ml_distanceObjects.append(mDistanceDag)
+                ml_distanceShapes.append(mDistanceShape)
     
                 if mModule:#Connect hides if we have a module instance:
-                    ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mi_distanceObject.mNode))
+                    ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mDistanceDag.mNode))
                     ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideVisibility'))
-                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mi_distanceObject.mNode,'overrideDisplayType'))    
+                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideVisibility'))
+                    #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideDisplayType'))    
     
     
             #>>>Hook up stretch/scale #========================================================================= 
