@@ -843,7 +843,7 @@ def ribbon(jointList = None,
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            settingsControl = None,
            extraSquashControl = False,#...setup extra attributes
-           
+           jointMode = 'default',
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,

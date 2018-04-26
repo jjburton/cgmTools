@@ -1247,8 +1247,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     else:
                         ml_fkJoints = mRigNull.msgList_get('fkJoints',asMeta=True)
                         
-                    if len(ml_fkJoints)<2:
-                        return log.error("|{0}| >> Need at least two targets".format(_str_func))                
+                    #if len(ml_fkJoints)<2:
+                        #return log.error("|{0}| >> Need at least two targets".format(_str_func))                
                     
                     #...Get our vectors...
                     """

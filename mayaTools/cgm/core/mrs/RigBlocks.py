@@ -1494,6 +1494,10 @@ class handleFactory(object):
             if t is None:
                 t = self._mTransform.mNode
                 
+            if ATTR.get(t,'cgmColorLock'):
+                log.info("|{0}| >> No recolor flag! {1}".format(_str_func,t))                        
+                continue
+                
             if VALID.is_shape(t):
                 log.debug("|{0}| >> is shape: {1}".format(_str_func, t))                
                 _shapes = [t]
@@ -2272,8 +2276,13 @@ class handleFactory(object):
                 self.cleanShapes()      
                 _offsetSize = _baseSize * 1.3
                 _dist = _baseSize *.05
-                _mShapeDirection = VALID.simpleAxis(shapeDirection)     
-
+                _mShapeDirection = VALID.simpleAxis(shapeDirection)
+                
+                mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
+                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False,True)
+                self.color(self._mTransform.mNode)
+                
+                """
                 for i,p in enumerate(['upper','lower']):
                     mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
                     if i == 0:
@@ -2284,7 +2293,7 @@ class handleFactory(object):
                     mCrv.p_position = _pos
                     CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
 
-                    self.color(self._mTransform.mNode)
+                    self.color(self._mTransform.mNode)"""
 
             #>>>make our loft curve
             mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
@@ -2310,7 +2319,12 @@ class handleFactory(object):
             _mShapeDirection = VALID.simpleAxis(shapeDirection)               
 
             mBaseCrv = self.buildBaseShape('self',_offsetSize,shapeDirection)
-
+            
+            mCrv = mBaseCrv.doDuplicate(po=False)
+            mCrv.scale = [1.25,1.25,1.25]
+            CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False,True)
+            
+            """
             #>>> make our offset shapes to control our handle
             for i,p in enumerate(['upper','lower']):
                 mCrv = mBaseCrv.doDuplicate(po=False)
@@ -2324,7 +2338,7 @@ class handleFactory(object):
                     _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
 
                 mCrv.p_position = _pos
-                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
+                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)"""
 
             self.color(self._mTransform.mNode)
 

@@ -276,6 +276,11 @@ def is_even(f1):
         return True
     return False
 
+def get_midIndex(v):
+    if is_even(v):
+        return int(v/2)
+    return v/2 +1
+
 def is_float_equivalent(f1,f2,places=4):
     """
     Compare two floats, returns if equivalent

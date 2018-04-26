@@ -125,6 +125,9 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         elif connectBy == 'conPoint':
             mc.pointConstraint(_trackTransform, mObj.mNode,maintainOffset = True)
             return _res
+        elif connectBy == 'conParent':
+            mc.parentConstraint(_trackTransform, mObj.mNode,maintainOffset = True)
+            return _res        
         elif connectBy == 'parentGroup':
             mGroup = mObj.doGroup(asMeta=True)
             #_grp = TRANS.group_me(obj,True)
