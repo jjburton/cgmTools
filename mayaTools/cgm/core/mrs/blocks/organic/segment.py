@@ -195,7 +195,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'squashExtraControl' : 'bool',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
-                 'ikSegMidControl':'bool',
+                 'controlSegMidIK':'bool',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:cube:bank:foot:hand:tipBase:tipEnd:proxy',
@@ -218,7 +218,7 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',
                      'numSpacePivots':2,
                      
-                     'ikSegMidControl':True,
+                     'controlSegMidIK':True,
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stableBlend',
@@ -1359,7 +1359,7 @@ def rig_skeleton(self):
         ml_jointsToConnect.extend(ml_ribbonIKDrivers)
         
         
-        if mBlock.ikSegMidControl:
+        if mBlock.controlSegMidIK:
             log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
             #Lever...
             mMidIK = ml_rigJoints[0].doDuplicate(po=True)
@@ -1375,7 +1375,7 @@ def rig_skeleton(self):
                      mBlock.rootUpHelper.getAxisVector('y+'))
             reload(JOINT)
             JOINT.freezeOrientation(mMidIK.mNode)
-            mRigNull.connectChildNode(mMidIK,'ikSegMidControl','rigNull')
+            mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
         
     
     if mBlock.numJoints > mBlock.numControls:
@@ -1469,22 +1469,22 @@ def rig_shapes(self):
         #Figure out our handle targets...
         ml_handleTargets = ml_fkJoints
         
-        #ikSegMidControl =============================================================================
-        if mRigNull.getMessage('ikSegMidControl'):
-            log.debug("|{0}| >> ikSegMidControl...".format(_str_func))            
-            mIKSegMidControl = mRigNull.getMessage('ikSegMidControl',asMeta=1)[0]
+        #controlSegMidIK =============================================================================
+        if mRigNull.getMessage('controlSegMidIK'):
+            log.debug("|{0}| >> controlSegMidIK...".format(_str_func))            
+            mControlSegMidIK = mRigNull.getMessage('controlSegMidIK',asMeta=1)[0]
             
             ml_shapes = self.atBuilderUtils('shapes_fromCast',
-                                            targets = mIKSegMidControl,
+                                            targets = mControlSegMidIK,
                                             offset = _offset,
                                             mode = 'simpleCast')#'segmentHan
-            CORERIG.shapeParent_in_place(mIKSegMidControl.mNode, ml_shapes[0].mNode,False)
+            CORERIG.shapeParent_in_place(mControlSegMidIK.mNode, ml_shapes[0].mNode,False)
             
-            mIKSegMidControl.doStore('cgmTypeModifier','ik')
-            mIKSegMidControl.doStore('cgmType','handle')
-            mIKSegMidControl.doName()            
+            mControlSegMidIK.doStore('cgmTypeModifier','ik')
+            mControlSegMidIK.doStore('cgmType','handle')
+            mControlSegMidIK.doName()            
 
-            mHandleFactory.color(mIKSegMidControl.mNode, controlType = 'sub')
+            mHandleFactory.color(mControlSegMidIK.mNode, controlType = 'sub')
             
         
         #Cog =============================================================================
@@ -1963,12 +1963,12 @@ def rig_controls(self):
         
         
     mControlSegMidIK = False
-    #ikSegMidControl =============================================================================
-    if mRigNull.getMessage('ikSegMidControl'):
-        mIKSegMidControl = mRigNull.ikSegMidControl
-        log.debug("|{0}| >> found ikSegMidControl: {1}".format(_str_func,mIKSegMidControl))
+    #controlSegMidIK =============================================================================
+    if mRigNull.getMessage('controlSegMidIK'):
+        mControlSegMidIK = mRigNull.controlSegMidIK
+        log.debug("|{0}| >> found controlSegMidIK: {1}".format(_str_func,mControlSegMidIK))
         
-        _d = MODULECONTROL.register(mIKSegMidControl,
+        _d = MODULECONTROL.register(mControlSegMidIK,
                                     addDynParentGroup = True, 
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
@@ -1976,12 +1976,12 @@ def rig_controls(self):
                                     **d_controlSpaces)
         
         
-        mIKSegMidControl = _d['mObj']
-        mIKSegMidControl.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mIKSegMidControl)
+        mControlSegMidIK = _d['mObj']
+        mControlSegMidIK.masterGroup.parent = mRootParent
+        ml_controlsAll.append(mControlSegMidIK)
     
         #Register our snapToTarget -------------------------------------------------------------
-        self.atUtils('get_switchTarget', mIKSegMidControl,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
+        self.atUtils('get_switchTarget', mControlSegMidIK,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
 
 
     if not b_cog:#>> settings ========================================================================================
@@ -2646,13 +2646,16 @@ def rig_frame(self):
                     raise ValueError,"No ribbon IKDriversFound"
                 
                 mSegMidIK = False
-                if mRigNull.getMessage('ikSegMidControl'):
+                if mRigNull.getMessage('controlSegMidIK'):
                     log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
+                    
+                    
+                    """
                     
                     _jointOrientation = self.d_orientation['str']
                     _offset = self.v_offset                    
                     
-                    mSegMidIK = mRigNull.ikSegMidControl
+                    mSegMidIK = mRigNull.controlSegMidIK
                     mSegMidIK.masterGroup.parent = mIKGroup
                     
                     ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
@@ -2677,7 +2680,7 @@ def rig_frame(self):
                     mDriver.rename("{0}_upTarget".format(mFollicle.p_nameBase))                    
                     pos = DIST.get_pos_by_axis_dist(mSegMidIK.mNode, _jointOrientation[1]+'+', _offset )
                     mUpDriver.p_position = pos
-                    mUpDriver.p_parent = mUpGroup                    
+                    mUpDriver.p_parent = mUpGroup
                     
                     mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
                                                                           mMidSurface.mNode,
@@ -2690,7 +2693,7 @@ def rig_frame(self):
                     
                     mSkinCluster.doStore('cgmName', mMidSurface.mNode)
                     mSkinCluster.doName()                        
-                    
+                    """
                 
                 log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
                 

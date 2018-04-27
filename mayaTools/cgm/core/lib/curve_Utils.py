@@ -107,6 +107,19 @@ def get_python_call(crvShape,printInfo=False):
     #print (guiFactory.doPrintReportEnd())
     return commandsReturn
 
+def create_infoNode(crvShape):
+    _str_func = 'create_infoNode'
+    if type(crvShape) in [list,tuple]:crvShape = crvShape[0]
+    if cgmValid.get_mayaType(crvShape) != 'nurbsCurve':
+        log.warning("|{0}| >> not a nurbsCurve. Skipping {1}({2})...".format(_str_func,crvShape,cgmValid.get_mayaType(crvShape)))
+        return False        
+    _transform = SEARCH.get_transform(crvShape)
+    _infoNode = mc.createNode('curveInfo')
+    mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve'))
+    
+    return _infoNode
+    
+
 def get_shape_info(crvShape):
     """
     Get data for a given nurbs curve shape
@@ -142,6 +155,7 @@ def get_shape_info(crvShape):
         _knotInfo = []
         _infoNode = mc.createNode('curveInfo')
         mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve')) 
+        
         _rawKnots = mc.getAttr(_infoNode + '.knots')[0]
         #log.info( mc.getAttr(_infoNode + '.knots[*]'))
         

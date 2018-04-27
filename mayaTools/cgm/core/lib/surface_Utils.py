@@ -52,7 +52,7 @@ from cgm.lib import (distance,
 
 #>>> Utilities
 #===================================================================   
-def get_dat(surface = None, uKnots = True, vKnots = False):
+def get_dat(surface = None, uKnots = True, vKnots = True):
     """
     Function to split a curve up u positionally 
     

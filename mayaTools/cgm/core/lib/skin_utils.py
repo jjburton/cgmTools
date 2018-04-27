@@ -73,3 +73,8 @@ def transfer_fromTo(source = None, targets = None):
         except Exception,err:
             log.error("|{0}| >> Target failure: {1} |  {2}".format(_str_func,obj,err))
 
+def get_influences_fromCluster(skinCluster):
+    return mc.skinCluster (skinCluster, q=True,weightedInfluence=True) or []
+
+def get_influences_fromMatrix(skinCluster):
+    return mc.listConnections(skinCluster+'.matrix') or []
