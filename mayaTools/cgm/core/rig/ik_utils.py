@@ -778,7 +778,7 @@ def buildFKIK(fkJoints = None,
     return True
 
 
-def ribbon_createSurface(jointList=[], createAxis = 'x'):
+def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDMENT:
@@ -814,7 +814,7 @@ def ribbon_createSurface(jointList=[], createAxis = 'x'):
             log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
             l_crvs.append(crv)
             
-        _res_body = mc.loft(l_crvs, reverseSurfaceNormals = True, ch = False, uniform = True, degree = 3)
+        _res_body = mc.loft(l_crvs, reverseSurfaceNormals = True, ch = False, uniform = True, degree = 3, sectionSpans=sectionSpans)
 
         #_res_body = mc.loft(l_crvs, o = True, d = 1, po = 1 )
         #_inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
@@ -830,6 +830,7 @@ def ribbon_createSurface(jointList=[], createAxis = 'x'):
         return _res_body
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+    
 def ribbon(jointList = None,
            useSurface = None,
            orientation = 'zyx',
@@ -839,11 +840,13 @@ def ribbon(jointList = None,
            connectBy = 'constraint',
            stretchBy = 'translate',
            squashStretch = None, 
+           sectionSpans = 2, 
            driverSetup = None,#...aim.stable
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            settingsControl = None,
            extraSquashControl = False,#...setup extra attributes
            specialMode = None,
+           masterScalePlug = None,
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
@@ -872,6 +875,9 @@ def ribbon(jointList = None,
             both
         
         stretchBy(string - trans/scale/None) | How the joint will scale
+        
+        sectionSpans(int) - default 2 - number of spans in the loft per section
+        
         driverSetup(string) | Extra setup on driver
             None
             stable - two folicle stable setup
@@ -881,6 +887,12 @@ def ribbon(jointList = None,
         specialMode
             None
             noStartEnd
+            
+        masterScalePlug - ONLY matters for squash and stetch setup
+            None - setup a plug on the surface for it
+            'create' - make a measure curve. It'll be connected to the main surface on a message attr called segScaleCurve
+            attribute arg - use this plug
+            
             
         advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
@@ -985,8 +997,10 @@ def ribbon(jointList = None,
         mTransGroup = cgmMeta.cgmObject(name = 'newgroup')
         mTransGroup.addAttr('cgmName', str(str_baseName), lock=True)
         mTransGroup.addAttr('cgmTypeModifier','segmentTransStuff', lock=True)
-        mTransGroup.doName()            
-    
+        mTransGroup.doName()
+        
+        
+        
     outChannel = str_orientation[2]#outChannel
     upChannel = str_orientation[1]
     #upChannel = '{0}up'.format(str_orientation[1])#upChannel
@@ -1000,7 +1014,7 @@ def ribbon(jointList = None,
         raise NotImplementedError,'Not done with passed surface'
     else:
         log.debug("|{0}| >> Creating surface...".format(_str_func))
-        l_surfaceReturn = ribbon_createSurface(jointList,loftAxis)
+        l_surfaceReturn = ribbon_createSurface(jointList,loftAxis,sectionSpans)
     
         mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
         mControlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1011,7 +1025,7 @@ def ribbon(jointList = None,
         
         if loftAxis2:
             log.debug("|{0}| >> Creating surface...".format(_str_func))
-            l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2)
+            l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2,sectionSpans)
         
             mControlSurface2 = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
             mControlSurface2.addAttr('cgmName',str(baseName),attrType='string',lock=True)
@@ -1022,6 +1036,54 @@ def ribbon(jointList = None,
             ml_surfaces.append(mControlSurface2)
     
     log.debug("mControlSurface: {0}".format(mControlSurface))
+    
+    
+    if b_squashStretch and masterScalePlug is not None:
+        log.debug("|{0}| >> Checking masterScalePlug...".format(_str_func))        
+        if masterScalePlug == 'create':
+            log.debug("|{0}| >> Creating measure curve setup...".format(_str_func))
+            
+            plug = 'segMasterScale'
+            plug_curve = 'segMasterMeasureCurve'
+            crv = CORERIG.create_at(None,'curveLinear',l_pos= [ml_joints[0].p_position, ml_joints[1].p_position])
+            mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
+            mCrv.rename('{0}_measureCrv'.format( baseName))
+    
+            mControlSurface.connectChildNode(mCrv,plug_curve,'rigNull')
+    
+            log.debug("|{0}| >> created: {1}".format(_str_func,mCrv)) 
+    
+            infoNode = CURVES.create_infoNode(mCrv.mNode)
+    
+            mInfoNode = cgmMeta.validateObjArg(infoNode,'cgmNode',setClass=True)
+            mInfoNode.addAttr('baseDist', mInfoNode.arcLength,attrType='float')
+            mInfoNode.rename('{0}_{1}_measureCIN'.format( baseName,plug))
+    
+            log.debug("|{0}| >> baseDist: {1}".format(_str_func,mInfoNode.baseDist)) 
+    
+            mPlug_masterScale = cgmMeta.cgmAttr(mControlSurface.mNode,plug,'float')
+    
+            l_argBuild=[]
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+                                                       '{0}.arcLength'.format(mInfoNode.mNode),
+                                                       "{0}.baseDist".format(mInfoNode.mNode)))
+            for arg in l_argBuild:
+                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                NodeF.argsToNodes(arg).doBuild()                
+    
+    
+        else:
+            if issubclass(type(masterScalePlug),cgmMeta.cgmAttr):
+                mPlug_masterScale = masterScalePlug
+            else:
+                d_attr = cgmMeta.validateAttrArg(masterScalePlug)
+                if not d_attr:
+                    raise ValueError,"Ineligible masterScalePlug: {0}".format(masterScalePlug)
+                mPlug_masterScale  = d_attr['mPlug']
+            
+        
+        if not mPlug_masterScale:
+            raise ValueError,"Should have a masterScale plug by now"
     
     if settingsControl:
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
@@ -1056,16 +1118,10 @@ def ribbon(jointList = None,
     
     for i,mJnt in enumerate(ml_joints):
         log.debug("|{0}| >> On: {1}".format(_str_func,mJnt))        
+        
+        mDriven = mJnt
         if specialMode == 'noStartEnd' and mJnt in [ml_joints[0],ml_joints[-1]]:
-            log.debug("|{0}| >> noStartEnd skip: {1}".format(_str_func,mJnt))
-            mDriven = mJnt
-            ml_aimDrivers.append(mJnt)
-            ml_upGroups.append(False)
-            ml_upTargets.append(False)                        
-            ml_follicleShapes.append(False)
-            ml_follicles.append(False)
-            
-            continue
+            pass
         else:
             if msgDriver:
                 log.debug("|{0}| >> Checking msgDriver: {1}".format(_str_func,msgDriver))                
@@ -1074,8 +1130,6 @@ def ribbon(jointList = None,
                     raise ValueError,"Missing msgDriver: {0} | {1}".format(msgDriver,mJnt)
                 mDriven = mDriven[0]
                 log.debug("|{0}| >> Found msgDriver: {1} | {2}".format(_str_func,msgDriver,mDriven))
-            else:
-                mDriven = mJnt
                 
         log.debug("|{0}| >> Attaching mDriven: {1}".format(_str_func,mDriven))
         
@@ -1092,8 +1146,17 @@ def ribbon(jointList = None,
             mFollicle.overrideEnabled = 1
             cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
             cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))    
-        
+            
         mDriver = mFollicle
+        
+        if specialMode == 'noStartEnd' and mJnt in [ml_joints[0],ml_joints[-1]]:
+            log.debug("|{0}| >> noStartEnd skip: {1}".format(_str_func,mJnt))
+            ml_aimDrivers.append(mDriver)
+            ml_upGroups.append(False)
+            ml_upTargets.append(False)                        
+            continue
+        
+        
         if driverSetup:
             mDriver = mJnt.doCreateAt(setClass=True)
             mDriver.rename("{0}_aimDriver".format(mFollicle.p_nameBase))
@@ -1165,7 +1228,7 @@ def ribbon(jointList = None,
                                          worldUpType = 'object', worldUpVector = v_up)                     
                     else:
                         #was aimint at follicles... ml_follicles
-                        mc.aimConstraint(ml_joints[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
+                        mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
                                          aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
                                          worldUpType = 'object', worldUpVector = v_up)
                 else: #stableBlend....
@@ -1188,10 +1251,10 @@ def ribbon(jointList = None,
                         mAimBack.doStore('cgmType','aimer')
                         mAimBack.doName()
                         
-                        mc.aimConstraint(ml_joints[i+1].mNode, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                        mc.aimConstraint(ml_follicles[i+1].mNode, mAimForward.mNode, maintainOffset = True, #skip = 'z',
                                          aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
                                          worldUpType = 'object', worldUpVector = v_up)
-                        mc.aimConstraint(ml_joints[i-1].mNode, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                        mc.aimConstraint(ml_follicles[i-1].mNode, mAimBack.mNode, maintainOffset = True, #skip = 'z',
                                          aimVector = v_aimNeg, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
                                          worldUpType = 'object', worldUpVector = v_up)                        
 
@@ -1315,6 +1378,7 @@ def ribbon(jointList = None,
             return mObject,mShape
             
         for i,mJnt in enumerate(ml_joints[:-1]):#Base measure ===================================================
+            """
             log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
             
             mDistanceDag,mDistanceShape = createDist(mJnt, 'base')
@@ -1329,9 +1393,7 @@ def ribbon(jointList = None,
             
             md_distDat['aim']['base']['mTrans'].append(mDistanceDag)
             md_distDat['aim']['base']['mDist'].append(mDistanceShape)
-
-            #ml_distanceObjectsBase.append(mDistanceDag)
-            #ml_distanceShapesBase.append(mDistanceShape)
+            """
 
             #Active measures ---------------------------------------------------------------------
             log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
@@ -1351,6 +1413,7 @@ def ribbon(jointList = None,
         if ml_outFollicles or ml_upFollicles:
             for i,mJnt in enumerate(ml_joints):
                 if ml_outFollicles:
+                    """
                     #Out Base ---------------------------------------------------------------------------------
                     log.debug("|{0}| >> Out base measure for: {1}".format(_str_func,mJnt))
                     
@@ -1366,6 +1429,8 @@ def ribbon(jointList = None,
                     
                     md_distDat['out']['base']['mTrans'].append(mDistanceDag)
                     md_distDat['out']['base']['mDist'].append(mDistanceShape)
+                    """
+                    
                     #ml_distanceObjectsBase.append(mDistanceDag)
                     #ml_distanceShapesBase.append(mDistanceShape)
                     
@@ -1384,6 +1449,7 @@ def ribbon(jointList = None,
                     md_distDat['out']['active']['mDist'].append(mDistanceShape)
                 
                 if ml_upFollicles:
+                    """
                     #Up Base ---------------------------------------------------------------------------------
                     log.debug("|{0}| >> Up base measure for: {1}".format(_str_func,mJnt))
                     
@@ -1401,6 +1467,7 @@ def ribbon(jointList = None,
                     md_distDat['up']['base']['mDist'].append(mDistanceShape)
                     #ml_distanceObjectsBase.append(mDistanceDag)
                     #ml_distanceShapesBase.append(mDistanceShape)
+                    """
                     
                     #Up Active---------------------------------------------------------------------------------
                     log.debug("|{0}| >> Up active measure for: {1}".format(_str_func,mJnt))
@@ -1419,21 +1486,42 @@ def ribbon(jointList = None,
 
         #>>>Hook up stretch/scale #========================================================================= 
         for i,mJnt in enumerate(ml_joints[:-1]):#Nodes =======================================================
+            
+            mActive_aim =  md_distDat['aim']['active']['mDist'][i]
+            
+            
             mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                           "{0}_aimScaleResult_{1}".format(str_baseName,i),
+                                              "{0}_aimScaleResult_{1}".format(str_baseName,i),
+                                              attrType = 'float',
+                                              initialValue=0,
+                                              lock=True,
+                                              minValue = 0)
+            
+            mPlug_aimBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                           "{0}_aimBase_{1}".format(str_baseName,i),
                                            attrType = 'float',
-                                           initialValue=0,
                                            lock=True,
-                                           minValue = 0)
+                                           value=ATTR.get('{0}.distance'.format(mActive_aim.mNode)))
 
+            mPlug_aimBaseNorm = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                              "{0}_aimBaseNorm_{1}".format(str_baseName,i),
+                                              attrType = 'float',
+                                              initialValue=0,
+                                              lock=True,
+                                              minValue = 0)
+            
+            l_argBuild = []
+            l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedShortName,
+                                                       mPlug_aimBase.p_combinedShortName,
+                                                       mPlug_masterScale.p_combinedShortName,))
+            
             
             #baseSquashScale = distBase / distActual
             #out scale = baseSquashScale * (outBase / outActual)
-            mBase_aim =  md_distDat['aim']['base']['mDist'][i]
-            mActive_aim =  md_distDat['aim']['active']['mDist'][i]
+            #mBase_aim =  md_distDat['aim']['base']['mDist'][i]
+            
 
             
-            l_argBuild = []
             
             if extraSquashControl:
                 #mPlug_segScale
@@ -1464,7 +1552,7 @@ def ribbon(jointList = None,
                 
                 #>> x + (y - x) * blend --------------------------------------------------------
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedShortName,
-                                                           '{0}.distance'.format(mBase_aim.mNode),
+                                                           mPlug_aimBaseNorm.p_combinedShortName,
                                                            "{0}.distance".format(mActive_aim.mNode)))
                 l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedShortName,
                                                            mPlug_jointMult.p_combinedShortName))
@@ -1482,7 +1570,7 @@ def ribbon(jointList = None,
                 
             else:
                 l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
-                                                           '{0}.distance'.format(mBase_aim.mNode),
+                                                           mPlug_aimBaseNorm.p_combinedShortName,
                                                            "{0}.distance".format(mActive_aim.mNode)))
             
             
@@ -1504,40 +1592,52 @@ def ribbon(jointList = None,
                 else:
                     mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                       "{0}_aimScaleResult_{1}".format(str_baseName,i))
-                    mBase_aim =  md_distDat['aim']['base']['mDist'][i]
-                    mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
+                    #mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
                     
                 
                 if ml_outFollicles:
-                    mPlug_outBase = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                    "{0}_outBaseScaleResult_{1}".format(str_baseName,i),
-                                                    attrType = 'float',
-                                                    initialValue=0,
-                                                    lock=True,
-                                                    minValue = 0)
+                    #mBase_out =  md_distDat['out']['base']['mDist'][i]
+                    mActive_out =  md_distDat['out']['active']['mDist'][i]
+                    
                     mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                       "{0}_outScaleResult_{1}".format(str_baseName,i),
                                                       attrType = 'float',
-                                                      initialValue=0,
                                                       lock=True,
                                                       minValue = 0)
+                    
+                    mPlug_outBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                    "{0}_outBaseScaleResult_{1}".format(str_baseName,i),
+                                                    attrType = 'float',
+                                                    value=ATTR.get('{0}.distance'.format(mActive_out.mNode)))
+         
+                    mPlug_outBaseNorm = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_outBaseNorm_{1}".format(str_baseName,i),
+                                                      attrType = 'float',
+                                                      lock=True,
+                                                      minValue = 0)
+                    
+                    mPlug_outBaseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                        "{0}_outBaseRes_{1}".format(str_baseName,i),
+                                                        attrType = 'float',
+                                                        lock=True)                    
+                     
+                    l_argBuild = []
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_outBaseNorm.p_combinedShortName,
+                                                               mPlug_outBase.p_combinedShortName,
+                                                               mPlug_masterScale.p_combinedShortName,))
                     
                     #baseSquashScale = distBase / distActual
                     #out scale = baseSquashScale * (outBase / outActual)
 
+ 
                     
-                    mBase_out =  md_distDat['out']['base']['mDist'][i]
-                    mActive_out =  md_distDat['out']['active']['mDist'][i]                
-                    
-                    l_argBuild = []
-                    
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBase.p_combinedShortName,
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBaseRes.p_combinedShortName,
                                                                '{0}.distance'.format(mActive_out.mNode),
-                                                               "{0}.distance".format(mBase_out.mNode)))
+                                                               mPlug_outBaseNorm.p_combinedShortName,))
                     
                     l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
                                                                mPlug_aimResult.p_combinedShortName,
-                                                               mPlug_outBase.p_combinedShortName))
+                                                               mPlug_outBaseRes.p_combinedShortName))
                     
                     
                     for arg in l_argBuild:
@@ -1550,35 +1650,50 @@ def ribbon(jointList = None,
                         mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
                         
                 if ml_upFollicles:
-                    mPlug_upBase = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                    "{0}_upBaseScaleResult_{1}".format(str_baseName,i),
-                                                    attrType = 'float',
-                                                    initialValue=0,
-                                                    lock=True,
-                                                    minValue = 0)
+                    #mBase_up =  md_distDat['up']['base']['mDist'][i]
+                    mActive_up =  md_distDat['up']['active']['mDist'][i]
+                    
                     mPlug_upResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                       "{0}_upScaleResult_{1}".format(str_baseName,i),
                                                       attrType = 'float',
-                                                      initialValue=0,
                                                       lock=True,
                                                       minValue = 0)
+                    
+                    mPlug_upBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                   "{0}_upBaseScaleResult_{1}".format(str_baseName,i),
+                                                   attrType = 'float',
+                                                   value=ATTR.get('{0}.distance'.format(mActive_up.mNode)))
+                    
+                    mPlug_upBaseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_upBaseRes_{1}".format(str_baseName,i),
+                                                      attrType = 'float',
+                                                      lock=True,
+                                                      minValue = 0)
+        
+                    mPlug_upBaseNorm = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_upBaseNorm_{1}".format(str_baseName,i),
+                                                      attrType = 'float',
+                                                      lock=True,
+                                                      minValue = 0)
+                    
+                    l_argBuild = []
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_upBaseNorm.p_combinedShortName,
+                                                               mPlug_upBase.p_combinedShortName,
+                                                               mPlug_masterScale.p_combinedShortName,))                    
                     
                     #baseSquashScale = distBase / distActual
                     #up scale = baseSquashScale * (upBase / upActual)
 
                     
-                    mBase_up =  md_distDat['up']['base']['mDist'][i]
-                    mActive_up =  md_distDat['up']['active']['mDist'][i]                
+
                     
-                    l_argBuild = []
-                    
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBase.p_combinedShortName,
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBaseRes.p_combinedShortName,
                                                                '{0}.distance'.format(mActive_up.mNode),
-                                                               "{0}.distance".format(mBase_up.mNode)))
+                                                               mPlug_upBaseNorm.p_combinedShortName,))
                     
                     l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedShortName,
                                                                mPlug_aimResult.p_combinedShortName,
-                                                               mPlug_upBase.p_combinedShortName))
+                                                               mPlug_upBaseRes.p_combinedShortName))
                     
                     
                     for arg in l_argBuild:

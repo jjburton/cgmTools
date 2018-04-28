@@ -730,13 +730,18 @@ def build_visSub(self):
     return mPlug_result_moduleSubDriver
 
 
-def get_blockScale(self):
+def get_blockScale(self,plug='blockScale'):
+    """
+    Creates a curve for measuring a segment length. This should be parented under whatever root you setup for that segment
+    """
     _str_func = 'get_blockScale'
     log.info("|{0}| >> ".format(_str_func)+ '-'*80)
     mRigNull = self.mRigNull
-    if mRigNull.getMessage('blockScaleCurve'):
-        return mRigNull.blockScale
+    plug_curve = "{0}Curve".format(plug)
     
+    if mRigNull.getMessage(plug_curve):
+        return [cgmMeta.cgmAttr(mRigNull.mNode,plug), mRigNull.getMessage(plug_curve,asMeta=1)[0]]
+        
     ml_joints = self.d_joints['ml_moduleJoints']
     
     crv = CORERIG.create_at(None,'curveLinear',l_pos= [ml_joints[0].p_position, ml_joints[1].p_position])
@@ -744,21 +749,21 @@ def get_blockScale(self):
     mCrv.rename('{0}_measureCrv'.format( self.d_module['partName']))
     
     
-    mRigNull.connectChildNode(mCrv,'blockScaleCurve','rigNull')
+    mRigNull.connectChildNode(mCrv,plug_curve,'rigNull')
     
-    mCrv.p_parent = self.mConstrainNull
+    #mCrv.p_parent = self.mConstrainNull
     log.debug("|{0}| >> created: {1}".format(_str_func,mCrv)) 
         
     
     infoNode = CURVES.create_infoNode(mCrv.mNode)
     
     mInfoNode = cgmMeta.validateObjArg(infoNode,'cgmNode',setClass=True)
-    mInfoNode.addAttr('baseDist', mInfoNode.arcLength)
-    mInfoNode.rename('{0}_measureCIN'.format( self.d_module['partName']))
+    mInfoNode.addAttr('baseDist', mInfoNode.arcLength,attrType='float')
+    mInfoNode.rename('{0}_{1}_measureCIN'.format( self.d_module['partName'],plug))
     
     log.debug("|{0}| >> baseDist: {1}".format(_str_func,mInfoNode.baseDist)) 
     
-    mPlug_blockScale = cgmMeta.cgmAttr(mRigNull.mNode,'blockScale','float')
+    mPlug_blockScale = cgmMeta.cgmAttr(mRigNull.mNode,plug,'float')
 
     l_argBuild=[]
     l_argBuild.append("{0} = {1} / {2}".format(mPlug_blockScale.p_combinedShortName,
@@ -771,7 +776,7 @@ def get_blockScale(self):
         NodeF.argsToNodes(arg).doBuild()
         
         
-    return mRigNull.blockScale
+    return [cgmMeta.cgmAttr(mRigNull.mNode,plug), mCrv, mInfoNode]
 
 def get_switchTarget(self,mControl,parentTo=False):
     _str_func = 'switchMode'
@@ -790,22 +795,6 @@ def get_switchTarget(self,mControl,parentTo=False):
     mSwitchTarget.p_parent = parentTo
     mSwitchTarget.setAttrFlags()
     
-def get_switchTarget(self,mControl,parentTo=False):
-    _str_func = 'switchMode'
-    log.info("|{0}| >> ".format(_str_func)+ '-'*80)
-    log.info("Control: {0} | parentTo: {1}".format(mControl,parentTo))
-    
-    if mControl.getMessage('switchTarget'):
-        mSwitchTarget = mControl.getMessage('switchTarget',asMeta=True)[0]
-        mSwitchTarget.setAttrFlags(lock=False)
-    else:
-        mSwitchTarget = mControl.doCreateAt(setClass=True)
-        mControl.doStore('switchTarget',mSwitchTarget.mNode)
-        mSwitchTarget.rename("{0}_switchTarget".format(mControl.p_nameBase))
-        
-    log.debug("|{0}| >> Controlsnap target : {1} | from: {2}".format(_str_func, mSwitchTarget, mControl))
-    mSwitchTarget.p_parent = parentTo
-    mSwitchTarget.setAttrFlags()
 
 
 def register_mirrorIndices(self, ml_controls = []):
