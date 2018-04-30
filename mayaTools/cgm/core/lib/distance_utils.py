@@ -523,6 +523,37 @@ def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
         _radius = _split/4    
     return _l_pos
 
+def get_closestTarget(source = None, objects = None):
+    """
+    Get the closest object to a give source
+    
+    :parameters:
+        source(str/vector) -- source point or object
+        targetSurface -- surface to check transform, nurbsSurface, curve, mesh supported
+        loc -- whether to loc point found
+
+    :returns
+        position, distance, shape (list)
+    """         
+    _str_func = 'get_closestTarget'
+    _point = False
+    
+    if VALID.vectorArg(source) is not False:
+        _point = source   
+    elif mc.objExists(source):
+        _point = POS.get(source)
+
+    if not _point:raise ValueError,"Must have point of reference"
+    
+    l_dists = []
+    for obj in objects:
+        pos = POS.get(obj)
+        l_dists.append (get_distance_between_points(_point, pos))
+    return objects[(l_dists.index ((min(l_dists))))]    
+
+    
+
+
 def get_closest_point(source = None, targetSurface = None, loc = False):
     """
     Get the closest point on a target surface/curve/mesh to a given point or object.
@@ -545,7 +576,7 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
 
     if not _point:raise ValueError,"Must have point of reference"
     _loc = mc.spaceLocator(n='get_closest_point_loc')[0]
-    POS.set(_loc,_point)    
+    POS.set(_loc,_point)
     
     if SEARCH.is_shape(targetSurface):
         _shapes = [targetSurface]

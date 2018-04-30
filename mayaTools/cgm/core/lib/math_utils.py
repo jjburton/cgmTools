@@ -8,7 +8,8 @@ Website : http://www.cgmonks.com
 
 """
 # From Python =============================================================
-
+import pprint
+import copy
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -510,6 +511,38 @@ def normalizeList(L, normalizeTo=1):
     '''normalize values of a list to make its max = normalizeTo'''
     vMax = max(L)
     return [ x/(vMax*1.0)*normalizeTo for x in L]
+
+def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
+    '''
+    Get a factored list 
+    
+    6 returns: # Result: [0.0, 0.5, 1.0, 1.0, 0.5, 0.0] # 
+    '''
+    _str_func = 'get_factorList'
+    _res = []
+    
+    if mode == 'midPeak':
+        idx_mid = get_midIndex(count)
+        
+        blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
+        
+        for i in range(idx_mid):
+            _res.append( i * blendFactor)
+        _rev = copy.copy(_res)
+        _rev.reverse()
+        _res.extend(_rev)
+    elif mode == 'max':
+        return [maxValue for i in range(count)]
+    elif mode == 'min':
+        return [minValue for i in range(count)]
+        
+        
+    else:
+        raise ValueError,("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
+
+    #pprint.pprint(vars())
+    return _res
+
 
 def normalizeListToSum(L, normalizeTo=1.0):
     """normalize values of a list to make sum = normalizeTo

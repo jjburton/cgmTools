@@ -847,6 +847,9 @@ def ribbon(jointList = None,
            extraSquashControl = False,#...setup extra attributes
            specialMode = None,
            masterScalePlug = None,
+           rampScaleMode = 'midPeak',
+           rampScaleMin = 0.0,
+           rampScaleMax = 1.0,
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
@@ -860,7 +863,7 @@ def ribbon(jointList = None,
     http://faithofthefallen.wordpress.com/2008/10/08/awesome-spine-setup/
     on twist methods.
 
-    Latest rewrite - July 2017
+    Latest update - April 30, 2018
 
     :parameters:
         jointList(joints - None) | List or metalist of joints
@@ -883,6 +886,16 @@ def ribbon(jointList = None,
             stable - two folicle stable setup
             stableBlend - two follicle with blend aim
             aim - aim along the chain
+        
+        rampScaleMode 
+            max - just just use rampScaleMax
+            min - just use reampScaleMin
+            midPeak - ramp from zero to full | ex: [0.0, 0.5, 1.0, 1.0, 0.5, 0.0]
+            
+        rampScaleMax
+            1.0 - default
+        rampScaleMin
+            0.0- default
             
         specialMode
             None
@@ -957,7 +970,6 @@ def ribbon(jointList = None,
         mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
         
         
-        
     if mModule:
         mGroup.parent = mModule.rigNull
 
@@ -987,6 +999,10 @@ def ribbon(jointList = None,
         else:
             raise ValueError,"Not sure what to do with loftAxis: {0}".format(loftAxis)
     
+    #Ramp values -------------------------------------------------------------------------
+    if extraSquashControl:
+        l_scaleFactors = MATH.get_blendList(int_lenJoints,rampScaleMax,rampScaleMin,rampScaleMode)
+        
     #Squash stretch -------------------------------------------------------------------------
     b_squashStretch = False
     if squashStretch is not None:
@@ -1084,6 +1100,8 @@ def ribbon(jointList = None,
         
         if not mPlug_masterScale:
             raise ValueError,"Should have a masterScale plug by now"
+    
+    
     
     if settingsControl:
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
@@ -1377,7 +1395,7 @@ def ribbon(jointList = None,
             
             return mObject,mShape
             
-        for i,mJnt in enumerate(ml_joints[:-1]):#Base measure ===================================================
+        for i,mJnt in enumerate(ml_joints):#Base measure ===================================================
             """
             log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
             
@@ -1394,21 +1412,25 @@ def ribbon(jointList = None,
             md_distDat['aim']['base']['mTrans'].append(mDistanceDag)
             md_distDat['aim']['base']['mDist'].append(mDistanceShape)
             """
-
-            #Active measures ---------------------------------------------------------------------
-            log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
-            #>> Distance nodes
-            mDistanceDag,mDistanceShape = createDist(mJnt, 'active')
-
-            #Connect things
-            #.on loc = position
-            ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-            ATTR.connect(ml_follicles[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-            
-            #ml_distanceObjectsActive.append(mDistanceDag)
-            #ml_distanceShapesActive.append(mDistanceShape)
-            md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
-            md_distDat['aim']['active']['mDist'].append(mDistanceShape)
+            if mJnt == ml_joints[-1]:
+                #use the the last....
+                md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
+                md_distDat['aim']['active']['mDist'].append(mDistanceShape)                
+            else:
+                #Active measures ---------------------------------------------------------------------
+                log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
+                #>> Distance nodes
+                mDistanceDag,mDistanceShape = createDist(mJnt, 'active')
+    
+                #Connect things
+                #.on loc = position
+                ATTR.connect(ml_follicles[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
+                ATTR.connect(ml_follicles[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
+                
+                #ml_distanceObjectsActive.append(mDistanceDag)
+                #ml_distanceShapesActive.append(mDistanceShape)
+                md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
+                md_distDat['aim']['active']['mDist'].append(mDistanceShape)
 
         if ml_outFollicles or ml_upFollicles:
             for i,mJnt in enumerate(ml_joints):
@@ -1485,7 +1507,7 @@ def ribbon(jointList = None,
 
 
         #>>>Hook up stretch/scale #========================================================================= 
-        for i,mJnt in enumerate(ml_joints[:-1]):#Nodes =======================================================
+        for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
             
             mActive_aim =  md_distDat['aim']['active']['mDist'][i]
             
@@ -1532,8 +1554,8 @@ def ribbon(jointList = None,
                                                     "{0}_factor_{1}".format(str_baseName,i),
                                                     attrType = 'float',
                                                     hidden = False,
-                                                    initialValue=1,
-                                                    defaultValue=1.0,
+                                                    initialValue=l_scaleFactors[i],
+                                                    defaultValue=l_scaleFactors[i],
                                                     lock=False,
                                                     minValue = 0)
                 mPlug_jointRes = cgmMeta.cgmAttr(mControlSurface.mNode,

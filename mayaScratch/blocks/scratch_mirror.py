@@ -78,10 +78,7 @@ import cgm.core.mrs.lib.builder_utils as  BUILDUTILS
 import cgm.core.cgm_General as cgmGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.transform_utils as TRANS
-reload(TRANS)
-reload(BLOCKSHARE)
-reload(RBLOCKS)
-reload(BLOCKUTILS)
+
 cgm.core._reload()
 from Red9.core import Red9_Meta as r9Meta
 r9Meta.MetaClass(_block)
@@ -93,51 +90,16 @@ import cgm.core.mrs.RigBlocks as RBLOCKS
 RBLOCKS.get_modules_dat()#...also reloads
 
 b1 = cgmMeta.createMetaNode('cgmRigBlock',blockType = 'head')
-_block = 'head_block'
 b1 = cgmMeta.asMeta(_block)
 
-#>>>Skeleton ---------------------------------------------------------------------------------------
-b1.atBlockModule('build_skeleton')
-b1.atBlockUtils('skeleton_getCreateDict')
+b1 = cgmMeta.asMeta('L_thumb_limbBlock')#...end, no lever setup
 
-#>>>Rig process
-b1.verify()
-mRigFac = RBLOCKS.rigFactory(b1)
-mRigFac.log_self()#>>uses pprint
-mRigFac.mRigNull.fkHeadJoint
-pprint.pprint(b1.__dict__)
-mRigFac.mRigNull.headFK.dynParentGroup
-mRigFac.atBlockModule('rig_skeleton')
+mMirror = b1.atUtils('blockMirror_create')
 
-mRigFac.atBlockModule('build_proxyMesh', False)#must have rig joints
+b1.atUtils('blockMirror_create')
+b1.atUtils('blockMirror_go')
+b1.atUtils('controls_mirror')
 
-
-mRigFac.atBlockModule('rig_shapes')
-mRigFac.atBlockModule('rig_controls')
-mRigFac.atBlockModule('rig_neckSegment')
-mRigFac.atBlockModule('rig_frame')
-mRigFac.atBlockModule('rig_cleanUp')
-
-import cgm.core.lib.attribute_utils as ATTR
-ATTR.datList_connect(b1.mNode, 'baseNames', ['head'], mode='string')
-
-mRigFac.atBuilderUtils('shapes_fromCast',mode ='segmentHandle',uValues = [.2])
-
-
-
-import cgm.core.rig.ik_utils as IK
-_d = {'jointList' : [u'neck_base_ik_frame',
-                     u'neck_base_ik_1_frame',
-                     u'neck_base_ik_2_frame',
-                     u'head_base_ik_frame'],
-      'useCurve' : None,
-      'orientation' : 'zyx',
-      'secondaryAxis' : 'y+',
-      'baseName' : None,
-      'stretchBy' : 'translate',
-      'advancedTwistSetup' : True,
-      'extendTwistToEnd' : False,
-      'reorient' : False,
-      'moduleInstance' : None,
-      'parentGutsTo' : None}
-IK.spline(**_d)
+b1.atUtils('blockDat_get')
+b1.atUtils('blockDat_save')
+b1.atUtils('blockDat_load')

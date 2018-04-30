@@ -2116,7 +2116,7 @@ def rig_segments(self):
     
     _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
           'baseName':self.d_module['partName'],
-          'driverSetup':'stable',
+          'driverSetup':_driverSetup,
           'connectBy':'constraint',
           'extraSquashControl':_extraSquashControl,
           'masterScalePlug':mPlug_masterScale,
@@ -2157,12 +2157,13 @@ def rig_segments(self):
     
         mSkinCluster.doStore('cgmName', mSurf.mNode)
         mSkinCluster.doName()    
-        """
+        
         reload(CORESKIN)
         CORESKIN.surface_tightenEnds(mSurf.mNode,
                                      ml_handleJoints[0].mNode,
                                      ml_handleJoints[-1].mNode,
-                                     blendLength=1)    """
+                                     blendLength=4, hardLength=2,
+                                     mode = None)    
     
     cgmGEN.func_snapShot(vars())
     ml_segJoints[0].parent = mRoot
@@ -2411,7 +2412,7 @@ def rig_frame(self):
                             s_targetBack = s_rootTarget
                             #ml_handleParents[i].mNode
                         
-                        pprint.pprint([s_targetForward,s_targetBack])
+                        #pprint.pprint([s_targetForward,s_targetBack])
                         mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
                         
                         mHandle.parent = False
@@ -2655,7 +2656,9 @@ def rig_frame(self):
                 
                 
                 log.debug("|{0}| >> segmentScale measure...".format(_str_func))
-                
+                res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+                mPlug_masterScale = res_segScale[0]
+                mMasterCurve = res_segScale[1]                
                 
                 mSegMidIK = False
                 if mRigNull.getMessage('controlSegMidIK'):
@@ -2693,7 +2696,7 @@ def rig_frame(self):
                     mSkinCluster.doName()
                     
                     #Tighten the weights...
-                    CORESKIN.surface_tightenEnds(mMidSurface.mNode, blendLength=3)
+                    CORESKIN.surface_tightenEnds(mMidSurface.mNode, hardLength=2, mode='twoBlend')
                     
                     
                     """
@@ -2762,7 +2765,11 @@ def rig_frame(self):
                 res_ribbon = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
                                        baseName = self.d_module['partName'] + '_ikRibbon',
                                        driverSetup='stableBlend',
+                                       squashStretch='single',
                                        connectBy='constraint',
+                                       masterScalePlug=mPlug_masterScale,
+                                       settingsControl= mSettings.mNode,
+                                       extraSquashControl=True,
                                        moduleInstance = self.mModule)
                 
                 mSurf = res_ribbon['mlSurfaces'][0]
@@ -2796,7 +2803,6 @@ def rig_frame(self):
                     max_influences+=1
                 
                 
-                    
                 mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
                                                                       mSurf.mNode,
                                                                       tsb=True,
@@ -2811,7 +2817,7 @@ def rig_frame(self):
                 #Tighten the weights...
                 reload(CORESKIN)
                 CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
-                                             ml_ribbonIkHandles[-1].mNode, blendLength=1)
+                                             ml_ribbonIkHandles[-1].mNode, blendLength=5)
                 
             else:
                 raise ValueError,"Not implemented {0} ik setup".format(_ikSetup)
