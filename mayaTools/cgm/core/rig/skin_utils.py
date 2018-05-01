@@ -112,7 +112,6 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
         'twoBlend' - blend between a start and end joint typically. Created for ribbon work
     
     """
-    
     _str_func = 'surface_tightenEnds'
     
     mSurface = cgmMeta.asMeta(controlSurface)
@@ -157,7 +156,6 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
     blendFactor = 1.0 / (blendLength+hardLength)
     log.debug("|{0}| >> BlendFactor: {1}".format(_str_func,blendFactor))
         
-
 
     if start is None or end is None:
         log.debug("|{0}| >> No start or end. Figuring out one or another".format(_str_func))
@@ -255,3 +253,115 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
             for startInt in cvStarts:
                 mc.skinPercent(mSkin.mNode,("%s.cv[%s][%s]"%(mSurface.mNode,startInt,endInt)),
                                tv = [influence,1-(i*blendFactor)])"""
+
+
+def curve_tightenEnds(curve,start = None, end = None,blendLength=3, hardLength = 2, mode = 'twoBlend'):
+    """
+    
+    
+    mode
+        'twoBlend' - blend between a start and end joint typically. Created for ribbon work
+    
+    """
+    _str_func = 'curve_tightenEnds'
+    
+    mCurve = cgmMeta.asMeta(curve)
+    
+    l_cvs = mCurve.getComponents('cv')
+    ml_skinClusters = mCurve.getDeformers(deformerTypes = 'skinCluster',asMeta=True)
+    
+    if len(ml_skinClusters) > 1:
+        raise ValueError,"Only know how to deal with one skin cluster. Found: {0}".format(ml_skinClusters)
+    
+    mSkin = ml_skinClusters[0]
+    
+    #Get our influences --------------------------------------------------
+    
+    l_influenceObjects = CORESKIN.get_influences_fromCluster(mSkin.mNode)
+
+    
+    if not mSkin and l_influenceObjects:
+        raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
+    
+    l_cvsUse = [int(cv.split('[')[-1].split(']')[0]) for cv in l_cvs]
+    #cvEnds = [int(cv.split('[')[-2].split(']')[0]) for cv in l_cvs]
+    pprint.pprint(vars())
+    
+    l_cvsUse = LISTS.get_noDuplicates(l_cvsUse)
+    #cvEnds = LISTS.get_noDuplicates(cvEnds)
+
+
+
+    if mode == 'twoBlend':
+        log.debug("|{0}| >> twoBlend mode".format(_str_func))        
+        blendLength = len(l_cvsUse) - hardLength
+        
+    blendFactor = 1.0 / (blendLength+hardLength)
+    log.debug("|{0}| >> BlendFactor: {1}".format(_str_func,blendFactor))
+        
+        
+
+    if start is None or end is None:
+        log.debug("|{0}| >> No start or end. Figuring out one or another".format(_str_func))
+        
+        if start is None:
+            pos_start = POS.get(l_cvs[0])
+            start = DIST.get_closestTarget(pos_start,l_influenceObjects)
+            log.warning("|{0}| >> No start arg, guessed: {1}".format(_str_func,start))
+            
+        if end is None:
+            pos_end = POS.get(l_cvs[-1])
+            end = DIST.get_closestTarget(pos_end,l_influenceObjects)
+            log.warning("|{0}| >> No end arg, guessed: {1}".format(_str_func,end))
+        
+
+    #>>>Tie down start and ends
+    #build our args....
+    d_dat = {}
+    for influence in [start,end]:
+        if influence == start:
+            cvBlendEnds = l_cvsUse[:blendLength]
+                        
+        if influence == end:
+            cvBlendEnds = l_cvsUse[-(blendLength):]
+            cvBlendEnds.reverse()
+            
+        log.debug("|{0}| >> Influence: {1} | blendEnds: {2}".format(_str_func,influence,cvBlendEnds))
+        
+        for i,cv in enumerate(cvBlendEnds):
+            k = "{0}.cv[{1}]".format(mCurve.mNode, cv)
+            if not d_dat.get(k):
+                l = list()                    
+                d_dat[k] = l
+            else:
+                l = d_dat[k]
+                
+            d = d_dat[k]
+            
+            if i < hardLength:
+                l.append([influence,1.0])
+            else:
+                l.append([influence,MATH.Clamp(1 - ( (i)*blendFactor), 0,1.0,)])
+                    #l.append([influence,MATH.Clamp(1 - ( (i-hardLength)*blendFactor), 0,1.0,)])
+
+                    
+    #pprint.pprint(vars())
+    #pprint.pprint(d_dat)    
+    #return
+    
+    for k,dat in d_dat.iteritems():
+        #log.debug("|{0}| >> key: {1} | dat: {2}".format(_str_func,k,dat))
+        
+        l_vs = []
+        for i,dat2 in enumerate(dat):
+            l_vs.append(dat2[1])
+            
+        if sum(l_vs)>1.0:
+            #log.debug("|{0}| >> before: {1} ".format(_str_func,l_vs))            
+            l_vs = MATH.normalizeListToSum(l_vs)
+            #log.debug("|{0}| >> after: {1} ".format(_str_func,l_vs))
+            
+            for i,dat2 in enumerate(dat):
+                dat2[1] = l_vs[i]
+            
+        mc.skinPercent(mSkin.mNode,(k), tv = dat, normalize = 1)

@@ -192,8 +192,9 @@ l_attrsStandard = ['side',
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:torso',                 
-                 'squash' : 'none:single:both',
+                 'squash' : 'none:simple:single:both',
                  'squashExtraControl' : 'bool',
+                 'squashFactorMax':'float',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'controlSegMidIK':'bool',
@@ -213,6 +214,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'squashFactorMax':2.0,
                      'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
@@ -2115,17 +2117,17 @@ def rig_segments(self):
     mMasterCurve = res_segScale[1]
     
     _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
-          'baseName':self.d_module['partName'],
+          'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
           'driverSetup':_driverSetup,
           'connectBy':'constraint',
           'extraSquashControl':_extraSquashControl,
           'masterScalePlug':mPlug_masterScale,
+          'squashFactorMax':mBlock.squashFactorMax,
           'squashStretch':_squashStretch,
+          'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
           'moduleInstance':mModule}
-    
-    #return _d
-    
+        
     res_ribbon = IK.ribbon(**_d)
     
     ml_surfaces = res_ribbon['mlSurfaces']
@@ -2146,6 +2148,7 @@ def rig_segments(self):
                          aimVector = v_aim, upVector = [1,0,0], worldUpObject = mJnt.masterGroup.mNode,
                          worldUpType = 'objectrotation', worldUpVector = [1,0,0])    
     """
+    """
     for mSurf in ml_surfaces:
         mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_handleJoints],
                                                               mSurf.mNode,
@@ -2163,7 +2166,7 @@ def rig_segments(self):
                                      ml_handleJoints[0].mNode,
                                      ml_handleJoints[-1].mNode,
                                      blendLength=4, hardLength=2,
-                                     mode = None)    
+                                     mode = None)    """
     
     cgmGEN.func_snapShot(vars())
     ml_segJoints[0].parent = mRoot
@@ -2655,10 +2658,10 @@ def rig_frame(self):
                     raise ValueError,"No ribbon IKDriversFound"
                 
                 
-                log.debug("|{0}| >> segmentScale measure...".format(_str_func))
-                res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
-                mPlug_masterScale = res_segScale[0]
-                mMasterCurve = res_segScale[1]                
+                #log.debug("|{0}| >> segmentScale measure...".format(_str_func))
+                #res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+                #mPlug_masterScale = res_segScale[0]
+                #mMasterCurve = res_segScale[1]                
                 
                 mSegMidIK = False
                 if mRigNull.getMessage('controlSegMidIK'):
@@ -2677,10 +2680,12 @@ def rig_frame(self):
                              'msgDriver':'masterGroup',
                              'specialMode':'noStartEnd',
                              'connectBy':'constraint',
+                             'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
                     
                     reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)
+                    """
                     mMidSurface = l_midSurfReturn['mlSurfaces'][0]
                     #Skin it...
                     mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
@@ -2698,7 +2703,7 @@ def rig_frame(self):
                     #Tighten the weights...
                     CORESKIN.surface_tightenEnds(mMidSurface.mNode, hardLength=2, mode='twoBlend')
                     
-                    
+                    """
                     """
                     
                     _jointOrientation = self.d_orientation['str']
@@ -2762,14 +2767,27 @@ def rig_frame(self):
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
                 reload(IK)
+                
+                ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
+                max_influences = 2
+                if str_ikBase == 'hips':
+                    ml_skinDrivers.append(mHipHandle)
+                    max_influences+=1
+                    
+                if mSegMidIK:
+                    ml_skinDrivers.append(mSegMidIK)
+                    max_influences+=1
+                
+                
                 res_ribbon = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
                                        baseName = self.d_module['partName'] + '_ikRibbon',
                                        driverSetup='stableBlend',
-                                       squashStretch='single',
+                                       squashStretch=None,
                                        connectBy='constraint',
-                                       masterScalePlug=mPlug_masterScale,
+                                       #masterScalePlug=mPlug_masterScale,
                                        settingsControl= mSettings.mNode,
                                        extraSquashControl=True,
+                                       influences=ml_skinDrivers,
                                        moduleInstance = self.mModule)
                 
                 mSurf = res_ribbon['mlSurfaces'][0]
@@ -2790,17 +2808,11 @@ def rig_frame(self):
                                      aimVector = v_aim, upVector = [1,0,0], worldUpObject = mJnt.masterGroup.mNode,
                                      worldUpType = 'objectrotation', worldUpVector = [1,0,0])    
                 """
+                
+                """
                 #...ribbon skinCluster ---------------------------------------------------------------------
                 log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))
-                ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
-                max_influences = 2
-                if str_ikBase == 'hips':
-                    ml_skinDrivers.append(mHipHandle)
-                    max_influences+=1
-                    
-                if mSegMidIK:
-                    ml_skinDrivers.append(mSegMidIK)
-                    max_influences+=1
+
                 
                 
                 mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
@@ -2817,7 +2829,7 @@ def rig_frame(self):
                 #Tighten the weights...
                 reload(CORESKIN)
                 CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
-                                             ml_ribbonIkHandles[-1].mNode, blendLength=5)
+                                             ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
                 
             else:
                 raise ValueError,"Not implemented {0} ik setup".format(_ikSetup)

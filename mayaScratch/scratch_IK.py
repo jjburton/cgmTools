@@ -31,8 +31,8 @@ d_test = {'jointList':l_joints,
           'masterScalePlug':'settings_anim.scaleZ',          
           'settingsControl':'settings_anim',
           'extraSquashControl':True,
-          'rampScaleMode':'midPeak',
-          'rampScaleMax':2.0,
+          'squashFactorMode':'midPeak',
+          'squashFactorMax':2.0,
           'connectBy':'constraint',
           'moduleInstance' : mModule}
 
