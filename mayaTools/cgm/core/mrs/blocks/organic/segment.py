@@ -191,13 +191,19 @@ l_attrsStandard = ['side',
                    'moduleTarget']
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
-                 'loftSetup':'default:torso',                 
+                 'loftSetup':'default:torso',
+                 
+                 'squashMeasure' : 'none:arcLength:pointDist',                 
                  'squash' : 'none:simple:single:both',
                  'squashExtraControl' : 'bool',
                  'squashFactorMax':'float',
+                 'squashFactorMin':'float',
+                 
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
+                 
                  'controlSegMidIK':'bool',
+                 
                  'settingsPlace':'start:end:cog',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:cube:bank:foot:hand:tipBase:tipEnd:proxy',
@@ -214,7 +220,12 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     
+                     'squashMeasure':'arcLength',
+                     'squash':'simple',
                      'squashFactorMax':2.0,
+                     'squashFactorMin':0.0,
+                     
                      'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
@@ -1199,7 +1210,57 @@ def rig_prechecks(self):
         raise NotImplementedError,"Haven't setup ik end: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikEnd'))
     #if mBlock.ikSetup > 1:
         #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
+    
+    log.debug(cgmGEN._str_subLine)
         
+    #Squash stretch logic  =================================================================================
+    log.debug("|{0}| >> Squash stretch..".format(_str_func))
+    self.b_scaleSetup = mBlock.scaleSetup
+    self.d_squashStretch = {}
+    self.d_squashStretchIK = {}
+    
+    _squashStretch = None
+    if mBlock.squash:
+        _squashStretch =  mBlock.getEnumValueString('squash')    
+    self.d_squashStretch['squashStretch'] = _squashStretch
+    
+    _squashMeasure = None
+    if mBlock.squashMeasure:
+        _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
+    self.d_squashStretch['squashMeasure'] = _squashMeasure    
+
+    _driverSetup = None
+    if mBlock.ribbonAim:
+        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+    self.d_squashStretch['driverSetup'] = _driverSetup
+
+    
+    self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
+    self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
+    self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
+    
+    log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
+    pprint.pprint(self.d_squashStretch)
+    
+    #Check for mid control and even handle count to see if w need an extra curve
+    if mBlock.controlSegMidIK:
+        if MATH.is_even(mBlock.numControls):
+            self.d_squashStretchIK['sectionSpans'] = 2
+            
+    
+    if self.d_squashStretchIK:
+        log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
+        pprint.pprint(self.d_squashStretchIK)
+    
+    
+    
+    if not self.b_scaleSetup:
+        pass
+    
+    log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
+    
+    
+    log.debug(cgmGEN._str_subLine)
     
     #Frame Handles =============================================================================
     self.mToe = False
@@ -1367,8 +1428,7 @@ def rig_skeleton(self):
             mMidIK.p_parent = False
             mMidIK.doName()
         
-        
-            mMidIK.p_position = DIST.get_average_position([ml_rigJoints[0].p_position,
+            mMidIK.p_position = DIST.get_average_position([ml_rigJoints[1].p_position,
                                                           ml_rigJoints[-1].p_position])
         
             SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
@@ -2685,6 +2745,8 @@ def rig_frame(self):
                     
                     reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)
+                    
+                    
                     """
                     mMidSurface = l_midSurfReturn['mlSurfaces'][0]
                     #Skin it...
@@ -2777,37 +2839,53 @@ def rig_frame(self):
                 if mSegMidIK:
                     ml_skinDrivers.append(mSegMidIK)
                     max_influences+=1
-                
-                
-                res_ribbon = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
-                                       baseName = self.d_module['partName'] + '_ikRibbon',
-                                       driverSetup='stableBlend',
-                                       squashStretch=None,
-                                       connectBy='constraint',
-                                       #masterScalePlug=mPlug_masterScale,
-                                       settingsControl= mSettings.mNode,
-                                       extraSquashControl=True,
-                                       influences=ml_skinDrivers,
-                                       moduleInstance = self.mModule)
-                
-                mSurf = res_ribbon['mlSurfaces'][0]
-                
-                log.debug("|{0}| >> ribbon surface...".format(_str_func))
-                """
-                #Setup the aim along the chain -----------------------------------------------------------------------------
-                for i,mJnt in enumerate(ml_ikJoints):
-                    mAimGroup = mJnt.doGroup(True,asMeta=True,typeModifier = 'aim')
-                    v_aim = [0,0,1]
-                    if mJnt == ml_ikJoints[-1]:
-                        s_aim = ml_ikJoints[-2].masterGroup.mNode
-                        v_aim = [0,0,-1]
-                    else:
-                        s_aim = ml_ikJoints[i+1].masterGroup.mNode
-            
-                    mc.aimConstraint(s_aim, mAimGroup.mNode, maintainOffset = True, #skip = 'z',
-                                     aimVector = v_aim, upVector = [1,0,0], worldUpObject = mJnt.masterGroup.mNode,
-                                     worldUpType = 'objectrotation', worldUpVector = [1,0,0])    
-                """
+                    
+                if not mRigNull.msgList_get('segmentJoints'):
+                    log.debug("|{0}| >> No segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)
+                    
+                    _driverSetup = None
+                    if mBlock.ribbonAim:
+                        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+                    
+                    _squashStretch = None
+                    if mBlock.squash:
+                        _squashStretch =  mBlock.getEnumValueString('squash')
+                        
+                    _settingsControl = None
+                    if mBlock.squashExtraControl:
+                        _settingsControl = mRigNull.settings.mNode
+                    
+                    _extraSquashControl = mBlock.squashExtraControl
+                           
+                    res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+                    mPlug_masterScale = res_segScale[0]
+                    mMasterCurve = res_segScale[1]
+                    
+                    d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                          'baseName':'{0}_ikRibbon'.format(self.d_module['partName']),
+                          'driverSetup':_driverSetup,
+                          'connectBy':'constraint',
+                          'extraSquashControl':_extraSquashControl,
+                          'masterScalePlug':mPlug_masterScale,
+                          'squashFactorMax':mBlock.squashFactorMax,
+                          'squashStretch':_squashStretch,
+                          'influences':ml_skinDrivers,
+                          'settingsControl':mSettings.mNode,
+                          'moduleInstance':self.mModule}                    
+                else:
+                    log.debug("|{0}| >> Segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)                    
+                    d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                            'baseName' : self.d_module['partName'] + '_ikRibbon',
+                            'driverSetup':'stableBlend',
+                            'squashStretch':None,
+                            'connectBy':'constraint',
+                            #masterScalePlug:mPlug_masterScale,
+                            'settingsControl': mSettings.mNode,
+                            'extraSquashControl':True,
+                            'influences':ml_skinDrivers,
+                            'moduleInstance' : self.mModule}
+              
+                res_ribbon = IK.ribbon(**d_ik)
                 
                 """
                 #...ribbon skinCluster ---------------------------------------------------------------------
@@ -2849,9 +2927,54 @@ def rig_frame(self):
             
 
             #Setup blend ----------------------------------------------------------------------------------
-            RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
-                                        driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])            
-            
+            if self.b_scaleSetup:
+                log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
+                RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+                                            driver = mPlug_FKIK.p_combinedName,
+                                            l_constraints=['point','orient','scale'])
+                
+                
+                #Scale setup for ik joints                
+                ml_ikScaleTargets = [mIKControl]
+
+                if mIKBaseControl:
+                    mc.scaleConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+                    ml_ikScaleTargets.append(mIKBaseControl)
+                else:
+                    mc.scaleConstraint(mRoot.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+                    ml_ikScaleTargets.append(mRoot)
+                    
+                mc.scaleConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode,maintainOffset=True)
+                
+                _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+                
+                #Scale setup for mid set IK
+                if mSegMidIK:
+                    mMasterGroup = mSegMidIK.masterGroup
+                    _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
+                    _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+                    CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
+                    ml_ikScaleTargets.append(mSegMidIK)
+                    _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+                    
+                
+                
+                for mJnt in ml_ikJoints[1:-1]:
+                    _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
+                    _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
+                    CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
+                
+                for mJnt in ml_ikJoints[1:]:
+                    mJnt.p_parent = mIKGroup
+                    
+                for mJnt in ml_blendJoints[1:]:
+                    mJnt.p_parent = ml_blendJoints[0].p_parent
+                
+                
+            else:
+                RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+                                            driver = mPlug_FKIK.p_combinedName,
+                                            l_constraints=['point','orient'])
         
 
         #cgmGEN.func_snapShot(vars())

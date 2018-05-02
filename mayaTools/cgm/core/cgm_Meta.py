@@ -7507,7 +7507,7 @@ def validateAttrArg(arg,defaultType = 'float',noneValid = False,**kws):
             return False
         raise Exception,"{0} >> arg: {1} | defaultType: {2} | noneValid: {3} | {4}".format(_str_func,
                                                                                            arg,
-                                                                                           defaultType,noneValid,error)
+                                                                                           defaultType,noneValid,err)
 
 def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**kws):
     try:

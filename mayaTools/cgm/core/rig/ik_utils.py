@@ -1073,6 +1073,8 @@ def ribbon(jointList = None,
     
     log.debug("mControlSurface: {0}".format(mControlSurface))
     
+    ml_toConnect = []
+    ml_toConnect.extend(ml_surfaces)
     
     mArcLenCurve = None
     if b_squashStretch and squashStretchMain == 'arcLength':
@@ -1086,6 +1088,8 @@ def ribbon(jointList = None,
         
         mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
         mCrv.rename('{0}_measureCrv'.format( baseName))
+        
+        ml_toConnect.append(mCrv)
         
         mArcLenCurve = mCrv
         
@@ -1167,12 +1171,6 @@ def ribbon(jointList = None,
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
     else:
         mSettings = mControlSurface
-    
-    if mModule:#if we have a module, connect vis
-        mControlSurface.overrideEnabled = 1
-        cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mControlSurface.mNode,'overrideVisibility'))
-        cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mControlSurface.mNode,'overrideDisplayType'))    
-        mControlSurface.parent = mModule.rigNull
     
     #>>> Follicles ===========================================================================================        
     log.debug("|{0}| >> Follicles...".format(_str_func)+cgmGEN._str_subLine)
@@ -1640,7 +1638,7 @@ def ribbon(jointList = None,
                 else:
                     mPlug_aimResult = mPlug_inverseNormalized
                 
-                
+                reload(NodeF)
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NodeF.argsToNodes(arg).doBuild()
@@ -1938,6 +1936,16 @@ def ribbon(jointList = None,
                                          blendLength=blendLength,
                                          mode=mode_tighten)
             
+    
+    
+    if mModule:#if we have a module, connect vis
+        mRigNull = mModule.rigNull
+        _str_rigNull = mRigNull.mNode
+        for mObj in ml_toConnect:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            mObj.parent = mRigNull    
     
     
     _res = {'mlSurfaces':ml_surfaces}

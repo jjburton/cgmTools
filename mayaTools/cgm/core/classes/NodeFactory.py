@@ -1303,15 +1303,13 @@ class argsToNodes(object):
             for k in d_operator_to_NodeType['multiplyDivide']:
                 if k in a:
                     foundMatch = True		    
-                    try:
-                        log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
-                        if self.validate_subArg(a,'multiplyDivide'):
-                            self.l_mdNetworkArgs.append(a)
-                            break
-                        else:
-                            log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
-                    except StandardError,error:
-                        raise StandardError,error  	   
+                    log.debug("argsToNodes.validateArg>> md arg(%s) found: %s"%(k,a))	
+                    if self.validate_subArg(a,'multiplyDivide'):
+                        self.l_mdNetworkArgs.append(a)
+                        break
+                    else:
+                        log.debug("argsToNodes.validateArg>> md arg failed: %s"%a)				    
+
             for k in d_operator_to_NodeType['plusMinusAverage']:
                 if k in a:
                     foundMatch = True		    
