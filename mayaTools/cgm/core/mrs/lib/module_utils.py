@@ -327,6 +327,7 @@ def rig_connect(self,force=False):
                 pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)        
                 orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1) 
             scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)                         
+            #ATTR.connect((ml_rigJoints[i].mNode+'.s'),(mJnt.mNode+'.s'))
             #attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 
         return True        

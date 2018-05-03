@@ -855,8 +855,10 @@ def get_dynParentTargetsDat(self):
     self.md_dynTargetsParent['world'] = mMasterNull.worldSpaceObjectsGroup
     self.md_dynTargetsParent['puppet'] = mMasterNull.puppetSpaceObjectsGroup
     
-    self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
-                                                             ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    #self.md_dynTargetsParent['driverPoint'] = mModule.atUtils('get_driverPoint',
+    #                                                         ATTR.get_enumValueString(mBlock.mNode,'attachPoint'))
+    #
+    self.md_dynTargetsParent['attachDriver'] = mModule.rigNull.getMessageAsMeta('attachDriver')
     
     if mModuleParent:
         mi_parentRigNull = mModuleParent.rigNull
@@ -879,13 +881,13 @@ def get_dynParentTargetsDat(self):
             self.ml_dynParentsAbove.append(_mEnd)
             
     log.debug(cgmGEN._str_subLine)
-    log.debug("|{0}| >> dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
+    log.debug("dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
     pprint.pprint(self.md_dynTargetsParent)
     log.debug(cgmGEN._str_subLine)    
-    log.debug("|{0}| >> dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
+    log.debug("dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
     pprint.pprint(self.ml_dynEndParents)
     log.debug(cgmGEN._str_subLine)
-    log.debug("|{0}| >> dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
+    log.debug("dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
     pprint.pprint(self.ml_dynParentsAbove)    
     log.debug(cgmGEN._str_subLine)    
 

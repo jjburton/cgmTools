@@ -4618,6 +4618,29 @@ class rigFactory(object):
         
         
         if self.attachPoint:
+            self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
+            
+            if not self.mRigNull.getMessage('attachDriver'):
+                mAttachDriver = self.mDeformNull.doCreateAt()
+                mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
+                mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
+                mAttachDriver.doName()
+                
+                #self.mRigNull.connectChildNode(mAttachDriver,'attachDriver')                
+                mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
+                self.mRigNull.connectChildNode(mAttachDriver,'attachDriver','module')
+                
+            else:
+                mAttachDriver = self.mRigNull.getMessageAsMeta('attachDriver')
+            
+            mAttachDriver.parent = self.attachPoint
+            mAttachDriver.setAttrFlags()
+            #mc.parentConstraint([mAttachDriver.mNode],
+            #                    self.mConstrainNull.mNode,
+            #                    maintainOffset = True, weight = 1)            
+            
+            
+            """
             log.info("|{0}| >> attaching to attachpoint: {1}".format(_str_func,self.attachPoint))
             mAttach = cgmMeta.validateObjArg(self.attachPoint)
             try:mc.delete(self.mConstrainNull.getConstraintsTo())
@@ -4628,7 +4651,6 @@ class rigFactory(object):
                 mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
                 mAttachDriver.doName()
                 
-                self.mRigNull.connectChildNode(self.attachPoint,'attachPoint')
                 self.mRigNull.connectChildNode(mAttachDriver,'attachDriver')                
                 mAttachDriver.connectChildNode(self.attachPoint,'attachPoint')
                 self.mConstrainNull.connectChildNode(mAttachDriver,'attachDriver','module')
@@ -4642,7 +4664,7 @@ class rigFactory(object):
                                 self.mConstrainNull.mNode,
                                 maintainOffset = True, weight = 1)
             #mc.scaleConstraint([mAttach.mNode], self.mConstrainNull.mNode, maintainOffset = True, weight = 1)
-        
+            """
         
         
 

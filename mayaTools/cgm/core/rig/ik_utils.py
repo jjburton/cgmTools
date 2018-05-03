@@ -1753,11 +1753,11 @@ def ribbon(jointList = None,
         if squashStretch in ['single','both']:
             if ml_outFollicles or ml_upFollicles:
                 for i,mJnt in enumerate(ml_joints):
-                    if mJnt == ml_joints[-1]:
-                        pass #...we'll pick up the last on the loop
-                    else:
-                        mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                          "{0}_aimScaleResult_{1}".format(str_baseName,i))
+                    #if mJnt == ml_joints[-1]:
+                        #pass #...we'll pick up the last on the loop
+                    #else:
+                    mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_aimScaleResult_{1}".format(str_baseName,i))
                         #mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
                         
                     

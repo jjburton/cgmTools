@@ -133,6 +133,14 @@ d_block_profiles = {
             'ikEnd':'tipBase',            
             'nameIter':'tail',
             'nameList':['tailBase','tailTip'],
+            
+            'squash':'both',
+            'squashExtraControl':True,
+            'squashMeasure':'arcLength',
+            'squashFactorMax':1.0,
+            'squashFactorMin':.25,
+            'ribbonAim':'stableBlend',            
+
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
             'baseSize':[2,8,2]},
@@ -158,6 +166,14 @@ d_block_profiles = {
              'cgmName':'spine',
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
+             
+             'squash':'both',
+             'squashExtraControl':True,
+             'squashMeasure':'arcLength',
+             'squashFactorMax':1.0,
+             'squashFactorMin':0,
+             'ribbonAim':'stable',
+             'settingsPlace':'cog',
              'baseAim':[-90,0,0],
              'baseUp':[0,0,-1],
              'baseSize':[15,16,36]}}
@@ -1216,18 +1232,22 @@ def rig_prechecks(self):
     #Squash stretch logic  =================================================================================
     log.debug("|{0}| >> Squash stretch..".format(_str_func))
     self.b_scaleSetup = mBlock.scaleSetup
+    
+    self.b_squashSetup = False
+    
     self.d_squashStretch = {}
     self.d_squashStretchIK = {}
     
     _squashStretch = None
     if mBlock.squash:
-        _squashStretch =  mBlock.getEnumValueString('squash')    
+        _squashStretch =  mBlock.getEnumValueString('squash')
+        self.b_squashSetup = True
     self.d_squashStretch['squashStretch'] = _squashStretch
     
     _squashMeasure = None
     if mBlock.squashMeasure:
         _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
-    self.d_squashStretch['squashMeasure'] = _squashMeasure    
+    self.d_squashStretch['squashStretchMain'] = _squashMeasure    
 
     _driverSetup = None
     if mBlock.ribbonAim:
@@ -1253,12 +1273,12 @@ def rig_prechecks(self):
         pprint.pprint(self.d_squashStretchIK)
     
     
-    
     if not self.b_scaleSetup:
         pass
     
     log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
     
+    log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
     
     log.debug(cgmGEN._str_subLine)
     
@@ -1293,9 +1313,17 @@ def rig_prechecks(self):
             
     log.debug("|{0}| >> self.int_handleEndIdx: {1}".format(_str_func,self.int_handleEndIdx))
     
+    
+    
+    str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+    log.debug("|{0}| >> IK Base: {1}".format(_str_func,str_ikBase))    
+    self.int_segBaseIdx = 0
+    if str_ikBase in ['hips']:
+        self.int_segBaseIdx = 1
+    log.debug("|{0}| >> self.int_segBaseIdx: {1}".format(_str_func,self.int_segBaseIdx))
+    
+    
     log.debug(cgmGEN._str_subLine)
-    
-    
     
     #Offset ============================================================================    
     str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
@@ -1319,6 +1347,7 @@ def rig_prechecks(self):
     
     
     #DynParents =============================================================================
+    reload(self.UTILS)
     self.UTILS.get_dynParentTargetsDat(self)
 
     
@@ -1331,8 +1360,6 @@ def rig_prechecks(self):
     log.debug(cgmGEN._str_subLine)
 
     return True
-
-
 
 
 
@@ -1428,7 +1455,7 @@ def rig_skeleton(self):
             mMidIK.p_parent = False
             mMidIK.doName()
         
-            mMidIK.p_position = DIST.get_average_position([ml_rigJoints[1].p_position,
+            mMidIK.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
                                                           ml_rigJoints[-1].p_position])
         
             SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
@@ -1438,7 +1465,7 @@ def rig_skeleton(self):
             mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
         
     
-    if mBlock.numJoints > mBlock.numControls:
+    if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:
         log.debug("|{0}| >> Handles...".format(_str_func))            
         ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
         if mBlock.ikSetup:
@@ -2158,14 +2185,6 @@ def rig_segments(self):
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
     reload(IK)
     
-    _driverSetup = None
-    if mBlock.ribbonAim:
-        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
-    
-    _squashStretch = None
-    if mBlock.squash:
-        _squashStretch =  mBlock.getEnumValueString('squash')
-        
     _settingsControl = None
     if mBlock.squashExtraControl:
         _settingsControl = mRigNull.settings.mNode
@@ -2176,22 +2195,21 @@ def rig_segments(self):
     mPlug_masterScale = res_segScale[0]
     mMasterCurve = res_segScale[1]
     
+    
     _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
           'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
-          'driverSetup':_driverSetup,
           'connectBy':'constraint',
-          'extraSquashControl':_extraSquashControl,
           'masterScalePlug':mPlug_masterScale,
-          'squashFactorMax':mBlock.squashFactorMax,
-          'squashStretch':_squashStretch,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
           'moduleInstance':mModule}
-        
+    
+    _d.update(self.d_squashStretch)
     res_ribbon = IK.ribbon(**_d)
     
     ml_surfaces = res_ribbon['mlSurfaces']
     
+    mMasterCurve.p_parent = mRoot
     
     """
     #Setup the aim along the chain -----------------------------------------------------------------------------
@@ -2230,6 +2248,13 @@ def rig_segments(self):
     
     cgmGEN.func_snapShot(vars())
     ml_segJoints[0].parent = mRoot
+    
+    if self.b_squashSetup:
+        for mJnt in ml_segJoints:
+            mJnt.segmentScaleCompensate = False
+            if mJnt == ml_segJoints[0]:
+                continue
+            mJnt.p_parent = ml_segJoints[0].p_parent        
 
     
 @cgmGEN.Timer
@@ -2743,6 +2768,7 @@ def rig_frame(self):
                              'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
                     
+                    
                     reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)
                     
@@ -2832,14 +2858,15 @@ def rig_frame(self):
                 
                 ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
                 max_influences = 2
-                if str_ikBase == 'hips':
-                    ml_skinDrivers.append(mHipHandle)
-                    max_influences+=1
+                #if str_ikBase == 'hips':
+                    #ml_skinDrivers.append(mHipHandle)
+                    #max_influences+=1
                     
                 if mSegMidIK:
                     ml_skinDrivers.append(mSegMidIK)
                     max_influences+=1
-                    
+                
+                """
                 if not mRigNull.msgList_get('segmentJoints'):
                     log.debug("|{0}| >> No segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)
                     
@@ -2863,16 +2890,15 @@ def rig_frame(self):
                     
                     d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
                           'baseName':'{0}_ikRibbon'.format(self.d_module['partName']),
-                          'driverSetup':_driverSetup,
                           'connectBy':'constraint',
                           'extraSquashControl':_extraSquashControl,
                           'masterScalePlug':mPlug_masterScale,
-                          'squashFactorMax':mBlock.squashFactorMax,
-                          'squashStretch':_squashStretch,
                           'influences':ml_skinDrivers,
                           'settingsControl':mSettings.mNode,
-                          'moduleInstance':self.mModule}                    
-                else:
+                          'moduleInstance':self.mModule}
+                    d_ik.update(self.d_squashStretch)"""
+                
+                if mRigNull.msgList_get('segmentJoints'):
                     log.debug("|{0}| >> Segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)                    
                     d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
                             'baseName' : self.d_module['partName'] + '_ikRibbon',
@@ -2884,8 +2910,9 @@ def rig_frame(self):
                             'extraSquashControl':True,
                             'influences':ml_skinDrivers,
                             'moduleInstance' : self.mModule}
-              
-                res_ribbon = IK.ribbon(**d_ik)
+                    
+                    d_ik.update(self.d_squashStretchIK)
+                    res_ribbon = IK.ribbon(**d_ik)
                 
                 """
                 #...ribbon skinCluster ---------------------------------------------------------------------
@@ -2956,9 +2983,7 @@ def rig_frame(self):
                     CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
                     ml_ikScaleTargets.append(mSegMidIK)
                     _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
-                    
-                
-                
+
                 for mJnt in ml_ikJoints[1:-1]:
                     _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
                     _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
@@ -2967,7 +2992,10 @@ def rig_frame(self):
                 for mJnt in ml_ikJoints[1:]:
                     mJnt.p_parent = mIKGroup
                     
-                for mJnt in ml_blendJoints[1:]:
+                for mJnt in ml_blendJoints:
+                    mJnt.segmentScaleCompensate = False
+                    if mJnt == ml_blendJoints[0]:
+                        continue
                     mJnt.p_parent = ml_blendJoints[0].p_parent
                 
                 
