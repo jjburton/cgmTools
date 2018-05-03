@@ -1685,9 +1685,7 @@ def ribbon(jointList = None,
                 #out scale = baseSquashScale * (outBase / outActual)
                 #mBase_aim =  md_distDat['aim']['base']['mDist'][i]
                 
-    
-                
-                
+
                 if extraSquashControl:
                     #mPlug_segScale
                     mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
@@ -1718,7 +1716,8 @@ def ribbon(jointList = None,
                     #>> x + (y - x) * blend --------------------------------------------------------
                     l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedShortName,
                                                                mPlug_aimBaseNorm.p_combinedShortName,
-                                                               "{0}.distance".format(mActive_aim.mNode)))
+                                                               "{0}.distance".format(mActive_aim.mNode),
+                                                               ))
                     l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedShortName,
                                                                mPlug_jointMult.p_combinedShortName))
                     l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedShortName,
@@ -1736,7 +1735,8 @@ def ribbon(jointList = None,
                 else:
                     l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
                                                                mPlug_aimBaseNorm.p_combinedShortName,
-                                                               "{0}.distance".format(mActive_aim.mNode)))
+                                                               "{0}.distance".format(mActive_aim.mNode),
+                                                               ))
                 
                 
                 for arg in l_argBuild:
@@ -1757,7 +1757,7 @@ def ribbon(jointList = None,
                         #pass #...we'll pick up the last on the loop
                     #else:
                     mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                      "{0}_aimScaleResult_{1}".format(str_baseName,i))
+                                                    "{0}_aimScaleResult_{1}".format(str_baseName,i))
                         #mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
                         
                     

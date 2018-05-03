@@ -2905,6 +2905,7 @@ def rig_frame(self):
                             'driverSetup':'stableBlend',
                             'squashStretch':None,
                             'connectBy':'constraint',
+                            'squashStretchMain':'arcLength',
                             #masterScalePlug:mPlug_masterScale,
                             'settingsControl': mSettings.mNode,
                             'extraSquashControl':True,
@@ -3100,8 +3101,12 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     
-    if not self.mConstrainNull.hasAttr('cgmAlias'):
-        self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
+    #if not self.mConstrainNull.hasAttr('cgmAlias'):
+        #self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
+    
+    mAttachDriver = self.md_dynTargetsParent['attachDriver']
+    if not mAttachDriver.hasAttr('cgmAlias'):
+        mAttachDriver.addAttr('cgmAlias','{0}_rootDriver'.format(self.d_module['partName']))    
     
     #>>  DynParentGroups - Register parents for various controls ============================================
     ml_baseDynParents = []
@@ -3133,7 +3138,7 @@ def rig_cleanUp(self):
     #...Root controls ========================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
     
-    ml_targetDynParents = [self.mConstrainNull]
+    ml_targetDynParents = [self.md_dynTargetsParent['attachDriver']]
         
     if not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
@@ -3184,7 +3189,7 @@ def rig_cleanUp(self):
     for mHandle in ml_ikControls:
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
         
-        ml_targetDynParents = ml_baseDynParents + [self.mConstrainNull] + ml_endDynParents
+        ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
         
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
         ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -3296,12 +3301,14 @@ def rig_cleanUp(self):
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
     for i,mObj in enumerate(ml_fkJoints):
+        if i :
+            continue
         if not mObj.getMessage('masterGroup'):
             log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
             continue
         log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
         ml_targetDynParents = copy.copy(ml_baseDynParents)
-        ml_targetDynParents.append(self.mConstrainNull)
+        ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
         
         mParent = mObj.masterGroup.getParent(asMeta=True)
         if not mParent.hasAttr('cgmAlias'):
@@ -3350,6 +3357,8 @@ def rig_cleanUp(self):
         log.debug("|{0}| >> No scale".format(_str_func))
         for mCtrl in ml_controls:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
+    else:
+        pass
     
     
     #Close out ========================================================================================
