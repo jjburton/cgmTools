@@ -136,7 +136,7 @@ d_block_profiles = {
             
             'squash':'both',
             'squashExtraControl':True,
-            'squashMeasure':'arcLength',
+            'squashMeasure':'pointDist',
             'squashFactorMax':1.0,
             'squashFactorMin':.25,
             'ribbonAim':'stableBlend',            
@@ -156,6 +156,7 @@ d_block_profiles = {
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
             'baseSize':[2,8,2]},
+    
     'spine':{'numShapers':6,
              'addCog':True,
              'loftSetup':'default',
@@ -169,10 +170,11 @@ d_block_profiles = {
              
              'squash':'both',
              'squashExtraControl':True,
-             'squashMeasure':'arcLength',
+             'squashMeasure':'pointDist',
              'squashFactorMax':1.0,
              'squashFactorMin':0,
              'ribbonAim':'stable',
+             
              'settingsPlace':'cog',
              'baseAim':[-90,0,0],
              'baseUp':[0,0,-1],
@@ -218,7 +220,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  
-                 'controlSegMidIK':'bool',
+                 'segmentMidIKControl':'bool',
                  
                  'settingsPlace':'start:end:cog',
                  'blockProfile':':'.join(d_block_profiles.keys()),
@@ -239,7 +241,7 @@ d_defaultSettings = {'version':__version__,
                      
                      'squashMeasure':'arcLength',
                      'squash':'simple',
-                     'squashFactorMax':2.0,
+                     'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      
                      'settingsPlace':1,
@@ -248,7 +250,7 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',
                      'numSpacePivots':2,
                      
-                     'controlSegMidIK':True,
+                     'segmentMidIKControl':True,
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stableBlend',
@@ -1263,11 +1265,10 @@ def rig_prechecks(self):
     pprint.pprint(self.d_squashStretch)
     
     #Check for mid control and even handle count to see if w need an extra curve
-    if mBlock.controlSegMidIK:
+    if mBlock.segmentMidIKControl:
         if MATH.is_even(mBlock.numControls):
             self.d_squashStretchIK['sectionSpans'] = 2
             
-    
     if self.d_squashStretchIK:
         log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
         pprint.pprint(self.d_squashStretchIK)
@@ -1277,7 +1278,6 @@ def rig_prechecks(self):
         pass
     
     log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
-    
     log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
     
     log.debug(cgmGEN._str_subLine)
@@ -1447,7 +1447,7 @@ def rig_skeleton(self):
         ml_jointsToConnect.extend(ml_ribbonIKDrivers)
         
         
-        if mBlock.controlSegMidIK:
+        if mBlock.segmentMidIKControl:
             log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
             #Lever...
             mMidIK = ml_rigJoints[0].doDuplicate(po=True)
@@ -2183,7 +2183,6 @@ def rig_segments(self):
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-    reload(IK)
     
     _settingsControl = None
     if mBlock.squashExtraControl:

@@ -4623,7 +4623,7 @@ class rigFactory(object):
             if not self.mRigNull.getMessage('attachDriver'):
                 mAttachDriver = self.mDeformNull.doCreateAt()
                 mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
-                mAttachDriver.addAttr('cgmTypeModifier','attachDriver',lock=True)	 
+                mAttachDriver.addAttr('cgmType','attachDriver',lock=True)	 
                 mAttachDriver.doName()
                 
                 #self.mRigNull.connectChildNode(mAttachDriver,'attachDriver')                

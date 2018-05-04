@@ -526,11 +526,18 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
         
         blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
         
-        for i in range(idx_mid):
-            _res.append( i * blendFactor)
-        _rev = copy.copy(_res)
-        _rev.reverse()
-        _res.extend(_rev)
+        if is_even(count):
+            for i in range(idx_mid):
+                _res.append( i * blendFactor)
+            _rev = copy.copy(_res)
+            _rev.reverse()
+            _res.extend(_rev)
+        else:
+            for i in range(idx_mid):
+                _res.append( i * blendFactor)            
+            _rev = copy.copy(_res)
+            _rev.reverse()
+            _res.extend(_rev[1:])            
     elif mode == 'max':
         return [maxValue for i in range(count)]
     elif mode == 'min':

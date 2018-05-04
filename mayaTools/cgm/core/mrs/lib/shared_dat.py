@@ -73,6 +73,19 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'customStartOrientation':'bool',
                    'offsetMode':'default:proxyAverage',
                    'moduleTarget':'messageSimple',
+                   
+                   'squashMeasure' : 'none:arcLength:pointDist',
+                   'squash' : 'none:simple:single:both',
+                   'squashExtraControl' : 'bool',
+                   'squashFactorMax':'float',
+                   'squashFactorMin':'float',
+               
+                   'ribbonAim': 'none:stable:stableBlend',
+                   #'ribbonConnectBy': 'constraint:matrix',
+               
+                   'segmentMidIKControl':'bool',
+                   
+                   
                    'scaleSetup':'bool',
                    'settingsPlace':'start:end',
                    'settingsDirection':'up:down:out:in',
