@@ -39,6 +39,23 @@ d_test = {'jointList':l_joints,
 mSurf = IK.ribbon(**d_test)
 
 
+d_test = {'jointList':l_joints,
+          'baseName' :"{0}_seg_{1}".format('test',1),                              
+          'driverSetup':'stableBlend',
+          'squashStretch':'both',
+          'loftAxis':'x',
+          'squashStretchMain':'pointDist',
+          'settingsControl':'settings_anim',
+          'extraSquashControl':True,
+          'squashFactorMode':'midPeak',
+          'masterScalePlug':'create',                    
+          'squashFactorMin':0,
+          'squashFactorMax':2.0,
+          'influences':['base_skin','end_skin'],
+          'connectBy':'constraint',
+          'moduleInstance' : None}
+
+
 #Need a distance measure item to drive master scale
 
 
