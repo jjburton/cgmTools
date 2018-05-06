@@ -730,7 +730,7 @@ def build_visSub(self):
     return mPlug_result_moduleSubDriver
 
 
-def get_blockScale(self,plug='blockScale'):
+def get_blockScale(self,plug='blockScale',ml_joints = None):
     """
     Creates a curve for measuring a segment length. This should be parented under whatever root you setup for that segment
     """
@@ -742,10 +742,15 @@ def get_blockScale(self,plug='blockScale'):
     if mRigNull.getMessage(plug_curve):
         return [cgmMeta.cgmAttr(mRigNull.mNode,plug), mRigNull.getMessage(plug_curve,asMeta=1)[0]]
         
-    ml_joints = self.d_joints['ml_moduleJoints']
+    if ml_joints is None:
+        ml_joints = self.d_joints['ml_moduleJoints']
     
     crv = CORERIG.create_at(None,'curveLinear',l_pos= [ml_joints[0].p_position, ml_joints[1].p_position])
-    mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
+    
+    mCrv = ml_joints[0].doCreateAt()
+    
+    #mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
+    CORERIG.shapeParent_in_place(mCrv.mNode,crv,False)
     mCrv.rename('{0}_measureCrv'.format( self.d_module['partName']))
     
     

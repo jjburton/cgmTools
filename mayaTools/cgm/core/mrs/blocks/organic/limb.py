@@ -3752,8 +3752,9 @@ def rig_segments(self):
         #mMasterCurve.p_parent = mRoot
         
         
-        
-        for i in self.md_roll.keys():
+        l_rollKeys = self.md_roll.keys()
+        l_rollKeys.sort()
+        for i in l_rollKeys:
             log.debug("|{0}| >> Segment {1}".format(_str_func,i))
             
             ml_segHandles = mRigNull.msgList_get('segmentHandles_{0}'.format(i))
@@ -3763,6 +3764,9 @@ def rig_segments(self):
             #Parent these to their handles ------------------------------------------------
             ml_segHandles[0].parent = ml_handleJoints[i]
             ml_segHandles[-1].parent = ml_handleJoints[i+1]
+            
+            for mJnt in ml_segHandles:
+                mJnt.segmentScaleCompensate = False
             
             #Setup the aim blends ---------------------------------------------------------
             log.debug("|{0}| >> Aim segmentHandles: {1}".format(_str_func,i))            
@@ -3989,9 +3993,7 @@ def rig_segments(self):
             ml_influences.extend(ml_segHandles)
             
             
-            
-            
-            #Mid Ik... --------------------------------------------------------------------------------------------
+            #Mid Ik... --------------------------------------------------------------------------------------------            
             mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
             if mControlMid:
                 log.debug("|{0}| >> Mid IK {1} setup...".format(_str_func,i))            
@@ -4024,18 +4026,26 @@ def rig_segments(self):
             reload(IK)
             #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
             
-            res_segScale = self.UTILS.get_blockScale(self,'segMeasure_{0}'.format(i))
+            res_segScale = self.UTILS.get_blockScale(self,'segMeasure_{0}'.format(i),ml_segJoints)
             mPlug_masterScale = res_segScale[0]
             mMasterCurve = res_segScale[1]
 
             mMasterCurve.p_parent = ml_blendJoints[i]
             
-            
             _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                   'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
                   'masterScalePlug':mPlug_masterScale,
                   'influences':[mHandle.mNode for mHandle in ml_influences],
-                  }
+                  }            
+            
+            if i == l_rollKeys[0]:
+                _d['squashFactorMode'] = 'blendUpMid'
+            elif i == l_rollKeys[-1]:
+                _d['squashFactorMode'] = 'midBlendDown'
+            else:
+                _d['squashFactorMode'] = 'max'
+                
+            
             
             _d.update(_d_ribbonShare)
             
@@ -4761,6 +4771,7 @@ def rig_blendFrame(self):
         log.debug("|{0}| >> fk setup...".format(_str_func))
         
         str_aimAxis = self.d_orientation['str'][0]
+        """
         #Scale setup for fk joints -------------------------------------------------------------------
         for i,mJnt in enumerate(ml_fkJoints[1:self.int_handleEndIdx+1]):
             mDup = mJnt.doDuplicate(po=True,ic=False)
@@ -4790,7 +4801,7 @@ def rig_blendFrame(self):
             for arg in l_argBuild:
                 log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                 NODEFACTORY.argsToNodes(arg).doBuild()
-        
+        """
         
 
         #pprint.pprint(vars())
@@ -4848,7 +4859,10 @@ def rig_blendFrame(self):
     
         #for mJnt in ml_ikJoints[1:]:
             #mJnt.p_parent = mIKGroup
-    
+            
+        for mJnt in ml_ikJoints[self.int_handleEndIdx:]:
+            mJnt.segmentScaleCompensate = False
+            
         for mJnt in ml_blendJoints:
             mJnt.segmentScaleCompensate = False
             if mJnt == ml_blendJoints[0]:
@@ -5310,7 +5324,18 @@ def rig_cleanUp(self):
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
-        for mCtrl in ml_controls:
+        ml_controlsToLock = copy.copy(ml_controls)
+        if self.b_squashSetup:
+            ml_handles = self.mRigNull.msgList_get('handleJoints')
+            for mHandle in ml_handles:
+                ml_controlsToLock.remove(mHandle)
+            for i in self.md_roll.keys():
+                mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
+                if mControlMid:
+                    ml_controlsToLock.remove(mControlMid)
+                
+                
+        for mCtrl in ml_controlsToLock:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
             
     #Lock and hide =================================================================================

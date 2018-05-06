@@ -897,10 +897,8 @@ def ribbon(jointList = None,
             aim - aim along the chain
         
         squashFactorMode 
-            max - just just use squashFactorMax
-            min - just use reampScaleMin
-            midPeak - ramp from zero to full | ex: [0.0, 0.5, 1.0, 1.0, 0.5, 0.0]
-            
+            see cgm.core.math_utils.get_blendList
+
         squashFactorMax
             1.0 - default
         squashFactorMin

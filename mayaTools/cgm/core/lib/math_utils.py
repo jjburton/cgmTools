@@ -516,12 +516,33 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     '''
     Get a factored list 
     
-    6 returns: # Result: [0.0, 0.5, 1.0, 1.0, 0.5, 0.0] # 
+    :parameters:
+        count(int) - number of values sought
+        maxValue(float)
+        minValue(float)
+        mode(string)
+            min
+            max
+            midPeak - ease to peak and back
+            midBlendDown - max to mid then blend down
+            midBlendUp  - blend from min to max then max
+            
+    :returns:
+        list of values
+        
+        examples - all with example with count 5, min 0, max 1
+            midPeak - [0.0, 0.5, 1.0, 0.5, 0.0]
+            midBlendDown - [1.0, 1.0, 1.0, 0.5, 0.0]
+            blendUpMid - [0.0, 0.5, 1.0, 1.0, 1.0]
+            
+    :raises:
+        Exception | if reached
+    
     '''
     _str_func = 'get_factorList'
     _res = []
     
-    if mode == 'midPeak':
+    if mode in ['midPeak','blendUpMid','midBlendDown']:
         idx_mid = get_midIndex(count)
         
         blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
@@ -530,14 +551,28 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             for i in range(idx_mid):
                 _res.append( i * blendFactor)
             _rev = copy.copy(_res)
-            _rev.reverse()
-            _res.extend(_rev)
+            if mode == 'blendUpMid':
+                _res = _res + [maxValue for i in range(idx_mid)]
+            elif mode == 'midBlendDown':
+                _res.reverse()
+                _res = [maxValue for i in range(idx_mid)] + _res
+            else:
+                _rev.reverse()
+                _res.extend(_rev)
         else:
             for i in range(idx_mid):
-                _res.append( i * blendFactor)            
-            _rev = copy.copy(_res)
-            _rev.reverse()
-            _res.extend(_rev[1:])            
+                _res.append( i * blendFactor)
+                
+            if mode == 'blendUpMid':
+                _res = _res + [maxValue for i in range(idx_mid-1)]
+            elif mode == 'midBlendDown':
+                _res.reverse()
+                _res = [maxValue for i in range(idx_mid-1)] + _res
+            else:
+                _rev = copy.copy(_res)
+                _rev.reverse()
+                _res.extend(_rev[1:])
+            
     elif mode == 'max':
         return [maxValue for i in range(count)]
     elif mode == 'min':
