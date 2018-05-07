@@ -46,6 +46,7 @@ import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.skin_utils as RIGSKIN
+import cgm.core.lib.position_utils as POS
 
 for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES:
     reload(m)
@@ -779,7 +780,7 @@ def buildFKIK(fkJoints = None,
     return True
 
 
-def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1):
+def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendEnds=False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDMENT:
@@ -815,6 +816,36 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1):
             log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
             l_crvs.append(crv)
             
+        if extendEnds:
+            log.debug("|{0}| >> Extended ends.".format(_str_func))
+            
+            log.debug("|{0}| >> start...".format(_str_func))
+            mJnt = cgmMeta.asMeta(jointList[0])
+            mLoc = mJnt.doLoc(fastMode=True)
+            pos_end = POS.get(jointList[0])
+            vec_aim = MATH.get_vector_of_two_points(POS.get(jointList[1]), pos_end)
+            mLoc.p_position = DIST.get_pos_by_vec_dist(pos_end, vec_aim, f_distance)
+            crv =   mc.curve (d=1, ep = [DIST.get_pos_by_axis_dist(mLoc.mNode, crvUp, f_distance),
+                                         DIST.get_pos_by_axis_dist(mLoc.mNode, crvDn, f_distance)],
+                                   os=True)
+            log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            l_crvs.insert(0,crv)
+            mLoc.delete()
+            
+        
+            log.debug("|{0}| >> end...".format(_str_func))
+            mJnt = cgmMeta.asMeta(jointList[-1])
+            mLoc = mJnt.doLoc(fastMode=True)
+            pos_end = POS.get(jointList[-1])
+            vec_aim = MATH.get_vector_of_two_points(POS.get(jointList[-2]), pos_end)
+            mLoc.p_position = DIST.get_pos_by_vec_dist(pos_end, vec_aim, f_distance)
+            crv =   mc.curve (d=1, ep = [DIST.get_pos_by_axis_dist(mLoc.mNode, crvUp, f_distance),
+                                         DIST.get_pos_by_axis_dist(mLoc.mNode, crvDn, f_distance)],
+                                   os=True)
+            log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            l_crvs.append(crv)
+            mLoc.delete()
+            
         _res_body = mc.loft(l_crvs, reverseSurfaceNormals = True, ch = False, uniform = True, degree = 3, sectionSpans=sectionSpans)
 
         #_res_body = mc.loft(l_crvs, o = True, d = 1, po = 1 )
@@ -834,6 +865,7 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1):
     
 def ribbon(jointList = None,
            useSurface = None,
+           extendEnds = False,
            orientation = 'zyx',
            secondaryAxis = 'y+',
            loftAxis = 'x',
@@ -871,6 +903,7 @@ def ribbon(jointList = None,
     :parameters:
         jointList(joints - None) | List or metalist of joints
         useCurve(nurbsCurve - None) | Which curve to use. If None. One Created
+        extendEnd(bool) | extend the last curve loft to get meat to measure stretch with
         orientation(string - zyx) | What is the joints orientation
         secondaryAxis(maya axis arg(y+) | Only necessary when no module provide for orientating
         baseName(string - None) | baseName string
@@ -1019,7 +1052,7 @@ def ribbon(jointList = None,
     #Ramp values -------------------------------------------------------------------------
     if extraSquashControl:
         l_scaleFactors = MATH.get_blendList(int_lenJoints,squashFactorMax,squashFactorMin,squashFactorMode)
-        
+    
     #Squash stretch -------------------------------------------------------------------------
     b_squashStretch = False
     if squashStretch is not None:
@@ -1048,7 +1081,7 @@ def ribbon(jointList = None,
         raise NotImplementedError,'Not done with passed surface'
     else:
         log.debug("|{0}| >> Creating surface...".format(_str_func))
-        l_surfaceReturn = ribbon_createSurface(jointList,loftAxis,sectionSpans)
+        l_surfaceReturn = ribbon_createSurface(jointList,loftAxis,sectionSpans,extendEnds)
     
         mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
         mControlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1059,7 +1092,7 @@ def ribbon(jointList = None,
         
         if loftAxis2:
             log.debug("|{0}| >> Creating surface...".format(_str_func))
-            l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2,sectionSpans)
+            l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2,sectionSpans,extendEnds)
         
             mControlSurface2 = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
             mControlSurface2.addAttr('cgmName',str(baseName),attrType='string',lock=True)
@@ -1075,6 +1108,7 @@ def ribbon(jointList = None,
     ml_toConnect.extend(ml_surfaces)
     
     mArcLenCurve = None
+    
     if b_squashStretch and squashStretchMain == 'arcLength':
         log.debug("|{0}| >> Creating arc curve setup...".format(_str_func))
 
@@ -1181,7 +1215,7 @@ def ribbon(jointList = None,
     ml_folliclesStable = []
     ml_folliclesStableShapes = []
     
-    minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')        
+    minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')
     #maxU = ATTR.get(mControlSurface.getShapes()[0],'maxValueU')
     #minV = ATTR.get(mControlSurface.getShapes()[0],'mimValueV')        
     #maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
@@ -1251,6 +1285,27 @@ def ribbon(jointList = None,
         #Simple contrain
         mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
         
+    if extendEnds:
+        maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
+        
+        l_FollicleInfo = NODES.createFollicleOnMesh( mControlSurface.mNode )
+                   
+        mFollicle = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
+        mFollicleShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
+        
+        mFollicle.parent = mGroup.mNode
+        
+
+        #> Name...
+        mFollicle.rename('{0}_extended'.format(ml_joints[-1].p_nameBase))
+    
+        mFollicleShape.parameterU = ml_follicleShapes[-1].parameterU
+        mFollicleShape.parameterV = maxV
+        
+        ml_follicles.append(mFollicle)
+        ml_follicleShapes.append(mFollicleShape)
+        
+    
     if ml_aimDrivers:
         log.debug("|{0}| >> aimDrivers...".format(_str_func)+cgmGEN._str_subLine)            
         if driverSetup == 'aim':
@@ -1260,7 +1315,7 @@ def ribbon(jointList = None,
                     continue
                     
                 v_aimUse = v_aim
-                if mDriver == ml_aimDrivers[-1]:
+                if mDriver == ml_aimDrivers[-1] and not extendEnds:
                     s_aim = ml_follicles[-2].mNode
                     v_aimUse = v_aimNeg
                 else:
@@ -1887,12 +1942,17 @@ def ribbon(jointList = None,
         
         max_influences = 2
         mode_tighten = 'twoBlend'
-        blendLength = 5
+        blendLength = int_lenJoints/2
         
         if int_lenInfluences > 2:
             mode_tighten = None
             blendLength = int(int_lenInfluences/2)
             max_influences = MATH.Clamp( blendLength, 2, 4)
+            
+        #Tighten the weights...
+        _hardLength = 2
+        if extendEnds:
+            _hardLength = 4
             
         if mArcLenCurve:
             log.debug("|{0}| >> Skinning arcLen Curve: {1}".format(_str_func,mArcLenCurve))
@@ -1908,9 +1968,9 @@ def ribbon(jointList = None,
             mSkinCluster.doStore('cgmName', mArcLenCurve.mNode)
             mSkinCluster.doName()    
         
-            #Tighten the weights...
+
             RIGSKIN.curve_tightenEnds(mArcLenCurve.mNode,
-                                       hardLength = 2,
+                                       hardLength = _hardLength,
                                        blendLength=blendLength,
                                        mode=mode_tighten)
             
@@ -1930,7 +1990,7 @@ def ribbon(jointList = None,
         
             #Tighten the weights...
             RIGSKIN.surface_tightenEnds(mSurf.mNode,
-                                         hardLength = 2,
+                                        hardLength = _hardLength,
                                          blendLength=blendLength,
                                          mode=mode_tighten)
             

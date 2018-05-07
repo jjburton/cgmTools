@@ -90,7 +90,8 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
-                       'rig_pivotSetup',                       
+                       'rig_blendFrame',
+                       'rig_pivotSetup',
                        'rig_segments',
                        'rig_cleanUp']
 
@@ -3745,6 +3746,7 @@ def rig_segments(self):
         #mMasterCurve = res_segScale[1]
 
         _d_ribbonShare = {'connectBy':'constraint',
+                          'extendEnds':True,
                           'settingsControl':_settingsControl,
                           'moduleInstance':mModule}
         _d_ribbonShare.update(self.d_squashStretch)

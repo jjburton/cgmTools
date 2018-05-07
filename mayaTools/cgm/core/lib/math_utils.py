@@ -545,6 +545,10 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     if mode in ['midPeak','blendUpMid','midBlendDown']:
         idx_mid = get_midIndex(count)
         
+        if maxValue == minValue:
+            return [maxValue for i in range(count)]
+            
+        
         blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
         
         if is_even(count):
