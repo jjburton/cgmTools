@@ -48,7 +48,7 @@ reload(cgmDrag)
 #>>> Utilities
 #===================================================================
 @cgmGeneral.Timer
-def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fromTarget',name=None):
+def create(target = None, position = None, tag = True, setMatchTarget=True, pivot = 'rp', mode = 'fromTarget',name=None):
     """
     Return the short name of an object
 
@@ -63,6 +63,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
             closestTarget -- closest target from source
             rayCast -- create a rayCast locator. For more options, see LOCINATOR
             attachPoint -- Create a rayCast follicle, and parent your loc to that.
+        :setMatchTarget
     :returns
         short name(str)
     """   
@@ -123,7 +124,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 ATTR.store_info(_loc,'cgmName',coreNames.get_base(_target), attrType='string', lock = True)
                 ATTR.store_info(_loc,'cgmLocMode','fromTarget',lock = True)
                 ATTR.set_message(_loc, 'cgmLocSource',_target,'cgmLocDat')
-                if not VALID.is_component(_target):
+                if not VALID.is_component(_target) and setMatchTarget:
                     SNAP.matchTarget_set(_target,_loc)
                 #_d = r9Meta.MetaClass(_loc).cgmLocDat
                 
@@ -187,7 +188,7 @@ def create(target = None, position = None, tag = True, pivot = 'rp', mode = 'fro
                 ATTR.store_info(_loc,'cgmLocMode',mode,lock = True)
                 ATTR.msgList_connect(_loc, 'cgmLocSource',_targets, dataAttr='cgmLocDat')
                 
-                if not VALID.is_component(_targets[0]):
+                if not VALID.is_component(_targets[0]) and setMatchTarget:
                     SNAP.matchTarget_set(_targets[0],_loc)
 
                 return update(_loc)
