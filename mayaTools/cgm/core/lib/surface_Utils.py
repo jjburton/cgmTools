@@ -32,6 +32,11 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.shape_utils as SHAPES
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.list_utils as LISTS
+import cgm.core.lib.rigging_utils as CORERIG
+import cgm.core.lib.curve_Utils as CURVES
 
 import cgm.core.lib.shared_data as SHARED
 reload(SHARED)
@@ -52,6 +57,159 @@ from cgm.lib import (distance,
 
 #>>> Utilities
 #===================================================================   
+def get_splitValues(surface = None, values = [], mode='u', 
+                    insertMin=False, 
+                    insertMax = False, 
+                    preInset = None, 
+                    postInset = None,
+                    offset = None,
+                    curvesCreate = False,
+                    curvesConnect = False,
+                    connectionPoints=9):
+    """
+    Function to split a curve up u positionally 
+    
+    :parameters:
+        'curve'(None)  -- Curve to split
+        
+        
+        curvesCreate(bool) - create new curves from the new values
+        curvesConnect(bool) - whether to connect the first and last curves
+        connectionPoints(int) - how many points of connection to use
+    :returns
+        list of values(list)
+        
+    hat tip: http://ewertb.soundlinker.com/mel/mel.074.php
+    """
+    _str_func = 'get_dat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    _shape = SHAPES.get_nonintermediate(surface)
+    if mode == 'u':
+        l_base = get_dat(_shape, uKnots=True)['uKnots']
+        minKnot = ATTR.get(_shape,'minValueU')
+        maxKnot = ATTR.get(_shape,'maxValueU')
+    else:
+        l_base = get_dat(_shape, vKnots=True)['vKnots']
+        minKnot = ATTR.get(_shape,'minValueV')
+        maxKnot = ATTR.get(_shape,'maxValueV')
+        
+    l_sets = []
+    
+    for i,v in enumerate(values):
+        _last = False
+        if v == values[-1]:
+            _last = True
+        if preInset:
+            v+=preInset
+        _l = [v]
+    
+        for knot in l_base:
+            if knot > v:
+                if v == values[-1]:
+                    if knot < maxKnot:
+                        _l.append(knot)
+                elif _last != True and knot < values[i+1]:
+                    _l.append(knot)
+    
+        if _last and insertMax:
+            _l.append(maxKnot)
+            
+        if not _last:
+            _l.append(values[i+1])
+    
+        if insertMin and i == 0:
+            _l.insert(0,minKnot)
+    
+        if postInset:
+            
+            v =  _l[-1] + postInset
+            log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],v))
+            
+            if v > max(_l[:-1]):
+                _l[-1] = v
+            else:
+                _l = _l[:-1]
+            
+        
+        _l = LISTS.get_noDuplicates(_l)
+        _l.sort()
+        l_sets.append(_l)                        
+    
+    l_pre = copy.copy(l_sets)
+    #pprint.pprint(vars())
+    
+    if not curvesCreate:
+        return l_sets
+    
+    
+    log.debug("|{0}| >>  creating curves...".format(_str_func))
+    
+    l_newCurves = []
+    d_curves = {}
+    l_finalCurves = []
+    
+    
+    
+    def getCurve(uValue,l_newCurves):
+        _crv = d_curves.get(uValue)
+        if _crv:return _crv
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_shape,uValue), ch = 0, rn = 0, local = 0)[0]
+        if offset:
+            DIST.offsetShape_byVector(_crv,offset,component='cv')
+        d_curves[uValue] = _crv
+        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
+        l_newCurves.append(_crv)
+        return _crv
+
+    for i,uSet in enumerate(l_sets):
+        _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
+        
+        if len(uSet)<2:
+            l_finalCurves.append(mc.duplicate(_loftCurves[0])[0])
+            continue
+        
+        log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+        """
+                            if i == 0 and str_start:
+                                _pair = [str_start,c,l_newCurves[i+1]]
+                            else:
+                                _pair = [c,l_newCurves[i+1]]"""
+
+
+        crvBase = mc.duplicate(_loftCurves[0])[0]
+        crvEnd = mc.duplicate(_loftCurves[-1])[0]
+
+        l_mainCurves = [crvBase,crvEnd]
+        
+        if curvesConnect:
+            log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
+            d_epPos = {}
+    
+            for i,crv in enumerate(_loftCurves):
+                _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
+    
+                for ii,p in enumerate(_l):
+                    if not d_epPos.get(ii):
+                        d_epPos[ii] = []
+                    _l = d_epPos[ii]
+                    _l.append(p)
+    
+            for k,points in d_epPos.iteritems():
+                crv_connect = CURVES.create_fromList(posList=points)
+                l_mainCurves.append(crv_connect)
+
+        for crv in l_mainCurves[1:]:
+            CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
+
+        #ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                        
+        l_finalCurves.append(l_mainCurves[0])
+
+        
+    mc.delete(l_newCurves)    
+    return l_finalCurves
+
+
+
 def get_dat(surface = None, uKnots = True, vKnots = True):
     """
     Function to split a curve up u positionally 

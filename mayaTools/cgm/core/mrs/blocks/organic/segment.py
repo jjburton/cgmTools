@@ -95,7 +95,7 @@ __sizeMode__ = 'castNames'
 
 #__baseSize__ = 1,1,10
 
-__l_rigBuildOrder__ = ['rig_prechecks',
+__l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_skeleton',
                        'rig_shapes',
                        'rig_controls',
@@ -157,7 +157,7 @@ d_block_profiles = {
             'baseUp':[0,1,0],
             'baseSize':[2,8,2]},
     
-    'spine':{'numShapers':6,
+    'spine':{'numShapers':8,
              'addCog':True,
              'loftSetup':'default',
              'loftShape':'square',
@@ -1204,10 +1204,35 @@ d_preferredAngles = {}
 d_rotateOrders = {'default':'yxz'}
 
 #Rig build stuff goes through the rig build factory --------------------------------------------
+
 @cgmGEN.Timer
 def rig_prechecks(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_prechecks'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    mBlock = self.mBlock
+    mModule = self.mModule
+    mRigNull = self.mRigNull
+    mPrerigNull = mBlock.prerigNull
+    ml_templateHandles = mBlock.msgList_get('templateHandles')
+    ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
+    mMasterNull = self.d_module['mMasterNull']
+    
+    
+    #Lever ============================================================================    
+    _b_lever = False
+    log.debug(cgmGEN._str_subLine)
+    
+    if mBlock.scaleSetup:
+        raise NotImplementedError,"scaleSetup not ready."
+
+
+@cgmGEN.Timer
+def rig_dataBuffer(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_dataBuffer'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
@@ -2198,9 +2223,11 @@ def rig_segments(self):
     _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
           'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
           'connectBy':'constraint',
+          'extendEnds':True,
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
+          'attachEndsToInfluences':True,
           'moduleInstance':mModule}
     
     _d.update(self.d_squashStretch)
@@ -2991,6 +3018,7 @@ def rig_frame(self):
                 
                 for mJnt in ml_ikJoints[1:]:
                     mJnt.p_parent = mIKGroup
+                    mJnt.segmentScaleCompensate = False
                     
                 for mJnt in ml_blendJoints:
                     mJnt.segmentScaleCompensate = False

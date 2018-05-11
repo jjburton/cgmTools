@@ -888,6 +888,7 @@ def ribbon(jointList = None,
            #extendTwistToEnd = False,
            #reorient = False,
            influences = None,
+           attachEndsToInfluences = False,
            moduleInstance = None,
            parentGutsTo = None):
 
@@ -951,6 +952,8 @@ def ribbon(jointList = None,
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
         
         influences(joints - None) | List or metalist of joints to skin our objects to
+        attachEndsToInfluences(bool) - Connect the first and last joint to the influence 0,-1. Still use scale setup.
+        
         moduleInstance(cgmModule - None) | cgmModule to use for connecting on build
         extendTwistToEnd(bool - False) | Whether to extned the twist to the end by default
 
@@ -1203,6 +1206,14 @@ def ribbon(jointList = None,
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
     else:
         mSettings = mControlSurface
+        
+    b_attachToInfluences = False
+    if attachEndsToInfluences:
+        log.debug("|{0}| >> attachEndsToInfluences flag. Checking...".format(_str_func))
+        if influences and len(influences) > 1:
+            b_attachToInfluences = True
+        log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
+        
     
     #>>> Follicles ===========================================================================================        
     log.debug("|{0}| >> Follicles...".format(_str_func)+cgmGEN._str_subLine)
@@ -1223,6 +1234,7 @@ def ribbon(jointList = None,
     
     range_joints = range(len(ml_joints))
     l_firstLastIndices = [range_joints[0],range_joints[-1]]
+    
     
     for i,mJnt in enumerate(ml_joints):
         log.debug("|{0}| >> On: {1}".format(_str_func,mJnt))        
@@ -1283,7 +1295,14 @@ def ribbon(jointList = None,
                 ml_upTargets.append(mUpDriver)
                 
         #Simple contrain
-        mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+        if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
+            if mJnt == ml_joints[0]:
+                mUse = ml_influences[0]
+            else:
+                mUse = ml_influences[-1]
+            mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+        else:
+            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
         
     if extendEnds:
         maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
@@ -1952,7 +1971,7 @@ def ribbon(jointList = None,
         #Tighten the weights...
         _hardLength = 2
         if extendEnds:
-            _hardLength = 4
+            _hardLength +=3
             
         if mArcLenCurve:
             log.debug("|{0}| >> Skinning arcLen Curve: {1}".format(_str_func,mArcLenCurve))

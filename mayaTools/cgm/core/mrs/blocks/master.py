@@ -406,6 +406,7 @@ def rig_cleanUp(self):
     #ml_dynParents.append(mMasterGroup)
 
     #Add our parents
+    mPuppet = mBlock.moduleTarget
  
     
     
@@ -415,7 +416,6 @@ def rig_cleanUp(self):
             skeleton_build(mBlock)
         
         mRootMotionHelper = mBlock.rootMotionHelper
-        mPuppet = mBlock.moduleTarget
         mMasterNull = mPuppet.masterNull
         
         #Make joint =================================================================

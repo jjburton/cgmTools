@@ -110,10 +110,12 @@ d_build_profiles = {
                    },
     'unityPC':{'default':{'numRoll':3,
                           },
-               'spine':{'numRoll':4,
+               'spine':{'numRoll':7,
                        }},
-    'feature':{'default':{'numRoll':5,
-                          }}}
+    'feature':{'default':{'numRoll':3,
+                          },
+               'leg':{'hasBallJoint':True,
+                      'hasEndJoint':True,}}}
 
 d_block_profiles = {
     'leg':{'numShapers':2,
@@ -126,14 +128,15 @@ d_block_profiles = {
            'ikSetup':'rp',
            'ikEnd':'foot',
            'numControls':3,
-           'mainRotAxis':'out',               
+           'numShapers':3,
+           'mainRotAxis':'out',
            'buildBaseLever':False,
            'hasLeverJoint':False,
            'hasEndJoint':True,
            'nameList':['hip','knee','ankle','ball','toe'],
-           'baseAim':[0,-1,0],
+           'baseAim':[90,0,0],
            'baseUp':[0,0,1],
-           'baseSize':[2,8,2]},
+           'baseSize':[11.6,8,79]},
     
     'arm':{'numShapers':2,
            'addCog':False,
@@ -144,6 +147,7 @@ d_block_profiles = {
            'settingsPlace':'end',
            'ikSetup':'rp',
            'ikEnd':'hand',
+           'numShapers':3,
            'mainRotAxis':'up',
            'numControls':3,
            'buildLeverBase':True,
@@ -277,7 +281,7 @@ d_defaultSettings = {'version':__version__,
                      'numRoll':1,
                      'proxyDirect':True,
                      'nameList':['',''],
-                     'blockProfile':'leg_bi',
+                     'blockProfile':'leg',
                      'attachPoint':'base',
                      
                      'buildSpacePivots':True,
@@ -321,13 +325,17 @@ def define(self):
             log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
             mc.delete(defineNull)
     
-    _size = MATH.average(self.baseSize[1:])
-    _crv = CURVES.create_controlCurve(self.mNode, shape='arrowsAxis',#'arrowsAxis', 
-                                      direction = 'z+', sizeMode = 'fixed', size = _size/2)
+    _size = MATH.average(self.baseSize[:-1])
+    _crv = CURVES.create_fromName(name='axis3d',#'arrowsAxis', 
+                                  direction = 'z+', size = _size/2.5)
+    SNAP.go(_crv,self.mNode,)    
     CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     
     mHandleFactory = self.asHandleFactory()
-    mHandleFactory.color(self.mNode,controlType='main')
+    self.addAttr('cgmColorLock',True,lock=True,visible=False)
+    #self.addAttr('cgmNoRecolor',True,lock=True,visible=False)
+    
+    #mHandleFactory.color(self.mNode,controlType='main')
     #CORERIG.colorControl(self.mNode,_side,'main',transparent = True)
     
     mDefineNull = self.atUtils('stateNull_verify','define')
@@ -908,7 +916,7 @@ def template(self):
             ml_shapers = [ml_handlesToShaper[0]]
                 
             ml_pairs = LISTS.get_listPairs(ml_handlesToShaper)
-            pprint.pprint(ml_pairs)
+            #pprint.pprint(ml_pairs)
             
             
             for i,mPair in enumerate(ml_pairs):
@@ -1028,7 +1036,8 @@ def template(self):
             
                     #Convert to loft curve setup ----------------------------------------------------
                     mHandleFactory = self.asHandleFactory(mHandle.mNode)
-                    mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
+                    #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
+                    mHandle.doStore('loftCurve',mHandle.mNode)
             
             
                     CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -1609,6 +1618,7 @@ def rig_dataBuffer(self):
     #Lever ============================================================================    
     _b_lever = False
     self.b_leverJoint = False
+    ml_templateHandlesUse = copy.copy(ml_templateHandles)
     if mBlock.buildLeverBase:
         _b_lever = True        
         if mBlock.hasLeverJoint:
@@ -1616,10 +1626,17 @@ def rig_dataBuffer(self):
         else:
             log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
         self.mRootTemplateHandle = ml_templateHandles[1]
+        ml_templateHandlesUse = ml_templateHandlesUse[1:]
+    self.int_templateHandleMidIdx = MATH.get_midIndex(len(ml_templateHandlesUse))
+    self.mMidTemplateHandle = ml_templateHandles[self.int_templateHandleMidIdx]
+
         
     self.b_lever = _b_lever
     log.debug("|{0}| >> Lever: {1}".format(_str_func,self.b_lever))    
-    log.debug("|{0}| >> self.mRootTemplateHandle : {1}".format(_str_func,self.mRootTemplateHandle))    
+    log.debug("|{0}| >> self.mRootTemplateHandle : {1}".format(_str_func,self.mRootTemplateHandle))
+    log.debug("|{0}| >> self.mMidTemplateHandle : {1}".format(_str_func,self.mMidTemplateHandle))    
+    log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1}".format(_str_func,self.int_templateHandleMidIdx))
+    
     
     #Pivot checks ============================================================================
     mPivotHolderHandle = ml_templateHandles[-1]
@@ -1788,11 +1805,10 @@ def rig_dataBuffer(self):
         mid=0
         mMidHandle = ml_use[0]
     else:
-        mid = int((len(ml_use))/2)
+        mid = MATH.get_midIndex(len(ml_use))
         mMidHandle = ml_use[mid]
     self.int_handleMidIdx = mid
     
-    self.int_templateHandleMidIdx = mid
     
     #if self.b_lever:
         #log.debug("|{0}| >> lever pop...".format(_str_func))        
@@ -1806,10 +1822,8 @@ def rig_dataBuffer(self):
                                                                          ml_handleJoints[self.int_handleMidIdx]))    
     log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
                                                                          ml_handleJoints[self.int_handleEndIdx]))
-    log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1} | {2}".format(_str_func,self.int_templateHandleMidIdx,
-                                                                         ml_templateHandles[self.int_templateHandleMidIdx]))
-        
-
+    
+    
     if self.int_handleEndIdx ==  -1:
         self.ml_handleTargetsCulled = copy.copy(ml_handleJoints)
     else:
@@ -3003,9 +3017,8 @@ def rig_shapes(self):
             
             #Mid IK...---------------------------------------------------------------------------------
             log.debug("|{0}| >> midIK...".format(_str_func))
-            mKnee = ml_templateHandles[self.int_templateHandleMidIdx].doCreateAt(setClass=True)
-            size_knee =  POS.get_bb_size(ml_templateHandles[self.int_templateHandleMidIdx].mNode)
-    
+            mKnee = self.mMidTemplateHandle.doCreateAt(setClass=True)
+            size_knee =  POS.get_bb_size(self.mMidTemplateHandle.mNode,True)
             crv = CURVES.create_controlCurve(mKnee, shape='sphere',
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
@@ -3019,7 +3032,7 @@ def rig_shapes(self):
     
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
             #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
-            mHandleFactory.color(mKnee.mNode, controlType = 'sub')
+            mHandleFactory.color(mKnee.mNode, controlType = 'main')
     
             mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
             mKnee.doStore('cgmAlias','midIK')            
@@ -3032,7 +3045,7 @@ def rig_shapes(self):
             #Base IK...---------------------------------------------------------------------------------
             log.debug("|{0}| >> baseIK...".format(_str_func))
             
-            mIK_templateHandle = ml_templateHandles[ 0 ]
+            mIK_templateHandle = self.mRootTemplateHandle
             bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
             ATTR.set(_ik_shape,'scale', 1.1)
@@ -3093,9 +3106,9 @@ def rig_shapes(self):
             if self.b_lever:
                 idx = 1
             mLimbRootHandle = ml_prerigHandles[idx]
-            mLimbRoot = ml_fkJoints[idx].doCreateAt()
+            mLimbRoot = ml_fkJoints[0].doCreateAt()
         
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode)) * 1.25
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mLimbRootHandle)
         
@@ -3358,8 +3371,8 @@ def rig_shapes(self):
                 
             else:
                 mHandleFactory.color(mShape.mNode, controlType = 'main')
-                if _ikDefault:
-                    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
+                #if _ikDefault:
+                #    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
                 CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
 
         for mShape in ml_fkShapes:
@@ -3469,8 +3482,8 @@ def rig_controls(self):
         ml_controlsAll.append(mLimbRoot)
     
     
-        #for mShape in mLimbRoot.getShapes(asMeta=True):
-            #ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))        
+        for mShape in mLimbRoot.getShapes(asMeta=True):
+            ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))        
         log.debug(cgmGEN._str_subLine)
 
 
@@ -3776,8 +3789,8 @@ def rig_segments(self):
                 log.debug("|{0}| >> Handle: {1} | {2}".format(_str_func,mSegHandle.p_nameShort, ii))            
                 mParent = mSegHandle.getParent(asMeta=1)
                 idx_parent = ml_handleJoints.index(mParent)
-                mBlendParent = mParent.masterGroup.getParent(asMeta=True)
-                
+                #mBlendParent = mParent.masterGroup.getParent(asMeta=True)
+                mBlendParent = ml_blendJoints[idx_parent]
                 if mParent == ml_handleJoints[0]:
                     #First handle ================================================================
                     log.debug("|{0}| >> First handle...".format(_str_func))
@@ -3862,6 +3875,8 @@ def rig_segments(self):
                     log.debug("|{0}| >> Last handles...".format(_str_func))
                     _aimBack = ml_handleJoints[idx_parent-1].p_nameShort
                     
+                    mBlendParentsParent = ml_blendJoints[idx_parent-1]
+                    
                     mFollow = mSegHandle.doCreateAt()
                     mFollow.p_parent = mBlendParent
                     mFollow.doStore('cgmName',mSegHandle.mNode)                
@@ -3878,7 +3893,7 @@ def rig_segments(self):
                     
                     log.debug("|{0}| >> Stable up...".format(_str_func))
                     mStableUp = mBlendParent.doCreateAt()
-                    mStableUp.p_parent = mBlendParent.p_parent
+                    mStableUp.p_parent = mBlendParent.mNode
                     mStableUp.doStore('cgmName',mSegHandle.mNode)                
                     mStableUp.doStore('cgmTypeModifier','stableEnd')
                     mStableUp.doStore('cgmType','upObj')
@@ -3887,8 +3902,13 @@ def rig_segments(self):
                     
                     mc.orientConstraint(mBlendParent.mNode, mStableUp.mNode,
                                         maintainOffset = True,
-                                        skip = [_jointOrientation[2], _jointOrientation[1]])                    
-                
+                                        skip = [_jointOrientation[2], _jointOrientation[1]])
+                    
+                    #mc.pointConstraint(mBlendParent.mNode,mStableUp.mNode)
+                    mConstrain = mStableUp.doGroup(True,asMeta=True,typeModifier = 'orient')
+                    mc.orientConstraint(mBlendParentsParent.mNode, mConstrain.mNode,
+                                        maintainOffset = True)
+                    
                     mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                      aimVector = [0,0,-1], upVector = self.v_twistUp,#[-1,0,0], 
                                      worldUpObject = mStableUp.mNode,
@@ -3916,6 +3936,7 @@ def rig_segments(self):
                     d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
                     d_blendReturn['d_result1']['mi_plug'].p_hidden = True
                     d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+                    
                     
                     
                 else:
@@ -5521,7 +5542,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mMeshHeel = mMesh.doDuplicate(po=False)
                 
                 #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-                heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
+                heel = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
                 
 
                 #Add a ankleball ------------------------------------------------------------------------
@@ -5554,7 +5575,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     
                     
@@ -5569,7 +5590,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mPlane.doSnapTo(mToe.mNode,rotation=False)
                     mMeshBallDup = mMeshBall.doDuplicate(po=False)
                     #mc.select(cl=1)
-                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
+                    ball2 = mel.eval('polyCBoolOp -op 2-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
                     mMeshBall.delete()
                     mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
                     
@@ -5583,7 +5604,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshToe = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
+                    toe = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
                     mMeshToe = cgmMeta.validateObjArg(toe[0])
                     
                     
@@ -5602,14 +5623,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     ml_segProxy.append(mMeshBall)
                     ml_rigJoints.append(mBall)                    
                     
                 #mMesh.p_parent=False
                 mMesh.delete()
-                
+    
     if directProxy:
         log.debug("|{0}| >> directProxy... ".format(_str_func))
         _settings = self.mRigNull.settings.mNode

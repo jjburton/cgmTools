@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -549,6 +549,9 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         return mTarget
     
 def get_driverPoint(self, mode = 'end',noneValid = True):
+    """
+    Get the main driver point for a 
+    """
     _str_func = 'get_driverPoint'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
@@ -567,7 +570,7 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
-        for plug in ['blendJoints','fkJoints','moduleJoints']:
+        for plug in ['rigJoints','blendJoints','fkJoints','moduleJoints']:
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))
@@ -586,6 +589,9 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
                 return log.error(_msg)
             raise ValueError,_msg
         
+        if mTarget.getMessage('masterGroup'):
+            log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
+            return mTarget.masterGroup
         if mTarget.getMessage('dynParentGroup'):
             log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
             mDynParentGroup = mTarget.dynParentGroup

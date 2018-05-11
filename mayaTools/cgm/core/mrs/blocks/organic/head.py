@@ -219,12 +219,14 @@ def define(self):
             mc.delete(defineNull)
     
     _size = MATH.average(self.baseSize[1:])
-    _crv = CURVES.create_controlCurve(self.mNode, shape='locatorForm',#'arrowsAxis', 
-                                      direction = 'z+', sizeMode = 'fixed', size = _size/6)
+    _crv = CURVES.create_fromName(name='axis3d',#'arrowsAxis', 
+                                  direction = 'z+', size = _size/4)
+    SNAP.go(_crv,self.mNode,)    
     CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     
     mHandleFactory = self.asHandleFactory()
-    mHandleFactory.color(self.mNode,controlType='main')
+    self.addAttr('cgmColorLock',True,lock=True,visible=False)
+    #mHandleFactory.color(self.mNode,controlType='main')
     mDefineNull = self.atUtils('stateNull_verify','define')
     
     #Rotate Group ==================================================================

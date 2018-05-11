@@ -1153,6 +1153,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                     #...Get our uValues...
                     l_uValues = []
+                    #l_sets = []
+                    
+                    
                     for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
                         _d = RAYS.cast(str_meshShape, _short, str_aim)
@@ -1163,64 +1166,23 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
                             _v = l_failSafes[i]
                         l_uValues.append( _v )
-                        
-                    #l_uValues.append( l_uValues[-1] + (maxU - l_uValues[-1])/2 )
-                    l_uValues.append(maxU)
-                
-                    ml_shapes = []
-                    _add = f_factor
                     
-                    for i,v in enumerate(l_uValues[:-1]):
-                        l_mainCurves = []
-                        log.debug("|{0}| >> {1} | {2} ...".format(_str_func,i,v))
+                    
+                    l_curves = SURF.get_splitValues(str_meshShape,
+                                                    l_uValues,
+                                                    mode='u',
+                                                    insertMax=True,
+                                                    preInset = f_factor,
+                                                    postInset = -f_factor,
+                                                    curvesCreate=True,
+                                                    curvesConnect=True,
+                                                    connectionPoints=connectionPoints,
+                                                    offset=offset)
+                    
                         
-                        if v == l_uValues[-2]:
-                            log.debug("|{0}| >> {1} | Last one...".format(_str_func,i))
-                            _add = 0
-
-                        baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+_add), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
-                        l_mainCurves.append(baseCrv)
-                        
-                        endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,l_uValues[i+1]-_add), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(endCrv,offset,component='cv')
-                        
-                        l_mainCurves.append(endCrv)
-                        
-                        
-                        log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
-                        d_epPos = {}
-                        
-                        for i,crv in enumerate(l_mainCurves):
-                            mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                            _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
-                            
-                            for ii,p in enumerate(_l):
-                                if not d_epPos.get(ii):
-                                    d_epPos[ii] = []
-                                _l = d_epPos[ii]
-                                _l.append(p)
-
-                        
-                        """
-                        for i,crv in enumerate(l_mainCurves):
-                            mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                            for ii,ep in enumerate(mCrv.getComponents('ep',True)):
-                                if not d_epPos.get(ii):
-                                    d_epPos[ii] = []
-                                    
-                                _l = d_epPos[ii]
-                                _l.append(POS.get(ep))"""
-                                
-                        for k,points in d_epPos.iteritems():
-                            crv_connect = CURVES.create_fromList(posList=points)
-                            l_mainCurves.append(crv_connect)
-                            
-                        for crv in l_mainCurves[1:]:
-                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
-                            
-                        ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                    
-                                        
+                    ml_shapes = cgmMeta.validateObjListArg(l_curves)
+                     
+                    
                 elif mode == 'limbHandle':#================================================================
                     if targets:
                         ml_fkJoints = ml_targets
