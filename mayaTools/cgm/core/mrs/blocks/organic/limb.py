@@ -153,6 +153,7 @@ d_block_profiles = {
            'buildLeverBase':True,
            'hasLeverJoint':True,
            'hasEndJoint':True,
+           'rigSetup':'arm',
            'nameList':['clav','shoulder','elbow','wrist'],
            'baseAim':[-1,0,0],
            'baseUp':[0,1,0],
@@ -247,7 +248,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'blockProfile':':'.join(d_block_profiles.keys()),
-                 'rigSetup':'default:digit',#...this is to account for some different kinds of setup
+                 'rigSetup':'default:arm:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
@@ -1615,6 +1616,9 @@ def rig_dataBuffer(self):
     #if mBlock.ikSetup >=1:
         #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
         
+        
+    self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
+
     #Lever ============================================================================    
     _b_lever = False
     self.b_leverJoint = False
@@ -1713,14 +1717,13 @@ def rig_dataBuffer(self):
     
     #Squash stretch logic  =================================================================================
     log.debug("|{0}| >> Squash stretch..".format(_str_func))
+    self.b_scaleSetup = mBlock.scaleSetup
+    self.b_squashSetup = False
     
     if not self.md_roll:
         log.debug("|{0}| >> No roll joints found for squash and stretch to happen".format(_str_func))
         
     else:
-        self.b_scaleSetup = mBlock.scaleSetup
-        
-        self.b_squashSetup = False
         
         self.d_squashStretch = {}
         self.d_squashStretchIK = {}
@@ -2519,7 +2522,36 @@ def rig_digitShapes(self):
             mKnee.doName()
     
             self.mRigNull.connectChildNode(mKnee,'controlIKMid','rigNull')#Connect
+            
+            #Base IK...---------------------------------------------------------------------------------
+            log.debug("|{0}| >> baseIK...".format(_str_func))
         
+            mIK_templateHandle = self.mRootTemplateHandle
+            bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
+            ATTR.set(_ik_shape,'scale', 1.1)
+        
+            mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+        
+            mIKBaseShape.doSnapTo(mIK_templateHandle)
+            #pos_ik = POS.get_bb_center(mProxyHelper.mNode)
+            #SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,
+            #                                   'axisBox','z+',False)                
+        
+            #mIKBaseShape.p_position = pos_ik
+            mIKBaseCrv = ml_ikJoints[0].doCreateAt()
+            mIKBaseCrv.doCopyNameTagsFromObject(ml_fkJoints[0].mNode,ignore=['cgmType'])
+            CORERIG.shapeParent_in_place(mIKBaseCrv.mNode, mIKBaseShape.mNode, False)                            
+        
+            mIKBaseCrv.doStore('cgmTypeModifier','ikBase')
+            mIKBaseCrv.doName()
+        
+            mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
+        
+        
+            #CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
+            mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
+            self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect       
         #Cog =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -2860,7 +2892,6 @@ def rig_shapes(self):
         mBlock = self.mBlock
         
         str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
-        
         if str_rigSetup == 'digit':
             return rig_digitShapes(self)
         
@@ -4583,6 +4614,27 @@ def rig_frame(self):
                 #if mIKBaseControl:
                     #mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
                     
+                
+                #Make a spin group
+                mSpinGroup = mStart.doGroup(False,False,asMeta=True)
+                mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
+                mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
+                mSpinGroup.doName()
+                ATTR.set(mSpinGroup.mNode, 'rotateOrder', _jointOrientation)
+                
+                mSpinGroup.parent = mIKGroup
+                mSpinGroup.doGroup(True,True,typeModifier='zero')
+            
+                #Setup arg
+                #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
+                #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
+                
+                mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mIKControl.mNode,
+                                 worldUpType = 'objectrotation', 
+                                 worldUpVector = self.v_twistUp)
+                
                     
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
@@ -4598,8 +4650,9 @@ def rig_frame(self):
                     l_midDrivers = [mRoot.mNode, mIKHandleDriver.mNode]
                     
                 mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
-                mMidControlDriver.parent = mIKGroup
+                mMidControlDriver.parent = mSpinGroup#mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
+                
                 
                 #Mid IK trace
                 log.debug("|{0}| >> midIK track Crv".format(_str_func, mIKMid))
@@ -5249,7 +5302,7 @@ def rig_cleanUp(self):
         mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
         if mPivotResultDriver:
             mPivotResultDriver = mPivotResultDriver[0]
-        ml_targetDynParents = [mPivotResultDriver,mControlIK,mParent]
+        ml_targetDynParents = [mParent,mPivotResultDriver,mControlIK]
         
         ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
         #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
