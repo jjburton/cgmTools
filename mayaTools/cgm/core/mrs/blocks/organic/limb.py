@@ -2076,8 +2076,9 @@ def rig_skeleton(self):
                                                                         [ml_set[0],ml_set[-1]], None, 
                                                                         mRigNull,
                                                                         'segmentHandles_{0}'.format(i),
-                                                                        connectToSource = 'segHandle_{0}_'.format(i),
+                                                                        connectToSource = 'segHandle_{0}'.format(i),
                                                                         cgmType = 'segHandle')
+
             ml_jointsToConnect.extend(ml_segmentHandles)
             
             self.md_segHandles[i] = ml_segmentHandles
@@ -2094,12 +2095,28 @@ def rig_skeleton(self):
                     mJnt.parent = ml_fkJointsToUse[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
                     
             
+            if mBlock.segmentMidIKControl:
+                ml_segmentMidHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                            [ml_set[0],ml_set[-1]], None, 
+                                                                            mRigNull,
+                                                                            'segmentMidHandles_{0}'.format(i),
+                                                                            connectToSource = 'segMidHandle_{0}'.format(i),
+                                                                            cgmType = 'segHandle')
+                ml_jointsToConnect.extend(ml_segmentMidHandles)
+                
+                for ii,mJnt in enumerate(ml_segmentMidHandles):
+                    mJnt.doStore('cgmTypeModifier',"segMid_{0}".format(i))
+                    mJnt.doName()
+                    mJnt.p_parent = ml_segmentHandles[i].p_parent
+                    
+                
+                
             #Seg chain -------------------------------------------------------------------------------------
             log.debug("|{0}| >> SegChain {1} ...".format(_str_func, i))
             ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_set, None, 
                                                                       mRigNull,'segJoints_{0}'.format(i),
-                                                                      connectToSource = 'seg_{0}_'.format(i),
+                                                                      connectToSource = 'seg_{0}'.format(i),
                                                                       cgmType = 'segJnt')
             
             for mJnt in ml_segmentChain:
@@ -3804,6 +3821,9 @@ def rig_segments(self):
             log.debug("|{0}| >> Segment {1}".format(_str_func,i))
             
             ml_segHandles = mRigNull.msgList_get('segmentHandles_{0}'.format(i))
+            ml_segMidHandles = mRigNull.msgList_get('segmentMidHandles_{0}'.format(i))
+            mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
+            
             log.debug("|{0}| >> Segment handles...".format(_str_func,i))
             pprint.pprint(ml_segHandles)
             
@@ -3813,6 +3833,11 @@ def rig_segments(self):
             
             for mJnt in ml_segHandles:
                 mJnt.segmentScaleCompensate = False
+                
+            if ml_segMidHandles:
+                for iii,mJnt in enumerate(ml_segMidHandles):
+                    mJnt.segmentScaleCompensate = False
+                    mJnt.p_parent = ml_segHandles[iii].p_parent
             
             #Setup the aim blends ---------------------------------------------------------
             log.debug("|{0}| >> Aim segmentHandles: {1}".format(_str_func,i))            
@@ -3899,7 +3924,13 @@ def rig_segments(self):
                     d_blendReturn['d_result2']['mi_plug'].p_hidden = True
                     
                     
-                    
+                    if ml_segMidHandles:
+                        mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
+                                         maintainOffset = True,
+                                         aimVector = [0,0,1], upVector = [0,1,0], 
+                                         worldUpObject = mSegHandle.mNode,
+                                         worldUpType = 'objectrotation', 
+                                         worldUpVector = [0,1,0])
                     
                     
                 elif mParent == ml_handleJoints[-1]:
@@ -3969,6 +4000,13 @@ def rig_segments(self):
                     d_blendReturn['d_result2']['mi_plug'].p_hidden = True
                     
                     
+                    if ml_segMidHandles:
+                        mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
+                                         maintainOffset = True,
+                                         aimVector = [0,0,-1], upVector = self.v_twistUp,#[-1,0,0], 
+                                         worldUpObject = mSegHandle.mNode,
+                                         worldUpType = 'objectrotation', 
+                                         worldUpVector = self.v_twistUp)#[-1,0,0])
                     
                 else:
                     _aimForward = ml_handleJoints[idx_parent+1].p_nameShort
@@ -4029,9 +4067,21 @@ def rig_segments(self):
                     #    mHandle.followRoot = 1
                     #else:
                     #    mHandle.followRoot = .5                    
-        
             
-            
+                    if ml_segMidHandles:
+                        #mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
+                        _d = {'worldUpObject' : mParent.mNode,
+                              'worldUpType' : 'objectrotation',
+                              'upVector':[0,1,0],
+                              'worldUpVector' : self.v_twistUp}
+                        
+                        if ii == 0:
+                            _d['aimVector'] = [0,0,1]
+                        else:
+                            _d['aimVector'] = [0,0,-1]
+                        
+                        mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
+                                         maintainOffset = True,**_d)
             
             #Seg handles -------------------------------------------------------------------
             ml_segJoints = mRigNull.msgList_get('segJoints_{0}'.format(i))
@@ -4044,11 +4094,13 @@ def rig_segments(self):
             
             
             ml_influences = []
-            ml_influences.extend(ml_segHandles)
+            if ml_segMidHandles:
+                ml_influences.extend(ml_segMidHandles)
+            else:
+                ml_influences.extend(ml_segHandles)
             
             
             #Mid Ik... --------------------------------------------------------------------------------------------            
-            mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
             if mControlMid:
                 log.debug("|{0}| >> Mid IK {1} setup...".format(_str_func,i))            
                 
