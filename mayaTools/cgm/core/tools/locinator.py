@@ -16,6 +16,7 @@ __version__ = '2.0.05312017'
 import copy
 import re
 import sys
+import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -106,6 +107,12 @@ def update_obj(obj = None, move = None, rotate = None, mode = 'self',**kws):
     
     if mode == 'self':
         return match(obj,move,rotate)    
+    elif mode == 'matchSource':
+        source = ATTR.get_message(obj,'cgmLocSource')
+        if not source:
+            raise ValueError,"No source found: {0}.cgmLocSource".format(obj)
+        log.info("|{0}| >> source {1}".format(_str_func,NAMES.get_short(source)))
+        SNAP.go(source[0],_obj,position=move,rotation=rotate)
     else:
         _target = ATTR.get_message(_obj,'cgmMatchTarget') or ATTR.get_message(_obj,'cgmLocSource')
         if _target:
@@ -116,7 +123,7 @@ def update_obj(obj = None, move = None, rotate = None, mode = 'self',**kws):
             return _res     
             
 
-def get_objDat(obj=None, report = False):
+def get_objDat(obj=None, mode = 'self', report = False):
     """
     Get info as to whether an object is updatable or is a loc.
     
@@ -131,24 +138,35 @@ def get_objDat(obj=None, report = False):
     
     _res = {'updateType':None}
     
-    _locMode = ATTR.get(obj,'cgmLocMode') or None
-    if _locMode:
-        _res['updateType'] = 'locUpdate'
-        _res['locMode'] = _locMode
-        _res['loc'] = obj
+    if mode == 'self':
+        _locMode = ATTR.get(obj,'cgmLocMode') or None
+        if _locMode:
+            _res['updateType'] = 'locUpdate'
+            _res['locMode'] = _locMode
+            _res['loc'] = obj
+            
+            _source = ATTR.get(obj,'cgmLocSource') or None
+            if _source:
+                _res['source'] = _source[0]
+            
+        elif mc.objExists(obj + '.cgmMatchTarget'):
+            _res['updateType'] = 'matchTarget'
+            _res['matchTarget'] = ATTR.get_message(obj, 'cgmMatchTarget','cgmMatchDat',0)
+            if not _res['matchTarget']:
+                log.error("|{0}| >> No matchTarget found on: {1}".format(_str_func,obj))        
+                return {}
+            _res['loc'] = _res['matchTarget'][0]
+            _res['source'] = obj
+    else:
+        if mc.objExists(obj + '.cgmLocSource'):
+            _res['updateType'] = 'matchSource'
+            _res['matchTarget'] = ATTR.get_message(obj, 'cgmLocSource','cgmMatchDat',0)
+            if not _res['matchTarget']:
+                log.error("|{0}| >> No matchTarget found on: {1}".format(_str_func,obj))        
+                return {}
+            _res['loc'] = obj
+            _res['source'] = _res['matchTarget'][0]
         
-        _source = ATTR.get(obj,'cgmLocSource') or None
-        if _source:
-            _res['source'] = _source[0]
-        
-    elif mc.objExists(obj + '.cgmMatchTarget'):
-        _res['updateType'] = 'matchTarget'
-        _res['matchTarget'] = ATTR.get_message(obj, 'cgmMatchTarget','cgmMatchDat',0)
-        if not _res['matchTarget']:
-            log.error("|{0}| >> No matchTarget found on: {1}".format(_str_func,obj))        
-            return {}
-        _res['loc'] = _res['matchTarget'][0]
-        _res['source'] = obj
     if not report:
         return _res
     
@@ -164,7 +182,8 @@ def get_objDat(obj=None, report = False):
         
 
 def bake_match(targets = None, move = True, rotate = True, boundingBox = False, pivot = 'rp',
-               timeMode = 'slider',timeRange = None, keysMode = 'loc', keysDirection = 'all'):
+               timeMode = 'slider',timeRange = None, keysMode = 'loc', keysDirection = 'all',
+               matchMode = 'self'):
     """
     Updates an tagged loc or matches a tagged object
     
@@ -189,7 +208,9 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
             :forward
             :back
         timeRange(list) -- [0,111] for example
-
+        matchMode - mode for update_obj call
+            self
+            matchSource
     :returns
         success(bool)
     """     
@@ -211,15 +232,24 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     
     #>>>Validate ==============================================================================================  
     for o in _targets:
-        _d = get_objDat(o)
-        if _d and _d.get('updateType'):
+        _d = {}
+        if matchMode == 'matchSource':
+            source = ATTR.get_message(o,'cgmLocSource')
+            if not source:
+                raise ValueError,"No source found: {0}.cgmLocSource".format(o)            
             _l_toDo.append(o)
+            _d['loc'] = o
+            _d['source'] = source[0]
             _d_toDo[o] = _d
+        else:
+            _d = get_objDat(o)
+            if _d and _d.get('updateType'):
+                _l_toDo.append(o)
+                _d_toDo[o] = _d
             
     if not _l_toDo:
         log.error("|{0}| >> No updatable targets found in: {1}".format(_str_func,_targets))        
         return False
-    
     
     #>>>Key data ==============================================================================================    
     _d_keyDat['currentTime'] = mc.currentTime(q=True)
@@ -342,10 +372,12 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         else: _d_keysOfTarget[o] = _keysAll
         
         
-        
-
         #Clear keys in range
-        mc.cutKey(o,animation = 'objects', time=(_start,_end+ 1),at= _attrs)
+        if matchMode in ['matchSource']:
+            mc.cutKey(_d['source'],animation = 'objects', time=(_start,_end+ 1),at= _attrs)
+        else:
+            mc.cutKey(o,animation = 'objects', time=(_start,_end+ 1),at= _attrs)
+            
     
     #Second for loop processes our keys so we can do it in one go...
     _keysToProcess = lists.returnListNoDuplicates(_keysToProcess)
@@ -373,9 +405,15 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
                     break
                 mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
             
-                try:update_obj(o,move,rotate)
-                except Exception,err:log.error(err)
-                mc.setKeyframe(o,time = f, at = _attrs)
+                if matchMode in ['matchSource']:
+                    try:update_obj(o,move,rotate,mode=matchMode)
+                    except Exception,err:log.error(err)
+                    mc.setKeyframe(_d['source'],time = f, at = _attrs)
+                    
+                else:
+                    try:update_obj(o,move,rotate,mode=matchMode)
+                    except Exception,err:log.error(err)
+                    mc.setKeyframe(o,time = f, at = _attrs)
          
 
     cgmUI.doEndMayaProgressBar(_progressBar)
