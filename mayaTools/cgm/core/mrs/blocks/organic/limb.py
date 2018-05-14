@@ -129,6 +129,7 @@ d_block_profiles = {
            'ikEnd':'foot',
            'numControls':3,
            'numShapers':3,
+           'ikRPAim':'default',           
            'mainRotAxis':'out',
            'buildBaseLever':False,
            'hasLeverJoint':False,
@@ -150,6 +151,7 @@ d_block_profiles = {
            'numShapers':3,
            'mainRotAxis':'up',
            'numControls':3,
+           'ikRPAim':'free',
            'buildLeverBase':True,
            'hasLeverJoint':True,
            'hasEndJoint':True,
@@ -170,6 +172,7 @@ d_block_profiles = {
               'ikEnd':'tipEnd',
               'numControls':4,
               'numRoll':0,
+              'ikRPAim':'default',              
               'rigSetup':'digit',
               'mainRotAxis':'out',                             
               'offsetMode':'proxyAverage',
@@ -193,6 +196,7 @@ d_block_profiles = {
              'ikEnd':'tipEnd',
              'numControls':4,
              'numRoll':0,
+             'ikRPAim':'default',
              'rigSetup':'digit',
              'mainRotAxis':'out',                            
              'offsetMode':'proxyAverage',
@@ -247,6 +251,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
+                 'ikRPAim':'default:free',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:arm:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
@@ -272,6 +277,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'ikRPAim':'default',
                      'settingsDirection':'up',
                      'numSpacePivots':2,
                      'settingsPlace':1,
@@ -3825,7 +3831,7 @@ def rig_segments(self):
             mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
             
             log.debug("|{0}| >> Segment handles...".format(_str_func,i))
-            pprint.pprint(ml_segHandles)
+            #pprint.pprint(ml_segHandles)
             
             #Parent these to their handles ------------------------------------------------
             ml_segHandles[0].parent = ml_handleJoints[i]
@@ -4086,12 +4092,11 @@ def rig_segments(self):
             #Seg handles -------------------------------------------------------------------
             ml_segJoints = mRigNull.msgList_get('segJoints_{0}'.format(i))
             log.debug("|{0}| >> Segment joints...".format(_str_func,i))
-            pprint.pprint(ml_segJoints)
+            #pprint.pprint(ml_segJoints)
             
             for mJnt in ml_segJoints:
                 mJnt.drawStyle = 2
                 ATTR.set(mJnt.mNode,'radius',0)
-            
             
             ml_influences = []
             if ml_segMidHandles:
@@ -4523,8 +4528,6 @@ def rig_frame(self):
             _end = ml_ikJoints[self.int_handleEndIdx].mNode
             
             
-
-            
             #>>> Setup a vis blend result
             mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
             mPlug_IKon = cgmMeta.cgmAttr(mSettings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
@@ -4581,6 +4584,11 @@ def rig_frame(self):
                 log.debug("|{0}| >> rp setup...".format(_str_func,_ikSetup))
                 mIKMid = mRigNull.controlIKMid
                 
+                #res_ikScale = self.UTILS.get_blockScale(self,'{0}_ikMeasure'.format(self.d_module['partName']))
+                #mPlug_masterScale = res_ikScale[0]
+                #mMasterCurve = res_ikScale[1]
+                #mMasterCurve.p_parent = mRoot
+                
                 ml_end_children = mEnd.getChildren(asMeta=True)
                 if ml_end_children:
                     for mChild in ml_end_children:
@@ -4588,7 +4596,7 @@ def rig_frame(self):
                 
                 #Build the IK ---------------------------------------------------------------------
                 reload(IK)
-                _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
+                _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,#mPlug_globalScale.p_combinedName,
                         'stretch':'translate',
                         'lockMid':True,
                         'rpHandle':mIKMid.mNode,
@@ -4681,11 +4689,16 @@ def rig_frame(self):
                 #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
                 #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
                 
-                mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
-                                 aimVector = [0,0,1], upVector = [0,1,0], 
-                                 worldUpObject = mIKControl.mNode,
-                                 worldUpType = 'objectrotation', 
-                                 worldUpVector = self.v_twistUp)
+                if mBlock.ikRPAim:
+                    mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpType = 'none')
+                else:
+                    mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpObject = mIKControl.mNode,
+                                     worldUpType = 'objectrotation', 
+                                     worldUpVector = self.v_twistUp)                    
                 
                     
                 #Mid IK driver -----------------------------------------------------------------------
