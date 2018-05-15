@@ -107,11 +107,11 @@ def update_obj(obj = None, move = None, rotate = None, mode = 'self',**kws):
     
     if mode == 'self':
         return match(obj,move,rotate)    
-    elif mode == 'matchSource':
+    elif mode == 'source':
         source = ATTR.get_message(obj,'cgmLocSource')
         if not source:
             raise ValueError,"No source found: {0}.cgmLocSource".format(obj)
-        log.info("|{0}| >> source {1}".format(_str_func,NAMES.get_short(source)))
+        log.debug("|{0}| >> source {1}".format(_str_func,NAMES.get_short(source)))
         SNAP.go(source[0],_obj,position=move,rotation=rotate)
     else:
         _target = ATTR.get_message(_obj,'cgmMatchTarget') or ATTR.get_message(_obj,'cgmLocSource')
@@ -159,7 +159,7 @@ def get_objDat(obj=None, mode = 'self', report = False):
             _res['source'] = obj
     else:
         if mc.objExists(obj + '.cgmLocSource'):
-            _res['updateType'] = 'matchSource'
+            _res['updateType'] = 'source'
             _res['matchTarget'] = ATTR.get_message(obj, 'cgmLocSource','cgmMatchDat',0)
             if not _res['matchTarget']:
                 log.error("|{0}| >> No matchTarget found on: {1}".format(_str_func,obj))        
@@ -210,7 +210,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         timeRange(list) -- [0,111] for example
         matchMode - mode for update_obj call
             self
-            matchSource
+            source
     :returns
         success(bool)
     """     
@@ -233,7 +233,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     #>>>Validate ==============================================================================================  
     for o in _targets:
         _d = {}
-        if matchMode == 'matchSource':
+        if matchMode == 'source':
             source = ATTR.get_message(o,'cgmLocSource')
             if not source:
                 raise ValueError,"No source found: {0}.cgmLocSource".format(o)            
@@ -373,15 +373,16 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         
         
         #Clear keys in range
-        if matchMode in ['matchSource']:
+        if matchMode in ['source']:
             mc.cutKey(_d['source'],animation = 'objects', time=(_start,_end+ 1),at= _attrs)
         else:
             mc.cutKey(o,animation = 'objects', time=(_start,_end+ 1),at= _attrs)
             
-    
+    #pprint.pprint(_d)
+    #return 
     #Second for loop processes our keys so we can do it in one go...
     _keysToProcess = lists.returnListNoDuplicates(_keysToProcess)
-    log.info(_keysToProcess)
+    #log.info(_keysToProcess)
     
     if not _keysToProcess:
         log.error("|{0}| >> No keys to process. Check settings.".format(_str_func))
@@ -394,24 +395,23 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     if _autoKey:mc.autoKeyframe(state=False)
     
     for i,f in enumerate(_keysToProcess):
-
         mc.currentTime(f)
         
         for o in _l_toDo:
             _keys = _d_keysOfTarget[o]
             if f in _keys:
+                #log.info("|{0}| >> Baking: {1} | {2}...".format(_str_func,f,o))
                 
                 if mc.progressBar(_progressBar, query=True, isCancelled=True ):
                     break
                 mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
             
-                if matchMode in ['matchSource']:
+                if matchMode == 'source':
                     try:update_obj(o,move,rotate,mode=matchMode)
                     except Exception,err:log.error(err)
-                    mc.setKeyframe(_d['source'],time = f, at = _attrs)
-                    
+                    mc.setKeyframe(_d_toDo[o]['source'],time = f, at = _attrs)
                 else:
-                    try:update_obj(o,move,rotate,mode=matchMode)
+                    try:update_obj(o,move,rotate)
                     except Exception,err:log.error(err)
                     mc.setKeyframe(o,time = f, at = _attrs)
          
