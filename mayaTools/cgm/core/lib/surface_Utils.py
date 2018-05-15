@@ -121,14 +121,16 @@ def get_splitValues(surface = None, values = [], mode='u',
             _l.insert(0,minKnot)
     
         if postInset:
-            
             v =  _l[-1] + postInset
             log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],v))
             
-            if v > max(_l[:-1]):
-                _l[-1] = v
+            if len(_l) > 1:
+                if v > max(_l[:-1]):
+                    _l[-1] = v
+                else:
+                    _l = _l[:-1]
             else:
-                _l = _l[:-1]
+                _l.append(v)
             
         
         _l = LISTS.get_noDuplicates(_l)

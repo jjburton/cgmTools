@@ -79,7 +79,7 @@ __menuVisible__ = True
 __dimensions_by_type = {'box':[22,22,22],
                         'human':[15.2, 23.2, 19.7]}
 
-__l_rigBuildOrder__ = ['rig_prechecks',
+__l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_skeleton',
                        'rig_shapes',
                        'rig_controls',
@@ -158,6 +158,17 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'proxyType':'base:geo',
                  'headAim':'bool',
                  'headRotate':'double3',
+                 
+                 'squashMeasure' : 'none:arcLength:pointDist',
+                 'squash' : 'none:simple:single:both',
+                 'squashExtraControl' : 'bool',
+                 'squashFactorMax':'float',
+                 'squashFactorMin':'float',
+             
+                 'ribbonAim': 'none:stable:stableBlend',
+                 'ribbonConnectBy': 'constraint:matrix',
+                 'segmentMidIKControl':'bool',                 
+                 
                  'neckBuild':'bool',
                  'neckControls':'int',
                  'neckShapers':'int',
@@ -180,6 +191,17 @@ d_defaultSettings = {'version':__version__,
                      'proxyDirect':True,
                      'attachPoint':'end',
                      'neckIK':'ribbon',
+                     
+                     'squashMeasure':'arcLength',
+                     'squash':'simple',
+                     'squashFactorMax':1.0,
+                     'squashFactorMin':0.0,
+                 
+                     'segmentMidIKControl':True,
+                     'squash':'both',
+                     'squashExtraControl':True,
+                     'ribbonAim':'stableBlend',
+                     
                      'proxyShape':'cube',
                      'nameList':['neck','head'],#...our datList values
                      'proxyType':'geo'}
@@ -1269,6 +1291,15 @@ def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
+
+
+
+@cgmGEN.Timer
+def rig_dataBuffer(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_dataBuffer'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     mBlock = self.mBlock
     mModule = self.mModule
@@ -1289,6 +1320,7 @@ def rig_prechecks(self):
         #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
         
 
+    log.debug(cgmGEN._str_subLine)
     
     #Offset ============================================================================    
     str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
@@ -1309,8 +1341,69 @@ def rig_prechecks(self):
         #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
         #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
+    log.debug(cgmGEN._str_subLine)
+    
+    #Squash stretch logic  =================================================================================
+    log.debug("|{0}| >> Squash stretch..".format(_str_func))
+    self.b_scaleSetup = mBlock.scaleSetup
+    
+    self.b_squashSetup = False
+    
+    self.d_squashStretch = {}
+    self.d_squashStretchIK = {}
+    
+    _squashStretch = None
+    if mBlock.squash:
+        _squashStretch =  mBlock.getEnumValueString('squash')
+        self.b_squashSetup = True
+    self.d_squashStretch['squashStretch'] = _squashStretch
+    
+    _squashMeasure = None
+    if mBlock.squashMeasure:
+        _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
+    self.d_squashStretch['squashStretchMain'] = _squashMeasure    
+
+    _driverSetup = None
+    if mBlock.ribbonAim:
+        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+    self.d_squashStretch['driverSetup'] = _driverSetup
+
+    
+    self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
+    self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
+    self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
+    
+    log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
+    pprint.pprint(self.d_squashStretch)
+    
+    #Check for mid control and even handle count to see if w need an extra curve
+    if mBlock.segmentMidIKControl:
+        if MATH.is_even(mBlock.neckControls):
+            self.d_squashStretchIK['sectionSpans'] = 2
+            
+    if self.d_squashStretchIK:
+        log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
+        pprint.pprint(self.d_squashStretchIK)
     
     
+    if not self.b_scaleSetup:
+        pass
+    
+    log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
+    log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
+    
+    log.debug(cgmGEN._str_subLine)
+    
+    #segintbaseindex =============================================================================
+    str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+    log.debug("|{0}| >> IK Base: {1}".format(_str_func,str_ikBase))    
+    self.int_segBaseIdx = 0
+    if str_ikBase in ['hips']:
+        self.int_segBaseIdx = 1
+    log.debug("|{0}| >> self.int_segBaseIdx: {1}".format(_str_func,self.int_segBaseIdx))
+    
+    log.debug(cgmGEN._str_subLine)
+
     #DynParents =============================================================================
     self.UTILS.get_dynParentTargetsDat(self)
     
@@ -1390,13 +1483,14 @@ def rig_skeleton(self):
     ml_jointsToHide = []
     ml_joints = mRigNull.msgList_get('moduleJoints')
     self.d_joints['ml_moduleJoints'] = ml_joints
+    ml_templateHandles = mBlock.msgList_get('templateHandles')
     
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'])
                                      #d_rotateOrders, d_preferredAngles)
     
     log.info("|{0}| >> Head...".format(_str_func))  
     
-    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=True)
+    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=False)
     
     if self.mBlock.headAim:
         log.info("|{0}| >> Head IK...".format(_str_func))              
@@ -1409,23 +1503,13 @@ def rig_skeleton(self):
     
     #...Neck ---------------------------------------------------------------------------------------
     if self.mBlock.neckBuild:
-        log.info("|{0}| >> Neck Build".format(_str_func))          
-        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints')
-        l_baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'baseNames')
-        """
-        #We then need to name our core joints to pass forward:
-        mBlock.copyAttrTo(l_baseNameAttrs[-1],ml_fkJoints[-1].mNode,'cgmName',driven='target')
-        mBlock.copyAttrTo(l_baseNameAttrs[0],ml_fkJoints[0].mNode,'cgmName',driven='target')
-        
-        if len(ml_fkJoints) > 2:
-            for i,mJnt in enumerate(ml_fkJoints[1:-1]):
-                mJnt.doStore('cgmIterator',i+1)
-            ml_fkJoints[0].doStore('cgmNameModifier','base')
-        
-        for mJnt in ml_fkJoints:
-            mJnt.doName()
-            """
+        log.info("|{0}| >> Neck Build".format(_str_func))
+        #return mOrientHelper.getAxisVector('y+')
+        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints',mOrientHelper=ml_templateHandles[1].orientHelper)
         ml_jointsToHide.extend(ml_fkJoints)
+        mOrientHelper = ml_templateHandles[1].orientHelper
+        #Because
+        vec_chainUp =mOrientHelper.getAxisVector('y+')
 
         if self.mBlock.neckIK:
             log.info("|{0}| >> buildIK on. Building blend and IK chains...".format(_str_func))  
@@ -1436,8 +1520,27 @@ def rig_skeleton(self):
             
             for i,mJnt in enumerate(ml_ikJoints):
                 if mJnt not in [ml_ikJoints[0],ml_ikJoints[-1]]:
-                    mJnt.preferredAngle = mJnt.jointOrient                    
+                    mJnt.preferredAngle = mJnt.jointOrient
+                    
             
+            if mBlock.segmentMidIKControl:
+                log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
+                #Lever...
+                mMidIK = ml_rigJoints[0].doDuplicate(po=True)
+                mMidIK.cgmName = 'neck_segMid'
+                mMidIK.p_parent = False
+                mMidIK.doName()
+            
+                mMidIK.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
+                                                               ml_rigJoints[-1].p_position])
+            
+                SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
+                         vec_chainUp)
+                         #mBlock.rootUpHelper.getAxisVector('y+'))
+                reload(JOINT)
+                JOINT.freezeOrientation(mMidIK.mNode)
+                mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')            
+    
         
         if mBlock.neckControls > 2:
             log.info("|{0}| >> IK Drivers...".format(_str_func))            
@@ -1454,15 +1557,22 @@ def rig_skeleton(self):
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
                                                                      'handleJoints',
                                                                      clearType=True)
+            
             for i,mJnt in enumerate(ml_segmentHandles):
                 mJnt.parent = ml_blendJoints[i]
             
             log.info("|{0}| >> segment necessary...".format(_str_func))
                 
-            ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints,
+            ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                      ml_joints,
                                                                       None, mRigNull,
-                                                                      'segmentJoints', cgmType = 'segJnt')
-            for i,mJnt in enumerate(ml_rigJoints[:-1]):
+                                                                      'segmentJoints',
+                                                                      cgmType = 'segJnt')
+            JOINT.orientChain(ml_segmentChain,
+                              worldUpAxis=vec_chainUp)
+            
+            
+            for i,mJnt in enumerate(ml_rigJoints[:-2]):
                 mJnt.parent = ml_segmentChain[i]
                 mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
                 
@@ -1480,7 +1590,7 @@ def rig_skeleton(self):
     
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_shapes(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_shapes'
@@ -1495,6 +1605,7 @@ def rig_shapes(self):
     _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')    
     ml_templateHandles = mBlock.msgList_get('templateHandles')
     mHandleFactory = mBlock.asHandleFactory()
+    mRigNull = self.mRigNull
     
     #l_toBuild = ['segmentFK_Loli','segmentIK']
     #mShapeCast.go(self._mi_module,l_toBuild, storageInstance=self)#This will store controls to a dict called    
@@ -1511,6 +1622,25 @@ def rig_shapes(self):
     if mBlock.neckControls > 1 and mBlock.neckBuild: 
         log.info("|{0}| >> FK/IK head necessary...".format(_str_func))          
         b_FKIKhead = True    
+    
+    #controlSegMidIK =============================================================================
+    if mRigNull.getMessage('controlSegMidIK'):
+        log.debug("|{0}| >> controlSegMidIK...".format(_str_func))            
+        mControlSegMidIK = mRigNull.getMessage('controlSegMidIK',asMeta=1)[0]
+        
+        ml_shapes = self.atBuilderUtils('shapes_fromCast',
+                                        targets = mControlSegMidIK,
+                                        offset = _offset,
+                                        mode = 'limbSegmentHandleBack')#'simpleCast  limbSegmentHandle
+        
+        CORERIG.shapeParent_in_place(mControlSegMidIK.mNode, ml_shapes[0].mNode,False)
+        
+        mControlSegMidIK.doStore('cgmTypeModifier','ik')
+        mControlSegMidIK.doStore('cgmType','handle')
+        mControlSegMidIK.doName()            
+
+        mHandleFactory.color(mControlSegMidIK.mNode, controlType = 'sub')
+    
     
     #Head=============================================================================================
     if mBlock.headAim:
@@ -1631,7 +1761,7 @@ def rig_shapes(self):
         ml_handleShapes = self.atBuilderUtils('shapes_fromCast',
                                               targets = ml_handleJoints,
                                               offset = _offset,
-                                              mode = 'limbSegmentHandle')#'segmentHandle') limbSegmentHandle
+                                              mode = 'limbSegmentHandleBack')#'segmentHandle') limbSegmentHandle
 
 
         for i,mCrv in enumerate(ml_handleShapes):
@@ -1645,24 +1775,6 @@ def rig_shapes(self):
     #Neck=============================================================================================    
     if self.mBlock.neckBuild:
         log.debug("|{0}| >> Neck...".format(_str_func))
-        """
-        #Handle Joints ----------------------------------------------------------------------------------
-        ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
-        if ml_handleJoints:
-            log.debug("|{0}| >> Found Handle Joints...".format(_str_func))
-            
-            l_uValues = MATH.get_splitValueList(.1,.9, len(ml_handleJoints))
-            ml_handleShapes = self.atBuilderUtils('shapes_fromCast',
-                                                  mode ='segmentHandle',
-                                                  uValues = l_uValues,)
-                                                  #offset = 3
-            for i,mCrv in enumerate(ml_handleShapes):
-                CORERIG.colorControl(mCrv.mNode,_side,'sub')
-                CORERIG.shapeParent_in_place(ml_handleJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
-                for mShape in ml_handleJoints[i].getShapes(asMeta=True):
-                    mShape.doName()"""
-        
-        
         #Root -------------------------------------------------------------------------------------------
         #Grab template handle root - use for sizing, make ball
         mNeckBaseHandle = self.mBlock.msgList_get('templateHandles')[1]
@@ -1694,13 +1806,39 @@ def rig_shapes(self):
         
         for mShape in ml_fkShapes:
             mShape.delete()
+            
+        if mBlock.neckIK:
+            #Base IK...---------------------------------------------------------------------------------
+            log.debug("|{0}| >> baseIK...".format(_str_func))
+            ml_ikJoints = mRigNull.msgList_get('ikJoints')
+            #mIK_templateHandle = self.mRootTemplateHandle
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            #_ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
+            
+            _ik_shape = self.atBuilderUtils('shapes_fromCast',
+                                            targets = [ mObj for mObj in ml_rigJoints[:1]],
+                                            offset = _offset,
+                                            mode = 'castHandle')[0].mNode
+            
+
+            
+            
         
-        """
-        for i,mCrv in enumerate(ml_fkShapes):
-            CORERIG.colorControl(mCrv.mNode,_side,'main')
-            CORERIG.shapeParent_in_place(ml_fkJoints[i].mNode,mCrv.mNode, False, replaceShapes=True)
-            for mShape in ml_fkJoints[i].getShapes(asMeta=True):
-                mShape.doName()"""
+            mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+        
+            mIKBaseCrv = ml_ikJoints[0].doCreateAt()
+            mIKBaseCrv.doCopyNameTagsFromObject(ml_fkJoints[0].mNode,ignore=['cgmType'])
+            CORERIG.shapeParent_in_place(mIKBaseCrv.mNode, mIKBaseShape.mNode, False)                            
+        
+            mIKBaseCrv.doStore('cgmTypeModifier','ikBase')
+            mIKBaseCrv.doName()
+        
+            mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
+        
+            mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
+            self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect        
+    
+
 
 @cgmGEN.Timer
 def rig_controls(self):
@@ -1790,7 +1928,52 @@ def rig_controls(self):
             #except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))
             ATTR.set_hidden(mObj.mNode,'radius',True)
             
-    
+            
+        ml_blend = mRigNull.msgList_get('blendJoints')
+        mControlBaseIK = False
+        if mRigNull.getMessage('controlIKBase'):
+            mControlBaseIK = mRigNull.controlIKBase
+            log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mControlBaseIK))
+            
+            _d = MODULECONTROL.register(mControlBaseIK,
+                                        addDynParentGroup = True, 
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True,
+                                        **d_controlSpaces)
+                                        
+            
+            mControlBaseIK = _d['mObj']
+            mControlBaseIK.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mControlBaseIK)
+            
+            #Register our snapToTarget -------------------------------------------------------------
+            self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
+
+            
+            
+        mControlSegMidIK = False
+        #controlSegMidIK =============================================================================
+        if mRigNull.getMessage('controlSegMidIK'):
+            mControlSegMidIK = mRigNull.controlSegMidIK
+            log.debug("|{0}| >> found controlSegMidIK: {1}".format(_str_func,mControlSegMidIK))
+            
+            _d = MODULECONTROL.register(mControlSegMidIK,
+                                        addDynParentGroup = True, 
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True,
+                                        **d_controlSpaces)
+            
+            
+            mControlSegMidIK = _d['mObj']
+            mControlSegMidIK.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mControlSegMidIK)
+        
+            #Register our snapToTarget -------------------------------------------------------------
+            self.atUtils('get_switchTarget', mControlSegMidIK,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
+
+
     #ikHead ========================================================================================
     log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
@@ -1830,7 +2013,10 @@ def rig_controls(self):
             mHeadLookAt.doStore('controlFK', mHeadFK.mNode)
             
         
-        
+
+
+            int_mid = MATH.get_midIndex(len(ml_blend))
+
         
     
     #>> settings ========================================================================================
@@ -2034,6 +2220,7 @@ def rig_frame(self):
     
     if mRigNull.getMessage('headFK'):
         mHeadFK = mRigNull.headFK
+        
 
     #>> headFK ========================================================================================
     """We use the ik head sometimes."""
@@ -2155,7 +2342,6 @@ def rig_frame(self):
                                                  mPlug_FKon.p_combinedName)
               
             mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))
-            #mPlug_IKon.doConnectOut("%s.visibility"%ikGroup)            
             
             
             # Create head position driver ------------------------------------------------
@@ -2265,7 +2451,6 @@ def rig_frame(self):
             else:
                 log.debug("|{0}| >> Not implemented multi yet".format(_str_func))
                 
-                #raise ValueError,"Not implemented"
             
             #Parent --------------------------------------------------            
             ml_blendJoints[0].parent = mRoot

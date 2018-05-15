@@ -211,7 +211,7 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:torso',
                  
-                 'squashMeasure' : 'none:arcLength:pointDist',                 
+                 'squashMeasure' : 'none:arcLength:pointDist',
                  'squash' : 'none:simple:single:both',
                  'squashExtraControl' : 'bool',
                  'squashFactorMax':'float',
@@ -219,7 +219,6 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
-                 
                  'segmentMidIKControl':'bool',
                  
                  'settingsPlace':'start:end:cog',
@@ -244,16 +243,18 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      
+                     'segmentMidIKControl':True,
+                     'squash':'both',
+                     'squashExtraControl':True,
+                     'ribbonAim':'stableBlend',
+                     
                      'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'cubic',
                      'numSpacePivots':2,
                      
-                     'segmentMidIKControl':True,
-                     'squash':'both',
-                     'squashExtraControl':True,
-                     'ribbonAim':'stableBlend',
+
                      
                      'ikBase':'cube',
                      'ikEnd':'cube',
@@ -1375,8 +1376,6 @@ def rig_dataBuffer(self):
     reload(self.UTILS)
     self.UTILS.get_dynParentTargetsDat(self)
 
-    
-    
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
     self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
@@ -2310,7 +2309,7 @@ def rig_frame(self):
         
         mIKBaseControl = False
         if mRigNull.getMessage('controlIKBase'):
-            mIKBaseControl = mRigNull.controlIKBase        
+            mIKBaseControl = mRigNull.controlIKBase
         
         #>> handleJoints =====================================================================================
         if ml_handleJoints:

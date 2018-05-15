@@ -2212,7 +2212,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             raise Exception,"Limit Buffer not implemented"
    
 
-def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
+def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOrientHelper = None):
     """
     Generate a handle chain of joints if none exists, otherwise return existing
     
@@ -2239,7 +2239,9 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
         if not ml_prerigHandles:
             raise ValueError,"No prerigHandles connected"
         
-        mOrientHelper = ml_templateHandles[0].orientHelper or ml_prerigHandles[0].orientHelper
+        if mOrientHelper is None:
+            mOrientHelper = ml_templateHandles[0].orientHelper or ml_prerigHandles[0].orientHelper
+            
         #_d = skeleton_getCreateDict(self)
         #pprint.pprint(_d)
         l_pos = []
@@ -2278,13 +2280,13 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True):
     return ml_fkJoints
 
 
-def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = False,clearType = False): 
+def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = False,clearType = False,mOrientHelper=None): 
     _short = self.mNode
     _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
-    start = time.clock()
+    #start = time.clock()
     
     mRigNull = self.moduleTarget.rigNull
-    ml_handleJoints = skeleton_getHandleChain(self,typeModifier)
+    ml_handleJoints = skeleton_getHandleChain(self,typeModifier,mOrientHelper=mOrientHelper)
     ml_handleChain = []
     
     if typeModifier and typeModifier.lower() not in ['fk']:
@@ -2307,7 +2309,7 @@ def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = Fal
     if connectNodesAs and type(connectNodesAs) in [str,unicode]:
         self.moduleTarget.rigNull.msgList_connect(connectNodesAs,ml_handleChain,'rigNull')#Push back
 
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
+    #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
     return ml_handleChain
 
 

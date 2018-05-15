@@ -958,7 +958,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     'frameHandle',
                     'loftHandle',
                     'limbHandle',
+                    'castHandle',
                     'limbSegmentHandle',
+                    'limbSegmentHandleBack',
                     'simpleCast']:
             #Get our cast mesh        
             
@@ -1008,7 +1010,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
                     
-            elif mode in ['segmentHandle','ikHandle','frameHandle','limbHandle','limbSegmentHandle','simpleCast',
+            elif mode in ['segmentHandle','ikHandle','frameHandle','castHandle','limbHandle','limbSegmentHandleBack','limbSegmentHandle','simpleCast',
                           'ikEnd','ikBase']:
                 
                 f_factor = (maxU-minU)/(20)
@@ -1136,17 +1138,19 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                     #ml_shapes = mc.loft(l_loftShapes, o = True, d = 3, po = 0,ch=False)
                     #mc.delete(l_loftShapes)
+                    
                 elif mode == 'frameHandle':#================================================================
-                    if not mRigNull.msgList_get('fkJoints'):
-                        return log.error("|{0}| >> No fk joints found".format(_str_func))
+                    #if not mRigNull.msgList_get('fkJoints'):
+                        #return log.error("|{0}| >> No fk joints found".format(_str_func))
                     
                     #...Get our vectors...
+                    """
                     l_vectors = []
                     for i,mObj in enumerate(ml_fkJoints[:-1]):
                         l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_fkJoints[i+1].p_position) )
                     l_vectors.append(  MATH.get_vector_of_two_points(ml_fkJoints[-2].p_position, ml_fkJoints[-1].p_position) )
                     l_vectors.append( l_vectors[-1])#...add it again
-                    
+                    """
                     
                     l_failSafes = MATH.get_splitValueList(minU,maxU,
                                                           len(ml_fkJoints))                    
@@ -1167,7 +1171,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
-                    
                     l_curves = SURF.get_splitValues(str_meshShape,
                                                     l_uValues,
                                                     mode='u',
@@ -1178,10 +1181,51 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                                     curvesConnect=True,
                                                     connectionPoints=connectionPoints,
                                                     offset=offset)
-                    
-                        
                     ml_shapes = cgmMeta.validateObjListArg(l_curves)
                      
+                elif mode == 'castHandle':#================================================================
+                    #if not mRigNull.msgList_get('fkJoints'):
+                        #return log.error("|{0}| >> No fk joints found".format(_str_func))
+                    
+                    #...Get our vectors...
+                    """
+                    l_vectors = []
+                    for i,mObj in enumerate(ml_fkJoints[:-1]):
+                        l_vectors.append(  MATH.get_vector_of_two_points(mObj.p_position, ml_fkJoints[i+1].p_position) )
+                    l_vectors.append(  MATH.get_vector_of_two_points(ml_fkJoints[-2].p_position, ml_fkJoints[-1].p_position) )
+                    l_vectors.append( l_vectors[-1])#...add it again
+                    """
+                    
+                    l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                                          len(ml_fkJoints))                    
+                    
+                    #...Get our uValues...
+                    l_uValues = []
+                    #l_sets = []
+                    
+                    
+                    for i,mObj in enumerate(ml_fkJoints):
+                        _short = mObj.mNode
+                        _d = RAYS.cast(str_meshShape, _short, str_aim)
+                        log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+                        #cgmGEN.log_info_dict(_d,j)
+                        try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
+                        except:
+                            log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                            _v = l_failSafes[i]
+                        l_uValues.append( _v )
+                    
+                    l_curves = SURF.get_splitValues(str_meshShape,
+                                                    l_uValues,
+                                                    mode='u',
+                                                    insertMax=False,
+                                                    preInset = f_factor,
+                                                    postInset = -f_factor,
+                                                    curvesCreate=True,
+                                                    curvesConnect=True,
+                                                    connectionPoints=connectionPoints,
+                                                    offset=offset)
+                    ml_shapes = cgmMeta.validateObjListArg(l_curves)
                     
                 elif mode == 'limbHandle':#================================================================
                     if targets:
@@ -1307,13 +1351,14 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #if v == l_uValues[-2]:
                             #log.debug("|{0}| >> {1} | Last one...".format(_str_func,i))
                             #_add = - _add
+                        pos_jnt = ml_fkJoints[i].p_position
                         baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(baseCrv,offset,component='cv')
+                        DIST.offsetShape_byVector(baseCrv,offset,pos_jnt,component='cv')
                         l_mainCurves.append(baseCrv)
                         
                         endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v+(_add *2)), ch = 0, rn = 0, local = 0)[0]
                         #endCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,l_uValues[i+1]-_add), ch = 0, rn = 0, local = 0)[0]
-                        DIST.offsetShape_byVector(endCrv,offset,component='cv')
+                        DIST.offsetShape_byVector(endCrv,offset,pos_jnt,component='cv')
                         
                         l_mainCurves.append(endCrv)
                         
@@ -1435,7 +1480,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         mCrv.rename('shapeCast_{0}'.format(i))
                         ml_shapes.append(mCrv)                   
 
-                elif mode == 'limbSegmentHandle':#=============================================================
+                elif mode in ['limbSegmentHandle','limbSegmentHandleBack']:#=============================================================
                     if targets:
                         ml_fkJoints = ml_targets
                     else:
@@ -1450,14 +1495,15 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         dist = offset * 5
                         pos_obj = mObj.p_position
-                        for axis in [str_orientation[1], str_orientation[2]]:
-                            for d in ['+','-']:
+                        for i,axis in enumerate([str_orientation[1], str_orientation[2]]):
+                            for ii,d in enumerate(['+','-']):
+                                
+                                if 'limbSegmentHandleBack' and i == 0 and ii == 1:
+                                    continue
                                 p = SNAPCALLS.get_special_pos([mObj.mNode,
                                                                str_meshShape],
                                                               'cast',axis+d)
-                                
-                                
-                                
+
                                 crv = CURVES.create_fromName(name='semiSphere',
                                                              direction = 'z+',
                                                              size = offset*2)
@@ -1478,7 +1524,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 
                                 
 
-                                    
                         for crv in l_shapes[1:]:
                             log.debug("|{0}| >> combining: {1}".format(_str_func,crv))
                             RIGGING.shapeParent_in_place(l_shapes[0], crv, False)
