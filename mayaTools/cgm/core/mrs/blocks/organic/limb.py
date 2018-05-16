@@ -253,7 +253,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
                  'blockProfile':':'.join(d_block_profiles.keys()),
-                 'rigSetup':'default:arm:digit',#...this is to account for some different kinds of setup
+                 'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
@@ -3076,7 +3076,7 @@ def rig_shapes(self):
             crv = CURVES.create_controlCurve(mKnee, shape='sphere',
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
-                                             size = max(size_knee))            
+                                             size = max(size_knee) * 1.25)            
     
             CORERIG.shapeParent_in_place(mKnee.mNode, crv, False)
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
@@ -3121,10 +3121,8 @@ def rig_shapes(self):
 
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main',transparent=True)
     
-    
-            #CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
-            self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect                    
+            self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
         
         #Lever =============================================================================
         if self.b_lever:
@@ -3933,7 +3931,7 @@ def rig_segments(self):
                     if ml_segMidHandles:
                         mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
                                          maintainOffset = True,
-                                         aimVector = [0,0,1], upVector = [0,1,0], 
+                                         aimVector = [0,0,1], upVector = self.v_twistUp,#upVector = [0,1,0], 
                                          worldUpObject = mSegHandle.mNode,
                                          worldUpType = 'objectrotation', 
                                          worldUpVector = [0,1,0])
@@ -4035,13 +4033,13 @@ def rig_segments(self):
                     mAimBack.doName()
                 
                     mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     aimVector = [0,0,1], upVector = self.v_twistUp,#[0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = self.v_twistUp)
                     
                     mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
-                                     aimVector = [0,0,-1], upVector = [0,1,0], 
+                                     aimVector = [0,0,-1], upVector = self.v_twistUp,#[0,1,0], 
                                      worldUpObject = mParent.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = self.v_twistUp)                
@@ -4078,7 +4076,7 @@ def rig_segments(self):
                         #mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
                         _d = {'worldUpObject' : mParent.mNode,
                               'worldUpType' : 'objectrotation',
-                              'upVector':[0,1,0],
+                              'upVector':self.v_twistUp,#[0,1,0],
                               'worldUpVector' : self.v_twistUp}
                         
                         if ii == 0:
@@ -4682,8 +4680,10 @@ def rig_frame(self):
                 mSpinGroup.doName()
                 ATTR.set(mSpinGroup.mNode, 'rotateOrder', _jointOrientation)
                 
+                
                 mSpinGroup.parent = mIKGroup
                 mSpinGroup.doGroup(True,True,typeModifier='zero')
+                mSpinGroupAdd = mSpinGroup.doDuplicate()
             
                 #Setup arg
                 #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
@@ -4698,8 +4698,11 @@ def rig_frame(self):
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpObject = mIKControl.mNode,
                                      worldUpType = 'objectrotation', 
-                                     worldUpVector = self.v_twistUp)                    
+                                     worldUpVector = self.v_twistUp)
                 
+                mPlug_spinKnee = cgmMeta.cgmAttr(mIKControl,'spinKnee',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
+                
+                mPlug_spinKnee.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
                     
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
@@ -4715,7 +4718,7 @@ def rig_frame(self):
                     l_midDrivers = [mRoot.mNode, mIKHandleDriver.mNode]
                     
                 mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
-                mMidControlDriver.parent = mSpinGroup#mIKGroup
+                mMidControlDriver.parent = mSpinGroupAdd#mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
                 
                 
@@ -5479,11 +5482,16 @@ def rig_cleanUp(self):
         for mCtrl in ml_controlsToLock:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
             
-    #Lock and hide =================================================================================
+    #Defaults/settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))
     mSettings.visRoot = 0
     mSettings.visDirect = 0
     
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    if ml_handleJoints:
+        ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
+        ml_handleJoints[0].stable_0 = 1.0
+       
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
