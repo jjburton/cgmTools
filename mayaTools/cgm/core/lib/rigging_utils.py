@@ -994,13 +994,21 @@ def getControlShader(direction = 'center', controlType = 'main',
             _color = SHARED._d_side_colors[direction][controlType]
             _rgb = SHARED._d_colors_to_RGB[_color]
             
+            ATTR.set(_node,'diffuse',1.0)
+            
             if proxy:
-                _rgb = [v * .75 for v in _rgb]
+                #_rgb = [v * .75 for v in _rgb]
+                _hsv = [v for v in get_HSV_fromRGB(_rgb[0],_rgb[1],_rgb[2])]
+                _hsv[1] = .5
+                
+                _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
+                ATTR.set(_node,'diffuse',.75)
+                
+                
         
             ATTR.set(_node,'colorR',_rgb[0])
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
-            ATTR.set(_node,'diffuse',1.0)
             
             if transparent:
                 ATTR.set(_node,'ambientColorR',_rgb[0])
@@ -1014,7 +1022,31 @@ def getControlShader(direction = 'center', controlType = 'main',
         
     return _node, _set
     
+def get_HSV_fromRGB(rValue = 0, gValue = 0, bValue = 0, getNode = False):
+    _node = mc.createNode('rgbToHsv')
+    ATTR.set(_node,'inRgbR',COREMATH.Clamp(float(rValue),0,1.0))
+    ATTR.set(_node,'inRgbG',COREMATH.Clamp(float(gValue),0,1.0))
+    ATTR.set(_node,'inRgbB',COREMATH.Clamp(float(bValue),0,1.0))
+    res = ATTR.get(_node,'outHsv')[0]
     
+    if getNode:
+        return _node,res
+    
+    mc.delete(_node)
+    return res
+    
+def get_RGB_fromHSV(rValue = 0, gValue = 0, bValue = 0, getNode = False):
+    _node = mc.createNode('hsvToRgb')
+    ATTR.set(_node,'inHsvB',COREMATH.Clamp(float(bValue),0.0001,1.0))
+    ATTR.set(_node,'inHsvG',COREMATH.Clamp(float(gValue),0.0001,1.0))
+    ATTR.set(_node,'inHsvR',COREMATH.Clamp(float(rValue),0.000001,360.0))
+    res = ATTR.get(_node,'outRgb')[0]
+    
+    if getNode:
+        return _node, res
+    
+    mc.delete(_node)
+    return res
     
 def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,
                  rgb = True, shaderSetup = True,transparent = False,proxy=False, directProxy=False):

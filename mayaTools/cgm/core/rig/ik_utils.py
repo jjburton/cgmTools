@@ -888,6 +888,7 @@ def ribbon(jointList = None,
            #extendTwistToEnd = False,
            #reorient = False,
            influences = None,
+           extraKeyable = True,
            attachEndsToInfluences = False,
            moduleInstance = None,
            parentGutsTo = None):
@@ -1106,21 +1107,64 @@ def ribbon(jointList = None,
             ml_surfaces.append(mControlSurface2)
     
     log.debug("mControlSurface: {0}".format(mControlSurface))
+    _surf_shape = mControlSurface.getShapes()[0]
+    minU = ATTR.get(_surf_shape,'minValueU')
+    maxU = ATTR.get(_surf_shape,'maxValueU')
+
     
     ml_toConnect = []
     ml_toConnect.extend(ml_surfaces)
     
     mArcLenCurve = None
-    
+    mArcLenDag = None
     if b_squashStretch and squashStretchMain == 'arcLength':
         log.debug("|{0}| >> Creating arc curve setup...".format(_str_func))
-
+        
+        minV = ATTR.get(_surf_shape,'minValueV')
+        maxV = ATTR.get(_surf_shape,'maxValueV')
+        
         plug = '{0}_segScale'.format(str_baseName)
-        plug_curve = '{0}_arcLengthCurve'.format(str_baseName)
+        plug_dim = '{0}_arcLengthDim'.format(str_baseName)
         plug_inverse = '{0}_segInverseScale'.format(str_baseName)
         
-        crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
+        mArcLen = cgmMeta.validateObjArg(mc.createNode('arcLengthDimension'),setClass=True)
+        mArcLenDag = mArcLen.getTransform(asMeta=True)
         
+        mArcLen.uParamValue = MATH.average(minU,maxU)
+        mArcLen.vParamValue = maxV
+        mArcLenDag.rename('{0}_arcLengthNode'.format(str_baseName))
+        
+        mControlSurface.connectChildNode(mArcLen.mNode,plug_dim,'arcLenDim')
+
+        log.debug("|{0}| >> created: {1}".format(_str_func,mArcLen)) 
+
+        #infoNode = CURVES.create_infoNode(mCrv.mNode)
+        
+        ATTR.connect("{0}.worldSpace".format(mControlSurface.getShapes()[0]), "{0}.nurbsGeometry".format(mArcLen.mNode))
+
+        mArcLen.addAttr('baseDist', mArcLen.arcLengthInV,attrType='float',lock=True)
+        log.debug("|{0}| >> baseDist: {1}".format(_str_func,mArcLen.baseDist)) 
+
+        mPlug_inverseScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_inverse,'float')
+        
+        l_argBuild=[]
+        """
+        l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+                                                   '{0}.arcLength'.format(mInfoNode.mNode),
+                                                   "{0}.baseDist".format(mCrv.mNode)))"""
+        l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedShortName,
+                                                   '{0}.arcLengthInV'.format(mArcLen.mNode),
+                                                   "{0}.baseDist".format(mArcLen.mNode)))        
+        
+        
+        for arg in l_argBuild:
+            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+            NodeF.argsToNodes(arg).doBuild()
+        
+        
+        
+        """
+        crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
         mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
         mCrv.rename('{0}_measureCrv'.format( baseName))
         
@@ -1144,10 +1188,7 @@ def ribbon(jointList = None,
         mPlug_inverseScale = cgmMeta.cgmAttr(mCrv.mNode,plug_inverse,'float')
         
         l_argBuild=[]
-        """
-        l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
-                                                   '{0}.arcLength'.format(mInfoNode.mNode),
-                                                   "{0}.baseDist".format(mCrv.mNode)))"""
+
         l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedShortName,
                                                    '{0}.arcLength'.format(mInfoNode.mNode),
                                                    "{0}.baseDist".format(mCrv.mNode)))        
@@ -1155,7 +1196,7 @@ def ribbon(jointList = None,
         
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-            NodeF.argsToNodes(arg).doBuild()                        
+            NodeF.argsToNodes(arg).doBuild()"""
     
     if b_squashStretch and masterScalePlug is not None:
         log.debug("|{0}| >> Checking masterScalePlug: {1}".format(_str_func, masterScalePlug))        
@@ -1226,10 +1267,7 @@ def ribbon(jointList = None,
     ml_folliclesStable = []
     ml_folliclesStableShapes = []
     
-    minU = ATTR.get(mControlSurface.getShapes()[0],'minValueU')
-    #maxU = ATTR.get(mControlSurface.getShapes()[0],'maxValueU')
-    #minV = ATTR.get(mControlSurface.getShapes()[0],'mimValueV')        
-    #maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
+
     f_offset = DIST.get_distance_between_targets(l_joints,True)
     
     range_joints = range(len(ml_joints))
@@ -1454,6 +1492,7 @@ def ribbon(jointList = None,
                                              attrType = 'float',
                                              hidden = False,                                                 
                                              initialValue=1.0,
+                                             keyable = extraKeyable,
                                              lock=False,
                                              minValue = 0)
             
@@ -1673,6 +1712,7 @@ def ribbon(jointList = None,
                                                         hidden = False,
                                                         initialValue=l_scaleFactors[i],
                                                         defaultValue=l_scaleFactors[i],
+                                                        keyable = extraKeyable,
                                                         lock=False,
                                                         minValue = 0)
                     
@@ -2024,6 +2064,9 @@ def ribbon(jointList = None,
             cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
             mObj.parent = mRigNull    
     
+    if mArcLenDag:
+        mArcLenDag.p_parent = mGroup
+
     
     _res = {'mlSurfaces':ml_surfaces}
     return _res

@@ -321,6 +321,9 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
                 NodeF.argsToNodes(arg_attributeBridge).doBuild()    
         
         #lock N Hide ============================================================================================
+        if mi_control.hasAttr('visibility'):
+            mi_control.visibility = True
+        
         if autoLockNHide:
             if mi_control.hasAttr('cgmTypeModifier'):
                 if mi_control.cgmTypeModifier.lower() == 'fk':

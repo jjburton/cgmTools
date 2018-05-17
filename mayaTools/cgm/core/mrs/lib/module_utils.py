@@ -570,11 +570,12 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         log.debug("|{0}| >> moduleParent: {1}".format(_str_func,mParentModule))
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
-        for plug in ['rigJoints','blendJoints','fkJoints','moduleJoints']:
+        _plugUsed = None
+        for plug in ['blendJoints','fkJoints','moduleJoints']:#'handleJoints',
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))
-                
+                _plugUsed = plug
                 break        
         
         if not ml_targetJoints:
@@ -589,17 +590,18 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
                 return log.error(_msg)
             raise ValueError,_msg
         
-        if mTarget.getMessage('masterGroup'):
-            log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
-            return mTarget.masterGroup
-        if mTarget.getMessage('dynParentGroup'):
-            log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
-            mDynParentGroup = mTarget.dynParentGroup
-            #if not mDynParentGroup.hasAttr('cgmAlias'):
-            mDynParentGroup.doStore('cgmAlias', mTarget.cgmName)
-            log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
-            return mDynParentGroup
-            mTarget = mTarget.dynParentGroup
+        if _plugUsed not in ['handleJoints']:
+            if mTarget.getMessage('masterGroup'):
+                log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
+                return mTarget.masterGroup
+            if mTarget.getMessage('dynParentGroup'):
+                log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
+                mDynParentGroup = mTarget.dynParentGroup
+                #if not mDynParentGroup.hasAttr('cgmAlias'):
+                mDynParentGroup.doStore('cgmAlias', mTarget.cgmName)
+                log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
+                return mDynParentGroup
+                mTarget = mTarget.dynParentGroup
 
         return mTarget
     

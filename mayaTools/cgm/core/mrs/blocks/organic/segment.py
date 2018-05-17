@@ -87,7 +87,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.01222018'
+__version__ = 'alpha.1.05162018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -163,7 +163,7 @@ d_block_profiles = {
              'loftShape':'square',
              'ikSetup':'ribbon',
              'ikBase':'hips',
-             'ikEnd':'tipEnd',             
+             'ikEnd':'tipMid',             
              'cgmName':'spine',
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
@@ -223,7 +223,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  
                  'settingsPlace':'start:end:cog',
                  'blockProfile':':'.join(d_block_profiles.keys()),
-                 'ikEnd':'none:cube:bank:foot:hand:tipBase:tipEnd:proxy',
+                 'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
                  'spaceSwitch_direct':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
@@ -1780,13 +1780,21 @@ def rig_shapes(self):
     
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
     
-            elif str_ikEnd in ['tipBase','tipEnd']:
+            elif str_ikEnd in ['tipBase','tipEnd','tipMid']:
                 log.debug("|{0}| >> tip shape...".format(_str_func))
     
                 ml_curves = []
     
                 if str_ikEnd == 'tipBase':
                     mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()
+                elif str_ikEnd == 'tipMid':
+                    mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()
+                    
+                    pos = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
+                                                     ml_rigJoints[-1].p_position])
+                    
+                    mIKCrv.p_position = pos
+                    
                 else:
                     mIKCrv = ml_handleTargets[-1].doCreateAt()
                     #if self.b_ikNeedEnd:
@@ -2351,7 +2359,7 @@ def rig_frame(self):
                                                     ml_ribbonIkHandles,
                                                     [mRigNull.controlIKBase.mNode],#ml_handleParents,
                                                     mode = 'singleBlend',
-                                                    upMode = 'objectRotation')                    
+                                                    upMode = 'objectRotation')
                     """
                     RIGCONSTRAINT.build_aimSequence(ml_handleJoints[-1],
                                                     ml_ribbonIkHandles,
@@ -2706,7 +2714,7 @@ def rig_frame(self):
                 #>>> Fix our ik_handle twist at the end of all of the parenting
                 IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
-                mc.orientConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+                mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
                 
                 if mIKBaseControl:
                     ml_ikJoints[0].parent = mRigNull.controlIKBase
@@ -2793,8 +2801,6 @@ def rig_frame(self):
                              'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
                     
-                    
-                    reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)
                     
                     
@@ -2939,6 +2945,11 @@ def rig_frame(self):
                     
                     d_ik.update(self.d_squashStretchIK)
                     res_ribbon = IK.ribbon(**d_ik)
+                    
+                const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
+                for mConst in const:
+                    mConst.delete()
+                mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
                 
                 """
                 #...ribbon skinCluster ---------------------------------------------------------------------
@@ -3368,6 +3379,19 @@ def rig_cleanUp(self):
     log.debug("|{0}| >> Settings...".format(_str_func))
     mSettings.visRoot = 0
     mSettings.visDirect = 0
+    
+    
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    if ml_handleJoints:
+        ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
+        ml_handleJoints[-1].followRoot = 1.0
+        
+        
+    if mSettings.hasAttr('FKIK'):
+        ATTR.set_default(mSettings.mNode, 'FKIK', 1.0)
+        mSettings.FKIK = 1.0    
+    
+        
         
     #Lock and hide =================================================================================
     ml_controls = mRigNull.msgList_get('controlsAll')

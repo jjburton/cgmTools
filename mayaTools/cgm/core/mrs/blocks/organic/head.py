@@ -71,7 +71,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.04022018'
+__version__ = 'alpha.1.05162018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -2047,7 +2047,7 @@ def rig_controls(self):
             ml_controlsAll.append(mControlBaseIK)
             
             #Register our snapToTarget -------------------------------------------------------------
-            self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[MATH.get_midIndex(len(ml_blend))])
+            self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
 
             
             
@@ -2936,7 +2936,7 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
 
-        if i == 0:
+        if _mode == 2:
             mDynGroup.dynFollow.p_parent = mRoot    
         
         log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
@@ -3253,7 +3253,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             ml_neckProxy = [mProxy]
             
             if directProxy:
-                CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,True)
+                CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,False)
                 CORERIG.colorControl(ml_rigJoints[0].mNode,_side,'main',directProxy=True)            
             
         else:
@@ -3268,7 +3268,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mGeo.doName()
                 
                 if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
+                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
                     CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                
     
     for mProxy in ml_neckProxy + ml_headStuff:

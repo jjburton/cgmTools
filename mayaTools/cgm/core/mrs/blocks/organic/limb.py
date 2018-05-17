@@ -77,7 +77,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.04212018'
+__version__ = 'alpha.1.05162018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -254,7 +254,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'ikRPAim':'default:free',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
-                 'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:proxy',
+                 'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:proxy',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
                  'hasLeverJoint':'bool',
@@ -4684,7 +4684,12 @@ def rig_frame(self):
                 mSpinGroup.parent = mIKGroup
                 mSpinGroup.doGroup(True,True,typeModifier='zero')
                 mSpinGroupAdd = mSpinGroup.doDuplicate()
-            
+                
+                mSpinGroupAdd.doStore('cgmTypeModifier','addSpin')
+                mSpinGroupAdd.doName()
+                mSpinGroupAdd.p_parent = mSpinGroup
+                
+                
                 #Setup arg
                 #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
                 #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
@@ -4700,10 +4705,19 @@ def rig_frame(self):
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = self.v_twistUp)
                 
-                mPlug_spinKnee = cgmMeta.cgmAttr(mIKControl,'spinKnee',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
+                mPlug_spinMid = cgmMeta.cgmAttr(mIKControl,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
                 
-                mPlug_spinKnee.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
+                if self.d_module['direction'].lower() == 'right':
+                    str_arg = "{0}.r{1} = -{2}".format(mSpinGroupAdd.mNode,
+                                                       _jointOrientation[0].lower(),
+                                                       mPlug_spinMid.p_combinedShortName)
+                    log.debug("|{0}| >> Right knee spin: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()
+                else:
+                    mPlug_spinMid.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
                     
+                ATTR.set_standardFlags(mSpinGroupAdd.mNode)
+                
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
                 mMidControlDriver = mIKMid.doCreateAt()
