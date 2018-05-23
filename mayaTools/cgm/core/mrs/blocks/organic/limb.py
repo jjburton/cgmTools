@@ -296,7 +296,7 @@ d_defaultSettings = {'version':__version__,
                      'squashMeasure':'arcLength',
                      'squash':'both',
                      'squashExtraControl':True,
-                     'ribbonAim':'stableBlend',
+                     'ribbonAim':'stable',
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'segmentMidIKControl':True,
@@ -5264,6 +5264,8 @@ def rig_cleanUp(self):
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')        
     
+    str_blockProfile = mBlock.getEnumValueString('blockProfile')
+    
     ml_controlsToSetup = []
     for msgLink in ['rigJoints','controlIK']:
         ml_buffer = mRigNull.msgList_get(msgLink)
@@ -5342,10 +5344,11 @@ def rig_cleanUp(self):
     log.debug("|{0}| >>  IK Handles ... ".format(_str_func))                
     
     ml_ikControls = []
-    mControlIK = mRigNull.getMessage('controlIK')
+    mControlIK = mRigNull.getMessageAsMeta('controlIK')
     
     if mControlIK:
-        ml_ikControls.append(mRigNull.controlIK)
+        mControlIK = mRigNull.controlIK
+        ml_ikControls.append(mControlIK)
     if mRigNull.getMessage('controlIKBase'):
         ml_ikControls.append(mRigNull.controlIKBase)
         
@@ -5364,6 +5367,10 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
         #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
+        if mHandle == mControlIK and str_blockProfile in ['leg']:
+            #_idx = ml_targetDynParents.index( self.dynTargets(puppet))
+            ATTR.set_default(mHandle.mNode,'space','puppet')
         
     log.debug("|{0}| >>  IK targets...".format(_str_func))
     pprint.pprint(ml_targetDynParents)        
@@ -5450,7 +5457,6 @@ def rig_cleanUp(self):
             ml_targetDynParents.insert(0,mParent)
             _mode = 1
             
-        
         ml_targetDynParents.extend(ml_endDynParents)
         ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
 
@@ -5462,7 +5468,11 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         
         if i == 0:
-            mDynGroup.dynFollow.p_parent = mRoot    
+            mDynGroup.dynFollow.p_parent = mRoot
+            if self.b_lever:
+                _attachPoint = mBlock.getEnumValueString('attachPoint')
+                _idx = ml_targetDynParents.index( self.md_dynTargetsParent.get(_attachPoint))
+                ATTR.set_default(mObj.mNode,'orientTo',_idx)
         
         log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
         pprint.pprint(ml_targetDynParents)                
@@ -5505,6 +5515,18 @@ def rig_cleanUp(self):
     if ml_handleJoints:
         ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
         ml_handleJoints[0].stable_0 = 1.0
+        
+    if str_blockProfile in ['leg']:
+        log.debug("|{0}| >> 'leg' setup...".format(_str_func))
+        
+        if mSettings.hasAttr('FKIK'):
+            ATTR.set_default(mSettings.mNode, 'FKIK', 1.0)
+            mSettings.FKIK = 1.0
+            
+            mControlIK.resetAttrs()
+            
+    if self.b_lever:
+        ml_fkJoints[0].resetAttrs()
        
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
@@ -5588,8 +5610,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             int_handleEndIdx -=1
     elif _str_rigSetup == 'digit':
         if mBlock.hasEndJoint:
-            pass
-            #mEnd = ml_rigJoints.pop(-1)
+            mEnd = ml_rigJoints.pop(-1)
             
     
     log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
@@ -5682,7 +5703,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mMeshHeel = mMesh.doDuplicate(po=False)
                 
                 #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-                heel = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
+                heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
                 
 
                 #Add a ankleball ------------------------------------------------------------------------
@@ -5715,7 +5736,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     
                     
@@ -5730,7 +5751,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mPlane.doSnapTo(mToe.mNode,rotation=False)
                     mMeshBallDup = mMeshBall.doDuplicate(po=False)
                     #mc.select(cl=1)
-                    ball2 = mel.eval('polyCBoolOp -op 2-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
+                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
                     mMeshBall.delete()
                     mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
                     
@@ -5744,7 +5765,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshToe = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    toe = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
+                    toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
                     mMeshToe = cgmMeta.validateObjArg(toe[0])
                     
                     
@@ -5763,7 +5784,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     ml_segProxy.append(mMeshBall)
                     ml_rigJoints.append(mBall)                    

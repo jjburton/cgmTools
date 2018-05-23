@@ -2543,6 +2543,7 @@ def blockMirror_create(self, forceNew = False):
         
         blockDat = self.getBlockDat()
         blockDat['ud']['side'] = _side
+        
         """
         #Mirror some specfic dat
         if blockDat.get('template'):
@@ -2578,10 +2579,9 @@ def blockMirror_create(self, forceNew = False):
         mMirror.blockDat = blockDat
         blockDat_load(mMirror,useMirror=True)
         #mMirror.loadBlockDat(blockDat)
-        
         controls_mirror(self,mMirror)
         
-        
+        blockMirror_settings(self,mMirror)
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
@@ -2605,98 +2605,102 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
 
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+def blockMirror_settings(blockSource, blockMirror = None,
+                         mode = 'push'):
     
-    
-def blockDat_mirror(self, reflectionVector = MATH.Vector3(1,0,0) ):
-    try:
-        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
-        _str_func = 'MirrorBlock'
-
-        if not self or not mirrorBlock:
-            log.warning("|{0}| >> Must have rootBlock and mirror block".format(_str_func))                                            
-            return
-
-        if mirrorBlock.blockType != self.blockType:
-            log.warning("|{0}| >> Blocktypes must match. | {1} != {2}".format(_str_func,block.blockType,mirrorBlock.blockType,))                                                        
-            return
-
-        rootTransform = self
-        rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
-        #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
-
-        print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
-
-
-        if mirrorBlock:
-            print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
-
-            _blockState = rootBlock.getState(False)
-            _mirrorState = mirrorBlock.getState(False)
-            if _blockState > _mirrorState or _blockState < _mirrorState:
-                print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
-            else:
-                print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
-
-            #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
-                #print "Can only mirror blocks in Template state"
-                #return
-
-            cgmGEN.func_snapShot(vars())
-            return
-
-            currentTemplateObjects = block.templatePositions
-            templateHeirarchyDict = {}
-            for i,p in enumerate(currentTemplateObjects):
-                templateHeirarchyDict[i] = p.fullPath.count('|')
-
-            templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
-
-            for x in range(2):
-                # do this twice in case there are any stragglers 
-                for i in templateObjectsSortedByHeirarchy:
-                    index = i[0]
-                    #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
-
-                    # reflect rotation
-                    reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
-                    reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
-                    mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
-
-                for i in templateObjectsSortedByHeirarchy:
-                    index = i[0]
-                    wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
-
-                    #print "wanted position:", wantedPos
-                    mirrorBlock.templatePositions[index].position = wantedPos
-
-                    if block.templatePositions[index].type == "joint":
-                        #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
-                        mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
-
-                    wantedScale = block.templatePositions[index].localScale
-                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
-                        mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
-                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
-                        mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
-                    if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
-                        mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
-
-            for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
-                mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
-                if attr == "reverseUp":
-                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )
-                if attr == "reverseForward":
-                    mirrorBlock.SetAttr( attr, 1-block.GetAttr(attr) )	
-
-        # mirror child blocks
-        for attachPoint in block.attachPoints:
-            for child in attachPoint.children:
-                childBlock = Block.LoadRigBlock( child )
-                if childBlock:
-                    Block.MirrorBlockPush(childBlock)
-    except Exception,err:
-        cgmGEN.cgm
+        _str_func = 'blockMirror_settings'
+        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+        log.debug(blockSource)
         
+        if blockMirror is None:
+            log.debug("|{0}| >> Self mirror....".format(_str_func))
+            if blockSource.getMessage('blockMirror'):
+                mMirror = blockSource.blockMirror
+            else:
+                return log.error("|{0}| >> No block mirror found on: {1}".format(_str_func,blockSource))
+            log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))
+        else:
+            mMirror = blockMirror
+        
+        
+        if mode == 'push':
+            mSource = blockSource
+            mTarget = mMirror
+        else:
+            mSource = mMirror
+            mTarget = blockSource
+            
+        #Root ----------------------------------------------------------------------------------
+        log.debug("|{0}| >> Source: {1}".format(_str_func,mSource))
+        log.debug("|{0}| >> Target: {1}".format(_str_func,mTarget))
+        
+        blockDat = blockDat_get(mSource)
+        _short = mTarget.mNode
+        _ud = blockDat.get('ud')
+        _udFail = {}
+        if not blockDat.get('ud'):
+            raise ValueError,"|{0}| >> No ud data found".format(_str_func)
+        
+        _mask = ['side','version','blockState']
+        for a,v in _ud.iteritems():
+            if a in _mask:
+                continue
+            _type = ATTR.get_type(_short,a)
+            if _type == 'enum':
+                _current = ATTR.get_enumValueString(_short,a)
+            else:
+                _current = ATTR.get(_short,a)
+            if _current != v:
+                try:
+                    if ATTR.get_type(_short,a) in ['message']:
+                        log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                    else:
+                        log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        ATTR.set(_short,a,v)
+                except Exception,err:
+                    _udFail[a] = v
+                    log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    #r9Meta.printMetaCacheRegistry()                
+                    for arg in err.args:
+                        log.error(arg)                      
+    
+        if _udFail:
+            log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
+            pprint.pprint(_udFail)
+            return False
+        return True
+
+def blockMirror_settings2():
+    #.>>>..UD ====================================================================================
+        log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
+        _ud = blockDat.get('ud')
+        _udFail = {}
+        if not blockDat.get('ud'):
+            raise ValueError,"|{0}| >> No ud data found".format(_str_func)
+        
+        for a,v in _ud.iteritems():
+            _current = ATTR.get(_short,a)
+            if _current != v:
+                try:
+                    if ATTR.get_type(_short,a) in ['message']:
+                        log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                    else:
+                        log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        ATTR.set(_short,a,v)
+                except Exception,err:
+                    _udFail[a] = v
+                    log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    #r9Meta.printMetaCacheRegistry()                
+                    for arg in err.args:
+                        log.error(arg)                      
+    
+        if _udFail:
+            log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
+            pprint.pprint(_udFail)    
+    
+    
+    
 def mirror_blockDat(self = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
     try:
         '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
@@ -3012,9 +3016,8 @@ def blockDat_getControlDat(self,mode = 'template',report = True):
     if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
     return _d
 
-
 @cgmGEN.Timer
-def blockDat_load(self,blockDat = None, useMirror = False):
+def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False):
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     
@@ -3064,6 +3067,8 @@ def blockDat_load(self,blockDat = None, useMirror = False):
         log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
         pprint.pprint(_udFail)
         
+    if settingsOnly:
+        return
     
     #>>State ====================================================================================
     log.debug("|{0}| >> State".format(_str_func) + '-'*80)
@@ -3086,7 +3091,6 @@ def blockDat_load(self,blockDat = None, useMirror = False):
             log.warning("|{0}| >> Failed to set: {1} | attr:{2} | value:{3} | err: {4}".format(_str_func,
                                                                                                node,
                                                                                                attr,value))
-            
     log.debug("|{0}| >> Block main controls".format(_str_func)+ '-'*80)
     _pos = blockDat.get('position')
     _orients = blockDat.get('orient')

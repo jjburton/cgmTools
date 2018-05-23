@@ -201,7 +201,7 @@ d_defaultSettings = {'version':__version__,
                      'segmentMidIKControl':True,
                      'squash':'both',
                      'squashExtraControl':True,
-                     'ribbonAim':'stableBlend',
+                     'ribbonAim':'stable',
                      
                      'proxyShape':'cube',
                      'nameList':['neck','head'],#...our datList values
@@ -1298,7 +1298,10 @@ def rig_prechecks(self):
     
     if mBlock.neckControls > 1:
         raise ValueError,"Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls)
-
+    
+    if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
+        raise ValueError,"Must have more than one neck joint with segmentMidIKControl"
+        
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):
@@ -2088,7 +2091,7 @@ def rig_controls(self):
     mHeadIK.masterGroup.parent = mRootParent
     ml_controlsAll.append(mHeadIK)
     
-    self.atUtils('get_switchTarget', mHeadIK,ml_blendJoints[-1])
+    self.atUtils('get_switchTarget', mHeadIK, ml_blendJoints[-1])
     
     
     #>> headLookAt ========================================================================================
@@ -2111,10 +2114,7 @@ def rig_controls(self):
         if mHeadFK:
             mHeadLookAt.doStore('controlFK', mHeadFK.mNode)
             
-        
-
-
-            int_mid = MATH.get_midIndex(len(ml_blend))
+        #int_mid = MATH.get_midIndex(len(ml_blend))
 
         
     
@@ -2170,7 +2170,7 @@ def rig_controls(self):
                 
             
     #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
-    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
@@ -2384,14 +2384,21 @@ def rig_frame(self):
         mTopHandleDriver = mHeadBlendJoint
         mHeadLookAt = mRigNull.lookAt
         
-        mTopDriver = ml_handleJoints[-1].doCreateAt()
+        if ml_handleJoints:
+            mTopDriver = ml_handleJoints[-1].doCreateAt()
+        else:
+            mTopDriver = ml_fkJoints[-1].doCreateAt()
+            
         mTopDriver.p_parent = mHeadBlendJoint
         ml_segBlendTargets[-1] = mTopDriver#...insert into here our new twist driver
         
         mHeadLookAt.doStore('drivenBlend', mHeadBlendJoint.mNode)
         mHeadLookAt.doStore('drivenAim', mHeadAimJoint.mNode)
         
-        self.atUtils('get_switchTarget', mHeadLookAt,mHeadBlendJoint)
+        self.atUtils('get_switchTarget', mHeadLookAt, mHeadBlendJoint)
+        
+        mHeadLookAt.doStore('fkMatch', mTopDriver.mNode)
+        mHeadLookAt.doStore('ikMatch', mHeadBlendJoint.mNode)
         
         
         ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mHeadLookAt.mNode))
@@ -2591,7 +2598,8 @@ def rig_frame(self):
                                      worldUpObject = ml_blendJoints[0].mNode,
                                      worldUpType = 'objectRotation' )"""
             
-            ml_handleJoints[-1].masterGroup.p_parent = mHeadBlendJoint
+            if ml_handleJoints:            
+                ml_handleJoints[-1].masterGroup.p_parent = mHeadBlendJoint
             #>> midSegcontrol ========================================================================================
             mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
             if mSegMidIK:
@@ -2649,6 +2657,7 @@ def rig_frame(self):
                 log.debug("|{0}| >> Single neckJoint setup...".format(_str_func))                
                 ml_rigJoints[0].masterGroup.parent = ml_blendJoints[0]
                 
+                """
                 mc.aimConstraint(mHeadIK.mNode,
                                  ml_rigJoints[0].masterGroup.mNode,
                                  maintainOffset = True, weight = 1,
@@ -2656,7 +2665,7 @@ def rig_frame(self):
                                  upVector = self.d_orientation['vectorUp'],
                                  worldUpVector = self.d_orientation['vectorOut'],
                                  worldUpObject = ml_blendJoints[0].mNode,
-                                 worldUpType = 'objectRotation' )                    
+                                 worldUpType = 'objectRotation' )"""
                 
             else:
                 log.debug("|{0}| >> Not implemented multi yet".format(_str_func))
@@ -2947,6 +2956,11 @@ def rig_cleanUp(self):
     log.debug("|{0}| >> Settings...".format(_str_func))
     mSettings.visRoot = 0
     mSettings.visDirect = 0
+    
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    if ml_handleJoints:
+        ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 1.0)
+        ml_handleJoints[0].followRoot = 1.0    
         
         
     #Lock and hide =================================================================================

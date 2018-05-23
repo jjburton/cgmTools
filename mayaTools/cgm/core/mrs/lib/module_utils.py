@@ -609,9 +609,10 @@ reload(BLOCKSHARE)
 l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK'],
+                  'ikEnd':['controlIK'],
                   'ik':['controlIK','controlIKBase','controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
-                  'segmentHandles':['handleJoints'],
+                  'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
 def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
@@ -1298,22 +1299,33 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
         elif _mode in ['aimtoik','aimtofk']:
             if _mode == 'aimtoik':
                 if not mLookAt.getMessage('controlIK'):
-                    return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))        
+                    return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))
+                if not mLookAt.getMessage('ikMatch'):
+                    return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
                 mControl = mLookAt.controlIK
+                mMatch = mLookAt.getMessageAsMeta('ikMatch')
                 _v = 1
             else:
                 if not mLookAt.getMessage('controlFK'):
-                    return log.warning("|{0}| >> No FK control on lookAt detected ".format(_str_func))        
+                    return log.warning("|{0}| >> No FK control on lookAt detected ".format(_str_func))
+                if not mLookAt.getMessage('ikMatch'):
+                    return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
+                
                 mControl = mLookAt.controlFK
+                mMatch = mLookAt.getMessageAsMeta('fkMatch')
+                
                 _v = 0
+                
             mBlendTarget = mLookAt.getMessage('drivenBlend',asMeta=True)[0]
             
-            mLoc = mBlendTarget.doLoc(fastMode=True)
+            mLoc = mMatch.doLoc(fastMode=True)
+            #pos = mLookAt.p_position
             
             mSettings.blend_aim = 0
             mSettings.FKIK = _v
             
             SNAP.go(mControl.mNode,mLoc.mNode,position=False)
+            #SNAP.aim_atPoint(mControl.mNode,pos,)#vectorUp=MATH.get_obj_vector(mLookAt.mNode,'y+'))
             mControl.select()
             mLoc.delete()
             

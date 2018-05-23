@@ -3389,10 +3389,8 @@ def rig_cleanUp(self):
         
     if mSettings.hasAttr('FKIK'):
         ATTR.set_default(mSettings.mNode, 'FKIK', 1.0)
-        mSettings.FKIK = 1.0    
+        mSettings.FKIK = 1.0
     
-        
-        
     #Lock and hide =================================================================================
     ml_controls = mRigNull.msgList_get('controlsAll')
     

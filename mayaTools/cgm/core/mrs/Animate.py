@@ -58,7 +58,7 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.04202018 - ALPHA'
+__version__ = '1.05222018 - ALPHA'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
@@ -337,10 +337,12 @@ def buildSection_mrsAnim(self,parent):
               '>>':{'ann':'Find next contexual key',
                      'arg':{'mode':'nextKey'},},
               'delete':{'ann':'Clear current contextual keys',
-                     'arg':{'mode':'delete'},},              
+                     'arg':{'mode':'delete'},},
+              'report':{'ann':'Report objects in context',
+                        'arg':{'mode':'report'}},              
               }
     
-    l_anim = ['<<','key','bKey','>>','delete']
+    l_anim = ['<<','key','bKey','>>','delete','report']
     for b in l_anim:
         _d = d_anim.get(b,{})
         _arg = _d.get('arg',{'mode':b})
@@ -360,20 +362,43 @@ def buildSection_mrsAnim(self,parent):
     
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     d_select = {'select':{'ann':'Select objects in context',
+                          'short':'all',
                           'arg':{'mode':'select'}},
-                'report':{'ann':'Report objects in context',
-                          'arg':{'mode':'report'}},
+                'selectFK':{'ann':'Select fk objects in context',
+                            'short':'fk',                            
+                            'arg':{'mode':'selectFK'}},
+                'selectDirect':{'ann':'Select direct objects in context',
+                                'short':'direct',                                
+                                'arg':{'mode':'selectDirect'}},
+                'selectSeg':{'ann':'Select segment handles objects in context',
+                             'short':'seg',                             
+                             'arg':{'mode':'selectSeg'}},
+                'selectIK':{'ann':'Select IK  objects in context',
+                            'short':'ik',
+                             'arg':{'mode':'selectIK'}},
+                'selectIKEnd':{'ann':'Select IK  objects in context',
+                            'short':'ikEnd',
+                             'arg':{'mode':'selectIKEnd'}},
                 'reset':{'ann':'Reset all controls in context',
                          'short':'all',
                          'arg':{'mode':'reset'},},
-                'resetDirect':{'ann':'Reset all direct controls in context',
-                               'short':'direct',
-                               'arg':{'mode':'resetDirect'},},
-                'resetHandles':{'ann':'Reset all segment handle controls in context',
-                                'short':'seg',
-                               'arg':{'mode':'resetSegHandles'},},                
+                'resetFK':{'ann':'Reset fk objects in context',
+                            'short':'fk',                            
+                            'arg':{'mode':'resetFK'}},
+                'resetDirect':{'ann':'Reset direct objects in context',
+                                'short':'direct',                                
+                                'arg':{'mode':'resetDirect'}},
+                'resetSeg':{'ann':'Reset segment handles objects in context',
+                             'short':'seg',                             
+                             'arg':{'mode':'resetSeg'}},
+                'resetIK':{'ann':'Reset IK  objects in context',
+                            'short':'ik',
+                             'arg':{'mode':'resetIK'}},
+                'resetIKEnd':{'ann':'Reset IK  objects in context',
+                            'short':'ikEnd',
+                             'arg':{'mode':'resetIKEnd'}},
                 }
-    
+    """
     l_select = ['select','report']
     for b in l_select:
         _d = d_select.get(b,{})
@@ -383,10 +408,10 @@ def buildSection_mrsAnim(self,parent):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
-    _row.layout()
+    _row.layout()"""
     
-    mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()
+    #mc.setParent(_inside)
+    #cgmUI.add_LineSubBreak()
     
     """
     mc.button(parent = _inside,
@@ -394,6 +419,27 @@ def buildSection_mrsAnim(self,parent):
               l='Test context',
               c=lambda *a: get_context(self))
               """
+    #Select row ---------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5,bgc=_subLineBGC)
+
+    mUI.MelSpacer(_row,w=5)
+    mUI.MelLabel(_row,l='Select:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+    l_switch = ['selectFK','selectIK','selectIKEnd','selectSeg','selectDirect','select']
+    for b in l_switch:
+        _d = d_select.get(b,{})
+        _arg = _d.get('arg',{'mode':b})        
+        mc.button(parent=_row,
+                  l = _d.get('short',b),
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiFunc_contextualAction,self,**_arg),
+                  ann = _d.get('ann',b))
+    mUI.MelSpacer(_row,w=5)
+    _row.layout()            
+    
+    
+    
     #Reset row ---------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5,bgc=_subLineBGC)
 
@@ -401,7 +447,7 @@ def buildSection_mrsAnim(self,parent):
     mUI.MelLabel(_row,l='Reset:')
     _row.setStretchWidget( mUI.MelSeparator(_row) )
     
-    l_switch = ['resetDirect','resetHandles','reset']
+    l_switch = ['resetFK','resetIK','resetIKEnd','resetSeg','resetDirect','reset']
     for b in l_switch:
         _d = d_select.get(b,{})
         _arg = _d.get('arg',{'mode':b})        
@@ -1295,6 +1341,7 @@ def uiFunc_contextualAction(self, **kws):
         log.info("Context: {0} | controls: {1}".format(_context, len(_l_controls)))
         for i,v in enumerate(res_context):
             log.info("[{0}] : {1}".format(i,v))
+        #pprint.pprint(self.d_puppetData['mModules'])
         log.debug(cgmGEN._str_subLine)
         return endCall(self)
     
@@ -1302,16 +1349,51 @@ def uiFunc_contextualAction(self, **kws):
     elif _mode == 'select':
         return  mc.select(_l_controls)
     
-    elif _mode in ['resetDirect','resetSegHandles']:
-        if _mode == 'resetDirect':
+    elif _mode in ['selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']:
+        if _mode == 'selectFK':
+            _tag = 'fk'
+        elif _mode == 'selectIK':
+            _tag = 'ik'
+        elif _mode == 'selectIKEnd':
+            _tag = 'ikEnd'
+        elif _mode == 'selectSeg':
+            _tag = 'segmentHandles'
+        elif _mode == 'selectDirect':
             _tag = 'direct'
-        else:
-            _tag = 'seg'
+            
         l_new = []
-        for mObj in self.d_puppetData['mControls']:
-            print mObj
-            if mObj.getMayaAttr('cgmTypeModifier') == _tag:
-                l_new.append(mObj.mNode)
+        for mObj in self.d_puppetData['mModules']:
+            _l_buffer = mObj.atUtils('controls_getDat',_tag,listOnly=True)
+            if _l_buffer:
+                l_new.extend([mHandle.mNode for mHandle in _l_buffer])
+        
+        if not l_new:
+            return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
+
+        return mc.select(l_new)        
+    
+    elif _mode in ['resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
+        if _mode == 'resetFK':
+            _tag = 'fk'
+        elif _mode == 'resetIK':
+            _tag = 'ik'
+        elif _mode == 'resetIKEnd':
+            _tag = 'ikEnd'
+        elif _mode == 'resetSeg':
+            _tag = 'segmentHandles'
+        elif _mode == 'resetDirect':
+            _tag = 'direct'
+            
+        l_new = []
+        for mObj in self.d_puppetData['mModules']:
+            _l_buffer = mObj.atUtils('controls_getDat',_tag,listOnly=True)
+            if _l_buffer:
+                l_new.extend([mHandle.mNode for mHandle in _l_buffer])
+        
+        if not l_new:
+            return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
+
+                
         mc.select(l_new)
         ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
         return endCall(self)
@@ -1359,9 +1441,17 @@ def uiFunc_contextualAction(self, **kws):
             r9Anim.MirrorHierarchy().mirrorData(_l_controls,mode = '')
             return endCall(self)            
         elif _mode == 'mirrorPull':
-            _primeAxis = mBaseModule.atUtils('mirror_get').cgmDirection.capitalize()
+            mMirror = mBaseModule.atUtils('mirror_get')
+            if mMirror and mMirror.hasAttr('cgmDirection'):
+                _primeAxis = mMirror.cgmDirection.capitalize()
+            else:
+                _primeAxis = 'Centre'
+                
         elif _mode == 'mirrorPush':
-            _primeAxis = mBaseModule.cgmDirection.capitalize()
+            if mBaseModule.hasAttr('cgmDirection'):
+                _primeAxis = mBaseModule.cgmDirection.capitalize()
+            else:
+                _primeAxis = 'Centre'
         elif _mode == 'symLeft':
             _primeAxis = 'Left'
         else:
@@ -1770,12 +1860,13 @@ def uiFunc_resetSlider(self):
     if not self._sel:
         return
     
-    
     v_reset = self.uiSlider_reset.getValue()
     
     for mCtrl,aDat in self.d_resetDat.iteritems():
         for a,vDat in aDat.iteritems():
             #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
             current = vDat['value']
-            setValue = current + ((vDat['default'] - current)*v_reset)            
-            ATTR.set(mCtrl.mNode,a,setValue)
+            setValue = current + ((vDat['default'] - current)*v_reset)
+            #ATTR.set(mCtrl.mNode,a,setValue)
+            mCtrl.__setattr__(a,setValue)
+            

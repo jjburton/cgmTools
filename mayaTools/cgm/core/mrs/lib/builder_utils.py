@@ -305,7 +305,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
             #log.debug("|{0}| >> pivotHelper found!".format(_str_func))
             #dist_helper = max(POS.get_bb_size(ml_use[-1].getMessage('pivotHelper')))
             
-        dist_min = DIST.get_distance_between_points(ml_use[0].p_position, pos_mid)/4.0
+        dist_min = DIST.get_distance_between_points(ml_use[0].p_position, pos_mid)/2.0
         dist_base = DIST.get_distance_between_points(pos_mid, pos_close)
         
         #...get new pos
@@ -593,7 +593,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         
     #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
         
-    mc.polyNormal(_res_body[0],nm=0)
+    #mc.polyNormal(_res_body[0],nm=0)
     #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     
     if merge:
@@ -638,7 +638,9 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         _res = _res_body
     else:
         _res = _res_body
-    
+        
+    mc.polyNormal(_res_body[0], normalMode = 4, userNormalMode=1,ch=0)
+    #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     return _res[0]    
 
 def create_remesh(mesh = None, joints = None, curve=None, positions = None,
@@ -1757,7 +1759,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
             SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
             
             _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
-            
+            #mc.polyNormal(_mesh,setUserNormal = True)
         RIGGING.match_transform(_mesh,ml_targets[i])
         
         l_new.append(_mesh)

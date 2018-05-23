@@ -732,7 +732,8 @@ def set_default(node, attr = None, arg = None):
     _combined = _d['combined']
     _node = _d['node']
     _attr = _d['attr']
-
+    _type = get_type(_d)
+    
     _children = get_children(_d)
     if _children:
         for i,c in enumerate(_children):
@@ -740,6 +741,14 @@ def set_default(node, attr = None, arg = None):
             try:mc.addAttr(_str_c,e=True,defaultValue = arg)   
             except Exception,err:
                 log.error("|{0}| >> {1} | arg: {2} || err: {3}".format(_str_func,_str_c,arg,err))
+    elif _type == 'enum':
+        _l = get_enum(_d).split(':')
+        if arg in _l:
+            mc.addAttr(_combined, e=True,defaultValue =_l.index(arg))
+        elif arg is not None and arg <= len(_l):
+            mc.addAttr(_combined, e=True,defaultValue =arg)  
+        else:
+            raise ValueError,"Shouldn't be here"
     else:
         try:mc.addAttr(_combined,e=True,defaultValue = arg)  
         except Exception,err:
