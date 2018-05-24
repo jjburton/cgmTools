@@ -3494,6 +3494,46 @@ def blockDat_loadBAK(self, blockDat = None, mirror=False, reflectionVector = MAT
     return True
 
 
+def blockAttr_set(self, **kws):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] blockAttr_set'.format(_short)
+    #log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+    
+    for a,v in kws.iteritems():
+        if self.hasAttr(a):
+            try:
+                ATTR.set(_short,a,v)
+            except Exception,err:
+                log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+        else:
+            log.warning("|{0}| Lacks attr >> '{1}'".format(_str_func,a)) 
+            
+
+
+def messageConnection_setAttr(self,plug = None, **kws):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] messageConnection_setAttr'.format(_short)
+    log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+    
+    l_objs = []
+    if self.getMessage(plug):
+        log.debug("|{0}| >>  Message found: {1} ".format(_str_func,plug))                
+        l_objs = self.getMessage(plug)
+    elif mRigNull.msgList_exists(plug):
+        log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,plug))                
+        l_objs = self.msgList_get(plug)
+        
+    for o in l_objs:
+        for a,v in kws.iteritems():
+            try:
+                ATTR.set(o,a,v)
+            except Exception,err:
+                print err
+    return l_objs
+
+    
+    
+
 #=============================================================================================================
 #>> Controls query
 #=============================================================================================================

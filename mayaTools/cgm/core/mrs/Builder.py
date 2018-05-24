@@ -22,7 +22,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -68,6 +68,7 @@ mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
 __version__ = 'ALPHA 0.03222018'
+_sidePadding = 25
 
 
 class ui(cgmUI.cgmGUI):
@@ -97,7 +98,7 @@ class ui(cgmUI.cgmGUI):
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
             if args:log.debug("args: %s"%str(args))
-            log.info(self.__call__(q=True, title=True))
+            log.debug(self.__call__(q=True, title=True))
     
             self.__version__ = __version__
             self.__toolName__ = 'Builder'		
@@ -115,7 +116,8 @@ class ui(cgmUI.cgmGUI):
             self._blockCurrent = None
             self._blockFactory = RIGBLOCKS.factory()
             
-            self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0) 
+            self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0)
+            self.create_guiOptionVar('blockSharedFrameCollapse',defaultValue = 0)             
             self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
             try:self.var_rigBlockCreateSizeMode
             except:self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
@@ -947,19 +949,228 @@ class ui(cgmUI.cgmGUI):
         else:
             field.setValue(ATTR.get(obj,attr))
             
+        if attr == 'numRoll':
+            if ATTR.datList_exists(obj,'rollCount'):
+                log.info("numRoll...")                            
+                l = ATTR.datList_getAttrs(obj,'rollCount')
+                for a in l:
+                    log.info("{0}...".format(a))                                                
+                    ATTR.set(obj,a, _v)
+                
+                #self.uiUpdate_blockDat()
+            
+    def uiCallback_contextualSetAttrFromField(self, attr, attrType, field):
+        _v = field.getValue()
+        
+        log.info("{0} | {1}".format(attr,_v))
 
+        self.uiFunc_contextuaBlockCall('atUtils', 'blockAttr_set', **{'updateUI':False, attr:_v})
+        
+        if attr == 'buildProfile':
+            #_strValue = BLOCKSHARE._d_attrsTo_make['buildProfile'].split(':')[_v]
+            log.info("Loading buildProfile... {0}".format(_v))
+            self.uiFunc_contextuaBlockCall('atUtils', 'buildProfile_load', _v, **{'updateUI':False})
+            
+        
+        return
+        if attrType == 'enum':
+            #_strValue = ATTR.get_enumValueString(obj,attr)
+            #field.setValue(_strValue)
+            
+            if attr == 'buildProfile':
+                log.info("Loading buildProfile...")
+                self._blockCurrent.atUtils('buildProfile_load',_strValue)
+            if attr == 'blockProfile':
+                log.info("Loading blockProfile...")
+                self._blockCurrent.atUtils('blockProfile_load',_strValue)                
             
             
     def uiCallback_blockDatButton(self,func,*args,**kws):
         func(*args,**kws)
         self.uiUpdate_blockDat()
+    
+    def uiUpdate_blockShared(self):
+        _str_func = 'uiUpdate_blockDat'
+        self.uiFrame_shared.clear()
         
+        _column = self.uiFrame_shared
+        
+        d_shared = {'templateNull':{},
+                    'prerigNull':{}}
+        
+        l_settings = ['visibility']
+        l_locks = ['templateNull','prerigNull']
+        l_enums = []
+    
+        for n in l_locks:
+            _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    
+            mUI.MelLabel(_row,l=' {0}:'.format(n))
+            _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+            if n in l_settings:
+                l_options = ['hide','show']
+                _mode = 'moduleSettings'
+            elif n in l_locks:
+                l_options = ['unlock','lock']
+                _mode = 'moduleSettings'
+                _plug = d_shared[n].get('plug',n)
+            else:
+                l_options = ['off','lock','on']
+                _mode = 'puppetSettings'
+                
+            for v,o in enumerate(l_options):
+                mc.button(parent = _row,
+                          ut = 'cgmUITemplate',
+                          l=o,
+                          c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                            'atUtils', 'messageConnection_setAttr',
+                                            _plug,**{'template':v}),
+                          )
+            mUI.MelSpacer(_row,w=2)
+            _row.layout()
+            
+        for n in l_settings:
+            _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    
+            mUI.MelLabel(_row,l=' {0}:'.format(n))
+            _row.setStretchWidget( mUI.MelSeparator(_row) )
+    
+            l_options = ['hide','show']
+
+            for v,o in enumerate(l_options):
+                mc.button(parent = _row,
+                          ut = 'cgmUITemplate',
+                          l=o,
+                          c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                            'atUtils', 'blockAttr_set',
+                                            **{n:v})
+                          )
+            mUI.MelSpacer(_row,w=2)
+            _row.layout()
+                        
+        
+        
+        d_attrDat = copy.copy(BLOCKSHARE._d_attrsTo_make)
+        
+        for i in range(4):
+            d_attrDat['rollCount_{0}'.format(i)] = 'int'
+        
+        _keys = d_attrDat.keys()
+        _keys.sort()
+        
+        l_mask = ['baseAim','basePoint','baseUp','controlOffset','moduleTarget','nameIter','nameList',
+                  'namesHandles','namesJoints']
+        self._d_attrFieldsContextual = {}
+        for a in _keys:
+            if a in l_mask:
+                continue
+            try:
+                _type = d_attrDat[a]
+                log.debug("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
+                _row = mUI.MelHSingleStretchLayout(_column,padding = 5)
+                mUI.MelLabel(_row,l=' {0}:'.format(a))
+                mUI.MelSpacer(_row,w=_sidePadding)
+                
+                if ':' in _type:
+                    _enum = _type.split(':')                    
+                    _type = 'enum'
+        
+                _row.setStretchWidget(mUI.MelSeparator(_row,))
+        
+                if _type == 'bool':
+                    l_options = ['off','on']
+                    for v,o in enumerate(l_options):
+                        mc.button(parent = _row,
+                                  ut = 'cgmUITemplate',
+                                  l=o,
+                                  c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                                    'atUtils', 'blockAttr_set',
+                                                    **{'updateUI':False,a:v}))
+                                  
+                elif _type == 'enum':
+                    _optionMenu = mUI.MelOptionMenu(_row)
+                    _optionMenu(e=True,
+                                cc = cgmGEN.Callback(self.uiCallback_contextualSetAttrFromField,
+                                                     a,
+                                                     _type,
+                                                     _optionMenu)) 
+                    
+                    for option in _enum:
+                        _optionMenu.append(option)
+                
+                elif _type in ['double','doubleAngle','doubleLinear','float']:
+                    self._d_attrFieldsContextual[a] = mUI.MelFloatField(_row,w = 50)
+                    self._d_attrFieldsContextual[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_contextualSetAttrFromField, a, _type,
+                                                                self._d_attrFieldsContextual[a]))
+                elif _type in ['int','long']:
+                    self._d_attrFieldsContextual[a] = mUI.MelIntField(_row,w = 50,
+                                                              )
+                    self._d_attrFieldsContextual[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_contextualSetAttrFromField, a, _type,
+                                                                self._d_attrFieldsContextual[a]),
+                                          )                
+ 
+                """
+                elif _type == 'long':
+                    self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
+                                                             value = ATTR.get(_short,a),
+                                                             maxValue=20,
+                                                             minValue=ATTR.get_min(_short,a),
+                                                              )
+                    self._d_attrFields[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                self._d_attrFields[a]),
+                                          )                
+                elif _type == 'string':
+                    self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
+                                                             text = ATTR.get(_short,a),
+                                                              )
+                    self._d_attrFields[a](e=True,
+                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                self._d_attrFields[a]),
+                                          )
+                
+                else:
+                    mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
+                """
+                mUI.MelSpacer(_row,w=_sidePadding)                
+                _row.layout()
+            except Exception,err:
+                log.info("Attr {0} failed. err: {1}".format(a,err))            
+            
+            
+            
+        
+        
+        return
+        
+        #Lock nulls row ------------------------------------------------------------------------
+        _mRow_lockNulls = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 2)
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        
+        mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
+        _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
+        
+        for null in ['templateNull','prerigNull']:
+            #_str_null = mBlock.getMessage(null)
+            #_nullShort = _str_null[0]
+            mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
+                            #value = ATTR.get(_nullShort,'template'),
+                            #onCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',1),
+                            #offCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',0))                
+                            )
+        
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        _mRow_lockNulls.layout()        
+    
+    
     def uiUpdate_blockDat(self):
         _str_func = 'uiUpdate_blockDat'
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
         
-        _sidePadding = 25
         
         _short = self._blockCurrent.p_nameShort
         _intState = self._blockCurrent.getState(False)        
@@ -1017,7 +1228,7 @@ class ui(cgmUI.cgmGUI):
         for a in _l_attrs:
             try:
                 _type = ATTR.get_type(_short,a)
-                log.info("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
+                log.debug("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
                 _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
                 mUI.MelSpacer(_hlayout,w=_sidePadding)
         
@@ -1306,6 +1517,18 @@ class ui(cgmUI.cgmGUI):
 
         _row_push.layout()
                
+        #Shared ------------------------------------------------------------------------------------
+        _frame_shared = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Contextual',vis=True,
+                                           collapse=self.var_blockSharedFrameCollapse.value,
+                                           collapsable=True,
+                                           enable=True,
+                                           useTemplate = 'cgmUIHeaderTemplate',
+                                           expandCommand = lambda:self.var_blockSharedFrameCollapse.setValue(0),
+                                           collapseCommand = lambda:self.var_blockSharedFrameCollapse.setValue(1)
+                                           )	
+        self.uiFrameLayout_blockShared = _frame_shared
+        self.uiFrame_shared = mUI.MelColumnLayout(_frame_shared,useTemplate = 'cgmUISubTemplate')  
+        self.uiUpdate_blockShared()
         
         #Settings Frame ------------------------------------------------------------------------------------
         self.create_guiOptionVar('blockSettingsFrameCollapse',defaultValue = 0)       
@@ -1321,7 +1544,8 @@ class ui(cgmUI.cgmGUI):
         self.uiFrameLayout_blockSettings = _frame_blockSettings
     
         _frame_settings_inside = mUI.MelColumnLayout(_frame_blockSettings,useTemplate = 'cgmUISubTemplate')  
-        self.uiFrame_blockSettings = _frame_settings_inside           
+        self.uiFrame_blockSettings = _frame_settings_inside
+        
         
         #Info ------------------------------------------------------------------------------------
         _frame_info = mUI.MelFrameLayout(_RightColumn,label = 'Info',vis=True,
@@ -1337,8 +1561,9 @@ class ui(cgmUI.cgmGUI):
         _frame_info_inside = mUI.MelColumnLayout(_frame_info,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockInfo = _frame_info_inside        
         
+
         
-        #Settings ------------------------------------------------------------------------------------
+        #Attrs ------------------------------------------------------------------------------------
         _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attrs',vis=True,
                                         collapse=self.var_blockAttrsFrameCollapse.value,
                                         collapsable=True,
@@ -1508,17 +1733,17 @@ class uiCallback_withUpdate(object):
     def __call__( self, *args ):
         try:self._func( *self._args, **self._kwargs )
         except Exception,err:
-            try:log.info("Func: {0}".format(self._func.__name__))
-            except:log.info("Func: {0}".format(self._func))
+            try:log.debug("Func: {0}".format(self._func.__name__))
+            except:log.debug("Func: {0}".format(self._func))
             if self._ui:
-                log.info("ui: {0}".format(self._ui))
+                log.debug("ui: {0}".format(self._ui))
                 
             if self._args:
-                log.info("args: {0}".format(self._args))
+                log.debug("args: {0}".format(self._args))
             if self._kwargs:
-                log.info("kws: {0}".format(self._kwargs))
+                log.debug("kws: {0}".format(self._kwargs))
             for a in err.args:
-                log.info(a)
+                log.debug(a)
                 
             cgmGEN.cgmExceptCB(Exception,err)
             raise Exception,err
