@@ -65,71 +65,75 @@ log.setLevel(logging.INFO)
 
 
 _str_popWindow = 'cgmMM'#...outside to push to killUI
-class markingMenu(object):
+class markingMenu(object):#mUI.BaseMelWindow
     POPWINDOW = _str_popWindow
     
     def __init__(self):	
         """
         Initializes the pop up menu class call
         """
-    
-        self._str_MM = self.__class__.__name__  
+        try:
+            self._str_MM = self.__class__.__name__  
+            
+            log.debug(">>> %s "%(self._str_MM) + "="*75)          
+            self.l_optionVars = []		
+            #self.create_guiOptionVar('isClicked', value = 0)
+            #self.create_guiOptionVar('mmAction', value = 0)
+            self.create_guiOptionVar('clockStart', value = 0.0)  
+            self._ui_parentPanel = None
+            #>>>> Clock set
+            #====================================================================
         
-        log.debug(">>> %s "%(self._str_MM) + "="*75)          
-        self.l_optionVars = []		
-        #self.create_guiOptionVar('isClicked', value = 0)
-        #self.create_guiOptionVar('mmAction', value = 0)
-        self.create_guiOptionVar('clockStart', value = 0.0)  
-        self._ui_parentPanel = None
-        #>>>> Clock set
-        #====================================================================
-    
-        self.var_clockStart.value = time.clock()
-        #log.info("{0} >> clockStart: {1}".format(self._str_MM,self.clockStartVar.value))
-        #pprint.pprint(self.__dict__)
-        #self.var_isClicked.value = 0
-        #self.var_mmAction.value = 0
-    
-        #log.debug( mc.getPanel(withFocus=True)) 
+            self.var_clockStart.value = time.clock()
+            #log.info("{0} >> clockStart: {1}".format(self._str_MM,self.clockStartVar.value))
+            #pprint.pprint(self.__dict__)
+            #self.var_isClicked.value = 0
+            #self.var_mmAction.value = 0
         
-        _p = mc.getPanel(up = True)
-        if _p is None:
-            log.debug("No panel detected...")
-            return 
-        if _p:
-            log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
-            _parentPanel = mc.panel(_p,q = True,ctl = True)
-            #self._ui_parentPanel = _parentPanel
-            log.info("...panel parent: {1}...".format(self._str_MM,_parentPanel))
-            if 'MayaWindow' in _parentPanel:
-                _p = 'viewPanes'   
-                
-        if not mc.control(_p, ex = True):
-            return "{0} doesn't exist!".format(_p)
-        else:
-            """
-            if mayaVersion == 2017:
-                log.warning("2017 Support mode. Must click twice. Sorry. Maya done messed it up.")
+            #log.debug( mc.getPanel(withFocus=True)) 
+            
+            _p = mc.getPanel(up = True)
+            if _p is None:
+                log.debug("No panel detected...")
+                return 
+            if _p:
+                log.debug("...panel under pointer {1}...".format(self._str_MM, _p))                    
+                _parentPanel = mc.panel(_p,q = True,ctl = True)
+                #self._ui_parentPanel = _parentPanel
+                log.info("...panel parent: {1}...".format(self._str_MM,_parentPanel))
+                if 'MayaWindow' in _parentPanel:
+                    _p = 'viewPanes'   
+                    
+            if not mc.control(_p, ex = True):
+                return "{0} doesn't exist!".format(_p)
+            else:
+                """
+                if mayaVersion == 2017:
+                    log.warning("2017 Support mode. Must click twice. Sorry. Maya done messed it up.")
+                    if not mc.popupMenu('cgmMM',ex = True):
+                        mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
+                                     pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
+                                     postMenuCommandOnce=0)#postMenuCommandOnce=True
+                    else:
+                        log.info("|{0}| >> editing existing...".format(self._str_MM))  
+                        mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
+                                     pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
+                                     postMenuCommandOnce=0)#dai = True,"""
+                #else:
                 if not mc.popupMenu('cgmMM',ex = True):
                     mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
-                                 pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
-                                 postMenuCommandOnce=0)#postMenuCommandOnce=True
+                                 pmc = lambda *a: self.createUI(),                             
+                                 postMenuCommandOnce=True)#postMenuCommandOnce=True
+                
                 else:
                     log.info("|{0}| >> editing existing...".format(self._str_MM))  
                     mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
-                                 pmc = lambda *a: mc.evalDeferred(self.createUI,lp=True),                             
-                                 postMenuCommandOnce=0)#dai = True,"""
-            #else:
-            if not mc.popupMenu('cgmMM',ex = True):
-                mc.popupMenu('cgmMM', ctl = 0, alt = 0, sh = 0,mm = 1, b =1, aob = 1, p = _p,
-                             pmc = lambda *a: self.createUI(),                             
-                             postMenuCommandOnce=True)#postMenuCommandOnce=True
-            else:
-                log.info("|{0}| >> editing existing...".format(self._str_MM))  
-                mc.popupMenu('cgmMM', edit = True, ctl = 0, alt = 0, sh = 0, mm = 1, b =1, aob = 1, p = _p, 
-                             pmc = lambda *a: self.createUI(),                            
-                             postMenuCommandOnce=True)#dai = True,            
-    
+                                 pmc = lambda *a: self.createUI(),                            
+                                 postMenuCommandOnce=True)#dai = True,            
+        except Exception,err:
+            print Exception,err
+        finally:log.debug( "Marking menu done.")
+        
     def createUI(self, parent = 'cgmMM'):
         log.info("|{0}| >> createUI...".format(self._str_MM))  
         try:mc.menu(parent,e = True, deleteAllItems = True)

@@ -1521,10 +1521,6 @@ def fixFingerConstraints(l_joints = l_fingerJoints):
 def skin_pushComponentToConnected(copyCurrent=True):
     _sel = mc.ls(sl=True)
     import maya.mel as mel
-    import cgm.core.cgmPy.validateArgs as VALID
-    import cgm.core.lib.search_utils as SEARCH
-    import cgm.core.lib.transform_utils as TRANS
-    import cgm.core.lib.shape_utils as SHAPES
     if copyCurrent:mel.eval('artAttrSkinWeightCopy;')
     
     #_comp = VALID.get_component(_sel[0])
