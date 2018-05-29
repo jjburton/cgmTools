@@ -10,6 +10,7 @@ Website : http://www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -108,6 +109,7 @@ def go(obj = None, target = None,
         log.debug("|{0}|...rotation...".format(_str_func))
         _t_ro = ATTR.get_enumValueString(_target,'rotateOrder')
         _obj_ro = ATTR.get_enumValueString(obj,'rotateOrder')
+        
         if _t_ro != _obj_ro:
             #Creating a loc to get our target space rotateOrder into new space
             log.debug("|{0}|...rotateOrders don't match...".format(_str_func))

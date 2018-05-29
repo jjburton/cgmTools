@@ -4588,6 +4588,7 @@ def blockProfile_load(self, arg):
         try:
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
+
             if issubclass(type(v),list):
                 if self.datList_exists(a):
                     log.debug("|{0}| datList...".format(_str_func))                                     
@@ -4598,8 +4599,11 @@ def blockProfile_load(self, arg):
                     log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))                     
             if not _done:
                 ATTR.set(_short,a,v)
+                
+            
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+
 
 def buildProfile_load(self, arg):
     _str_func = 'buildProfile_load'
@@ -4642,6 +4646,15 @@ def buildProfile_load(self, arg):
                     _done = True
             if not _done:
                 ATTR.set(_short,a,v)
+                
+            if a == 'numRoll':
+                log.info("special...")                            
+                if ATTR.datList_exists(_short,'rollCount'):
+                    log.info("numRoll...")                            
+                    l = ATTR.datList_getAttrs(_short,'rollCount')
+                    for a2 in l:
+                        log.info("{0}...".format(a2))
+                        ATTR.set(_short,a2, v)                
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
 

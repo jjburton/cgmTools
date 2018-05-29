@@ -3979,8 +3979,8 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
         return
 
     for mBlock in _l_context:
-        _short = mBlock.p_nameShort
         try:
+            _short = mBlock.getShortName()            
             log.debug("|{0}| >> On: {1}".format(_str_func,_short))            
             res = getattr(mBlock,func)(*args,**kws) or None
             print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(a for a in args),_kwString, res))                        
@@ -4624,6 +4624,7 @@ class rigFactory(object):
                 mAttachDriver = self.mDeformNull.doCreateAt()
                 mAttachDriver.addAttr('cgmName',_str_partName,lock=True)
                 mAttachDriver.addAttr('cgmType','attachDriver',lock=True)	 
+                
                 mAttachDriver.doName()
                 
                 #self.mRigNull.connectChildNode(mAttachDriver,'attachDriver')                

@@ -13,6 +13,7 @@ import random
 import re
 import copy
 import time
+import pprint
 import os
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -124,7 +125,7 @@ class ui(cgmUI.cgmGUI):
             
             
     def build_menus(self):
-        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)         
+        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         #self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=self.buildMenu_switch) 
         #self.uiMenu_pivot = mUI.MelMenu( l='Pivot', pmc=self.buildMenu_pivot)         
@@ -133,7 +134,9 @@ class ui(cgmUI.cgmGUI):
         
     
     def buildMenu_block( self, *args, **kws):
-        self.uiMenu_block.clear()  
+        self.uiMenu_block.clear()
+        _menu = self.uiMenu_block
+        
         _str_context = "Context: {0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
                                         self._l_contextModes[self.var_contextMode.value])
         #c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'select',None,**{}))
@@ -190,6 +193,39 @@ class ui(cgmUI.cgmGUI):
         
         _mMesh = mUI.MelMenuItem(self.uiMenu_block, l="Puppet Mesh",
                                  subMenu = True)
+        
+        
+        #>>Mirror -----------------------------------------------------------------------------------------------
+        mUI.MelMenuItemDiv(_menu)
+        
+        _mirror = mUI.MelMenuItem(_menu, subMenu = True,
+                                  label = "Mirror",
+                                  en=True,)   
+    
+        mUI.MelMenuItem(_mirror,
+                        label = 'Verify',
+                        ann = 'Create or verify mirror block',
+                        #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
+                        #c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,False) )
+                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1}))
+        
+        mUI.MelMenuItem(_mirror,
+                        label = 'Rebuild',
+                        ann = 'Rebuild mirror block from scratch',
+                        #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
+                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1,'forceNew':True}))
+        
+        _l_mirror = [#['Create','blockMirror_create', {}],
+                     #['Recreate','blockMirror_create', {'forceNew':True}],
+                     ['Push','blockMirror_go', {'mode':'push','updateUI':1}],
+                     ['Pull','blockMirror_go', {'mode':'pull','updateUI':1}]]
+        for mirrorDat in _l_mirror:
+            mUI.MelMenuItem(_mirror,
+                            label = mirrorDat[0],
+                            ann = '{0} block controls'.format(mirrorDat[0]),
+                            #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
+                            #c=cgmGEN.Callback( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
+                            c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', mirrorDat[1], **mirrorDat[2]))
         
 
         
@@ -295,10 +331,10 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.info("Snap menu rebuilt")
         
-    def buildMenu_help(self):
-        self.uiMenu_Help.clear()
+    #def buildMenu_help(self):
+        #self.uiMenu_Help.clear()
         
-        cgmUI.uiSection_help(self.uiMenu_Help)
+        #cgmUI.uiSection_help(self.uiMenu_Help)
         
     def buildMenu_add( self, force=False, *args, **kws):
         if self.uiMenu_add and force is not True:
@@ -448,7 +484,7 @@ class ui(cgmUI.cgmGUI):
             log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
             return False            
         
-        _index = _indices[0]
+        _index = int(str(_indices[0]).split('L')[0])
         _mBlock = self._ml_blocks[_index]
         
         _mActiveBlock = self._blockCurrent
@@ -474,35 +510,68 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_scrollList_blocks(_mBlock)
         
     def uiFunc_contextuaBlockCall(self,*args,**kws):
-        _str_func = ''
-        _updateUI = kws.pop('updateUI',True)
-        _startMode = self.var_contextStartMode.value   
-        _contextMode = self._l_contextModes[self.var_contextMode.value]
-        
-        if _startMode == 0 :#Active
-            mBlock = self._blockCurrent
+        try:
+            _str_func = ''
+            _updateUI = kws.pop('updateUI',True)
+            _startMode = self.var_contextStartMode.value   
+            _contextMode = self._l_contextModes[self.var_contextMode.value]
             
-            if not mBlock:
-                log.error("|{0}| >> No Active block".format(_str_func))
-                return False
-        else:
-            _indices = self.uiScrollList_blocks.getSelectedIdxs()
-            if not _indices:
-                log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-                return False    
-            if not self._ml_blocks:
-                log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
-                return False    
-            
-            _index = _indices[0]
-            try:mBlock = self._ml_blocks[_index]   
-            except:
-                log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
-                return False                   
-        RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
-        if _updateUI:
-            self.uiUpdate_scrollList_blocks(mBlock)
-            self.uiUpdate_blockDat()
+            if _startMode == 0 :#Active
+                mBlock = self._blockCurrent
+                
+                if not mBlock:
+                    log.error("|{0}| >> No Active block".format(_str_func))
+                    return False
+                
+                RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
+                
+                if not _startMode and _updateUI:
+                    self.uiUpdate_scrollList_blocks(mBlock)
+                    self.uiUpdate_blockDat()                
+                
+            else:
+                _indices = self.uiScrollList_blocks.getSelectedIdxs()
+                if not _indices:
+                    log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+                    return False    
+                if not self._ml_blocks:
+                    log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
+                    return False    
+                
+                #_index = _indices[0]
+                #try:mBlock = self._ml_blocks[_index]   
+                ##except:
+                #    log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
+                #    return False
+                
+                ml_blocks = []
+                for i in _indices:
+                    ml_blocks.append( self._ml_blocks[int(str(i).split('L')[0])])
+                    
+                if not ml_blocks:
+                    log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))                                                        
+                    return False
+                
+                #_l_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,True,False)
+                #pprint.pprint(vars())
+                
+                #Now parse to sets of data
+                ml_processed = []
+                for mBlock in ml_blocks:
+                    if mBlock in ml_processed:
+                        log.info("|{0}| >> Already processed: {1}".format(_str_func,mBlock))                                                        
+                        continue                    
+                    RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
+                    ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
+                    
+
+                    
+                
+                return ml_blocks
+                
+
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
             
     def uiFunc_contextModuleCall(self,*args,**kws):
         _str_func = ''
@@ -525,7 +594,7 @@ class ui(cgmUI.cgmGUI):
                 log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
                 return False    
             
-            _index = _indices[0]
+            _index = int(str(_indices[0]).split('L')[0])
             try:mBlock = self._ml_blocks[_index]   
             except:
                 log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
@@ -555,7 +624,10 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return
             
-            _index = _indices[0]
+            if len(_indices) > 1:
+                return
+            
+            _index = int(str(_indices[0]).split('L')[0])
             try:_mBlock = _ml[_index]
             except:
                 log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
@@ -570,7 +642,7 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return
             
-            self.uiFunc_block_setActive(mBlock=_mBlock)
+            #self.uiFunc_block_setActive(mBlock=_mBlock)
             
             _mActiveBlock = self._blockCurrent
             _str_activeBlock = False
@@ -592,10 +664,26 @@ class ui(cgmUI.cgmGUI):
             except:pass
             
             
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Set selected active block',
+                            c = cgmGEN.Callback(self.uiFunc_block_setActive),
+                            label = "To active")
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Select',
+                            c = cgmGEN.Callback( self.uiFunc_contextuaBlockCall, 'select'),
+                            label = "Select")            
             
             #>>>Heirarchy ------------------------------------------------------------------------------------------
+
+            
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = "Parent")
+            
+
+            
+            
+            
             mUI.MelMenuItem(_menu_parent,
                             en = _b_active,
                             ann = 'Set parent block to active block: {0}'.format(_str_activeBlock),
@@ -768,7 +856,7 @@ class ui(cgmUI.cgmGUI):
                 _b_single = True
         
                 log.debug("|{0}| >> Single pop up mode".format(_str_func))  
-                _short = ml_parents[_indices[0]].p_nameShort
+                _short = ml_parents[int(str(_indices[0]).split('L')[0])].p_nameShort
                 mUI.MelMenuItem(_popUp,
                                 label = "Single: {0}".format(_short),
                                 en=False)            
@@ -883,7 +971,9 @@ class ui(cgmUI.cgmGUI):
                         index = _idx_current
                 
                 if not index:
-                    index = _indices[0]
+                    #index = _indices[0]
+                    index = int(str(_indices[0]).split('L')[0])
+                    
             
             if _ml[index].mNode == None:
                 log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, index))            
@@ -1292,7 +1382,12 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
                          c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
         mUI.MelMenuItem( self.uiMenu_help, l="Gather Blocks",
-                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )        
+                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
+        mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
+                         c=lambda *a: self.uiFunc_contextuaBlockCall('VISUALIZEHEIRARCHY') )
+        
+        
+        
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
                     c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
@@ -1409,10 +1504,10 @@ class ui(cgmUI.cgmGUI):
         
         
         _LeftColumn = mUI.MelObjectScrollList(_MainForm, ut='cgmUISubTemplate',
-                                              allowMultiSelection=False,en=True,
-                                              #dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                              allowMultiSelection=True,en=True,
+                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
                                               #dcc = cgmGEN.Callback(self._blockCurrent.select()),
-                                              dcc = self.uiFunc_block_select_dcc,
+                                              #dcc = self.uiFunc_block_select_dcc,
                                               selectCommand = self.uiScrollList_block_select,
                                               
                                               w = 200)
