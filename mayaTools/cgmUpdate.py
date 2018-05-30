@@ -34,7 +34,7 @@ _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
 _pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
 _pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
 
-_defaultBranch = 'MRS'
+_defaultBranch = 'stable'
 _sep = os.sep
 
 global CGM_BUILDS_DAT
