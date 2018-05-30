@@ -4967,7 +4967,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             mMasterNull.addAttr('mClass',value = 'cgmMasterNull',lock=True)
             mMasterNull.addAttr('cgmName',initialValue = '',lock=True)
-            mMasterNull.addAttr('cgmType',initialValue = 'ignore',lock=True)
+            mMasterNull.addAttr('cgmType',initialValue = 'rig',lock=True)
             mMasterNull.addAttr('cgmModuleType',value = 'master',lock=True)   
             mMasterNull.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
             mMasterNull.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	

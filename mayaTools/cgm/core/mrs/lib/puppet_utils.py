@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -552,3 +552,59 @@ def layer_verify(self,**kws):
             return mLayer
         return self.displayLayer
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+def verify_armature(self, mode = 'unity'):
+    """
+    Get the main driver point for a 
+    """
+    _str_func = 'verify_gameAsset'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    
+    if not self.getMessage('armature'):
+        log.debug("|{0}| >> missing plug. Creating armature dag...".format(_str_func))
+        mArmature = self.masterNull.doCreateAt(setClass=True)
+    else:
+        mArmature = self.getMessageAsMeta('armature')
+        
+    ATTR.copy_to(self.mNode,'cgmName',mArmature.mNode,driven='target')
+    mArmature.addAttr('puppet',attrType = 'messageSimple')
+    if not mArmature.connectParentNode(self.mNode,'puppet','armature'):
+        raise StandardError,"Failed to connect masterNull to puppet network!"
+
+    mArmature.addAttr('cgmType',initialValue = 'ignore',lock=True)
+    mArmature.addAttr('cgmModuleType',value = 'master',lock=True)   
+    mArmature.addAttr('geoGroup',attrType = 'messageSimple',lock=True)
+    mArmature.addAttr('skeletonGroup',attrType = 'messageSimple',lock=True) 
+
+    #See if it's named properly. Need to loop back after scene stuff is querying properly
+    mArmature.doName()
+    mArmature.dagLock(True)
+                
+    
+    if mode == 'unity':
+        for attr in 'geo','skeleton':
+            _link = attr+'Group'
+            mGroup = mArmature.getMessage(_link,asMeta=True)# Find the group
+            if mGroup:mGroup = mGroup[0]
+    
+            if not mGroup:
+                mGroup = self.masterNull.doCreateAt(setClass=True)
+                #mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
+                mGroup.rename(attr)
+                mGroup.connectParentNode(mArmature.mNode,'armature', attr+'Group')
+    
+            log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
+    
+            mGroup.p_parent = mArmature
+            mGroup.dagLock(True)
+            #ATTR.set_standardFlags(mGroup.mNode)
+    
+    else:
+        raise ValueError,"Unknown mode: {0}".format(mode)
+
+
+    
+    

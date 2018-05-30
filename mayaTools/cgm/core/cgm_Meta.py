@@ -3005,7 +3005,18 @@ class cgmObject(cgmNode):
     def getTransformInverseDirection(self,*a,**kws):
         return TRANS.transformInverseDirection(self,*a,**kws)     
     def getTransformInversePoint(self,*a,**kws):
-        return TRANS.transformInversePoint(self,*a,**kws)     
+        return TRANS.transformInversePoint(self,*a,**kws)
+    
+    def dagLock(self,state=True):
+        _attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
+        kws = {'lock':True,
+               'visible':False,
+               'keyable':False}
+        if not state:
+            for k,v in kws.iteritems():
+                kws[k] = not v
+        return ATTR.set_standardFlags(self.mNode,_attrs, **kws)
+    
     #========================================================================================================
     #>>> Get info...
     #========================================================================================================
