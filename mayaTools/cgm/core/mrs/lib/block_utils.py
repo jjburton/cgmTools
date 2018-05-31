@@ -2124,7 +2124,7 @@ def skeleton_connectToParent(self):
             else:
                 raise ValueError,"Not done with {0}".format(_attachPoint)
             ml_moduleJoints[0].p_parent = mTargetJoint
-            
+
     return True
 
 def skeleton_buildRigChain(self):

@@ -466,7 +466,6 @@ class ui(cgmUI.cgmGUI):
             _str_activeBlock = _mActiveBlock.mNode
         else:
             return log.error("|{0}| >> No active block detected".format(_str_func))
-        
         return getattr(_mActiveBlock,func)(*args,**kws)
     
     def uiFunc_blockManange_fromScrollList(self,**kws):          
@@ -928,7 +927,6 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_block_setActive(self, index = None, mBlock = None):
         try:
             _str_func = 'uiFunc_block_setActive'
-            
             
             _ml = self.get_blockList()
             if not _ml:
@@ -1495,11 +1493,21 @@ class ui(cgmUI.cgmGUI):
     def buildTab_setup(self,parent):
         _MainForm = parent
         #_MainForm = mUI.MelScrollLayout(parent)	        
-        _row_report = mUI.MelHLayout(_MainForm ,ut='cgmUIInstructionsTemplate',h=20)
+        _row_report = mUI.MelHSingleStretchLayout(_MainForm ,ut='cgmUIInstructionsTemplate',h=20)
         self.uiField_report = mUI.MelLabel(_row_report,
                                            bgc = SHARED._d_gui_state_colors.get('help'),
                                            label = '...',
                                            h=20)
+        _row_report.setStretchWidget(self.uiField_report)
+        cgmUI.add_Button(_row_report,'<<',
+                         cgmGEN.Callback(self.uiFunc_block_setActive),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Set the active block.")
+        cgmUI.add_Button(_row_report,'Clear',
+                         cgmGEN.Callback(self.uiFunc_block_clearActive),
+                         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+                         "Clear the active block.")
+        mUI.MelSpacer(_row_report,w=2)
         _row_report.layout()         
         
         
@@ -1612,23 +1620,11 @@ class ui(cgmUI.cgmGUI):
 
         _row_push.layout()
                
-        #Shared ------------------------------------------------------------------------------------
-        _frame_shared = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Contextual',vis=True,
-                                           collapse=self.var_blockSharedFrameCollapse.value,
-                                           collapsable=True,
-                                           enable=True,
-                                           useTemplate = 'cgmUIHeaderTemplate',
-                                           expandCommand = lambda:self.var_blockSharedFrameCollapse.setValue(0),
-                                           collapseCommand = lambda:self.var_blockSharedFrameCollapse.setValue(1)
-                                           )	
-        self.uiFrameLayout_blockShared = _frame_shared
-        self.uiFrame_shared = mUI.MelColumnLayout(_frame_shared,useTemplate = 'cgmUISubTemplate')  
-        self.uiUpdate_blockShared()
         
         #Settings Frame ------------------------------------------------------------------------------------
         self.create_guiOptionVar('blockSettingsFrameCollapse',defaultValue = 0)       
     
-        _frame_blockSettings = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat',vis=True,
+        _frame_blockSettings = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Active',vis=True,
                                                   collapse=self.var_blockSettingsFrameCollapse.value,
                                                   collapsable=True,
                                                   enable=True,
@@ -1641,6 +1637,18 @@ class ui(cgmUI.cgmGUI):
         _frame_settings_inside = mUI.MelColumnLayout(_frame_blockSettings,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockSettings = _frame_settings_inside
         
+        #Shared ------------------------------------------------------------------------------------
+        _frame_shared = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Contextual',vis=True,
+                                           collapse=self.var_blockSharedFrameCollapse.value,
+                                           collapsable=True,
+                                           enable=True,
+                                           useTemplate = 'cgmUIHeaderTemplate',
+                                           expandCommand = lambda:self.var_blockSharedFrameCollapse.setValue(0),
+                                           collapseCommand = lambda:self.var_blockSharedFrameCollapse.setValue(1)
+                                           )	
+        self.uiFrameLayout_blockShared = _frame_shared
+        self.uiFrame_shared = mUI.MelColumnLayout(_frame_shared,useTemplate = 'cgmUISubTemplate')  
+        self.uiUpdate_blockShared()
         
         #Info ------------------------------------------------------------------------------------
         _frame_info = mUI.MelFrameLayout(_RightColumn,label = 'Info',vis=True,

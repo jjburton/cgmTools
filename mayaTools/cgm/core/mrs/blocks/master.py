@@ -358,6 +358,20 @@ def is_prerig(self):
 #>> rig
 #=============================================================================================================
 @cgmGEN.Timer
+def rig_prechecks(self):
+    #try:
+    #_short = self.d_block['shortName']
+    _str_func = 'rig_prechecks'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    if not self.mBlock.buildProfile:
+        self.l_errors.append('Must have build profile')
+        return False
+    
+    return True
+
+@cgmGEN.Timer
 def rig_cleanUp(self):
     #try:
     _short = self.d_block['shortName']
@@ -475,13 +489,16 @@ def rig_cleanUp(self):
         
         #>>>>> INDEX CONTROLS
         #>>>>> Setup VIS
+        mJoint.connectChildNode(mControl.mNode,'rigJoint','sourceJoint')
+        
+        """
         mc.parentConstraint(mControl.mNode,
                             mJoint.mNode,
                             maintainOffset = True)
         mc.scaleConstraint(mControl.mNode,
                            mJoint.mNode,
                            maintainOffset = True)            
-        
+        """
         ml_controlsAll.append(mControl)
         mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
         
@@ -560,6 +577,9 @@ def skeleton_build(self):
             self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
             mJoint.doStore('cgmTypeModifier','rootMotion')
             mJoint.doName()
+            
+            #self.atBlockUtils('skeleton_connectToParent')
+            mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup
             return mJoint.mNode
         
     except Exception,err:cgmGEN.cgmException(Exception,err

@@ -4075,7 +4075,7 @@ def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName
     return _res
 
 class rigFactory(object):
-    @cgmGEN.Timer    
+    #@cgmGEN.Timer    
     def __init__(self, rigBlock = None, forceNew = True, autoBuild = False, ignoreRigCheck = False,
                  *a,**kws):
         """
@@ -4098,8 +4098,9 @@ class rigFactory(object):
         self.d_block = {}
         self.d_module = {}
         self.d_joints = {}
-        self.d_orientation = {}         
-        self.md_controlShapes = {} 
+        self.d_orientation = {}
+        self.md_controlShapes = {}
+        self.l_errors = []
 
         if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
         if kws:#...intial population
@@ -4114,6 +4115,15 @@ class rigFactory(object):
         cgmGEN.log_info_dict(self.call_kws,_str_func)
         
         self.fnc_check_rigBlock()
+        
+        if self.l_errors:
+            _short = self.mBlock.mNode
+            print(cgmGEN._str_hardLine)
+            print("|{0}| >> Prechecks failed! ".format(_str_func))
+            for i,e in enumerate(self.l_errors):
+                print("{0} | {1}".format(i,e))
+            print(cgmGEN._str_hardLine)
+            return log.error("[ '{0}' ] Failure. See script editor".format(_short))
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
         self.fnc_check_module()
@@ -4129,7 +4139,7 @@ class rigFactory(object):
         self.fnc_deformConstrainNulls()
         self.fnc_processBuild(**kws)
 
-        log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
 
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
@@ -4199,9 +4209,16 @@ class rigFactory(object):
         _blockType = _d['mBlock'].blockType
 
         _buildModule = get_blockModule(_blockType)
+        
+        if _buildModule.__dict__.get('rig_prechecks'):
+            log.debug("|{0}| >> Found precheck call".format(_str_func,))
+            
+            if not _buildModule.rig_prechecks(self):
+                return False
+        
 
         if not _buildModule:
-            log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))        
+            log.error("|{0}| >> No build module found for: {1}".format(_str_func,_d['mBlock'].blockType))
             return False
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
@@ -5038,7 +5055,14 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
             mSet.doName()
         except Exception,err:cgmGEN.cgmException(Exception,err)
-
+        
+    def rig_connect(self):
+        return self.UTILS.rig_connect(self)
+    def rig_disconnect(self):
+        return self.UTILS.rig_disconnect(self)
+    def rig_isConnected(self):
+        return self.UTILS.rig_isConnected(self)
+        
     def delete(self):
         """
         Delete the Puppet
@@ -5202,7 +5226,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             #>>> Skeleton Group
             #=====================================================================	
-            
             if not self.masterNull.getMessage('skeletonGroup'):
                 mSkeletonGrp = cgmMeta.createMetaNode('cgmObject')
                 mSkeletonGrp.doSnapTo(mMasterControl.mNode)

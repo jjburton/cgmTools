@@ -554,11 +554,11 @@ def layer_verify(self,**kws):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
-def verify_armature(self, mode = 'unity'):
+def verify_armature(self):
     """
-    Get the main driver point for a 
+    First pass on armature setup
     """
-    _str_func = 'verify_gameAsset'
+    _str_func = 'verify_armature'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
@@ -582,29 +582,86 @@ def verify_armature(self, mode = 'unity'):
     #See if it's named properly. Need to loop back after scene stuff is querying properly
     mArmature.doName()
     mArmature.dagLock(True)
-                
     
-    if mode == 'unity':
-        for attr in 'geo','skeleton':
-            _link = attr+'Group'
-            mGroup = mArmature.getMessage(_link,asMeta=True)# Find the group
-            if mGroup:mGroup = mGroup[0]
+    mc.editDisplayLayerMembers(self.displayLayer.mNode, mArmature.mNode, noRecurse=True)
+    #editDisplayLayerMembers -noRecurse master_displayLayer `ls -selection`;
     
-            if not mGroup:
-                mGroup = self.masterNull.doCreateAt(setClass=True)
-                #mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
-                mGroup.rename(attr)
-                mGroup.connectParentNode(mArmature.mNode,'armature', attr+'Group')
     
-            log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
-    
-            mGroup.p_parent = mArmature
-            mGroup.dagLock(True)
-            #ATTR.set_standardFlags(mGroup.mNode)
-    
-    else:
-        raise ValueError,"Unknown mode: {0}".format(mode)
+    for attr in 'geo','skeleton':
+        _plug = attr+'Group'
+        
+        if mArmature.getMessage(_plug):
+            mGroup = mArmature.getMessageAsMeta(_plug)
+            if mGroup.getParent(asMeta=1) != mArmature:
+                mGroup.dagLock(False)
+                mGroup.p_parent = mArmature
+                mGroup.dagLock(True)
+            continue
+        
+        if not self.masterNull.getMessage(_plug):
+            log.debug("|{0}| >> missing plug. Creating: {1}".format(_str_func,attr))            
+            mGroup = self.masterNull.doCreateAt(setClass=True)    
+            self.masterNull.connectChildNode(mGroup,_plug,'module')
+        else:
+            mGroup = self.masterNull.getMessageAsMeta(_plug)
+            mGroup.dagLock(False)        
+        
+            
+        mArmature.connectChildNode(mGroup,_plug)
+        mGroup.p_parent = mArmature
+        mGroup.dagLock(True)
+        mGroup.rename(attr)        
 
+        log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))    
+    
+    return
+
+def is_rigged(self):
+    _str_func = 'is_rigged'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    if not self.getMessage('masterControl'):
+        return False
+    
+    return True
+    
+    
+def rig_connect(self):
+    """
+    First pass on armature setup
+    """
+    _str_func = 'rig_connect'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+def rig_disconnect(self):
+    """
+    First pass on armature setup
+    """
+    _str_func = 'rig_disconnect'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    
+def rig_isConnected(self):
+    """
+    First pass on armature setup
+    """
+    _str_func = 'rig_isConnected'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    mRootJoint = self.getMessageAsMeta('rootJoint')
+    if not mRootJoint:
+        return False
+    
+    if mRootJoint.getConstraintsTo():
+        return True
+    return False
+
+    
+    
 
     
     
