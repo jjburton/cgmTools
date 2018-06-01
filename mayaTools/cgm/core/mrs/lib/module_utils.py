@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -1481,7 +1481,7 @@ def is_upToDate(self,report=False):
     if report:
         _short = self.p_nameBase        
         if b_upToDate:
-            print("|{0}| >> build current. ".format(_short))
+            print("|{0}| >> build current | {1}".format(_short,v_build))
         else:
             print("|{0}| >> OUT OF DATE | buildVersion: {1} | blockVersion: {2}".format(_short,
                                                                           v_build,

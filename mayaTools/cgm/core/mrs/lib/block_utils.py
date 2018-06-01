@@ -4621,6 +4621,15 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
+    
+    _blockProfile = 'default'
+    if self.hasAttr('blockProfile'):
+        _blockProfile = self.getEnumValueString('blockProfile')
+        if _d.get(_blockProfile):
+            _d = _d.get(_blockProfile)
+        else:
+            _d = _d.get('default')
+                
     """
     if self.hasAttr('blockProfile'):
         _strValue = ATTR.get_enumValueString(_short,'blockProfile')
@@ -4634,16 +4643,15 @@ def buildProfile_load(self, arg):
             log.debug("|{0}| >>  Found default dat...".format(_str_func))
             _d = _d_default"""
             
-            
-    if not _d.get('buildProfile'):
-        _d['buildProfile'] = arg
+    #if not _d.get('buildProfile'):
+    #    _d['buildProfile'] = arg
         
     if self.blockState not in ['define','template','prerig']:
         log.error(cgmGEN._str_subLine)
         return log.error("|{0}| >>  [FAILED] Block: {1} | profile: {2} | Can't load in state: {3}".format(_str_func,_short,arg,self.blockState))
-
     
-    #cgmGEN.func_snapShot(vars())
+    cgmGEN.func_snapShot(vars())
+    
     log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
     for a,v in _d.iteritems():
         try:

@@ -3007,8 +3007,13 @@ class cgmObject(cgmNode):
     def getTransformInversePoint(self,*a,**kws):
         return TRANS.transformInversePoint(self,*a,**kws)
     
-    def dagLock(self,state=True):
+    def dagLock(self,state=True,ignore = None):
         _attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
+        _ignore = VALID.listArg(ignore)
+        if ignore:
+            for a in _ignore:
+                if a in _attrs:
+                    _attrs.remove(a)
         kws = {'lock':True,
                'visible':False,
                'keyable':False}

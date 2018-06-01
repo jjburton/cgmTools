@@ -77,7 +77,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.05162018'
+__version__ = 'alpha.1.06012018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -105,15 +105,16 @@ d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
-    'unityMobile':{'default':{'numRoll':1,
-                              },
+    'unityMobile':{'default':{'numRoll':1,},
+                   'finger':{'numRoll':0},
+                   'thumb':{'numRoll':0},
                    },
-    'unityPC':{'default':{'numRoll':3,
-                          },
+    'unityPC':{'default':{'numRoll':1},
+               'finger':{'numRoll':0},
+               'thumb':{'numRoll':0},
                'spine':{'numRoll':7,
                        }},
-    'feature':{'default':{'numRoll':3,
-                          },
+    'feature':{'default':{'numRoll':3,},
                'leg':{'hasBallJoint':True,
                       'hasEndJoint':True,}}}
 
@@ -1587,19 +1588,10 @@ def rig_prechecks(self):
     log.debug(self)
     
     mBlock = self.mBlock
-    mModule = self.mModule
-    mRigNull = self.mRigNull
-    mPrerigNull = mBlock.prerigNull
-    ml_templateHandles = mBlock.msgList_get('templateHandles')
-    ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
-    mMasterNull = self.d_module['mMasterNull']
     
     
-    #Lever ============================================================================    
-    _b_lever = False
-    log.debug(cgmGEN._str_subLine)
-    
-    
+    if mBlock.scaleSetup:
+        self.l_errors.append('scaleSetup not ready')    
 
 
 @cgmGEN.Timer
@@ -5706,7 +5698,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mMeshHeel = mMesh.doDuplicate(po=False)
                 
                 #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-                heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
+                heel = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
                 
 
                 #Add a ankleball ------------------------------------------------------------------------
@@ -5739,7 +5731,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     
                     
@@ -5754,7 +5746,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mPlane.doSnapTo(mToe.mNode,rotation=False)
                     mMeshBallDup = mMeshBall.doDuplicate(po=False)
                     #mc.select(cl=1)
-                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
+                    ball2 = mel.eval('polyCBoolOp -op 2-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
                     mMeshBall.delete()
                     mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
                     
@@ -5768,7 +5760,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshToe = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
+                    toe = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
                     mMeshToe = cgmMeta.validateObjArg(toe[0])
                     
                     
@@ -5787,7 +5779,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     ml_segProxy.append(mMeshBall)
                     ml_rigJoints.append(mBall)                    

@@ -175,7 +175,7 @@ def is_upToDate(self,report = True):
         _res.append( mModule.atUtils('is_upToDate',report) )
         
     if report:
-        if _res:
+        if False in _res:
             print("|{0}| >> OUT OF DATE ".format(_short))
         else:
             print("|{0}| >> build current. ".format(_short))
@@ -581,7 +581,7 @@ def armature_verify(self):
 
     #See if it's named properly. Need to loop back after scene stuff is querying properly
     mArmature.doName()
-    mArmature.dagLock(True)
+    mArmature.dagLock(True,ignore='v')
     
     mc.editDisplayLayerMembers(self.displayLayer.mNode, mArmature.mNode, noRecurse=True)
     #editDisplayLayerMembers -noRecurse master_displayLayer `ls -selection`;

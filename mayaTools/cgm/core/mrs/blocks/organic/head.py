@@ -71,7 +71,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.05162018'
+__version__ = 'alpha.1.06012018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -103,7 +103,7 @@ d_build_profiles = {
                    'human':{'neckJoints':1,
                             'neckControls':1}
                    },
-    'unityPC':{'default':{'neckJoints':2,
+    'unityPC':{'default':{'neckJoints':1,
                           'neckControls':1},
                },
     'feature':{'default':{'numJoints':9,
@@ -1297,13 +1297,15 @@ def rig_prechecks(self):
     log.debug("{0}".format(self))
     
     mBlock = self.mBlock
-    mModule = self.mModule    
     
     if mBlock.neckControls > 1:
         raise ValueError,"Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls)
     
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
         raise ValueError,"Must have more than one neck joint with segmentMidIKControl"
+    
+    if mBlock.scaleSetup:
+        self.l_errors.append('scaleSetup not ready')    
         
 
 @cgmGEN.Timer
