@@ -280,8 +280,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 if self.hasAttr('blockProfile'):
                     self.atUtils('blockProfile_load', ATTR.get_enumValueString(self.mNode,'blockProfile'))
                 
-                if self.hasAttr('buildProfile'):
-                    self.atUtils('buildProfile_load', ATTR.get_enumValueString(self.mNode,'buildProfile'))                
+                _kw_buildProfile = kws.get('buildProfile')
+                if _kw_buildProfile:
+                    self.atUtils('buildProfile_load', _kw_buildProfile)
                 
                 #>>>Auto flags...
                 if not _blockModule:
@@ -4119,11 +4120,14 @@ class rigFactory(object):
         if self.l_errors:
             _short = self.mBlock.mNode
             print(cgmGEN._str_hardLine)
+            print("|{0}| >> Block: {1} ".format(_str_func, self.d_block['shortName']))            
             print("|{0}| >> Prechecks failed! ".format(_str_func))
             for i,e in enumerate(self.l_errors):
                 print("{0} | {1}".format(i,e))
             print(cgmGEN._str_hardLine)
-            return log.error("[ '{0}' ] Failure. See script editor".format(_short))
+            #log.error("[ '{0}' ] Failure. See script editor".format(_short))
+            raise ValueError,("[ '{0}' ] Failure. See script editor".format(_short))
+        
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
         self.fnc_check_module()
@@ -4192,6 +4196,8 @@ class rigFactory(object):
         """
         _str_func = 'fnc_check_rigBlock' 
         _d = {}
+        self.d_block = _d    
+        
         _res = True
 
         if not self.call_kws['rigBlock']:
@@ -4213,7 +4219,8 @@ class rigFactory(object):
         if _buildModule.__dict__.get('rig_prechecks'):
             log.debug("|{0}| >> Found precheck call".format(_str_func,))
             
-            if not _buildModule.rig_prechecks(self):
+            _buildModule.rig_prechecks(self)
+            if self.l_errors:
                 return False
         
 
@@ -4230,7 +4237,6 @@ class rigFactory(object):
         if not _d['buildOrder']:
             raise RuntimeError,'Failed to validate build order'
 
-        self.d_block = _d    
         
         self.buildModule = _buildModule
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
@@ -5229,8 +5235,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             if not self.masterNull.getMessage('skeletonGroup'):
                 mSkeletonGrp = cgmMeta.createMetaNode('cgmObject')
                 mSkeletonGrp.doSnapTo(mMasterControl.mNode)
-                
-                mSkeletonGrp.addAttr('cgmTypeModifier','skeleton',lock=True)	 
+                mSkeletonGrp.addAttr('cgmName','ignore',lock=True)
+                mSkeletonGrp.addAttr('cgmTypeModifier','skeleton',lock=True)
                 mSkeletonGrp.parent = mMasterControl.mNode
                 self.masterNull.connectChildNode(mSkeletonGrp,'skeletonGroup','module')
                 mSkeletonGrp.doName()

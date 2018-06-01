@@ -244,7 +244,7 @@ l_attrsStandard = ['side',
                    
                    'proxyDirect',
                    'numShapers',#...with limb this is the sub shaper count as you must have one per handle
-                   'buildProfile',
+                   #'buildProfile',
                    'moduleTarget']
 
 d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
@@ -1351,6 +1351,9 @@ def prerigDelete(self):
             s.overrideDisplayType = 2
         mTemplateLoft.v = True
         
+def skeleton_check(self):
+    return True
+
 def skeleton_build(self, forceNew = True):
     _short = self.mNode
     _str_func = 'skeleton_build'
@@ -1979,7 +1982,7 @@ def rig_skeleton(self):
             mRigNull.connectChildNode(mLever,'leverFK','rigNull')
         
     
-    #...fk chain -----------------------------------------------------------------------------------------------
+    #...fk chain ----------------------------------------------------------------------------------------------
     if mBlock.ikSetup:
         log.info("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  
         ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'blend','blendJoints')

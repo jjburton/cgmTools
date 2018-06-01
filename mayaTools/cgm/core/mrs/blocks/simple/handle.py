@@ -80,7 +80,7 @@ l_attrsStandard = ['side',
                    'addCog',
                    'addScalePivot',
                    'proxy',
-                   'buildProfile',
+                   #'buildProfile',
                    'moduleTarget']
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),

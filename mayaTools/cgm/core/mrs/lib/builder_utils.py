@@ -80,6 +80,7 @@ def get_controlSpaceSetupDict(self):
     else:
         d_controlSpaces = {'addConstrainGroup':True}
     log.debug("|{0}| >> d_controlSpaces {1}".format(_str_func,d_controlSpaces))
+    
     return d_controlSpaces
 
 def gather_rigBlocks():

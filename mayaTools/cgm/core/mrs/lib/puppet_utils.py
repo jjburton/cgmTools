@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -34,7 +34,8 @@ import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
-
+import cgm.core.rig.constraint_utils as RIGCONSTRAINT
+reload(RIGCONSTRAINT)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -171,7 +172,6 @@ def is_upToDate(self,report = True):
         print("|{0}| >> ".format(_short) + cgmGEN._str_subLine)
     
     for mModule in modules_get(self):
-        #mModule.UTILS.is_upToDate(mModule,report)
         _res.append( mModule.atUtils('is_upToDate',report) )
         
     if report:
@@ -554,7 +554,7 @@ def layer_verify(self,**kws):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
-def verify_armature(self):
+def armature_verify(self):
     """
     First pass on armature setup
     """
@@ -613,8 +613,40 @@ def verify_armature(self):
         mGroup.rename(attr)        
 
         log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))    
-    
     return
+
+def armature_remove(self):
+    """
+    Remove the armature
+    """
+    _str_func = 'armature_remove'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    
+    if not self.getMessage('armature'):
+        return log.error("|{0}| >> No armature found.".format(_str_func))
+    
+    mArmature = self.getMessageAsMeta('armature')
+        
+    for attr in 'geo','skeleton':
+        _plug = attr+'Group'
+        
+        if mArmature.getMessage(_plug):
+            mGroup = mArmature.getMessageAsMeta(_plug)
+            log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))                
+            mGroup.dagLock(False)
+            if attr == 'geo':
+                mGroup.p_parent = self.masterNull.noTransformGroup
+            else:
+                mGroup.p_parent = self.masterControl
+            mGroup.rename("{0}_grp".format(attr))
+            mGroup.dagLock(True)
+            
+        else:
+            log.error("|{0}| >> Missing group: {1}.".format(_str_func,attr))
+    return
+
 
 def is_rigged(self):
     _str_func = 'is_rigged'
@@ -635,6 +667,29 @@ def rig_connect(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
+    if not is_rigged(self) and force !=True:
+        log.debug("|{0}| >>  Module not rigged".format(_str_func))
+        return False
+
+    if rig_isConnected(self):
+        log.debug("|{0}| >>  Master control already connected".format(_str_func))
+        return True    
+    
+    mRootJoint = self.getMessageAsMeta('rootJoint')
+    if not mRootJoint:
+        log.warning("|{0}| >> No root joint".format(_str_func))        
+        return 
+    
+    mRootMotionHandle =  self.getMessageAsMeta('rootMotionHandle')
+    if not mRootJoint:
+        log.error("|{0}| >> No root motion handle".format(_str_func))        
+        raise Exception,"No root motion handle found. "
+    
+    RIGCONSTRAINT.driven_connect(mRootJoint,mRootMotionHandle)
+    
+    return True
+    
+    
 def rig_disconnect(self):
     """
     First pass on armature setup
@@ -642,6 +697,20 @@ def rig_disconnect(self):
     _str_func = 'rig_disconnect'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
+    
+    if not rig_isConnected(self):
+        log.debug("|{0}| >>  Master control not connected".format(_str_func))
+        return True
+    
+    mRootJoint = self.getMessageAsMeta('rootJoint')
+    if not mRootJoint:
+        log.warning("|{0}| >> No root joint".format(_str_func))        
+        return
+    
+    RIGCONSTRAINT.driven_disconnect(mRootJoint)
+    return True
+    
+    
     
     
 def rig_isConnected(self):

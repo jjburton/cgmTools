@@ -199,7 +199,7 @@ l_attrsStandard = ['side',
                    'numControls',
                    'numShapers',
                    'numJoints',
-                   'buildProfile',
+                   #'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
@@ -1113,7 +1113,10 @@ def prerigDelete(self):
         for s in mTemplateLoft.getShapes(asMeta=True):
             s.overrideDisplayType = 2
         mTemplateLoft.v = True
-        
+
+def skeleton_check(self):
+    return True
+
 def skeleton_build(self, forceNew = True):
     _short = self.mNode
     _str_func = 'skeleton_build'
@@ -1213,22 +1216,16 @@ def rig_prechecks(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
-    mBlock = self.mBlock
-    mModule = self.mModule
-    mRigNull = self.mRigNull
-    mPrerigNull = mBlock.prerigNull
-    ml_templateHandles = mBlock.msgList_get('templateHandles')
-    ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
-    mMasterNull = self.d_module['mMasterNull']
-    
+    mBlock = self.mBlock    
     
     #Lever ============================================================================    
     _b_lever = False
     log.debug(cgmGEN._str_subLine)
     
     if mBlock.scaleSetup:
-        raise NotImplementedError,"scaleSetup not ready."
-
+        self.l_errors.append('scaleSetup not ready')
+        #return False        
+        #raise NotImplementedError,"scaleSetup not ready."
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):

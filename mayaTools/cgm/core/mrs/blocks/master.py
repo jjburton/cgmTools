@@ -47,7 +47,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.03212018'
+__version__ = 'alpha.1.05312018'
 __autoTemplate__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
@@ -62,8 +62,7 @@ l_attrsStandard = ['addMotionJoint',
                    'moduleTarget',
                    'baseSize',
                    'controlOffset',
-                   'numSpacePivots',
-                   'buildProfile']
+                   'numSpacePivots']
 
 d_attrsToMake = {'rootJoint':'messageSimple',
                  }
@@ -75,8 +74,7 @@ d_defaultSettings = {'version':__version__,
                      'numSpacePivots':1,
                      'attachPoint':'end'}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget'],
-                   'msgLists':['prerigHandles']}
+d_wiring_prerig = {'msgLinks':['moduleTarget']}
 d_wiring_template = {'msgLinks':['templateNull']}
 
 
@@ -364,10 +362,10 @@ def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
-    
+    """
     if not self.mBlock.buildProfile:
         self.l_errors.append('Must have build profile')
-        return False
+        return False"""
     
     return True
 
@@ -522,6 +520,8 @@ def rig_cleanUp(self):
     mBlock.template = True
     self.version = self.d_block['buildVersion']
     
+    mMasterControl.doStore('version', self.d_block['buildVersion'])
+    
     #log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     #except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -574,12 +574,14 @@ def skeleton_build(self):
             mJoint = self.rootMotionHelper.doCreateAt('joint')
             mPuppet.connectChildNode(mJoint,'rootJoint','module')
             mJoint.connectParentNode(self,'module','rootJoint')
-            self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+            mJoint.doStore('cgmName','ignore')            
+            #self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
             mJoint.doStore('cgmTypeModifier','rootMotion')
             mJoint.doName()
             
             #self.atBlockUtils('skeleton_connectToParent')
-            mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup
+            if self.moduleTarget.masterNull.getMessage('skeletonGroup'):
+                mJoint.p_parent = self.moduleTarget.masterNull.skeletonGroup
             return mJoint.mNode
         
     except Exception,err:cgmGEN.cgmException(Exception,err

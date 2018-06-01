@@ -41,6 +41,7 @@ import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.list_utils as LISTS
 
 def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
     """
@@ -162,6 +163,55 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         
         #pprint.pprint(vars())
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
+def driven_disconnect(driven = None, driver = None, mode = 'best'):
+    """
+    :parameters:
+        l_jointChain1 - First set of objects
+        
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _str_func = 'driven_disconnect'
+    mDriven = cgmMeta.asMeta(driven)
+    _short = mDriven.mNode
+    l_drivers = []
+    for a in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+        l_drivers.append(ATTR.get_driver(_short,a,True))
+    
+    l_drivers = LISTS.get_noDuplicates(l_drivers)
+    log.debug("|{0}| >> drivers: {1}".format(_str_func,l_drivers))
+    mc.delete(l_drivers)
+
+def driven_connect(driven = None, driver = None, mode = 'best'):
+    """
+    :parameters:
+        l_jointChain1 - First set of objects
+        
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _str_func = 'driven_connect'
+    mDriven = cgmMeta.asMeta(driven)
+    mDriver = cgmMeta.asMeta(driver)
+    
+    if mode == 'best':
+        mode = 'rigDefault'
+    
+    if mode == 'rigDefault':
+        mc.pointConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
+        mc.orientConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1) 
+        mc.scaleConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
+    else:
+        pprint.pprint(vars())
+        raise ValueError,"Unknown mode: {0}".format(mode)
+
 
 
 def setup_linearSegment(joints = [], skip = ['y','x'],

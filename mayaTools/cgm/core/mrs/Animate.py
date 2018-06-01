@@ -159,7 +159,7 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(uiFunc_contextualAction,self,**{'mode':'mirrorVerify','context':'puppet'}))
         mUI.MelMenuItem(_mDev, l="Puppet - Up to date?",
                         ann = "Please don't mess with this if you don't know what you're doing ",
-                        c = cgmGEN.Callback(uiFunc_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))        
+                        c = cgmGEN.Callback(uiFunc_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
         
     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )

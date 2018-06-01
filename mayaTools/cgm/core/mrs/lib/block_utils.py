@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -2365,8 +2365,8 @@ def blockParent_set(self, parent = False, attachPoint = None):
             self.p_parent = False
             
         if self.getMessage('moduleTarget'):
-            log.debug("|{0}| >>  parent false. clearing moduleTarget".format(_str_func,self))
-            self.moduleTarget = False
+            #log.debug("|{0}| >>  parent false. clearing moduleTarget".format(_str_func,self))
+            self.moduleTarget.p_parent = False
             
     else:
         mParent = cgmMeta.validateObjArg(parent,'cgmRigBlock',noneValid=True)
@@ -3919,8 +3919,7 @@ def controlsRig_reset(self):
 
 _d_attrStateMasks = {0:[],
                      1:['basicShape',],
-                     2:['baseSizeX','baseSizeY','baseSizeZ',
-                        'buildProfile','blockProfile',
+                     2:['baseSizeX','baseSizeY','baseSizeZ','blockProfile',
                         'blockScale','proxyShape','shapeDirection'],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
@@ -4230,7 +4229,13 @@ def rig(self,**kws):
     self.blockState = 'skeleton>rig'#...buffering that we're in process
     if not 'autoBuild' in kws.keys():
         kws['autoBuild'] = True
-    self.asRigFactory(**kws)
+    
+    try:self.asRigFactory(**kws)
+    except ValueError,err:
+        self.blockState = 'skeleton'
+        log.error(err)
+        return False
+    
     if not is_rigged(self):
         log.error("|{0}| >> Failed to return is_rigged...".format(_str_func))                    
         self.blockState = 'skeleton'
@@ -4599,10 +4604,9 @@ def blockProfile_load(self, arg):
                     log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))                     
             if not _done:
                 ATTR.set(_short,a,v)
-                
-            
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+    log.info("|{0}| >>  Block: {1} | {2}".format(_str_func,_short,arg))
 
 
 def buildProfile_load(self, arg):
@@ -4617,6 +4621,7 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
+    """
     if self.hasAttr('blockProfile'):
         _strValue = ATTR.get_enumValueString(_short,'blockProfile')
         log.debug("|{0}| >>  blockProfile check: {1}".format(_str_func,_strValue))
@@ -4627,13 +4632,19 @@ def buildProfile_load(self, arg):
             _d = _d_block
         elif _d_default:
             log.debug("|{0}| >>  Found default dat...".format(_str_func))
-            _d = _d_default
+            _d = _d_default"""
+            
             
     if not _d.get('buildProfile'):
-        _d['buildProfile'] = arg    
+        _d['buildProfile'] = arg
+        
+    if self.blockState not in ['define','template','prerig']:
+        log.error(cgmGEN._str_subLine)
+        return log.error("|{0}| >>  [FAILED] Block: {1} | profile: {2} | Can't load in state: {3}".format(_str_func,_short,arg,self.blockState))
+
     
     #cgmGEN.func_snapShot(vars())
-    log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))    
+    log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
     for a,v in _d.iteritems():
         try:
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
@@ -4657,6 +4668,9 @@ def buildProfile_load(self, arg):
                         ATTR.set(_short,a2, v)                
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+    
+    self.doStore('buildProfile',arg)
+    log.info("|{0}| >>  [LOADED] Block: {1} | profile: {2}".format(_str_func,_short,arg))
 
 
 #Profile stuff ==============================================================================================
@@ -4806,6 +4820,9 @@ def get_puppet(self):
     log.debug("{0}".format(self))
 
     mModuleTarget = get_module(self)
+    if cgmMeta.validateObjArg(mModuleTarget,'cgmRigPuppet',noneValid=True):
+        return mModuleTarget
+    
     mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
     if not mPuppet:
         return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))

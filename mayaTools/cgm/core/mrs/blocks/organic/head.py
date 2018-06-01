@@ -147,7 +147,7 @@ l_attrsStandard = ['side',
                    'loftShape',
                    #'ikSetup',
                    #'ikBase',
-                   'buildProfile',
+                   #'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
@@ -1139,7 +1139,10 @@ def prerigDelete(self):
 #def is_prerig(self):
 #    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
 #def is_prerig(self):return True
-    
+
+def skeleton_check(self):
+    return True
+
 def skeleton_build(self, forceNew = True):
     _short = self.mNode
     _str_func = '[{0}] > skeleton_build'.format(_short)
