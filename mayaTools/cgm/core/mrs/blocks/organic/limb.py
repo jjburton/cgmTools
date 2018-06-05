@@ -70,7 +70,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 reload(CURVES)
-
+reload(BUILDUTILS)
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -5698,7 +5698,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mMeshHeel = mMesh.doDuplicate(po=False)
                 
                 #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-                heel = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
+                heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
                 
 
                 #Add a ankleball ------------------------------------------------------------------------
@@ -5731,7 +5731,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     
                     
@@ -5746,7 +5746,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mPlane.doSnapTo(mToe.mNode,rotation=False)
                     mMeshBallDup = mMeshBall.doDuplicate(po=False)
                     #mc.select(cl=1)
-                    ball2 = mel.eval('polyCBoolOp -op 2-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
+                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
                     mMeshBall.delete()
                     mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
                     
@@ -5760,7 +5760,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshToe = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    toe = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
+                    toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
                     mMeshToe = cgmMeta.validateObjArg(toe[0])
                     
                     
@@ -5779,7 +5779,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mMeshBall = mMesh.doDuplicate(po=False)
                 
                     #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 2-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
+                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
                     mMeshBall = cgmMeta.validateObjArg(ball[0])
                     ml_segProxy.append(mMeshBall)
                     ml_rigJoints.append(mBall)                    

@@ -55,7 +55,7 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
-
+reload(BUILDUTILS)
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
 
@@ -4169,7 +4169,12 @@ def skeleton_delete(self):
         raise ValueError,"[{0}] is not in skeleton state. state: {1}".format(self.mNode, _str_state)
 
     #>>>Children ------------------------------------------------------------------------------------
-
+    def closeOut():
+        d_links = get_stateLinks(self, 'skeleton')
+        msgDat_delete(self,d_links)
+        
+        self.blockState = 'prerig'#...yes now in this state
+        
     #>>>Meat ------------------------------------------------------------------------------------
     self.blockState = 'skeleton>prerig'#...buffering that we're in process
 
@@ -4183,6 +4188,7 @@ def skeleton_delete(self):
     else:
         ml_joints = self.moduleTarget.rigNull.msgList_get('moduleJoints')
         if not ml_joints:
+            closeOut()
             return log.error("|{0}| >> No joints found".format(_str_func))
         else:
             ml_children = []
@@ -4199,11 +4205,7 @@ def skeleton_delete(self):
                 
             ml_joints[0].delete()
         
-    d_links = get_stateLinks(self, 'skeleton')
-    msgDat_delete(self,d_links)
-    
-    
-    self.blockState = 'prerig'#...yes now in this state
+    closeOut()
     return True
 
 
@@ -5011,8 +5013,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
         ml_mesh = mBlockModule.create_simpleMesh(self)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self)
-    
+        ml_mesh = create_simpleLoftMesh(self,divisions=5)
     
     if skin:
         self.msgList_connect('simpleMesh',ml_mesh)        
@@ -5032,7 +5033,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
     return ml_mesh
             
 
-def create_simpleLoftMesh(self,  deleteHistory = True, cap=True):
+def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 1):
     _str_func = 'create_simpleLoftMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -5073,7 +5074,7 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True):
         ml_loftCurves.append(mBaseCrv)
 
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
-                                       divisions=1,
+                                       divisions=divisions,
                                        cap = cap,
                                        form=3,
                                        degree=1)

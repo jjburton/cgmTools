@@ -1152,19 +1152,20 @@ def uiMenu_changeSpace(self, parent, showNoSel = False):
                                     if option not in attrOptions[a]:
                                         d_commonOptions[a].remove(option)
 
-        log.debug("|{0}| >> Common Attrs: {1}".format(_str_func, l_commonAttrs))                
-        log.debug("|{0}| >> Common Options: {1}".format(_str_func, d_commonOptions))    
-        log.debug("|{0}| >> Common options build time: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
+        log.info("|{0}| >> Common Attrs: {1}".format(_str_func, l_commonAttrs))                
+        log.info("|{0}| >> Common Options: {1}".format(_str_func, d_commonOptions))    
+        log.info("|{0}| >> Common options build time: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
         
 
         #>> Build ------------------------------------------------------------------
         int_lenObjects = len(self._d_mObjInfo.keys())
         _b_acted = False
+        state_multiObject = False
+        use_parent = parent
         
         # Mutli
         if int_lenObjects == 1:
             #MelMenuItem(parent,l="-- Object --",en = False)	    					
-            use_parent = parent
             state_multiObject = False
         elif l_commonAttrs:
             #MelMenuItem(parent,l="-- Objects --",en = False)	    			
@@ -1189,14 +1190,16 @@ def uiMenu_changeSpace(self, parent, showNoSel = False):
             if d_buffer:
                 if state_multiObject:
                     #iTmpObjectSub = mUI.MelMenuItem(use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)
-                    iTmpObjectSub = mc.menuItem(p=use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)                    
-                else:
-                    mc.menuItem(p=parent,l="-- %s --"%_short,en = False)
-                    iTmpObjectSub = use_parent
+                    pass
                 if d_buffer.get('dynParent'):
                     _b_acted = True
                     mi_dynParent = d_buffer['dynParent'].get('mi_dynParent')
                     d_attrOptions = d_buffer['dynParent'].get('attrOptions') or {}			
+                    
+                    if d_attrOptions:
+                        mc.menuItem(p=parent,l="-- %s --"%_short,en = False)
+                        iTmpObjectSub = use_parent                    
+                    
                     for a in d_attrOptions.keys():
                         if mObj.hasAttr(a):
                             lBuffer_attrOptions = []

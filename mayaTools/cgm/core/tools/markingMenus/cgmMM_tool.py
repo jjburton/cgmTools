@@ -35,10 +35,13 @@ import cgm.core.tools.toolbox as TOOLBOX
 #reload(TOOLBOX)
 import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+reload(DYNPARENTTOOL)
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
-#reload(MMPuppet)
+reload(MMPuppet)
+import cgm.core.mrs.Animate as MRSANIMATE
+reload(MRSANIMATE)
 #reload(mmTemplate)
 #from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
@@ -243,7 +246,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         elif _mode == 3:
             log.debug("|{0}| >> puppet mode...".format(self._str_MM))
             self.bUI_radialRoot_puppet(parent)  
-            MMPuppet.bUI_lower(self, parent)
+            MRSANIMATE.mmUI_radial(self, parent)
         elif _mode == 4:
             log.debug("|{0}| >> dev mode...".format(self._str_MM))                                        
             self.bUI_radialRoot_dev(parent)
@@ -269,7 +272,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             self.bUI_menuBottom_sets(parent)            
         elif _mode == 3:
             log.debug("|{0}| >> puppet mode bottom...".format(self._str_MM))
-            MMPuppet.uiOptionMenu_build(self, parent)
+            MRSANIMATE.mmUI_lower(self, parent)
             
         elif _mode == 4:
             log.debug("|{0}| >> dev mode bottom...".format(self._str_MM))              
@@ -342,7 +345,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2) 
 
         LOCINATOR.uiSetupOptionVars(self)
-        MMPuppet.uiSetupOptionVars(self)
+        #MMPuppet.uiSetupOptionVars(self)
         TOOLBOX.uiSetupOptionVars_curveCreation(self)
         
     #@cgmGEN.Timer
@@ -474,7 +477,6 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     en = self._b_sel,
                     rp = 'E')
         
-        
         if self._b_sel:
             mc.menuItem(l = 'Regular',
                         c = lambda *a:setKey('default'),
@@ -490,7 +492,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                         rp = "N")     
             
         LOCINATOR.uiRadialMenu_root(self,parent,'NE')        
-        MMPuppet.bUI_radial(self, parent)
+        MRSANIMATE.mmUI_radial(self, parent)
         
     def bUI_radialRoot_dev(self,parent):
         #Radial---------------------------------------------------

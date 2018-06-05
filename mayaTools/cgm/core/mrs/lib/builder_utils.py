@@ -548,7 +548,8 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, cap = True, merge = True, form = 1 ):
+def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
+                    cap = True, merge = True,form = 1 ):
     """
     Create lofted mesh from target curves.
 
@@ -593,7 +594,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
         ATTR.set(_tessellate,a,v)
         
     #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
-        
+    
     #mc.polyNormal(_res_body[0],nm=0)
     #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     
@@ -640,7 +641,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 1, ca
     else:
         _res = _res_body
         
-    mc.polyNormal(_res_body[0], normalMode = 4, userNormalMode=1,ch=0)
+    #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
     #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     return _res[0]    
 
@@ -1744,7 +1745,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
             
         _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), divisions=1)
         RIGGING.match_transform(_mesh,ml_targets[i])
-        
+        mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
         if ballBase and i != 0:
             RIGGING.match_transform(_loftCurves[0],ml_targets[i])
             TRANS.pivots_recenter(_loftCurves[0])

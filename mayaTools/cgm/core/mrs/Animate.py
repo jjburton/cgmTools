@@ -1083,9 +1083,9 @@ def buildSection_puppet(self,parent):
         mi_tmpMenu = mc.menuItem(p = mmPuppetSettingsMenu, l=attr, subMenu=True)
         
         mc.menuItem(p = mi_tmpMenu, l="Show",
-                    c = cgmGen.Callback(mPuppet.atUtils,'modules_settings_set',**{attr:1}))                    
+                    c = cgmGEN.Callback(mPuppet.atUtils,'modules_settings_set',**{attr:1}))                    
         mc.menuItem(p = mi_tmpMenu, l="Hide",
-                    c = cgmGen.Callback(mPuppet.atUtils,'modules_settings_set',**{attr:0}))
+                    c = cgmGEN.Callback(mPuppet.atUtils,'modules_settings_set',**{attr:0}))
         
     for attr in ['skeleton','geo','proxy']:
         if mmPuppetControlSettings.hasAttr(attr):
@@ -1097,19 +1097,35 @@ def buildSection_puppet(self,parent):
                 if i == mi_attr.value:b_state = True
                 else:b_state = False
                 mi_collectionMenu.createButton(mi_tmpMenu,l=' %s '%str_option,
-                                               c = cgmGen.Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
+                                               c = cgmGEN.Callback(mc.setAttr,"%s"%mi_attr.p_combinedName,i),
                                                rb = b_state )    
     """
 
 @cgmGEN.Timer
-def get_context(self, addMirrors = False):
+def get_context(self, addMirrors = False,**kws):
     _str_func='get_context'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     
-    b_children = bool(self.cgmVar_mrsContext_children.value)
-    b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
-    b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
-    context = self.var_mrsContext.value
+    _keys = kws.keys()
+    if 'children' in _keys:
+        b_children = kws.get('children')
+    else:
+        b_children = bool(self.cgmVar_mrsContext_children.value)
+    
+    if 'siblings' in _keys:
+        b_siblings = kws.get('siblings')
+    else:
+        b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+        
+    if 'mirror' in _keys:
+        b_mirror = kws.get('mirror')
+    else:
+        b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+        
+    if 'context' in _keys:
+        context = kws.get('context')
+    else:
+        context = self.var_mrsContext.value
     
     if context == 'control' and b_siblings:
         if b_mirror or addMirrors:
@@ -1128,9 +1144,12 @@ def get_context(self, addMirrors = False):
     sel = mc.ls(sl=True)
     ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
     self._sel = sel
+    self._ml_sel = ml_sel
     self.d_puppetData = {'mControls':[],
+                         'mControlsMirror':[],
                          'mPuppets':[],
                          'mModules':[],
+                         'mModulesMirror':[],
                          'mModulesBase':[]}
     
     
@@ -1248,15 +1267,19 @@ def get_context(self, addMirrors = False):
             if ml_mirror:
                 res.extend(ml_mirror)
                 self.d_puppetData['mControls'].extend(ml_mirror)
+                self.d_puppetData['mControlsMirror'].extend(ml_mirror)
             
         elif context == 'part':
+            ml_mirrors =[]
             for mModule in self.d_puppetData['mModules']:
                 mMirror = mModule.atUtils('mirror_get')
                 if mMirror:
                     log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
                     if mMirror not in res:
                         res.append(mMirror)
+                        ml_mirrors.append(mMirror)
             self.d_puppetData['mModules'] = res
+            self.d_puppetData['mModulesMirror'] = ml_mirrors
     
     if context in ['puppet','scene']:
         for mPuppet in self.d_puppetData['mPuppets']:
@@ -1268,14 +1291,30 @@ def get_context(self, addMirrors = False):
     return res
 
 @cgmGEN.Timer
-def get_contextualControls(self,mirrorQuery=False):
+def get_contextualControls(self,mirrorQuery=False,**kws):
     _str_func='get_contextualControls'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     
-    b_children = bool(self.cgmVar_mrsContext_children.value)
-    b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
-    b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
-    context = self.var_mrsContext.value
+    _keys = kws.keys()
+    if 'children' in _keys:
+        b_children = kws.get('children')
+    else:
+        b_children = bool(self.cgmVar_mrsContext_children.value)
+    
+    if 'siblings' in _keys:
+        b_siblings = kws.get('siblings')
+    else:
+        b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+        
+    if 'mirror' in _keys:
+        b_mirror = kws.get('mirror')
+    else:
+        b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+        
+    if 'context' in _keys:
+        context = kws.get('context')
+    else:
+        context = self.var_mrsContext.value
     
     if context == 'control' and b_siblings:
         if b_mirror:
@@ -1314,7 +1353,7 @@ def get_contextualControls(self,mirrorQuery=False):
     self.d_puppetData['sControls'] = LISTS.get_noDuplicates(self.d_puppetData['sControls'])
     self.d_puppetData['mControls'] = cgmMeta.validateObjListArg(self.d_puppetData['sControls'])
     return self.d_puppetData['sControls']
-        
+
 #@cgmGEN.Timer
 def uiFunc_contextualAction(self, **kws):
     try:
@@ -1323,17 +1362,18 @@ def uiFunc_contextualAction(self, **kws):
         for k,v in kws.iteritems():
             l_kws.append("{0}:{1}".format(k,v))
         
-        _mode = kws.get('mode',False)
-        _context = kws.get('context',self.var_mrsContext.value)
+        _mode = kws.pop('mode',False)
+        _context = kws.get('context') or self.var_mrsContext.value
         
         log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
         
         d_context = {}
         _mirrorQuery = False
-        if _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect']:
-            d_context['addMirrors'] = True
+        if _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect','mirrorSelectOnly']:
+            kws['addMirrors'] = True
             _mirrorQuery = True
-        res_context = get_context(self,**d_context)
+            
+        res_context = get_context(self,**kws)
         
         if not res_context:
             return log.error("Nothing found in context: {0} ".format(_context))
@@ -1344,7 +1384,7 @@ def uiFunc_contextualAction(self, **kws):
             return 
         
         self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-        _l_controls = get_contextualControls(self,_mirrorQuery)
+        _l_controls = get_contextualControls(self,_mirrorQuery,**kws)
         
         if _mode == 'report':
             log.info("Context: {0} | controls: {1}".format(_context, len(_l_controls)))
@@ -1435,13 +1475,34 @@ def uiFunc_contextualAction(self, **kws):
             return endCall(self)
         
         
-        elif _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect']:
+        elif _mode in ['mirrorPush','mirrorPull',
+                       'symLeft','symRight',
+                       'mirrorFlip','mirrorSelect','mirrorSelectOnly']:
             log.debug(cgmGEN._str_subLine)
             mBaseModule = self.d_puppetData['mModulesBase'][0]
             log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
             _primeAxis = 'Left'
+            
             if _mode == 'mirrorSelect':
                 mc.select(_l_controls)
+                return
+            elif _mode == 'mirrorSelectOnly':
+                l_sel = []
+                if _context == 'control':
+                    for mObj in  self.d_puppetData['mControlsMirror']:
+                        l_sel.append(mObj.mNode)
+                elif _context == 'part':
+                    #pprint.pprint( self.d_puppetData['mModulesMirror'] )
+                    #return
+                    for mPart in self.d_puppetData['mModulesMirror']:
+                        l_sel.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)])
+                else:
+                    return log.error("Context not supported: {0}".format(_context))
+                
+                if not l_sel:
+                    return log.error("Nothing found in context".format(_context))
+
+                mc.select(l_sel)
                 return
             elif _mode == 'mirrorFlip':
                 r9Anim.MirrorHierarchy().mirrorData(_l_controls,mode = '')
@@ -1548,11 +1609,11 @@ def uiFunc_contextualAction(self, **kws):
         pprint.pprint(vars())
         raise Exception,err
 
-def uiFunc_contextSetValue(self, attr=None,value=None, mode = None):
+def uiFunc_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     _str_func='uiFunc_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
     
-    get_context(self)
+    get_context(self,**kws)
     
     if mode == 'moduleSettings':
         if not self.d_puppetData['mModules']:
@@ -1878,3 +1939,407 @@ def uiFunc_resetSlider(self):
             #ATTR.set(mCtrl.mNode,a,setValue)
             mCtrl.__setattr__(a,setValue)
             
+#==============================================================================================
+#Marking menu
+#==============================================================================================
+@cgmGEN.Timer
+def mmUI_radial(self,parent):
+    _str_func = "bUI_radial" 
+    
+    #====================================================================		
+    #mc.menu(parent,e = True, deleteAllItems = True)
+    
+    #self._ml_objList = cgmMeta.validateObjListArg(self._l_sel,'cgmObject',True)
+    #log.debug("|{0}| >> mObjs: {1}".format(_str_func, self._ml_objList))                
+
+    #self._ml_modules = []
+    #self._l_modules = []
+    #self._l_puppets = []
+    #self._ml_puppets = []
+    #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
+    #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value
+       
+    #>>Radial --------------------------------------------------------------------------------------------
+    #mc.menuItem(parent = parent,
+                #en = self._b_sel,
+                #l = 'Mirror Selected (WIP)',
+                #c = cgmGEN.Callback(mmFunc_test,self),
+                #rp = 'SW',
+                #) 
+@cgmGEN.Timer
+def mmUI_optionMenu(self, parent):
+    return
+    _optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
+    _optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value    
+    
+    uiBuildMenus = mc.menuItem(parent = parent, subMenu = True,
+                               l = 'Build Menus')
+    
+    mc.menuItem(parent = uiBuildMenus,
+                l = 'Module',
+                c = cgmGEN.Callback(self.var_PuppetMMBuildModule.setValue, not _optionVar_val_moduleOn),
+                cb = _optionVar_val_moduleOn)
+    mc.menuItem(parent = uiBuildMenus,
+                l = 'Puppet',
+                c = cgmGEN.Callback(self.var_PuppetMMBuildPuppet.setValue, not _optionVar_val_puppetOn),
+                cb = _optionVar_val_puppetOn)    
+    
+@cgmGEN.Timer
+def mmUI_lower(self,parent):
+    """
+    Create the UI
+    """
+    _str_func = 'bUI_lower'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    
+    #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
+    #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
+    
+    #Change space menu
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
+    
+    #>>> Control ==========================================================================================    
+    mmUI_controls(self,parent)
+    mmUI_part(self,parent)
+    mmUI_puppet(self,parent)
+    return
+        
+    #>>> Module ==========================================================================================    
+    if _optionVar_val_moduleOn and self._ml_modules:
+        bUI_moduleSection(self,parent)
+    
+    #>>> Puppet ==========================================================================================    
+    if _optionVar_val_puppetOn and self._l_puppets:
+        bUI_puppetSection(self,parent)
+    
+    
+    mc.menuItem(p=parent,l = "-"*25,en = False)    
+    mc.menuItem(parent = parent,
+                l='MRS - WIP',
+                c=lambda *a: mc.evalDeferred(TOOLCALLS.mrsUI))    
+    
+
+
+
+def mmFunc_test(self):
+    uiFunc_contextualAction(self, **{'mode':'report',
+                                     'context':'control',
+                                     'mirror':False,
+                                     'children':False,
+                                     'siblings':False})
+            
+
+@cgmGEN.Timer
+def mmUI_controls(self,parent = None):
+    _str_func = 'mmUI_controls'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    
+    mc.menuItem(p=parent,l="-- Controls --",en=False)
+    _context = 'control'
+
+    #Mirror =============================================================================
+    d_setup = {'Add to selection':{'mode':'mirrorSelect'},
+               'Select Only':{'mode':'mirrorSelectOnly'},
+               'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}}
+    
+    _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
+
+    for m in ['Add to selection','Select Only','Push','Pull','SymLeft','SymRight','Flip']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=_mirror,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+    return
+
+@cgmGEN.Timer
+def mmUI_puppet(self,parent = None):
+    _str_func = 'mmUI_part'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    
+    mc.menuItem(p=parent,l="-- Puppet --",en=False)
+    _context = 'puppet'
+    
+
+    
+    #Basic =============================================================================
+    d_setup = {'Key':{'mode':'key'},
+               'bdKey':{'mode':'bdKey'},
+               'Reset':{'mode':'reset'},
+               'Next Key':{'mode':'nextKey'},
+               'Prev Key':{'mode':'prevKey'},
+               
+               }
+    
+    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=parent,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+        
+    #Toggles ===============================================================================
+    _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
+    
+    l_settings = ['visSub','visDirect','visRoot']
+    l_enums = ['skeleton','geo','proxy']
+
+    for n in l_settings + l_enums:
+        _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
+        if n in l_settings:
+            l_options = ['hide','show']
+            _mode = 'moduleSettings'
+        else:
+            l_options = ['off','lock','on']
+            _mode = 'puppetSettings'        
+        _d_tmp = {'context':_context,
+                  'mirror':False,
+                  'children':False,
+                  'siblings':False}                  
+        for v,o in enumerate(l_options):
+            mc.menuItem(p=_sub,l=o,
+                        c=cgmGEN.Callback(uiFunc_contextSetValue,self,n,v,_mode,**_d_tmp))
+        
+        """
+        if n in l_settings:
+            l_options = ['hide','show']
+            _mode = 'moduleSettings'
+        else:
+            l_options = ['off','lock','on']
+            _mode = 'puppetSettings'
+        """    
+    
+
+@cgmGEN.Timer
+def mmUI_part(self,parent = None):
+    _str_func = 'mmUI_part'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    
+    mc.menuItem(p=parent,l="-- Part --",en=False)
+    _context = 'part'
+    
+    #Switch =============================================================================
+    _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
+
+    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll',
+              'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+        #_d = d_setup[m]
+        _d_tmp = {'mode':m,
+                  'context':_context,
+                  'mirror':False,
+                  'children':False,
+                  'siblings':False}
+
+        mc.menuItem(p=_select,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp))
+        
+    #Basic =============================================================================
+    d_setup = {'Key':{'mode':'key'},
+               'bdKey':{'mode':'bdKey'},
+               'Reset':{'mode':'reset'},
+               'Next Key':{'mode':'nextKey'},
+               'Prev Key':{'mode':'prevKey'},
+               
+               }
+    
+    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=parent,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+
+        
+            
+    
+    
+    #Select =============================================================================
+    d_setup = {'all':{'mode':'select'},
+               'add mirror':{'mode':'mirrorSelect'},
+               'mirror only':{'mode':'mirrorSelectOnly'},
+               'fk':{'mode':'selectFK'},
+               'ik':{'mode':'selectIK'},
+               'ikEnd':{'mode':'selectIKEnd'},
+               'seg':{'mode':'selectSeg'},
+               'direct':{'mode':'selectDirect'},}
+
+    ['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
+    _select = mc.menuItem(p=parent,l="Select",subMenu=True)
+    
+    for m in ['all','add mirror','mirror only','fk','ik','ikEnd','seg','direct']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=_select,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+
+    #Mirror =============================================================================
+    d_setup = {'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}}
+    
+    _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
+
+    for m in ['Push','Pull','SymLeft','SymRight','Flip']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=_mirror,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+        
+    _children = mc.menuItem(p=parent,l="Children",subMenu=True)
+    mmUI_section(self,_children,children=True)
+    
+    
+    _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
+    
+    l_settings = ['visSub','visDirect','visRoot']
+    #l_enums = ['skeleton','geo','proxy']
+
+    for n in l_settings:
+        _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
+        _d_tmp = {'context':_context,
+                  'mirror':False,
+                  'children':False,
+                  'siblings':False}                  
+        for v,o in enumerate(['hide','show']):
+            mc.menuItem(p=_sub,l=o,
+                        c=cgmGEN.Callback(uiFunc_contextSetValue,self,n,v,'moduleSettings',**_d_tmp))
+        
+        """
+        if n in l_settings:
+            l_options = ['hide','show']
+            _mode = 'moduleSettings'
+        else:
+            l_options = ['off','lock','on']
+            _mode = 'puppetSettings'
+        """
+        
+    return
+
+
+@cgmGEN.Timer
+def mmUI_section(self,parent = None, context= 'part', mirror = False, children = False, siblings=False):
+    _str_func = 'mmUI_part'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    
+    _context = context
+
+    #Basic =============================================================================
+    d_setup = {'Key':{'mode':'key'},
+               'bdKey':{'mode':'bdKey'},
+               'Reset':{'mode':'reset'},
+               'Next Key':{'mode':'nextKey'},
+               'Prev Key':{'mode':'prevKey'},
+               
+               }
+    
+    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':mirror,
+                  'children':children,
+                  'siblings':siblings,
+                  }
+        
+        mc.menuItem(p=parent,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )    
+    
+    #Select =============================================================================
+    d_setup = {'all':{'mode':'select'},
+               'mirror':{'mode':'mirrorSelect'},
+               'mirror only':{'mode':'mirrorSelectOnly'},
+               'fk':{'mode':'selectFK'},
+               'ik':{'mode':'selectIK'},
+               'ikEnd':{'mode':'selectIKEnd'},
+               'seg':{'mode':'selectSeg'},
+               'direct':{'mode':'selectDirect'},}
+
+    ['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
+    _select = mc.menuItem(p=parent,l="Select",subMenu=True)
+    
+    for m in ['all','mirror','mirror only','fk','ik','ikEnd','seg','direct']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':mirror,
+                  'children':children,
+                  'siblings':siblings,
+                  }
+        
+        mc.menuItem(p=_select,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+
+    #Mirror =============================================================================
+    d_setup = {'Select':{'mode':'mirrorSelect'},
+               'Select Only':{'mode':'mirrorSelectOnly'},
+               'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}}
+    
+    _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
+
+    for m in ['Push','Pull','SymLeft','SymRight','Flip']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':mirror,
+                  'children':children,
+                  'siblings':siblings,
+                  }
+        
+        mc.menuItem(p=_mirror,l=m,
+                    c=cgmGEN.Callback(uiFunc_contextualAction,self, **_d_tmp),
+                )
+        
+    _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
+    
+    l_settings = ['visSub','visDirect','visRoot']
+    #l_enums = ['skeleton','geo','proxy']
+
+    for n in l_settings:
+        _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
+        _d_tmp = {'context':_context,
+                  'mirror':mirror,
+                  'children':children,
+                  'siblings':siblings,}
+        for v,o in enumerate(['hide','show']):
+            mc.menuItem(p=_sub,l=o,
+                        c=cgmGEN.Callback(uiFunc_contextSetValue,self,n,v,'moduleSettings',**_d_tmp))
+    return

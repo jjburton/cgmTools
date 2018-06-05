@@ -1299,11 +1299,11 @@ def rig_prechecks(self):
     mBlock = self.mBlock
     
     if mBlock.neckControls > 1:
-        raise ValueError,"Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls)
+        self.l_errors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
     
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
-        raise ValueError,"Must have more than one neck joint with segmentMidIKControl"
-    
+        self.l_errors.append("Must have more than one neck joint with segmentMidIKControl")    
+        
     if mBlock.scaleSetup:
         self.l_errors.append('scaleSetup not ready')    
         

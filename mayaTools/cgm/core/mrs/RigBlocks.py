@@ -2182,7 +2182,7 @@ class handleFactory(object):
             if _bfr:
                 mc.delete(_bfr)
 
-            _size = MATH.average(_baseSize[:1]) * .1
+            _size = MATH.average(_baseSize[:1]) * .2
 
 
             #helper ======================================================================================

@@ -323,7 +323,10 @@ def prerig(self):
     self.msgList_connect('prerigHandles',[self.mNode])
     
     if self.addMotionJoint:
-        mMotionJoint = mHandleFactory.addRootMotionHelper()
+        mMotionJoint = mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d', shapeDirection = 'y-')
+        mShape = mMotionJoint.doDuplicate(po=False)
+        SNAP.to_ground(mShape.mNode)
+        CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
         mMotionJoint.p_parent = mPrerigNull
         
 
