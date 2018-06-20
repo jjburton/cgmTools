@@ -97,15 +97,18 @@ d_wiring_template = {'msgLinks':['templateNull'],
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
-    'unityMobile':{'default':{'neckJoints':1,
+    'unityLow':{'default':{'neckJoints':1,
                               'neckControls':1,
                               'neckBuild':True},
                    'human':{'neckJoints':1,
                             'neckControls':1}
                    },
-    'unityPC':{'default':{'neckJoints':1,
+    'unityMed':{'default':{'neckJoints':1,
                           'neckControls':1},
                },
+    'unityHigh':{'default':{'neckJoints':3,
+                          'neckControls':1},
+               },    
     'feature':{'default':{'numJoints':9,
                           'numControls':5}
                }
@@ -1299,13 +1302,13 @@ def rig_prechecks(self):
     mBlock = self.mBlock
     
     if mBlock.neckControls > 1:
-        self.l_errors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
+        self.l_precheckErrors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
     
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
-        self.l_errors.append("Must have more than one neck joint with segmentMidIKControl")    
+        self.l_precheckErrors.append("Must have more than one neck joint with segmentMidIKControl")    
         
     if mBlock.scaleSetup:
-        self.l_errors.append('scaleSetup not ready')    
+        self.l_precheckErrors.append('scaleSetup not ready')    
         
 
 @cgmGEN.Timer

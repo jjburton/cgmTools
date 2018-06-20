@@ -2525,8 +2525,11 @@ def blockMirror_create(self, forceNew = False):
             mMirror.delete()
             
         log.debug("|{0}| >> Creating mirror block. {1} | {2}".format(_str_func, _blockType, _side))
-        _d = {'blockType':self.blockType, 'side':_side, 'autoTemplate':False, 'blockParent': self.p_blockParent}
-        
+        _d = {'blockType':self.blockType, 'side':_side,
+              'autoTemplate':False,
+              'blockParent':self.p_blockParent,
+              'baseAim':[self.baseAimX,-self.baseAimY,self.baseAimZ],
+              'baseSize':self.baseSize}
         for a in 'blockProfile','buildProfile','cgmName':
             if a in ['cgmName']:
                 _d['name'] =  self.getMayaAttr(a)
@@ -2540,10 +2543,15 @@ def blockMirror_create(self, forceNew = False):
         mMirror = cgmMeta.createMetaNode('cgmRigBlock',
                                          **_d)
         
-        
         blockDat = self.getBlockDat()
         blockDat['ud']['side'] = _side
-        
+        for k in ['baseSize','baseAim']:
+            if blockDat['ud'].has_key(k):
+                blockDat['ud'].pop(k)
+            for a in 'XYZ':
+                if blockDat['ud'].has_key(k+a):
+                    blockDat['ud'].pop(k+a)
+
         """
         #Mirror some specfic dat
         if blockDat.get('template'):
@@ -2577,7 +2585,9 @@ def blockMirror_create(self, forceNew = False):
         self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect
         mMirror.p_blockParent = mBlockParent
         mMirror.blockDat = blockDat
+        
         blockDat_load(mMirror,useMirror=True)
+        
         #mMirror.loadBlockDat(blockDat)
         controls_mirror(self,mMirror)
         
@@ -2642,7 +2652,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
         if not blockDat.get('ud'):
             raise ValueError,"|{0}| >> No ud data found".format(_str_func)
         
-        _mask = ['side','version','blockState']
+        _mask = ['side','version','blockState','baseAim','baseAimY']
         for a,v in _ud.iteritems():
             if a in _mask:
                 continue
@@ -3637,16 +3647,24 @@ def controls_mirror(blockSource, blockMirror = None,
                 for i,mObj in enumerate(ml_controls):
                     log.info(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
                 raise ValueError,"Control list lengths do not match. source: {0} | target: {1} ".format(int_lenSource,int_lenTarget)
+            
+            if ml_targetControls[0] != ml_controls[0]:
+                ml_targetControls[0].baseAimX = ml_controls[0].baseAimX
+                ml_targetControls[0].baseAimY = -ml_controls[0].baseAimY
+                ml_targetControls[0].baseAimZ = ml_controls[0].baseAimZ
         
         l_dat = []
         
         if not ml_controls:
             raise ValueError,"No controls"
         
+            
+        
         #Root ----------------------------------------------------------------------------------
         log.debug("|{0}| >> root dat...".format(_str_func))
         
         mRoot = ml_controls[0]
+        
         
         rootReflectionVector = reflectionVector
         log.debug("|{0}| >> root Reflect: {1}".format(_str_func,reflectionVector))
@@ -4277,11 +4295,14 @@ def rigDelete(self):
             #ModuleSet
             _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
             if _objectSet:
-                log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))                                
-                mc.delete(_deformNull)                
+                log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))
+                mc.delete(_objectSet)                
             #Module                
+            for mChild in mModuleTarget.rigNull.getChildren(asMeta=True):
+                mChild.delete()
         elif mModuleTarget.mClass == 'cgmRigPuppet':
             mModuleTarget.masterControl.delete()
+        
         else:
             log.error("|{0}| >> Unknown mClass moduleTarget: {1}".format(_str_func,mModuleTarget))                
 

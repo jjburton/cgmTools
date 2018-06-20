@@ -53,8 +53,8 @@ __menuVisible__ = True
 __baseSize__ = 10,10,10
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {'unityMobile':{'addMotionJoint':True},
-                    'unityPC':{'addMotionJoint':True,},
+d_build_profiles = {'unityLow':{'addMotionJoint':True},
+                    'unityMed':{'addMotionJoint':True,},
                     'feature':{'addMotionJoint':False}}
 
 #>>>Attrs =======================================================================================================
@@ -367,7 +367,7 @@ def rig_prechecks(self):
     log.debug("{0}".format(self))
     """
     if not self.mBlock.buildProfile:
-        self.l_errors.append('Must have build profile')
+        self.l_precheckErrors.append('Must have build profile')
         return False"""
     
     return True

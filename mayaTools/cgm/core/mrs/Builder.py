@@ -123,7 +123,7 @@ class ui(cgmUI.cgmGUI):
             self.create_guiOptionVar('blockMasterFrameCollapse',defaultValue = 0) 
             
             self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
-                                                        defaultValue = 'unityPC')            
+                                                        defaultValue = 'unityMed')            
             
             try:self.var_rigBlockCreateSizeMode
             except:self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
@@ -197,8 +197,19 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_menu, l="Armature Remove",
                         ann = "Remove puppet armature ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'armature_remove'),
-                        )        
-        
+                        )
+        mUI.MelMenuItem(_menu, l="Qss - Bake set",
+                        ann = "Add bake set",
+                        c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
+                                           'qss_verify',**{'puppetSet':False,
+                                                           'bakeSet':True,
+                                                           'deleteSet':False}),)
+        mUI.MelMenuItem(_menu, l="Qss - Delete set",
+                        ann = "Add delete set",
+                        c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
+                                           'qss_verify',**{'puppetSet':False,
+                                                           'bakeSet':False,
+                                                           'deleteSet':True}),)
         
     def buildMenu_block( self, *args, **kws):
         self.uiMenu_block.clear()
@@ -1531,9 +1542,10 @@ class ui(cgmUI.cgmGUI):
         
         _ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
         
+        """
         for i,s in enumerate(_l_strings):
             log.debug("|{0}| >> {1} : {2}".format(_str_func,_ml[i].mNode,s)) 
-                    
+        """
         #_ml = BLOCKGEN.get_from_scene()
         
         self._ml_blocks = _ml

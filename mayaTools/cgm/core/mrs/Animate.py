@@ -209,11 +209,10 @@ class ui(cgmUI.cgmGUI):
         self.uiTab_setup = ui_tabs
         
         uiTab_mrs = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
-        uiTab_poses = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
         uiTab_settings = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
 
-        for i,tab in enumerate(['MRS','Poses','Anim','Settings']):
+        for i,tab in enumerate(['MRS','Anim','Settings']):
             ui_tabs.setLabel(i,tab)
 
         buildTab_mrs(self,uiTab_mrs)
@@ -536,7 +535,7 @@ class ui(cgmUI.cgmGUI):
         # Store the current mode to the Cache File
         self.ANIM_UI_OPTVARS['AnimationUI']['poseMode'] = self.poseGridMode
         self._uiCache_storeUIElements()
-        searchFilter = mc.textFieldGrp(self.tfPoseSearchFilter, q=True, text=True)
+        searchFilter = self.uiField_searchPath.getValue()#mc.textFieldGrp(self.tfPoseSearchFilter, q=True, text=True)
 
         if rebuildFileList:
             self.buildPoseList(sortBy=sortBy)
@@ -1360,6 +1359,7 @@ class ui(cgmUI.cgmGUI):
         # this is kind of against the filterSettings Idea, shoe horned in here
         # as it makes sense from the UI standpoint
         self.filterSettings.rigData['snapPriority'] = mc.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+        
     def _uiElementBinding(self):
         '''
         this is GASH! rather than have each ui element cast itself to the object as we used to do, 
@@ -1517,15 +1517,15 @@ def buildTab_mrs(self,parent):
     
 
 
-    mc.setParent(_columnBelow)    
+    mc.setParent(_columnBelow)
     
-    buildFrame_mrsAnim(self,_columnBelow)
+    buildFrame_mrsAnim(self,_columnBelow)    
+    buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
     buildFrame_mrsMirror(self,_columnBelow)
     buildFrame_mrsSwitch(self,_columnBelow)
     buildFrame_mrsSettings(self,_columnBelow)
-    buildFrame_poses(self,_columnBelow)
     
     
     parent(edit = True,
@@ -1987,7 +1987,7 @@ def buildFrame_poses(self,parent):
     self.uitfgPosePath = 'uiMRStfgPosePath'
     self.uircbPosePathMethod = 'posePathMode'
     self.posePopupGrid = 'posePopupGrid'
-    self.matchMethod = mc.optionMenu('om_MatchMethod', q=True, v=True)
+    #self.matchMethod = mc.optionMenu('om_MatchMethod', q=True, v=True)
 
     # SubFolder Scroller
     #=====================
@@ -2102,11 +2102,12 @@ def buildFrame_poses(self,parent):
     #Sub path ===============================================================================
     uiRow_sub = mUI.MelHSingleStretchLayout(_inside)
     mUI.MelSpacer(uiRow_sub,w=2)    
-    self.uiField_subPath = mUI.MelTextField(uiRow_sub,
-                                            ann='Testing',
-                                            en=False,
-                                            #cc = lambda *x:self._uiCB_setPosePath(field=False),
-                                            text = '')
+    self.uiField_subPath = mUI.MelLabel(uiRow_sub,
+                                        ann='Testing',
+                                        ut = 'cgmUIInstructionsTemplate',
+                                        #en=False,
+                                        #cc = lambda *x:self._uiCB_setPosePath(field=False),
+                                        label = '')
 
     uiRow_sub.setStretchWidget(self.uiField_subPath)
     
@@ -2141,7 +2142,7 @@ def buildFrame_poses(self,parent):
                                             en=True,
                                             text = '')
     self.uiField_searchPath(edit=True,
-                            cc = lambda x: self._uiCB_fillPoses(searchFilter=self.uiField_searchPath.getValue(),))
+                            tcc = lambda x: self._uiCB_fillPoses(searchFilter=self.uiField_searchPath.getValue(),))
                             
     uiRow_search.setStretchWidget(self.uiField_searchPath)
     
@@ -2846,7 +2847,10 @@ def get_context(self, addMirrors = False,**kws):
                     if mMirror not in res:
                         res.append(mMirror)
                         ml_mirrors.append(mMirror)
-            self.d_puppetData['mModules'] = res
+            
+            for mModule in res:
+                if mModule not in self.d_puppetData['mModules']:
+                    self.d_puppetData['mModules'].append(mModule)
             self.d_puppetData['mModulesMirror'] = ml_mirrors
     
     if context in ['puppet','scene']:
@@ -2941,8 +2945,10 @@ def uiCB_contextualAction(self, **kws):
             kws['addMirrors'] = True
             _mirrorQuery = True
             
+
         res_context = get_context(self,**kws)
-        
+        #pprint.pprint(self.d_puppetData)
+        #return        
         if not res_context:
             return log.error("Nothing found in context: {0} ".format(_context))
         
@@ -3469,8 +3475,9 @@ def uiCB_resetSlider(self):
     _str_func='uiCB_tweenSlider'
     
     try:self.d_resetDat
-    except:self.d_resetDat = {}
-    self.b_autoKey = mc.autoKeyframe(q=True,state=True)
+    except:
+        self.d_resetDat = {}
+        self.b_autoKey = mc.autoKeyframe(q=True,state=True)
     
     if not self.d_resetDat:
         mc.undoInfo(openChunk=True)

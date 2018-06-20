@@ -105,15 +105,18 @@ d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
-    'unityMobile':{'default':{'numRoll':1,},
-                   'finger':{'numRoll':0},
-                   'thumb':{'numRoll':0},
-                   },
-    'unityPC':{'default':{'numRoll':1},
+    'unityLow':{'default':{'numRoll':0,},
+                'finger':{'numRoll':0},
+                'thumb':{'numRoll':0},
+                },
+    'unityMed':{'default':{'numRoll':1},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
-               'spine':{'numRoll':7,
-                       }},
+               },
+    'unityHigh':{'default':{'numRoll':3},
+                'finger':{'numRoll':0},
+                'thumb':{'numRoll':0},
+                           },
     'feature':{'default':{'numRoll':3,},
                'leg':{'hasBallJoint':True,
                       'hasEndJoint':True,}}}
@@ -130,15 +133,17 @@ d_block_profiles = {
            'ikEnd':'foot',
            'numControls':3,
            'numShapers':3,
-           'ikRPAim':'default',           
+           'ikRPAim':'default',
+           'rigSetup':'default',           
            'mainRotAxis':'out',
            'buildBaseLever':False,
            'hasLeverJoint':False,
            'hasEndJoint':True,
            'nameList':['hip','knee','ankle','ball','toe'],
-           'baseAim':[90,0,0],
+           #'baseAim':[90,0,0],
            'baseUp':[0,0,1],
-           'baseSize':[11.6,8,79]},
+           #'baseSize':[11.6,8,79]},
+           },
     
     'arm':{'numShapers':2,
            'addCog':False,
@@ -156,11 +161,12 @@ d_block_profiles = {
            'buildLeverBase':True,
            'hasLeverJoint':True,
            'hasEndJoint':True,
-           'rigSetup':'arm',
+           'rigSetup':'default',
            'nameList':['clav','shoulder','elbow','wrist'],
-           'baseAim':[-1,0,0],
+           #'baseAim':[-1,0,0],
            'baseUp':[0,1,0],
-           'baseSize':[2,8,2]},
+           #'baseSize':[2,8,2]},
+           },
     
     'finger':{'numShapers':2,
               'addCog':False,
@@ -184,7 +190,8 @@ d_block_profiles = {
               'scaleSetup':False,
               #'baseAim':[1,0,0],
               'baseUp':[0,1,0],
-              'baseSize':[1.4,1,6.4]},
+              #'baseSize':[1.4,1,6.4]},
+              },
     
     'thumb':{'numShapers':1,
              'addCog':False,
@@ -208,7 +215,8 @@ d_block_profiles = {
              'scaleSetup':False,
              #'baseAim':[1,0,0],
              'baseUp':[0,1,0],
-             'baseSize':[1.4,1,6.4]},
+             #'baseSize':[1.4,1,6.4]},
+             },
    }
 
 #>>>Attrs =====================================================================================================
@@ -1591,7 +1599,7 @@ def rig_prechecks(self):
     
     
     if mBlock.scaleSetup:
-        self.l_errors.append('scaleSetup not ready')    
+        self.l_precheckErrors.append('scaleSetup not ready')    
 
 
 @cgmGEN.Timer
@@ -3925,7 +3933,7 @@ def rig_segments(self):
                     
                     if ml_segMidHandles:
                         mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
-                                         maintainOffset = True,
+                                         maintainOffset = True,#True
                                          aimVector = [0,0,1], upVector = self.v_twistUp,#upVector = [0,1,0], 
                                          worldUpObject = mSegHandle.mNode,
                                          worldUpType = 'objectrotation', 
@@ -4080,7 +4088,7 @@ def rig_segments(self):
                             _d['aimVector'] = [0,0,-1]
                         
                         mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
-                                         maintainOffset = True,**_d)
+                                         maintainOffset = False,**_d)
             
             #Seg handles -------------------------------------------------------------------
             ml_segJoints = mRigNull.msgList_get('segJoints_{0}'.format(i))

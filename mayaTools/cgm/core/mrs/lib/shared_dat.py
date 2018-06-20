@@ -32,7 +32,7 @@ _l_requiredModuleDat = ['__version__',
                         'prerig','is_prerig','prerigDelete',
                         'rig','is_rig','rigDelete']
 
-_l_buildProfiles = 'unityMobile','unityPC','humanIK','feature'
+_l_buildProfiles = 'unityLow','unityMed','unityHigh','feature'
 
 #These are our default attrs to make library. To be called via modules
 _d_attrsTo_make = {'side':'none:left:right:center',
@@ -71,7 +71,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'ikSetup':'none:rp:spline:ribbon',
                    'ikBase':'none:cube:simple:hips',
                    'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:proxy',                   
-                   'buildProfile':'none:unityMobile:unityPC:humanIK:feature',
+                   'buildProfile':'none:unityLow:unityMed:humanIK:feature',
                    'buildAdditiveScale':'bool',
                    'customStartOrientation':'bool',
                    'offsetMode':'default:proxyAverage',

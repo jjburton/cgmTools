@@ -196,6 +196,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _sizeMode = None
         _postState = None#...for sizeMode call
         
+        
         if node is None:
             _sel = mc.ls(sl=1)            
             _callSize = get_callSize(_size)
@@ -269,7 +270,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
                 #On call attrs -------------------------------------------------------------------------
                 for a,v in kws.iteritems():
-                    if self. hasAttr(a):
+                    if self.hasAttr(a):
                         try:
                             log.info("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))                             
                             ATTR.set(self.mNode,a,v)
@@ -4101,7 +4102,7 @@ class rigFactory(object):
         self.d_joints = {}
         self.d_orientation = {}
         self.md_controlShapes = {}
-        self.l_errors = []
+        self.l_precheckErrors = []
 
         if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
         if kws:#...intial population
@@ -4117,12 +4118,12 @@ class rigFactory(object):
         
         self.fnc_check_rigBlock()
         
-        if self.l_errors:
+        if self.l_precheckErrors:
             _short = self.mBlock.mNode
             print(cgmGEN._str_hardLine)
             print("|{0}| >> Block: {1} ".format(_str_func, self.d_block['shortName']))            
             print("|{0}| >> Prechecks failed! ".format(_str_func))
-            for i,e in enumerate(self.l_errors):
+            for i,e in enumerate(self.l_precheckErrors):
                 print("{0} | {1}".format(i,e))
             print(cgmGEN._str_hardLine)
             #log.error("[ '{0}' ] Failure. See script editor".format(_short))
@@ -4220,7 +4221,7 @@ class rigFactory(object):
             log.debug("|{0}| >> Found precheck call".format(_str_func,))
             
             _buildModule.rig_prechecks(self)
-            if self.l_errors:
+            if self.l_precheckErrors:
                 return False
         
 

@@ -112,13 +112,18 @@ d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh','orientHelper']
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
-    'unityMobile':{'default':{'numJoints':3,
-                              'numControls':3},
+    'unityLow':{'default':{'numJoints':3,
+                           'numControls':3},
                    },
-    'unityPC':{'default':{'numJoints':4,
+    'unityMed':{'default':{'numJoints':4,
                           'numControls':4},
                'spine':{'numJoints':4,
                        'numControls':4}},
+    'unityHigh':{'default':{'numJoints':4,
+                            'numControls':4},
+                 'spine':{'numJoints':6,
+                          'numControls':4}},
+    
     'feature':{'default':{'numJoints':9,
                           'numControls':5}}}
 
@@ -1222,8 +1227,8 @@ def rig_prechecks(self):
     _b_lever = False
     log.debug(cgmGEN._str_subLine)
     
-    if mBlock.scaleSetup:
-        self.l_errors.append('scaleSetup not ready')
+    #if mBlock.scaleSetup:
+        #self.l_precheckErrors.append('scaleSetup not ready')
         #return False        
         #raise NotImplementedError,"scaleSetup not ready."
 

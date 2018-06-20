@@ -1516,6 +1516,17 @@ def get_report(self, mode='rig'):
     else:
         return log.error("|{0}| >> uknown mode: {1}".format(_str_func,mode))
 
-
-
     return True
+
+
+def clean_null(self,null='rigNull'):
+    _str_func = ' clean_null'
+    log.info("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    mNull = self.getMessageAsMeta(null)
+    if mNull:
+        log.info("|{0}| >>  null: {1}".format(_str_func,mNull))        
+        for mChild in mNull.getChildren(asMeta=True):
+            log.info("|{0}| >>  deleting: {1}".format(_str_func,mChild))
+            mChild.delete()
+            

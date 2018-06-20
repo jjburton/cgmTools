@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -586,7 +586,6 @@ def armature_verify(self):
     mc.editDisplayLayerMembers(self.displayLayer.mNode, mArmature.mNode, noRecurse=True)
     #editDisplayLayerMembers -noRecurse master_displayLayer `ls -selection`;
     
-    
     for attr in 'geo','skeleton':
         _plug = attr+'Group'
         
@@ -730,6 +729,101 @@ def rig_isConnected(self):
     return False
 
     
+    
+def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=True):
+    """
+    First pass on qss verification
+    """
+    _str_func = 'qss_verify'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    if puppetSet:
+        log.debug("|{0}| >> puppetSet...".format(_str_func))        
+        
+        mSet = self.getMessageAsMeta('puppetSet')
+        if not mSet:
+            mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+            mSet.connectParentNode(self.mNode,'puppet','puppetSet')
+            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+        mSet.doName()
+        
+        log.debug("|{0}| >> puppetSet: {1}".format(_str_func,mSet))
+        
+    if bakeSet:
+        log.debug("|{0}| >> puppetSet...".format(_str_func))        
+        
+        mSet = self.getMessageAsMeta('bakeSet')
+        if not mSet:
+            mSet = cgmMeta.cgmObjectSet(setType='bakeSet',qssState=True)
+            mSet.connectParentNode(self.mNode,'puppet','bakeSet')
+            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            #mSet.doStore('cgmTypeModifier','bake')
+        mSet.doName()
+        
+        log.debug("|{0}| >> bakeSet: {1}".format(_str_func,mSet))
+        
+        ml_joints = get_joints(self,'bind')
+        
+        for mObj in ml_joints:
+            mSet.addObj(mObj.mNode)
+        
+    if deleteSet:
+        log.debug("|{0}| >> deleteSet...".format(_str_func))        
+        
+        mSet = self.getMessageAsMeta('deleteSet')
+        if not mSet:
+            mSet = cgmMeta.cgmObjectSet(setType='deleteSet',qssState=True)
+            mSet.connectParentNode(self.mNode,'puppet','deleteSet')
+            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            #mSet.doStore('cgmTypeModifier','bake')
+        mSet.doName()
+        
+        log.debug("|{0}| >> deleteSet: {1}".format(_str_func,mSet))
+        
+        for mObj in get_deleteSetDat(self):
+            mSet.addObj(mObj.mNode)
+        
+        
+        
+    
+def get_joints(self,mode='bind'):
+    """
+    First pass on qss verification
+    """
+    _str_func = 'get_joints'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    _mode = mode.lower()
+    _res = []
+    if _mode in ['bind','skin']:
+        mRoot = self.getMessageAsMeta('rootJoint')
+        if mRoot:
+            _res.append(mRoot)
+    for mModule in modules_get(self):
+        if _mode in ['bind','skin']:
+            ml = mModule.UTILS.rig_getSkinJoints(mModule,asMeta=True)
+        elif _mode in ['rig']:
+            ml = mModule.rigNull.msgList_get('rigJoints',asMeta = True)
+        else:
+            raise ValueError,"Unknown mode: {0}".format(mode)
+        _res.extend(ml)
+        
+    return _res
+        
+
+def get_deleteSetDat(self):
+    """
+    First pass on qss verification
+    """
+    _str_func = 'get_deleteSetDat'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    _res = [self.masterNull, self, self.displayLayer]
+    
+    
+    return _res
     
 
     

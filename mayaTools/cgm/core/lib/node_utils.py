@@ -7,12 +7,13 @@ www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -23,6 +24,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import attribute_utils as ATTR
+import cgm.core.lib.list_utils as LISTS
 reload(SHARED)
 
 #CANNOT IMPORT: DIST, LOC
@@ -163,4 +165,161 @@ def createFollicleOnMesh(targetSurface, name = 'follicle'):
     attributes.doSetLockHideKeyableAttr(follicleTransform)
     
     return [follicleNode,follicleTransform]
+
+
+
+d_function_to_Operator = {'==':0,'!=':1,'>':2,'>=':3,'<':4,'<=':5,#condition
+                          '*':1,'/':2,'^':3,#md
+                          '+':1,'-':2,'><':3}#pma
+
+d_operator_to_NodeType = {'clamp':['clamp('],
+                          'setRange':['setRange('],
+                          'condition':[' == ',' != ',' > ',' < ',' >= ',' <= '],
+                          'multiplyDivide':[' * ',' / ',' ^ '],
+                          'plusMinusAverage':[' + ',' - ',' >< ']}#>< we're using for average
+
+d_node_to_input = {'multiplyDivide':{'in':['input1','input2'],
+                                     'out':'output'},
+                   'plusMinusAverage':{'in':['input1'],
+                                       'out':'output'}}
+
+def optimize(nodeTypes='multiplyDivide'):
+    _str_func = 'optimize'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    
+    _nodeTypes = VALID.listArg(nodeTypes)
+    d_modeToNodes = {}
+    d_modeToPlugs = {}
+    l_oldNodes = []
+    
+    for t in _nodeTypes:
+        if t in ['plusMinusAverage']:
+            raise ValueError,"Don't handle type: {0}".format(t)
+        nodes = mc.ls(type=t)
+        l_oldNodes.extend(nodes)
+        for n in nodes:
+            _mode = ATTR.get(n,'operation')
+            _operator = ATTR.get_enumValueString(n,'operation')
+            #d_operator_to_NodeType[t][_mode]
+            
+            if not d_modeToNodes.get(_mode):
+                d_modeToNodes[_mode] = []
+            d_modeToNodes[_mode].append(n)
+            
+            d_plugs = {}
+            d_plugValues = {}
+            for i,inPlug in enumerate(d_node_to_input[t]['in']):
+                d_plugs[i] = ATTR.get_children(n,inPlug) or []
+                for p in d_plugs[i]:
+                    c = ATTR.get_driver(n,p,False,skipConversionNodes=True)
+                    if c:
+                        d_plugValues[p] = c
+                    else:
+                        d_plugValues[p] = ATTR.get(n,p)
+                    
+            l_outs = ATTR.get_children(n,d_node_to_input[t]['out']) or []
+            for p in l_outs:
+                d_plugValues[p] = ATTR.get_driven(n,p,False,skipConversionNodes=True)
+            
+            #pprint.pprint(d_modeToNodes)
+            #pprint.pprint(d_plugs)
+            #print l_outs
+            #print cgmGeneral._str_subLine
+            #pprint.pprint(d_plugValues)
+            
+            for i in range(len(l_outs)):
+                _out = d_plugValues[l_outs[i]]
+                if _out:
+                    d_set = {'out':_out, 'in':[]}
+                    log.debug("|{0}| >> Output found on: {1} ".format(_str_func,_out))
+                    _keys = d_plugs.keys()
+                    _keys.sort()
+                    for k in _keys:
+                        d_set['in'].append(d_plugValues[  d_plugs[k][i] ])
+                        #d_set['in'].append(d_plugs[k][i])
+                    #pprint.pprint(d_set)
+                    
+                    if not d_modeToPlugs.get(_mode):
+                        d_modeToPlugs[_mode] = []
+                    d_modeToPlugs[_mode].append(d_set)
+                    
+            #    if VALID.stringArg()
+
+
+
+    l_inPlugs = ['input1','input2']
+    l_outplugs = [u'output']
+    l_new = []
+    _cnt = 0
+        
+    for operator,d_sets in d_modeToPlugs.iteritems():
+        if operator == 1:
+            for nodeSet in d_sets:
+                newNode = mc.createNode('multDoubleLinear')
+                newNode = mc.rename(newNode,'optimize_{0}_mdNode'.format(_cnt))
+                _cnt+=1
+                l_new.append(newNode)
+                
+                _ins = d_set['in']
+                _outs = d_set['out']
+                
+                for iii,inPlug in enumerate(_ins):
+                    if mc.objExists(inPlug):
+                        ATTR.connect(inPlug, "{0}.{1}".format(newNode, l_inPlugs[iii]))
+                    else:
+                        ATTR.set(newNode,l_inPlugs[iii], inPlug)
+                    
+                for out in _outs:
+                    ATTR.connect("{0}.output".format(newNode), out)
+                    
+        #pprint.pprint(d_setsSorted)
+        print len(d_sets)
+        #print len(d_setsSorted)    
+    
+    
+    
+    """
+    
+    l_inPlugs = {0: [u'input1X', u'input1Y', u'input1Z'],
+               1: [u'input2X', u'input2Y', u'input2Z']}
+    l_outplugs = [u'outputX', u'outputY', u'outputZ']
+    
+    for operator,d_sets in d_modeToPlugs.iteritems():
+        d_setsSorted = LISTS. get_chunks(d_sets,3)
+        for nodeSet in d_setsSorted:
+            newNode = mc.createNode('multiplyDivide')
+            newNode = mc.rename(newNode,'optimize_{0}_mdNode'.format(_cnt))
+            _cnt+=1
+            l_new.append(newNode)
+            ATTR.set(newNode,'operation',operator)
+            
+            for i,d_set in enumerate(nodeSet):
+                _ins = d_set['in']
+                _outs = d_set['out']
+                
+                for iii,inPlug in enumerate(_ins):
+                    if mc.objExists(inPlug):
+                        ATTR.connect(inPlug, "{0}.{1}".format(newNode, l_inPlugs[iii][i]))
+                    else:
+                        ATTR.set(newNode,l_inPlugs[iii][i], inPlug)
+                    
+                for out in _outs:
+                    ATTR.connect("{0}.{1}".format(newNode, l_outplugs[i]), out)
+                    
+        #pprint.pprint(d_setsSorted)
+        print len(d_sets)
+        print len(d_setsSorted)
+        """
+    mc.delete(l_oldNodes)
+    return len(l_new)
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
 
