@@ -878,6 +878,7 @@ def ribbon(jointList = None,
            driverSetup = None,#...aim.stable
            msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
            settingsControl = None,
+           additiveScaleEnds = False, 
            extraSquashControl = False,#...setup extra attributes
            specialMode = None,
            masterScalePlug = None,
@@ -1027,6 +1028,10 @@ def ribbon(jointList = None,
     if mModule:
         mGroup.parent = mModule.rigNull
 
+    if additiveScaleEnds and not extendEnds:
+        extendEnds=True
+
+
     #Good way to verify an instance list? #validate orientation             
     #> axis -------------------------------------------------------------
     axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
@@ -1080,7 +1085,8 @@ def ribbon(jointList = None,
     
     mControlSurface2 = False
     ml_surfaces = []
-    #>>> Ribbon Surface ===========================================================================================        
+    
+    #>>> Ribbon Surface ================================================================================        
     if mi_useSurface:
         raise NotImplementedError,'Not done with passed surface'
     else:
@@ -1256,7 +1262,7 @@ def ribbon(jointList = None,
         log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
         
     
-    #>>> Follicles ===========================================================================================        
+    #>>> Follicles ======================================================================================        
     log.debug("|{0}| >> Follicles...".format(_str_func)+cgmGEN._str_subLine)
     
     ml_follicles = []
@@ -1342,8 +1348,11 @@ def ribbon(jointList = None,
         else:
             mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
         
-    if extendEnds:
-        maxV = ATTR.get(mControlSurface.getShapes()[0],'maxValueV')
+    if extendEnds or additiveScaleEnds:
+        #End follicle...
+        _surf_shape = mControlSurface.getShapes()[0]
+        log.debug("|{0}| >> maxV follicle...".format(_str_func)+cgmGEN._str_subLine)                    
+        maxV = ATTR.get(_surf_shape,'maxValueV')
         
         l_FollicleInfo = NODES.createFollicleOnMesh( mControlSurface.mNode )
                    
@@ -1352,15 +1361,44 @@ def ribbon(jointList = None,
         
         mFollicle.parent = mGroup.mNode
         
-
         #> Name...
-        mFollicle.rename('{0}_extended'.format(ml_joints[-1].p_nameBase))
+        mFollicle.rename('{0}_maxV'.format(ml_joints[-1].p_nameBase))
     
         mFollicleShape.parameterU = ml_follicleShapes[-1].parameterU
         mFollicleShape.parameterV = maxV
         
         ml_follicles.append(mFollicle)
         ml_follicleShapes.append(mFollicleShape)
+        
+        mFollicleMaxV = mFollicle
+        mFollicleMaxVShape = mFollicleShape
+        
+        if additiveScaleEnds:
+            log.debug("|{0}| >> minV Follicle...".format(_str_func)+cgmGEN._str_subLine)                    
+            
+            #Start follicle
+            minV = ATTR.get(_surf_shape,'minValueV')
+            
+            l_FollicleInfo = NODES.createFollicleOnMesh( mControlSurface.mNode )
+            mFollicle = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
+            mFollicleShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
+            
+            mFollicle.parent = mGroup.mNode
+            
+            #> Name...
+            mFollicle.rename('{0}_minV'.format(ml_joints[0].p_nameBase))
+        
+            mFollicleShape.parameterU = ml_follicleShapes[0].parameterU
+            mFollicleShape.parameterV = minV
+            
+            ml_follicles.append(mFollicle)
+            ml_follicleShapes.append(mFollicleShape)
+            
+            mFollicleMinV = mFollicle
+            mFollicleMinVShape = mFollicleShape            
+        
+        
+        
         
     
     if ml_aimDrivers:
@@ -1394,7 +1432,7 @@ def ribbon(jointList = None,
                 mStableFollicle.parent = mGroup.mNode
                 
                 ml_folliclesStable.append(mStableFollicle)
-                ml_folliclesStableShapes.append(ml_folliclesStableShapes)
+                ml_folliclesStableShapes.append(mStableFollicleShape)
                 
                 #> Name...
                 #mStableFollicleTrans.doStore('cgmName',mObj.mNode)
@@ -1492,6 +1530,7 @@ def ribbon(jointList = None,
                                              attrType = 'float',
                                              hidden = False,                                                 
                                              initialValue=1.0,
+                                             defaultValue=1.0,
                                              keyable = extraKeyable,
                                              lock=False,
                                              minValue = 0)
@@ -1689,7 +1728,7 @@ def ribbon(jointList = None,
 
         
         
-        #>>>Hook up stretch/scale #========================================================================= 
+        #>>>Hook up stretch/scale #================================================================ 
         if squashStretchMain == 'arcLength':
             log.debug("|{0}| >> arcLength aim stretch setup ".format(_str_func)+cgmGEN._str_subLine)
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
@@ -1791,7 +1830,7 @@ def ribbon(jointList = None,
                 l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedShortName,
                                                            mPlug_aimBase.p_combinedShortName,
                                                            mPlug_masterScale.p_combinedShortName,))
-                
+
                 
                 #baseSquashScale = distBase / distActual
                 #out scale = baseSquashScale * (outBase / outActual)
@@ -1983,7 +2022,82 @@ def ribbon(jointList = None,
                         for axis in ['scaleY']:
                             mPlug_upResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                
 
+    if additiveScaleEnds:
+        log.debug("|{0}| >> Additive Scale Ends".format(_str_func)+cgmGEN._str_subLine)
+        
+        for i,mJnt in enumerate( [ml_joints[0],ml_joints[-1]] ):
+            
+            #Active measures ---------------------------------------------------------------------
+            log.debug("|{0}| >> Additve Scale measure for: {1}".format(_str_func,mJnt))
+            
+            #>> Distance nodes
+            mDistanceDag,mDistanceShape = createDist(mJnt, 'additiveEnd')
+            log.debug("|{0}| >> Dist created...".format(_str_func))
+            
+            
 
+            #Connect things
+            #.on loc = position
+            ATTR.connect(ml_follicles[ml_joints.index(mJnt)].mNode+'.translate',
+                         mDistanceShape.mNode+'.startPoint')
+            
+            if not i:
+                ATTR.connect(mFollicleMinV.mNode+'.translate',
+                             mDistanceShape.mNode+'.endPoint')
+                str_tag = 'min'
+            else:
+                ATTR.connect(mFollicleMaxV.mNode+'.translate',
+                             mDistanceShape.mNode+'.endPoint')
+                str_tag = 'max'
+                
+            log.debug("|{0}| >> follicle connected...".format(_str_func))
+                
+            #Normal Base -----------------------------------------------------------------
+            #normalbase = base value * master
+            #mult_normalBase = mc.createNode('multDoubleLinear')
+            #ATTR.connect(mPlug_masterScale.p_combinedShortName, mult_normalBase + '.input1')
+            #ATTR.set(mult_normalBase,'input2',mDistanceDag.mNode + '.distance')
+            #ATTR.connect(mDistanceDag.mNode + '.distance', mult_normalBase + '.input2')
+            
+            # Base -----------------------------------------------------------------
+            mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                              "{0}_aimAdditiveResult_{1}".format(str_baseName,str_tag),
+                                              attrType = 'float',
+                                              initialValue=0,
+                                              lock=True,
+                                              minValue = 0)
+        
+            mPlug_aimBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                            "{0}_aimAdditiveBase_{1}".format(str_baseName,str_tag),
+                                            attrType = 'float',
+                                            lock=True,
+                                            value=ATTR.get('{0}.distance'.format(mDistanceShape.mNode)))
+    
+            mPlug_aimBaseNorm = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                "{0}_aimAdditveBaseNorm_{1}".format(str_baseName,str_tag),
+                                                attrType = 'float',
+                                                initialValue=0,
+                                                lock=True,
+                                                minValue = 0)
+            log.debug("|{0}| >> Attrs registered...".format(_str_func))
+            
+            l_argBuild = []
+            l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedShortName,
+                                                       mPlug_aimBase.p_combinedShortName,
+                                                       mPlug_masterScale.p_combinedShortName,))
+            l_argBuild.append("{0} = {2} / {1}".format(mPlug_aimResult.p_combinedShortName,
+                                                       mPlug_aimBaseNorm.p_combinedShortName,
+                                                       "{0}.distance".format(mDistanceShape.mNode),
+                                                       ))
+        
+            for arg in l_argBuild:
+                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                NodeF.argsToNodes(arg).doBuild()
+                
+                
+                
+            RIGGEN.plug_insertNewValues('{0}.scaleZ'.format(mJnt.mNode),
+                                        [mPlug_aimResult.p_combinedShortName],replace=False)
             
     #>>> Connect our iModule vis stuff
     if mModule:#if we have a module, connect vis
@@ -2011,7 +2125,7 @@ def ribbon(jointList = None,
         #Tighten the weights...
         _hardLength = 2
         if extendEnds:
-            _hardLength +=3
+            _hardLength = 4
             
         if mArcLenCurve:
             log.debug("|{0}| >> Skinning arcLen Curve: {1}".format(_str_func,mArcLenCurve))

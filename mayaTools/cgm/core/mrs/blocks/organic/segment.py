@@ -1119,6 +1119,7 @@ def prerigDelete(self):
             s.overrideDisplayType = 2
         mTemplateLoft.v = True
 
+
 def skeleton_check(self):
     return True
 
@@ -2213,7 +2214,7 @@ def rig_segments(self):
     
     for mJnt in ml_segJoints:
         mJnt.drawStyle = 2
-        ATTR.set(mJnt.mNode,'radius',0)    
+        ATTR.set(mJnt.mNode,'radius',0)
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
@@ -2233,12 +2234,13 @@ def rig_segments(self):
           'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
           'connectBy':'constraint',
           'extendEnds':True,
+          'additiveScaleEnds':True,
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
           'attachEndsToInfluences':True,
           'moduleInstance':mModule}
-    
+    reload(IK)
     _d.update(self.d_squashStretch)
     res_ribbon = IK.ribbon(**_d)
     
@@ -3117,9 +3119,6 @@ def rig_matchSetup(self):
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-
-
-
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_neckSegment'
@@ -3408,7 +3407,12 @@ def rig_cleanUp(self):
         for mCtrl in ml_controls:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     else:
-        pass
+        log.debug("|{0}| >>  ScaleSetup...".format(_str_func))
+        
+        #Start End
+        
+    
+    
     
     
     #Close out ========================================================================================

@@ -396,42 +396,44 @@ def get(*a, **kws):
     :returns
         value(s)
     """ 
-    _str_func = 'get'
-    _d = validate_arg(*a) 
-    _combined = _d['combined']
-    _obj = _d['obj']
-    _attr = _d['attr']
+    try:
+        _str_func = 'get'
+        _d = validate_arg(*a) 
+        _combined = _d['combined']
+        _obj = _d['obj']
+        _attr = _d['attr']
+        
+        if kws:
+            if not kws.get('sl') or not kws.get('silent'):
+                kws['sl'] = True
     
-    if kws:
-        if not kws.get('sl') or not kws.get('silent'):
-            kws['sl'] = True
-
-    log.debug("|{0}| >> arg: {1}".format(_str_func,a))    
-    if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
-
-    if "[" in _attr:
-        log.debug("Indexed attr")
-        return mc.listConnections(_combined)
-
-    try:attrType = mc.getAttr(_d['combined'],type=True)
-    except:
-        log.debug("|{0}| >> {1} failed to return type. Exists: {2}".format(_str_func,_d['combined'],mc.objExists(_d['combined'])))            
-        return None
+        log.debug("|{0}| >> arg: {1}".format(_str_func,a))    
+        if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
     
-    if attrType in ['TdataCompound']:
-        return mc.listConnections(_combined)		
-
-    if mc.attributeQuery (_attr,node=_obj,msg=True):
-        #return mc.listConnections(_combined) or False 
-        return get_message(_d)
-    elif attrType == 'double3':
-        return [mc.getAttr(_obj+'.'+ a) for a in mc.attributeQuery(_attr, node = _obj, listChildren = True)]
-    #elif attrType == 'double':
-        #parentAttr = mc.attributeQuery(_attr, node =_obj, listParent = True)
-        #return mc.getAttr("{0}.{1}".format(_obj,parentAttr[0]), **kws)
-    else:
-        return mc.getAttr(_combined, **kws)
-
+        if "[" in _attr:
+            log.debug("Indexed attr")
+            return mc.listConnections(_combined)
+    
+        try:attrType = mc.getAttr(_d['combined'],type=True)
+        except:
+            log.debug("|{0}| >> {1} failed to return type. Exists: {2}".format(_str_func,_d['combined'],mc.objExists(_d['combined'])))            
+            return None
+        
+        if attrType in ['TdataCompound']:
+            return mc.listConnections(_combined)		
+    
+        if mc.attributeQuery (_attr,node=_obj,msg=True):
+            #return mc.listConnections(_combined) or False 
+            return get_message(_d)
+        elif attrType == 'double3':
+            return [mc.getAttr(_obj+'.'+ a) for a in mc.attributeQuery(_attr, node = _obj, listChildren = True)]
+        #elif attrType == 'double':
+            #parentAttr = mc.attributeQuery(_attr, node =_obj, listParent = True)
+            #return mc.getAttr("{0}.{1}".format(_obj,parentAttr[0]), **kws)
+        else:
+            return mc.getAttr(_combined, **kws)
+    except Exception,err:
+        cgmGeneral.cgmException(Exception,err)
 def set_keyframe(node, attr = None, value = None, time = None):
     """   
     Replacement for simple setKeyframe call. Necessary because Maya's doesn't allow multi attrs like translate,scale,rotate...

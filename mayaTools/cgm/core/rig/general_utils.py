@@ -454,3 +454,67 @@ def check_nameMatches(self,mlControls,justReport = False):
     if _nameMatches and not justReport:
         raise ValueError,"Fix this name match"
     return True
+
+
+def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'multiply'):
+    """
+    Given an attribute, add in new values to it. If it has a plug, use that 
+    """
+    try:
+        _str_func = 'plug_insertNewValues'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        
+        if mode not in ['multiply']:
+            raise ValueError,"Mode not supported: {0}".format(mode)
+        
+        d_driven = cgmMeta.validateAttrArg(driven)
+        mPlug = d_driven['mPlug']
+        
+        ml_drivers = []
+        mPreDriver = mPlug.getDriver(asMeta=True)
+        log.debug("|{0}| >>  Pre Driver: {1}".format(_str_func,mPreDriver))
+            
+        for d in drivers:
+            d_driver = cgmMeta.validateAttrArg(d)
+            if d_driver:
+                ml_drivers.append(d_driver['mPlug'])
+                log.debug("|{0}| >>  Driver: {1}".format(_str_func,d_driver['mPlug']))
+            else:
+                log.debug("|{0}| >>  Failed to validate: {1}".format(_str_func,d))
+                
+
+        if not ml_drivers:
+            raise ValueError, "No drivers validated"
+        
+        if not replace:
+            ml_drivers.insert(0,mPreDriver[0])
+        
+        if len(ml_drivers) < 2:
+            raise ValueError,"Must have more than two drivers. Found: {0}".format(ml_drivers)
+        ATTR.break_connection(mPlug.p_combinedName)
+        
+        lastNode = None
+        for i,mDriver in enumerate(ml_drivers[:-1]):
+            if not lastNode:
+                lastNode = mc.createNode('multDoubleLinear')
+                mDriver.doConnectOut(lastNode + '.input1')
+                ml_drivers[i+1].doConnectOut(lastNode + '.input2')
+            else:
+                newNode = mc.createNode('multDoubleLinear')
+                ATTR.connect(lastNode+'.output',newNode + '.input1')
+                ml_drivers[i+1].doConnectOut(newNode + '.input2')
+                
+                lastNode=newNode
+                
+        ATTR.connect(lastNode+'.output',mPlug.p_combinedName)
+        
+        
+                
+        
+
+        
+        
+    except Exception,err:
+        #pprint.pprint(vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
+        raise Exception,err

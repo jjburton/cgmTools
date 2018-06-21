@@ -114,6 +114,9 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
     """
     _str_func = 'surface_tightenEnds'
     
+    if blendLength<hardLength:
+        blendLength=hardLength
+    
     mSurface = cgmMeta.asMeta(controlSurface)
     
     l_cvs = mSurface.getComponents('cv')
@@ -127,7 +130,7 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
     #Get our influences --------------------------------------------------
     
     l_influenceObjects = CORESKIN.get_influences_fromCluster(mSkin.mNode)
-
+    
     
     if not mSkin and l_influenceObjects:
         raise StandardError,"controlSurfaceSmoothWeights failed. Not enough info found"
