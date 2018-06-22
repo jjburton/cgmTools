@@ -1598,8 +1598,8 @@ def rig_prechecks(self):
     mBlock = self.mBlock
     
     
-    if mBlock.scaleSetup:
-        self.l_precheckErrors.append('scaleSetup not ready')    
+    if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
+        self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')    
 
 
 @cgmGEN.Timer
@@ -1752,7 +1752,8 @@ def rig_dataBuffer(self):
         if mBlock.ribbonAim:
             _driverSetup =  mBlock.getEnumValueString('ribbonAim')
         self.d_squashStretch['driverSetup'] = _driverSetup
-    
+        
+        #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
         self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
         self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
         self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
@@ -4051,6 +4052,9 @@ def rig_segments(self):
                         const = mc.orientConstraint([mAimBack.mNode,mAimForward.mNode], mSegHandle.mNode, maintainOffset = False)[0]
                     else:
                         const = mc.orientConstraint([mAimForward.mNode, mAimBack.mNode], mSegHandle.mNode, maintainOffset = False)[0]
+                        
+                    
+                    ATTR.set(const,'interpType',2)
                     
                     d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mParent.mNode,
                                                                           'curveSeg_{0}'.format(i)],
@@ -4087,7 +4091,8 @@ def rig_segments(self):
                         else:
                             _d['aimVector'] = [0,0,-1]
                         
-                        mc.aimConstraint(mControlMid.mNode, ml_segMidHandles[ii].mNode,
+                        mc.aimConstraint(mControlMid.mNode,
+                                         ml_segMidHandles[ii].mNode,
                                          maintainOffset = False,**_d)
             
             #Seg handles -------------------------------------------------------------------
@@ -4106,11 +4111,11 @@ def rig_segments(self):
                 ml_influences.extend(ml_segHandles)
             
             
-            #Mid Ik... --------------------------------------------------------------------------------------------            
+            #Mid Ik... -----------------------------------------------------------------------------            
             if mControlMid:
                 log.debug("|{0}| >> Mid IK {1} setup...".format(_str_func,i))            
                 
-                mControlMid.masterGroup.parent = ml_blendJoints[i]
+                mControlMid.masterGroup.parent = mRoot#ml_blendJoints[i]
                     
                 ml_midTrackJoints = copy.copy(ml_segHandles)
                 ml_midTrackJoints.insert(1,mControlMid)
@@ -4138,11 +4143,13 @@ def rig_segments(self):
             reload(IK)
             #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
             
+            
+            #Trying something new...
             res_segScale = self.UTILS.get_blockScale(self,'segMeasure_{0}'.format(i),ml_segJoints)
             mPlug_masterScale = res_segScale[0]
             mMasterCurve = res_segScale[1]
 
-            mMasterCurve.p_parent = ml_blendJoints[i]
+            mMasterCurve.p_parent = ml_blendJoints[i]#mRoot#ml_blendJoints[i]
             
             _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                   'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
@@ -4216,6 +4223,14 @@ def rig_segments(self):
                     log.debug("|{0}| >> Found drivers".format(_str_func))
                     #mJnt.masterGroup.p_parent = mRigNull
                     mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],mJnt.masterGroup.mNode,maintainOffset=True)
+                    
+                    
+        for mHandle in ml_handleJoints:
+            mParent = mHandle.masterGroup.getParent(asMeta=True)
+            mScaleParent = mParent.getMessageAsMeta('scaleJoint')
+            if mScaleParent:
+                mHandle.masterGroup.p_parent=mScaleParent
+                
                     
 
     return
@@ -4923,6 +4938,7 @@ def rig_blendFrame(self):
         mDup = mJnt.doDuplicate(po=True,ic=False)
         mDup.p_parent = mJnt
         mDup.rename("{0}_scaled".format(mJnt.p_nameBase))
+        mDup.connectParentNode(mJnt,'source','scaleJoint')
         mDup.resetAttrs()
         return mDup    
     #Setup blend ----------------------------------------------------------------------------------
@@ -4978,7 +4994,13 @@ def rig_blendFrame(self):
         
         for i,mJnt in enumerate(ml_ikScaleDrivers[:self.int_handleEndIdx]):
             ml_ikScaleDrivers[i] = getScaleJoint(mJnt)
-        
+            
+        ml_blendScaleTargets = []
+        for i,mJnt in enumerate(ml_blendJoints):
+            if mJnt in ml_blendJoints[:self.int_handleEndIdx]:
+                ml_blendScaleTargets.append(getScaleJoint(mJnt))
+            else:
+                ml_blendScaleTargets.append(mJnt)
         
         mIKControl = mRigNull.getMessageAsMeta('controlIK')
         mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
@@ -4995,10 +5017,14 @@ def rig_blendFrame(self):
         
         ml_ikScaleTargets.append(mIKControl)
         log.debug("|{0}| >> Constrain ik 0 to : {1}".format(_str_func, ml_ikScaleTargets[0]))
-        mc.scaleConstraint(ml_ikScaleTargets[0].mNode, ml_ikScaleDrivers[0].mNode,maintainOffset=True)
+        mc.scaleConstraint(ml_ikScaleTargets[0].mNode, ml_ikScaleDrivers[0].mNode,
+                           maintainOffset=True,
+                           scaleCompensate=False)
         
         log.debug("|{0}| >> Constrain ik end to : {1}".format(_str_func,mIKControl))
-        mc.scaleConstraint(mIKControl.mNode, ml_ikScaleDrivers[self.int_handleEndIdx].mNode,maintainOffset=True)
+        mc.scaleConstraint(mIKControl.mNode, ml_ikScaleDrivers[self.int_handleEndIdx].mNode,
+                           maintainOffset=True,
+                           scaleCompensate=False)
         
         _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
     
@@ -5015,7 +5041,8 @@ def rig_blendFrame(self):
     
         for mJnt in ml_ikScaleDrivers[1:self.int_handleEndIdx]:
             _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
-            _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
+            _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True,
+                                        scaleCompensate=False)#Point contraint loc to the object
             CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
     
         #for mJnt in ml_ikJoints[1:]:
@@ -5035,7 +5062,12 @@ def rig_blendFrame(self):
         
         RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikScaleDrivers,ml_blendJoints,
                                     driver = mPlug_FKIK.p_combinedName,
-                                    l_constraints=['point','orient','scale'])
+                                    l_constraints=['point','orient'])
+        
+        RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikScaleDrivers,ml_blendScaleTargets,
+                                    driver = mPlug_FKIK.p_combinedName,
+                                    d_scale = {'scaleCompensate':False},
+                                    l_constraints=['scale'])        
 
     else:
         log.debug("|{0}| >> Normal setup...".format(_str_func))                        

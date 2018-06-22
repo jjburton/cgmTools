@@ -949,7 +949,7 @@ def ribbon(jointList = None,
             'create' - make a measure curve. It'll be connected to the main surface on a message attr called segScaleCurve
             attribute arg - use this plug
             
-            
+        additiveScaleEnds(bool - False) | Whether to setup end scaling to it works more as expected for ends
         advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
         
@@ -1123,6 +1123,7 @@ def ribbon(jointList = None,
     
     mArcLenCurve = None
     mArcLenDag = None
+    
     if b_squashStretch and squashStretchMain == 'arcLength':
         log.debug("|{0}| >> Creating arc curve setup...".format(_str_func))
         
@@ -1154,6 +1155,17 @@ def ribbon(jointList = None,
         mPlug_inverseScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_inverse,'float')
         
         l_argBuild=[]
+        
+        """
+        if not masterScalePlug or masterScalePlug == 'create':
+            plug_master = '{0}_segMasterScale'.format(str_baseName)
+            mPlug_masterScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_master,'float')
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+                                                       '{0}.arcLengthInV'.format(mArcLen.mNode),
+                                                       "{0}.baseDist".format(mArcLen.mNode)))
+            masterScalePlug = mPlug_masterScale"""
+            
+        
         """
         l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
                                                    '{0}.arcLength'.format(mInfoNode.mNode),
@@ -1166,6 +1178,8 @@ def ribbon(jointList = None,
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
             NodeF.argsToNodes(arg).doBuild()
+            
+            
         
         
         
@@ -2116,16 +2130,24 @@ def ribbon(jointList = None,
         max_influences = 2
         mode_tighten = 'twoBlend'
         blendLength = int_lenJoints/2
+        blendMin = 2
+        _hardLength = 2
+        
+        if extendEnds:
+            blendMin = 4
+            _hardLength = 4
+            mode_tighten = None
+        
         
         if int_lenInfluences > 2:
             mode_tighten = None
-            blendLength = int(int_lenInfluences/2)
+            #blendLength = int(int_lenInfluences/2)
             max_influences = MATH.Clamp( blendLength, 2, 4)
+            blendLength = MATH.Clamp( int(int_lenInfluences/2), blendMin, 6)
             
         #Tighten the weights...
-        _hardLength = 2
-        if extendEnds:
-            _hardLength = 4
+        
+       
             
         if mArcLenCurve:
             log.debug("|{0}| >> Skinning arcLen Curve: {1}".format(_str_func,mArcLenCurve))
@@ -2164,9 +2186,8 @@ def ribbon(jointList = None,
             #Tighten the weights...
             RIGSKIN.surface_tightenEnds(mSurf.mNode,
                                         hardLength = _hardLength,
-                                         blendLength=blendLength,
-                                         mode=mode_tighten)
-            
+                                        blendLength=blendLength,
+                                        mode=mode_tighten)
     
     
     if mModule:#if we have a module, connect vis

@@ -244,6 +244,10 @@ def blendChainsBy(l_jointChain1 = None,
                   l_blendChain = None,
                   driver = None,
                   l_constraints = ['point','orient'],
+                  d_scale = {},
+                  d_point = {},
+                  d_parent = {},
+                  d_orient = {},
                   maintainOffset = False):
     """
     :parameters:
@@ -297,12 +301,16 @@ def blendChainsBy(l_jointChain1 = None,
     #===========================================================
     for i,i_jnt in enumerate(ml_blendChain):
         for constraint in l_constraints:
+            _d = {}
+            if constraint == 'scale':
+                _d = d_scale
+                
             log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
                                                                              ml_jointChain2[i].getShortName(),
                                                                              ml_blendChain[i].getShortName(),
                                                                              constraint))	    
             i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
-                                                       ml_blendChain[i].getShortName(),maintainOffset = maintainOffset)[0])
+                                                       ml_blendChain[i].getShortName(),maintainOffset = maintainOffset,**_d)[0])
 
 
             targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)

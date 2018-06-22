@@ -220,7 +220,7 @@ def is_rigged(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:
-        log.error("|{0}| >>  ||| FINISH THIS CALL ||| ".format(_str_func))
+        log.debug("|{0}| >>  ||| FINISH THIS CALL ||| ".format(_str_func))
         
         if self.moduleType in __l_passThroughModules__:
             log.debug("|{0}| >> pass through module".format(_str_func))

@@ -112,7 +112,7 @@ class ui(cgmUI.cgmGUI):
             #self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])       
             self.uiScrollList_parents = False
             self.uiPopUpMenu_blocks = None
-            
+            self.uiRC_profile = None
             self._blockRoot = None
             self._blockCurrent = None
             self._blockFactory = RIGBLOCKS.factory()
@@ -130,7 +130,7 @@ class ui(cgmUI.cgmGUI):
             
             
     def build_menus(self):
-        self.uiMenu_profile = mUI.MelMenu( l='Profile', pmc=self.buildMenu_profile,pmo=True)                
+        self.uiMenu_profile = mUI.MelMenu( l='Profile', pmc=self.buildMenu_profile)                
         self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
         self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True)
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
@@ -155,15 +155,20 @@ class ui(cgmUI.cgmGUI):
             self.uiFunc_contextuaBlockCall('atUtils','buildProfile_load',_profile, **{'contextMode':'root'})
             
     def buildMenu_profile( self, *args, **kws):
-        #self.uiMenu_profile.clear()
+        self.uiMenu_profile.clear()
+            
         _menu = self.uiMenu_profile
         
-
-        #mc.setParent(_menu)
-        uiRC = mc.radioMenuItemCollection()
+        if not self.uiRC_profile:
+            uiRC = mc.radioMenuItemCollection() # mUI.MelRadioCollection()#
+            self.uiRC_profile = uiRC
+        else:
+            uiRC = self.uiRC_profile
+            
+        log.info(uiRC)
         #self.uiOptions_menuMode = []		
         _v = self.var_buildProfile.value
-    
+        
         for i,item in enumerate(BLOCKSHARE._l_buildProfiles):
             if item == _v:
                 _rb = True

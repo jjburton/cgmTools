@@ -1285,7 +1285,7 @@ def rig_dataBuffer(self):
         _driverSetup =  mBlock.getEnumValueString('ribbonAim')
     self.d_squashStretch['driverSetup'] = _driverSetup
 
-    
+    self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
     self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
     self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
     self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
@@ -2234,7 +2234,6 @@ def rig_segments(self):
           'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
           'connectBy':'constraint',
           'extendEnds':True,
-          'additiveScaleEnds':True,
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
