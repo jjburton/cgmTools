@@ -1022,7 +1022,7 @@ def mirror_verifySetup(self, d_Indices = {},
     for k in ['Centre','Left','Right']:
         if not d_Indices.has_key(k):
             d_Indices[k] = 0
-        if not md_indicesToControls.has_key(k):
+        if not k in md_indicesToControls:
             md_indicesToControls[k] = {}
             
     if l_processed is not None and self in l_processed:

@@ -3251,9 +3251,12 @@ def rig_shapes(self):
                     _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
                 else:
                     _mTar = ml_targets[self.int_handleEndIdx]
-                    _settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
+                    mIKTemplateHandle = ml_templateHandles[-1]
+                    bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    _settingsSize = MATH.average(bb_ik)
+                    #_settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
                     
-                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .5,
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .75,
                                                                                '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
     
                 mSettingsShape.doSnapTo(_mTar.mNode)
@@ -3395,7 +3398,7 @@ def rig_shapes(self):
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
                 bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                _fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
+                _fk_shape = CURVES.create_fromName('sphere', size =  [v * 1.25 for v in bb_ik])
                 ATTR.set(_fk_shape,'scale', 1.50)
                 SNAP.go(_fk_shape,mJnt.mNode)
                 
@@ -3590,7 +3593,7 @@ def rig_controls(self):
     if str_ikBase == 'hips':
         ml_fkJoints = ml_fkJoints[1:]
     
-    ml_fkJoints[0].parent = mRoot
+    ml_fkJoints[0].parent = mRootParent
     ml_controlsAll.extend(ml_fkJoints)
     
     for i,mObj in enumerate(ml_fkJoints):
@@ -3789,8 +3792,18 @@ def rig_segments(self):
     ml_prerigHandleJoints = mPrerigNull.msgList_get('handleJoints')
     _jointOrientation = self.d_orientation['str']
     
+    
     if not ml_handleJoints and not self.md_roll:
         log.info("|{0}| >> No segment setup...".format(_str_func))
+        
+        if mBlock.scaleSetup:
+            log.info("|{0}| >> Scale setup found. Resolving rig joints...".format(_str_func))
+            
+            for mJnt in ml_rigJoints:
+                mParent = mJnt.masterGroup.getParent(asMeta=True)
+                mScaleParent = mParent.getMessageAsMeta('scaleJoint')
+                if mScaleParent:
+                    mJnt.masterGroup.p_parent=mScaleParent            
         return True    
     
     if ml_handleJoints:
@@ -4600,19 +4613,25 @@ def rig_frame(self):
                 log.debug("|{0}| >> rp setup...".format(_str_func,_ikSetup))
                 mIKMid = mRigNull.controlIKMid
                 
-                #res_ikScale = self.UTILS.get_blockScale(self,'{0}_ikMeasure'.format(self.d_module['partName']))
-                #mPlug_masterScale = res_ikScale[0]
-                #mMasterCurve = res_ikScale[1]
-                #mMasterCurve.p_parent = mRoot
+                res_ikScale = self.UTILS.get_blockScale(self,
+                                                        '{0}_ikMeasure'.format(self.d_module['partName'],),
+                                                        self.ml_handleTargetsCulled)
+                mPlug_masterScale = res_ikScale[0]
+                mMasterCurve = res_ikScale[1]
+                mMasterCurve.p_parent = mRoot
+                self.fnc_connect_toRigGutsVis( mMasterCurve )
+                mMasterCurve.dagLock(True)
                 
+                #Unparent the children from the end while we set stuff up...
                 ml_end_children = mEnd.getChildren(asMeta=True)
                 if ml_end_children:
                     for mChild in ml_end_children:
                         mChild.parent = False
+                        
                 
                 #Build the IK ---------------------------------------------------------------------
                 reload(IK)
-                _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,#mPlug_globalScale.p_combinedName,
+                _d_ik= {'globalScaleAttr':mPlug_masterScale.p_combinedName,#mPlug_globalScale.p_combinedName,
                         'stretch':'translate',
                         'lockMid':True,
                         'rpHandle':mIKMid.mNode,
@@ -4707,7 +4726,6 @@ def rig_frame(self):
                 mSpinGroupAdd.doName()
                 mSpinGroupAdd.p_parent = mSpinGroup
                 
-                
                 #Setup arg
                 #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
                 #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
@@ -4734,7 +4752,8 @@ def rig_frame(self):
                 else:
                     mPlug_spinMid.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
                     
-                ATTR.set_standardFlags(mSpinGroupAdd.mNode)
+                mSpinGroup.dagLock(True)
+                mSpinGroupAdd.dagLock(True)
                 
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
@@ -4752,7 +4771,7 @@ def rig_frame(self):
                 mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
                 mMidControlDriver.parent = mSpinGroupAdd#mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
-                
+                mMidControlDriver.dagLock(True)
                 
                 #Mid IK trace
                 log.debug("|{0}| >> midIK track Crv".format(_str_func, mIKMid))
@@ -4934,13 +4953,26 @@ def rig_blendFrame(self):
     #ml_templateHandles = mBlock.msgList_get('templateHandles')
     #mPlug_globalScale = self.d_module['mPlug_globalScale']
     #mRoot = mRigNull.rigRoot
+    
+    if mBlock.getEnumValueString('rigSetup') == 'digit':
+        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
+        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+        """
+        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                           self.mDeformNull.mNode,
+                           maintainOffset=True,
+                           scaleCompensate=False)"""
+    
+    ml_scaleJoints = []
     def getScaleJoint(mJnt):
         mDup = mJnt.doDuplicate(po=True,ic=False)
         mDup.p_parent = mJnt
         mDup.rename("{0}_scaled".format(mJnt.p_nameBase))
         mDup.connectParentNode(mJnt,'source','scaleJoint')
         mDup.resetAttrs()
-        return mDup    
+        ml_scaleJoints.append(mDup)
+        return mDup
+    
     #Setup blend ----------------------------------------------------------------------------------
     if self.b_scaleSetup:
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
@@ -5015,7 +5047,7 @@ def rig_blendFrame(self):
         else:
             ml_ikScaleTargets.append(mRoot)
         
-        ml_ikScaleTargets.append(mIKControl)
+        ml_ikScaleTargets.append(ml_ikJoints[self.int_handleEndIdx])#mIKControl
         log.debug("|{0}| >> Constrain ik 0 to : {1}".format(_str_func, ml_ikScaleTargets[0]))
         mc.scaleConstraint(ml_ikScaleTargets[0].mNode, ml_ikScaleDrivers[0].mNode,
                            maintainOffset=True,
@@ -5069,6 +5101,8 @@ def rig_blendFrame(self):
                                     d_scale = {'scaleCompensate':False},
                                     l_constraints=['scale'])        
 
+        for mJnt in ml_scaleJoints:
+            mJnt.dagLock(True)
     else:
         log.debug("|{0}| >> Normal setup...".format(_str_func))                        
         RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
@@ -5298,6 +5332,7 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')        
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     str_blockProfile = mBlock.getEnumValueString('blockProfile')
     
@@ -5348,8 +5383,8 @@ def rig_cleanUp(self):
         #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
         log.debug(cgmGEN._str_subLine)        
-        ml_baseDynParents.append(mLeverFK)
         ml_baseDynParents.append(mLimbRoot)
+        ml_baseDynParents.append(mLeverFK)
     else:
         ml_baseDynParents.append(mRoot)
         
@@ -5505,9 +5540,9 @@ def rig_cleanUp(self):
         if i == 0:
             mDynGroup.dynFollow.p_parent = mRoot
             if self.b_lever:
-                _attachPoint = mBlock.getEnumValueString('attachPoint')
-                _idx = ml_targetDynParents.index( self.md_dynTargetsParent.get(_attachPoint))
-                ATTR.set_default(mObj.mNode,'orientTo',_idx)
+                #_attachPoint = mBlock.getEnumValueString('attachPoint')
+                #_idx = ml_targetDynParents.index( self.md_dynTargetsParent.get(_attachPoint))
+                ATTR.set_default(mObj.mNode,'orientTo',2)
         
         log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
         pprint.pprint(ml_targetDynParents)                
@@ -5522,8 +5557,9 @@ def rig_cleanUp(self):
         if mCtrl.hasAttr('radius'):
             ATTR.set_hidden(mCtrl.mNode,'radius',True)
         
-        if mCtrl.getMessage('masterGroup'):
-            mCtrl.masterGroup.setAttrFlags()
+        for link in 'masterGroup','dynParentGroup':
+            if mCtrl.getMessage(link):
+                mCtrl.getMessageAsMeta(link).dagLock(True)
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
@@ -5540,6 +5576,11 @@ def rig_cleanUp(self):
                 
         for mCtrl in ml_controlsToLock:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
+            
+    for mJnt in ml_blendJoints:
+        mJnt.dagLock(True)
+        
+    self.mDeformNull.dagLock(True)
             
     #Defaults/settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))

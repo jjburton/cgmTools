@@ -755,7 +755,7 @@ def get_blockScale(self,plug='blockScale',ml_joints = None):
     
     #mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
     CORERIG.shapeParent_in_place(mCrv.mNode,crv,False)
-    mCrv.rename('{0}_measureCrv'.format( self.d_module['partName']))
+    mCrv.rename('{0}_measureCrv'.format( plug ))
     
     
     mRigNull.connectChildNode(mCrv,plug_curve,'rigNull')
