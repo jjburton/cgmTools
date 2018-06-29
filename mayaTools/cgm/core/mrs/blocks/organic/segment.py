@@ -2234,6 +2234,7 @@ def rig_segments(self):
           'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
           'connectBy':'constraint',
           'extendEnds':True,
+          #'sectionSpans':1,
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
@@ -2362,6 +2363,7 @@ def rig_frame(self):
                                                     ml_ribbonIkHandles,
                                                     [mRigNull.controlIKBase.mNode],#ml_handleParents,
                                                     mode = 'singleBlend',
+                                                    upParent=[1,0,0],
                                                     upMode = 'objectRotation')
                     """
                     RIGCONSTRAINT.build_aimSequence(ml_handleJoints[-1],
@@ -2632,6 +2634,7 @@ def rig_frame(self):
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
             
             mIKGroup.parent = mRoot
+            mIKGroup.dagLock(True)
             mIKControl.masterGroup.parent = mIKGroup
             
             mIKBaseControl = False
@@ -2659,7 +2662,9 @@ def rig_frame(self):
             
                 #Setup arg
                 mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
-                mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))                
+                mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
+                
+                mSpinGroup.dagLock(True)
 
             if _ikSetup == 'rp':
                 log.debug("|{0}| >> rp setup...".format(_str_func,_ikSetup))
@@ -3392,28 +3397,43 @@ def rig_cleanUp(self):
         mSettings.FKIK = 1.0
     
     #Lock and hide =================================================================================
+    ml_blendJoints = mRigNull.msgList_get('blendJoints',asMeta=True)
+    for mJnt in ml_blendJoints:
+        mJnt.dagLock(True)
+    
+    
     ml_controls = mRigNull.msgList_get('controlsAll')
     
     for mCtrl in ml_controls:
         if mCtrl.hasAttr('radius'):
             ATTR.set_hidden(mCtrl.mNode,'radius',True)
         
-        if mCtrl.getMessage('masterGroup'):
-            mCtrl.masterGroup.setAttrFlags()
+        for link in 'masterGroup','dynParentGroup','aimGroup':
+            if mCtrl.getMessage(link):
+                mCtrl.getMessageAsMeta(link).dagLock(True)
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
-        for mCtrl in ml_controls:
+        ml_controlsToLock = copy.copy(ml_controls)
+        if self.b_squashSetup:
+            ml_handles = self.mRigNull.msgList_get('handleJoints')
+            for mHandle in ml_handles:
+                ml_controlsToLock.remove(mHandle)
+            for i in self.md_roll.keys():
+                mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
+                if mControlMid:
+                    ml_controlsToLock.remove(mControlMid)
+    
+    
+        for mCtrl in ml_controlsToLock:
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     else:
-        log.debug("|{0}| >>  ScaleSetup...".format(_str_func))
+        log.debug("|{0}| >>  scale setup...".format(_str_func))
         
-        #Start End
         
+    self.mDeformNull.dagLock(True)
     
-    
-    
-    
+
     #Close out ========================================================================================
     mBlock.blockState = 'rig'
     mRigNull.version = self.d_block['buildVersion']

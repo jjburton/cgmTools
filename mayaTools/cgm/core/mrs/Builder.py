@@ -1175,6 +1175,8 @@ class ui(cgmUI.cgmGUI):
                     ATTR.set(obj,a, _v)
                 
                 #self.uiUpdate_blockDat()
+        
+        log.info("Set: {0} | {1} | {2}".format(obj,attr,_v))
             
     def uiCallback_contextualSetAttrFromField(self, attr, attrType, field):
         _v = field.getValue()

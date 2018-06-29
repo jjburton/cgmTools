@@ -1599,7 +1599,7 @@ def rig_prechecks(self):
     
     
     if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
-        self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')    
+        self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
 
 
 @cgmGEN.Timer
@@ -5557,7 +5557,7 @@ def rig_cleanUp(self):
         if mCtrl.hasAttr('radius'):
             ATTR.set_hidden(mCtrl.mNode,'radius',True)
         
-        for link in 'masterGroup','dynParentGroup':
+        for link in 'masterGroup','dynParentGroup','aimGroup':
             if mCtrl.getMessage(link):
                 mCtrl.getMessageAsMeta(link).dagLock(True)
     

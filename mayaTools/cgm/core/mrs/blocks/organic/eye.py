@@ -1,6 +1,6 @@
 """
 ------------------------------------------
-cgm.core.mrs.blocks.simple.torso
+cgm.core.mrs.blocks.organic.eye
 Author: Josh Burton
 email: jjburton@cgmonks.com
 
@@ -71,9 +71,8 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.06012018'
+__version__ = 'alpha.1.06.27.2018'
 __autoTemplate__ = False
-__dimensions = [15.2, 23.2, 19.7]
 __menuVisible__ = True
 
 #These are our base dimensions. In this case it is for human
@@ -96,61 +95,24 @@ d_wiring_template = {'msgLinks':['templateNull'],
                      'msgLists':['templateHandles']}
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {
-    'unityLow':{'default':{'neckJoints':1,
-                              'neckControls':1,
-                              'neckBuild':True},
-                   'human':{'neckJoints':1,
-                            'neckControls':1}
-                   },
-    'unityMed':{'default':{'neckJoints':1,
-                          'neckControls':1},
-               },
-    'unityHigh':{'default':{'neckJoints':3,
-                          'neckControls':1},
-               },    
-    'feature':{'default':{'numJoints':9,
-                          'numControls':5}
-               }
-}
+d_build_profiles = {}
 
-d_block_profiles = {
-    'box':{'neckShapers':2,
-           'neckBuild':False,
-           'baseAim':[0,-1,0],
-           'baseUp':[0,0,-1],
-           'baseSize':[22,22,22],
-           'loftShape':'square',           
-           },
-    'head':{'neckShapers':3,
-            'neckBuild':True,
-            'baseAim':[0,-1,0],
-            'baseUp':[0,0,-1],
-            'baseSize':[15.2, 23.2, 19.7],
-            'loftShape':'wideUp',
-            'proxyType':'geo'
-             }
-}
+
+d_block_profiles = {}
 
 
 
 #>>>Attrs =====================================================================================================
-#_l_coreNames = ['head']
-
 l_attrsStandard = ['side',
                    'position',
                    'baseUp',
                    'baseAim',
-                   #'hasRootJoint',
                    'attachPoint',
                    'nameList',
                    'loftSides',
                    'loftDegree',
                    'loftSplit',
                    'loftShape',
-                   #'ikSetup',
-                   #'ikBase',
-                   #'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
@@ -158,67 +120,11 @@ l_attrsStandard = ['side',
                    'settingsDirection',
                    'moduleTarget',]
 
-d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
-                 'proxyType':'base:geo',
-                 'headAim':'bool',
-                 'headRotate':'double3',
-                 
-                 'squashMeasure' : 'none:arcLength:pointDist',
-                 'squash' : 'none:simple:single:both',
-                 'squashExtraControl' : 'bool',
-                 'squashFactorMax':'float',
-                 'squashFactorMin':'float',
-             
-                 'ribbonAim': 'none:stable:stableBlend',
-                 'ribbonConnectBy': 'constraint:matrix',
-                 'segmentMidIKControl':'bool',                 
-                 
-                 'neckBuild':'bool',
-                 'neckControls':'int',
-                 'neckShapers':'int',
-                 'neckJoints':'int',
-                 'loftSetup':'default:neck',
-                 'blockProfile':':'.join(d_block_profiles.keys()),
-                 'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
-                 }
+d_attrsToMake = {}
 
 d_defaultSettings = {'version':__version__,
-                     'baseSize':MATH.get_space_value(__dimensions[1]),
-                     'headAim':True,
-                     'neckBuild':True,
-                     'neckControls': 1,
-                     'attachPoint':'end',
-                     'loftSides': 10,
-                     'loftSplit':4,
-                     'loftDegree':'cubic',
-                     'neckJoints':3,
-                     'proxyDirect':True,
-                     'attachPoint':'end',
-                     'neckIK':'ribbon',
-                     
-                     'squashMeasure':'arcLength',
-                     'squash':'simple',
-                     'squashFactorMax':1.0,
-                     'squashFactorMin':1.0,
-                 
-                     'segmentMidIKControl':True,
-                     'squash':'both',
-                     'squashExtraControl':True,
-                     'ribbonAim':'stable',
-                     
-                     'proxyShape':'cube',
-                     'nameList':['neck','head'],#...our datList values
-                     'proxyType':'geo'}
-
-#Skeletal stuff ------------------------------------------------------------------------------------------------
-d_skeletonSetup = {'mode':'curveCast',
-                   'targetsMode':'prerigHandles',
-                   'helperUp':'z-',
-                   'countAttr':'neckJoints',
-                   'targets':'jointHelper'}
-
-d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
-d_rotationOrders = {'head':'yxz'}
+                     #'baseSize':MATH.get_space_value(__dimensions[1]),
+                     }
 
 #=============================================================================================================
 #>> Define
@@ -230,10 +136,8 @@ def define(self):
     
     _short = self.mNode
     
-    ATTR.set_min(_short, 'neckControls', 1)
     ATTR.set_min(_short, 'loftSides', 3)
     ATTR.set_min(_short, 'loftSplit', 1)
-    
     
     _shapes = self.getShapes()
     if _shapes:
@@ -252,8 +156,8 @@ def define(self):
     
     mHandleFactory = self.asHandleFactory()
     self.addAttr('cgmColorLock',True,lock=True,visible=False)
-    #mHandleFactory.color(self.mNode,controlType='main')
     mDefineNull = self.atUtils('stateNull_verify','define')
+    
     
     #Rotate Group ==================================================================
     mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
@@ -266,9 +170,9 @@ def define(self):
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
     mBBShape.p_parent = mDefineNull    
-    #mBBShape.ty = .5
+    mBBShape.tz = -.5
     
-    #CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
     self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
@@ -278,7 +182,8 @@ def define(self):
     mBBShape.doName()    
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
-
+    
+    return
     #Aim Helper ==========================================================================
     _dist = _size / 3
     _crv = CORERIG.create_at(create='curveLinear',l_pos = [mRotateGroup.p_position,
@@ -302,38 +207,7 @@ def define(self):
     mHandleFactory.color(mTarget.mNode,controlType='sub')
     self.connectChildNode(mTarget.mNode,'aimHelper')
     
-    #neck Up helper ==========================================================================
-    _arrowUp = CURVES.create_fromName('pyramid', _size/5, direction= 'y+')
-    mArrow = cgmMeta.validateObjArg(_arrowUp, 'cgmObject',setClass=True)
-    mArrow.p_parent = mRotateGroup    
-    mArrow.resetAttrs()
-    mHandleFactory.color(mArrow.mNode,controlType='sub')
     
-    mArrow.doStore('cgmName', self.mNode)
-    mArrow.doStore('cgmType','neckUpVector')
-    mArrow.doName()
-    mArrow.setAttrFlags()
-    
-    
-    self.doConnectOut('baseSizeY', "{0}.ty".format(mArrow.mNode))
-    #NODEFACTORY.argsToNodes("{0}.ty = {1}.baseSizeY + {2}".format(mArrow.mNode,
-    #                                                              self.mNode,
-    #                                                              self.baseSize[0])).doBuild()
-    
-    mAimGroup = cgmMeta.validateObjArg(mArrow.doGroup(True,
-                                                      True,
-                                                      asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
-    mAimGroup.resetAttrs()
-    
-    _const = mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
-                              aimVector = [0,0,1], upVector = [0,1,0], 
-                              worldUpObject = self.mNode,
-                              worldUpType = 'objectrotation',#'objectrotation', 
-                              worldUpVector = [0,1,0])
-    cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))    
-    mAimGroup.setAttrFlags()
-    
-    self.connectChildNode(mAimGroup.mNode,'neckUpHelper')
     
     return
     #Plane helper ==================================================================

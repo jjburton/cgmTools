@@ -888,6 +888,7 @@ def ribbon(jointList = None,
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
+           skipAim = True,
            influences = None,
            extraKeyable = True,
            attachEndsToInfluences = False,
@@ -952,6 +953,7 @@ def ribbon(jointList = None,
         additiveScaleEnds(bool - False) | Whether to setup end scaling to it works more as expected for ends
         advancedTwistSetup(bool - False) | Whether to do the cgm advnaced twist setup
         addMidTwist(bool - True) | Whether to setup a mid twist on the segment
+        skipAim(bool - True) | Whether to setup the aim scale or not
         
         influences(joints - None) | List or metalist of joints to skin our objects to
         attachEndsToInfluences(bool) - Connect the first and last joint to the influence 0,-1. Still use scale setup.
@@ -1807,8 +1809,9 @@ def ribbon(jointList = None,
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NodeF.argsToNodes(arg).doBuild()
-                    
-                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+                
+                if not skipAim:
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
             
                 if squashStretch == 'simple':
                     for axis in ['scaleX','scaleY']:
@@ -1907,8 +1910,9 @@ def ribbon(jointList = None,
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NodeF.argsToNodes(arg).doBuild()
-                    
-                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+                
+                if not skipAim:
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
             
                 if not ml_outFollicles:
                     for axis in ['scaleX','scaleY']:
@@ -2109,9 +2113,9 @@ def ribbon(jointList = None,
                 NodeF.argsToNodes(arg).doBuild()
                 
                 
-                
-            RIGGEN.plug_insertNewValues('{0}.scaleZ'.format(mJnt.mNode),
-                                        [mPlug_aimResult.p_combinedShortName],replace=False)
+            if not skipAim:
+                RIGGEN.plug_insertNewValues('{0}.scaleZ'.format(mJnt.mNode),
+                                            [mPlug_aimResult.p_combinedShortName],replace=False)
             
     #>>> Connect our iModule vis stuff
     if mModule:#if we have a module, connect vis
@@ -2143,8 +2147,10 @@ def ribbon(jointList = None,
             mode_tighten = None
             #blendLength = int(int_lenInfluences/2)
             max_influences = MATH.Clamp( blendLength, 2, 4)
-            blendLength = MATH.Clamp( int(int_lenInfluences/2), blendMin, 6)
-            
+            blendLength = MATH.Clamp( int(int_lenInfluences/2), 2, 6)
+        
+        if int_lenInfluences == int_lenJoints:
+            _hardLength = 3
         #Tighten the weights...
         
        
