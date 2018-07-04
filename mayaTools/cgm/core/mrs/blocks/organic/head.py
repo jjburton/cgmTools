@@ -1452,7 +1452,14 @@ def rig_skeleton(self):
     
     log.info("|{0}| >> Head...".format(_str_func))  
     
-    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=False)
+    #ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=False)
+    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                           ml_joints, None ,
+                                                           mRigNull,'rigJoints',
+                                                           blockNames=False,
+                                                           cgmType = 'rigJoint',
+                                                           connectToSource = 'rig')    
+    
     
     if self.mBlock.headAim:
         log.info("|{0}| >> Head IK...".format(_str_func))              

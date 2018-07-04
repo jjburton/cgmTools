@@ -4216,7 +4216,7 @@ class rigFactory(object):
         _blockType = _d['mBlock'].blockType
 
         _buildModule = get_blockModule(_blockType)
-        
+        reload(_buildModule)
         if _buildModule.__dict__.get('rig_prechecks'):
             log.debug("|{0}| >> Found precheck call".format(_str_func,))
             

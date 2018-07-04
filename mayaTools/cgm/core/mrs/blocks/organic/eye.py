@@ -113,6 +113,7 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftSplit',
                    'loftShape',
+                   'scaleSetup',                   
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
@@ -120,7 +121,17 @@ l_attrsStandard = ['side',
                    'settingsDirection',
                    'moduleTarget',]
 
-d_attrsToMake = {}
+d_attrsToMake = {'eyeType':'sphere:nonsphere',
+                 'eyeOrb':'bool',
+                 'fkSetup':'bool',
+                 'setupPupil':'none:joint:blendshape',
+                 'setupIris':'none:joint:blendshape',
+                 'setupLid':'none:clam:full',
+                 'lidJointsUpr':'int',
+                 'lidJointsLwr':'int',
+                 
+                 
+}
 
 d_defaultSettings = {'version':__version__,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
@@ -129,12 +140,17 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
+@cgmGEN.Timer
 def define(self):
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
     _short = self.mNode
+    
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz','sz'])
+    self.doConnectOut('sy',['sx','sz'])    
     
     ATTR.set_min(_short, 'loftSides', 3)
     ATTR.set_min(_short, 'loftSplit', 1)
@@ -155,7 +171,7 @@ def define(self):
     CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     
     mHandleFactory = self.asHandleFactory()
-    self.addAttr('cgmColorLock',True,lock=True,visible=False)
+    self.addAttr('cgmColorLock',True,lock=True, hidden=True)
     mDefineNull = self.atUtils('stateNull_verify','define')
     
     
@@ -167,7 +183,7 @@ def define(self):
     mRotateGroup.setAttrFlags()
     
     #Bounding box ==================================================================
-    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
+    _bb_shape = CURVES.create_controlCurve(self.mNode,'sphere', size = 1.0, sizeMode='fixed')
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
     mBBShape.p_parent = mDefineNull    
     mBBShape.tz = -.5
@@ -184,77 +200,13 @@ def define(self):
     self.connectChildNode(mBBShape.mNode,'bbHelper')
     
     return
-    #Aim Helper ==========================================================================
-    _dist = _size / 3
-    _crv = CORERIG.create_at(create='curveLinear',l_pos = [mRotateGroup.p_position,
-                                                           DIST.get_pos_by_axis_dist(mRotateGroup.mNode,'z+',
-                                                                                     distance = _dist * 2)])
-    
-    _crv = TRANS.parent_set(_crv,mRotateGroup.mNode)
-    
-    mTarget = self.doCreateAt()
-    mTarget = cgmMeta.validateObjArg(mTarget.mNode, 'cgmObject',setClass=True)
-    
-    mTarget.rename('aimTarget')
-    mTarget.p_parent = mRotateGroup
-    mTarget.resetAttrs()
-    
-    mTarget.tz =  _dist    
-    
-    CORERIG.shapeParent_in_place(mTarget.mNode,_crv,False,False)    
-
-    mTarget.setAttrFlags()
-    mHandleFactory.color(mTarget.mNode,controlType='sub')
-    self.connectChildNode(mTarget.mNode,'aimHelper')
-    
-    
-    
-    return
-    #Plane helper ==================================================================
-    plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),
-                          width = 1, #height = 1,
-                          #subdivisionsX=1,subdivisionsY=1,
-                          ch=0)
-    mPlane = cgmMeta.validateObjArg(plane[0])
-    mPlane.doSnapTo(self.mNode)
-    mPlane.p_parent = mDefineNull
-    #mPlane.tz = .5
-    CORERIG.copy_pivot(mPlane.mNode,self.mNode)
-
-    self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
-
-    mHandleFactory.color(mPlane.mNode,controlType='sub')
-
-    mPlane.doStore('cgmName', self.mNode)
-    mPlane.doStore('cgmType','planeVisualize')
-    mPlane.doName() 
-    
-    mPlane.setAttrFlags()
-    
-    
-    """mAimGroup = mPlane.doGroup(True,True,asMeta=True,typeModifier = 'aim')
-    mAimGroup.resetAttrs()
-    
-    mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
-                     aimVector = [0,0,1], upVector = [0,1,0], 
-                     worldUpObject = self.rootUpHelper.mNode,
-                     worldUpType = 'objectrotation', 
-                     worldUpVector = [0,1,0])    """
-
  
-    return    
-    
-    
     
 #=============================================================================================================
 #>> Template
-#=============================================================================================================    
-#def templateDelete(self):
-#    return BLOCKUTILS.templateDelete(self,['orientHelper'])
+#=============================================================================================================
 
-#is_template = BLOCKUTILS.is_template
-
-  
+@cgmGEN.Timer
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -262,77 +214,38 @@ def template(self):
     
     _short = self.p_nameShort
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-    _proxyType = self.proxyType
     
-    """
-    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
-    _headType = self.getEnumValueString('blockProfile')
-    _baseSize = self.baseSize
-    #_dimensions = __dimensions_by_type.get(_headType,'human')
-    
-    _side = 'center'
-    if self.getMayaAttr('side'):
-        _side = self.getEnumValueString('side')
-        
-    self.scale = 1,1,1
-    self.baseSize
-    _size = MATH.average(self.scale)
-    _size_width = (_baseSize[1]) * _baseSize[2]
-    _proxyType = self.proxyType
-    
-    _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])    
-    
-    log.info("|{0}| >> [{1}] | headType: {2} |baseSize: {3} | side: {4}".format(_str_func,
-                                                                                _short,
-                                                                                _headType,
-                                                                                _baseSize, _side))
-    """
     #Initial checks ===============================================================================
-    _short = self.p_nameShort
     _side = self.UTILS.get_side(self)
-        
-    _l_basePosRaw = self.datList_get('basePos') or [(0,0,0)]
-    _l_basePos = [self.p_position]
-    _baseUp = self.baseUp
-    _baseSize = self.baseSize
-    _baseAim = self.baseAim
-    
-    _ikSetup = self.getEnumValueString('ikSetup')
-    
-    if MATH.is_vector_equivalent(_baseAim,_baseUp):
-        raise ValueError,"baseAim and baseUp cannot be the same. baseAim: {0} | baseUp: {1}".format(self.baseAim,self.baseUp)
-    
-    _loftSetup = self.getEnumValueString('loftSetup')
+    _eyeType = self.getEnumValueString('eyeType')
             
-    if _loftSetup not in ['default']:
+    if _eyeType not in ['sphere']:
         return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
     
     #Get base dat =============================================================================    
-    _mVectorAim = MATH.get_obj_vector(self.aimHelper.mNode,asEuclid=True)
-    mNeckUpHelper = self.neckUpHelper
-    _mVectorUp = MATH.get_obj_vector(mNeckUpHelper.mNode,'y+',asEuclid=True)
-    
+    _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
     mBBHelper = self.bbHelper
     _v_range = max(TRANS.bbSize_get(self.mNode)) *2
     _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
     _size_width = _bb_axisBox[0]#...x width
-    log.debug("{0} >> axisBox size: {1}".format(_str_func,_bb_axisBox))
-    log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
-                                                                                     mBBHelper.p_nameShort,
-                                                                                     _v_range))
-    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _bb_axisBox[2] * .75)
-    _l_basePos.append(_end)
+    _pos_bbCenter = POS.get_bb_center(mBBHelper.mNode)
     
+    log.debug("{0} >> axisBox size: {1}".format(_str_func,_bb_axisBox))
+    log.debug("{0} >> Center: {1}".format(_str_func,_pos_bbCenter))
+
     #for i,p in enumerate(_l_basePos):
         #LOC.create(position=p,name="{0}_loc".format(i))
     
-    
-    
     #Create temple Null  ==================================================================================
     mTemplateNull = BLOCKUTILS.templateNull_verify(self)
-    mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template')
+    mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
+    
+    loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
+    TRANS.parent_set(loc,mTemplateNull)
     
     
+    return
+
     #Our main head handle =================================================================================
     mHeadHandle = self.doCreateAt(setClass=True)
     self.copyAttrTo(_baseNameAttrs[-1],mHeadHandle.mNode,'cgmName',driven='target')    

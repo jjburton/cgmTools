@@ -156,7 +156,7 @@ def module_connect(self,mModule,**kws):
     
         if mModule.getMessage('moduleMirror'):
             log.debug("|{0}| >> moduleMirror found. connecting...".format(_str_func))
-            module_connect(self,mi_module.moduleMirror)        
+            #module_connect(self,mModule.moduleMirror)        
     
         return True        
        
