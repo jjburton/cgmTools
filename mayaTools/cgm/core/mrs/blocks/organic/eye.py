@@ -61,6 +61,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
+import cgm.core.lib.nameTools as NAMETOOLS
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
     reload(m)
@@ -89,10 +90,9 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
-                   'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull'],
-                     'msgLists':['templateHandles']}
+d_wiring_prerig = {'msgLinks':['moduleTarget']}
+d_wiring_template = {'msgLinks':['templateNull','eyeOrientHelper','rootHelper'],
+                     }
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {}
@@ -134,6 +134,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
 }
 
 d_defaultSettings = {'version':__version__,
+                     'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -236,700 +237,96 @@ def template(self):
     #for i,p in enumerate(_l_basePos):
         #LOC.create(position=p,name="{0}_loc".format(i))
     
+    mHandleFactory = self.asHandleFactory()
+    
     #Create temple Null  ==================================================================================
     mTemplateNull = BLOCKUTILS.templateNull_verify(self)
-    mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
-    
-    loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
-    TRANS.parent_set(loc,mTemplateNull)
+    #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
     
     
+    #Create Pivot =====================================================================================
+    #loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
+    #TRANS.parent_set(loc,mTemplateNull)
+    
+    crv = CURVES.create_fromName('jack', size = _size_width * .25)
+    mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+    mHandleFactory.color(mHandleRoot.mNode)
+    
+    #_shortHandle = mHandleRoot.mNode
+
+    #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+    mHandleRoot.doStore('cgmName','eyeRoot')    
+    mHandleRoot.doStore('cgmType','templateHandle')
+    mHandleRoot.doName()
+    
+    mHandleRoot.p_position = _pos_bbCenter
+    mHandleRoot.p_parent = mTemplateNull
+    mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
+    
+    self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
+    
+    #Orient helper =====================================================================================
+    _orientHelper = CURVES.create_fromName('arrowSingle', size = _size_width * .25)
+    mShape = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
+    
+
+    mShape.doSnapTo(self.mNode)
+    mShape.p_parent = mHandleRoot
+    
+    mShape.tz = self.baseSizeZ / 2
+    mShape.rz = 90
+    
+    mOrientHelper = mHandleRoot.doCreateAt()
+    
+    CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
+    mOrientHelper.p_parent = mHandleRoot
+    
+    mOrientHelper.doStore('cgmName','eyeOrient')
+    mOrientHelper.doStore('cgmType','templateHandle')
+    mOrientHelper.doName()    
+    
+    self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
+    mHandleFactory.color(mOrientHelper.mNode)
+    
+    
+    if self.eyeOrb:
+        pass
+        """
+        log.debug("|{0}| >> Eye orb setup...".format(_str_func))
+        
+        crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
+        mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        mHandleFactory.color(mHandleOrb.mNode)
+        
+        #_shortHandle = mHandleRoot.mNode
+        mHandleOrb.doSnapTo(self.mNode)
+        mHandleOrb.p_parent = mTemplateNull
+    
+        #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+        mHandleOrb.doStore('cgmName','eyeOrb')    
+        mHandleOrb.doStore('cgmType','templateHandle')
+        mHandleOrb.doName()
+        
+        self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
+    
+    self.blockState = 'template'
     return
-
-    #Our main head handle =================================================================================
-    mHeadHandle = self.doCreateAt(setClass=True)
-    self.copyAttrTo(_baseNameAttrs[-1],mHeadHandle.mNode,'cgmName',driven='target')    
-    mHeadHandle.doStore('cgmType','blockHelper')
-    mHeadHandle.doName()
-    
-    mHeadHandle.p_parent = mTemplateNull
-    mHandleFactory = self.asHandleFactory(mHeadHandle.mNode, rigBlock = self.mNode)
-    
-    
-    CORERIG.shapeParent_in_place(mHeadHandle.mNode, mBBHelper.mNode, True, True)
-    
-    CORERIG.colorControl(mHeadHandle.mNode,_side,'main',transparent = True) 
-    mBBHelper.v = False
-    self.defineNull.template=True
-    
-    #Orient Helper ==============================================================================
-    mOrientCurve = mHandleFactory.addOrientHelper(baseSize = _bb_axisBox[0] * .7,
-                                                  shapeDirection = 'z+',
-                                                  setAttrs = {'rz':90,
-                                                              'tz': _bb_axisBox[2] * .8})
-    self.copyAttrTo(_baseNameAttrs[-1],mOrientCurve.mNode,'cgmName',driven='target')
-    mOrientCurve.doName()    
-    mOrientCurve.setAttrFlags(['rz','translate','scale','v'])
-    #mOrientCurve.p_parent = mHeadHandle
-    CORERIG.colorControl(mOrientCurve.mNode,_side,'sub')    
-    
-    
-    
-    #Proxies ==============================================================================
-    ml_proxies = []        
-    log.info("|{0}| >> Geo proxyType...".format(_str_func,))     
-    
-    if _proxyType == 0:
-        _res = build_prerigMesh(self)
-        mProxy = cgmMeta.validateObjArg(_res[0],'cgmObject',setClass=True)
-        mProxy.doSnapTo(self.mNode)       
-        TRANS.scale_to_boundingBox(mProxy.mNode, _bb_axisBox)
-        
-        ml_proxies.append(mProxy)
-        
-        #mProxy.scale = self.getScaleLossy() 
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)  
-        
-        for mShape in mProxy.getShapes(asMeta=1):
-            mShape.overrideEnabled = 1
-            mShape.overrideDisplayType = 2  
-            
-        mProxy.parent = mHeadHandle
-        mGroup = mProxy.doGroup(True, asMeta = True, typeModifier = 'rotateGroup')
-        ATTR.connect(self.mNode + '.headRotate', mGroup.mNode + '.rotate')
-        
-    elif _proxyType == 1:
-        log.info("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func))     
-        #self.scaleX = __dimensions[0] / __dimensions[1]
-        #self.scaleZ = __dimensions[2] / __dimensions[1]        
-        
-        mFile = os.path.join(path_assets, 'headSimple_01.obj')
-        _res = cgmOS.import_file(mFile,'HEADIMPORT')
-        
-        mGeoProxies = self.doCreateAt()
-        mGeoProxies.rename("proxyGeo")
-        mGeoProxies.parent = mHeadHandle
-        #mGeoProxies.parent = mTemplateNull
-        
-        #_bb = DIST.get_bb_size(self.mNode,True)
-        
-        ATTR.connect(self.mNode + '.headRotate', mGeoProxies.mNode + '.rotate')
-        
-        for i,o in enumerate(_res):
-            mProxy = cgmMeta.validateObjArg(o,'cgmObject',setClass=True)
-            ml_proxies.append(mProxy)
-            mProxy.doSnapTo(self.mNode)                
-            #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
-            TRANS.scale_to_boundingBox(mProxy.mNode,[1,1,1])            
-            CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)                
-            mProxy.parent = mGeoProxies
-            mProxy.rename('head_{0}'.format(i))
-            
-            for mShape in mProxy.getShapes(asMeta=1):
-                mShape.overrideEnabled = 1
-                mShape.overrideDisplayType = 2                  
-            
-        NODEFACTORY.build_conditionNetworkFromGroup(mGeoProxies.mNode,'headGeo',self.mNode)
-        ATTR.set_keyable(self.mNode,'headGeo',False)
-        self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
-        #mc.parentConstraint([mHeadHandle.mNode],mGeoProxies.mNode,maintainOffset = True)
-        
-    else:
-        raise NotImplementedError,"|{0}| >> Unknown proxyType: [{1}:{2}]".format(_str_func,
-                                                                                 _proxyType,
-                                                                                 ATTR.get_enumValueString(self.mNode,'proxyType'))
-    
-    self.msgList_connect('headMeshProxy',ml_proxies,'block')#Connect
-    
-    
-    #Neck ==================================================================================================
-    if not self.neckBuild:
-        self.msgList_connect('templateHandles',[mHeadHandle.mNode])
-        #...just so we have something here. Replaced if we have a neck        
-    else:
-        log.debug("|{0}| >> Building neck...".format(_str_func,_short,_size_width, _side)) 
-        #_size_width = _size_width * .5
-        _size_width = _bb_axisBox[0] * .5
-        
-        md_handles = {}
-        ml_handles = []
-        md_loftHandles = {}
-        ml_loftHandles = []
-        
-        _loftShapeBase = self.getEnumValueString('loftShape')
-        _loftShape = 'loft' + _loftShapeBase[0].capitalize() + ''.join(_loftShapeBase[1:])
-        _loftSetup = self.getEnumValueString('loftSetup')
-        
-        cgmGEN.func_snapShot(vars())
-        
-        #_l_basePos = [DIST.get_pos_by_vec_dist(self.p_position, self.baseAim, MATH.average(_bb_axisBox)),
-        #              self.p_position,
-        #              ]
-        _l_basePos.reverse()
-        _l_mainParents = [mTemplateNull, mHeadHandle]
-        
-        if _loftSetup not in ['default']:
-            return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
-        
-        else:
-            log.debug("|{0}| >> Default loft setup...".format(_str_func))         
-            for i,n in enumerate(['start','end']):
-                log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-                mHandle = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
-                
-                mHandle.p_parent = mTemplateNull
-                
-                self.copyAttrTo(_baseNameAttrs[0],mHandle.mNode,'cgmName',driven='target')                
-                mHandle.doStore('cgmType','blockHandle')
-                mHandle.doStore('cgmNameModifier',n)
-                mHandle.doName()
-                
-                #Convert to loft curve setup ----------------------------------------------------
-                mHandleFactory.setHandle(mHandle.mNode)
-                mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_loftShape, _size_width, shapeDirection = 'z+',rebuildHandle = False)
-                
-                mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
-                
-                mHandleFactory.color(mHandle.mNode)
-                
-                mHandle.p_position = _l_basePos[i]
-                
-                if _l_mainParents:
-                    mHandle.p_parent = _l_mainParents[i]
-                    
-                md_handles[n] = mHandle
-                ml_handles.append(mHandle)
-                
-                md_loftHandles[n] = mLoftCurve                
-                ml_loftHandles.append(mLoftCurve)
-                
-                mBaseAttachGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'attach')
-                
-            
-            #>> Base Orient Helper ===========================================================================
-            mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
-        
-            mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
-                                                              shapeDirection = 'y+',
-                                                              setAttrs = {'ty':_size_width})
-            #'tz':- _size_width})
-        
-            self.copyAttrTo('cgmName',mBaseOrientCurve.mNode,'cgmName',driven='target')
-            mBaseOrientCurve.doName()
-            
-            mBaseOrientCurve.p_parent =  ml_handles[0]
-            mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')        
-        
-            _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
-                                      aimVector = [0,0,1], upVector = [0,1,0],
-                                      worldUpObject = mNeckUpHelper.mNode, #skip = 'z',
-                                      worldUpType = 'objectrotation', worldUpVector = [0,1,0])    
-            
-            self.connectChildNode(mHandle.mNode,'orientHelper')
-            #cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
-            #mBaseOrientCurve.p_parent = mStartAimGroup
-            
-            mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])
-            mHandleFactory.color(mBaseOrientCurve.mNode,controlType='sub')
-            #CORERIG.colorControl(mBaseOrientCurve.mNode,_side,'sub')          
-            mc.select(cl=True)    
-            
-            
-            #>>> Aim loft curves =====================================================================
-            mStartLoft = md_loftHandles['start']
-            mEndLoft = md_loftHandles['end']
-            
-            mStartAimGroup = mStartLoft.doGroup(True,asMeta=True,typeModifier = 'aim')
-            mEndAimGroup = mEndLoft.doGroup(True,asMeta=True,typeModifier = 'aim')        
-            
-            mc.aimConstraint(md_handles['end'].mNode, mStartAimGroup.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mBaseOrientCurve.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
-            mc.aimConstraint(md_handles['start'].mNode, mEndAimGroup.mNode, maintainOffset = False,
-                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mBaseOrientCurve.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
-            
-            
-            #Sub handles=============================================================================
-            if self.neckShapers > 2:
-                log.debug("|{0}| >> Sub handles..".format(_str_func))
-                
-                mNoTransformNull = self.atUtils('noTransformNull_verify')
-                
-                mStartHandle = md_handles['start']    
-                mEndHandle = md_handles['end']    
-                mOrientHelper = mStartHandle.orientHelper
-            
-                ml_handles = [mStartHandle]
-                #ml_jointHandles = []        
-            
-                _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
-                #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]
-                _sizeSub = _size * .5    
-                _vec_root_up = ml_handles[0].orientHelper.getAxisVector('y+')        
-        
-    
-                _pos_start = mStartHandle.p_position
-                _pos_end = mEndHandle.p_position 
-                _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
-                _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (self.neckShapers - 1)
-                _l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.neckShapers-1)] + [_pos_end]
-            
-                _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-                _mVectorUp = _mVectorAim.up()
-                #_worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
-            
-            
-                #Linear track curve ----------------------------------------------------------------------
-                _linearCurve = mc.curve(d=1,p=[_pos_start,_pos_end])
-                mLinearCurve = cgmMeta.validateObjArg(_linearCurve,'cgmObject')
-            
-                l_clusters = []
-                _l_clusterParents = [mStartHandle,mEndHandle]
-                for i,cv in enumerate(mLinearCurve.getComponents('cv')):
-                    _res = mc.cluster(cv, n = 'test_{0}_{1}_cluster'.format(_l_clusterParents[i].p_nameBase,i))
-                    #_res = mc.cluster(cv)            
-                    #TRANS.parent_set( _res[1], _l_clusterParents[i].getMessage('loftCurve')[0])
-                    TRANS.parent_set(_res[1], mTemplateNull)
-                    mc.pointConstraint(_l_clusterParents[i].getMessage('loftCurve')[0],
-                                       _res[1],maintainOffset=True)
-                    ATTR.set(_res[1],'v',False)
-                    l_clusters.append(_res)
-            
-                pprint.pprint(l_clusters)
-                
-                mLinearCurve.parent = mNoTransformNull
-                mLinearCurve.rename('template_trackCrv')
-                
-                #mLinearCurve.inheritsTransform = False      
-            
-            
-                #Tmp loft mesh -------------------------------------------------------------------
-                _l_targets = [mObj.loftCurve.mNode for mObj in [mStartHandle,mEndHandle]]
-            
-                _res_body = mc.loft(_l_targets, o = True, d = 3, po = 0 )
-                _str_tmpMesh =_res_body[0]
-            
-                l_scales = []
-            
-                for mHandle in mStartHandle, mEndHandle:
-                    #ml_jointHandles.append(self.asHandleFactory(mHandle.mNode).addJointHelper(baseSize = _sizeSub,shapeDirection='z+'))
-                    l_scales.append(mHandle.scale)
-                    mHandle.scale = 1,1,1
-
-                #Sub handles... -------------------------------------------------------------------------------
-                for i,p in enumerate(_l_pos[1:-1]):
-                    #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
-                    mHandle = cgmMeta.cgmObject(name = 'handle_{0}'.format(i))
-                    _short = mHandle.mNode
-                    ml_handles.append(mHandle)
-                    mHandle.p_position = p
-                    SNAP.aim_atPoint(_short,_l_pos[i+2],'z+', 'y+', mode='vector', vectorUp = _vec_root_up)
-            
-                    #...Make our curve
-                    _d = RAYS.cast(_str_tmpMesh, _short, 'y+')
-                    pprint.pprint(_d)
-                    log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
-                    #cgmGEN.log_info_dict(_d,j)
-                    _v = _d['uvs'][_str_tmpMesh][0][0]
-                    log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
-            
-                    #>>For each v value, make a new curve --------------------------------------------
-                    #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
-                    _crv = mc.duplicateCurve("{0}.u[{1}]".format(_str_tmpMesh,_v), ch = 0, rn = 0, local = 0)
-                    log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))  
-            
-                    CORERIG.shapeParent_in_place(_short, _crv, False)
-            
-                    #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
-                    #self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                    self.copyAttrTo(_baseNameAttrs[0],mHandle.mNode,'cgmName',driven='target')                
-            
-                    mHandle.doStore('cgmType','blockHandle')
-                    mHandle.doStore('cgmIterator',i+1)
-                    mHandle.doName()
-            
-                    mHandle.p_parent = mTemplateNull
-            
-                    mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
-                    _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mStartHandle.mNode,mEndHandle.mNode])
-                    #_point = mc.pointConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-                    _scale = mc.scaleConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
-                    reload(CURVES)
-                    
-                    #mLoc = mGroup.doLoc()
-                    #mLoc.parent = mNoTransformNull
-                    #mLoc.inheritsTransform = False
-                    
-                    _res = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mLinearCurve.mNode,'conPoint')
-                    _res = TRANS.parent_set(_res[0], mNoTransformNull.mNode)
-                    #CURVES.attachObjToCurve(mLoc.mNode, mLinearCurve.mNode)
-                    _point = mc.pointConstraint([_res],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-            
-                    for c in [_scale]:
-                        CONSTRAINT.set_weightsByDistance(c[0],_vList)
-            
-                    #Convert to loft curve setup ----------------------------------------------------
-                    mHandleFactory = self.asHandleFactory(mHandle.mNode)
-            
-                    #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
-            
-                    mHandleFactory.rebuildAsLoftTarget('self', _size, shapeDirection = 'z+')
-                    #ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
-                    #mRootCurve.setAttrFlags(['rotate','tx','tz'])
-                    #mc.transformLimits(mRootCurve.mNode,  tz = [-.25,.25], etz = [1,1], ty = [.1,1], ety = [1,0])
-                    #mTopLoftCurve = mRootCurve.loftCurve
-            
-                    CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
-                    #LOC.create(position = p)
-            
-                ml_handles.append(mEndHandle)
-                mc.delete(_res_body)
-            
-                #Push scale back...
-                for i,mHandle in enumerate([mStartHandle, mEndHandle]):
-                    mHandle.scale = l_scales[i]
-            
-                #Template Loft Mesh -------------------------------------
-                #mTemplateLoft = self.getMessage('templateLoftMesh',asMeta=True)[0]        
-                #for s in mTemplateLoft.getShapes(asMeta=True):
-                    #s.overrideDisplayType = 1       
-                
-                
-                #Aim the segment
-                for i,mHandle in enumerate(ml_handles):
-                    if mHandle != ml_handles[0] and mHandle != ml_handles[-1]:
-                    #if i > 0 and i < len(ml_handles) - 1:
-                        mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
-    
-                        mc.aimConstraint(ml_handles[-1].mNode, mAimGroup.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mBaseOrientCurve.mNode,
-                                         worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
-            
-                                         
-                mLoftCurve = mHandle.loftCurve
-        
-        
-            #>>Loft Mesh =================================================================================
-            targets = [mObj.loftCurve.mNode for mObj in ml_handles]        
-            
-            self.atUtils('create_prerigLoftMesh',
-                         targets,
-                         mTemplateNull,
-                         'neckControls',
-                         'loftSplit',
-                         polyType='bezier',
-                         baseName = self.cgmName )
-            
-            
-            mNoTransformNull.v = False
-            
-            self.msgList_connect('templateHandles',[mHeadHandle.mNode] + ml_handles)#...just so we have something here. Replaced if we have a neck        
-            
-        """
-        BLOCKUTILS.create_templateLoftMesh(self,targets,mBaseLoftCurve,
-                                           mTemplateNull,'neckControls',
-                                           baseName = _l_baseNames[1])"""
-        
-        """
-        #Base Orient Helper ----------------------------------------------------------------------------------
-        mHandleFactory = self.asHandleFactory(mBaseCurve.mNode)
-    
-        mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
-                                                          shapeDirection = 'z-',
-                                                          setAttrs = {#'rz':90,
-                                                                      'ty':_size_width * .25,
-                                                                      'tz':- _size_width})
-    
-        self.copyAttrTo(_baseNameAttrs[1],mOrientCurve.mNode,'cgmName',driven='target')
-        mBaseOrientCurve.doName()    
-        mBaseOrientCurve.p_parent = mBaseLoftCurve.parent
-        #mBaseOrientCurve.resetAttrs()
-        mBaseOrientCurve.setAttrFlags(['rz','rx','translate','scale','v'])
-    
-        CORERIG.colorControl(mBaseOrientCurve.mNode,_side,'sub')          
-        mc.select(cl=True)    """
-    self.blockState = 'template'#...buffer
-    
-    return True
-
 
 
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
-def build_prerigMesh(self):
-    _str_func = 'build_prerigMesh'    
-    _shape = self.getEnumValueString('proxyShape')
-    _size = self.baseSize
-    
-    if _shape == 'cube':
-        _res = mc.polyCube(width=_size[0], height = _size[1], depth = _size[2])
-    elif _shape == 'sphere':
-        _res = mc.polySphere(radius = MATH.average(_size) * .5)
-    elif _shape == 'cylinder':
-        _res = mc.polyCylinder(height = MATH.average(_size), radius = MATH.average(_size) * .5)
-    else:
-        raise ValueError,"|{0}| >> Unknown shape: [{1}]".format(_str_func,_shape)
-    return _res
-
 def prerig(self):
-    #Buffer some data
     _str_func = 'prerig'
-    _short = self.p_nameShort
-    _side = self.atUtils('get_side')
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    self.blockState = 'prerig'
     
-    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
-    
-    #Initial validation ================================================================================
     self.atUtils('module_verify')
-    mPrerigNull = BLOCKUTILS.prerigNull_verify(self)   
-    #mNoTransformNull = self.atUtils('noTransformNull_verify')
-    mNoTransformNull = self.UTILS.noTransformNull_verify(self,'prerig')
-    ml_templateHandles = self.msgList_get('templateHandles')
-    
-    
-    #>>New handles ==================================================================================================
-    mHandleFactory = self.asHandleFactory(self.mNode)   
-    
-    if not self.neckBuild:
-        _size = DIST.get_bb_size(self.mNode,True,True)
-        _sizeSub = _size * .2   
-        
-        log.info("|{0}| >> [{1}]  NO NECK | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+    return
 
-        #Joint Helper ==========================================================================================
-        mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub)
-        ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
-                              lock=False, visible=True,keyable=False)
-        
-        self.msgList_connect('jointHelpers',[mJointHelper.mNode])
-        self.msgList_connect('prerigHandles',[self.mNode])
-
-    else:#NECK build ==========================================================================================
-        #..marking stuff with changed for refactor purposes
-        int_numControls = self.neckControls + 1
-        ml_templateHandles_neck = ml_templateHandles[1:]
-        
-        mStartHandle = ml_templateHandles_neck[0]#...changed
-        mEndHandle = ml_templateHandles_neck[-1]    
-        mOrientHelper = mStartHandle.orientHelper
-    
-        ml_handles = []
-        # ml_handles = [mStartHandle]        
-        ml_jointHandles = []        
-    
-        _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
-        _sizeSub = _size * .33    
-        _vec_root_up = ml_templateHandles_neck[0].orientHelper.getAxisVector('y+')
-    
-
-    
-        #Initial logic=========================================================================================
-        log.debug("|{0}| >> Initial Logic...".format(_str_func)) 
-    
-        _pos_start = mStartHandle.p_position
-        pprint.pprint(vars())
-
-        _pos_end = mEndHandle.p_position 
-        pprint.pprint(vars())
-
-        _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
-
-        _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / int_numControls#(int_numControls - 1.0)
-    
-        _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-        _mVectorUp = _mVectorAim.up()
-        _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
-    
-    
-        #Track curve ============================================================================
-        log.debug("|{0}| >> TrackCrv...".format(_str_func)) 
-    
-        _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_templateHandles_neck])
-        mTrackCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
-        mTrackCurve.rename(self.cgmName + 'prerigTrack_crv')
-        mTrackCurve.parent = mNoTransformNull
-    
-        #mPrerigNull.connectChildNode('prerigTrackCurve',mTrackCurve.mNode,)
-    
-        l_clusters = []
-        #_l_clusterParents = [mStartHandle,mEndHandle]
-        for i,cv in enumerate(mTrackCurve.getComponents('cv')):
-            _res = mc.cluster(cv, n = 'test_{0}_{1}_cluster'.format(ml_templateHandles_neck[i].p_nameBase,i))
-            #_res = mc.cluster(cv)            
-            #TRANS.parent_set( _res[1], ml_templateHandles_neck[i].getMessage('loftCurve')[0])
-            TRANS.parent_set(_res[1], mPrerigNull)
-            mc.pointConstraint(ml_templateHandles_neck[i].getMessage('loftCurve')[0],
-                               _res[1],maintainOffset=True)            
-            ATTR.set(_res[1],'v',False)                            
-            l_clusters.append(_res)
-    
-    
-    
-        """
-            mTrackCurve.parent = mNoTransformNull
-            #mLinearCurve.inheritsTransform = False
-            ml_trackSkinJoints = []
-            for mObj in ml_templateHandles:
-                mJnt = mObj.loftCurve.doCreateAt('joint')
-                mJnt.parent = mObj.loftCurve
-                ml_trackSkinJoints.append(mJnt)
-    
-            mTrackCluster = cgmMeta.validateObjArg(mc.skinCluster ([mJnt.mNode for mJnt in ml_trackSkinJoints],
-                                                                   mTrackCurve.mNode,
-                                                                   tsb=True,
-                                                                   maximumInfluences = 1,
-                                                                   normalizeWeights = 1,dropoffRate=2.5),
-                                                  'cgmNode',
-                                                  setClass=True)
-    
-            mTrackCluster.doStore('cgmName', mTrackCurve.mNode)
-            mTrackCluster.doName()    
-    
-                """
-        l_scales = []
-        for mHandle in ml_templateHandles_neck:
-            l_scales.append(mHandle.scale)
-            mHandle.scale = 1,1,1
-    
-        _l_pos = CURVES.returnSplitCurveList(mTrackCurve.mNode,int_numControls,markPoints = False)
-        #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(int_numControls-1)] + [_pos_end]
-    
-    
-        #Sub handles... ------------------------------------------------------------------------------------
-        log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
-    
-        for i,p in enumerate(_l_pos):
-            log.debug("|{0}| >> handle cnt: {1} | p: {2}".format(_str_func,i,p))
-            crv = CURVES.create_fromName('cubeOpen', size = _sizeSub)
-            mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-            #mHandle = cgmMeta.cgmObject(crv, name = 'handle_{0}'.format(i))
-            _short = mHandle.mNode
-            ml_handles.append(mHandle)
-            mHandle.p_position = p
-            
-            if len(_l_pos) == 1:
-                SNAP.aim_atPoint(_short,_pos_end,'z+', 'y+', mode='vector', vectorUp = _vec_root_up)
-                
-            elif p == _l_pos[-1]:
-                SNAP.aim_atPoint(_short,_l_pos[-2],'z-', 'y+', mode='vector', vectorUp = _vec_root_up)                
-            else:
-                SNAP.aim_atPoint(_short,_l_pos[i+1],'z+', 'y+', mode='vector', vectorUp = _vec_root_up)
-    
-            mHandle.p_parent = mPrerigNull
-    
-            mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
-            _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mStartHandle.mNode,mEndHandle.mNode])
-            #_point = mc.pointConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-            #_scale = mc.scaleConstraint([mStartHandle.mNode,mEndHandle.mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
-            mLoc = mGroup.doLoc()
-            mLoc.parent = mNoTransformNull
-            #mLoc.inheritsTransform = False
-    
-            CURVES.attachObjToCurve(mLoc.mNode, mTrackCurve.mNode)
-            _point = mc.pointConstraint([mLoc.mNode],mGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-    
-            #for c in [_scale]:
-                #CONSTRAINT.set_weightsByDistance(c[0],_vList)
-    
-            mHandleFactory = self.asHandleFactory(mHandle.mNode)
-    
-            #Convert to loft curve setup ----------------------------------------------------
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
-            #mRootCurve.setAttrFlags(['rotate','tx','tz'])
-            #mc.transformLimits(mRootCurve.mNode,  tz = [-.25,.25], etz = [1,1], ty = [.1,1], ety = [1,0])
-            #mTopLoftCurve = mRootCurve.loftCurve
-    
-            CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
-            #LOC.create(position = p)
-    
-        #ml_handles.append(mEndHandle)
-        self.msgList_connect('prerigHandles', ml_handles)
-    
-        ml_handles[0].connectChildNode(mOrientHelper.mNode,'orientHelper')      
-    
-        #mc.delete(_res_body)
-        self.atUtils('prerigHandles_getNameDat',True, int_numControls)
-    
-        #Push scale back...
-        for i,mHandle in enumerate(ml_templateHandles_neck):
-            mHandle.scale = l_scales[i]
-    
-
-    
-    
-        #>>Joint placers ==================================================================================================    
-        #Joint placer aim....
-    
-        for i,mHandle in enumerate(ml_handles):
-            mJointHelper = mHandle.jointHelper
-            mLoftCurve = mJointHelper.loftCurve
-    
-            if not mLoftCurve.getMessage('aimGroup'):
-                mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
-    
-    
-            mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
-            
-            if len(ml_handles) == 1:
-                mc.aimConstraint(mEndHandle.mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
-                                 aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
-                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])
-            elif mHandle == ml_handles[-1]:
-                mc.aimConstraint(ml_handles[-2].mNode, mAimGroup.mNode, maintainOffset = False,
-                                 aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
-                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
-            else:
-                mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
-                                 aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
-                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])
-    
-        
-        #Joint placer loft....
-        targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
-        pprint.pprint(targets)
-        self.msgList_connect('jointHelpers',targets)
-    
-        self.atUtils('create_jointLoft',
-                     targets,
-                     mPrerigNull,
-                     'neckJoints',
-                     baseCount = 2,
-                     baseName = self.cgmName )        
-    
-        """
-            BLOCKUTILS.create_jointLoft(self,targets,
-                                        mPrerigNull,'neckJoints',
-                                        baseName = _l_baseNames[1] )
-            """
-
-        
-        for t in targets:
-            ATTR.set(t,'v',0)
-        
-        cgmGEN.func_snapShot(vars())
-        #Neck ==================================================================================================
-        mNoTransformNull.v = False
-    
-    self.blockState = 'prerig'#...buffer
-    return True
-
-def prerigDelete(self):
-    if self.getMessage('templateLoftMesh'):
-        mTemplateLoft = self.getMessage('templateLoftMesh',asMeta=True)[0]
-        for s in mTemplateLoft.getShapes(asMeta=True):
-            s.overrideDisplayType = 2     
-    if self.getMessage('noTransformNull'):
-        mc.delete(self.getMessage('noTransformNull'))
-    return BLOCKUTILS.prerig_delete(self,templateHandles=True)
-
-#def is_prerig(self):
-#    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
-#def is_prerig(self):return True
-
+#=============================================================================================================
+#>> Skeleton
+#=============================================================================================================
 def skeleton_check(self):
     return True
 
@@ -941,19 +338,16 @@ def skeleton_build(self, forceNew = True):
     _radius = 1
     ml_joints = []
     mModule = self.moduleTarget
+    
     if not mModule:
         raise ValueError,"No moduleTarget connected"
     mRigNull = mModule.rigNull
     if not mRigNull:
         raise ValueError,"No rigNull connected"
     
-    ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-    if not ml_templateHandles:
-        raise ValueError,"No templateHandles connected"    
-    
-    ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
-    if not ml_prerigHandles:
-        raise ValueError,"No prerigHandles connected"
+    mPrerigNull = self.preRigNull
+    if not mPrerigNull:
+        raise ValueError,"No prerig null"
     
     #>> If skeletons there, delete -------------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -964,11 +358,65 @@ def skeleton_build(self, forceNew = True):
             mc.delete([mObj.mNode for mObj in _bfr])
         else:
             return _bfr
-
+        
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
-    _l_namesToUse = self.atUtils('skeleton_getNameDicts',False, self.neckJoints +1,
-                                 iterName = _l_baseNames[0])        
+    
+    mEyeOrb = False
+    
+    _d_base = self.atBlockUtils('skeleton_getNameDictBase')
+    _d_base['cgmType'] = 'skinJoint'    
+    pprint.pprint( _d_base )
+    
+    #..name --------------------------------------
+    def name(mJnt,d):
+        #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
+        for t,v in d.iteritems():
+            mJnt.doStore(t,v)
+        mJnt.doName()
+        
+    #>> Eye ===================================================================================
+    log.debug("|{0}| >> Eye...".format(_str_func))
+    mRootHelper = self.getMessageAsMeta('rootHelper')
+    mOrientHelper = self.getMessageAsMeta('eyeOrientHelper')
+    
+    p = mRootHelper.p_position
+    
+    #...create ---------------------------------------------------------------------------
+    mEyeJoint = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
+    mEyeJoint.parent = False
+    self.copyAttrTo(_baseNameAttrs[0],mEyeJoint.mNode,'cgmName',driven='target')
+    
+    #...orient ----------------------------------------------------------------------------
+    #cgmMeta.cgmObject().getAxisVector
+    CORERIG.match_orientation(mEyeJoint.mNode, mOrientHelper.mNode)
+    JOINT.freezeOrientation(mEyeJoint.mNode)
+    
+    name(mEyeJoint,_d_base)
+    ml_joints.append(mEyeJoint)
+    
+    mPrerigNull.connectChildNode(mEyeJoint.mNode,'eyeJoint')
+    
+    
+    #>> Eye =================================================================================== 
+    if self.eyeOrb:
+        mEyeOrbJoint = mEyeJoint.doDuplicate()
+        self.copyAttrTo(_baseNameAttrs[1],mEyeOrbJoint.mNode,'cgmName',driven='target')
+        name(mEyeOrbJoint,_d_base)
+        
+        mEyeJoint.p_parent = mEyeOrbJoint
+        ml_joints.append(mEyeOrbJoint)
+        mPrerigNull.connectChildNode(mEyeOrbJoint.mNode,'eyeOrbJoint')
+        
+    mRigNull.msgList_connect('moduleJoints', ml_joints)
+    
+    
+    return
+    
+
+    
+    
+    
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
@@ -982,17 +430,6 @@ def skeleton_build(self, forceNew = True):
     #...orient ----------------------------------------------------------------------------
     #cgmMeta.cgmObject().getAxisVector
     CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
-    """
-    p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
-    TRANS.aim_atPoint(mHead_jnt.mNode,
-                      p_orientAxis,
-                      'z+', 'y+', 'vector',
-                      vectorUp=mHeadHelper.getAxisVector('y+'))
-    LOC.create(position=p_orientAxis)
-    """
-    #JOINT.orientChain(mHead_jnt, 'z+', 'y+', mHeadHelper.getAxisVector('z+'))
-    #mHead_jnt.rx = 0
-    #mHead_jnt.rz = 0
     JOINT.freezeOrientation(mHead_jnt.mNode)
     
     #...name ----------------------------------------------------------------------------

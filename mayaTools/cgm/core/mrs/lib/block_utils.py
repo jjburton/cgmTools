@@ -4388,7 +4388,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 if not d_upStateFunctions[doState](self,**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False
-                elif self.getState(True) != doState:
+                elif checkState(self,True) != doState:
                     log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
                     return False
                 #else:
@@ -4408,7 +4408,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 if not d_downStateFunctions[doState](self,**kws):
                     log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
                     return False 
-                elif self.getState(True)  != doState:
+                elif checkState(self,True)  != doState:
                     log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))
                     return False
                 
@@ -4519,20 +4519,31 @@ def is_rigged(self):
         return self.moduleTarget.atUtils('is_rigged')
 
     except Exception,err:cgmGEN.cgmException(Exception,err)
-    
-    
-def getState(self, asString = True):
+
+def checkState(self,asString=True):
+    return getState(self,asString,False)
+
+def getState(self, asString = True, fastCheck=True):
     d_stateChecks = {'template':is_template,
                      'prerig':is_prerig,
                      'skeleton':is_skeleton,
                      'rig':is_rigged}
     try:
+        _l_blockStates = BLOCKSHARE._l_blockStates
+        
+        def returnRes(arg):
+            if asString:
+                return arg
+            return _l_blockStates.index(arg)
+        
         _str_func = 'getState'
         log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
         
+        if fastCheck:
+            return returnRes(self.blockState)
+        
         _blockModule = self.p_blockModule
         _goodState = False
-        _l_blockStates = BLOCKSHARE._l_blockStates
     
         _state = self.blockState
         if _state not in BLOCKSHARE._l_blockStates:
@@ -4572,10 +4583,12 @@ def getState(self, asString = True):
         if _goodState != self.blockState:
             log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
             self.blockState = _goodState
-    
+            
+            
+        return returnRes(_goodState)
         if asString:
             return _goodState
-        return _l_blockStates.index(_goodState)        
+        return _l_blockStates.index(_goodState)
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
