@@ -33,6 +33,7 @@ import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
+import cgm.core.cgm_RigMeta as cgmRIGMETA
 
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -56,11 +57,158 @@ import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.classes.NodeFactory as NodeF
+import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 
 for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
     reload(m)
 
 from cgm.core.cgmPy import os_Utils as cgmOS
+
+
+def eyeLook_get(self,autoBuild=False):
+    _str_func = 'eyeLook_get'
+    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    mBlock = self.mBlock
+    
+    mModule = self.mModule
+    mRigNull = self.mRigNull
+    mPuppet = self.mPuppet
+
+    try:return mModule.eyeLook
+    except:pass
+    try:return mi_module.moduleParent.eyeLook
+    except:pass
+    
+    ml_puppetEyelooks = mPuppet.msgList_get('eyeLook')
+    if ml_puppetEyelooks:
+        if len(ml_puppetEyelooks) == 1 and ml_puppetEyelooks[0]:
+            return ml_puppetEyelooks[0]
+        else:
+            raise StandardError,"More than one puppet eye look"
+        
+    if autoBuild:
+        return eyeLook_verify(self)
+    return False
+
+@cgmGEN.Timer
+def eyeLook_verify(self):
+    _str_func = 'eyeLook_verify'
+    try:
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
+        mBlock = self.mBlock
+        
+        mModule = self.mModule
+        mRigNull = self.mRigNull
+        mPuppet = self.mPuppet
+        mHandleFactory = mBlock.asHandleFactory()
+        
+        _eyeLook = eyeLook_get(self)
+        if _eyeLook:
+            log.debug("|{0}| >> Found existing eyeLook...".format(_str_func))                      
+            return _eyeLook
+        
+        if mBlock.blockType not in ['eye']:
+            raise ValueError,"blocktype must be eye. Found {0} | {1}".format(mBlock.blockType,mBlock)
+        
+        #Data... -----------------------------------------------------------------------
+        log.debug("|{0}| >> Get data...".format(_str_func))
+        #_size = mHandleFactory.get_axisBox_size(mBlock.getMessage('bbHelper'))
+        
+        try:
+            _size = self.v_baseSize
+            _sizeAvg = self.f_sizeAvg             
+        except:
+            _size = [mBlock.blockScale * v for v in mBlock.baseSize]
+            _sizeAvg = MATH.average(_size)
+        
+        #Create shape... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Creating shape...".format(_str_func))
+        mCrv = cgmMeta.asMeta( CURVES.create_fromName('arrow4Fat',
+                                                      direction = 'z+',
+                                                      size = _sizeAvg ,
+                                                      absoluteSize=False),'cgmObject',setClass=True)
+        mCrv.doSnapTo(mBlock.mNode)
+        pos = mBlock.getPositionByAxisDistance('z+',
+                                               _sizeAvg * 4)
+        
+        mCrv.p_position = 0,pos[1],pos[2]
+        
+        
+        mBlockParent = mBlock.p_blockParent
+        if mBlockParent:
+            mCrv.doStore('cgmName',mBlockParent.cgmName + '_eyeLook')
+            mBlockParent.asHandleFactory().color(mCrv.mNode)
+        else:
+            mCrv.doStore('cgmName','eyeLook')
+            mHandleFactory.color(mCrv.mNode)
+        
+        mCrv.doName()
+        
+
+        #Register control... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Registering Control... ".format(_str_func))
+        d_buffer = MODULECONTROL.register(mCrv,
+                                          mirrorSide= 'center',
+                                          mirrorAxis="translateX,rotateY,rotateZ",
+                                          addSpacePivots = 2)
+        
+        mCrv = d_buffer['mObj']        
+        
+        
+        #Dynparent... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
+        ml_dynParents = copy.copy(self.ml_dynParentsAbove)
+        ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
+        ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
+        
+        mDynParent = cgmRIGMETA.cgmDynParentGroup(dynChild=mCrv,dynMode=0)
+        
+
+        for o in ml_dynParents:
+            mDynParent.addDynParent(o)
+        mDynParent.rebuild()
+        
+        #Connections... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Connections... ".format(_str_func))
+        mModule.connectChildNode(mCrv,'eyeLook')
+        mPuppet.msgList_append('eyeLook',mCrv,'puppet')
+        
+        if mBlockParent:
+            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))                    
+            mBlockParent.moduleTarget.connectChildNode(mCrv,'eyeLook')
+            mBlockParentRigNull = mBlockParent.moduleTarget.rigNull
+            mBlockParentRigNull.msgList_append('controlsAll',mCrv)
+            mBlockParentRigNull.moduleSet.append(mCrv)
+        
+        
+        #Connections... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Heirarchy... ".format(_str_func))        
+        mCrv.masterGroup.p_parent = self.mDeformNull
+        
+        for link in 'masterGroup','dynParentGroup':
+            if mCrv.getMessage(link):
+                mCrv.getMessageAsMeta(link).dagLock(True)        
+        
+        return mCrv
+    except Exception,error:
+        cgmGEN.cgmException(Exception,error,msg=vars())
+
+   
+
+
+    try:#moduleParent Stuff =======================================================
+        if mi_moduleParent:
+            try:
+                for mCtrl in self.ml_controlsAll:
+                    mi_parentRigNull.msgList_append('controlsAll',mCtrl)
+            except Exception,error: raise Exception,"!Controls all connect!| %s"%error	    
+            try:mi_parentRigNull.moduleSet.extend(self.ml_controlsAll)
+            except Exception,error: raise Exception,"!Failed to set module objectSet! | %s"%error
+    except Exception,error:raise Exception,"!Module Parent registration! | %s"%(error)	    
+
 
 
 def get_controlSpaceSetupDict(self):
