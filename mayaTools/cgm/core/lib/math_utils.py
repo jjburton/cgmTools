@@ -598,7 +598,11 @@ def normalizeListToSum(L, normalizeTo=1.0):
     Thanks to:
     http://stackoverflow.com/questions/26785354/normalizing-a-list-of-numbers-in-python
     """
-    return [float(i)/normalizeTo for i in [float(i)/sum(L) for i in L]]
+    
+    #return [float(i)/normalizeTo for i in [float(i)/sum(L) for i in L]]
+    norm = normalizeList(L)
+    normSum = [float(i)/sum(L) for i in L]
+    return [i * normalizeTo for i in normSum]
 
 def get_splitValueList(minU = 0,
                        maxU = 1,
