@@ -410,6 +410,16 @@ def ribbon_seal(driven1 = None,
                                              mPlug_FavorTwoThee.p_combinedName,
                                              mPlug_FavorTwoMe.p_combinedName)        
         
+        d_dat[1]['mPlug_sealOn'] = mPlug_sealOn
+        d_dat[1]['mPlug_sealOff'] = mPlug_sealOff
+        d_dat[2]['mPlug_sealOn'] = mPlug_sealOn
+        d_dat[2]['mPlug_sealOff'] = mPlug_sealOff
+        
+        d_dat[1]['mPlug_me'] = mPlug_FavorOneMe
+        d_dat[1]['mPlug_thee'] = mPlug_FavorOneThee
+        d_dat[2]['mPlug_me'] = mPlug_FavorTwoMe
+        d_dat[2]['mPlug_thee'] = mPlug_FavorTwoThee        
+        
             
         """
         b_attachToInfluences = False
@@ -420,10 +430,6 @@ def ribbon_seal(driven1 = None,
             log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
             """
         
-        
-        
-        pprint.pprint(d_dat)
-        return
         
         #>>> Skinning ============================================================================
         log.debug("|{0}| >> Skinning Ribbons...".format(_str_func))
@@ -531,12 +537,28 @@ def ribbon_seal(driven1 = None,
                         cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
                         cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))
                         
+                #Blend point --------------------------------------------------------------------
+                _const = mc.parentConstraint([mTrackBase.mNode,mTrackSeal.mNode],mTrackBlend.mNode)[0]
+                ATTR.set(_const,'interpType',2)
                 
-                _const = mc.parentConstraint([mTrackBase.mNode,mTrackSeal.mNode],mTrackBlend.mNode)
-                ATTR.set(_const[0],'interpType',2)
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                    
+                #Connect                                  
+                if idx==1:
+                    dat['mPlug_thee'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlug_me'].doConnectOut('%s.%s' % (_const,targetWeights[1]))
+                else:
+                    dat['mPlug_me'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlug_thee'].doConnectOut('%s.%s' % (_const,targetWeights[1]))                
                 
+                #seal --------------------------------------------------------------------
+                _const = mc.parentConstraint([mTrackBase.mNode,mTrackBlend.mNode],mDriven.mNode)[0]
+                ATTR.set(_const,'interpType',2)                
                 
-
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                dat['mPlug_sealOff'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                dat['mPlug_sealOn'].doConnectOut('%s.%s' % (_const,targetWeights[1]))
+                
             log.debug("|{0}| >> Blend drivers...".format(_str_func))
             
             
