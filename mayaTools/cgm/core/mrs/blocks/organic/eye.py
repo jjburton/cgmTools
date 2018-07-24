@@ -307,6 +307,13 @@ def template(self):
         mHandleOrb.doName()
         
         self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
+        
+    if self.setupLid:
+        log.debug("|{0}| >> EyeLid setup...".format(_str_func))
+        
+        
+        
+        
     
     self.blockState = 'template'
     return

@@ -1368,6 +1368,7 @@ class handleFactory(object):
             self.setHandle(node)
         if rigBlock is not None:
             self.setRigBlock(rigBlock)
+            self.setHandle(rigBlock)
             
     def __repr__(self):
         try:return "{0}(root: {1} | mBlock: {2})".format(self.__class__, self._mTransform, self.mBlock)
@@ -1918,6 +1919,163 @@ class handleFactory(object):
             except Exception,err:
                 cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
                 
+    def add_lidsHelper(self,upAxis = 'y+', setAttrs = {}):
+        try:
+            _str_func = 'add_lidsHelper'
+            mHandleMain = self._mTransform
+            mBlock = self.mBlock
+            _short = mHandleMain.mNode
+            _side = self.get_side()
+            
+            
+            _v_size = [mBlock.blockScale * v for v in mBlock.baseSize]
+            _bbsize = POS.get_axisBox_size(mBlock.mNode,False)
+            _size = MATH.average(_bbsize)
+            _sizeSub = _size * .2
+
+            _bfr = mBlock.getMessage('lidsHelper')
+            if _bfr:
+                mc.delete(_bfr)
+            
+            
+
+            ml_handles = []
+            md_handles = {}
+            mRootHandle = False
+            self_pos = mBlock.p_position
+            self_upVector = mBlock.getAxisVector(upAxis)
+
+            d_handleDirections = {'upr':'y+',
+                                 'lwr':'y-',
+                                 'left':'x+',
+                                 'right':'x-'}
+            
+            d_handleDirectionsDist = {'upr':_v_size[1],
+                                      'lwr':_v_size[1],
+                                      'left':_v_size[0],
+                                      'right':_v_size[0]}
+            _axisBox = False
+            
+            
+            #mAxis = VALID.simpleAxis(d_pivotDirections['front'])
+            #p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
+            
+            #Main Handle -----------------------------------------------------------------------------
+            lidHandle = CURVES.create_fromName('loftCircle',
+                                               direction = 'z+',
+                                               size = _size)
+           
+            mLidHandle = cgmMeta.validateObjArg(lidHandle,'cgmObject',setClass=True)
+            mLidHandle.addAttr('cgmName','base')
+            mLidHandle.addAttr('cgmType','lidsHelper')            
+            mLidHandle.doName()
+        
+            mLidHandle.doSnapTo(mBlock.mNode)
+            
+            #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
+            self.color(mLidHandle.mNode,_side,'main')
+        
+            #mPivotRootHandle.parent = mPrerigNull
+            mBlock.connectChildNode(mLidHandle,'lidsHelper','block')#Connect    
+        
+            if mBlock.hasAttr('setupLids'):
+                mBlock.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
+            
+            mLidHandle.p_parent = mBlock.templateNull
+            
+            mBlock.msgList_append('templateHandles',mLidHandle)
+            
+            
+            
+            #if not _axisBox:
+                #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+                
+            #main handles =============================================================================
+            for a in ['handleUpr','handleLwr','handleLeft','handleRight']:
+                _strHandle = a.split('handle')[-1]
+                _strHandle = _strHandle[0].lower() + _strHandle[1:]
+                _strName = _strHandle#d_altName.get(_strHandle,_strHandle)
+                
+                log.info("|{0}| >> Adding handle helper: {1}".format(_str_func,_strHandle))
+                
+                mAxis = VALID.simpleAxis(d_handleDirections[_strHandle])
+                _inverse = mAxis.inverse.p_string
+                
+                handle = CURVES.create_fromName('squareOpen',
+                                                direction = 'z+',
+                                                size = _sizeSub*3)
+                
+                mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
+                mHandle.doSnapTo(_short)                
+                mHandle.addAttr('cgmName',_strName)
+                mHandle.p_parent = mLidHandle
+                self.color(mHandle.mNode,_side,'main')
+                mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect    
+
+                mHandle.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string,
+                                                               d_handleDirectionsDist.get(_strName)/2)
+                #SNAPCALLS.snap(mHandle.mNode,_axisBox,rotation=False,targetHandle='castNear',targetMode=mAxis.p_string)
+                #SNAPCALLS.get_special_pos()
+                #SNAP.aim_atPoint(mHandle.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
+
+                ml_handles.append(mHandle)
+                md_handles[_strName] = mHandle
+                
+                    #if _strHandle in ['left','right']:
+                        #mHandle.p_position = p_ballPush
+                        #mHandle.tz = .75
+                        
+                        
+                        
+            #Sub handles ==============================================================================
+            d_handleDirections = {'uprLeft':['left','upr'],
+                                  'uprRight':['right','upr'],
+                                  'lwrLeft':['left','lwr'],
+                                  'lwrRight':['right','lwr'],
+                                  }
+            
+            for a,pair in d_handleDirections.iteritems():
+                log.info("|{0}| >> Adding sub handle helper: {1}".format(_str_func,a))
+                                
+                handle = CURVES.create_fromName('cube',
+                                                direction = 'z+',
+                                                size = _sizeSub * 2)
+                
+                mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
+                mHandle.doSnapTo(_short)                
+                mHandle.addAttr('cgmName',a)
+                mHandle.p_parent = mLidHandle
+                
+                self.color(mHandle.mNode,_side,'sub')
+                mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect
+                
+                mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
+                l_targets = []
+                for o in pair:
+                    l_targets.append(md_handles[o].mNode)
+                mc.pointConstraint(l_targets, mGroup.mNode, maintainOffset = False)
+                
+                ml_handles.append(mHandle)
+                md_handles[a] = mHandle
+
+            
+            for mHandle in ml_handles:
+                mHandle.addAttr('cgmType','handleHelper')            
+                mHandle.doName()
+
+                #CORERIG.colorControl(mHandle.mNode,_side,'sub') 
+                #self.color(mHandle.mNode,_side,'sub')
+                self.mBlock.msgList_append('templateHandles',mHandle)
+                
+                
+            #Curves ============================================================
+                
+                
+
+            return mLidHandle
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
     def addScalePivotHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
         _baseDat = self.get_baseDat(baseShape,baseSize)
         _baseShape = _baseDat[0]
