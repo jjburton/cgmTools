@@ -3421,11 +3421,13 @@ def rig_cleanUp(self):
             ml_handles = self.mRigNull.msgList_get('handleJoints')
             for mHandle in ml_handles:
                 ml_controlsToLock.remove(mHandle)
+                
+            """
             if self.md_roll:
                 for i in self.md_roll.keys():
                     mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
                     if mControlMid:
-                        ml_controlsToLock.remove(mControlMid)
+                        ml_controlsToLock.remove(mControlMid)"""
     
     
         for mCtrl in ml_controlsToLock:

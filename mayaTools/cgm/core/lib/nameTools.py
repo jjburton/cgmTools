@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -289,24 +289,6 @@ def get_objNameDict(obj,ignore=[False]):
                 childNamesDict['cgmName'] = TRANS.parent_get(obj,False)
                 childNamesDict['cgmType'] = namesDict.get('cgmType')
                 return childNamesDict
-            elif typeTag == 'infoNull':
-                log.debug("%s >>> special case..."%(_str_funcName))                                    
-                moduleObj = search.returnMatchedTagObjectUp(obj,'cgmType','module')
-                masterObj = search.returnMatchedTagObjectUp(obj,'cgmType','master')
-                if moduleObj != False:
-                    moduleName = returnUniqueGeneratedName(moduleObj,ignore='cgmType')
-                    childNamesDict = {}
-                    childNamesDict['cgmName'] = (moduleName+'_'+nameObj)
-                    childNamesDict['cgmType'] = namesDict.get('cgmType')
-                    return childNamesDict   
-                elif masterObj != False:
-                    masterName = returnUniqueGeneratedName(masterObj,ignore='cgmType')
-                    childNamesDict = {}
-                    childNamesDict['cgmName'] = (masterName+'_'+nameObj)
-                    childNamesDict['cgmType'] = namesDict.get('cgmType')
-                    return childNamesDict   
-                else:
-                    return namesDict
             else:
                 log.debug("%s >>> No special case found. %s"%(_str_funcName,namesDict))                                                
                 return namesDict
