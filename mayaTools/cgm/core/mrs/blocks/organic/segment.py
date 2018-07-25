@@ -107,7 +107,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_wiring_skeleton = {'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh','orientHelper'],
+d_wiring_template = {'msgLinks':['templateNull','prerigLoftMesh'],
                      'msgLists':['templateHandles']}
 
 #>>>Profiles =====================================================================================================

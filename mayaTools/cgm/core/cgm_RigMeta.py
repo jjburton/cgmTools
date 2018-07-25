@@ -1319,7 +1319,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 node = i_dynChild.doGroup(True)
                 __justMade__ = True
 
-        super(cgmMeta.cgmObject, self).__init__(node = node,name = name,nodeType = 'transform') 
+        super(cgmDynParentGroup, self).__init__(node = node,name = name,nodeType = 'transform') 
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
             log.debug('CACHE : Aborting __init__ on pre-cached %s Object' % self.mNode)
@@ -1385,6 +1385,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         #Unlock all transform attriutes
         for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
             cgmMeta.cgmAttr(self,attr,lock=False)
+        #print self.mNode
         self.doName()
         
         _bfr = self.msgList_get('dynParents',asMeta = False)
@@ -1398,6 +1399,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 self.msgList_clean('dynParents')
         
         return True
+
 
 
     def update_enums(self):

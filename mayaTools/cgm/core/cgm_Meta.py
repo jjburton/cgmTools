@@ -551,37 +551,37 @@ class cgmNode(r9Meta.MetaClass):
         :returns
             newName(str)
         """   
-        try:
-            if fastName:
-                d_updatedNamesDict = self.getNameDict()
-                ignore = kws.get('ignore') or []
-                if 'cgmName' not in d_updatedNamesDict.keys():
-                    test = {}
-                    if self.getMayaType() !='group' and 'cgmName' not in ignore:
-                        _short = self.getShortName()
-                        for k,v in d_updatedNamesDict.iteritems():
-                            if v and v in _short:
-                                _short = _short.replace(v,'')
-                        _short = NAMES.clean(_short)
-                        d_updatedNamesDict['cgmName'] = _short
-    
-                _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
-                mc.rename(self.mNode, _str_nameCandidate	)
-                if nameChildren:
-                    for mObj in validateObjListArg(TRANS.descendents_get(self.mNode)):
-                        mObj.doName()
-                        
-            else:
-                if sceneUnique:
-                    log.error("Remove this cgmNode.doName sceneUnique call")
-                if self.isReferenced():
-                    log.error("'%s' is referenced. Cannot change name"%self.mNode)
-                    return False	
-                #Name it
-                NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)	  
-            return self.mNode
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        #try:
+        if fastName:
+            d_updatedNamesDict = self.getNameDict()
+            ignore = kws.get('ignore') or []
+            if 'cgmName' not in d_updatedNamesDict.keys():
+                test = {}
+                if self.getMayaType() !='group' and 'cgmName' not in ignore:
+                    _short = self.getShortName()
+                    for k,v in d_updatedNamesDict.iteritems():
+                        if v and v in _short:
+                            _short = _short.replace(v,'')
+                    _short = NAMES.clean(_short)
+                    d_updatedNamesDict['cgmName'] = _short
+
+            _str_nameCandidate =  nameTools.returnCombinedNameFromDict(d_updatedNamesDict)
+            mc.rename(self.mNode, _str_nameCandidate	)
+            if nameChildren:
+                for mObj in validateObjListArg(TRANS.descendents_get(self.mNode)):
+                    mObj.doName()
+                    
+        else:
+            if sceneUnique:
+                log.error("Remove this cgmNode.doName sceneUnique call")
+            if self.isReferenced():
+                log.error("'%s' is referenced. Cannot change name"%self.mNode)
+                return False	
+            #Name it
+            NameFactory(self).doName(nameChildren = nameChildren,fastIterate=fastIterate,**kws)	  
+        return self.mNode
+        #except Exception,err:
+            #cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
             
     def getNameDict(self):
         reload(nameTools)

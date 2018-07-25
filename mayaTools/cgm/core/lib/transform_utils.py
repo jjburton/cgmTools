@@ -727,7 +727,6 @@ def children_get(node = None, fullPath = False):
     """   
     _str_func = 'children_get'
     _node =  VALID.mNodeString(node)
-
     return mc.listRelatives (_node, children = True,type='transform',fullPath=fullPath) or []
 
 def descendents_get(node = None, fullPath = False):

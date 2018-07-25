@@ -70,11 +70,10 @@ d_shortNames = {'module':'part',
 
 d_cgmTypes = {### Custom Types
               'null':'null',
-              'group':'grp',
               'object':'obj',
               'skinCluster':'skinNode',
               'blendShapeGeo':'bsGeo',
-              
+              'group':'grp',
               ### Controls
               'controlMaster':'placer',
               'controlAnim':'anim',
@@ -85,8 +84,7 @@ d_cgmTypes = {### Custom Types
               
               ### Maya Types
               'camera':'cam',
-              'transform':'grp',
-              'group':'grp',
+              'transform':'group',
               'locator':'loc',
               
               

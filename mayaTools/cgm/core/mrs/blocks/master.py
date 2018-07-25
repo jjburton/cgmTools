@@ -390,7 +390,7 @@ def rig_cleanUp(self):
     _spacePivots = mBlock.numSpacePivots
     
     ml_controlsAll = []
-    
+     
     #MasterControl =======================================================================
     log.debug("|{0}| >> MasterConrol | dynParent setup...".format(_str_func))
     reload(MODULECONTROL)
@@ -406,6 +406,7 @@ def rig_cleanUp(self):
                                mirrorSide= 'Centre',
                                mirrorAxis="translateX,rotateY,rotateZ",
                                noFreeze = True)
+        return
         mMasterControl.masterGroup.setAttrFlags()
         ml_dynParents = [mMasterNull]
         

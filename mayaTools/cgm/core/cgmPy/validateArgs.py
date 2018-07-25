@@ -581,11 +581,9 @@ def mNodeString(arg):
     """
     Simple check to see if an arg is has an mNode call rather than doing this try/except everywhere.
     """
-    try:arg = arg.mNode
-    except:pass
+    try:return arg.mNode
+    except:return arg
     
-    return arg
-
 def mNodeStringList(l):
     l = listArg(l)
     
