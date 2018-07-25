@@ -1368,7 +1368,7 @@ class handleFactory(object):
             self.setHandle(node)
         if rigBlock is not None:
             self.setRigBlock(rigBlock)
-            self.setHandle(rigBlock)
+            #self.setHandle(rigBlock)
             
     def __repr__(self):
         try:return "{0}(root: {1} | mBlock: {2})".format(self.__class__, self._mTransform, self.mBlock)

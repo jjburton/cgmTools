@@ -599,6 +599,8 @@ def template(self):
                                   worldUpVector = [0,1,0])
         
         self.connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
+        md_handles['start'].connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
+        
         #cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))
         #mBaseOrientCurve.p_parent = mStartAimGroup
         
