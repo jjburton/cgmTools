@@ -1927,6 +1927,13 @@ class handleFactory(object):
             _short = mHandleMain.mNode
             _side = self.get_side()
             
+            if not mBlock.setupLid:
+                raise ValueError,"No setupLid option detected"
+                return False
+            
+            _setup = mBlock.getEnumValueString('setupLid')
+            
+            log.info("|{0}| >> setupLid: {1}".format(_str_func,_setup))
             
             _v_size = [mBlock.blockScale * v for v in mBlock.baseSize]
             _bbsize = POS.get_axisBox_size(mBlock.mNode,False)
@@ -1944,6 +1951,7 @@ class handleFactory(object):
             mRootHandle = False
             self_pos = mBlock.p_position
             self_upVector = mBlock.getAxisVector(upAxis)
+            self_aimVector = mBlock.getAxisVector('z+')
 
             d_handleDirections = {'upr':'y+',
                                  'lwr':'y-',
@@ -1957,21 +1965,23 @@ class handleFactory(object):
             _axisBox = False
             
             
-            #mAxis = VALID.simpleAxis(d_pivotDirections['front'])
-            #p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
+            p_push = DIST.get_pos_by_vec_dist(self_pos, self_aimVector, _size * 3 )
             
             #Main Handle -----------------------------------------------------------------------------
-            lidHandle = CURVES.create_fromName('loftCircle',
-                                               direction = 'z+',
-                                               size = _size)
-           
-            mLidHandle = cgmMeta.validateObjArg(lidHandle,'cgmObject',setClass=True)
+            lidHandleShape = CURVES.create_controlCurve(mBlock.mNode,
+                                                        'loftCircle',
+                                                        direction = 'z+',
+                                                        size = _size)
+            POS.set(lidHandleShape,p_push )
+            if mBlock.getMessage('rootHelper'):
+                mLidHandle = mBlock.rootHelper.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mLidHandle.mNode,lidHandleShape,False)
+            else:
+                mLidHandle = cgmMeta.validateObjArg(lidHandle,'cgmObject',setClass=True)
+
             mLidHandle.addAttr('cgmName','base')
             mLidHandle.addAttr('cgmType','lidsHelper')            
             mLidHandle.doName()
-        
-            mLidHandle.doSnapTo(mBlock.mNode)
-            
             #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
             self.color(mLidHandle.mNode,_side,'main')
         
@@ -1989,10 +1999,14 @@ class handleFactory(object):
             
             #if not _axisBox:
                 #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+            l_handles = ['lidUpr','lidLwr']
                 
+            if _setup not in ['clam']:
+                l_handles.extend(['lidLeft','lidRight'])
+            
             #main handles =============================================================================
-            for a in ['handleUpr','handleLwr','handleLeft','handleRight']:
-                _strHandle = a.split('handle')[-1]
+            for a in l_handles:
+                _strHandle = a.split('lid')[-1]
                 _strHandle = _strHandle[0].lower() + _strHandle[1:]
                 _strName = _strHandle#d_altName.get(_strHandle,_strHandle)
                 
@@ -2001,7 +2015,7 @@ class handleFactory(object):
                 mAxis = VALID.simpleAxis(d_handleDirections[_strHandle])
                 _inverse = mAxis.inverse.p_string
                 
-                handle = CURVES.create_fromName('squareOpen',
+                handle = CURVES.create_fromName('cubeOpen',
                                                 direction = 'z+',
                                                 size = _sizeSub*3)
                 
@@ -2025,37 +2039,36 @@ class handleFactory(object):
                         #mHandle.p_position = p_ballPush
                         #mHandle.tz = .75
                         
-                        
-                        
-            #Sub handles ==============================================================================
-            d_handleDirections = {'uprLeft':['left','upr'],
-                                  'uprRight':['right','upr'],
-                                  'lwrLeft':['left','lwr'],
-                                  'lwrRight':['right','lwr'],
-                                  }
-            
-            for a,pair in d_handleDirections.iteritems():
-                log.info("|{0}| >> Adding sub handle helper: {1}".format(_str_func,a))
-                                
-                handle = CURVES.create_fromName('cube',
-                                                direction = 'z+',
-                                                size = _sizeSub * 2)
+            if _setup not in ['clam']:
+                #Sub handles ==============================================================================
+                d_handleDirections = {'uprLeft':['left','upr'],
+                                      'uprRight':['right','upr'],
+                                      'lwrLeft':['left','lwr'],
+                                      'lwrRight':['right','lwr'],
+                                      }
                 
-                mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
-                mHandle.doSnapTo(_short)                
-                mHandle.addAttr('cgmName',a)
-                mHandle.p_parent = mLidHandle
-                
-                self.color(mHandle.mNode,_side,'sub')
-                mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect
-                
-                mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
-                l_targets = []
-                for o in pair:
-                    l_targets.append(md_handles[o].mNode)
-                mc.pointConstraint(l_targets, mGroup.mNode, maintainOffset = False)
-                
-                ml_handles.append(mHandle)
+                for a,pair in d_handleDirections.iteritems():
+                    log.info("|{0}| >> Adding sub handle helper: {1}".format(_str_func,a))
+                                    
+                    handle = CURVES.create_fromName('cube',
+                                                    direction = 'z+',
+                                                    size = _sizeSub * 2)
+                    
+                    mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
+                    mHandle.doSnapTo(_short)                
+                    mHandle.addAttr('cgmName',a)
+                    mHandle.p_parent = mLidHandle
+                    
+                    self.color(mHandle.mNode,_side,'sub')
+                    mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect
+                    
+                    mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
+                    l_targets = []
+                    for o in pair:
+                        l_targets.append(md_handles[o].mNode)
+                    mc.pointConstraint(l_targets, mGroup.mNode, maintainOffset = False)
+                    
+                    ml_handles.append(mHandle)
                 md_handles[a] = mHandle
 
             
@@ -5830,20 +5843,21 @@ class cgmRigModule(cgmMeta.cgmObject):
                         
             #rigBlock
             #--------------------------------------------------------------------------------
-            
             if kws.get('rigBlock'):
+                _moduleLink = kws.get('moduleLink','moduleTarget')
                 mRigBlock = cgmMeta.validateObjArg(kws.get('rigBlock'),'cgmRigBlock')
                 if mRigBlock:
                     log.debug("|{0}| >> rigBlock on call: {1}".format(_str_func,mRigBlock))
-                    ATTR.set_message(mRigBlock.mNode, 'moduleTarget', self.mNode,simple = True)
+                    ATTR.set_message(mRigBlock.mNode, _moduleLink, self.mNode,simple = True)
                     ATTR.set_message(self.mNode, 'rigBlock', mRigBlock.mNode,simple = True)
                     
             mRigBlock = self.getMessage('rigBlock',asMeta=True)
             if mRigBlock:
                 mRigBlock = mRigBlock[0]
-                _name = mRigBlock.blockType
-                if mRigBlock.getMayaAttr('cgmName'):
-                    _name = mRigBlock.cgmName
+                _moduleType = kws.get('moduleType',mRigBlock.blockType)
+                _name = _moduleType
+                #if mRigBlock.getMayaAttr('cgmName'):
+                #    _name = mRigBlock.cgmName
                 self.addAttr('cgmName',value = _name, lock = True)
                 _side = mRigBlock.atUtils('get_side')
                 
@@ -5851,7 +5865,6 @@ class cgmRigModule(cgmMeta.cgmObject):
                     log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))                                    
                     self.addAttr('cgmDirection',value = _side,lock = True)
                 
-
             self.doName()  
             
             #Attributes

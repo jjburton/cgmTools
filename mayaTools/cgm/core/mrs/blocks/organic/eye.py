@@ -310,11 +310,8 @@ def template(self):
         
     if self.setupLid:
         log.debug("|{0}| >> EyeLid setup...".format(_str_func))
+        mHandleFactory.add_lidsHelper()
         
-        
-        
-        
-    
     self.blockState = 'template'
     return
 
@@ -322,6 +319,10 @@ def template(self):
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
+def prerigDelete(self):
+    try:self.moduleEyelid.delete()
+    except:pass
+    
 def prerig(self):
     _str_func = 'prerig'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -387,7 +388,18 @@ def prerig(self):
     
         mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
         """
+    
+    if self.setupLid:
+        _setupLid = self.getEnumValueString('setupLid')
+        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
         
+        mModule_lids = self.atUtils('module_verify','eyelid','moduleEyelid')
+        
+        if _setupLid == 'clam':
+            pass
+        
+    
+    
     self.msgList_connect('prerigHandles', ml_handles)
     
     #Close out ===============================================================================================
@@ -445,6 +457,7 @@ def skeleton_build(self, forceNew = True):
     def name(mJnt,d):
         #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
         for t,v in d.iteritems():
+            log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
             mJnt.doStore(t,v)
         mJnt.doName()
         
@@ -480,22 +493,49 @@ def skeleton_build(self, forceNew = True):
         mEyeJoint.p_parent = mEyeOrbJoint
         ml_joints.insert(0,mEyeOrbJoint)
         mPrerigNull.connectChildNode(mEyeOrbJoint.mNode,'eyeOrbJoint')
-        mRoot = mEyeOrb
+        mRoot = mEyeOrbJoint
         
     
     
-    for mJnt in ml_joints:
-        mJnt.displayLocalAxis = 1
-        mJnt.radius = _radius
-            
 
+            
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
     self.atBlockUtils('skeleton_connectToParent')
     
     if len(ml_joints) > 1:
-        ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5    
+        ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
+        
+    if self.setupLid:#=====================================================
+        _setupLid = self.getEnumValueString('setupLid')
+        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
+        mLidsHelper = self.getMessageAsMeta('lidsHelper')
+        _d_lids = copy.copy(_d_base)
+        
+        _d_lids['cgmNameModifier'] = 'lid'
+        
+        if _setupLid == 'clam':
+            for a in ['upr','lwr']:
+                log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
+                _a = 'lid{0}'.format(a.capitalize())
+                mHandle = mLidsHelper.getMessageAsMeta(_a)
+                mJoint = mHandle.doCreateAt('joint')
+                mJoint.parent = mRoot
+                
+                mJoint.doStore('cgmName',a)
+                name(mJoint,_d_lids)
+                
+                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
+                
+
+        else:
+            log.error("Don't have setup for eyelidType: {0}".format(_setupLid))
     
+
+    for mJnt in ml_joints:
+        mJnt.displayLocalAxis = 1
+        mJnt.radius = _radius
+        
     return ml_joints    
 
     return

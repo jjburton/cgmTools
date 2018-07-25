@@ -13,11 +13,11 @@ Class Factory for
 # From Python =============================================================
 import copy
 import re
-
+import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -205,13 +205,10 @@ def get_objNameDict(obj,ignore=[False]):
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
     _str_funcName = "returnObjectGeneratedNameDict"
-    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)    
-    #_str_funcName = "returnObjectGeneratedNameDict(%s,ignore = %s)"%(obj,ignore)
-		
+    log.debug(">>> %s >>> "%(_str_funcName) + "="*75)
+    
     if type(ignore) is not list:ignore = [ignore]    
-    #typesDictionary = dictionary.initializeDictionary(typesDictionaryFile)
-    #namesDictionary = dictionary.initializeDictionary(namesDictionaryFile)
-    #settingsDictionary = dictionary.initializeDictionary(settingsDictionaryFile)
+
     namesDict={}
     divider = returnCGMDivider()
     order = returnCGMOrder()
@@ -245,10 +242,15 @@ def get_objNameDict(obj,ignore=[False]):
     
     #>>> checks if the names exist as objects or it's a shape node
     ChildNameObj = False
-    nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
+    nameObj = ATTR.get_message(obj,'cgmName')#SEARCH.get_nodeTagInfo(obj,'cgmName')
+    if nameObj:
+        nameObj = nameObj[0]
+        log.debug("nameObj: {0}".format(nameObj))
     typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
     isType = SEARCH.VALID.get_mayaType(obj)
+    isShape = SEARCH.VALID.is_shape(obj)
     childrenObjects = TRANS.children_get(obj,False)
+    
     """first see if it's a group """
     if isType == 'group' and typeTag == False:
         log.debug("%s >>> group and no typeTag..."%(_str_funcName))            
@@ -263,11 +265,11 @@ def get_objNameDict(obj,ignore=[False]):
             groupNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
         return groupNamesDict
         """ see if there's a name tag"""
-    elif nameObj != None or isType == 'shape':
+    elif nameObj or isShape:
         #If we have a name object or shape
         log.debug("%s >>> nameObj not None or isType is 'shape'..."%(_str_funcName))            
         
-        if mc.objExists(nameObj) and mc.attributeQuery ('cgmName',node=obj,msg=True):
+        if nameObj:
             log.debug("%s >>> nameObj exists: '%s'..."%(_str_funcName,nameObj))                        
             #Basic child object with cgmName tag
             childNamesDict = {}
@@ -278,7 +280,7 @@ def get_objNameDict(obj,ignore=[False]):
             if namesDict.get('cgmIterator') != None:
                 childNamesDict['cgmIterator'] = namesDict.get('cgmIterator')            
             return childNamesDict
-        elif isType == 'shape' or 'Constraint' in isType:
+        elif isShape or 'Constraint' in isType:
             """if so, it's a child name object"""
             log.debug("%s >>> child name object..."%(_str_funcName))                                    
             childNamesDict = {}

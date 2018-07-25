@@ -4480,28 +4480,36 @@ def puppet_verify(self):
  
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def module_verify(self,queryMode=True):
+def module_verify(self,moduleType = None, moduleLink = 'moduleTarget'):
     """
 
     """
     try:
         _str_func = 'module_verify'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        _moduleType = moduleType or self.blockType
+        log.debug("|{0}| >>  moduleType: {1}".format(_str_func,_moduleType))
         
         if self.blockType == 'master':
             return True
-    
-        _bfr = self.getMessage('moduleTarget')
+        
+        
+        _bfr = self.getMessage(moduleLink)
         #_kws = self.module_getBuildKWS()
     
         if _bfr:
-            log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))            
+            log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))
             mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
-        else:
-            log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))  
-            mModule = cgmMeta.createMetaNode('cgmRigModule', rigBlock=self)
+            if mModule.moduleType ==_moduleType:
+                return mModule
+        
+        log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))  
+        mModule = cgmMeta.createMetaNode('cgmRigModule',
+                                         rigBlock=self,
+                                         moduleLink = moduleLink,
+                                         moduleType = _moduleType)
 
-        ATTR.set(mModule.mNode,'moduleType',self.blockType,lock=True)
+        ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
         
         return mModule        
  

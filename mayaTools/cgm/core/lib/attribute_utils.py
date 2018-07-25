@@ -2127,6 +2127,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
         if _msgBuffer and len(_msgBuffer) == 1:
             _msgBuffer = [_msgBuffer[0].split('.')[0]]
         else:
+            return False
             raise ValueError,"not sure what to do with this: {0}".format(_msgBuffer)
     else:
         _msgBuffer = mc.listConnections(_combined,destination=True,source=True,shapes=True)
