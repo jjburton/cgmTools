@@ -1287,7 +1287,8 @@ def prerig(self):
             #mHandle.doStore('cgmIterator',i)
         #    mHandle.doStore('cgmName',"{0}_{1}".format(_l_baseNames[0],i))
         #else:
-        ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+        try:ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+        except:mHandle.doStore('cgmName','NeedAnotherNameAttr')
         mHandle.doStore('cgmType','preHandle')
         mHandle.doName()
         ml_handles.append(mHandle)
