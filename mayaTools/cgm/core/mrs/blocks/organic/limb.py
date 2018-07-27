@@ -122,6 +122,7 @@ d_build_profiles = {
                       'hasEndJoint':True,}}}
 
 d_block_profiles = {
+    'default':{},
     'leg':{'numShapers':2,
            'addCog':False,
            'cgmName':'leg',
@@ -286,6 +287,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'ikEnd':'tipEnd',
                      'ikRPAim':'default',
                      'settingsDirection':'up',
                      'numSpacePivots':2,

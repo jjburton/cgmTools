@@ -2164,7 +2164,7 @@ def rig_controls(self):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
     
-    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    #self.atBuilderUtils('check_nameMatches', ml_controlsAll)
     
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
