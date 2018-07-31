@@ -267,6 +267,8 @@ def get_objNameDict(obj,ignore=[False]):
                 groupNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
             return groupNamesDict
             """ see if there's a name tag"""
+        elif isType in ['joint']:
+            return namesDict
         elif nameObj or isShape:
             #If we have a name object or shape
             log.debug("%s >>> nameObj not None or isType is 'shape'..."%(_str_funcName))            

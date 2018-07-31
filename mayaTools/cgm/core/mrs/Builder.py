@@ -1643,20 +1643,44 @@ class ui(cgmUI.cgmGUI):
         _row_report.layout()         
         
         
-        _LeftColumn = mUI.MelObjectScrollList(_MainForm, ut='cgmUISubTemplate',
+        #=================================================================================================
+        #>> Left Column
+        #=================================================================================================
+        _LeftColumn = mUI.MelFormLayout(_MainForm)
+        _scrollList = mUI.MelObjectScrollList(_LeftColumn, ut='cgmUISubTemplate',
                                               allowMultiSelection=True,en=True,
                                               dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
                                               #dcc = cgmGEN.Callback(self._blockCurrent.select()),
                                               #dcc = self.uiFunc_block_select_dcc,
                                               selectCommand = self.uiScrollList_block_select,
-                                              
                                               w = 200)
         #dcc = self.uiFunc_dc_fromList,
         #selectCommand = self.uiFunc_selectParent_inList)
     
                                     #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
-        self.uiScrollList_blocks = _LeftColumn
-        self._l_toEnable.append(self.uiScrollList_blocks)        
+        
+        self.uiScrollList_blocks = _scrollList
+        self._l_toEnable.append(self.uiScrollList_blocks)
+        
+        button_refresh = CGMUI.add_Button(_LeftColumn,'Refresh',
+                                          lambda *a: self.uiUpdate_building(),
+                                          'Force the scroll list to update')
+        
+        _LeftColumn(edit = True,
+                    af = [(_scrollList,"top",0),
+                          (_scrollList,"left",0),
+                          (_scrollList,"right",0),
+                          
+                          (button_refresh,"left",0),
+                          (button_refresh,"right",0),
+                          (button_refresh,"bottom",0),
+
+                          ],
+                    ac = [(_scrollList,"bottom",0,button_refresh),
+                          
+                         ],
+                    attachNone = [(button_refresh,'top')])#(_row_cgm,"top")	          
+  
         
         
         _RightColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
@@ -1865,6 +1889,7 @@ class ui(cgmUI.cgmGUI):
         #selectCommand = self.uiFunc_selectParent_inList)
     
                                     #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
+        
         self.uiScrollList_blocks = _LeftColumn
         self._l_toEnable.append(self.uiScrollList_blocks)        
         
