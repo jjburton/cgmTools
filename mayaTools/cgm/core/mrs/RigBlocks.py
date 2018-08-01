@@ -5021,7 +5021,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
     #====================================================================================
-    def __verify__(self,name = None):
+    def __verify__(self,name = None,**kws):
         """"""
         """ 
         Verifies the various components a puppet network for a character/asset. If a piece is missing it replaces it.
@@ -5064,6 +5064,15 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             self.addAttr('skinDepth',attrType = 'float',initialValue=.75,lock=True)   
     
             self.doName()
+            
+            if kws.get('rigBlock'):
+                _moduleLink = kws.get('puppetLink','moduleTarget')
+                mRigBlock = cgmMeta.validateObjArg(kws.get('rigBlock'),'cgmRigBlock')
+                if mRigBlock:
+                    log.debug("|{0}| >> rigBlock on call: {1}".format(_str_func,mRigBlock))
+                    ATTR.set_message(mRigBlock.mNode, _moduleLink, self.mNode,simple = True)
+                    ATTR.set_message(self.mNode, 'rigBlock', mRigBlock.mNode,simple = True)            
+            
     
             #MasterNull 
             #---------------------------------------------------------------------------
@@ -5075,18 +5084,16 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 if self.masterNull.getShortName() != self.cgmName:
                     log.warning("Master Null name still doesn't match what it should be.")
             
-            ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
-            #self.verify_groups()
-    
-    
+            ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])    
             #Quick select sets
             #---------------------------------------------------------------------------
-            self.verify_objectSet()
+            #self.verify_objectSet()
+            self.atUtils('qss_verify')
     
-            # Groups
-            #---------------------------------------------------------------------------
-            self.verify_groups()
+            # Groups ---------------------------------------------------------------------------
+            self.atUtils('groups_verify')
             
+            # Layers ---------------------------------------------------------------------------            
             self.atUtils('layer_verify')
     
             return True
@@ -5114,7 +5121,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 self.doName()
                 #self.__verify__()
                 
-            self.masterNull.displayLayer.doName()
+            #self.masterNull.displayLayer.doName()
 
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
@@ -5149,9 +5156,15 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         try:
             _str_func = 'cgmRigPuppet.verify_masterNull'
             log.debug("|{0}| >> ...".format(_str_func))
-
+            mRigBlock = self.getMessageAsMeta('rigBlock')
+            
             if not self.getMessage('masterNull'):
-                mMasterNull = cgmMeta.cgmObject()
+                log.info("|{0}| >> making masterNull...".format(_str_func))                
+                if mRigBlock:
+                    log.info("|{0}| >> from rigBlock...".format(_str_func))                
+                    mMasterNull = mRigBlock.doCreateAt()
+                else:
+                    mMasterNull = cgmMeta.cgmObject()
             else:
                 mMasterNull = self.masterNull
 
@@ -5171,6 +5184,10 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             #See if it's named properly. Need to loop back after scene stuff is querying properly
             mMasterNull.doName()
+            
+            mc.editDisplayLayerMembers(self.displayLayer, mMasterNull.mNode,noRecurse=True)
+            
+            
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -5187,7 +5204,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             if not mMasterNull:
                 raise ValueError, "No masterNull"
 
-            for attr in 'deform','noTransform','geo','parts','worldSpaceObjects','puppetSpaceObjects':
+            for attr in 'deform','noTransform','geo','skeleton','parts','worldSpaceObjects','puppetSpaceObjects':
                 _link = attr+'Group'
                 mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
                 if mGroup:mGroup = mGroup[0]
@@ -5196,7 +5213,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                     mGroup = cgmMeta.cgmObject(name=attr)#Create and initialize
                     mGroup.rename(attr+'_grp')
                     mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
-
                 log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
 
                 # Few Case things
@@ -5223,15 +5239,12 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             log.debug("|{0}| >> ...".format(_str_func))
 
             #Quick select sets ================================================================
-            mSet = self.getMessage('puppetSet',asMeta=True)
-            if mSet:
-                mSet = mSet[0]
-            else:#
+            mSet = self.getMessageAsMeta('puppetSet')
+            if not mSet:
                 mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
                 mSet.connectParentNode(self.mNode,'puppet','puppetSet')
-
-            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
-            mSet.doName()
+            #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            mSet.rename('animSet')
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
     def rig_connect(self):
@@ -5251,6 +5264,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             try:self.displayLayer.delete()
             except:pass
+            try:self.controlLayer.delete()
+            except:pass            
             mc.delete(self.masterNull.mNode)
             mc.delete(self.mNode)
             #del(self)
@@ -5440,6 +5455,10 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             try:self.masterNull.puppetSpaceObjectsGroup.parent = mMasterControl
             except:pass
             
+            #mc.editDisplayLayerMembers(self.controlLayer.mNode, mMasterControl.mNode)
+            mc.editDisplayLayerMembers(self.controlLayer.mNode, mMasterControl.mNode,noRecurse=True)
+            
+            
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
     
@@ -5620,8 +5639,8 @@ class cgmRigMaster(cgmMeta.cgmObject):
                     ATTR.connect("{0}.{1}".format(self.mNode,_d[k][2]),"{0}.v".format(mHelper.mNode))
                     
                     if k == 'controlVis':
-                        mHelper.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
-                        mHelper.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
+                        #mHelper.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
+                        #mHelper.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
                 
                         self.controlVis = mHelper.mNode
                 
@@ -5976,7 +5995,7 @@ def get_blockProfile_options(arg):
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:
-            log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
+            log.error("|{0}| >>  [{2}] Failed to query. | {1} ".format(_str_func,err,arg))
         return []
         
     except Exception,err:

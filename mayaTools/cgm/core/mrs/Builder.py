@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = 'ALPHA 0.06012018'
+__version__ = 'ALPHA 0.07312018'
 _sidePadding = 25
 
 

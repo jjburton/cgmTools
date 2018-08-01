@@ -4436,10 +4436,11 @@ def puppet_verify(self):
         if self.blockType == 'master':
             log.info("|{0}| >> master...".format(_str_func))                                                    
             if not self.getMessage('moduleTarget'):
-                mPuppet = cgmMeta.createMetaNode('cgmRigPuppet')
+                mPuppet = cgmMeta.createMetaNode('cgmRigPuppet',rigBlock=self)
                 self.copyAttrTo('cgmName',mPuppet.mNode,'cgmName',driven='target')
                 self.moduleTarget = mPuppet.mNode
                 ATTR.set_message(mPuppet.mNode, 'rigBlock', self.mNode,simple = True)
+                
             else:
                 mPuppet = self.moduleTarget
             mPuppet.__verify__()

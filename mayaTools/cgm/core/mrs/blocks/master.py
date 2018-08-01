@@ -444,7 +444,7 @@ def rig_cleanUp(self):
                                mirrorSide= 'Centre',
                                mirrorAxis="translateX,rotateY,rotateZ",
                                noFreeze = True)
-        return
+        
         mMasterControl.masterGroup.setAttrFlags()
         ml_dynParents = [mMasterNull]
         
@@ -559,7 +559,10 @@ def rig_cleanUp(self):
     #mRigNull.version = self.d_block['buildVersion']
     #mRigNull.version = __version__
     mBlock.blockState = 'rig'
+    
     mBlock.template = True
+    mBlock.noTransTemplateNull.template=True
+
     self.version = self.d_block['buildVersion']
     
     mMasterControl.doStore('version', self.d_block['buildVersion'])
@@ -568,7 +571,8 @@ def rig_cleanUp(self):
     #except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def rigDelete(self):
-    self.template = False    
+    self.template = False
+    self.noTransTemplateNull.template=True
     
     return True
     self.v = 1
@@ -620,6 +624,9 @@ def skeleton_build(self):
             #self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
             mJoint.doStore('cgmTypeModifier','rootMotion')
             mJoint.doName()
+            
+            mJoint.radius = self.controlOffset
+            
             
             #self.atBlockUtils('skeleton_connectToParent')
             if self.moduleTarget.masterNull.getMessage('skeletonGroup'):

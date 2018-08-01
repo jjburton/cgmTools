@@ -541,16 +541,22 @@ def layer_verify(self,**kws):
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
         if not self.getMessage('displayLayer'):
-            self.masterNull.select()
             mLayer = cgmMeta.validateObjArg(mc.createDisplayLayer(),'cgmNode',setClass=True)
             
             ATTR.copy_to(self.mNode,'cgmName',mLayer.mNode,driven='target')
-            #mLayer.doStore('cgmType')
+            mLayer.doStore('cgmName','main')
             mLayer.doName()
-            
             self.connectChildNode(mLayer.mNode,'displayLayer')
-            return mLayer
-        return self.displayLayer
+            
+        if not self.getMessage('controlLayer'):
+            mLayer = cgmMeta.validateObjArg(mc.createDisplayLayer(),'cgmNode',setClass=True)
+            
+            #ATTR.copy_to(self.mNode,'cgmName',mLayer.mNode,driven='target')
+            mLayer.doStore('cgmName','control')
+            mLayer.doName()
+            self.connectChildNode(mLayer.mNode,'controlLayer')
+        
+        return self.displayLayer, self.controlLayer
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
     
@@ -730,7 +736,7 @@ def rig_isConnected(self):
 
     
     
-def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=True):
+def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
     """
     First pass on qss verification
     """
@@ -745,8 +751,9 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=True):
         if not mSet:
             mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','puppetSet')
-            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
-        mSet.doName()
+            #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            mSet.doStore('cgmName','animSet')            
+        mSet.rename('animSet')
         
         log.debug("|{0}| >> puppetSet: {1}".format(_str_func,mSet))
         
@@ -757,9 +764,10 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=True):
         if not mSet:
             mSet = cgmMeta.cgmObjectSet(setType='bakeSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','bakeSet')
-            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            mSet.doStore('cgmName','bake')
             #mSet.doStore('cgmTypeModifier','bake')
-        mSet.doName()
+        mSet.rename('bakeSet')
         
         log.debug("|{0}| >> bakeSet: {1}".format(_str_func,mSet))
         
@@ -775,16 +783,55 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=True):
         if not mSet:
             mSet = cgmMeta.cgmObjectSet(setType='deleteSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','deleteSet')
-            ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
             #mSet.doStore('cgmTypeModifier','bake')
-        mSet.doName()
+            #mSet.doStore('cgmName','delete')
+        mSet.rename('deleteSet')
+            
         
         log.debug("|{0}| >> deleteSet: {1}".format(_str_func,mSet))
         
         for mObj in get_deleteSetDat(self):
             mSet.addObj(mObj.mNode)
         
-        
+def groups_verify(self):
+    try:
+        _str_func = "groups_verify".format()
+        log.debug("|{0}| >> ...".format(_str_func))
+    
+        mMasterNull = self.masterNull
+    
+        if not mMasterNull:
+            raise ValueError, "No masterNull"
+    
+        for attr in 'deform','noTransform','geo','skeleton','parts','worldSpaceObjects','puppetSpaceObjects':
+            _link = attr+'Group'
+            mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
+            if mGroup:mGroup = mGroup[0]
+    
+            if not mGroup:
+                mGroup = mMasterNull.doCreateAt(setClass=True)
+                mGroup.rename(attr+'_grp')
+                mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
+            log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
+    
+            # Few Case things
+            #==============            
+            if attr in ['geo','parts']:
+                mGroup.p_parent = mMasterNull.noTransformGroup
+            elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
+                mGroup.p_parent = self.getMessage('masterControl')[0]	    
+            else:    
+                mGroup.p_parent = mMasterNull
+    
+            ATTR.set_standardFlags(mGroup.mNode)
+    
+            if attr == 'worldSpaceObjects':
+                mGroup.addAttr('cgmAlias','world')
+            elif attr == 'puppetSpaceObjects':
+                mGroup.addAttr('cgmAlias','puppet')
+                
+    except Exception,err:cgmGEN.cgmException(Exception,err)
         
     
 def get_joints(self,mode='bind'):
