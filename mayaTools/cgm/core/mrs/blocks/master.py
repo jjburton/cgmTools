@@ -75,7 +75,7 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
-d_wiring_template = {'msgLinks':['templateNull']}
+d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull']}
 
 
 #MRP - Morpheus Rig Platform
@@ -101,6 +101,7 @@ def define(self):
     ATTR.set_alias(_short,'sy','blockScale')    
     self.setAttrFlags(attrs=['sx','sz','sz'])
     self.doConnectOut('sy',['sx','sz'])
+    ATTR.set_min(_short,'controlOffset',1.0)
     
     try:mc.delete(self.getShapes())
     except:pass
@@ -110,7 +111,7 @@ def define(self):
 #>> Template
 #=============================================================================================================
 @cgmGEN.Timer
-def resize_masterShape(self,sizeBy=None):
+def resize_masterShape(self,sizeBy=None,resize=False):
     try:
         
         _short = self.p_nameShort        
@@ -118,16 +119,15 @@ def resize_masterShape(self,sizeBy=None):
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         _sel = mc.ls(sl=True)
         _bb = False
+        _bb = self.baseSize
         
-        if _sel:
-            _bb = TRANS.bbSize_get(_sel,False)
-        elif self.getBlockChildren():
-            sizeBy = mc.ls(self.getBlockChildren(asMeta=False))
-            _bb = TRANS.bbSize_get(sizeBy,False)
-        else:
-            _bb = self.baseSize
-            
-        self.baseSize = _bb
+        if resize:
+            if _sel:
+                _bb = TRANS.bbSize_get(_sel,False)
+            #elif self.getBlockChildren():
+            #    sizeBy = mc.ls(self.getBlockChildren(asMeta=False))
+            #    _bb = TRANS.bbSize_get(sizeBy,False)
+            self.baseSize = _bb
 
         log.debug("|{0}| >> _bb: {1}".format(_str_func,_bb))
 
@@ -139,7 +139,11 @@ def resize_masterShape(self,sizeBy=None):
         _offsetSize = _average * .1    
         _blockScale = self.blockScale
         mTemplateNull = self.atUtils('stateNull_verify','template')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
         
+        if resize:
+            self.controlOffset = _offsetSize
+            
         #Main curve ===========================================================================
         _crv = CURVES.create_fromName(name='circle',direction = 'y+', size = 1)
         mCrv = cgmMeta.asMeta(_crv)
@@ -179,7 +183,41 @@ def resize_masterShape(self,sizeBy=None):
         mBBShape.doStore('cgmType','bbVisualize')
         mBBShape.doName()
         mBBShape.template = True
-        self.connectChildNode(mBBShape.mNode,'bbHelper')        
+        self.connectChildNode(mBBShape.mNode,'bbHelper')
+        
+        #Offset visualize ==================================================================
+        if self.getMessage('offsetHelper'):
+            self.offsetHelper.delete()
+            
+        #Need to guess our offset size based on bounding box volume
+        
+        mShape = self.getShapes(asMeta=True)[0]
+        l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
+        pprint.pprint(l_return)
+        mHandleFactory.color(l_return[0],'center','sub',transparent = False)
+        
+        mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
+        mOffsetShape.p_parent = mNoTransformNull
+        #mOffsetShape.doSnapTo(self)
+        #mc.pointConstraint(self.mNode,mOffsetShape.mNode,maintainOffset=True)        
+        #mc.orientConstraint(self.mNode,mOffsetShape.mNode,maintainOffset=True)        
+        mOffsetShape.inheritsTransform = False
+        
+        mOffsetShape.dagLock()
+        
+        _arg = '{0}.distance = -{1}.controlOffset'.format(l_return[1],
+                                                          self.mNode)
+        NODEFACTORY.argsToNodes(_arg).doBuild()
+        #self.doConnectOut('controlOffset',"{0}.distance".format(l_return[1]))
+        
+        mOffsetShape.doStore('cgmName', self.mNode)
+        mOffsetShape.doStore('cgmType','offsetVisualize')
+        mOffsetShape.doName()        
+        
+        self.connectChildNode(mOffsetShape.mNode,'offsetHelper')                
+        
+        
+        
         
         return
         #Offset visualize ==================================================================
