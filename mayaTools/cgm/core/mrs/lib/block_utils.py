@@ -244,6 +244,28 @@ def set_nameTag(self,nameTag = None):
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
+def set_blockNullTemplateState(self,state=True, define = True, template=True,prerig=True):
+    _str_func = 'set_blockNullTemplateState'
+    
+    self.template = state
+    
+    if define:
+        try:self.defineNull.template = state
+        except:pass
+        #try:self.noTransDefineNull.template=state
+        #except:pass
+    if template:
+        try:self.templateNull.template = state
+        except:pass
+        #try:self.noTransTemplateNull.template=state
+        #except:pass
+    if prerig:
+        try:self.prerigNull.template = state
+        except:pass
+        #try:self.noTransPrerigNull.template=state
+        #except:pass        
+
+
 def doName(self):
     """
     Override to handle difference with rig block
@@ -4423,7 +4445,28 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-
+def get_shapeOffset(self):
+    """
+    Get the shape offset value 
+    """
+    try:
+        _str_func = ' get_shapeOffset'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+        
+        ml_check = self.getBlockParents()
+        ml_check.insert(0,self)
+        
+        for mBlock in ml_check:
+            l_attrs = ['controlOffset','skinOffset']
+            for a in l_attrs:
+                if mBlock.hasAttr(a):
+                    v = mBlock.getMayaAttr(a)
+                    log.debug("|{0}| >> {1} attr found on rigBlock: {2} | {3}".format(_str_func,a,v,mBlock.mNode))                
+                    return v            
+        return 1
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    
+    
 def puppet_verify(self):
     """
 
@@ -4481,7 +4524,7 @@ def puppet_verify(self):
  
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def module_verify(self,moduleType = None, moduleLink = 'moduleTarget'):
+def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
     """
 
     """
@@ -4494,7 +4537,6 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget'):
         if self.blockType == 'master':
             return True
         
-        
         _bfr = self.getMessage(moduleLink)
         #_kws = self.module_getBuildKWS()
     
@@ -4503,12 +4545,13 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget'):
             mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
             if mModule.moduleType ==_moduleType:
                 return mModule
-        
+ 
         log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))  
         mModule = cgmMeta.createMetaNode('cgmRigModule',
                                          rigBlock=self,
                                          moduleLink = moduleLink,
-                                         moduleType = _moduleType)
+                                         moduleType = _moduleType,
+                                         nameDict=nameDict)
 
         ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
         

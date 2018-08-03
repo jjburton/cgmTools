@@ -243,10 +243,13 @@ def get_objNameDict(obj,ignore=[False]):
         
         #>>> checks if the names exist as objects or it's a shape node
         ChildNameObj = False
-        nameObj = ATTR.get_message(obj,'cgmName')#SEARCH.get_nodeTagInfo(obj,'cgmName')
-        if nameObj:
-            nameObj = nameObj[0]
-            log.debug("nameObj: {0}".format(nameObj))
+        
+        nameObj = False
+        #nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
+        #if nameObj:
+            #nameObj = nameObj
+            #log.debug("nameObj: {0}".format(nameObj))
+            #namesDict['cgmName'] = nameObj
             
         typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
         isType = SEARCH.VALID.get_mayaType(obj)
@@ -269,12 +272,12 @@ def get_objNameDict(obj,ignore=[False]):
             """ see if there's a name tag"""
         elif isType in ['joint']:
             return namesDict
-        elif nameObj or isShape:
+        elif isShape:
             #If we have a name object or shape
             log.debug("%s >>> nameObj not None or isType is 'shape'..."%(_str_funcName))            
             
-            if nameObj:
-                log.debug("%s >>> nameObj exists: '%s'..."%(_str_funcName,nameObj))                        
+            if isShape:
+                #log.debug("%s >>> nameObj exists: '%s'..."%(_str_funcName,nameObj))                        
                 #Basic child object with cgmName tag
                 childNamesDict = {}
                 childNamesDict['cgmName'] = namesDict.get('cgmName')
@@ -282,7 +285,8 @@ def get_objNameDict(obj,ignore=[False]):
                 if namesDict.get('cgmTypeModifier') != None:
                     childNamesDict['cgmTypeModifier'] = namesDict.get('cgmTypeModifier')
                 if namesDict.get('cgmIterator') != None:
-                    childNamesDict['cgmIterator'] = namesDict.get('cgmIterator')            
+                    childNamesDict['cgmIterator'] = namesDict.get('cgmIterator')
+                    
                 return childNamesDict
             elif isShape or 'Constraint' in isType:
                 """if so, it's a child name object"""

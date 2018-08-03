@@ -590,7 +590,27 @@ def get_midPointDict(sourceList,forceBBCenter = False):
     _d_info['rotations'] = _l_rot
     _d_info['position'] = MATH.get_average_pos(_l_pos)
     _d_info['rotation'] = MATH.get_average_pos(_l_rot)
-    return _d_info 
+    return _d_info
+
+
+def get_curveMidPointFromDagList(sourceList):
+    _str_func = 'get_curveMidPointFromDagList'
+
+    l_pos = [get(o) for o in sourceList]
+    knot_len = len(l_pos)+3-1
+    _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)    
+    shp =  mc.listRelatives(_created, s=True, fullPath = True)[0]
+    _min = ATTR.get(shp,'minValue')
+    _max = ATTR.get(shp,'maxValue')
+    _mid = (_max - _min)/2.0
+    
+    pos = mc.pointPosition("{0}.u[{1}]".format(shp,_mid), w=True)
+    mc.delete(_created)
+    return pos
+    
+    
+
+
 
 def get_positionPlug(obj):
     _str_func = 'get_positionPlug'

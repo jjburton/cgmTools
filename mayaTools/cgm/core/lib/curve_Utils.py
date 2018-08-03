@@ -1529,35 +1529,16 @@ def isEP(*args, **kws):
             else: return False	     
     return fncWrap(*args, **kws).go()
 
-def getMidPoint(*args, **kws):
-    """
-    Function to see if a curve is an ep curve
-    @kws
-    baseCurve -- curve on check
-    """
-    class fncWrap(cgmGEN.cgmFuncCls):
-        def __init__(self,*args, **kws):
-            """
-            """	
-            super(fncWrap, self).__init__(curve = None)
-            self._str_funcName = 'getMidPoint'	
-            self._l_ARGS_KWS_DEFAULTS = [{'kw':'curve',"default":None}]	    
-            self.__dataBind__(*args, **kws)
-            #=================================================================
-            #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
-
-        def __func__(self):
-            """
-            """
-            self.mi_crv = cgmMeta.validateObjArg(self.d_kws['curve'],mayaType='nurbsCurve',noneValid=False)
-            self._str_funcCombined = self._str_funcCombined + "('%s')"%self.mi_crv.p_nameShort
-
-            try:self.str_bufferU = mc.ls("{0}{1}".format(self.mi_crv.mNode,".u[*]"))[0]
-            except Exception,error:raise Exception,"ls fail | error: {0}".format(error)
-            self.f_maxU = float(self.str_bufferU.split(':')[-1].split(']')[0])	
-
-            return mc.pointPosition("%s.u[%f]"%(self.mi_crv.mNode,self.f_maxU/2), w=True)
-    return fncWrap(*args, **kws).go()
+def getMidPoint(curve=None):
+    mCrv = cgmValid.objString(crv,mayaType='nurbsCurve')
+    mShape = cgmMeta.validateObjArg(mc.listRelatives(mCrv,shapes = True,f=True)[0])
+    
+    _min = mShape.minValue
+    _max = mShape.maxValue
+    _mid = (_max - _min)/2.0
+    
+    return mc.pointPosition("{0}.u[{1}]".format(mShape.mNode,_mid), w=True)
+    
 
 def getPercentPointOnCurve(*args, **kws):
     """

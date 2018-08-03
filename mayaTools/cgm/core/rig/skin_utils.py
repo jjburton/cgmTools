@@ -104,7 +104,8 @@ def surface_copyWeights(sourceSurface, targetSurface):
 
 
 
-def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, hardLength = 2, mode = 'twoBlend'):
+def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, hardLength = 2,
+                        mode = 'twoBlend'):
     """
     
     
@@ -157,7 +158,7 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
         blendLength = len(l_cvsUse) - hardLength
         
     blendFactor = 1.0 / (blendLength+hardLength)
-    log.debug("|{0}| >> BlendFactor: {1}".format(_str_func,blendFactor))
+    log.debug("|{0}| >> BlendFactor: {1} | BlendLength: {2}".format(_str_func,blendFactor, blendLength))
         
 
     if start is None or end is None:
@@ -205,7 +206,7 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
 
                     
     #pprint.pprint(vars())
-    pprint.pprint(d_dat)    
+    #pprint.pprint(d_dat)    
     #return        
     for k,dat in d_dat.iteritems():
         #log.debug("|{0}| >> key: {1} | dat: {2}".format(_str_func,k,dat))

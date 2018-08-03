@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 # From cgm ==============================================================
@@ -2476,9 +2476,9 @@ class handleFactory(object):
             mCrv.p_parent = self._mTransform
             self.color(mCrv.mNode,controlType='sub')
 
-            for s in mCrv.getShapes(asMeta=True):
-                s.overrideEnabled = 1
-                s.overrideDisplayType = 2
+            #for s in mCrv.getShapes(asMeta=True):
+                #s.overrideEnabled = 1
+                #s.overrideDisplayType = 2
             mCrv.connectParentNode(self._mTransform,'handle','loftCurve')            
 
             return mCrv
@@ -5073,6 +5073,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                     ATTR.set_message(mRigBlock.mNode, _moduleLink, self.mNode,simple = True)
                     ATTR.set_message(self.mNode, 'rigBlock', mRigBlock.mNode,simple = True)            
             
+            # Layers ---------------------------------------------------------------------------            
+            self.atUtils('layer_verify')
     
             #MasterNull 
             #---------------------------------------------------------------------------
@@ -5093,8 +5095,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             # Groups ---------------------------------------------------------------------------
             self.atUtils('groups_verify')
             
-            # Layers ---------------------------------------------------------------------------            
-            self.atUtils('layer_verify')
+
     
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -5185,7 +5186,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             #See if it's named properly. Need to loop back after scene stuff is querying properly
             mMasterNull.doName()
             
-            mc.editDisplayLayerMembers(self.displayLayer, mMasterNull.mNode,noRecurse=True)
+            mc.editDisplayLayerMembers(self.displayLayer.mNode, mMasterNull.mNode,noRecurse=True)
             
             
             return True
@@ -5234,7 +5235,10 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
 
     def verify_objectSet(self):
+        self.UTILS.qss_verify(self)
+        """
         try:
+            
             _str_func = "cgmRigPuppet.verify_objectSet"
             log.debug("|{0}| >> ...".format(_str_func))
 
@@ -5245,7 +5249,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mSet.connectParentNode(self.mNode,'puppet','puppetSet')
             #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
             mSet.rename('animSet')
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err)"""
         
     def rig_connect(self):
         return self.UTILS.rig_connect(self)
@@ -5833,12 +5837,17 @@ class cgmRigModule(cgmMeta.cgmObject):
             self.addAttr('mClass', initialValue='cgmModule',lock=True) 
             self.addAttr('cgmType',value = 'module',lock=True)
             
+            _b_nameDict = True
+            _nameDict = kws.get('nameDict',False)
+            if not _nameDict:
+                _b_nameDict = False
+                _nameDict = {}
+            
             if not kws.get('rigBlock'):
                 if kws.get('name'):#If we have a name, store it
-                    self.addAttr('cgmName',kws.get('name'),attrType='string',lock=True)
-                elif kws.get('mType'):
-                    self.addAttr('cgmName',kws['mType'],attrType='string',lock=True)	    
-    
+                    _nameDict['cgmName'] = kws.get('name') or kws.get('mType')
+                    #self.addAttr('cgmName',kws.get('name'),attrType='string',lock=True)
+
             if self.getMayaAttr('cgmType') != 'module':
                 raise ValueError,"not a module: {0}".format(self)
             
@@ -5851,10 +5860,11 @@ class cgmRigModule(cgmMeta.cgmObject):
                         log.error("|{0}| Failed to set: {1}|{2}".format(_str_func,k,v,err))"""
 
             for k,v in kws.iteritems():
-                if k in ['position','direction','directionModifier','nameModifier']:
+                if k in ['position','direction','directionModifier','nameModifier','iterator']:
                     if kws.get(k):
-                        log.debug("|{0}| >> kw key: {1}".format(_str_func,k))                            
-                        self.addAttr('cgm'+k.capitalize(),value = kws.get(k),lock = True)                
+                        log.debug("|{0}| >> kw key: {1}".format(_str_func,k))
+                        _nameDict['cgm'+k.capitalize()] = kws.get(k)
+                        #self.addAttr('cgm'+k.capitalize(),value = kws.get(k),lock = True)                
                 elif self.hasAttr(k):
                     try:self.k = v
                     except Exception,err:
@@ -5870,19 +5880,25 @@ class cgmRigModule(cgmMeta.cgmObject):
                     ATTR.set_message(mRigBlock.mNode, _moduleLink, self.mNode,simple = True)
                     ATTR.set_message(self.mNode, 'rigBlock', mRigBlock.mNode,simple = True)
                     
-            mRigBlock = self.getMessage('rigBlock',asMeta=True)
+            mRigBlock = self.getMessageAsMeta('rigBlock')
             if mRigBlock:
-                mRigBlock = mRigBlock[0]
-                _moduleType = kws.get('moduleType',mRigBlock.blockType)
-                _name = _moduleType
-                #if mRigBlock.getMayaAttr('cgmName'):
-                #    _name = mRigBlock.cgmName
-                self.addAttr('cgmName',value = _name, lock = True)
+                if not _b_nameDict:
+                    _nameDict_block = mRigBlock.getNameDict(ignore='cgmType')
+                    _nameDict.update(_nameDict_block)
+                    
+                    if not _nameDict.get('cgmName'):
+                        _nameDict['cgmName'] = kws.get('moduleType',mRigBlock.blockType)
+
                 _side = mRigBlock.atUtils('get_side')
-                
+        
                 if _side != 'center':
-                    log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))                                    
-                    self.addAttr('cgmDirection',value = _side,lock = True)
+                    log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))
+                    _nameDict['cgmDirection'] = _side
+            
+            for k,v in _nameDict.iteritems():
+                if v:
+                    log.debug("|{0}| >> Name dat k: {1} | v:{2}".format(_str_func,k,v))                
+                    self.addAttr(k,value = v,lock = True)
                 
             self.doName()  
             

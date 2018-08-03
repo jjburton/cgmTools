@@ -891,6 +891,7 @@ def ribbon(jointList = None,
            skipAim = True,
            influences = None,
            extraKeyable = True,
+           ribbonJoints = None,
            attachEndsToInfluences = False,
            moduleInstance = None,
            parentGutsTo = None):
@@ -977,8 +978,15 @@ def ribbon(jointList = None,
     #try:
     #>>> Verify =============================================================================================
     ml_joints = cgmMeta.validateObjListArg(jointList,mType = 'cgmObject', mayaType=['joint'], noneValid = False)
-    l_joints = [mJnt.p_nameShort for mJnt in ml_joints]
+    l_joints = [mJnt.mNode for mJnt in ml_joints]
     int_lenJoints = len(ml_joints)#because it's called repeatedly
+    
+    if ribbonJoints is None:
+        ml_ribbonJoints = ml_joints
+        l_ribbonJoints = l_joints
+    else:
+        ml_ribbonJoints = cgmMeta.validateObjListArg(ribbonJoints,mType = 'cgmObject', mayaType=['joint'], noneValid = False)
+        l_ribbonJoints = [mJnt.mNode for mJnt in ml_ribbonJoints]
     
     mi_useSurface = cgmMeta.validateObjArg(useSurface,mayaType=['nurbsSurface'],noneValid = True)
     mi_mayaOrientation = VALID.simpleOrientation(orientation)
@@ -1093,7 +1101,7 @@ def ribbon(jointList = None,
         raise NotImplementedError,'Not done with passed surface'
     else:
         log.debug("|{0}| >> Creating surface...".format(_str_func))
-        l_surfaceReturn = ribbon_createSurface(jointList,loftAxis,sectionSpans,extendEnds)
+        l_surfaceReturn = ribbon_createSurface(l_ribbonJoints,loftAxis,sectionSpans,extendEnds)
     
         mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
         mControlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1104,7 +1112,7 @@ def ribbon(jointList = None,
         
         if loftAxis2:
             log.debug("|{0}| >> Creating surface...".format(_str_func))
-            l_surfaceReturn2 = ribbon_createSurface(jointList,loftAxis2,sectionSpans,extendEnds)
+            l_surfaceReturn2 = ribbon_createSurface(l_ribbonJoints,loftAxis2,sectionSpans,extendEnds)
         
             mControlSurface2 = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
             mControlSurface2.addAttr('cgmName',str(baseName),attrType='string',lock=True)

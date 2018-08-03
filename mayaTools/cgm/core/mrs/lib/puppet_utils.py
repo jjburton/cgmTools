@@ -752,8 +752,9 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
             mSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','puppetSet')
             #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
-            mSet.doStore('cgmName','animSet')            
-        mSet.rename('animSet')
+            mSet.doStore('cgmName','all')
+            
+        mSet.doName()
         
         log.debug("|{0}| >> puppetSet: {1}".format(_str_func,mSet))
         
@@ -762,12 +763,12 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
         
         mSet = self.getMessageAsMeta('bakeSet')
         if not mSet:
-            mSet = cgmMeta.cgmObjectSet(setType='bakeSet',qssState=True)
+            mSet = cgmMeta.cgmObjectSet(setType='tdSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','bakeSet')
             #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
             mSet.doStore('cgmName','bake')
             #mSet.doStore('cgmTypeModifier','bake')
-        mSet.rename('bakeSet')
+        mSet.doName()
         
         log.debug("|{0}| >> bakeSet: {1}".format(_str_func,mSet))
         
@@ -781,12 +782,12 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
         
         mSet = self.getMessageAsMeta('deleteSet')
         if not mSet:
-            mSet = cgmMeta.cgmObjectSet(setType='deleteSet',qssState=True)
+            mSet = cgmMeta.cgmObjectSet(setType='tdSet',qssState=True)
             mSet.connectParentNode(self.mNode,'puppet','deleteSet')
             #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
             #mSet.doStore('cgmTypeModifier','bake')
-            #mSet.doStore('cgmName','delete')
-        mSet.rename('deleteSet')
+            mSet.doStore('cgmName','delete')
+        mSet.doName()
             
         
         log.debug("|{0}| >> deleteSet: {1}".format(_str_func,mSet))

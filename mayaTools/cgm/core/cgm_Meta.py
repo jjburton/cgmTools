@@ -583,9 +583,9 @@ class cgmNode(r9Meta.MetaClass):
         #except Exception,err:
             #cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
             
-    def getNameDict(self):
+    def getNameDict(self,**kws):
         reload(nameTools)
-        return nameTools.returnObjectGeneratedNameDict(self.mNode) or {} 
+        return nameTools.returnObjectGeneratedNameDict(self.mNode,**kws) or {} 
     
     def doTagAndName(self,d_tags, **kws):
         """
@@ -1230,7 +1230,8 @@ class cgmNode(r9Meta.MetaClass):
             #print(cgmGEN._str_baseStart + "  Errors...")
             #for a in err.args:
                 #log.error(a)
-            cgmGEN.cgmException(Exception,err)
+            raise Exception,err
+            #cgmGEN.cgmException(Exception,err)
         return _res    
     
     def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):
@@ -3091,14 +3092,14 @@ class cgmObject(cgmNode):
         """ Copy the transform from a source object to the current instanced maya object. """
         return RIGGING.match_transform(self, source,rotateOrder,rotateAxis,rotatePivot,scalePivot)
 
-    def doGroup(self,maintain=False, parentTo = True, asMeta = False, typeModifier = None):
+    def doGroup(self,maintain=False, parentTo = True, asMeta = False, typeModifier = None, setClass = False):
         #buffer = rigging.groupMeObject(self.mNode,True,maintain)  
         buffer = TRANS.group_me(self,parentTo,maintain)
         if typeModifier:
             ATTR.store_info(buffer,'cgmTypeModifier',typeModifier)
             self.connectChildNode(buffer,typeModifier + 'Group','source')
         if buffer and asMeta:
-            mGrp = cgmObject(buffer)
+            mGrp = validateObjArg(buffer,'cgmObject',setClass=setClass)
             if typeModifier:
                 mGrp.doName()
             return mGrp
@@ -4223,9 +4224,8 @@ class cgmObjectSet(cgmNode):
         try:
             mc.sets(info,add = self.mNode)
             #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	
-            log.info("|{0}| >> Appended to objectSet: {1} | data: {2}".format(_str_func,self.p_nameShort,info))   
-        except Exception, error:
-            log.error("'append fail | {0}' failed to add to '{1}' | {2}"%(info,self.mNode,error))    
+        except Exception, err:
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     addObj = append
     add = append

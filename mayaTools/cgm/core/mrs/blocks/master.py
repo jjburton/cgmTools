@@ -485,8 +485,8 @@ def rig_cleanUp(self):
         mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
         mControl.parent = False
         
-        ATTR.copy_to(mBlock.moduleTarget.mNode,'cgmName',mControl.mNode,driven='target')
-        mControl.addAttr('cgmTypeModifier','rootMotion')
+        #ATTR.copy_to(mBlock.moduleTarget.mNode,'cgmName',mControl.mNode,driven='target')
+        mControl.doStore('cgmName','rootMotion')
         mControl.doName()
         
         
@@ -576,7 +576,7 @@ def rigDelete(self):
     
     return True
     self.v = 1
-    try:self.moduleTarget.masterControl.delete()
+    try:self.moduleTarget.masterControl.masterGroup.delete()
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
         raise Exception,err

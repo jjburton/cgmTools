@@ -563,7 +563,8 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
             #if self.modulePuppet.getMessage('rootJoint'):
                 #log.debug("|{0}| >> Root joint on master found".format(_str_func))
                 #return self.modulePuppet.rootJoint[0]
-            return self.modulePuppet.masterNull.skeletonGroup
+            return self.modulePuppet.masterControl
+            #return self.modulePuppet.masterNull.skeletonGroup
         raise RuntimeError,"Shouldn't have gotten here"
     else:
         mParentModule = mParentModule[0]
