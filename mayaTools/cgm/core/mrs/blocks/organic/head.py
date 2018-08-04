@@ -153,7 +153,7 @@ l_attrsStandard = ['side',
                    #'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
-                   'offsetMode',
+                   #'offsetMode',
                    'proxyDirect',
                    'settingsDirection',
                    'moduleTarget',]
@@ -290,7 +290,7 @@ def define(self):
     mTarget = self.doCreateAt()
     mTarget = cgmMeta.validateObjArg(mTarget.mNode, 'cgmObject',setClass=True)
     
-    mTarget.rename('aimTarget')
+    mTarget.rename('neckVector')
     mTarget.p_parent = mRotateGroup
     mTarget.resetAttrs()
     
@@ -903,15 +903,15 @@ def prerig(self):
     mNoTransformNull = self.UTILS.noTransformNull_verify(self,'prerig')
     ml_templateHandles = self.msgList_get('templateHandles')
     
+    _sizeSub = self.atUtils('get_shapeOffset')*2#_size * .2   
     
     #>>New handles ==================================================================================================
     mHandleFactory = self.asHandleFactory(self.mNode)   
     
     if not self.neckBuild:
-        _size = DIST.get_bb_size(self.mNode,True,True)
-        _sizeSub = _size * .2   
+        #_size = DIST.get_bb_size(self.mNode,True,True)
         
-        log.info("|{0}| >> [{1}]  NO NECK | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+        #log.info("|{0}| >> [{1}]  NO NECK | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
 
         #Joint Helper ==========================================================================================
         mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub)
@@ -934,8 +934,8 @@ def prerig(self):
         # ml_handles = [mStartHandle]        
         ml_jointHandles = []        
     
-        _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
-        _sizeSub = _size * .33    
+        #_size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
+        #_sizeSub = _size * .33    
         _vec_root_up = ml_templateHandles_neck[0].orientHelper.getAxisVector('y+')
     
 
@@ -1151,7 +1151,7 @@ def skeleton_build(self, forceNew = True):
     _str_func = '[{0}] > skeleton_build'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func)) 
     
-    _radius = 1
+    _radius = self.atUtils('get_shapeOffset')
     ml_joints = []
     mModule = self.moduleTarget
     if not mModule:
@@ -1274,7 +1274,7 @@ def skeleton_build(self, forceNew = True):
         mJnt.displayLocalAxis = 1
         mJnt.radius = _radius
     if len(ml_joints) > 1:
-        mHead_jnt.radius = ml_joints[-1].radius * 5
+        mHead_jnt.radius = ml_joints[-1].radius * 3
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
@@ -1331,11 +1331,12 @@ def rig_dataBuffer(self):
     self.mRootTemplateHandle = ml_templateHandles[0]
     
     
-    #Offset ============================================================================    
+    #Offset ============================================================================
+    self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+    """
     str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
     if not mBlock.offsetMode:
         log.debug("|{0}| >> default offsetMode...".format(_str_func))
-        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
     else:
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
@@ -1348,7 +1349,10 @@ def rig_dataBuffer(self):
             l_sizes.append( MATH.average(_size_sub) * .1 )            
         self.v_offset = MATH.average(l_sizes)
         #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
-        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
+        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1
+        
+        """
+        
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
     log.debug(cgmGEN._str_subLine)
     
@@ -1474,7 +1478,11 @@ def rig_skeleton(self):
     if self.mBlock.neckBuild:
         log.info("|{0}| >> Neck Build".format(_str_func))
         #return mOrientHelper.getAxisVector('y+')
-        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints',mOrientHelper=ml_templateHandles[1].orientHelper)
+        ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk',
+                                                           'fkJoints',
+                                                           mOrientHelper=ml_templateHandles[1].orientHelper)
+        ml_fkJoints[-1].doSnapTo(position=False,rotation=True)
+        JOINT.freezeOrientation(ml_fkJoints[-1].mNode)
         ml_jointsToHide.extend(ml_fkJoints)
         mOrientHelper = ml_templateHandles[1].orientHelper
         #Because
@@ -1599,7 +1607,7 @@ def rig_shapes(self):
         log.info("|{0}| >> Head aim...".format(_str_func))  
         
         _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
-                                       MATH.get_obj_vector(ml_templateHandles[0].orientHelper.mNode,'z+'),
+                                       MATH.get_obj_vector(ml_fkJoints[-1].mNode,'z+'),
                                        _size * 1.5)
         
         ikCurve = CURVES.create_fromName('sphere2',_size/3)
@@ -3023,6 +3031,7 @@ def rig_cleanUp(self):
         
         
     self.mDeformNull.dagLock(True)
+    mBlock.atUtils('set_blockNullTemplateState')
     
         
     
@@ -3309,6 +3318,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mProxy.doName()
             mProxy.parent = ml_rigJoints[0]
             ml_neckProxy = [mProxy]
+            #mc.polyNormal(mProxy.mNode,setUserNormal = True)
             
             if directProxy:
                 CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,False)

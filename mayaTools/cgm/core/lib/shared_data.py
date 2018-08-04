@@ -6,9 +6,10 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 """
-l_cgmNameOrder = ['cgmPosition',
+l_cgmNameOrder = ['cgmDirection',
                   'cgmDirectionModifier',
-                  'cgmDirection',
+                  'cgmPosition',
+                  'cgmPositionModifer',
                   'cgmName',
                   'cgmNameModifier',
                   'cgmIterator',

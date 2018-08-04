@@ -56,6 +56,7 @@ def get_nodeTagInfo(node = None, tag = None):
     if (mc.objExists('%s.%s' %(_node,tag))) == True:
         messageQuery = (mc.attributeQuery (tag,node=_node,msg=True))
         if messageQuery == True:
+            log.debug("|{0}| >> message...".format(_str_func))
             returnBuffer = attributes.returnMessageData(_node,tag,False)
             if not returnBuffer:
                 return False
@@ -65,6 +66,7 @@ def get_nodeTagInfo(node = None, tag = None):
                 return returnBuffer[0]
             return returnBuffer[0]
         else:
+            log.debug("|{0}| >> reg...".format(_str_func))            
             infoBuffer = mc.getAttr('%s.%s' % (_node,tag))
             if infoBuffer is not None and len(list(str(infoBuffer))) > 0:
                 return infoBuffer

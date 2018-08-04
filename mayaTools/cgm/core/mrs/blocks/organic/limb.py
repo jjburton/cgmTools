@@ -271,7 +271,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'buildLeverBase':'bool',#...fkRoot is our clav like setup
                  'hasEndJoint':'bool',
                  'hasBallJoint':'bool',
-                 
+                 'ikEndIndex':'int',
                  
                  
                  #'buildSpacePivots':'bool',
@@ -1273,9 +1273,14 @@ def prerig(self):
     #Sub handles... ------------------------------------------------------------------------------------
     log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
     ml_aimGroups = []
+    _nameDict = self.getNameDict(ignore=['cgmName','cgmType'])
+    #_nameDict['cgmType'] = 'blockHandle'
+    
+    #_sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .33
+    _sizeUse = self.atUtils('get_shapeOffset')
+
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
-        _sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .33
         
         try: _HandleSnapTo = mTemplateHandle.loftCurve.mNode
         except: _HandleSnapTo = mTemplateHandle.mNode
@@ -1292,6 +1297,9 @@ def prerig(self):
         try:ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
         except:mHandle.doStore('cgmName','NeedAnotherNameAttr')
         mHandle.doStore('cgmType','preHandle')
+        for k,v in _nameDict.iteritems():
+            if v:
+                ATTR.copy_to(self.mNode,k,_short, k, driven='target')
         mHandle.doName()
         ml_handles.append(mHandle)
         
@@ -1314,8 +1322,8 @@ def prerig(self):
     
     #ml_handles[0].connectChildNode(mOrientHelper.mNode,'orientHelper')      
     
-    #self.atUtils('prerigHandles_getNameDat',True)
-    self.UTILS.prerigHandles_getNameDat(self,True)
+    #This breaks the naming
+    #self.UTILS.prerigHandles_getNameDat(self,True)
                              
     #Joint placer loft....
     targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
@@ -1387,6 +1395,10 @@ def skeleton_build(self, forceNew = True):
     if not ml_templateHandles:
         raise ValueError,"No templateHandles connected"
     
+    ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
+    if not ml_prerigHandles:
+        raise ValueError,"No prerig connected"
+    
     ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
     if not ml_jointHelpers:
         raise ValueError,"No jointHelpers connected"
@@ -1424,8 +1436,10 @@ def skeleton_build(self, forceNew = True):
     _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
     
     
-    if len(_l_names) != len(ml_jointHelpers):
-        return log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
+    if len(_l_names) < len(ml_jointHelpers):
+        log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
+        return False
+
     
 
     _d_base['cgmType'] = 'skinJoint'
@@ -1512,7 +1526,9 @@ def skeleton_build(self, forceNew = True):
 
     ml_joints[0].parent = False
     
-    _radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 20
+    _radius = self.atUtils('get_shapeOffset') or DIST.get_distance_between_points(ml_joints[0].p_position, 
+                                                                                  ml_joints[-1].p_position)/ 20
+    #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 20
     #MATH.get_space_value(5)
     
     for mJoint in ml_joints:
@@ -1570,10 +1586,13 @@ def skeleton_build(self, forceNew = True):
     if not self.hasEndJoint:
         mEnd = ml_joints[-1]        
         log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        
+        mEnd.doSnapTo(ml_prerigHandles[-2])
+        """
         SNAP.aim(mEnd.mNode,
                  ml_templateHandles[-1].mNode,
                  'z+','y+','vector',
-                 ml_joints[-2].getAxisVector('y+'))
+                 ml_templateHandles[-1].getAxisVector('y+'))"""
         JOINT.freezeOrientation(mEnd.mNode)
         
     self.blockState = 'skeleton'#...buffer
@@ -3314,7 +3333,7 @@ def rig_shapes(self):
         log.debug(cgmGEN._str_subLine)
 
         
-        #Handles ============================================================================================    
+        #Handles =======================================================================================    
         ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
             log.debug("|{0}| >> Found Handle joints...".format(_str_func))
@@ -3437,9 +3456,9 @@ def rig_shapes(self):
                 #    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
                 CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
 
-        for mShape in ml_fkShapes:
-            try:mShape.delete()
-            except:pass
+        #for mShape in ml_fkShapes:
+            #try:mShape.delete()
+            #except:pass
         log.debug(cgmGEN._str_subLine)
 
         return

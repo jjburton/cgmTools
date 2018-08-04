@@ -3295,7 +3295,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
     
         
         if attrType is None:
-            if mc.objExists(_data[0]):
+            if mc.objExists(_data[0]) and _data[0] not in ['front','top','side','perp']:
                 attrType = 'message'
             elif len(_data)==3:
                 attrType = 'double3'

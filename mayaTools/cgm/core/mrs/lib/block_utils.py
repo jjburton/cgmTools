@@ -4551,7 +4551,7 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
                                          rigBlock=self,
                                          moduleLink = moduleLink,
                                          moduleType = _moduleType,
-                                         nameDict=nameDict)
+                                         **kws)
 
         ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
         
