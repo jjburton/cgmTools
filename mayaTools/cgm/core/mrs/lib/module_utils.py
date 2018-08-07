@@ -1361,17 +1361,18 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
                 
             #else:
-            mBlend = mObj.getMessage('blendJoint',asMeta=True)
-            if not mBlend:
-                log.warning("|{0}| >> No blend joint found! ".format(_str_func))
+            mTarget = mObj.getMessageAsMeta('switchTarget')
+            if not mTarget:
+                mTarget = mObj.getMessage('blendJoint',asMeta=True)
+            if not mTarget:
+                log.warning("|{0}| >> No target joint found! ".format(_str_func))
                 break
-            mBlend = mBlend[0]
-            log.info("|{0}| >> blend: {1} ".format(_str_func,mBlend.mNode))
+            log.info("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
             
-            ml_blends.append(mBlend)
-            l_pos.append(mBlend.p_position)
-            l_rot.append(mBlend.p_orient)
-            md_locs[i] = mBlend.doLoc(fastMode = True)
+            ml_blends.append(mTarget)
+            l_pos.append(mTarget.p_position)
+            l_rot.append(mTarget.p_orient)
+            md_locs[i] = mTarget.doLoc(fastMode = True)
             
         mSettings.FKIK = 0
         

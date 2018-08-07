@@ -1764,7 +1764,17 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 
 
 
-
+def joints_flipChainForBehavior(self,ml_chain=None):
+    for mJoint in ml_chain:
+        mJoint.parent = False
+    
+    for mJoint in ml_chain:
+        ATTR.set(mJoint.mNode,"r{0}".format(self.d_orientation['str'][2]),180)
+    
+    for i,mJoint in enumerate(ml_chain[1:]):
+        mJoint.parent = ml_chain[i]
+    
+    JOINTS.freezeJointOrientation(ml_chain)    
 
 
 

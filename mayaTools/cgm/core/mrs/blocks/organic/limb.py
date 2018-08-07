@@ -264,14 +264,14 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'ikRPAim':'default:free',
                  'blockProfile':':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
-                 'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:proxy',
+                 'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
                  'numRoll':'int',
                  #'ikBase':'none:fkRoot',
                  'hasLeverJoint':'bool',
                  'buildLeverBase':'bool',#...fkRoot is our clav like setup
                  'hasEndJoint':'bool',
                  'hasBallJoint':'bool',
-                 'ikEndIndex':'int',
+                 #'ikEndIndex':'int',
                  
                  
                  #'buildSpacePivots':'bool',
@@ -1818,6 +1818,7 @@ def rig_dataBuffer(self):
     self.mBall = False
     self.int_handleEndIdx = -1
     self.b_ikNeedEnd = False
+    self.b_ikNeedFullChain = False
     l= []
     
     str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
@@ -1832,17 +1833,22 @@ def rig_dataBuffer(self):
             self.mBall = self.ml_handleTargets.pop(-1)
             log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
             self.int_handleEndIdx -=1
-    elif str_ikEnd in ['tipEnd','tipBase']:
+    elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
         log.debug("|{0}| >> tip setup...".format(_str_func))        
         if not mBlock.hasEndJoint:
             self.b_ikNeedEnd = True
             log.debug("|{0}| >> Need IK end joint".format(_str_func))
         else:
             self.int_handleEndIdx -=1
+        
+        if str_ikEnd in ['tipCombo']:
+            log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
+            self.b_ikNeedFullChain = True
+            
     #elif mBlock.ikEndIndex > 1:
         #log.debug("|{0}| >> Using ikEndIndex...".format(_str_func))        
         #self.int_handleEndIdx = - mBlock.ikEndIndex
-            
+                    
     ml_use = ml_handleJoints[:self.int_handleEndIdx]
     if len(ml_use) == 1:
         mid=0
@@ -1945,6 +1951,8 @@ def rig_skeleton(self):
     ml_blendJoints = []
     ml_joints = mRigNull.msgList_get('moduleJoints')
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
+    ml_prerigHandles = mBlock.msgList_get('prerigHandles')
+    
     self.d_joints['ml_moduleJoints'] = ml_joints
     str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
     
@@ -2013,12 +2021,38 @@ def rig_skeleton(self):
             mRigNull.connectChildNode(mLever,'leverFK','rigNull')
         
     
-    #...fk chain ----------------------------------------------------------------------------------------------
+    #...ik joints-------------------------------------------------------------------------------------------
     if mBlock.ikSetup:
         log.info("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  
         ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'blend','blendJoints')
         ml_ikJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'ik','ikJoints')
         
+        
+        if self.b_ikNeedFullChain:
+            log.debug("|{0}| >> Creating full IK chain...".format(_str_func))          
+            ml_ikFullChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                                     ml_ikJoints, 'fullChain', 
+                                                                     mRigNull,
+                                                                     'ikFullChainJoints',
+                                                                     connectToSource = 'ikFullChain',
+                                                                     cgmType = 'frame')
+            for mJnt in ml_ikFullChain:
+                mJnt.rotateOrder = 0
+            mEndIK = ml_prerigHandles[-1].doCreateAt('joint',setClass=True)
+            mEndIK.p_parent = ml_ikFullChain[-1]
+            ml_ikFullChain.append(mEndIK)
+            mEndIK.rotate = 0,0,0
+            
+            #mOrientHelper = mBlock.orientHelper
+            JOINT.orientChain(ml_ikFullChain[-2:],
+                              relativeOrient=False,
+                              worldUpAxis= ml_prerigHandles[-1].getAxisVector('z+'))
+                              #worldUpAxis= ml_ikFullChain[-2].getAxisVector('z+'))
+            
+            mRigNull.msgList_connect('ikFullChainJoints',ml_ikFullChain)
+            ml_jointsToConnect.extend(ml_ikFullChain)
+        
+            
         for i,mJnt in enumerate(ml_ikJoints):
             if mJnt not in [ml_ikJoints[0],ml_ikJoints[-1]]:
                 mJnt.preferredAngle = mJnt.jointOrient
@@ -2043,7 +2077,9 @@ def rig_skeleton(self):
         
         BLOCKUTILS.skeleton_pushSettings(ml_ikJoints,self.d_orientation['str'],
                                          self.d_module['mirrorDirection'],
-                                         d_rotateOrders, d_preferredAngles)        
+                                         d_rotateOrders, d_preferredAngles)
+        
+
         
     #cgmGEN.func_snapShot(vars())        
     """
@@ -2278,7 +2314,19 @@ def rig_skeleton(self):
                         #mc.scaleConstraint(_l, mJnt.mNode, maintainOffset = False)
                         
                     continue
-
+                
+    #Mirror if side...
+    if self.d_module['mirrorDirection'] == 'Left':
+        log.info("|{0}| >> Mirror direction ...".format(_str_func))
+        ml_fkAttachJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'fkAttach','fkAttachJoints')
+        self.atUtils('joints_flipChainForBehavior', ml_fkJoints)
+        
+        for i,mJoint in enumerate(ml_fkAttachJoints):
+            log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
+            ml_fkJoints[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
+            #attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
+            cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
+            mJoint.p_parent = ml_fkJoints[i]
     
     if self.b_pivotSetup:
         log.info("|{0}| >> Pivot joints...".format(_str_func))        
@@ -2351,7 +2399,9 @@ def rig_digitShapes(self):
         
         ml_templateHandles = mBlock.msgList_get('templateHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
+        
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+        
         ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
         ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
         
@@ -2384,7 +2434,7 @@ def rig_digitShapes(self):
         
         _offset = self.v_offset
         
-        
+        ml_fkJoints
         d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
         str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')        
 
@@ -2956,9 +3006,11 @@ def rig_shapes(self):
         
         ml_templateHandles = mBlock.msgList_get('templateHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
-        ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
         ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
+        ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
+        
+        ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
         #mIKEnd = ml_prerigHandleTargets[-1]
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
@@ -3040,26 +3092,24 @@ def rig_shapes(self):
                 #mShape2.delete()
                 #CORERIG.shapeParent_in_place(mIKCrv.mNode, mShape2.mNode, False)
                 
-                
-                
                 #Make our ikEnd -----------------------------------------------------
                 log.debug("|{0}| >> IK end shape...".format(_str_func))                
                 mIKTemplateHandle = ml_templateHandles[self.int_handleEndIdx]
                 bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 2.5)
-                
+            
                 mIKEndCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
                 mIKEndCrv.doSnapTo(self.ml_handleTargets[self.int_handleEndIdx].mNode)
-    
+            
                 mHandleFactory.color(mIKEndCrv.mNode, controlType = 'main',transparent=True)
                 mIKEndCrv.doCopyNameTagsFromObject(ml_fkJoints[self.int_handleEndIdx].mNode,
-                                                ignore=['cgmType','cgmTypeModifier'])
+                                                   ignore=['cgmType','cgmTypeModifier'])
                 mIKEndCrv.doStore('cgmTypeModifier','ikEnd')
                 mIKEndCrv.doStore('cgmType','handle')
                 mIKEndCrv.doName()
-                
-                self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect            
+            
+                self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        
 
             elif ml_templateHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
@@ -3083,17 +3133,52 @@ def rig_shapes(self):
                 
                 #CORERIG.match_transform(mIKShape.mNode, self.ml_handleTargets[self.int_handleEndIdx].mNode)
                 
+            elif str_ikEnd in ['tipCombo']:# and str_ikEnd in ['foot']:
+                log.debug("|{0}| >> default IK shape...".format(_str_func))                
+                mIKTemplateHandle = ml_templateHandles[-1]
+                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
+                ATTR.set(_ik_shape,'scale', 2.5)
+                
+                mIKCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                mIKCrv.doSnapTo(ml_prerigHandles[-1].mNode)                
+                
+                
+                #Make our ikEnd -----------------------------------------------------
+                log.debug("|{0}| >> IK end shape...".format(_str_func))                
+                _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                ATTR.set(_ik_shape,'scale', 2.5)
+                """
+                mIKEndCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                mIKEndCrv.doSnapTo(self.ml_handleTargets[self.int_handleEndIdx].mNode)
+            
+                mHandleFactory.color(mIKEndCrv.mNode, controlType = 'main',transparent=True)
+                mIKEndCrv.doCopyNameTagsFromObject(self.ml_handleTargets[self.int_handleEndIdx].mNode,
+                                                   ignore=['cgmType','cgmTypeModifier'])
+                """
+                mIKEndCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                mIKEndCrv.doSnapTo(ml_prerigHandles[-1].mNode)
+            
+                mHandleFactory.color(mIKEndCrv.mNode, controlType = 'main',transparent=True)
+                mIKEndCrv.doCopyNameTagsFromObject(self.ml_handleTargets[self.int_handleEndIdx].mNode,
+                                                   ignore=['cgmType','cgmTypeModifier'])                
+                
+                mIKEndCrv.doStore('cgmTypeModifier','ikCombo')
+                mIKEndCrv.doStore('cgmType','handle')
+                mIKEndCrv.doName()
+            
+                self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        #Connect                        
             else:
                 _ikDefault = True
                 log.debug("|{0}| >> default IK shape...".format(_str_func))                
-                mIKTemplateHandle = ml_templateHandles[self.int_handleEndIdx]
+                mIKTemplateHandle = ml_templateHandles[-1]
                 bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
-                ATTR.set(_ik_shape,'scale', 1.5)
+                ATTR.set(_ik_shape,'scale', 2.5)
                 
                 mIKCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
                 mIKCrv.doSnapTo(self.ml_handleTargets[self.int_handleEndIdx].mNode)
-    
+
             mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
             mIKCrv.doCopyNameTagsFromObject(ml_fkJoints[self.int_handleEndIdx].mNode,
                                             ignore=['cgmType','cgmTypeModifier'])
@@ -3180,6 +3265,7 @@ def rig_shapes(self):
     
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
+            
             
             
             
@@ -3483,14 +3569,17 @@ def rig_shapes(self):
                 mHandleFactory.color(_fk_shape, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
                 mShape.delete()"""
-                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
+                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, True, replaceShapes=True)            
                 
                 
             else:
                 mHandleFactory.color(mShape.mNode, controlType = 'main')
                 #if _ikDefault:
                 #    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
-                CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, False, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, True, replaceShapes=True)
+
+        if str_ikEnd in ['tipCombo']:
+            CORERIG.shapeParent_in_place(mIKEndCrv.mNode,ml_fkShapes[-2].mNode, True, replaceShapes=True)
 
         for mShape in ml_fkShapes:
             try:mShape.delete()
@@ -3661,8 +3750,10 @@ def rig_controls(self):
                                           mirrorSide= self.d_module['mirrorDirection'],
                                           mirrorAxis="translateX,rotateY,rotateZ",
                                           makeAimable = True)
-
+        
         mObj = d_buffer['mObj']
+        self.atUtils('get_switchTarget', mObj, mObj.getMessage('blendJoint'))
+        
     log.debug(cgmGEN._str_subLine)
 
     
@@ -4423,12 +4514,15 @@ def rig_frame(self):
         ml_templateHandles = mBlock.msgList_get('templateHandles')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
+        ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
         
         
         b_cog = False
         if mBlock.getMessage('cogHelper'):
             b_cog = True
+            
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
+        str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
         str_rigSetup = mBlock.getEnumValueString('rigSetup')
 
         #Changing targets - these change based on how the setup rolls through
@@ -4437,7 +4531,10 @@ def rig_frame(self):
         mIKHandleDriver = mIKControl
         mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
         
-
+        if mIKControlEnd:
+            log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
+            mIKHandleDriver = mIKControlEnd
+            
         #Pivot Driver =======================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
         if mPivotHolderHandle.getMessage('pivotHelper'):
@@ -4457,13 +4554,11 @@ def rig_frame(self):
             mIKHandleDriver = mPivotResultDriver
             
             if mIKControlEnd:
-                log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))                
                 mIKControlEnd.masterGroup.p_parent = mPivotResultDriver
-                mIKHandleDriver = mIKControlEnd
             
             
             mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect
-            
+        
             
         #Lever ===========================================================================================
         if self.b_lever:
@@ -4664,9 +4759,14 @@ def rig_frame(self):
             mIKControl.masterGroup.parent = mIKGroup
             
             mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
+            
             if mIKControlBase:
                 log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mIKControlBase))            
                 mIKControlBase.masterGroup.p_parent = mIKGroup
+                
+            
+            if mIKControlEnd:
+                mIKControlEnd.masterGroup.p_parent = mIKGroup
                 
             """
             mIKBaseControl = False
@@ -4719,12 +4819,17 @@ def rig_frame(self):
                 
                 #Build the IK ---------------------------------------------------------------------
                 reload(IK)
+                if mIKControlEnd and str_ikEnd in ['tipCombo']:
+                    mMainIKControl = mIKControlEnd
+                else:
+                    mMainIKControl = mIKControl
+                
                 _d_ik= {'globalScaleAttr':mPlug_masterScale.p_combinedName,#mPlug_globalScale.p_combinedName,
                         'stretch':'translate',
                         'lockMid':True,
                         'rpHandle':mIKMid.mNode,
                         'nameSuffix':'ik',
-                        'controlObject':mIKControl.mNode,
+                        'controlObject':mMainIKControl.mNode,
                         'moduleInstance':self.mModule.mNode}
                 
                 d_ikReturn = IK.handle(_start,_end,**_d_ik)
@@ -4732,41 +4837,9 @@ def rig_frame(self):
                 ml_distHandlesNF = d_ikReturn['ml_distHandles']
                 mRPHandleNF = d_ikReturn['mRPHandle']
                 
-                """
-                #Get our no flip position-------------------------------------------------------------------------
-                log.debug("|{0}| >> no flip dat...".format(_str_func))
-                
-                _side = mBlock.atUtils('get_side')
-                _dist_ik_noFlip = DIST.get_distance_between_points(mStart.p_position,
-                                                                   mEnd.p_position)
-                if _side == 'left':#if right, rotate the pivots
-                    pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'-',_dist_ik_noFlip)
-                else:
-                    pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'+',_dist_ik_noFlip)
-                
-                #No flip -------------------------------------------------------------------------
-                log.debug("|{0}| >> no flip setup...".format(_str_func))
-                
-                mIKHandle = d_ikReturn['mHandle']
-                ml_distHandlesNF = d_ikReturn['ml_distHandles']
-                mRPHandleNF = d_ikReturn['mRPHandle']
-            
-                #No Flip RP handle -------------------------------------------------------------------
-                mRPHandleNF.p_position = pos_noFlipOffset
-            
-                mRPHandleNF.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])
-                mRPHandleNF.addAttr('cgmName','{0}PoleVector'.format(self.d_module['partName']), attrType = 'string')
-                mRPHandleNF.addAttr('cgmTypeModifier','noFlip')
-                mRPHandleNF.doName()
-            
-                if mIKBaseControl:
-                    mRPHandleNF.parent = mIKBaseControl.mNode
-                else:
-                    mRPHandleNF.parent = mSpinGroup.mNode
-                    """
 
                 #>>>Parent IK handles -----------------------------------------------------------------
-                log.debug("|{0}| >> parent ik dat...".format(_str_func,_ikSetup))
+                log.debug("|{0}| >> parent ik dat...".format(_str_func))
                 
                 mIKHandle.parent = mIKHandleDriver.mNode#handle to control	
                 for mObj in ml_distHandlesNF[:-1]:
@@ -4782,7 +4855,7 @@ def rig_frame(self):
                 if mIKControlEnd:
                     mIKEndDriver = mIKControlEnd
                 else:
-                    mIKEndDriver =mIKControl
+                    mIKEndDriver = mIKControl
                     
                 mc.orientConstraint([mIKEndDriver.mNode],
                                     ml_ikJoints[self.int_handleEndIdx].mNode,
@@ -4822,19 +4895,21 @@ def rig_frame(self):
                 #Setup arg
                 #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
                 #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
-                
+ 
+                mSpinTarget = mIKControl
+                    
                 if mBlock.ikRPAim:
-                    mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = True,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpType = 'none')
                 else:
-                    mc.aimConstraint(mIKControl.mNode, mSpinGroup.mNode, maintainOffset = True,
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = True,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mIKControl.mNode,
+                                     worldUpObject = mSpinTarget.mNode,
                                      worldUpType = 'objectrotation', 
                                      worldUpVector = self.v_twistUp)
                 
-                mPlug_spinMid = cgmMeta.cgmAttr(mIKControl,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
+                mPlug_spinMid = cgmMeta.cgmAttr(mSpinTarget,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
                 
                 if self.d_module['direction'].lower() == 'right':
                     str_arg = "{0}.r{1} = -{2}".format(mSpinGroupAdd.mNode,
@@ -4848,6 +4923,7 @@ def rig_frame(self):
                 mSpinGroup.dagLock(True)
                 mSpinGroupAdd.dagLock(True)
                 
+
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
                 mMidControlDriver = mIKMid.doCreateAt()
@@ -4856,11 +4932,19 @@ def rig_frame(self):
                 mMidControlDriver.doName()
                 mMidControlDriver.addAttr('cgmAlias', 'midDriver')
                 
-                if mIKControlBase:
-                    l_midDrivers = [mIKControlBase.mNode,mIKHandleDriver.mNode]
-                else:
-                    l_midDrivers = [mRoot.mNode, mIKHandleDriver.mNode]
                     
+                if mIKControlBase:
+                    l_midDrivers = [mIKControlBase.mNode]
+                else:
+                    l_midDrivers = [mRoot.mNode]
+                    
+                if str_ikEnd in ['tipCombo'] and mIKControlEnd:
+                    log.info("|{0}| >> mIKControlEnd + tipCombo...".format(_str_func))
+                    l_midDrivers.append(mIKControl.mNode)
+                else:
+                    l_midDrivers.append(mIKHandleDriver.mNode)
+
+                
                 mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
                 mMidControlDriver.parent = mSpinGroupAdd#mIKGroup
                 mIKMid.masterGroup.parent = mMidControlDriver
@@ -4883,6 +4967,37 @@ def rig_frame(self):
                     s.overrideDisplayType = 2
                 mTrackCrv.doConnectIn('visibility',"{0}.v".format(mIKGroup.mNode))
                 
+                #Full IK chain -----------------------------------------------------------------------
+                if mIKControlEnd and ml_ikFullChain:
+                    log.debug("|{0}| >> Full IK Chain...".format(_str_func))
+                    
+                    _d_ik= {'globalScaleAttr':mPlug_masterScale.p_combinedName,#mPlug_globalScale.p_combinedName,
+                            'stretch':'translate',
+                            'lockMid':False,
+                            'rpHandle':mIKMid.mNode,
+                            'baseName':'ikFullChain',
+                            'nameSuffix':'ikFull',
+                            'controlObject':mIKControl.mNode,
+                            'moduleInstance':self.mModule.mNode}
+                                    
+                    d_ikReturn = IK.handle(ml_ikFullChain[0],ml_ikFullChain[-1],**_d_ik)
+                    mIKHandle = d_ikReturn['mHandle']
+                    ml_distHandlesNF = d_ikReturn['ml_distHandles']
+                    mRPHandleNF = d_ikReturn['mRPHandle']
+                    
+                    mIKHandle.parent = mIKControl.mNode#handle to control	
+                    for mObj in ml_distHandlesNF[:-1]:
+                        mObj.parent = mRoot
+                    ml_distHandlesNF[-1].parent = mIKControl.mNode#handle to control
+                    #ml_distHandlesNF[1].parent = mIKMid
+                    #ml_distHandlesNF[1].t = 0,0,0
+                    #ml_distHandlesNF[1].r = 0,0,0
+                    
+                    #>>> Fix our ik_handle twist at the end of all of the parenting
+                    IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
+                    
+                    #mIKControl.masterGroup.p_parent = ml_ikFullChain[-2]
+                    
                     
             elif _ikSetup == 'spline':
                 log.debug("|{0}| >> spline setup...".format(_str_func))
@@ -5011,6 +5126,8 @@ def rig_frame(self):
             #else:
             mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))            
             ml_blendJoints[0].parent = mRoot
+            if ml_ikFullChain:
+                ml_ikFullChain[0].p_parent = mRoot
             
             ml_ikJoints[0].parent = mIKGroup            
             if mIKControlBase:
@@ -5034,6 +5151,11 @@ def rig_blendFrame(self):
     
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     ml_fkJoints = mRigNull.msgList_get('fkJoints')
+    ml_fkAttachJoints = mRigNull.msgList_get('fkAttachJoints')
+    if ml_fkAttachJoints:
+        log.debug("|{0}| >> Found fk attach joints...".format(_str_func))        
+        ml_fkJoints = ml_fkAttachJoints
+        
     ml_ikJoints = mRigNull.msgList_get('ikJoints')
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
@@ -5423,8 +5545,14 @@ def rig_cleanUp(self):
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')        
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
-    
+    ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
     str_blockProfile = mBlock.getEnumValueString('blockProfile')
+    
+    str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
+
+    #Changing targets - these change based on how the setup rolls through
+    mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
+
     
     ml_controlsToSetup = []
     for msgLink in ['rigJoints','controlIK']:
@@ -5551,8 +5679,10 @@ def rig_cleanUp(self):
         mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
         if mPivotResultDriver:
             mPivotResultDriver = mPivotResultDriver[0]
-        ml_targetDynParents = [mParent,mPivotResultDriver,mControlIK]
+        ml_targetDynParents = [mParent,mPivotResultDriver]
         
+        ml_targetDynParents.append(mControlIK)
+            
         ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
         #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
@@ -5568,6 +5698,23 @@ def rig_cleanUp(self):
         pprint.pprint(ml_targetDynParents)                
         log.debug(cgmGEN._str_subLine)
     
+    if mIKControlEnd:
+        if str_ikEnd in ['tipCombo']:
+            ml_targetDynParents = []
+            #ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
+                   
+            ml_targetDynParents.append(self.md_dynTargetsParent['world'])
+            ml_targetDynParents.extend(mIKControlEnd.msgList_get('spacePivots',asMeta = True))
+            ml_targetDynParents.insert(0,ml_ikFullChain[-2])            
+        
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mIKControlEnd,dynMode=0)
+            #mDynGroup.dynMode = 2
+        
+            for mTar in ml_targetDynParents:
+                mDynGroup.addDynParent(mTar)
+            mDynGroup.rebuild()            
+     
+            pass
     
     """
     #...rigjoints =================================================================================================
