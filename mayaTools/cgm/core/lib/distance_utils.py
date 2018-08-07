@@ -414,7 +414,7 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         l_shapes = mc.listRelatives(dag,shapes=True, fullPath= True)
         
     
-    for s in l_shapes:
+    for i,s in enumerate(l_shapes):
         log.info("|{0}| >> On shape: {1}".format(_str_func, s))        
         if _originUse is None:
             #_trans = VALID.getTransform(dag)
@@ -423,9 +423,10 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         else:
             _origin = _originUse
     
-        _l_source = mc.ls("{0}.{1}[*]".format(dag,component),flatten=True)
+        _l_source = mc.ls("{0}.{1}[*]".format(s,component),flatten=True,long=True)
         
-        for i,c in enumerate(_l_source):
+        for ii,c in enumerate(_l_source):
+            log.info("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
             set_vectorOffset(c,_origin,distance)
         
     return True
@@ -462,6 +463,7 @@ def get_average_position(posList):
         posY.append(posBuffer[1])
         posZ.append(posBuffer[2])
     return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]
+
 
 def get_pos_by_vec_dist(startPos,vec,distance = 1):
     """

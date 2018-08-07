@@ -12,7 +12,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -799,6 +799,71 @@ def rebuild_linear(target = None):
         l_curves.append( mc.curve (d=1, ep = l_pos, k = [i for i in range(0,knot_len)], os=True))
         
     return l_curves
+
+def join_shapes(targets = None, component = 'ep',mode='all'):
+    _str_func = 'join_shapes'    
+    
+    sel = mc.ls(sl=True)
+    if targets is None:
+        targets = sel
+    if not targets:
+        raise ValueError,"No targets specified"
+    
+    l_shapes = []
+    _len = False
+    l_mainCurves=[]
+    for o in targets:
+        _l_shapes = mc.listRelatives(o,shapes=True,fullPath=True)
+        if not _len:
+            _len = len(_l_shapes)
+        
+        if len(_l_shapes) != _len:
+            log.warning("|{0}| >>  {1} | len{2} doesn't match base: {3}".format(_str_func, o,
+                                                                                len(_l_shapes,
+                                                                                    _len)))
+            continue
+        l_mainCurves.append(o)
+        l_shapes.append(_l_shapes)
+    
+    if len(l_shapes)<2:
+        raise ValueError,"Must have more than two valid shape lists"
+    
+    log.debug("|{0}| >> Making connectors".format(_str_func))
+    d_compPos = {}
+    for i,shps in enumerate(l_shapes):
+        log.debug("|{0}| >> Shapes {1} | {2}".format(_str_func,i,shps))
+        for ii,shp in enumerate(shps):
+            log.debug("|{0}| >> Shape {1} | {2}".format(_str_func,ii,shp))            
+            for iii,comp in enumerate(mc.ls("{0}.{1}[*]".format(shp,component),flatten=True,long=True)):
+                _key = "{0},{1}".format(ii,iii)
+                if not d_compPos.get(_key):
+                    d_compPos[_key] = []
+        
+                _l = d_compPos[_key]
+                _l.append(POS.get(comp))
+    pprint.pprint(d_compPos)
+    _cnt = 0
+    for k,points in d_compPos.iteritems():
+        l_use = []        
+        if mode == 'even':
+            for i,p in enumerate(points):
+                if MATH.is_even(i):
+                    l_use.append(p)
+        elif mode == 'odd':
+            l_use = []
+            for i,p in enumerate(points):
+                if not MATH.is_even(i):
+                    l_use.append(p)
+        else:
+            l_use = points
+        
+        crv_connect = create_fromList(posList=l_use)
+        l_mainCurves.append(crv_connect)
+        _cnt +=1
+    
+    for crv in l_mainCurves[1:]:
+        RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+
 
     
 def controlCurve_update(target = None):
