@@ -4899,11 +4899,11 @@ def rig_frame(self):
                 mSpinTarget = mIKControl
                     
                 if mBlock.ikRPAim:
-                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = True,
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpType = 'none')
                 else:
-                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = True,
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
                                      worldUpObject = mSpinTarget.mNode,
                                      worldUpType = 'objectrotation', 
