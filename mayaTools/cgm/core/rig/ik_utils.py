@@ -2377,7 +2377,7 @@ def handle(startJoint,
             
             #Attributes ----------------------------------------------------------
             d_baseAttrs = {}
-            for a in ['distIKRaw','distBaseNormal','distActiveNormal','scaleFactorRawMid',
+            for a in ['distIKRaw','distBaseNormal','distActiveNormal',
                       'distFullLengthNormal','scaleFactorRaw','scaleFactor']:
                 d_baseAttrs[a] = cgmMeta.cgmAttr(mIKHandle.mNode, a , attrType = 'float',
                                                  value = 1, lock =True , hidden = True)
@@ -2458,8 +2458,8 @@ def handle(startJoint,
             
             #Normal base -----------------------------------------------------------------------
             _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedShortName,
-                                          mPlug_rawDistance.value,
-                                          mPlug_globalScale.p_combinedShortName)
+                                            mPlug_rawDistance.value,
+                                            mPlug_globalScale.p_combinedShortName)
             NodeF.argsToNodes(_arg).doBuild()
             
             #Normal active -----------------------------------------------------------------------
@@ -2477,21 +2477,22 @@ def handle(startJoint,
             
             #scaleFactorRaw  -----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRaw'].p_combinedShortName,
-                                            d_baseAttrs['distActiveNormal'].p_combinedShortName,
+                                            mPlug_rawDistance.p_combinedShortName,
                                             d_baseAttrs['distFullLengthNormal'].p_combinedShortName)
             NodeF.argsToNodes(_arg).doBuild()
             
+            """
             #scaleFactorRawMid  -----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedShortName,
                                             d_baseAttrs['distActiveNormal'].p_combinedShortName,
                                             d_baseAttrs['distBaseNormal'].p_combinedShortName)
             NodeF.argsToNodes(_arg).doBuild()            
             
-            
+            """
             
             #scaleFactorReal ---------------------------------------------------------------
             _arg = "{0} = if {1} >= {2}: {3} else 1".format(d_baseAttrs['scaleFactor'].p_combinedShortName,
-                                                            d_baseAttrs['distActiveNormal'].p_combinedShortName,
+                                                            mPlug_rawDistance.p_combinedShortName,
                                                             d_baseAttrs['distFullLengthNormal'].p_combinedShortName,
                                                             d_baseAttrs['scaleFactorRaw'].p_combinedShortName)
             NodeF.argsToNodes(_arg).doBuild()            
@@ -2523,7 +2524,7 @@ def handle(startJoint,
 
             #Per joint setup...
             #--------------------------------------------------------------------------------------------
-            l_jntAttrs = ['distBase','stretchReg']
+            l_jntAttrs = ['distBase','distNormal','stretchReg']
             if lockMid:
                 l_jntAttrs.extend(['stretchMid',
                                    'distMidBase','distMidBaseNormal',
@@ -2539,6 +2540,12 @@ def handle(startJoint,
                     
                 md_jntAttrs['distBase'].value = ATTR.get(ml_jointChain[i+1].mNode,
                                                          "t{0}".format(str_localAimSingle))
+                
+                #Normal base -----------------------------------------------------------------------
+                _arg = "{0} = {1} * {2}".format(md_jntAttrs['distNormal'].p_combinedShortName,
+                                                md_jntAttrs['distBase'].p_combinedShortName,
+                                                mPlug_globalScale.p_combinedShortName)
+                NodeF.argsToNodes(_arg).doBuild()
                 
                 _arg = "{0} = {1} * {2}.output".format(md_jntAttrs['stretchReg'].p_combinedShortName,
                                                        md_jntAttrs['distBase'].p_combinedShortName,
