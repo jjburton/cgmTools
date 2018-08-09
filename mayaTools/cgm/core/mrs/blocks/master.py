@@ -101,7 +101,7 @@ def define(self):
     ATTR.set_alias(_short,'sy','blockScale')    
     self.setAttrFlags(attrs=['sx','sz','sz'])
     self.doConnectOut('sy',['sx','sz'])
-    ATTR.set_min(_short,'controlOffset',1.0)
+    ATTR.set_min(_short,'controlOffset',.001)
     
     try:mc.delete(self.getShapes())
     except:pass

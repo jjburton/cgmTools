@@ -158,8 +158,9 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_profile.clear()
             
         _menu = self.uiMenu_profile
-        
         if not self.uiRC_profile:
+            try:mc.setParent(_menu)
+            except:pass
             uiRC = mc.radioMenuItemCollection() # mUI.MelRadioCollection()#
             self.uiRC_profile = uiRC
         else:
