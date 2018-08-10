@@ -1022,9 +1022,9 @@ def ribbon(jointList = None,
     #b_advancedTwistSetup = VALID.boolArg(advancedTwistSetup)
     #b_extendTwistToEnd= VALID.boolArg(extendTwistToEnd)
 
-    if int_lenJoints<3:
-        pprint.pprint(vars())
-        raise ValueError,"needs at least three joints"
+    #if int_lenJoints<3:
+        #pprint.pprint(vars())
+        #raise ValueError,"needs at least three joints"
     
     if parentGutsTo is None:
         mGroup = cgmMeta.cgmObject(name = 'newgroup')

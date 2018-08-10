@@ -340,7 +340,7 @@ def get_vector_between_targets(targetList=None):
     
     for i,p in enumerate(l_pos[:-1]):
         d = MATHUTILS.get_vector_of_two_points(p,l_pos[i+1])
-        log.info("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
+        log.debug("|{0}| >> {1} |---------| {2} : {3}".format(_str_func,targetList[i],targetList[i+1],d))
         l_vec.append(d)
         
     return l_vec
@@ -394,7 +394,7 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
     If origin is None, juse the center of each shape
     """
     _str_func = 'offsetShape_byVector'
-    log.info("|{0}| >> dag: {1} | distance: {2} | origin: {3} | component: {4}".format(_str_func,
+    log.debug("|{0}| >> dag: {1} | distance: {2} | origin: {3} | component: {4}".format(_str_func,
                                                                                        dag,
                                                                                        distance,
                                                                                        origin,
@@ -405,7 +405,7 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
     if VALID.isListArg(origin):
         _originUse = origin
     elif VALID.objString(origin,noneValid=True):
-        log.info("|{0}| >> Getting origin from transform of origin string: {1}".format(_str_func, origin))
+        log.debug("|{0}| >> Getting origin from transform of origin string: {1}".format(_str_func, origin))
         _originUse = POS.get(origin)
     
     if VALID.is_shape(dag):
@@ -415,18 +415,18 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         
     
     for i,s in enumerate(l_shapes):
-        log.info("|{0}| >> On shape: {1}".format(_str_func, s))        
+        log.debug("|{0}| >> On shape: {1}".format(_str_func, s))        
         if _originUse is None:
             #_trans = VALID.getTransform(dag)
             _origin = POS.get_bb_center(s)
-            log.info("|{0}| >> Getting origin from center of s: {1}".format(_str_func, _origin))
+            log.debug("|{0}| >> Getting origin from center of s: {1}".format(_str_func, _origin))
         else:
             _origin = _originUse
     
         _l_source = mc.ls("{0}.{1}[*]".format(s,component),flatten=True,long=True)
         
         for ii,c in enumerate(_l_source):
-            log.info("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
+            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
             set_vectorOffset(c,_origin,distance)
         
     return True

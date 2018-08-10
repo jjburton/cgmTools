@@ -490,10 +490,12 @@ class ui(cgmUI.cgmGUI):
         
         mActiveBlock = None
         side = None
-        
+        if blockType in ['limb']:
+            side = 'right'
+            
         if self._blockCurrent:
             mActiveBlock = self._blockCurrent.mNode
-            side = self._blockCurrent.UTILS.get_side(self._blockCurrent)
+            #side = self._blockCurrent.UTILS.get_side(self._blockCurrent)
         _sizeMode = self.var_rigBlockCreateSizeMode.value
         if _sizeMode == 'selection' and not mc.ls(sl=True):
             #if blockType not in ['master']:

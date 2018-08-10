@@ -1658,7 +1658,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 
                                 crv = CURVES.create_fromName(name='semiSphere',
                                                              direction = 'z+',
-                                                             size = offset*2)
+                                                             size = offset)
                                 l_shapes.append(crv)
                                 mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
                                 
@@ -1765,17 +1765,28 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 
 
 def joints_flipChainForBehavior(self,ml_chain=None):
+    d_children = {}
     for mJoint in ml_chain:
+        ml_end_children = mJoint.getChildren(asMeta=True)
+        if ml_end_children:
+            d_children[mJoint] = ml_end_children
+            for mChild in ml_end_children:
+                mChild.parent = False        
         mJoint.parent = False
+        
     
     for mJoint in ml_chain:
         ATTR.set(mJoint.mNode,"r{0}".format(self.d_orientation['str'][2]),180)
     
     for i,mJoint in enumerate(ml_chain[1:]):
         mJoint.parent = ml_chain[i]
-    
-    JOINTS.freezeJointOrientation(ml_chain)    
 
+    JOINTS.freezeJointOrientation(ml_chain)
+    
+    for i,mJoint in enumerate(ml_chain):
+        if d_children.get(mJoint):
+            for mChild in d_children[mJoint]:
+                mChild.parent = mJoint                    
 
 
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False, ballBase = True):

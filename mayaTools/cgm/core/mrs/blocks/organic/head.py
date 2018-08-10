@@ -1152,6 +1152,7 @@ def skeleton_build(self, forceNew = True):
     log.debug("|{0}| >> ...".format(_str_func)) 
     
     _radius = self.atUtils('get_shapeOffset')
+    
     ml_joints = []
     mModule = self.moduleTarget
     if not mModule:
@@ -1181,7 +1182,8 @@ def skeleton_build(self, forceNew = True):
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
     _l_namesToUse = self.atUtils('skeleton_getNameDicts',False, self.neckJoints +1,
-                                 iterName = _l_baseNames[0])        
+                                 iterName = _l_baseNames[0])     
+    
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
@@ -1252,7 +1254,7 @@ def skeleton_build(self, forceNew = True):
             
             mOrientHelper = ml_prerigHandles[0].orientHelper
             
-            ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mOrientHelper.getAxisVector('z-'))
+            ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
             
             for i,mJnt in enumerate(ml_joints):
                 #mJnt.rename(_l_namesToUse[i])
@@ -1273,8 +1275,8 @@ def skeleton_build(self, forceNew = True):
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
         mJnt.radius = _radius
-    if len(ml_joints) > 1:
-        mHead_jnt.radius = ml_joints[-1].radius * 3
+    #if len(ml_joints) > 1:
+        #mHead_jnt.radius = ml_joints[-1].radius * 3
 
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
@@ -3018,10 +3020,11 @@ def rig_cleanUp(self):
             ml_handles = self.mRigNull.msgList_get('handleJoints')
             for mHandle in ml_handles:
                 ml_controlsToLock.remove(mHandle)
-            for i in self.md_roll.keys():
-                mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
-                if mControlMid:
-                    ml_controlsToLock.remove(mControlMid)
+            if self.__dict__.has_key('md_roll'):
+                for i in self.md_roll.keys():
+                    mControlMid = mRigNull.getMessageAsMeta('controlSegMidIK_{0}'.format(i))
+                    if mControlMid:
+                        ml_controlsToLock.remove(mControlMid)
     
     
         for mCtrl in ml_controlsToLock:

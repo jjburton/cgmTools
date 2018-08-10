@@ -304,30 +304,31 @@ def blendChainsBy(l_jointChain1 = None,
             _d = {}
             if constraint == 'scale':
                 _d = d_scale
-                
             log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
                                                                              ml_jointChain2[i].getShortName(),
                                                                              ml_blendChain[i].getShortName(),
                                                                              constraint))	    
-            i_c = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
+            mConst = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
                                                        ml_blendChain[i].getShortName(),maintainOffset = maintainOffset,**_d)[0])
 
-
-            targetWeights = d_funcs[constraint](i_c.mNode,q=True, weightAliasList=True)
+            if constraint in ['parent','orient']:
+                mConst.interpType = 2
+                
+            targetWeights = d_funcs[constraint](mConst.mNode,q=True, weightAliasList=True)
             if len(targetWeights)>2:
                 raise StandardError,"Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
 
             if mi_driver:
                 d_blendReturn = NODEFACTORY.createSingleBlendNetwork(mi_driver,
-                                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain1[i].getBaseName())],
-                                                               [i_c.mNode,'result_%s_%s'%(constraint,ml_jointChain2[i].getBaseName())],
+                                                               [mConst.mNode,'result_%s_%s'%(constraint,ml_jointChain1[i].getBaseName())],
+                                                               [mConst.mNode,'result_%s_%s'%(constraint,ml_jointChain2[i].getBaseName())],
                                                                keyable=True)
 
                 #Connect                                  
-                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[0]))
-                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (i_c.mNode,targetWeights[1]))
+                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mConst.mNode,targetWeights[0]))
+                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mConst.mNode,targetWeights[1]))
 
-            ml_nodes.append(i_c)
+            ml_nodes.append(mConst)
 
     d_blendReturn['ml_nodes'] = ml_nodes
 

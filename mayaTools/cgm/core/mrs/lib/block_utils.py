@@ -1255,12 +1255,15 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     return True
 
 @cgmGEN.Timer
-def pivots_setup(self, mControl = None, mRigNull = None,
+def pivots_setup(self, mControl = None,
+                 mRigNull = None,
                  mBallJoint = None,
                  mBallWiggleJoint = None,
                  mToeJoint = None,
                  jointOrientation = 'zyx',
-                 pivotResult = None, rollSetup = 'default', **kws):
+                 pivotResult = None,
+                 mDag = None,
+                 rollSetup = 'default', **kws):
     """
     Builder for pivot setup
     
@@ -1282,6 +1285,8 @@ def pivots_setup(self, mControl = None, mRigNull = None,
     else:
         d_bankNames = d_pivotBankNames['default']
     
+    if mDag == None:
+        mDag = mControl
 
     d_strCaps = {'front':kws.get('front','toe').capitalize(),
                  'back':kws.get('back','heel').capitalize(),
@@ -1304,7 +1309,7 @@ def pivots_setup(self, mControl = None, mRigNull = None,
     d_pivots = {}
     #d_twistGroups = {}
     d_drivenGroups = {}
-    mLastParent = mControl
+    mLastParent = mDag
     for a in l_pivotOrder:
         str_a = 'pivot' + a.capitalize()
         mPivot = mRigNull.getMessage(str_a,asMeta=True)
@@ -1341,7 +1346,9 @@ def pivots_setup(self, mControl = None, mRigNull = None,
                 continue
             log.error("|{0}| >> No master group on pivot. Wrong stage: {1}".format(_str_func,str_a))
     
-        
+    #if mDag == None:
+        #mDag.p_parent = mLastParent
+        #mLastParent = mDag
     
     if mBallWiggleJoint:
         mBallWiggleJoint.parent = mLastParent
@@ -3673,7 +3680,7 @@ def controls_mirror(blockSource, blockMirror = None,
             if ml_targetControls[0] != ml_controls[0]:
                 ml_targetControls[0].baseAimX = ml_controls[0].baseAimX
                 ml_targetControls[0].baseAimY = -ml_controls[0].baseAimY
-                ml_targetControls[0].baseAimZ = ml_controls[0].baseAimZ
+                ml_targetControls[0].baseAimZ = -ml_controls[0].baseAimZ
         
         l_dat = []
         
