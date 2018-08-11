@@ -232,11 +232,21 @@ def get_controlSpaceSetupDict(self):
     return d_controlSpaces
 
 def gather_rigBlocks():
+    _str_func = 'gather_rigBlocks'
+    
     mGroup = get_blockGroup()
     
     for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock'):
+        log.debug("|{0}| >> Checking: {1}".format(_str_func,mObj))
+        
         if not mObj.parent:
             mObj.parent = mGroup
+            
+        for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
+            mLink = mObj.getMessageAsMeta(link)
+            if mLink and not mLink.parent:
+                log.debug("|{0}| >> {1} | {2}".format(_str_func,link,mLink))            
+                mLink.parent = mGroup
 
 def get_blockGroup():
     if not mc.objExists('cgmRigBlocksGroup'):

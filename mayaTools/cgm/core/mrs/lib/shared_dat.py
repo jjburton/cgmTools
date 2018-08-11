@@ -32,7 +32,40 @@ _l_requiredModuleDat = ['__version__',
                         'prerig','is_prerig','prerigDelete',
                         'rig','is_rig','rigDelete']
 
-_l_buildProfiles = 'unityLow','unityMed','unityHigh','feature'
+
+_l_buildProfiles = 'unityLow','unityMed','unityHigh','unityToon','feature'
+
+d_build_profiles = {
+    'unityLow':{'numRoll':0,
+                'scaleSetup':False,
+                'squashMeasure':0,
+                'squash':0,
+                   },
+    'unityMed':{'numRoll':1,
+                'scaleSetup':False,
+                'squashMeasure':0,
+                'squash':0,
+               },
+    'unityHigh':{'numRoll':3,
+                 'scaleSetup':False,
+                 'squashMeasure':0,
+                 'squash':0,
+               },
+    'unityToon':{'numRoll':3,
+                 'scaleSetup':True,
+                 'squashMeasure':'arcLength',
+                 'squash':'simple',
+               },        
+    'feature':{'numRoll':3,
+               'scaleSetup':True,
+               'squashMeasure':'arcLength',
+               'squash':'simple',
+               }
+}
+
+
+
+
 
 #These are our default attrs to make library. To be called via modules
 _d_attrsTo_make = {'side':'none:left:right:center',
