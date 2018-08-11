@@ -156,29 +156,17 @@ class ui(cgmUI.cgmGUI):
             
     def buildMenu_profile( self, *args, **kws):
         self.uiMenu_profile.clear()
-            
         _menu = self.uiMenu_profile
-        if not self.uiRC_profile:
-            try:mc.setParent(_menu)
-            except:pass
-            uiRC = mc.radioMenuItemCollection() # mUI.MelRadioCollection()#
-            self.uiRC_profile = uiRC
-        else:
-            uiRC = self.uiRC_profile
-            
-        log.info(uiRC)
-        #self.uiOptions_menuMode = []		
-        _v = self.var_buildProfile.value
         
         for i,item in enumerate(BLOCKSHARE._l_buildProfiles):
-            if item == _v:
-                _rb = True
-            else:_rb = False
-            mc.menuItem(parent=_menu,
-                        collection = uiRC,
-                        label=item,
-                        c = cgmGEN.Callback(self.uiFunc_buildProfile_set,**{'buildProfile':item}),
-                        rb = _rb)        
+            mUI.MelMenuItem(_menu, l=item,
+                            ann = "Load the following profile",
+                            c = cgmGEN.Callback(self.uiFunc_buildProfile_set,**{'buildProfile':item}),
+                            )        
+        
+        return
+
+
     
 
         
