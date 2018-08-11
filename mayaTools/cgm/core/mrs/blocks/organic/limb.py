@@ -80,7 +80,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.06012018'
+__version__ = 'alpha.1.08102018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -1521,7 +1521,7 @@ def skeleton_build(self, forceNew = True):
         #                          worldUpVector = self.baseUp)
         #mc.delete()
         SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
-                 self.rootUpHelper.getAxisVector('y+'))
+                 ml_jointHelpers[0].getAxisVector('y+'))#self.rootUpHelper.getAxisVector('y+'))
         JOINT.freezeOrientation(mLever.mNode)
         
         #Rest...
@@ -3387,7 +3387,7 @@ def rig_shapes(self):
                 size_knee =  POS.get_bb_size(self.mMidTemplateHandle.mNode,True)
                 crv = CURVES.create_fromName('sphere',
                                               direction = 'z+',#_jointOrientation[0]+'+',
-                                              size = _offset*2)#max(size_knee) * 1.25)            
+                                              size = size_knee + _offset)#max(size_knee) * 1.25)            
                 
                 mKnee = cgmMeta.validateObjArg(crv,setClass=True)
                 #CORERIG.shapeParent_in_place(mKnee.mNode, crv, False)

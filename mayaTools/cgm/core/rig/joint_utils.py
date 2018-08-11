@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -230,7 +230,7 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
             
             mJnt.rotate = 0,0,0
             mJnt.jointOrient = mDup.rotate
-            mDup.delete()            
+            mDup.delete()
             
         if mJnt in ml_cull:ml_cull.remove(mJnt)
         return
@@ -238,22 +238,22 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     def reparent(progressBar):
         log.debug("|{0}| >> reparent...".format(_str_func))
         
-        progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
+        #progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
         
         #log.info("|{0}| >> reparent progressBar:{1}".format(_str_func,format(progressBar)))
         for mJnt in ml_joints:
             #log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
-            cgmUI.progressBar_iter(progressBar,status='Reparenting: {0}'.format(mJnt.mNode))
+            #cgmUI.progressBar_iter(progressBar,status='Reparenting: {0}'.format(mJnt.mNode))
             
             mJnt.parent = _d_parents[mJnt]
             
             for mChild in _d_children[mJnt]:
-                if mChild not in ml_joints:
+                #if mChild not in ml_joints:
                     #log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
-                    mChild.parent = mJnt
+                mChild.parent = mJnt
             
             if mJnt in ml_ends and mJnt not in ml_world:
-                #log.debug("|{0}| >> End joint. No world...".format(_str_func))                                             
+                log.debug("|{0}| >> End joint. No world: {1}".format(_str_func,mJnt))                                             
                 mJnt.jointOrient = 0,0,0                
                         
     ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
@@ -304,22 +304,22 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     _cnt = 0
     while ml_cull and _go and _cnt <= _len+1:
         _cnt+=1
-        progressBar = cgmUI.progressBar_start(progressBar,stepMaxValue=_len)        
+        #progressBar = cgmUI.progressBar_start(progressBar,stepMaxValue=_len)        
         for mJnt in ml_cull:
             try:            
-                cgmUI.progressBar_iter(progressBar,status='Orienting: {0}'.format(mJnt.mNode))
+                #cgmUI.progressBar_iter(progressBar,status='Orienting: {0}'.format(mJnt.mNode))
                 orientJoint(mJnt)
             except Exception,err:
                 log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
                 _go = False
-                cgmUI.progressBar_end(progressBar)
+                #cgmUI.progressBar_end(progressBar)
                 reparent()                
                 return False
             
     reparent(progressBar)
-    try:cgmUI.progressBar_end(progressBar)
-    except:pass
-    
+    #try:cgmUI.progressBar_end(progressBar)
+    #except:pass
+    pprint.pprint(vars())
     return
  
             

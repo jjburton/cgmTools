@@ -71,7 +71,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.06012018'
+__version__ = 'alpha.1.08102018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -1536,12 +1536,16 @@ def rig_skeleton(self):
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
                                                                      'handleJoints',
                                                                      clearType=True)
-            
+            for i,mObj in enumerate(ml_segmentHandles):
+                if i:
+                    mObj.p_parent = ml_segmentHandles[i-1]
+                    
+            JOINT.orientChain(ml_segmentHandles,
+                              worldUpAxis=vec_chainUp)
             for i,mJnt in enumerate(ml_segmentHandles):
                 mJnt.parent = ml_blendJoints[i]
             
             log.info("|{0}| >> segment necessary...".format(_str_func))
-                
             ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_joints,
                                                                       None, mRigNull,
@@ -1677,7 +1681,7 @@ def rig_shapes(self):
             
             self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
             
-            if b_FKIKhead:#Settings ==================================================================================
+            if b_FKIKhead:#Settings =======================================================================
                 pos = mHeadHelper.getPositionByAxisDistance('z+', _size * .75)
                 vector = mHeadHelper.getAxisVector('y+')
                 newPos = DIST.get_pos_by_vec_dist(pos,vector,_size * .5)
@@ -2458,6 +2462,8 @@ def rig_frame(self):
     if mBlock.neckBuild:
         log.debug("|{0}| >> Neck...".format(_str_func))
         
+        mHeadFK.masterGroup.p_parent = ml_fkJoints[-2]
+        
         if not mRigNull.getMessage('rigRoot'):
             raise ValueError,"No rigRoot found"
         
@@ -2959,7 +2965,7 @@ def rig_cleanUp(self):
         ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
         
         mParent = mObj.masterGroup.getParent(asMeta=True)
-        if not mParent.hasAttr('cgmAlias'):
+        if mParent and mParent.hasAttr('cgmAlias'):
             mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
         _mode = 2
         if i == 0:

@@ -87,7 +87,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.06012018'
+__version__ = 'alpha.1.08102018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -1428,6 +1428,7 @@ def rig_skeleton(self):
     self.d_joints['ml_moduleJoints'] = ml_joints
     
     str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
+    str_ikSetup = ATTR.get_enumValueString(mBlock.mNode,'ikSetup')        
     
     reload(BLOCKUTILS)
     BLOCKUTILS.skeleton_pushSettings(ml_joints,self.d_orientation['str'],
@@ -1503,7 +1504,8 @@ def rig_skeleton(self):
             mMidIK.p_parent = False
             mMidIK.doName()
         
-            mMidIK.p_position = POS.get_curveMidPointFromDagList([mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:-1]])
+            mMidIK.p_position = POS.get_curveMidPointFromDagList([mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]])
+            print ([mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]])
             #DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,ml_rigJoints[-1].p_position])
         
             SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
@@ -1513,7 +1515,7 @@ def rig_skeleton(self):
             mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
         
     
-    if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:
+    if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:# or str_ikSetup == 'ribbon':
         log.debug("|{0}| >> Handles...".format(_str_func))            
         ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
         if mBlock.ikSetup:
@@ -1627,7 +1629,7 @@ def rig_shapes(self):
             log.debug("|{0}| >> Cog...".format(_str_func))
             mCogHelper = mBlock.cogHelper
             
-            mCog = mCogHelper.shapeHelper.doCreateAt(setClass=True)
+            mCog = mCogHelper.doCreateAt(setClass=True)
             CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
             
             mCog.doStore('cgmName','cog')
@@ -2805,6 +2807,8 @@ def rig_frame(self):
                 ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
                 if not ml_ribbonIkHandles:
                     raise ValueError,"No ribbon IKDriversFound"
+                ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
+                max_influences = 2
                 
                 
                 #log.debug("|{0}| >> segmentScale measure...".format(_str_func))
@@ -2812,18 +2816,20 @@ def rig_frame(self):
                 #mPlug_masterScale = res_segScale[0]
                 #mMasterCurve = res_segScale[1]                
                 
-                mSegMidIK = False
-                if mRigNull.getMessage('controlSegMidIK'):
+                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+
+                
+                if mSegMidIK:
                     log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
-                    
-                    mSegMidIK = mRigNull.controlSegMidIK
                     mSegMidIK.masterGroup.parent = mIKGroup
-                        
+                    ml_skinDrivers.append(mSegMidIK)
+                    max_influences+=1
+                    
                     ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
                     ml_midTrackJoints.insert(1,mSegMidIK)
                     
                     d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                             'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:-1]],
+                             'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
                              'baseName' :self.d_module['partName'] + '_midRibbon',
                              'driverSetup':'stableBlend',
                              'squashStretch':None,
@@ -2836,69 +2842,6 @@ def rig_frame(self):
                     l_midSurfReturn = IK.ribbon(**d_mid)
                     
                     
-                    """
-                    mMidSurface = l_midSurfReturn['mlSurfaces'][0]
-                    #Skin it...
-                    mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
-                                                                          mMidSurface.mNode,
-                                                                          tsb=True,
-                                                                          maximumInfluences = 2,
-                                                                          normalizeWeights = 1,
-                                                                          dropoffRate=1),
-                                                          'cgmNode',
-                                                          setClass=True)
-                  
-                    mSkinCluster.doStore('cgmName', mMidSurface.mNode)
-                    mSkinCluster.doName()
-                    
-                    #Tighten the weights...
-                    CORESKIN.surface_tightenEnds(mMidSurface.mNode, hardLength=2, mode='twoBlend')
-                    
-                    """
-                    """
-                    
-                    _jointOrientation = self.d_orientation['str']
-                    _offset = self.v_offset                    
-                    
-                    mSegMidIK = mRigNull.controlSegMidIK
-                    mSegMidIK.masterGroup.parent = mIKGroup
-                    
-                    ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
-                    ml_midTrackJoints.insert(1,mSegMidIK)
-                    l_surfaceReturn = IK.ribbon_createSurface([mJnt.mNode for mJnt in ml_midTrackJoints],
-                                                           'x')
-                    mMidSurface = cgmMeta.asMeta(l_surfaceReturn[0])
-                    mMidSurface.doStore('cgmName', 'midIKTrack')
-                    mMidSurface.doName()
-                    
-                    reload(RIGCONSTRAINT)
-                    l_attach = RIGCONSTRAINT.attach_toShape(mSegMidIK.masterGroup.mNode,mMidSurface.mNode,'conParent')
-                    
-                    mFollicle = cgmMeta.asMeta(l_attach[0])
-                    
-                    mDriver = mSegMidIK.doCreateAt(setClass=True)
-                    mDriver.rename("{0}_aimDriver".format(mFollicle.p_nameBase))
-                    mDriver.parent = mFollicle
-                    mUpGroup = mDriver.doGroup(True,asMeta=True,typeModifier = 'up')                    
-                    
-                    mUpDriver = mSegMidIK.doCreateAt(setClass=True)
-                    mDriver.rename("{0}_upTarget".format(mFollicle.p_nameBase))                    
-                    pos = DIST.get_pos_by_axis_dist(mSegMidIK.mNode, _jointOrientation[1]+'+', _offset )
-                    mUpDriver.p_position = pos
-                    mUpDriver.p_parent = mUpGroup
-                    
-                    mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
-                                                                          mMidSurface.mNode,
-                                                                          tsb=True,
-                                                                          maximumInfluences = 2,
-                                                                          normalizeWeights = 1,
-                                                                          dropoffRate=1),
-                                                          'cgmNode',
-                                                          setClass=True)
-                    
-                    mSkinCluster.doStore('cgmName', mMidSurface.mNode)
-                    mSkinCluster.doName()                        
-                    """
                 
                 log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
                 
@@ -2919,64 +2862,25 @@ def rig_frame(self):
                 
                 reload(IK)
                 
-                ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
-                max_influences = 2
-                #if str_ikBase == 'hips':
-                    #ml_skinDrivers.append(mHipHandle)
-                    #max_influences+=1
+                if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
+                    ml_skinDrivers.extend(ml_handleJoints)
                     
-                if mSegMidIK:
-                    ml_skinDrivers.append(mSegMidIK)
-                    max_influences+=1
+                    
+
+                d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                        'baseName' : self.d_module['partName'] + '_ikRibbon',
+                        'driverSetup':'stableBlend',
+                        'squashStretch':None,
+                        'connectBy':'constraint',
+                        'squashStretchMain':'arcLength',
+                        #masterScalePlug:mPlug_masterScale,
+                        'settingsControl': mSettings.mNode,
+                        'extraSquashControl':True,
+                        'influences':ml_skinDrivers,
+                        'moduleInstance' : self.mModule}
                 
-                """
-                if not mRigNull.msgList_get('segmentJoints'):
-                    log.debug("|{0}| >> No segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)
-                    
-                    _driverSetup = None
-                    if mBlock.ribbonAim:
-                        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
-                    
-                    _squashStretch = None
-                    if mBlock.squash:
-                        _squashStretch =  mBlock.getEnumValueString('squash')
-                        
-                    _settingsControl = None
-                    if mBlock.squashExtraControl:
-                        _settingsControl = mRigNull.settings.mNode
-                    
-                    _extraSquashControl = mBlock.squashExtraControl
-                           
-                    res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
-                    mPlug_masterScale = res_segScale[0]
-                    mMasterCurve = res_segScale[1]
-                    
-                    d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
-                          'baseName':'{0}_ikRibbon'.format(self.d_module['partName']),
-                          'connectBy':'constraint',
-                          'extraSquashControl':_extraSquashControl,
-                          'masterScalePlug':mPlug_masterScale,
-                          'influences':ml_skinDrivers,
-                          'settingsControl':mSettings.mNode,
-                          'moduleInstance':self.mModule}
-                    d_ik.update(self.d_squashStretch)"""
-                
-                if mRigNull.msgList_get('segmentJoints'):
-                    log.debug("|{0}| >> Segment joints setup...".format(_str_func)+cgmGEN._str_hardBreak)                    
-                    d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
-                            'baseName' : self.d_module['partName'] + '_ikRibbon',
-                            'driverSetup':'stableBlend',
-                            'squashStretch':None,
-                            'connectBy':'constraint',
-                            'squashStretchMain':'arcLength',
-                            #masterScalePlug:mPlug_masterScale,
-                            'settingsControl': mSettings.mNode,
-                            'extraSquashControl':True,
-                            'influences':ml_skinDrivers,
-                            'moduleInstance' : self.mModule}
-                    
-                    d_ik.update(self.d_squashStretchIK)
-                    res_ribbon = IK.ribbon(**d_ik)
+                d_ik.update(self.d_squashStretchIK)
+                res_ribbon = IK.ribbon(**d_ik)
                     
                 const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
                 for mConst in const:
