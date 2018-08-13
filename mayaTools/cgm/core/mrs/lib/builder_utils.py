@@ -735,7 +735,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     #tess method - general, uType 1, vType 2+ joint count
     
     #>>Body -----------------------------------------------------------------
-    _res_body = mc.loft(targets, o = True, d = degree, po = 1 )
+    _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
@@ -744,10 +744,17 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
-    _d = {'format':form,#Fit
-          'polygonType':1,#'quads',
-          'vNumber':points,
-          'uNumber': 1 + divisions}
+
+    if degree == 1:
+        _d = {'format':3,#Fit
+              'polygonType':1,#'quads',
+              'vNumber':points,
+              'uNumber': 1 + divisions}
+    else:
+        _d = {'format':form,#Fit
+              'polygonType':1,#'quads',
+              'vNumber':points,
+              'uNumber': 1 + divisions}
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
@@ -798,9 +805,11 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
         _res = _res_body
     else:
         _res = _res_body
+    
+    if degree == 1:
+        #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
+        mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
         
-    #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
-    #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
     return _res[0]    
 
 def create_remesh(mesh = None, joints = None, curve=None, positions = None,
@@ -1800,163 +1809,187 @@ def joints_flipChainForBehavior(self,ml_chain=None):
 
 
 def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False, ballBase = True):
-    _short = self.mBlock.mNode
-    _str_func = 'mesh_proxyCreate'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
-    
-    mRigNull = self.mRigNull
-    ml_shapes = []
-    
-    if upVector is None:
-        upVector = self.d_orientation['mOrientation'].p_up.p_string
-    
-    #Get our prerig handles if none provided
-    if targets is None:
-        ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
-        if not ml_targets:
-            raise ValueError,"No rigJoints connected. NO targets offered"
-    else:
-        ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
-    
-
-    ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
-    #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
-    #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
-    #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
-    #str_tmpMesh = mMesh_tmp.mNode
-    
-    mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
-    str_meshShape = mMesh_tmp.getShapes()[0]    
-
-    
-    #Process ----------------------------------------------------------------------------------
-    l_newCurves = []
-    str_meshShape = mMesh_tmp.getShapes()[0]
-    log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
-    
-    minU = ATTR.get(str_meshShape,'minValueU')
-    maxU = ATTR.get(str_meshShape,'maxValueU')
-    
-    l_failSafes = MATH.get_splitValueList(minU,maxU,
-                                          len(ml_targets))
-    log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))
-    
-    l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
-    log.debug("|{0}| >> Isoparms U: {1}".format(_str_func,l_uIsos))
-    
-    l_uValues = []
-    str_start = False
-    l_sets = []
-    #First loop through and get our base U Values for each point
-    for i,mTar in enumerate(ml_targets):
-        j = mTar.mNode
-        _d = RAYS.cast(str_meshShape,j,upVector)
-        log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
-        #cgmGEN.log_info_dict(_d,j)
-        if not _d:
-            log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
-            _v = l_failSafes[i]
+    try:
+        _short = self.mBlock.mNode
+        _str_func = 'mesh_proxyCreate'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
+        
+        mRigNull = self.mRigNull
+        ml_shapes = []
+        
+        if upVector is None:
+            upVector = self.d_orientation['mOrientation'].p_up.p_string
+        
+        #Get our prerig handles if none provided
+        if targets is None:
+            ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
+            if not ml_targets:
+                raise ValueError,"No rigJoints connected. NO targets offered"
         else:
-            _v = _d['uvsRaw'][str_meshShape][0][0]
-        log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+            ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
         
-        l_uValues.append(_v)
-        
-    for i,v in enumerate(l_uValues):
-        _l = [v]
-        
-        for uKnot in l_uIsos:
-            if uKnot > v:
-                if v == l_uValues[-1]:
-                    if uKnot < maxU:
-                        _l.append(uKnot)
-                elif uKnot < l_uValues[i+1]:
-                    _l.append(uKnot)
-                
-        if v == l_uValues[-1]:
-            _l.append(maxU)
-        else:
-            _l.append(l_uValues[i+1])
-            
-        if i == 0:
-            _l.insert(0,minU)
-            
-        l_sets.append(_l)
-
-        
-        #>>For each v value, make a new curve ---------------------------------------------------------
-        #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
-        #l_uValues.append(_v)
-        #crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
-        #log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
-        #l_newCurves.append(crv[0])
-        #if mTar == ml_targets[-1]:
-        #    crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
-        #    l_newCurves.append(crv[0])
-            
-        #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
-        #                                    ch = 0, rn = 0, local = 0)[0]
-
-    l_newCurves = []
-    d_curves = {}
-    def getCurve(uValue,l_curves):
-        _crv = d_curves.get(uValue)
-        if _crv:return _crv
-        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,uValue), ch = 0, rn = 0, local = 0)[0]
-        d_curves[uValue] = _crv
-        log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
-        l_curves.append(_crv)
-        return _crv
     
-    _degree = 1
-    if not self.mBlock.loftDegree:
-        _degree = 2
-    #>>Reloft those sets of curves and cap them ------------------------------------------------------------
-    log.debug("|{0}| >> Create new mesh objs.".format(_str_func))
-    l_new = []
-    for i,uSet in enumerate(l_sets):
-        log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+        ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
+        #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
+        #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
+        #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
+        #str_tmpMesh = mMesh_tmp.mNode
+        
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        str_meshShape = mMesh_tmp.getShapes()[0]
+        
         """
-        if i == 0 and str_start:
-            _pair = [str_start,c,l_newCurves[i+1]]
-        else:
-            _pair = [c,l_newCurves[i+1]]"""
-        
-        _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
-            
-        _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
-        RIGGING.match_transform(_mesh,ml_targets[i])
-        mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
-        if ballBase and i != 0:
-            RIGGING.match_transform(_loftCurves[0],ml_targets[i])
-            TRANS.pivots_recenter(_loftCurves[0])
-            
-            _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
-            _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
-            _size = [v*.8 for v in _size]
-            _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
-            TRANS.scale_to_boundingBox(_sphere[0], _size)
-            
-            SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
-            #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
-            SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
-            
-            _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
-            #mc.polyNormal(_mesh,setUserNormal = True)
-        RIGGING.match_transform(_mesh,ml_targets[i])
-        
-        l_new.append(_mesh)
-    
-    #...clean up 
-    mc.delete(l_newCurves)# + [str_tmpMesh]
-    mMesh_tmp.delete()
-    
-    if str_start:
-        mc.delete(str_start)
-    #>>Parent to the joints ----------------------------------------------------------------- 
-    return l_new
+        if len(ml_targets)==1:
+            log.debug("|{0}| >> Single mode!".format(_str_func))
+            _res = mc.nurbsToPoly(mMesh_tmp.mNode, mnd=1, ch =0, f =1, pt= 1, pc= 200, chr= 0.9, ft= 0.01, mel= 0.001, d= 0.1, ut= 1, un= 3, vt= 1, vn= 3, uch= 0, ucr= 0, cht= 0.01, es= 0, ntr= 0, mrt= 0, uss= 1)
 
+            return _res[0]"""
+            
+    
+        
+        #Process ----------------------------------------------------------------------------------
+        l_newCurves = []
+        str_meshShape = mMesh_tmp.getShapes()[0]
+        log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
+        
+        minU = ATTR.get(str_meshShape,'minValueU')
+        maxU = ATTR.get(str_meshShape,'maxValueU')
+        
+        l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                              len(ml_targets))
+        log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))
+        
+        l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+        log.debug("|{0}| >> Isoparms U: {1}".format(_str_func,l_uIsos))
+        
+        l_uValues = []
+        str_start = False
+        l_sets = []
+        #First loop through and get our base U Values for each point
+        for i,mTar in enumerate(ml_targets):
+            j = mTar.mNode
+            _d = RAYS.cast(str_meshShape,j,upVector)
+            log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+            #cgmGEN.log_info_dict(_d,j)
+            if not _d:
+                log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
+                _v = l_failSafes[i]
+            else:
+                _v = _d['uvsRaw'][str_meshShape][0][0]
+            log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+            
+            l_uValues.append(_v)
+            
+        _b_singleMode =False
+        if len(l_uValues) < 2:
+            l_uValues.append(maxU)
+            _b_singleMode = True
+            
+        for i,v in enumerate(l_uValues):
+            _l = [v]
+            
+            for uKnot in l_uIsos:
+                if uKnot > v:
+                    if v == l_uValues[-1]:
+                        if uKnot < maxU:
+                            _l.append(uKnot)
+                    elif uKnot < l_uValues[i+1]:
+                        _l.append(uKnot)
+                    
+            if v == l_uValues[-1]:
+                _l.append(maxU)
+            else:
+                _l.append(l_uValues[i+1])
+                
+            if i == 0:
+                _l.insert(0,minU)
+                
+            l_sets.append(_l)
+    
+            
+            #>>For each v value, make a new curve ---------------------------------------------------------
+            #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
+            #l_uValues.append(_v)
+            #crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
+            #log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
+            #l_newCurves.append(crv[0])
+            #if mTar == ml_targets[-1]:
+            #    crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
+            #    l_newCurves.append(crv[0])
+                
+            #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
+            #                                    ch = 0, rn = 0, local = 0)[0]
+    
+        l_newCurves = []
+        d_curves = {}
+        def getCurve(uValue,l_curves):
+            _crv = d_curves.get(uValue)
+            if _crv:return _crv
+            _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,uValue), ch = 0, rn = 0, local = 0)[0]
+            d_curves[uValue] = _crv
+            log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
+            l_curves.append(_crv)
+            return _crv
+        
+        _degree = 1
+        if not self.mBlock.loftDegree:
+            _degree = 3
+            
+        #>>Reloft those sets of curves and cap them ------------------------------------------------------------
+        log.debug("|{0}| >> Create new mesh objs.".format(_str_func))
+        l_new = []
+        _len_targets = len(ml_targets)
+        for i,uSet in enumerate(l_sets):
+            if i  and _b_singleMode:
+                log.debug("|{0}| >> SINGLE MODE".format(_str_func))                
+                break
+            
+            log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+            """
+            if i == 0 and str_start:
+                _pair = [str_start,c,l_newCurves[i+1]]
+            else:
+                _pair = [c,l_newCurves[i+1]]"""
+            
+            _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
+            
+            _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+            log.debug("|{0}| >> mesh created...".format(_str_func))                            
+            RIGGING.match_transform(_mesh,ml_targets[i])
+            mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            if ballBase and i != 0:
+                log.debug("|{0}| >> ball started...".format(_str_func))                                
+                RIGGING.match_transform(_loftCurves[0],ml_targets[i])
+                TRANS.pivots_recenter(_loftCurves[0])
+                
+                _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
+                _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
+                _size = [v*.8 for v in _size]
+                _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
+                TRANS.scale_to_boundingBox(_sphere[0], _size)
+                
+                SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+                #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
+                SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+                
+                _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
+                #mc.polyNormal(_mesh,setUserNormal = True)
+                log.debug("|{0}| >> ball done...".format(_str_func))                
+                
+            RIGGING.match_transform(_mesh,ml_targets[i])
+            l_new.append(_mesh)
+        
+        #...clean up 
+        mc.delete(l_newCurves)# + [str_tmpMesh]
+        mMesh_tmp.delete()
+        
+        if str_start:
+            mc.delete(str_start)
+        #>>Parent to the joints ----------------------------------------------------------------- 
+        return l_new
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 def joints_connectToParent(self):
     try:

@@ -1916,7 +1916,7 @@ def rig_dataBuffer(self):
         if not mBlock.hasEndJoint and str_ikEnd == 'tipEnd':
             self.b_ikNeedEnd = True
             log.debug("|{0}| >> Need IK end joint".format(_str_func))
-            self.int_handleEndIdx -=1
+            #self.int_handleEndIdx -=1
         
         if str_ikEnd in ['tipCombo']:
             log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
@@ -1928,8 +1928,9 @@ def rig_dataBuffer(self):
     log.debug("|{0}| >> self.ml_handleTargets: {1} | {2}".format(_str_func,
                                                                      len(self.ml_handleTargets),
                                                                      self.ml_handleTargets))
+    
     log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
-                                                                         ml_handleJoints[self.int_handleEndIdx]))
+                                                                             ml_handleJoints[self.int_handleEndIdx]))
     if not self.b_singleChain:
     
         ml_use = ml_handleJoints[:self.int_handleEndIdx]

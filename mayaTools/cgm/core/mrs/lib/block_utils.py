@@ -2150,6 +2150,9 @@ def skeleton_connectToParent(self):
                 mTargetJoint = ml_targetJoints[-1]
             elif _attachPoint == 'base':
                 mTargetJoint = ml_targetJoints[0]
+            elif _attachPoint == 'closest':
+                jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+                mTargetJoint = cgmMeta.asMeta(jnt)
             else:
                 raise ValueError,"Not done with {0}".format(_attachPoint)
             ml_moduleJoints[0].p_parent = mTargetJoint
@@ -3584,7 +3587,7 @@ def get_blockDagNodes(self,):
         
         ml_controls = controls_get(self)
                 
-        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh']:
+        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh','moduleTarget']:
             if self.getMessage(a):
                 ml_controls.extend(self.getMessage(a,asMeta=True))        
         return ml_controls

@@ -541,6 +541,10 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             mTarget = ml_targetJoints[-1]
         elif mode == 'base':
             mTarget = ml_targetJoints[0]
+        elif mode == 'closest':
+            ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
+            jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+            mTarget = cgmMeta.asMeta(jnt)
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:
@@ -585,6 +589,10 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
             mTarget = ml_targetJoints[-1]
         elif mode == 'base':
             mTarget = ml_targetJoints[0]
+        elif mode == 'closest':
+            ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
+            jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+            mTarget = cgmMeta.asMeta(jnt)        
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:

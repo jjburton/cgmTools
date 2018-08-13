@@ -1271,6 +1271,10 @@ def rig_dataBuffer(self):
     
     self.mRootTemplateHandle = ml_templateHandles[0]
     
+    if mBlock.numJoints == 4 and mBlock.numControls == 3:
+        log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
+        mBlock.segmentMidIKControl = 0    
+    
     #Initial option checks ============================================================================    
     #if mBlock.scaleSetup:
         #raise NotImplementedError,"Haven't setup scale yet."
