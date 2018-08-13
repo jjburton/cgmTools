@@ -1989,10 +1989,15 @@ def rig_controls(self):
         ml_fkJoints[0].parent = mRoot
         ml_controlsAll.extend(ml_fkJoints)
         
+        if self.d_module['mirrorDirection'] == 'Centre':
+            _fkMirrorAxis = 'translateY,translateZ,rotateY,rotateZ'
+        else:
+            _fkMirrorAxis = 'translateY,translateZ'
+        
         for i,mObj in enumerate(ml_fkJoints):
             d_buffer = MODULECONTROL.register(mObj,
                                               mirrorSide= self.d_module['mirrorDirection'],
-                                              mirrorAxis="translateX,rotateY,rotateZ",
+                                              mirrorAxis=_fkMirrorAxis,
                                               makeAimable = True)
     
             mObj = d_buffer['mObj']

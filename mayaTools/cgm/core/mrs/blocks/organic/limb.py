@@ -3875,7 +3875,7 @@ def rig_controls(self):
     for i,mObj in enumerate(ml_fkJoints):
         d_buffer = MODULECONTROL.register(mObj,
                                           mirrorSide= self.d_module['mirrorDirection'],
-                                          mirrorAxis="translateX,rotateY,rotateZ",
+                                          mirrorAxis="translateY,translateZ",
                                           makeAimable = True)
         
         mObj = d_buffer['mObj']
