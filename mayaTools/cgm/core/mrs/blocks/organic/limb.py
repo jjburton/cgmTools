@@ -2804,9 +2804,7 @@ def rig_digitShapes(self):
         if self.b_lever:            
             log.debug("|{0}| >> Lever...".format(_str_func))
             
-            mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)
-            if mLeverRigJnt:
-                mLeverRigJnt = mLeverRigJnt[0]
+            mLeverRigJnt = mRigNull.getMessageAsMeta('leverDirect')
                 
             mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
             log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
@@ -2817,8 +2815,8 @@ def rig_digitShapes(self):
             log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
     
             #Dup our rig joint and move it 
-            mDup = ml_fkCastTargets[0].doDuplicate(po=True)
-            mDup.p_parent = ml_fkCastTargets[0]
+            mDup = mLeverRigJnt.doDuplicate(po=True)
+            mDup.p_parent = mLeverRigJnt
             mDup.resetAttrs()
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
     
@@ -3384,10 +3382,10 @@ def rig_shapes(self):
                 #Mid IK...---------------------------------------------------------------------------------
                 log.debug("|{0}| >> midIK...".format(_str_func))
                 #mKnee = self.mMidTemplateHandle.doCreateAt(setClass=True)
-                size_knee =  POS.get_bb_size(self.mMidTemplateHandle.mNode,True)
+                size_knee =  MATH.average(POS.get_bb_size(self.mMidTemplateHandle.mNode,True)) * .75
                 crv = CURVES.create_fromName('sphere',
                                               direction = 'z+',#_jointOrientation[0]+'+',
-                                              size = size_knee + _offset)#max(size_knee) * 1.25)            
+                                              size = size_knee)#max(size_knee) * 1.25)            
                 
                 mKnee = cgmMeta.validateObjArg(crv,setClass=True)
                 #CORERIG.shapeParent_in_place(mKnee.mNode, crv, False)
@@ -3508,8 +3506,8 @@ def rig_shapes(self):
                         _mSnapTo = ml_targets[self.int_handleEndIdx]
                         
                     mIKTemplateHandle = ml_templateHandles[-1]
-                    bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                    _settingsSize = _offset*2#MATH.average(bb_ik)
+                    bb_ik = TRANS.bbSize_get(mIKTemplateHandle.mNode)#mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    _settingsSize = MATH.average(bb_ik) * .75
                     #_settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
                     
                 mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .75,
@@ -3519,7 +3517,7 @@ def rig_shapes(self):
                 d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
                 str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
                 mSettingsShape.p_position = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
-                                                                            _settingsSize + _offset)
+                                                                               _settingsSize + (_offset * 2))
                 
                 SNAP.aim_atPoint(mSettingsShape.mNode,
                                  _mTar.p_position,

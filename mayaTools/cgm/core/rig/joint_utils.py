@@ -530,11 +530,11 @@ def build_chain(posList = [],
 
     log.debug("|{0}| >> pos list...".format(_str_func)) 
     
-    progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
+    #progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
     
     for i,p in enumerate(posList):
         log.debug("|{0}| >> {1}:{2}".format(_str_func,i,p)) 
-        cgmUI.progressBar_iter(progressBar,status='Creating: {0}'.format(p))
+        #cgmUI.progressBar_iter(progressBar,status='Creating: {0}'.format(p))
 
         mJnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
         mJnt.displayLocalAxis = 1
@@ -548,13 +548,13 @@ def build_chain(posList = [],
         else:
             _mJnt.parent = False"""
     
-    cgmUI.progressBar_end(progressBar)
+    #cgmUI.progressBar_end(progressBar)
     #>>Orient chain...
     if orient:
         if _len == 1:
             log.debug("|{0}| >> Only one joint. Can't orient chain".format(_str_func,_axisWorldUp)) 
         else:
-            orientChain(ml_joints,axisAim,axisUp,worldUpAxis,relativeOrient,progressBar=progressBar)
+            orientChain(ml_joints,axisAim,axisUp,worldUpAxis,relativeOrient)
 
     if asMeta:
         return ml_joints

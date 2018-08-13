@@ -1908,7 +1908,10 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
         log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
         l_curves.append(_crv)
         return _crv
-        
+    
+    _degree = 1
+    if not self.mBlock.loftDegree:
+        _degree = 2
     #>>Reloft those sets of curves and cap them ------------------------------------------------------------
     log.debug("|{0}| >> Create new mesh objs.".format(_str_func))
     l_new = []
@@ -1922,7 +1925,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
         
         _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
             
-        _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), divisions=1)
+        _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
         RIGGING.match_transform(_mesh,ml_targets[i])
         mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
         if ballBase and i != 0:

@@ -178,7 +178,7 @@ def is_upToDate(self,report = True):
         if False in _res:
             print("|{0}| >> OUT OF DATE ".format(_short))
         else:
-            print("|{0}| >> build current. ".format(_short))
+            log.info("|{0}| >> build current. ".format(_short))
         print cgmGEN._str_hardBreak
         
     if False in _res:
