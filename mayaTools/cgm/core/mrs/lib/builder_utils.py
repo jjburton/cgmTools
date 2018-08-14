@@ -707,7 +707,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
-                    cap = True, merge = True,form = 1 ):
+                    cap = True, merge = True,form = 1,planar=False ):
     """
     Create lofted mesh from target curves.
 
@@ -735,7 +735,12 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     #tess method - general, uType 1, vType 2+ joint count
     
     #>>Body -----------------------------------------------------------------
-    _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
+    if degree == 1:
+        _loftDegree = 1
+    else:
+        _loftDegree = 3
+        
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1 )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
@@ -751,7 +756,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
               'vNumber':points,
               'uNumber': 1 + divisions}
     else:
-        _d = {'format':form,#Fit
+        _d = {'format':form,#Fit              
               'polygonType':1,#'quads',
               'vNumber':points,
               'uNumber': 1 + divisions}
@@ -760,8 +765,10 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
         
     #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
     
-    #mc.polyNormal(_res_body[0],nm=0)
-    #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
+    #if degree ==1:
+        ##mc.polyNormal(_res_body[0],nm=0)
+        #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
+        #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
     
     if merge:
         #Get our merge distance
@@ -807,8 +814,12 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
         _res = _res_body
     
     if degree == 1:
-        #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
-        mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
+        mc.polyNormal(_res_body[0],nm=0)
+    
+    if planar:
+        mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)#THIS WILL MAKE GEO SMOOTH
+        #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
+       # mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
         
     return _res[0]    
 
@@ -1933,7 +1944,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
             return _crv
         
         _degree = 1
-        if not self.mBlock.loftDegree:
+        if self.mBlock.loftDegree:
             _degree = 3
             
         #>>Reloft those sets of curves and cap them ------------------------------------------------------------

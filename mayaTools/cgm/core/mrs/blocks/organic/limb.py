@@ -41,6 +41,7 @@ path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
+reload(BUILDUTILS)
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
@@ -6518,12 +6519,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mChild.delete()
                     
             l_targets.append(mBaseCrv.mNode)
-            reload(BUILDUTILS)
+            l_targets.reverse()
+            
             _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),
-                                               divisions=3,
-                                               degree=1, form= 3)
+                                               degree=1,divisions=1)
             
             _l_combine = []
+            """
             for i,crv in enumerate([l_targets[0],l_targets[-1]]):
                 _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=.01,rn=0)
                 log.info(_res)
@@ -6539,13 +6541,19 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 _l_combine.append(_res[0])
                 _mesh = mc.polyUnite([_mesh,_res[0]],ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format('foot'))[0]
                 #_mesh = mc.polyMergeVertex(_res[0], d= .0001, ch = 0, am = 1 )
-            
+            """
             
             mBaseCrv.delete()
             if mShape2:mShape2.delete()
             
-            
             mMesh = cgmMeta.validateObjArg(_mesh)
+            
+            if self.d_module['direction'].lower() in ['right']:
+                log.debug("|{0}| >> FLIP... ".format(_str_func))                        
+                mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+                
+                #mc.polyNormal(_mesh,nm=0)
+                #mc.polySetToFaceNormal(_mesh,setUserNormal = True)            
             
             
             #...cut it up
