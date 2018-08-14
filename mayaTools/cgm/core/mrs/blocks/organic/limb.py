@@ -3888,7 +3888,8 @@ def rig_controls(self):
                                           makeAimable = True)
         
         mObj = d_buffer['mObj']
-        self.atUtils('get_switchTarget', mObj, mObj.getMessage('blendJoint'))
+        if mBlock.ikSetup:
+            self.atUtils('get_switchTarget', mObj, mObj.getMessage('blendJoint'))
         
     log.debug(cgmGEN._str_subLine)
 
@@ -4666,7 +4667,7 @@ def rig_frame(self):
 
         #Changing targets - these change based on how the setup rolls through
         #mIKHandleDriver = mIKControl#...this will change with pivot
-        mIKControl = mRigNull.controlIK                
+        mIKControl = mRigNull.getMessageAsMeta('controlIK')                
         mIKHandleDriver = mIKControl
         
         mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
@@ -5701,6 +5702,9 @@ def rig_blendFrame(self):
         
         
     ml_ikJoints = mRigNull.msgList_get('ikJoints')
+    if not ml_ikJoints:
+        log.info("|{0}| >> No ik setup...".format(_str_func))        
+        return True 
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     mSettings = mRigNull.settings    
