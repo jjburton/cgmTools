@@ -236,7 +236,8 @@ def set_nameTag(self,nameTag = None):
                 nameTag =  mc.promptDialog(query=True, text=True)
                 log.debug("|{0}| >> from prompt: {1}".format(_str_func,nameTag))
             else:
-                log.error("|{0}| >> Change cancelled".format(_str_func)+ '-'*80)
+                log.error("|{0}| >> Change cancelled. Verifying name".format(_str_func)+ '-'*80)
+                self.doName()
                 return False
             
         self.cgmName = nameTag
@@ -277,10 +278,12 @@ def doName(self):
     _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
     _direction = self.getEnumValueString('side')
-    if self.getMayaAttr('side'):
+    if _direction != 'none':
         _d['cgmDirection'] = _direction        
         self.doStore('cgmDirection',_direction)
-    else:self.cgmDirection = ''
+    else:
+        if _d.get('cgmDirection'):_d.pop('cgmDirection')
+        self.doStore('cgmDirection','')
 
     _position = self.getEnumValueString('position')
     if self.getMayaAttr('position'):
@@ -304,7 +307,7 @@ def doName(self):
             _value = self.getEnumValueString('side')
             _d['cgmDirection'] = _value
             self.doStore('cgmDirection',_value)"""
-
+    pprint.pprint(vars())
     #Check for special attributes to replace data, name
     self.rename(NAMETOOLS.returnCombinedNameFromDict(_d))
 
@@ -317,14 +320,22 @@ def doName(self):
     for mObj in ml_objs:
         if mObj != self:
             mObj.doName()
+    
+    for plug in ['templateNull','noTransTemplateNull',
+                 'prerigNull','noTransPrerigNull',
+                 'defineNull','noTransDefineNull',
+                 'moduleTarget']:
+        mPlug = self.getMessageAsMeta(plug)
+        if mPlug:
+            mPlug.doName()
+    """         
     if self.getMessage('templateNull'):
         self.templateNull.doName()
     if self.getMessage('prerigNull'):
         self.prerigNull.doName()
     if self.getMessage('moduleTarget'):
         self.moduleTarget.doName()
-        
-        
+    """
         
 def set_side(self,side=None):
     try:
@@ -339,11 +350,10 @@ def set_side(self,side=None):
         except Exception,err:
             log.error("|{0}| >> Failed to change attr. | err: {1}".format(_str_func,err))            
             return False
-        color(self)
         
-        ml_objs = get_blockDagNodes(self)
-        for mObj in ml_objs:
-            mObj.doName()
+        self.doName()
+        color(self)
+            
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def set_position(self,position=None):
@@ -360,9 +370,7 @@ def set_position(self,position=None):
             log.error("|{0}| >> Failed to change attr. | err: {1}".format(_str_func,err))            
             return False
         
-        ml_objs = get_blockDagNodes(self)
-        for mObj in ml_objs:
-            mObj.doName()
+        self.doName()
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def color(self):

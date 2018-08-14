@@ -2420,7 +2420,7 @@ def rig_skeleton(self):
                                                                     'fkAttach',mRigNull,'fkAttachJoints',
                                                                     blockNames=False,cgmType = 'frame')
         self.atUtils('joints_flipChainForBehavior', ml_fkJoints)
-        
+        ml_jointsToConnect.extend(ml_fkAttachJoints)
         for i,mJoint in enumerate(ml_fkAttachJoints):
             log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
             ml_fkJoints[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
@@ -2439,6 +2439,7 @@ def rig_skeleton(self):
             mBallJointPivot.addAttr('cgmType','pivotJoint')
             mBallJointPivot.doName()
             mRigNull.connectChildNode(mBallJointPivot,"pivot_ballJoint","rigNull")
+            ml_jointsToConnect.append(mBallJointPivot)
     
             #Ball wiggle pivot
             mBallWiggleJointPivot = mBallJointPivot.doDuplicate(po = True)#dup ball in place
@@ -2447,6 +2448,7 @@ def rig_skeleton(self):
             mBallWiggleJointPivot.addAttr('cgmType','pivotJoint')            
             mBallWiggleJointPivot.doName()
             mRigNull.connectChildNode(mBallWiggleJointPivot,"pivot_ballWiggle","rigNull") 
+            ml_jointsToConnect.append(mBallWiggleJointPivot)
             
             if not self.mToe:
                 log.info("|{0}| >> Making toe joint...".format(_str_func))
@@ -2457,6 +2459,7 @@ def rig_skeleton(self):
                 mToe.doName()
                 mRigNull.connectChildNode(mToe,"toe_helpJoint","rigNull") 
                 mToe.p_parent = ml_ikJoints[-1]
+                ml_jointsToConnect.append(mToe)
                 
 
     
