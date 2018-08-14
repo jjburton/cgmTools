@@ -71,7 +71,12 @@ mUI = cgmUI.mUI
 __version__ = 'ALPHA 0.07312018'
 _sidePadding = 25
 
-
+def check_cgm():
+    try:cgmMeta.cgmNode(nodeType='decomposeMatrix').delete()
+    except:
+        import cgm
+        cgm.core._reload()
+        
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'cgmBuilder_ui'    
@@ -84,6 +89,7 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 550,400
     __modes = 'space','orient','follow'
     
+    check_cgm()
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui.",
                          'rebuild':"Rebuild blocks from define state",
                          'save blockDat':'Save current blockDat to the block',
@@ -100,6 +106,7 @@ class ui(cgmUI.cgmGUI):
             if kws:log.debug("kws: %s"%str(kws))
             if args:log.debug("args: %s"%str(args))
             log.debug(self.__call__(q=True, title=True))
+            
     
             self.__version__ = __version__
             self.__toolName__ = 'Builder'		
