@@ -41,7 +41,6 @@ path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
-reload(BUILDUTILS)
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
