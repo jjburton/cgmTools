@@ -1595,7 +1595,7 @@ def isEP(*args, **kws):
     return fncWrap(*args, **kws).go()
 
 def getMidPoint(curve=None):
-    mCrv = cgmValid.objString(crv,mayaType='nurbsCurve')
+    mCrv = cgmValid.objString(curve,mayaType='nurbsCurve')
     mShape = cgmMeta.validateObjArg(mc.listRelatives(mCrv,shapes = True,f=True)[0])
     
     _min = mShape.minValue
