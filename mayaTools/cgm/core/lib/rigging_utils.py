@@ -1097,6 +1097,8 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
             override_color(t,index=_v,pushToShapes=pushToShapes )
             
         if shaderSetup:
+            mc.sets(t, edit=True, remove = 'initialShadingGroup')
+            
             if _type in ['nurbsSurface','mesh']:
                 mc.sets(t, e=True, forceElement = _set)                
             else:
@@ -1104,10 +1106,19 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
                     log.debug("|{0}| >> s: {1} ...".format(_str_func,s))  
                     _type = VALID.get_mayaType(s)
                     if _type in ['nurbsSurface','mesh']:
-                        mc.sets(s, e=True, forceElement = _set)
+                        mc.sets(s, edit=True, forceElement = _set)
+                        mc.sets(s, remove = 'initialShadingGroup')
+                        try:
+                            mc.disconnectAttr ('{0}.instObjGroups.objectGroups'.format(s),
+                                           'initialShadingGroup.dagSetMembers')
+                        except:
+                            pass
+                        
+                        
                     else:
-                        log.debug("|{0}|  >> Not a valid target: {1} | {2}".format(_str_func,s,_type))            
-            
+                        log.debug("|{0}|  >> Not a valid target: {1} | {2}".format(_str_func,s,_type))
+                    
+        mc.sets(t, edit=True, remove = 'initialShadingGroup')
     return True
 
 
