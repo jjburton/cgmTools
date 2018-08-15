@@ -753,3 +753,23 @@ def average(*args):
     else:
         l = [a for a in args]
     return sum(l)/len(l)
+
+def median(*args):
+    """ 
+    https://stackoverflow.com/questions/24101524/finding-median-of-list-in-python
+    """
+    if VALID.isListArg(args[0]):
+        l=args[0]
+    else:
+        l = [a for a in args]
+    
+    n = len(l)
+    if n < 1:
+            return None
+    if n % 2 == 1:
+            return sorted(l)[n//2]
+    else:
+            return sum(sorted(l)[n//2-1:n//2+1])/2.0    
+
+
+

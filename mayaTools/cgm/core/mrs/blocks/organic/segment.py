@@ -209,6 +209,7 @@ l_attrsStandard = ['side',
                    'numSpacePivots',
                    'scaleSetup',
                    'offsetMode',
+                   'ribbonParam',
                    'proxyDirect',
                    #'settingsPlace',
                    'settingsDirection',
@@ -254,7 +255,7 @@ d_defaultSettings = {'version':__version__,
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stableBlend',
-                     
+                     'ribbonParam':'blend',
                      'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
@@ -2251,9 +2252,7 @@ def rig_segments(self):
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
     
-    _settingsControl = None
-    if mBlock.squashExtraControl:
-        _settingsControl = mRigNull.settings.mNode
+    _settingsControl = mRigNull.settings.mNode
     
     _extraSquashControl = mBlock.squashExtraControl
            
@@ -2267,6 +2266,7 @@ def rig_segments(self):
           'connectBy':'constraint',
           'extendEnds':True,
           #'sectionSpans':1,
+          'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
@@ -2497,13 +2497,6 @@ def rig_frame(self):
                     
                         mHandle.parent = mAimGroup#...parent back
                     
-                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                            mHandle.followRoot = 1
-                            ATTR.set_default(mHandle.mNode,'followRoot',1.0)
-                        else:
-                            mHandle.followRoot = .5
-                            ATTR.set_default(mHandle.mNode,'followRoot',.5)
-                        
 
                 else:
                     log.debug("|{0}| >> reg handles...".format(_str_func))
@@ -2597,15 +2590,18 @@ def rig_frame(self):
                         
                         mHandle.parent = mAimGroup#...parent back
                         
-                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                            mHandle.followRoot = 1
-                        else:
-                            mHandle.followRoot = .5
+
                         
 
     
 
-            
+        for mHandle in ml_handleJoints:
+            if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
+                mHandle.followRoot = 1
+                ATTR.set_default(mHandle.mNode,'followRoot',1.0)
+            else:
+                mHandle.followRoot = .5
+                ATTR.set_default(mHandle.mNode,'followRoot',.5)            
             """
             ml_handleJoints[-1].masterGroup.parent = mHeadFK
             ml_handleJoints[0].masterGroup.parent = mRoot
@@ -2844,6 +2840,7 @@ def rig_frame(self):
                              'squashStretch':None,
                              'msgDriver':'masterGroup',
                              'specialMode':'noStartEnd',
+                             'paramaterization':'floating',
                              'connectBy':'constraint',
                              'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
@@ -2882,6 +2879,7 @@ def rig_frame(self):
                         'squashStretch':None,
                         'connectBy':'constraint',
                         'squashStretchMain':'arcLength',
+                        'paramaterization':mBlock.getEnumValueString('ribbonParam'),                        
                         #masterScalePlug:mPlug_masterScale,
                         'settingsControl': mSettings.mNode,
                         'extraSquashControl':True,
@@ -3375,7 +3373,6 @@ def rig_cleanUp(self):
         
         
     self.mDeformNull.dagLock(True)
-    mBlock.atUtils('set_blockNullTemplateState')
 
     #Close out ========================================================================================
     mBlock.blockState = 'rig'

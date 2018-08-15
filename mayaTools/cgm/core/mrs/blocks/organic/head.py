@@ -148,6 +148,7 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftSplit',
                    'loftShape',
+                   'ribbonParam',
                    #'ikSetup',
                    #'ikBase',
                    #'buildProfile',
@@ -171,7 +172,8 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
              
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
-                 'segmentMidIKControl':'bool',                 
+                 'ribbonParam':'blend',
+                 'segmentMidIKControl':'bool',
                  
                  'neckBuild':'bool',
                  'neckControls':'int',
@@ -2255,6 +2257,7 @@ def rig_segments(self):
           'connectBy':'constraint',
           'extendEnds':True,
           'masterScalePlug':mPlug_masterScale,
+          'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
           'influences':ml_influences,
           'settingsControl':_settingsControl,
           'attachEndsToInfluences':True,
@@ -2614,6 +2617,7 @@ def rig_frame(self):
                          'squashStretch':None,
                          'msgDriver':'masterGroup',
                          'specialMode':'noStartEnd',
+                         'paramaterization':'floating',
                          'connectBy':'constraint',
                          'influences':ml_handleJoints,
                          'moduleInstance' : mModule}
@@ -3045,10 +3049,7 @@ def rig_cleanUp(self):
         
         
     self.mDeformNull.dagLock(True)
-    mBlock.atUtils('set_blockNullTemplateState')
-    
-        
-    
+
     
     #>>  Attribute defaults =================================================================================
     

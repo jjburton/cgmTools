@@ -36,6 +36,7 @@ from cgm.core.rigger.lib import rig_Utils
 from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
 import cgm.core.rig.create_utils as RIGCREATE
@@ -885,6 +886,7 @@ def ribbon(jointList = None,
            squashFactorMode = 'midPeak',
            squashFactorMin = 0.0,
            squashFactorMax = 1.0,
+           paramaterization='blend',
            #advancedTwistSetup = False,
            #extendTwistToEnd = False,
            #reorient = False,
@@ -913,6 +915,11 @@ def ribbon(jointList = None,
         secondaryAxis(maya axis arg(y+) | Only necessary when no module provide for orientating
         baseName(string - None) | baseName string
         connectBy(str)
+        
+        paramaterization(string)
+            fixed - Hard value uv
+            floating - Floating uv value from reparamterized curve
+            blend - Blend of the two
         
         squashStretchMain(str)
             arcLength
@@ -1126,7 +1133,8 @@ def ribbon(jointList = None,
     _surf_shape = mControlSurface.getShapes()[0]
     minU = ATTR.get(_surf_shape,'minValueU')
     maxU = ATTR.get(_surf_shape,'maxValueU')
-
+    minV = ATTR.get(_surf_shape,'minValueV')
+    maxV = ATTR.get(_surf_shape,'maxValueV')
     
     ml_toConnect = []
     ml_toConnect.extend(ml_surfaces)
@@ -1189,45 +1197,144 @@ def ribbon(jointList = None,
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
             NodeF.argsToNodes(arg).doBuild()
             
+    #Settings ... ----------------------------------------------------------------------------------------
+    if settingsControl:
+        mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
+    else:
+        mSettings = mControlSurface
+    
+    
+    #Reparam ----------------------------------------------------------------------------------------
+    mCrv_reparam = False
+    str_paramaterization = str(paramaterization).lower()
+    if str_paramaterization in ['blend','floating']:
+        log.debug("|{0}| >> Reparameterization curve needed...".format(_str_func))
+        #crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_surf_shape,MATH.median(minU,maxU)),
+                                 ch = 1,
+                                 rn = 0,
+                                 local = 0)
+        
+
+        mCrv_reparam = cgmMeta.validateObjArg(_crv[0],setClass=True)
+        mCrv_reparam.doStore("cgmName","{0}_reparam".format(str_baseName))
+        mCrv_reparam.doName()        
+        cgmMeta.cgmNode(_crv[1]).doName()
+        
+        mc.rebuildCurve(mCrv_reparam.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+        #cubic keepC
+        md_floatTrackGroups = {}
+        md_floatTrackNodes = {}
+        md_floatParameters = {}
+        d_vParameters = {}
+        
+        mCrv_reparam.p_parent = mGroup
+        
+        l_argBuild = []
+        mPlug_vSize = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                      "{0}_vSize".format(str_baseName),
+                                      attrType = 'float',
+                                      hidden = False,
+                                      lock=False)
+        
+        l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedShortName,
+                                                   maxV,minV))        
+                
+        if str_paramaterization == 'blend':
+            if not mSettings.hasAttr('blendParam'):
+                mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,
+                                                   "blendParam".format(str_baseName),
+                                                   attrType = 'float',
+                                                   minValue=0,
+                                                   maxValue=1.0,
+                                                   keyable=True,
+                                                   value= 1.0,
+                                                   defaultValue=1.0,
+                                                   hidden = False,
+                                                   lock=False)
+            else:
+                mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,"blendParam".format(str_baseName))
+            md_paramBlenders = {}
+        
+        #Set up per joint...
+        for i,mObj in enumerate(ml_joints):
+            mPlug_normalized = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                               "{0}_normalizedV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+            mPlug_sum = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                        "{0}_sumV_{1}".format(str_baseName,i),
+                                        attrType = 'float',
+                                        hidden = False,
+                                        lock=False)            
+            mLoc = mObj.doLoc()
             
-        
-        
-        
-        """
-        crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
-        mCrv = cgmMeta.validateObjArg(crv,'cgmObject',setClass=True)
-        mCrv.rename('{0}_measureCrv'.format( baseName))
-        
-        ml_toConnect.append(mCrv)
-        
-        mArcLenCurve = mCrv
-        
-        mControlSurface.connectChildNode(mCrv,plug_curve,'ribbon')
+            _res = RIGCONSTRAINTS.attach_toShape(mObj,mCrv_reparam.mNode,None)
+            md_floatTrackGroups[i]=_res[0]
+            #res_closest = DIST.create_closest_point_node(mLoc.mNode, mCrv_reparam.mNode,True)
+            log.debug("|{0}| >> Closest info {1} : {2}".format(_str_func,i,_res))
+            mLoc.p_parent = mGroup
 
-        log.debug("|{0}| >> created: {1}".format(_str_func,mCrv)) 
+            srfNode = mc.createNode('closestPointOnSurface')
+            mc.connectAttr("%s.worldSpace[0]" % _surf_shape, "%s.inputSurface" % srfNode)
+            mc.connectAttr("%s.translate" % _res[0], "%s.inPosition" % srfNode)
+            mc.connectAttr("%s.position" % srfNode, "%s.translate" % mLoc.mNode, f=True) 
+            md_floatParameters[i] = mPlug_normalized            
+            mClosestPoint =  cgmMeta.validateObjArg(srfNode,setClass=True)
+            mClosestPoint.doStore('cgmName',mObj.mNode)
+            mClosestPoint.doName()
+            md_floatTrackNodes[i] = mClosestPoint
+            srfNode = mClosestPoint.mNode
+            
+            TRANS.parent_set(_res[0],mGroup.mNode)
+            
+            log.debug("|{0}| >> paramU {1} : {2}.parameterU | {3}".format(_str_func,i,srfNode,
+                                                                          ATTR.get(srfNode,'parameterU')))
+            log.debug("|{0}| >> paramV {1} : {2}.parameterV | {3}".format(_str_func,i,srfNode,
+                                                                          ATTR.get(srfNode,'parameterV')))
+            
 
-        infoNode = CURVES.create_infoNode(mCrv.mNode)
+            
+            l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sum.p_combinedShortName,
+                                                                  minV,
+                                                                  srfNode))
+            
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalized.p_combinedShortName,
+                                                       mPlug_sum.p_combinedShortName,
+                                                       mPlug_vSize.p_combinedShortName))
+            
+            
+            if str_paramaterization == 'blend':
+                mPlug_baseV = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                               "{0}_baseV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+                mPlug_blendV = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                               "{0}_blendV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+                
+                mBlendNode = cgmMeta.cgmNode(nodeType = 'blendTwoAttr')
+                mBlendNode.doStore('cgmName',"{0}_blendV".format(mObj.mNode))
+                mBlendNode.doName()
+                
+                md_paramBlenders[i] = mBlendNode
+                ATTR.set(md_paramBlenders[i].mNode,"input[0]",1)
+                mPlug_normalized.doConnectOut("%s.input[1]"%mBlendNode.mNode)
+                mPlug_paramBlend.doConnectOut("%s.attributesBlender"%mBlendNode.mNode)
+                d_vParameters[i] = "{0}.output".format(mBlendNode.mNode)
+                
+            else:
+                d_vParameters[i] = mPlug_normalized.p_combinedShortName
 
-        mInfoNode = cgmMeta.validateObjArg(infoNode,'cgmNode',setClass=True)
-        mCrv.addAttr('baseDist', mInfoNode.arcLength,attrType='float',lock=True)
-        mInfoNode.rename('{0}_{1}_measureCIN'.format( baseName,plug))
-
-        log.debug("|{0}| >> baseDist: {1}".format(_str_func,mCrv.baseDist)) 
-
-        #mPlug_masterScale = cgmMeta.cgmAttr(mCrv.mNode,plug,'float')
-        mPlug_inverseScale = cgmMeta.cgmAttr(mCrv.mNode,plug_inverse,'float')
-        
-        l_argBuild=[]
-
-        l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedShortName,
-                                                   '{0}.arcLength'.format(mInfoNode.mNode),
-                                                   "{0}.baseDist".format(mCrv.mNode)))        
-        
-        
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-            NodeF.argsToNodes(arg).doBuild()"""
-    
+            NodeF.argsToNodes(arg).doBuild()
+            
+            
     if b_squashStretch and masterScalePlug is not None:
         log.debug("|{0}| >> Checking masterScalePlug: {1}".format(_str_func, masterScalePlug))        
         if masterScalePlug == 'create':
@@ -1273,10 +1380,6 @@ def ribbon(jointList = None,
         if not mPlug_masterScale:
             raise ValueError,"Should have a masterScale plug by now"
     
-    if settingsControl:
-        mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
-    else:
-        mSettings = mControlSurface
         
     b_attachToInfluences = False
     if attachEndsToInfluences:
@@ -1324,6 +1427,14 @@ def ribbon(jointList = None,
         follicle,shape = RIGCONSTRAINTS.attach_toShape(mDriven.mNode, mControlSurface.mNode, None)
         mFollicle = cgmMeta.asMeta(follicle)
         mFollShape = cgmMeta.asMeta(shape)
+        
+        if mCrv_reparam:
+            if str_paramaterization == 'blend':
+                ATTR.set(md_paramBlenders[i].mNode,"input[0]",mFollShape.parameterV)
+            ATTR.connect(d_vParameters[i],
+                         '{0}.parameterV'.format(mFollShape.mNode))
+            
+
         
         ml_follicleShapes.append(mFollShape)
         ml_follicles.append(mFollicle)
@@ -1465,7 +1576,9 @@ def ribbon(jointList = None,
                 mStableFollicle.rename('{0}_surfaceStable'.format(ml_joints[i].p_nameBase))
             
                 mStableFollicleShape.parameterU = minU
-                mStableFollicleShape.parameterV = ml_follicleShapes[i].parameterV
+                #mStableFollicleShape.parameterV = ml_follicleShapes[i].parameterV
+                ATTR.connect('{0}.parameterV'.format(ml_follicleShapes[i].mNode),
+                             '{0}.parameterV'.format(mStableFollicleShape.mNode))
                 
                 if driverSetup == 'stable':
                     if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
@@ -1617,8 +1730,9 @@ def ribbon(jointList = None,
                 mUpFollicle.rename('{0}_surfaceUp'.format(ml_joints[i].p_nameBase))
             
                 mUpFollicleShape.parameterU = minU
-                mUpFollicleShape.parameterV = ml_follicleShapes[i].parameterV
-                
+                #mUpFollicleShape.parameterV = ml_follicleShapes[i].parameterV
+                ATTR.connect('{0}.parameterV'.format(ml_follicleShapes[i].mNode),
+                             '{0}.parameterV'.format(mUpFollicleShape.mNode))
             
         def createDist(mJnt, typeModifier = None):
             mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        

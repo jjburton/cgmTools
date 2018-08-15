@@ -4303,6 +4303,7 @@ def rig(self,**kws):
     else:
         self.blockState = 'rig'
     skeleton_connectToParent(self)
+    set_blockNullTemplateState(self)
     return True
 
 def rigDelete(self):
@@ -4353,6 +4354,7 @@ def rigDelete(self):
         self.atBlockModule('rigDelete')
     
     self.blockState = 'skeleton'#...yes now in this state
+    set_blockNullTemplateState(self, state=False, define=False, template=False, prerig=False)
     return True
 
 @cgmGEN.Timer

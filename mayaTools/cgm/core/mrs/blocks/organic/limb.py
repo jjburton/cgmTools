@@ -303,6 +303,7 @@ l_attrsStandard = ['side',
                    'squashFactorMax',
                    'squashFactorMin',
                    'ribbonAim',
+                   'ribbonParam',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'segmentMidIKControl',
                    
@@ -353,6 +354,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numRoll':1,
+                     'ribbonParam':'blend',
                      'proxyDirect':True,
                      'nameList':['',''],
                      'blockProfile':'leg',
@@ -1048,7 +1050,7 @@ def template(self):
             
                 #Tmp loft mesh -------------------------------------------------------------------
                 _l_targets = [mObj.loftCurve.mNode for mObj in mPair]
-            
+                log.debug(_l_targets)
                 _res_body = mc.loft(_l_targets, o = True, d = 3, po = 0 )
                 _str_tmpMesh =_res_body[0]
             
@@ -1071,7 +1073,7 @@ def template(self):
                     _d = RAYS.cast(_str_tmpMesh, _short, 'y+')
                     pprint.pprint(_d)
                     log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
-                    #cgmGEN.log_info_dict(_d,j)
+                    cgmGEN.log_info_dict(_d)
                     _v = _d['uvs'][_str_tmpMesh][0][0]
                     log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
             
@@ -2068,7 +2070,8 @@ def rig_skeleton(self):
     
     ml_fkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_handleJoints,
                                                           'fk',mRigNull,'fkJoints',
-                                                          blockNames=False,cgmType = 'frame')
+                                                          blockNames=False,cgmType = 'frame',
+                                                          connectToSource='fk')
     ml_jointsToHide.extend(ml_fkJoints)
     
     ml_handleJointsToUse = ml_handleJoints
@@ -2720,8 +2723,8 @@ def rig_digitShapes(self):
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
     
             #Get our point for knee...
-            mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',
-                                                   self.ml_handleTargetsCulled,False)
+            mKnee.p_position = self.UTILS.get_midIK_basePosOrient(self,
+                                                                  self.ml_handleTargetsCulled,False)
     
             
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
@@ -3640,6 +3643,8 @@ def rig_shapes(self):
         else:
             size_pivotHelper = POS.get_bb_size(ml_templateHandles[-1].mNode)
         
+        mBallFK = False
+        mToeFK = False
         if self.mBall:
             #_size_ball = DIST.get_distance_between_targets([self.mBall.mNode,
                                                             #self.mBall.p_parent])
@@ -3648,6 +3653,10 @@ def rig_shapes(self):
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
                                              size = size_pivotHelper[0])
+            mHandleFactory.color(crv, controlType = 'main')                                
+            mBallFK = self.mBall.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mBallFK.mNode,crv, True, replaceShapes=True)            
+            
             ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
             
         if self.mToe:
@@ -3657,7 +3666,12 @@ def rig_shapes(self):
             crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
                                              direction = _jointOrientation[0]+'+',
                                              sizeMode = 'fixed',
-                                             size = size_pivotHelper[0])        
+                                             size = size_pivotHelper[0])
+            
+            mHandleFactory.color(crv, controlType = 'main')                    
+            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)            
+            
             ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
         
         
@@ -3672,10 +3686,13 @@ def rig_shapes(self):
                 
             try:mJnt = ml_fkJoints[i]
             except:continue
+            
+            if mJnt in [mToeFK,mBallFK]:
+                continue
 
 
-            if mJnt == ml_fkJoints[self.int_handleEndIdx]:# and str_ikEnd in ['foot']:
-                log.debug("|{0}| >> Last fk handle before toes/ball...".format(_str_func))
+            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1:# and str_ikEnd in ['foot']:
+                log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
                 bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
@@ -4446,6 +4463,7 @@ def rig_segments(self):
                          'baseName' :self.d_module['partName'] + '_midRibbon',
                          'driverSetup':'stableBlend',
                          'squashStretch':None,
+                         'paramaterization':'floating',          
                          'msgDriver':'masterGroup',
                          'specialMode':'noStartEnd',
                          'connectBy':'constraint',
@@ -4476,6 +4494,7 @@ def rig_segments(self):
             _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                   'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
                   'masterScalePlug':mPlug_masterScale,
+                  'paramaterization':mBlock.getEnumValueString('ribbonParam'),                            
                   'influences':[mHandle.mNode for mHandle in ml_influences],
                   }            
             
@@ -5213,6 +5232,7 @@ def rig_frame(self):
                                   baseName = self.d_module['partName'] + '_ikRibbon',
                                   driverSetup='stable',
                                   connectBy='constraint',
+                                  paramaterization = mBlock.getEnumValueString('ribbonParam'),
                                   moduleInstance = self.mModule)
                 
                 log.debug("|{0}| >> ribbon surface...".format(_str_func))
@@ -6404,7 +6424,6 @@ def rig_cleanUp(self):
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    mBlock.atUtils('set_blockNullTemplateState')
     
     #cgmGEN.func_snapShot(vars())
     return

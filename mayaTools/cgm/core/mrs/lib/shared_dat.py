@@ -112,7 +112,6 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'customStartOrientation':'bool',
                    'offsetMode':'default:proxyAverage',
                    'moduleTarget':'messageSimple',
-                   
                    'squashMeasure' : 'none:arcLength:pointDist',
                    'squash' : 'none:simple:single:both',
                    'squashExtraControl' : 'bool',
@@ -121,7 +120,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                
                    'ribbonAim': 'none:stable:stableBlend',
                    #'ribbonConnectBy': 'constraint:matrix',
-               
+                   'ribbonParam': 'fixed:floating:blend',
                    'segmentMidIKControl':'bool',
                    
                    
