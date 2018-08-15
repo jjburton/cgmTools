@@ -1581,7 +1581,7 @@ def ribbon(jointList = None,
                              '{0}.parameterV'.format(mStableFollicleShape.mNode))
                 
                 if driverSetup == 'stable':
-                    if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
+                    if mDriver in [ml_aimDrivers[-1]]:
                         #...now aim it
                         mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
                                          aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,

@@ -2270,7 +2270,7 @@ def rig_segments(self):
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
-          'attachEndsToInfluences':True,
+          'attachEndsToInfluences':False,
           'moduleInstance':mModule}
     reload(IK)
     _d.update(self.d_squashStretch)
@@ -2875,7 +2875,7 @@ def rig_frame(self):
 
                 d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
                         'baseName' : self.d_module['partName'] + '_ikRibbon',
-                        'driverSetup':'stableBlend',
+                        'driverSetup':'stable',
                         'squashStretch':None,
                         'connectBy':'constraint',
                         'squashStretchMain':'arcLength',
