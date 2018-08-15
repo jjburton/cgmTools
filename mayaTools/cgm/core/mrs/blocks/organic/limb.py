@@ -3507,6 +3507,7 @@ def rig_shapes(self):
                 if _settingsPlace == 'start':
                     _mTar = ml_targets[0]
                     _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
+                    _mSnapTo = _mTar
                 else:
                     _mTar = ml_targets[self.int_handleEndIdx]
                     if self.b_singleChain:
@@ -6369,6 +6370,8 @@ def rig_cleanUp(self):
                 
                 
         for mCtrl in ml_controlsToLock:
+            if mCtrl == mSettings:
+                continue
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
             
     for mJnt in ml_blendJoints:

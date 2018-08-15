@@ -2147,7 +2147,7 @@ def ribbon(jointList = None,
         
         if extendEnds:
             blendMin = 4
-            _hardLength = 4
+            _hardLength = 3
             mode_tighten = None
         
         
@@ -2159,6 +2159,7 @@ def ribbon(jointList = None,
         
         if int_lenInfluences == int_lenJoints:
             _hardLength = 3
+            
         #Tighten the weights...
         
        
@@ -2198,6 +2199,7 @@ def ribbon(jointList = None,
             mSkinCluster.doName()    
         
             #Tighten the weights...
+                        
             RIGSKIN.surface_tightenEnds(mSurf.mNode,
                                         hardLength = _hardLength,
                                         blendLength=blendLength,
