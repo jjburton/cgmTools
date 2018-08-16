@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -208,7 +208,9 @@ def mirror_verify(self):
     int_lenModules = len(ml_modules)
     
     for i,mModule in enumerate(ml_modules):
-        mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes, ml_processed)
+        try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes, ml_processed)
+        except Exception,err:
+            log.error(err)
     
     
     return

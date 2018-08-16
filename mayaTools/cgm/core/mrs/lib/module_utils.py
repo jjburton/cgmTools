@@ -646,7 +646,8 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     ignore = VALID.listArg(ignore)
     
     mRigNull = self.rigNull
-    ml_objs = mRigNull.moduleSet.getMetaList() or []
+    try:ml_objs = mRigNull.moduleSet.getMetaList() or []
+    except:ml_objs = []
     #l_objs = [mObj.mNode for mObj in ml_objs]
     md_controls = {}
     ml_controls = []
@@ -882,8 +883,10 @@ def mirror_get(self,recheck=False):
         if mMirror:
             log.debug("|{0}| >>  Stored moduleMirror found: {1}".format(_str_func,mMirror))
             return mMirror[0]
+        
     l_direction = ['left','right']
-    if not self.hasAttr('cgmDirection'):
+    _cgmDirection = self.getMayaAttr('cgmDirection')
+    if not _cgmDirection or str(_cgmDirection).lower() in ['center','centre']:
         log.debug("|{0}| >>  has no cgmDirection".format(_str_func))
         return False
 
@@ -1024,8 +1027,8 @@ def mirror_verifySetup(self, d_Indices = {},
                        l_processed = None,
                        md_data = None):
     _str_func = ' mirror_verifySetup'
-    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.info("{0}".format(self))
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     md_indicesToControls = {}
     for k in ['Centre','Left','Right']:
@@ -1088,9 +1091,13 @@ def mirror_verifySetup(self, d_Indices = {},
         d_mirror = get_mirrorDat(d_self.get('mMirror'))
     
     if not d_mirror:
-        log.info("|{0}| >> No mirror found...".format(_str_func))
+        log.debug("|{0}| >> No mirror found...".format(_str_func))
+        if not d_self['ml_controls']:
+            raise ValueError,"Not rigged: {0} ".format(self)
         validate_controls(d_self['ml_controls'])
         log.info(cgmGEN._str_subLine)
+        _v = None
+        
         for i,mObj in enumerate(d_self['ml_controls']):
             _side = mObj.getEnumValueString('mirrorSide')
             i_start = d_Indices[_side]
@@ -1099,6 +1106,7 @@ def mirror_verifySetup(self, d_Indices = {},
             mObj.mirrorIndex = _v
             d_Indices[_side] = _v#...push it back
             md_indicesToControls[_side][_v] = mObj
+            
         if l_processed is not None:l_processed.append(self)
         d_Indices[d_self['str_side']] = _v
         return md_indicesToControls
