@@ -229,7 +229,8 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'segmentMidIKControl':'bool',
                  
                  'settingsPlace':'start:end:cog',
-                 'blockProfile':':'.join(d_block_profiles.keys()),
+                 'blockProfile':'string',#':'.join(d_block_profiles.keys()),
+                 #'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
                  'spaceSwitch_direct':'bool',
                  'templateAim':'toEnd:chain',
@@ -261,8 +262,6 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'cubic',
                      'numSpacePivots':2,
-                     
-
                      
                      'ikBase':'cube',
                      'ikEnd':'cube',
@@ -2270,7 +2269,7 @@ def rig_segments(self):
           'masterScalePlug':mPlug_masterScale,
           'influences':ml_handleJoints,
           'settingsControl':_settingsControl,
-          'attachEndsToInfluences':False,
+          'attachEndsToInfluences':True,
           'moduleInstance':mModule}
     reload(IK)
     _d.update(self.d_squashStretch)
@@ -2866,12 +2865,10 @@ def rig_frame(self):
                 
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
-                reload(IK)
                 
                 if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
                     ml_skinDrivers.extend(ml_handleJoints)
-                    
-                    
+                     
 
                 d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
                         'baseName' : self.d_module['partName'] + '_ikRibbon',
@@ -2885,6 +2882,9 @@ def rig_frame(self):
                         'extraSquashControl':True,
                         'influences':ml_skinDrivers,
                         'moduleInstance' : self.mModule}
+                
+                if mIKBaseControl and mBlock.numJoints == mBlock.numControls:
+                    d_ik['attachEndsToInfluences'] = True                
                 
                 d_ik.update(self.d_squashStretchIK)
                 res_ribbon = IK.ribbon(**d_ik)

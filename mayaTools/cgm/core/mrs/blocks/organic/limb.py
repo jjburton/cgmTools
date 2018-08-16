@@ -319,7 +319,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
-                 'blockProfile':':'.join(d_block_profiles.keys()),
+                 'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
                  'numRoll':'int',
@@ -3107,7 +3107,7 @@ def rig_shapes(self):
         _offset = self.v_offset
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
         if str_rigSetup == 'digit':
-            str_profile = ATTR.get_enumValueString(_short,'blockProfile')
+            str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
             
             if str_profile in ['finger','thumb']:
                 return rig_digitShapes(self)
@@ -3215,7 +3215,7 @@ def rig_shapes(self):
                 if self.b_lever:
                     idx = 1
                 mLimbRootHandle = ml_prerigHandles[idx]
-                mLimbRoot = ml_fkJoints[0].doCreateAt()
+                mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
             
                 _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode))
                 mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
@@ -4212,7 +4212,12 @@ def rig_segments(self):
                     
                     log.debug("|{0}| >> Stable up...".format(_str_func))
                     mStableUp = mBlendParent.doCreateAt()
-                    mStableUp.p_parent = mRoot
+                    
+                    mLimbRoot = mRigNull.getMessageAsMeta('limbRoot')
+                    if mLimbRoot:
+                        mStableUp.p_parent = mLimbRoot
+                    else:
+                        mStableUp.p_parent = mRoot
                     mStableUp.doStore('cgmName',mSegHandle.mNode)                
                     mStableUp.doStore('cgmTypeModifier','stable')
                     mStableUp.doStore('cgmType','upObj')
@@ -6124,7 +6129,7 @@ def rig_cleanUp(self):
     _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')        
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
-    str_blockProfile = mBlock.getEnumValueString('blockProfile')
+    str_blockProfile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
     
     str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
 

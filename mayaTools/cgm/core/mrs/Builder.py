@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = 'ALPHA 0.07312018'
+__version__ = 'ALPHA 0.08162018'
 _sidePadding = 25
 
 def check_cgm():
@@ -191,6 +191,11 @@ class ui(cgmUI.cgmGUI):
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'is_upToDate'),
                         )
+        mUI.MelMenuItem(_menu, l="Gather space drivers",
+                                ann = "Gather world and puppet space drivers ",
+                                c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'collect_worldSpaceObjects'),
+                                )
+        """
         mUI.MelMenuItem(_menu, l="Armature Verify",
                         ann = "Verify puppet armature ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'armature_verify'),
@@ -198,7 +203,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_menu, l="Armature Remove",
                         ann = "Remove puppet armature ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'armature_remove'),
-                        )
+                        )"""
         mUI.MelMenuItem(_menu, l="Qss - Bake set",
                         ann = "Add bake set",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
@@ -1103,7 +1108,6 @@ class ui(cgmUI.cgmGUI):
                 return
             
             log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
-            
             self._blockFactory.set_rigBlock( _ml[index] )
             self._blockCurrent = _ml[index]
             _short = self._blockCurrent.p_nameShort
@@ -1111,12 +1115,16 @@ class ui(cgmUI.cgmGUI):
             #>>>Inspector ===================================================================================
             #>>>Report ---------------------------------------------------------------------------------------
             
-            _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort),
-                         self._blockCurrent.blockType]
+            _l_report = ["Active: {0}".format(self._blockCurrent.p_nameShort)]
             if self._blockCurrent.hasAttr('buildProfile'):
                 _l_report.insert(0,str(self._blockCurrent.buildProfile))
-            if ATTR.get(_short,'side'):
-                _l_report.append( ATTR.get_enumValueString(_short,'side'))
+            #if ATTR.get(_short,'side'):
+                #_l_report.append( ATTR.get_enumValueString(_short,'side'))
+            if ATTR.has_attr(_short,'blockProfile'):
+                _l_report.append("{0} - {1}".format(self._blockCurrent.blockProfile,
+                                                    self._blockCurrent.blockType))
+            else:
+                _l_report.append("{0}".format(self._blockCurrent.blockType))                
             
             if self._blockCurrent.isReferenced():
                 _l_report.insert(0,"Referenced!")

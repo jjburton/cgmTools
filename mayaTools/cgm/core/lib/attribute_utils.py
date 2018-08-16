@@ -2440,7 +2440,7 @@ def convert_type(node = None, attr = None, attrType = None):
     if _typeCurrent == 'message':
         _data = get_message(_d)
     elif _typeCurrent == 'enum':
-        _data = get_enum(_d)
+        _data = get_enumValueString(_d)
     else:
         _data = get(_d)
           

@@ -541,6 +541,7 @@ def rig_cleanUp(self):
         """
         ml_controlsAll.append(mControl)
         mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
+        mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
         
     #Connect -------------------------------------------------------------
     mPuppet.msgList_connect('controlsAll', ml_controlsAll)
@@ -570,18 +571,42 @@ def rig_cleanUp(self):
     #log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     #except Exception,err:cgmGEN.cgmException(Exception,err)
 
+@cgmGEN.Timer
 def rigDelete(self):
-    self.template = False
-    self.noTransTemplateNull.template=True
-    
-    return True
-    self.v = 1
-    try:self.moduleTarget.masterControl.masterGroup.delete()
+    try:
+        _str_func = 'rigDelete'    
+        self.template = False
+        self.noTransTemplateNull.template=True
+        
+        mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
+        if mRootMotion:
+            mRootMotion.dynParentGroup.doPurge()
+            mRootMotion.masterGroup.delete()
+        
+        
+        self.moduleTarget.masterControl.dynParentGroup.doPurge()
+        
+        ml_spacePivots = self.moduleTarget.masterControl.msgList_get('spacePivots')
+        if ml_spacePivots:
+            for mObj in ml_spacePivots:
+                log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj))  
+                for link in ['constraintGroup','constrainGroup','masterGroup']:
+                    mGroup = mObj.getMessageAsMeta(link)
+                    if mGroup:
+                        mGroup.delete()
+                        break
+                
+        self.moduleTarget.masterControl.masterGroup.delete()
+        
+        return True
+        self.v = 1
+        try:self.moduleTarget.masterControl.masterGroup.delete()
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err)
+            raise Exception,err
+        return True
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)
-        raise Exception,err
-    return True
-            
+        raise cgmGEN.cgmException(Exception,err,msg=vars())
 def is_rig(self):
     _str_func = 'is_rig'
     _l_missing = []

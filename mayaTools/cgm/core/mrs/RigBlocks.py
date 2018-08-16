@@ -410,7 +410,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #self._blockModule = _mBlockModule
     
             self.doName()
-            log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))         
+            log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+            
+            if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
+                ATTR.convert_type(self.mNode,'blockProfile','string')
+                #_v = self.getEnumValueString('blockProfile')
+                #self.doStore('blockProfile',_v,attrType='string')
+            
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -4472,7 +4478,7 @@ class rigFactory(object):
         self.mPuppet = _mPuppet
 
         _d['mPuppet'] = _mPuppet
-        _mPuppet.verify_groups()
+        _mPuppet.UTILS.groups_verify(_mPuppet)
 
         if _hasModule:
             if not _mModule.atUtils('is_skeletonized'):
@@ -5081,12 +5087,13 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             self.verify_masterNull()
 
                 
-            if self.masterNull.getShortName() != self.cgmName:
-                self.masterNull.doName()
-                if self.masterNull.getShortName() != self.cgmName:
-                    log.warning("Master Null name still doesn't match what it should be.")
+            #if self.masterNull.getShortName() != self.cgmName:
+                #self.masterNull.doName()
+                #if self.masterNull.getShortName() != self.cgmName:
+                    #log.warning("Master Null name still doesn't match what it should be.")
             
-            ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])    
+            ATTR.set_standardFlags(self.masterNull.mNode,attrs=['tx','ty','tz','rx','ry','rz','sx','sy','sz'])
+            
             #Quick select sets
             #---------------------------------------------------------------------------
             #self.verify_objectSet()
@@ -5095,8 +5102,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             # Groups ---------------------------------------------------------------------------
             self.atUtils('groups_verify')
             
-
-    
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
         
@@ -5134,8 +5139,11 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             _d = nameTools.returnObjectGeneratedNameDict(self.mNode)
             self.rename(nameTools.returnCombinedNameFromDict(_d))
             
-            try:self.masterNull.doName()
-            except:pass
+            try:
+                mMasterNull = self.masterNull
+                mMasterNull.rename(mMasterNull.cgmName)
+            except:
+                pass
             
             try:
                 self.masterControl.doName()
@@ -5175,19 +5183,18 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 raise StandardError,"Failed to connect masterNull to puppet network!"
 
             mMasterNull.addAttr('mClass',value = 'cgmMasterNull',lock=True)
-            mMasterNull.addAttr('cgmName',initialValue = '',lock=True)
-            mMasterNull.addAttr('cgmType',initialValue = 'rig',lock=True)
             mMasterNull.addAttr('cgmModuleType',value = 'master',lock=True)   
             mMasterNull.addAttr('partsGroup',attrType = 'messageSimple',lock=True)   
             mMasterNull.addAttr('deformGroup',attrType = 'messageSimple',lock=True)   	
             mMasterNull.addAttr('noTransformGroup',attrType = 'messageSimple',lock=True)   
             mMasterNull.addAttr('geoGroup',attrType = 'messageSimple',lock=True)   
+            mMasterNull.addAttr('rigGroup',attrType = 'messageSimple',lock=True)   
 
             #See if it's named properly. Need to loop back after scene stuff is querying properly
-            mMasterNull.doName()
-            
+            #mMasterNull.doName()
+            mMasterNull.rename(mMasterNull.cgmName)
             mc.editDisplayLayerMembers(self.displayLayer.mNode, mMasterNull.mNode,noRecurse=True)
-            
+
             
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -5195,17 +5202,19 @@ class cgmRigPuppet(cgmMeta.cgmNode):
     #=================================================================================================
     # Puppet Utilities
     #=================================================================================================
+    @cgmGEN.Timer
     def verify_groups(self):
         try:
             _str_func = "cgmRigPuppet.verify_groups".format()
             log.debug("|{0}| >> ...".format(_str_func))
-
+            
+            raise ValueError,'NO. Go back!'
             mMasterNull = self.masterNull
 
             if not mMasterNull:
                 raise ValueError, "No masterNull"
 
-            for attr in 'deform','noTransform','geo','skeleton','parts','worldSpaceObjects','puppetSpaceObjects':
+            for attr in 'rig','deform','noTransform','geo','skeleton','parts','worldSpaceObjects','puppetSpaceObjects':
                 _link = attr+'Group'
                 mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
                 if mGroup:mGroup = mGroup[0]
@@ -5217,13 +5226,15 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
 
                 # Few Case things
-                #==============            
-                if attr in ['geo','parts']:
+                #==============
+                if attr in ['rig']:
+                    mGroup.p_parent = mMasterNull
+                elif attr in ['geo','parts']:
                     mGroup.p_parent = mMasterNull.noTransformGroup
                 elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
                     mGroup.p_parent = self.getMessage('masterControl')[0]	    
                 else:    
-                    mGroup.p_parent = mMasterNull
+                    mGroup.p_parent = mMasterNull.rigNull
 
                 ATTR.set_standardFlags(mGroup.mNode)
 
@@ -5302,7 +5313,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             _str_func = "cgmRigPuppet.verify_masterControl"
             log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
             
-            self.verify_groups()#...make sure everythign is there
+            self.UTILS.groups_verify(self)
+            #self.verify_groups()#...make sure everythign is there
             
             # Size...
             #-------------------------------------------------------------------------
@@ -5428,7 +5440,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 mSkeletonGrp.doSnapTo(mMasterControl.mNode)
                 mSkeletonGrp.addAttr('cgmName','ignore',lock=True)
                 mSkeletonGrp.addAttr('cgmTypeModifier','skeleton',lock=True)
-                mSkeletonGrp.parent = mMasterControl.mNode
+                #mSkeletonGrp.parent = mMasterControl.mNode
                 self.masterNull.connectChildNode(mSkeletonGrp,'skeletonGroup','module')
                 mSkeletonGrp.doName()
             else:
@@ -5540,10 +5552,9 @@ class cgmRigMaster(cgmMeta.cgmObject):
             _shapes = self.getShapes()
             if len(_shapes)<3:
                 self.rebuildMasterShapes(**kws)
-
             self.doName()
-                
             return True
+        
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
     def rebuildMasterShapes(self,**kws):

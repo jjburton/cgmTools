@@ -807,25 +807,27 @@ def groups_verify(self):
         if not mMasterNull:
             raise ValueError, "No masterNull"
     
-        for attr in 'deform','noTransform','geo','skeleton','parts','worldSpaceObjects','puppetSpaceObjects':
+        for attr in ['rig','deform','noTransform','geo','skeleton',
+                     'parts','worldSpaceObjects','puppetSpaceObjects']:
             _link = attr+'Group'
             mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
             if mGroup:mGroup = mGroup[0]
     
             if not mGroup:
                 mGroup = mMasterNull.doCreateAt(setClass=True)
-                mGroup.rename(attr+'_grp')
                 mGroup.connectParentNode(mMasterNull.mNode,'puppet', attr+'Group')
+                
+            mGroup.rename(attr)
             log.debug("|{0}| >> attr: {1} | mGroup: {2}".format(_str_func, attr, mGroup))
     
             # Few Case things
-            #==============            
-            if attr in ['geo','parts']:
-                mGroup.p_parent = mMasterNull.noTransformGroup
+            #----------------------------------------------------
+            if attr in ['rig','geo','skeleton']:
+                mGroup.p_parent = mMasterNull
             elif attr in ['deform','puppetSpaceObjects'] and self.getMessage('masterControl'):
                 mGroup.p_parent = self.getMessage('masterControl')[0]	    
             else:    
-                mGroup.p_parent = mMasterNull
+                mGroup.p_parent = mMasterNull.rigGroup
     
             ATTR.set_standardFlags(mGroup.mNode)
     
@@ -835,8 +837,27 @@ def groups_verify(self):
                 mGroup.addAttr('cgmAlias','puppet')
                 
     except Exception,err:cgmGEN.cgmException(Exception,err)
-        
+
+def collect_worldSpaceObjects(self):
+    _str_func = 'collect_worldSpaceObjects'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)    
+    ml_objs = []
+    mMasterNull = self.masterNull
+    mWorldSpaceObjectsGroup = mMasterNull.worldSpaceObjectsGroup
+    mPuppetSpaceObjectsGroup = mMasterNull.puppetSpaceObjectsGroup
     
+    for mObj in self.masterControl.getChildren(asMeta = 1):
+        if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+            mObj.parent = mPuppetSpaceObjectsGroup
+            ml_objs.append(mObj)
+    for mObj in mMasterNull.getChildren(asMeta = 1):
+        if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+            mObj.parent = mWorldSpaceObjectsGroup     
+            ml_objs.append(mObj)
+            
+    return ml_objs
+
 def get_joints(self,mode='bind'):
     """
     First pass on qss verification

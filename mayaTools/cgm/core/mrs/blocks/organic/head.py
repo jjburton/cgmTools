@@ -122,14 +122,14 @@ d_block_profiles = {
            'baseSize':[22,22,22],
            'loftShape':'square',           
            },
-    'head':{'neckShapers':3,
-            'neckBuild':True,
-            'baseAim':[0,-1,0],
-            'baseUp':[0,0,-1],
-            'baseSize':[15.2, 23.2, 19.7],
-            'loftShape':'wideUp',
-            'proxyType':'geo'
-             }
+    'headNeck':{'neckShapers':3,
+                'neckBuild':True,
+                'baseAim':[0,-1,0],
+                'baseUp':[0,0,-1],
+                'baseSize':[15.2, 23.2, 19.7],
+                'loftShape':'wideUp',
+                'proxyType':'geo'
+                 }
 }
 
 
@@ -180,7 +180,8 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'neckShapers':'int',
                  'neckJoints':'int',
                  'loftSetup':'default:neck',
-                 'blockProfile':':'.join(d_block_profiles.keys()),
+                 'blockProfile':'string',#':'.join(d_block_profiles.keys()),
+                 #'blockProfile':':'.join(d_block_profiles.keys()),
                  'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
                  }
 

@@ -1997,7 +1997,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
 
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
     
-    ml_joints = [cgmMeta.cgmObject(j) for j in l_joints]
+    ml_joints = cgmMeta.validateObjListArg(l_joints,'cgmObject',setClass=True)
 
     if blockNames:
         l_names = skeleton_getNameDicts(self,False,len(l_joints))        
@@ -4326,7 +4326,8 @@ def rigDelete(self):
     
     mModuleTarget = self.moduleTarget
     if mModuleTarget:
-        log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))            
+        log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))
+        
         if mModuleTarget.mClass ==  'cgmRigModule':
             #Deform null
             _deformNull = mModuleTarget.getMessage('deformNull')
@@ -4342,7 +4343,7 @@ def rigDelete(self):
             for mChild in mModuleTarget.rigNull.getChildren(asMeta=True):
                 mChild.delete()
         elif mModuleTarget.mClass == 'cgmRigPuppet':
-            mModuleTarget.masterControl.delete()
+            pass#mModuleTarget.masterControl.delete()
         
         else:
             log.error("|{0}| >> Unknown mClass moduleTarget: {1}".format(_str_func,mModuleTarget))                
@@ -4685,9 +4686,9 @@ def blockProfile_load(self, arg):
     _str_func = 'blockProfile_load'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     _short = self.mNode
+    
     mBlockModule = self.p_blockModule
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-    reload(mBlockModule)
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
@@ -4714,6 +4715,8 @@ def blockProfile_load(self, arg):
                 ATTR.set(_short,a,v)
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+    
+    self.doStore('blockProfile',arg)
     log.info("|{0}| >>  Block: {1} | {2}".format(_str_func,_short,arg))
 
 
@@ -4740,6 +4743,7 @@ def buildProfile_load(self, arg):
             _d_block = _d_block.get(_blockProfile)
         else:
             _d_block = _d_block.get('default')
+    
     cgmGEN.func_snapShot(vars())
 
     _d.update(_d_block)
@@ -4764,7 +4768,6 @@ def buildProfile_load(self, arg):
         log.error(cgmGEN._str_subLine)
         return log.error("|{0}| >>  [FAILED] Block: {1} | profile: {2} | Can't load in state: {3}".format(_str_func,_short,arg,self.blockState))
     
-    
     log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
     for a,v in _d.iteritems():
         try:
@@ -4776,7 +4779,7 @@ def buildProfile_load(self, arg):
                     mc.select(cl=True)
                     ATTR.datList_connect(_short, a, v, mode='string')
                     _done = True
-            if not _done:
+            if not _done and mc.objExists("{0}.{1}".format(_short,a)):
                 ATTR.set(_short,a,v)
                 
             if a == 'numRoll':
