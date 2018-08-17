@@ -173,7 +173,6 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
              
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
-                 'ribbonParam':'blend',
                  'segmentMidIKControl':'bool',
                  'neckDirection':'vertical:horizontal',
                  'neckBuild':'bool',
@@ -199,6 +198,7 @@ d_defaultSettings = {'version':__version__,
                      'proxyDirect':True,
                      'attachPoint':'end',
                      'neckIK':'ribbon',
+                     'ribbonParam':'blend',
                      
                      'squashMeasure':'arcLength',
                      'squash':'simple',
@@ -3229,7 +3229,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     if not ml_rigJoints:
         raise ValueError,"No rigJoints connected"
     
-    #>> If proxyMesh there, delete --------------------------------------------------------------------------- 
+    #>> If proxyMesh there, delete ---------------------------------------------------------------------- 
     if puppetMeshMode:
         _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
         if _bfr:
@@ -3337,8 +3337,26 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     if mBlock.neckBuild:#...Neck =====================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))
         
+        ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints[:-1]),'cgmObject')
+        log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
+
+        for i,mGeo in enumerate(ml_neckProxy):
+            mGeo.parent = ml_rigJoints[i]
+            ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+            mGeo.addAttr('cgmIterator',i+1)
+            mGeo.addAttr('cgmType','proxyGeo')
+            mGeo.doName()
+
+            if directProxy:
+                CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
+                CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)        
+        
+        
         # Create ---------------------------------------------------------------------------
         if mBlock.neckJoints == 1:
+            
+            pass
+            """
             mProxy = ml_rigJoints[0].doCreateAt(setClass=True)
             mPrerigProxy = mBlock.getMessage('prerigLoftMesh',asMeta=True)[0]
             CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxy.mNode)
@@ -3353,21 +3371,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             if directProxy:
                 CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,False)
                 CORERIG.colorControl(ml_rigJoints[0].mNode,_side,'main',directProxy=True)            
-            
-        else:
-            ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints),'cgmObject')
-            log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
-            
-            for i,mGeo in enumerate(ml_neckProxy):
-                mGeo.parent = ml_rigJoints[i]
-                ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
-                mGeo.addAttr('cgmIterator',i+1)
-                mGeo.addAttr('cgmType','proxyGeo')
-                mGeo.doName()
-                
-                if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
-                    CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                
+            """
+ 
     
     for mProxy in ml_neckProxy + ml_headStuff:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
