@@ -3246,26 +3246,32 @@ def rig_shapes(self):
             if mPivotHelper:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> pivot helper...".format(_str_func))
                 
-                mIKCrv = mPivotHelper.doDuplicate(po=False)
-                mIKCrv.parent = False
-                #mc.makeIdentity(mIKCrv.mNode,apply=True,translate =False, rotate = False, scale=True)
-                for mChild in mIKCrv.getChildren(asMeta=True):
+                mIKShape = mPivotHelper.doDuplicate(po=False)
+                mIKShape.parent = False
+                #mc.makeIdentity(mIKShape.mNode,apply=True,translate =False, rotate = False, scale=True)
+                for mChild in mIKShape.getChildren(asMeta=True):
                     if mChild.cgmName == 'topLoft':
                         mShape2 = mChild.doDuplicate(po=False)
                         DIST.offsetShape_byVector(mShape2.mNode,_offset,origin=mShape2.p_position,component='cv')
     
                     mChild.delete()
     
-                DIST.offsetShape_byVector(mIKCrv.mNode,_offset,origin=mIKCrv.p_position,component='cv')
+                DIST.offsetShape_byVector(mIKShape.mNode,_offset,origin=mIKShape.p_position,component='cv')
                 
                 if not mShape2:
-                    mShape2 = mIKCrv.doDuplicate(po=False)
+                    mShape2 = mIKShape.doDuplicate(po=False)
                     mShape2.p_position = mShape2.getPositionByAxisDistance('y+',_offset/2)
                     
-                CURVES.join_shapes([mIKCrv.mNode,mShape2.mNode])
+                CURVES.join_shapes([mIKShape.mNode,mShape2.mNode])
                 #mShape2.delete()
-                #CORERIG.shapeParent_in_place(mIKCrv.mNode, mShape2.mNode, False)
+                #CORERIG.shapeParent_in_place(mIKShape.mNode, mShape2.mNode, False)
                 
+                
+                mIKCrv = ml_prerigHandles[self.int_handleEndIdx].doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
+                
+                
+                """
                 if str_ikEnd in ['foot']:
                     #Make our ikEnd -----------------------------------------------------
                     log.debug("|{0}| >> IK end shape...".format(_str_func))                
@@ -3285,7 +3291,7 @@ def rig_shapes(self):
                     mIKEndCrv.doName()
                 
                     self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        
-
+                    """
             elif ml_templateHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
                 mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
