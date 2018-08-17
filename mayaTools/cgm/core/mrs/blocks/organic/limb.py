@@ -4466,7 +4466,7 @@ def rig_segments(self):
                 
                 d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
                          'baseName' :self.d_module['partName'] + '_midRibbon',
-                         'driverSetup':'stableBlend',
+                         'driverSetup':None,#Old - stable blend
                          'squashStretch':None,
                          'paramaterization':'floating',          
                          'msgDriver':'masterGroup',

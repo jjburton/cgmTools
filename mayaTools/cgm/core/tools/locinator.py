@@ -398,7 +398,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
         mc.currentTime(f)
         
         for o in _l_toDo:
-            _keys = _d_keysOfTarget[o]
+            _keys = _d_keysOfTarget.get(o,[])
             if f in _keys:
                 #log.info("|{0}| >> Baking: {1} | {2}...".format(_str_func,f,o))
                 

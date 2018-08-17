@@ -735,12 +735,14 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     #tess method - general, uType 1, vType 2+ joint count
     
     #>>Body -----------------------------------------------------------------
+    _ss = 1
     if degree == 1:
         _loftDegree = 1
+        _ss = divisions
     else:
         _loftDegree = 3
         
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1 )
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)

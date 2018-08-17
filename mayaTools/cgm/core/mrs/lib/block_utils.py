@@ -5147,7 +5147,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
     return ml_mesh
             
 
-def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 1):
+def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
     _str_func = 'create_simpleLoftMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))

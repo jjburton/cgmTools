@@ -1320,8 +1320,8 @@ def rig_dataBuffer(self):
     
     #Check for mid control and even handle count to see if w need an extra curve
     if mBlock.segmentMidIKControl:
-        if MATH.is_even(mBlock.numControls):
-            self.d_squashStretchIK['sectionSpans'] = 2
+        #if MATH.is_even(mBlock.numControls):
+        self.d_squashStretchIK['sectionSpans'] = 2
             
     if self.d_squashStretchIK:
         log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
@@ -2835,7 +2835,7 @@ def rig_frame(self):
                     d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
                              'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
                              'baseName' :self.d_module['partName'] + '_midRibbon',
-                             'driverSetup':'stableBlend',
+                             'driverSetup':None,
                              'squashStretch':None,
                              'msgDriver':'masterGroup',
                              'specialMode':'noStartEnd',
@@ -2876,15 +2876,19 @@ def rig_frame(self):
                         'squashStretch':None,
                         'connectBy':'constraint',
                         'squashStretchMain':'arcLength',
-                        'paramaterization':mBlock.getEnumValueString('ribbonParam'),                        
+                        'paramaterization':mBlock.getEnumValueString('ribbonParam'),
                         #masterScalePlug:mPlug_masterScale,
                         'settingsControl': mSettings.mNode,
                         'extraSquashControl':True,
                         'influences':ml_skinDrivers,
                         'moduleInstance' : self.mModule}
                 
-                if mIKBaseControl and mBlock.numJoints == mBlock.numControls:
-                    d_ik['attachEndsToInfluences'] = True                
+                if str_ikBase == 'hips':
+                    d_ik['attachEndsToInfluences'] = True
+                    
+                #if mBlock.numControls == mBlock.numJoints:
+                    #d_ik['paramaterization'] = 'fixed'
+                    
                 
                 d_ik.update(self.d_squashStretchIK)
                 res_ribbon = IK.ribbon(**d_ik)
