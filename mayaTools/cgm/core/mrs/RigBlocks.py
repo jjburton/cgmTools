@@ -81,7 +81,7 @@ get_from_scene = BLOCKGEN.get_from_scene
 d_attrstoMake = BLOCKSHARE.d_defaultAttrs
 d_defaultAttrSettings = BLOCKSHARE.d_defaultAttrSettings
 
-def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
+def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None, default = [1,1,1]):
     """
     Get size for block creation by mode
 
@@ -103,11 +103,16 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
             return [float(v) for v in arg]
         _sel = mc.ls(sl=True)
 
-        if mode is None:
+        if mode in [None,'default']:
             log.debug("|{0}| >>  mode is None...".format(_str_func))
             if not arg:
+                log.debug("|{0}| >>  no arg...".format(_str_func))                
                 if blockType:
                     blockModule = get_blockModule(blockType)
+                    if blockProfile:
+                        _profileValues = blockModule.d_block_profiles.get(blockProfile,None)
+                        if _profileValues:
+                            return floatValues(_profileValues['baseSize'])
                     return floatValues(getattr(blockModule, '__baseSize__', default))
                 return floatValues(default)
             else:
@@ -147,6 +152,7 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
         
             
         mode = mode.lower()
+        size = None
         if mode == 'selection':
             if VALID.isListArg(arg):
                 size = POS.get_bb_size(arg, False)
@@ -157,7 +163,11 @@ def get_callSize(mode = None, arg = None, blockType = None, default = [1,1,1]):
                 #rigBlock.connectChildNode(arg,'sourceObj')#Connect
         elif mode in ['boundingbox','bb']:
             size = POS.get_bb_size(arg, False)
-
+        else:
+            size = 1,1,1
+        
+        if not size:
+            raise ValueError,"No size found"
         _res = floatValues(size)
         log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
         return floatValues(_res)
@@ -199,7 +209,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         
         if node is None:
             _sel = mc.ls(sl=1)            
-            _callSize = get_callSize(_size)
+            _callSize = get_callSize(_size,blockProfile=kws.get('blockProfile'),blockType=blockType)
 
             if  _sel:
                 pos_target = TRANS.position_get(_sel[0])
@@ -209,10 +219,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 elif pos_target[0] <= -.05:
                     _side = 'right'            
 
-        log.debug("|{0}| >> size: {1}".format(_str_func, _callSize))
 
         #>>Verify or Initialize
         super(cgmRigBlock, self).__init__(node = node, name = blockType) 
+        log.debug("|{0}| >> size: {1}".format(_str_func, _callSize))
 
         #====================================================================================	
         #>>> TO USE Cached instance ---------------------------------------------------------
@@ -279,11 +289,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
                 #Profiles --------------------------------------------------------------------------
                 if self.hasAttr('blockProfile'):
-                    self.atUtils('blockProfile_load', ATTR.get_enumValueString(self.mNode,'blockProfile'))
+                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',self.blockProfile))
                 
                 _kw_buildProfile = kws.get('buildProfile')
                 if _kw_buildProfile:
-                    self.atUtils('buildProfile_load', _kw_buildProfile)
+                    self.UTILS.buildProfile_load(self, _kw_buildProfile)
                 
                 #>>>Auto flags...
                 if not _blockModule:
@@ -292,8 +302,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #Size -----------------------------------------------------
                 _sizeMode = _blockModule.__dict__.get('__sizeMode__',None)
                 
-                if _sizeMode:
-                    log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+                #if _sizeMode:
+                    #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                     #self.atUtils('doSize', _sizeMode)
 
                 #Snap with selection mode --------------------------------------
@@ -332,8 +342,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     for arg in err.args:
                         log.error(arg)
                         
-            if _sizeMode:
-                log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+            #if _sizeMode:
+                #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                 #self.atUtils('doSize', _sizeMode, postState = _postState )                
             
         except Exception,err:
