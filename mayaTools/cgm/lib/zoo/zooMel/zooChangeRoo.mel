@@ -26,7 +26,7 @@ global proc zooChangeRoo( string $newRoo ) {
 	string $selObjs[] = `ls -sl`;
 	string $staticObjs[] = {};
 	string $animatedObjs[] = {};
-	string $rotateOrders[] = { "xyz","yzx","zxy","xzy","yxz ","zyx" };
+	string $rotateOrders[] = { "xyz","yzx","zxy","xzy","yxz","zyx" };
 	float $keyTimeList[] = {};
 	float $initialTime = `currentTime -q`;
 
