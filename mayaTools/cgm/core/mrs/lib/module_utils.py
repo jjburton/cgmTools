@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -1279,210 +1279,214 @@ def mirror(self,mode = 'self'):
     
     
 def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
-    _str_func = 'switchMode'    
-    if not bypassModuleCheck:
-        log.info("checking blockModule")        
-        mBlockModule = self.p_blockModule
-        reload(mBlockModule)
-        _blockCall = mBlockModule.__dict__.get('switchMode')
-        if _blockCall:
-            log.info("|{0}| >> Found swich mode in block module ".format(_str_func))
-            return _blockCall(self,mode)
-        
-    log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
-    log.info("{0}".format(self))
-        
-    mRigNull = self.rigNull
-    mSettings = mRigNull.settings
-    
-    _mode = mode.lower()
-    
-    if _mode == 'fkon':
-        mSettings.FKIK = 0
-        
-    elif _mode == 'ikon':
-        mSettings.FKIK = 1
-        
-    elif _mode in ['aimon','aimoff','aimtofk','aimtoik','aimsnap']:
-        if not mRigNull.getMessage('lookAt'):
-            return log.warning("|{0}| >> No lookAt/aim setup detected ".format(_str_func))        
-        mLookAt = mRigNull.lookAt
-        
-        if _mode == 'aimon':
-            mSettings.blend_aim = 1
-        elif _mode == 'aimoff':
-            mSettings.blend_aim = 0
+    try:
+        _str_func = 'switchMode'    
+        if not bypassModuleCheck:
+            log.info("checking blockModule")        
+            mBlockModule = self.p_blockModule
+            reload(mBlockModule)
+            _blockCall = mBlockModule.__dict__.get('switchMode')
+            if _blockCall:
+                log.info("|{0}| >> Found swich mode in block module ".format(_str_func))
+                return _blockCall(self,mode)
             
-        elif _mode in ['aimtoik','aimtofk']:
-            if _mode == 'aimtoik':
-                if not mLookAt.getMessage('controlIK'):
+        log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+        log.info("{0}".format(self))
+            
+        mRigNull = self.rigNull
+        mSettings = mRigNull.settings
+        
+        _mode = mode.lower()
+        
+        if _mode == 'fkon':
+            mSettings.FKIK = 0
+            
+        elif _mode == 'ikon':
+            mSettings.FKIK = 1
+            
+        elif _mode in ['aimon','aimoff','aimtofk','aimtoik','aimsnap']:
+            if not mRigNull.getMessage('lookAt'):
+                return log.warning("|{0}| >> No lookAt/aim setup detected ".format(_str_func))        
+            mLookAt = mRigNull.lookAt
+            
+            if _mode == 'aimon':
+                mSettings.blend_aim = 1
+            elif _mode == 'aimoff':
+                mSettings.blend_aim = 0
+                
+            elif _mode in ['aimtoik','aimtofk']:
+                if _mode == 'aimtoik':
+                    if not mLookAt.getMessage('controlIK'):
+                        return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))
+                    if not mLookAt.getMessage('ikMatch'):
+                        return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
+                    mControl = mLookAt.controlIK
+                    mMatch = mLookAt.getMessageAsMeta('ikMatch')
+                    _v = 1
+                else:
+                    if not mLookAt.getMessage('controlFK'):
+                        return log.warning("|{0}| >> No FK control on lookAt detected ".format(_str_func))
+                    if not mLookAt.getMessage('ikMatch'):
+                        return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
+                    
+                    mControl = mLookAt.controlFK
+                    mMatch = mLookAt.getMessageAsMeta('fkMatch')
+                    
+                    _v = 0
+                    
+                mBlendTarget = mLookAt.getMessage('drivenBlend',asMeta=True)[0]
+                
+                mLoc = mMatch.doLoc(fastMode=True)
+                #pos = mLookAt.p_position
+                
+                mSettings.blend_aim = 0
+                mSettings.FKIK = _v
+                
+                SNAP.go(mControl.mNode,mLoc.mNode,position=False)
+                #SNAP.aim_atPoint(mControl.mNode,pos,)#vectorUp=MATH.get_obj_vector(mLookAt.mNode,'y+'))
+                mControl.select()
+                mLoc.delete()
+                
+            elif _mode == 'aimsnap':
+                if not mLookAt.getMessage('switchTarget'):
                     return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))
-                if not mLookAt.getMessage('ikMatch'):
-                    return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
-                mControl = mLookAt.controlIK
-                mMatch = mLookAt.getMessageAsMeta('ikMatch')
-                _v = 1
-            else:
-                if not mLookAt.getMessage('controlFK'):
-                    return log.warning("|{0}| >> No FK control on lookAt detected ".format(_str_func))
-                if not mLookAt.getMessage('ikMatch'):
-                    return log.warning("|{0}| >> No IK match on lookAt detected ".format(_str_func))
                 
-                mControl = mLookAt.controlFK
-                mMatch = mLookAt.getMessageAsMeta('fkMatch')
+                mSwitchTarget = mLookAt.switchTarget            
+                mLoc = mSwitchTarget.doLoc(fastMode=True)
                 
-                _v = 0
+                mSettings.blend_aim = 1
                 
-            mBlendTarget = mLookAt.getMessage('drivenBlend',asMeta=True)[0]
+                SNAP.go(mLookAt.mNode,mLoc.mNode)
+                mLookAt.select()        
+                mLoc.delete()
             
-            mLoc = mMatch.doLoc(fastMode=True)
-            #pos = mLookAt.p_position
             
-            mSettings.blend_aim = 0
-            mSettings.FKIK = _v
+        elif _mode == 'fksnap':
+            ml_controls= self.atUtils('controls_get','fk')
+            ml_blends = []
+            ml_targets = []
+            l_pos = []
+            l_rot = []
+            md_locs = {}
             
-            SNAP.go(mControl.mNode,mLoc.mNode,position=False)
-            #SNAP.aim_atPoint(mControl.mNode,pos,)#vectorUp=MATH.get_obj_vector(mLookAt.mNode,'y+'))
-            mControl.select()
-            mLoc.delete()
+            ml_handleJoints = mRigNull.msgList_get('handleJoints')
             
-        elif _mode == 'aimsnap':
-            if not mLookAt.getMessage('switchTarget'):
-                return log.warning("|{0}| >> No IK control on lookAt detected ".format(_str_func))
-            
-            mSwitchTarget = mLookAt.switchTarget            
-            mLoc = mSwitchTarget.doLoc(fastMode=True)
-            
-            mSettings.blend_aim = 1
-            
-            SNAP.go(mLookAt.mNode,mLoc.mNode)
-            mLookAt.select()        
-            mLoc.delete()
-        
-        
-    elif _mode == 'fksnap':
-        ml_controls= self.atUtils('controls_get','fk')
-        ml_blends = []
-        ml_targets = []
-        l_pos = []
-        l_rot = []
-        md_locs = {}
-        
-        ml_handleJoints = mRigNull.msgList_get('handleJoints')
-        
-        for i,mObj in enumerate(ml_controls):
-            log.info("|{0}| >> On: {1} ".format(_str_func,mObj))
-            
-            #if ml_handleJoints:
-            #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
+            for i,mObj in enumerate(ml_controls):
+                log.info("|{0}| >> On: {1} ".format(_str_func,mObj))
                 
-            #else:
-            mTarget = mObj.getMessageAsMeta('switchTarget')
-            if not mTarget:
-                mTarget = mObj.getMessage('blendJoint',asMeta=True)
-            if not mTarget:
-                log.warning("|{0}| >> No target joint found! ".format(_str_func))
-                break
-            log.info("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
-            
-            ml_blends.append(mTarget)
-            l_pos.append(mTarget.p_position)
-            l_rot.append(mTarget.p_orient)
-            md_locs[i] = mTarget.doLoc(fastMode = True)
-            
-        mSettings.FKIK = 0
-        
-        for i,mObj in enumerate(ml_controls):
-            mLoc = md_locs.get(i)
-            if not mLoc:
-                continue
-            #mObj.p_position = l_pos[i]
-            #mObj.p_orient = l_rot[i]
-            SNAP.go(mObj.mNode,mLoc.mNode)
-        
-        for i,mLoc in md_locs.iteritems():
-            mLoc.delete()
-            
-        for mObj in mRigNull.msgList_get('handleJoints'):
-            mObj.resetAttrs()
-            
-    elif _mode in ['iksnap','iksnapall']:
-        if not mRigNull.getMessage('controlIK'):
-            return log.info("|{0}| >> No IK mode detected ".format(_str_func))
-        if MATH.is_float_equivalent(mSettings.FKIK,1.0):
-            return log.info("|{0}| >> Already in IK mode ".format(_str_func))
-        
-        mControlIK = mRigNull.controlIK        
-        ml_controls = [mControlIK]
-        md_controls = {}        
-        md_locs = {}
-        if mRigNull.getMessage('controlIKBase'):
-            ml_controls.append(mRigNull.controlIKBase)
-        if mRigNull.getMessage('controlIKMid'):
-            ml_controls.append(mRigNull.controlIKMid)
-            
-        ml_ikJoints = mRigNull.msgList_get('ikJoints')
-        ml_blendJoints = mRigNull.msgList_get('blendJoints')
-        
-        md_datPostCompare = {}
-        for i,mObj in enumerate (ml_blendJoints):
-            md_datPostCompare[i] = {}
-            md_datPostCompare[i]['pos'] = mObj.p_position
-            md_datPostCompare[i]['orient'] = mObj.p_orient
-        
-        #IKsnapAll ========================================================================
-        if _mode == 'iksnapall':
-            log.info("|{0}| >> iksnapall prep...".format(_str_func))
-            mSettings.visDirect=True
-            ml_rigLocs = []
-            ml_rigJoints = mRigNull.msgList_get('rigJoints')
-            for i,mObj in enumerate(ml_rigJoints):
-                ml_rigLocs.append( mObj.doLoc(fastMode = True) )
+                #if ml_handleJoints:
+                #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
+                    
+                #else:
+                mTarget = mObj.getMessageAsMeta('switchTarget')
+                if not mTarget:
+                    log.info("|{0}| >> no switchTarget ".format(_str_func))                    
+                    mTarget = mObj.getMessageAsMeta('blendJoint')
+                if not mTarget:
+                    log.warning("|{0}| >> No target joint found! ".format(_str_func))
+                    break
                 
-        #Main IK control =====================================================================
-        
-        #dat we need
-        #We need to store the blendjoint target for the ik control or loc it
-        for i,mCtrl in enumerate(ml_controls):
-            if mCtrl.getMessage('switchTarget'):
-                mCtrl.resetAttrs()
-                md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
-                md_controls[i] = mCtrl
-            else:
-                raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
-        
-        mSettings.FKIK = 1
-        
-        for i,mLoc in md_locs.iteritems():
-            SNAP.go(md_controls[i].mNode,mLoc.mNode)
-            #mLoc.delete()
-        
-        for i,v in md_datPostCompare.iteritems():
-            mBlend = ml_blendJoints[i]
-            dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
+                log.info("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
+                
+                ml_blends.append(mTarget)
+                l_pos.append(mTarget.p_position)
+                l_rot.append(mTarget.p_orient)
+                md_locs[i] = mTarget.doLoc(fastMode = True)
+                
+            mSettings.FKIK = 0
             
-            if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
-                log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
-                log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
-                log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+            for i,mObj in enumerate(ml_controls):
+                mLoc = md_locs.get(i)
+                if not mLoc:
+                    continue
+                #mObj.p_position = l_pos[i]
+                #mObj.p_orient = l_rot[i]
+                SNAP.go(mObj.mNode,mLoc.mNode)
+            
+            for i,mLoc in md_locs.iteritems():
+                mLoc.delete()
                 
-            if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
-                log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
-                log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
-                log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))                
+            for mObj in mRigNull.msgList_get('handleJoints'):
+                mObj.resetAttrs()
                 
-
-        #IKsnapAll close========================================================================
-        if _mode == 'iksnapall':
-            log.info("|{0}| >> iksnapall end...".format(_str_func))
-            for i,mObj in enumerate(ml_rigJoints):
-                SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
-        
-            return log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))
-        
-    else:
-        raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)
+        elif _mode in ['iksnap','iksnapall']:
+            if not mRigNull.getMessage('controlIK'):
+                return log.info("|{0}| >> No IK mode detected ".format(_str_func))
+            if MATH.is_float_equivalent(mSettings.FKIK,1.0):
+                return log.info("|{0}| >> Already in IK mode ".format(_str_func))
+            
+            mControlIK = mRigNull.controlIK        
+            ml_controls = [mControlIK]
+            md_controls = {}        
+            md_locs = {}
+            if mRigNull.getMessage('controlIKBase'):
+                ml_controls.append(mRigNull.controlIKBase)
+            if mRigNull.getMessage('controlIKMid'):
+                ml_controls.append(mRigNull.controlIKMid)
+                
+            ml_ikJoints = mRigNull.msgList_get('ikJoints')
+            ml_blendJoints = mRigNull.msgList_get('blendJoints')
+            
+            md_datPostCompare = {}
+            for i,mObj in enumerate (ml_blendJoints):
+                md_datPostCompare[i] = {}
+                md_datPostCompare[i]['pos'] = mObj.p_position
+                md_datPostCompare[i]['orient'] = mObj.p_orient
+            
+            #IKsnapAll ========================================================================
+            if _mode == 'iksnapall':
+                log.info("|{0}| >> iksnapall prep...".format(_str_func))
+                mSettings.visDirect=True
+                ml_rigLocs = []
+                ml_rigJoints = mRigNull.msgList_get('rigJoints')
+                for i,mObj in enumerate(ml_rigJoints):
+                    ml_rigLocs.append( mObj.doLoc(fastMode = True) )
+                    
+            #Main IK control =====================================================================
+            
+            #dat we need
+            #We need to store the blendjoint target for the ik control or loc it
+            for i,mCtrl in enumerate(ml_controls):
+                if mCtrl.getMessage('switchTarget'):
+                    mCtrl.resetAttrs()
+                    md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
+                    md_controls[i] = mCtrl
+                else:
+                    raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
+            
+            mSettings.FKIK = 1
+            
+            for i,mLoc in md_locs.iteritems():
+                SNAP.go(md_controls[i].mNode,mLoc.mNode)
+                #mLoc.delete()
+            
+            for i,v in md_datPostCompare.iteritems():
+                mBlend = ml_blendJoints[i]
+                dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
+                
+                if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
+                    log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
+                    log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
+                    log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+                    
+                if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
+                    log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
+                    log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
+                    log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))                
+                    
     
+            #IKsnapAll close========================================================================
+            if _mode == 'iksnapall':
+                log.info("|{0}| >> iksnapall end...".format(_str_func))
+                for i,mObj in enumerate(ml_rigJoints):
+                    SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
+            
+                return log.warning("mode: {0} | Direct controls vis turned on for mode.".format(_mode))
+            
+        else:
+            raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 def is_upToDate(self,report=False):
     _str_func = ' is_upToDate'

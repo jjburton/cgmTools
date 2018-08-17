@@ -73,7 +73,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 __version__ = 'alpha.1.08102018'
 __autoTemplate__ = False
-__dimensions = [15.2, 23.2, 19.7]
+__dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True
 
 #These are our base dimensions. In this case it is for human
@@ -100,7 +100,7 @@ d_build_profiles = {
     'unityLow':{'default':{'neckJoints':1,
                               'neckControls':1,
                               'neckBuild':True},
-                   'human':{'neckJoints':1,
+                   'headNeck':{'neckJoints':1,
                             'neckControls':1}
                    },
     'unityMed':{'default':{'neckJoints':1,
@@ -124,10 +124,11 @@ d_block_profiles = {
            },
     'headNeck':{'neckShapers':3,
                 'neckBuild':True,
-                'baseAim':[0,-1,0],
-                'baseUp':[0,0,-1],
+                'baseAim':[100,0,0],
+                'baseUp':[0,1,0],
                 'baseSize':[15.2, 23.2, 19.7],
                 'loftShape':'wideUp',
+                'neckDirection':'vertical',
                 'proxyType':'geo'
                  }
 }
@@ -174,7 +175,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'ribbonConnectBy': 'constraint:matrix',
                  'ribbonParam':'blend',
                  'segmentMidIKControl':'bool',
-                 
+                 'neckDirection':'vertical:horizontal',
                  'neckBuild':'bool',
                  'neckControls':'int',
                  'neckShapers':'int',
@@ -1199,15 +1200,20 @@ def skeleton_build(self, forceNew = True):
     
     #...orient ----------------------------------------------------------------------------
     #cgmMeta.cgmObject().getAxisVector
-    CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
-    """
+    #CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
     p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
     TRANS.aim_atPoint(mHead_jnt.mNode,
                       p_orientAxis,
-                      'z+', 'y+', 'vector',
+                      'y-', 'z+', 'vector',
                       vectorUp=mHeadHelper.getAxisVector('y+'))
-    LOC.create(position=p_orientAxis)
     """
+    TRANS.aim_atPoint(mHead_jnt.mNode,
+                      p_orientAxis,
+                      'z+', 'y+', 'vector',
+                      vectorUp=mHeadHelper.getAxisVector('y+'))    
+    """
+    LOC.create(position=p_orientAxis)
+    
     #JOINT.orientChain(mHead_jnt, 'z+', 'y+', mHeadHelper.getAxisVector('z+'))
     #mHead_jnt.rx = 0
     #mHead_jnt.rz = 0
@@ -1306,8 +1312,8 @@ def rig_prechecks(self):
     
     mBlock = self.mBlock
     
-    if mBlock.neckControls > 1:
-        self.l_precheckErrors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
+    #if mBlock.neckControls > 1:
+        #self.l_precheckErrors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
     
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
         self.l_precheckErrors.append("Must have more than one neck joint with segmentMidIKControl")    
@@ -1360,6 +1366,10 @@ def rig_dataBuffer(self):
         
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
     log.debug(cgmGEN._str_subLine)
+    
+    self.str_neckDirection =  mBlock.getEnumValueString('neckDirection')
+    log.debug("|{0}| >> self.str_neckDirection: {1}".format(_str_func,self.str_neckDirection))    
+
     
     #Squash stretch logic  =================================================================================
     log.debug("|{0}| >> Squash stretch..".format(_str_func))
@@ -1481,17 +1491,23 @@ def rig_skeleton(self):
     
     #...Neck ---------------------------------------------------------------------------------------
     if self.mBlock.neckBuild:
+        ml_segmentHandles = False
+        
         log.info("|{0}| >> Neck Build".format(_str_func))
+        
+        mOrientHelper = ml_templateHandles[1].orientHelper
+        vec_chainUp =mOrientHelper.getAxisVector('y+')
+        
         #return mOrientHelper.getAxisVector('y+')
         ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk',
                                                            'fkJoints',
                                                            mOrientHelper=ml_templateHandles[1].orientHelper)
-        ml_fkJoints[-1].doSnapTo(position=False,rotation=True)
-        JOINT.freezeOrientation(ml_fkJoints[-1].mNode)
+        
+        
+        #ml_fkJoints[-1].doSnapTo(position=False,rotation=True)
+        #JOINT.freezeOrientation(ml_fkJoints[-1].mNode)
         ml_jointsToHide.extend(ml_fkJoints)
-        mOrientHelper = ml_templateHandles[1].orientHelper
-        #Because
-        vec_chainUp =mOrientHelper.getAxisVector('y+')
+
 
         if self.mBlock.neckIK:
             log.info("|{0}| >> buildIK on. Building blend and IK chains...".format(_str_func))  
@@ -1523,17 +1539,7 @@ def rig_skeleton(self):
                 JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')            
     
-        
-        if mBlock.neckControls > 2:
-            log.info("|{0}| >> IK Drivers...".format(_str_func))            
-            ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles,
-                                                                       None, mRigNull,
-                                                                       'baseIKDrivers',
-                                                                       cgmType = 'baseIKDriver', indices=[0,-1])
-            for mJnt in ml_baseIKDrivers:
-                mJnt.parent = False
-            ml_jointsToConnect.extend(ml_baseIKDrivers)
-            
+
         if mBlock.neckJoints > mBlock.neckControls:
             log.info("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
@@ -1566,6 +1572,16 @@ def rig_skeleton(self):
                     mJnt.p_parent = False
                     
             ml_jointsToHide.extend(ml_segmentChain)
+            
+        if mBlock.neckControls > 2 and ml_segmentHandles:
+            log.info("|{0}| >> IK Drivers...".format(_str_func))            
+            ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles,
+                                                                       None, mRigNull,
+                                                                       'baseIKDrivers',
+                                                                       cgmType = 'baseIKDriver', indices=[0,-1])
+            for mJnt in ml_baseIKDrivers:
+                mJnt.parent = False
+            ml_jointsToConnect.extend(ml_baseIKDrivers)
             
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
@@ -1616,8 +1632,8 @@ def rig_shapes(self):
         log.info("|{0}| >> Head aim...".format(_str_func))  
         
         _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
-                                       MATH.get_obj_vector(ml_fkJoints[-1].mNode,'z+'),
-                                       _size * 1.5)
+                                         MATH.get_obj_vector(ml_rigJoints[-1].mNode,'y-'),
+                                         _size * 1.5)
         
         ikCurve = CURVES.create_fromName('sphere2',_size/3)
         textCrv = CURVES.create_text('head',_size/4)
@@ -1694,12 +1710,10 @@ def rig_shapes(self):
                 mSettings.p_position = newPos
             
                 ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
-                #mSettings.doStore('cgmName','head')
                 mSettings.doStore('cgmTypeModifier','settings')
                 mSettings.doName()
-            
                 CORERIG.colorControl(mSettings.mNode,_side,'sub')
-            
+                
                 self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect    
             else:
                 self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect            
@@ -2403,8 +2417,8 @@ def rig_frame(self):
         mc.aimConstraint(mHeadLookAt.mNode,
                          mHeadAimJoint.mNode,
                          maintainOffset = False, weight = 1,
-                         aimVector = self.d_orientation['vectorAim'],
-                         upVector = self.d_orientation['vectorUp'],
+                         aimVector = self.d_orientation['vectorUpNeg'],
+                         upVector = self.d_orientation['vectorAim'],
                          worldUpVector = self.d_orientation['vectorUp'],
                          worldUpObject = mHeadLookAt.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
                          worldUpType = 'objectRotation' )
@@ -2416,7 +2430,7 @@ def rig_frame(self):
                          maintainOffset = False, weight = 1,
                          aimVector = self.d_orientation['vectorAimNeg'],
                          upVector = self.d_orientation['vectorUp'],
-                         worldUpVector = self.d_orientation['vectorUp'],
+                         worldUpVector = self.d_orientation['vectorAim'],
                          skip = _str_orientation[0],
                          worldUpObject = mHeadStuffParent.mNode,#mHeadIK.masterGroup.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
                          worldUpType = 'objectRotation' )
