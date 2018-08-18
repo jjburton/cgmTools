@@ -24,10 +24,12 @@ log.setLevel(logging.DEBUG)
 import maya.cmds as mc
 import maya.mel as mel
 
+import Red9.core.Red9_General as r9General
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
 import Red9.core.Red9_CoreUtils as r9Core
 import Red9.core.Red9_PoseSaver as r9Pose
+import Red9.packages.configobj as configobj
 
 import Red9.startup.setup as r9Setup    
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
@@ -85,7 +87,7 @@ class ui(cgmUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 275,500
-    TOOLNAME = '{0}.ui'.format(__toolname__)
+    TOOLNAME = '{0}.cgmUI'.format(__toolname__)
     
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
@@ -104,62 +106,63 @@ class ui(cgmUI.cgmGUI):
         
         self.create_guiOptionVar('puppetFrameCollapse',defaultValue = 0) 
         
-        self.uiMenu_snap = None
-        self.uiMenu_help = None
+        self.uiPopUpMenu_poses = None
+        self.cgmUIMenu_snap = None
+        self.cgmUIMenu_help = None
         self._l_contexts = _l_contexts
         try:self.var_mrsContext
         except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext',
                                                           defaultValue = _l_contexts[0])
         
+        
     def build_menus(self):
         log.debug("build menus... "+'-'*50)
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
-        self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
-        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
-        self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
+        self.cgmUIMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
+        self.cgmUIMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
+        self.cgmUIMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
+        self.cgmUIMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
         
     def buildMenu_help( self, *args):
-        self.uiMenu_help.clear()
-        mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
-                         c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
-        mUI.MelMenuItem( self.uiMenu_help, l="Gather Blocks",
-                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )        
-        mc.menuItem(parent=self.uiMenu_help,
+        self.cgmUIMenu_help.clear()
+        mUI.MelMenuItem( self.cgmUIMenu_help, l="Get Pose Nodes",
+                         c=lambda *a: self.get_poseNodes(select=True) )
+
+        mc.menuItem(parent=self.cgmUIMenu_help,
                     l = 'Get Help',
                     c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
                     rp = 'N')    
-        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
+        mUI.MelMenuItem( self.cgmUIMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
-        mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
-                         c=lambda *a: self.uiUpdate_building() )
+        mUI.MelMenuItem( self.cgmUIMenu_help, l="Update Display",
+                         c=lambda *a: self.cgmUIUpdate_building() )
         
         
     def buildMenu_snap( self, force=False, *args, **kws):
-        if self.uiMenu_snap and force is not True:
+        if self.cgmUIMenu_snap and force is not True:
             return
-        self.uiMenu_snap.clear()
+        self.cgmUIMenu_snap.clear()
         
-        UICHUNKS.uiSection_snap(self.uiMenu_snap)
+        UICHUNKS.cgmUISection_snap(self.cgmUIMenu_snap)
             
-        mUI.MelMenuItemDiv(self.uiMenu_snap)
+        mUI.MelMenuItemDiv(self.cgmUIMenu_snap)
         
-        mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
+        mUI.MelMenuItem(self.cgmUIMenu_snap, l='Rebuild',
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.debug("Snap menu rebuilt")
         
     def buildMenu_switch(self, *args):
         log.debug("buildMenu_switch..."+'-'*50)
-        self.uiMenu_switch.clear()
+        self.cgmUIMenu_switch.clear()
         
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         pprint.pprint(self._ml_objList)
-        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
+        DYNPARENTTOOL.cgmUIMenu_changeSpace(self,self.cgmUIMenu_switch,True)
 
     def buildMenu_first(self):
-        self.uiMenu_FirstMenu.clear()
+        self.cgmUIMenu_FirstMenu.clear()
         #>>> Reset Options
         
-        _mDev = mUI.MelMenuItem(self.uiMenu_FirstMenu, l="Dev",subMenu=True)
+        _mDev = mUI.MelMenuItem(self.cgmUIMenu_FirstMenu, l="Dev",subMenu=True)
         mUI.MelMenuItem(_mDev, l="Puppet - Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'mirrorVerify','context':'puppet'}))
@@ -168,12 +171,12 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
         
     
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
+        mUI.MelMenuItemDiv( self.cgmUIMenu_FirstMenu )
+        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Dock",
                          c = lambda *a:self.do_dock())
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))   
         
     def build_layoutWrapper2(self,parent):
@@ -206,7 +209,7 @@ class ui(cgmUI.cgmGUI):
 
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
         ui_tabs = mUI.MelTabLayout( _MainForm)
-        self.uiTab_setup = ui_tabs
+        self.cgmUITab_setup = ui_tabs
         
         uiTab_mrs = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
@@ -246,7 +249,7 @@ class ui(cgmUI.cgmGUI):
         set the PoseSelected cache for the UI calls
         '''
         if not self.poseGridMode == 'thumb':
-            self.poseSelected = mc.textScrollList(self.uitslPoses, q=True, si=True)[0]
+            self.poseSelected = mc.textScrollList(self.cgmUItslPoses, q=True, si=True)[0]
         else:
             self.poseSelected = val
         log.debug('PoseSelected : %s' % self.poseSelected)
@@ -326,9 +329,11 @@ class ui(cgmUI.cgmGUI):
         '''
         if pose:
             if not self.poseGridMode == 'thumb':
-                mc.textScrollList(self.uitslPoses, e=True, si=pose)
+                mc.textScrollList(self.cgmUItslPoses, e=True, si=pose)
             else:
                 self._uiCB_iconGridSelection(pose)
+                
+                
 
     def _uiCB_switchPosePathMode(self, mode, *args):
         '''
@@ -348,9 +353,9 @@ class ui(cgmUI.cgmGUI):
             if self.poseProjectMute:
                 mc.button('savePoseButton', edit=True, en=True, bgc=r9Setup.red9ButtonBGC(1))
                 
-            #mc.textFieldButtonGrp(self.uitfgPosePath, edit=True, text=self.posePathLocal)
+            #mc.textFieldButtonGrp(self.cgmUItfgPosePath, edit=True, text=self.posePathLocal)
             self.var_pathMode.setValue('local')            
-            self.uiField_posePath.setValue(self.posePath)
+            self.cgmUIField_posePath.setValue(self.posePath)
             
         elif mode == 'project' or mode == 'projectPoseMode':
             self.posePath = os.path.join(self.posePathProject, self.getPoseSubFolder())
@@ -362,12 +367,12 @@ class ui(cgmUI.cgmGUI):
             self.posePathMode = 'projectPoseMode'
             if self.poseProjectMute:
                 mc.button('savePoseButton', edit=True, en=False, bgc=r9Setup.red9ButtonBGC(2))
-            #mc.textFieldButtonGrp(self.uitfgPosePath, edit=True, text=self.posePathProject)
+            #mc.textFieldButtonGrp(self.cgmUItfgPosePath, edit=True, text=self.posePathProject)
             self.var_pathMode.setValue('project')            
-            self.uiField_posePath.setValue(self.posePath)
+            self.cgmUIField_posePath.setValue(self.posePath)
             
             
-        mc.scrollLayout(self.uiglPoseScroll, edit=True, sp='up')  # scroll the layout to the top!
+        mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, sp='up')  # scroll the layout to the top!
 
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode
         self._uiCB_fillPoses(rebuildFileList=True)
@@ -394,7 +399,7 @@ class ui(cgmUI.cgmGUI):
             
             try:
                 if r9Setup.mayaVersion() >= 2011:
-                    _dir = self.uiField_posePath.getValue() or ''
+                    _dir = self.cgmUIField_posePath.getValue() or ''
                     log.debug("|{0}| >> dir: {1}".format(_str_func,_dir))                    
                     self.posePath = mc.fileDialog2(fileMode=3,
                                                    dir=_dir)[0]
@@ -406,7 +411,7 @@ class ui(cgmUI.cgmGUI):
             except Exception,err:
                 log.warning('No Folder Selected or Given | {0}'.format(err))
         elif field:
-            self.posePath = self.uiField_posePath.getValue()
+            self.posePath = self.cgmUIField_posePath.getValue()
         
         if not CGMPATH.Path(self.posePath):
             log.error("|{0}| >> Invalid path: {1}".format(_str_func,self.posePath))            
@@ -414,9 +419,9 @@ class ui(cgmUI.cgmGUI):
             return 
         
         mVar.setValue(self.posePath)
-        self.uiField_posePath.setValue(self.posePath,executeChangeCB=False)
-        self.uiField_posePath(edit=True, ann = self.posePath)
-        #mc.textFieldButtonGrp(self.uitfgPosePath, edit=True, text=self.posePath)
+        self.cgmUIField_posePath.setValue(self.posePath,executeChangeCB=False)
+        self.cgmUIField_posePath(edit=True, ann = self.posePath)
+        #mc.textFieldButtonGrp(self.cgmUItfgPosePath, edit=True, text=self.posePath)
         
         if self.var_pathMode.getValue == 'local':
             self.posePathLocal = self.posePath
@@ -424,11 +429,11 @@ class ui(cgmUI.cgmGUI):
             self.posePathProject = self.posePath
             
         pprint.pprint(vars())
-        self.uiField_subPath.setValue('')
+        self.cgmUIField_subPath.setValue('')
         #self._uiCB_pathSwitchInternals()
         
         return
-        mc.textFieldButtonGrp('uitfgPoseSubPath', edit=True, text="")
+        mc.textFieldButtonGrp('cgmUItfgPoseSubPath', edit=True, text="")
         
         # internal cache for the 2 path modes
 
@@ -454,14 +459,14 @@ class ui(cgmUI.cgmGUI):
         switch the scroller from pose mode to subFolder select mode
         note we prefix the folder with '/' to help denote it's a folder in the UI
         '''
-        #basePath = mc.textFieldButtonGrp(self.uitfgPosePath, query=True, text=True)
-        basePath = self.uiField_posePath.getValue()
+        #basePath = mc.textFieldButtonGrp(self.cgmUItfgPosePath, query=True, text=True)
+        basePath = self.cgmUIField_posePath.getValue()
         # turn OFF the 2 main poseScrollers
-        mc.textScrollList(self.uitslPoses, edit=True, vis=False)
-        mc.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)
+        mc.textScrollList(self.cgmUItslPoses, edit=True, vis=False)
+        mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, vis=False)
         # turn ON the subFolder scroller
-        mc.textScrollList(self.uitslPoseSubFolders, edit=True, vis=True)
-        mc.textScrollList(self.uitslPoseSubFolders, edit=True, ra=True)
+        mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, vis=True)
+        mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, ra=True)
 
         if not os.path.exists(basePath):
             # path not valid clear all
@@ -472,7 +477,7 @@ class ui(cgmUI.cgmGUI):
         if not dirs:
             raise StandardError('Folder has no subFolders for pose scanning')
         for subdir in dirs:
-            mc.textScrollList(self.uitslPoseSubFolders, edit=True,
+            mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True,
                                             append='/%s' % subdir,
                                             sc=cgmGEN.Callback(self._uiCB_setSubFolder))
 
@@ -480,19 +485,19 @@ class ui(cgmUI.cgmGUI):
         '''
         Select a subFolder from the scrollList and update the systems
         '''
-        #basePath = mc.textFieldButtonGrp(self.uitfgPosePath, query=True, text=True)
-        basePath = self.uiField_posePath.getValue()
+        #basePath = mc.textFieldButtonGrp(self.cgmUItfgPosePath, query=True, text=True)
+        basePath = self.cgmUIField_posePath.getValue()
         
-        subFolder = mc.textScrollList(self.uitslPoseSubFolders, q=True, si=True)[0].split('/')[-1]
+        subFolder = mc.textScrollList(self.cgmUItslPoseSubFolders, q=True, si=True)[0].split('/')[-1]
 
-        #mc.textFieldButtonGrp('uitfgPoseSubPath', edit=True, text=subFolder)
-        self.uiField_subPath.setValue(subFolder)
-        mc.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
+        #mc.textFieldButtonGrp('cgmUItfgPoseSubPath', edit=True, text=subFolder)
+        self.cgmUIField_subPath.setValue(subFolder)
+        mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, vis=False)
         self.posePath = os.path.join(basePath, subFolder)
         self._uiCB_pathSwitchInternals()
 
     def _uiCB_clearSubFolders(self, *args):
-        mc.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)
+        mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, vis=False)
         self._uiCB_setPosePath()
 
     # ----------------------------------------------------------------------------
@@ -504,7 +509,7 @@ class ui(cgmUI.cgmGUI):
         Return the given pose subFolder if set
         '''
         try:
-            return self.uiField_subPath.getValue()#mc.textFieldButtonGrp('uitfgPoseSubPath', q=True, text=True)
+            return self.cgmUIField_subPath.getValue()#mc.textFieldButtonGrp('cgmUItfgPoseSubPath', q=True, text=True)
         except:
             return ""
 
@@ -512,7 +517,9 @@ class ui(cgmUI.cgmGUI):
         '''
         Return the poseDir including subPath
         '''
-        return os.path.join(self.uiField_posePath.getValue(),
+        #return os.path.join(self.posePath,
+        #                    self.getPoseSubFolder())        
+        return os.path.join(self.cgmUIField_posePath.getValue(),
                             self.getPoseSubFolder())
 
     def getPosePath(self):
@@ -535,7 +542,7 @@ class ui(cgmUI.cgmGUI):
         # Store the current mode to the Cache File
         self.ANIM_UI_OPTVARS['AnimationUI']['poseMode'] = self.poseGridMode
         self._uiCache_storeUIElements()
-        searchFilter = self.uiField_searchPath.getValue()#mc.textFieldGrp(self.tfPoseSearchFilter, q=True, text=True)
+        searchFilter = self.cgmUIField_searchPath.getValue()#mc.textFieldGrp(self.tfPoseSearchFilter, q=True, text=True)
 
         if rebuildFileList:
             self.buildPoseList(sortBy=sortBy)
@@ -543,36 +550,37 @@ class ui(cgmUI.cgmGUI):
             # Project mode and folder contains NO poses so switch to subFolders
             if not self.poses and self.posePathMode == 'projectPoseMode':
                 log.warning('No Poses found in Root Project directory, switching to subFolder pickers')
-                self._uiCB_switchSubFolders()
+                try:self._uiCB_switchSubFolders()
+                except:pass
                 return
         log.debug('searchFilter  : %s : rebuildFileList : %s' % (searchFilter, rebuildFileList))
 
         # TextScroll Layout
         # ================================
         if not self.poseGridMode == 'thumb':
-            mc.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)  # subfolder scroll OFF
-            mc.textScrollList(self.uitslPoses, edit=True, vis=True)  # pose TexScroll ON
-            mc.scrollLayout(self.uiglPoseScroll, edit=True, vis=False)  # pose Grid OFF
-            mc.textScrollList(self.uitslPoses, edit=True, ra=True)  # clear textScroller
+            mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, vis=False)  # subfolder scroll OFF
+            mc.textScrollList(self.cgmUItslPoses, edit=True, vis=True)  # pose TexScroll ON
+            mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, vis=False)  # pose Grid OFF
+            mc.textScrollList(self.cgmUItslPoses, edit=True, ra=True)  # clear textScroller
 
             if searchFilter:
-                mc.scrollLayout(self.uiglPoseScroll, edit=True, sp='up')
+                mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, sp='up')
 
             for pose in r9Core.filterListByString(self.poses, searchFilter, matchcase=False):  # self.buildFilteredPoseList(searchFilter):
-                mc.textScrollList(self.uitslPoses, edit=True,
+                mc.textScrollList(self.cgmUItslPoses, edit=True,
                                         append=pose,
                                         sc=cgmGEN.Callback(self.setPoseSelected))
         # Grid Layout
         # ================================
         else:
-            mc.textScrollList(self.uitslPoseSubFolders, edit=True, vis=False)  # subfolder scroll OFF
-            mc.textScrollList(self.uitslPoses, edit=True, vis=False)  # pose TexScroll OFF
-            mc.scrollLayout(self.uiglPoseScroll, edit=True, vis=True)  # pose Grid ON
+            mc.textScrollList(self.cgmUItslPoseSubFolders, edit=True, vis=False)  # subfolder scroll OFF
+            mc.textScrollList(self.cgmUItslPoses, edit=True, vis=False)  # pose TexScroll OFF
+            mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, vis=True)  # pose Grid ON
             self._uiCB_gridResize()
 
             # Clear the Grid if it's already filled
             try:
-                [mc.deleteUI(button) for button in mc.gridLayout(self.uiglPoses, q=True, ca=True)]
+                [mc.deleteUI(button) for button in mc.gridLayout(self.cgmUIglPoses, q=True, ca=True)]
             except StandardError, error:
                 print error
             for pose in r9Core.filterListByString(self.poses, searchFilter, matchcase=False):  # self.buildFilteredPoseList(searchFilter):
@@ -583,7 +591,7 @@ class ui(cgmUI.cgmGUI):
                                             image=os.path.join(self.posePath, '%s.bmp' % pose),
                                             label=pose,
                                             bgc=self.poseButtonBGC,
-                                            parent=self.uiglPoses,
+                                            parent=self.cgmUIglPoses,
                                             ann=pose,
                                             onc=cgmGEN.Callback(self._uiCB_iconGridSelection, pose),
                                             ofc="import maya.cmds as cmds;mc.iconTextCheckBox('_%s', e=True, v=True)" % pose)  # we DONT allow you to deselect
@@ -592,7 +600,7 @@ class ui(cgmUI.cgmGUI):
 
             if searchFilter:
                 # with search scroll the list to the top as results may seem blank otherwise
-                mc.scrollLayout(self.uiglPoseScroll, edit=True, sp='up')
+                mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, sp='up')
 
         # Finally Bind the Popup-menu
         mc.evalDeferred(self._uiCB_PosePopup)
@@ -615,8 +623,79 @@ class ui(cgmUI.cgmGUI):
                 else:
                     mc.menuItem(label=rig.mNode, p='_setPose_mRigs_current',
                               command=cgmGEN.Callback(self._uiCB_setPoseRootNode, rig.mNode))
-
+    
     def _uiCB_PosePopup(self, *args):
+        '''
+        RMB popup menu for the Pose functions
+        '''        
+        enableState = True
+        if self.posePathMode == 'projectPoseMode' and self.poseProjectMute:
+            enableState = False
+
+        if self.poseGridMode == 'thumb':
+            parent = self.posePopupGrid
+            mc.popupMenu(self.posePopupGrid, e=True, deleteAllItems=True)
+        else:
+            parent = self.posePopupText
+            mc.popupMenu(self.posePopupText, e=True, deleteAllItems=True)
+
+        #mc.menuItem(label=LANGUAGE_MAP._AnimationUI_.pose_rmb_blender, p=parent,
+        #            command=cgmGEN.Callback(self._uiCall, 'PoseBlender'))
+        
+        
+        #Pose basics -----------------------------------------------------------------------
+        mc.menuItem(divider=True, p=parent)
+        mc.menuItem(label='Delete', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self._uiPoseDelete))
+        mc.menuItem(label='Rename', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self._uiPoseRename))
+        #mc.menuItem(label='Select internals', p=parent,
+        #            command=cgmGEN.Callback(self._uiPoseSelectObjects))
+        
+        #Edit pose ------------------------------------------------------------------
+        mc.menuItem(divider=True, p=parent)
+        mc.menuItem(label='Update pose', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self._uiPoseUpdate, False))
+        if self.poseGridMode == 'thumb':
+            mc.menuItem(label='Update thumb', p=parent, command=cgmGEN.Callback(self._uiPoseUpdateThumb))
+        mc.menuItem(label='Update both', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseUpdate, True))
+        
+        
+        #Folders -----------------------------------------------
+        mc.menuItem(divider=True, p=parent)
+        mc.menuItem(label='Add subfolder', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseMakeSubFolder))
+        mc.menuItem(label='Refresh', en=True, p=parent, command=lambda x: self._uiCB_fillPoses(rebuildFileList=True))
+        mc.menuItem(label='Open File', p=parent, command=cgmGEN.Callback(self._uiPoseOpenFile))
+        mc.menuItem(label='Open Dir', p=parent, command=cgmGEN.Callback(self._uiPoseOpenDir))
+        
+        #mc.menuItem(divider=True, p=parent)
+        #mc.menuItem('red9PoseCompareSM', l=LANGUAGE_MAP._AnimationUI_.pose_rmb_compare, sm=True, p=parent)
+        #mc.menuItem(label=LANGUAGE_MAP._AnimationUI_.pose_rmb_compare_skel, p='red9PoseCompareSM', command=cgmGEN.Callback(self._uiCall, 'PoseCompareSkelDict'))
+        #mc.menuItem(label=LANGUAGE_MAP._AnimationUI_.pose_rmb_compare_posedata, p='red9PoseCompareSM', command=cgmGEN.Callback(self._uiCall, 'PoseComparePoseDict'))
+
+        #mc.menuItem(label='Add Pose Handler', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseAddPoseHandler))
+        
+        #mc.menuItem(divider=True, p=parent)
+        #mc.menuItem(label='Copy Pose', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseCopyToProject))
+
+        mc.menuItem(divider=True, p=parent)
+        mc.menuItem(label='Switch Mode', p=parent, command=self._uiCB_switchPoseMode)
+
+        if self.poseGridMode == 'thumb':
+            mc.menuItem(divider=True, p=parent)
+            mc.menuItem(label='Thumb - small', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'small'))
+            mc.menuItem(label='Thumb - med', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'medium'))
+            mc.menuItem(label='Thumb - large', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'large'))
+
+        if self.posePath:
+            mc.menuItem(divider=True, p=parent)
+            self.addPopupMenusFromFolderConfig(parent)
+        if self.poseHandlerPaths:
+            mc.menuItem(divider=True, p=parent)
+            self.addPopupMenus_PoseHandlers(parent)
+        
+
+    def _uiCB_PosePopup2(self, *args):
         '''
         RMB popup menu for the Pose functions
         '''
@@ -714,11 +793,11 @@ class ui(cgmUI.cgmGUI):
         Set size of the Thumnails used in the PoseGrid Layout
         '''
         if size == 'small':
-            mc.gridLayout(self.uiglPoses, e=True, cwh=(75, 80), nc=4)
+            mc.gridLayout(self.cgmUIglPoses, e=True, cwh=(75, 80), nc=4)
         if size == 'medium':
-            mc.gridLayout(self.uiglPoses, e=True, cwh=(100, 90), nc=3)
+            mc.gridLayout(self.cgmUIglPoses, e=True, cwh=(100, 90), nc=3)
         if size == 'large':
-            mc.gridLayout(self.uiglPoses, e=True, cwh=(150, 120), nc=2)
+            mc.gridLayout(self.cgmUIglPoses, e=True, cwh=(150, 120), nc=2)
         self._uiCB_fillPoses()
         self._uiCB_selectPose(self.poseSelected)
 
@@ -731,7 +810,7 @@ class ui(cgmUI.cgmGUI):
             because we prefix the buttons to get over the issue of non-numeric
             first characters we now need to strip the first character back off
         '''
-        for button in mc.gridLayout(self.uiglPoses, q=True, ca=True):
+        for button in mc.gridLayout(self.cgmUIglPoses, q=True, ca=True):
             if current and not button[1:] == current:
                 mc.iconTextCheckBox(button, e=True, v=False, bgc=self.poseButtonBGC)
             else:
@@ -740,8 +819,8 @@ class ui(cgmUI.cgmGUI):
 
     def _uiCB_gridResize(self, *args):
         if r9Setup.mayaVersion() >= 2010:
-            cells = int(mc.scrollLayout(self.uiglPoseScroll, q=True, w=True) / mc.gridLayout(self.uiglPoses, q=True, cw=True))
-            mc.gridLayout(self.uiglPoses, e=True, nc=cells)
+            cells = int(mc.scrollLayout(self.cgmUIglPoseScroll, q=True, w=True) / mc.gridLayout(self.cgmUIglPoses, q=True, cw=True))
+            mc.gridLayout(self.cgmUIglPoses, e=True, nc=cells)
         else:
             log.debug('this call FAILS in 2009???')
 
@@ -791,7 +870,7 @@ class ui(cgmUI.cgmGUI):
 
         def fillTextField(text):
             # bound to a function so it can be passed onto the MetaNoode selector UI
-            mc.textFieldButtonGrp(self.uitfgPoseRootNode, e=True, text=text)
+            mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, e=True, text=text)
 
         if specific:
             fillTextField(specific)
@@ -823,7 +902,7 @@ class ui(cgmUI.cgmGUI):
                         raise StandardError("Warning: No MetaRigs found in the Scene")
 
         # fill the cache up for the ini file
-        self.ANIM_UI_OPTVARS['AnimationUI']['poseRoot'] = mc.textFieldButtonGrp(self.uitfgPoseRootNode, q=True, text=True)
+        self.ANIM_UI_OPTVARS['AnimationUI']['poseRoot'] = mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, q=True, text=True)
         self._uiCache_storeUIElements()
 
     def _uiCB_managePoseRootMethod(self, *args):
@@ -831,12 +910,12 @@ class ui(cgmUI.cgmGUI):
         Manage the PoseRootNode method, either switch to standard rootNode or MetaNode
         '''
 
-        if mc.checkBox('uicbMetaRig', q=True, v=True):
+        if mc.checkBox('cgmUIcbMetaRig', q=True, v=True):
             self.poseRootMode = 'MetaRoot'
-            mc.textFieldButtonGrp(self.uitfgPoseRootNode, e=True, bl='MetaRoot')
+            mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, e=True, bl='MetaRoot')
         else:
             self.poseRootMode = 'RootNode'
-            mc.textFieldButtonGrp(self.uitfgPoseRootNode, e=True, bl='SetRoot')
+            mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, e=True, bl='SetRoot')
         self._uiCache_storeUIElements()
 
     def _uiCB_getPoseInputNodes(self):
@@ -850,33 +929,17 @@ class ui(cgmUI.cgmGUI):
         
         return _sel
         
-        _selected = mc.ls(sl=True, l=True)
-        _rootSet = mc.textFieldButtonGrp(self.uitfgPoseRootNode, q=True, text=True)
-        if mc.checkBox(self.uicbPoseHierarchy, q=True, v=True):
-            # hierarchy processing so we MUST pass a root in
-            if not _rootSet or not mc.objExists(_rootSet):
-                if _rootSet == '****  AUTO__RESOLVED  ****' and self.poseRootMode == 'MetaRoot':
-                    if _selected:
-                        return r9Meta.getConnectedMetaSystemRoot(_selected)
-                raise StandardError('RootNode not Set for Hierarchy Processing')
-            else:
-                return _rootSet
-        else:
-            if _selected:
-                return _selected
-        if not _selected:
-            raise StandardError('No Nodes Set or selected for Pose')
-        return _selected
+
 
     def _uiCB_enableRelativeSwitches(self, *args):
         '''
         switch the relative mode on for the poseLaoder
         '''
-        self._uiCache_addCheckbox(self.uicbPoseRelative)
-        state = mc.checkBox(self.uicbPoseRelative, q=True, v=True)
-        mc.checkBox(self.uicbPoseSpace, e=True, en=False)
-        mc.checkBox(self.uicbPoseSpace, e=True, en=state)
-        mc.frameLayout(self.uiflPoseRelativeFrame, e=True, en=state)
+        self._uiCache_addCheckbox(self.cgmUIcbPoseRelative)
+        state = mc.checkBox(self.cgmUIcbPoseRelative, q=True, v=True)
+        mc.checkBox(self.cgmUIcbPoseSpace, e=True, en=False)
+        mc.checkBox(self.cgmUIcbPoseSpace, e=True, en=state)
+        mc.frameLayout(self.cgmUIflPoseRelativeFrame, e=True, en=state)
 
     def _uiPoseDelete(self, *args):
         if not self.__validatePoseFunc('DeletePose'):
@@ -963,7 +1026,7 @@ class ui(cgmUI.cgmGUI):
         '''
         Select matching internal nodes
         '''
-        rootNode = mc.textFieldButtonGrp(self.uitfgPoseRootNode, q=True, text=True)
+        rootNode = mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, q=True, text=True)
         if rootNode and mc.objExists(rootNode):
             self._uiPresetFillFilter()  # fill the filterSettings Object
             pose = r9Pose.PoseData(self.filterSettings)
@@ -980,7 +1043,7 @@ class ui(cgmUI.cgmGUI):
         Insert a new SubFolder to the posePath, makes the dir and sets
         it up in the UI to be the current active path
         '''
-        basePath = self.uiField_posePath.getValue()
+        basePath = self.cgmUIField_posePath.getValue()
         if not os.path.exists(basePath):
             raise StandardError('Base Pose Path is inValid or not yet set')
         promptstring = 'New Pose Folder Name'
@@ -995,8 +1058,8 @@ class ui(cgmUI.cgmGUI):
                 dismissString='Cancel')
         if result == 'OK':
             subFolder = mc.promptDialog(query=True, text=True)
-            self.uiField_subPath.setValue(subFolder)
-            #mc.textFieldButtonGrp('uitfgPoseSubPath', edit=True, text=subFolder)
+            self.cgmUIField_subPath.setValue(subFolder)
+            #mc.textFieldButtonGrp('cgmUItfgPoseSubPath', edit=True, text=subFolder)
             self.posePath = os.path.join(basePath, subFolder)
             os.mkdir(self.posePath)
             if handlerFile and os.path.exists(handlerFile):
@@ -1012,8 +1075,13 @@ class ui(cgmUI.cgmGUI):
         import shutil
         syncSubFolder = True
         projectPath = self.posePathProject
+        localPath = self.posePathLocal
+        
         if not os.path.exists(self.posePathProject):
             raise StandardError('Project Pose Path is inValid or not yet set')
+        
+        
+        
         if syncSubFolder:
             subFolder = self.getPoseSubFolder()
             projectPath = os.path.join(projectPath, subFolder)
@@ -1041,14 +1109,16 @@ class ui(cgmUI.cgmGUI):
         try:
             shutil.copy2(self.getPosePath(), projectPath)
             shutil.copy2(self.getIconPath(), projectPath)
-        except:
-            raise StandardError('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
+        except Exception,err:
+            print ('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
+            
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def _uiPoseAddPoseHandler(self, *args):
         '''
         PRO_PACK : Copy local pose to the Project Pose Folder
         '''
-        r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.uiCB_poseAddPoseHandler(self.posePath)
+        r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.cgmUICB_poseAddPoseHandler(self.posePath)
         
     # ------------------------------------------------------------------------------
     # UI Elements ConfigStore Callbacks ---
@@ -1058,21 +1128,21 @@ class ui(cgmUI.cgmGUI):
         '''
         Store some of the main components of the UI out to an ini file
         '''
-        if not self.uiBoot:
-            log.debug('UI configFile being written')
+        if not self.cgmUIBoot:
+            log.debug('cgmUI configFile being written')
             ConfigObj = configobj.ConfigObj(indent_type='\t')
             self._uiPresetFillFilter()  # fill the internal filterSettings obj
-            self.ANIM_UI_OPTVARS['AnimationUI']['ui_docked'] = self.dock
+            self.ANIM_UI_OPTVARS['AnimationUI']['cgmUI_docked'] = self.dock
             ConfigObj['filterNode_settings'] = self.filterSettings.__dict__
             ConfigObj['AnimationUI'] = self.ANIM_UI_OPTVARS['AnimationUI']
-            ConfigObj.filename = self.ui_optVarConfig
+            ConfigObj.filename = self.cgmUI_optVarConfig
             ConfigObj.write()
 
     def _uiCache_loadUIElements(self):
         '''
         Restore the main UI elements from the ini file
         '''
-        self.uiBoot = True  # is the UI being booted
+        self.cgmUIBoot = True  # is the UI being booted
         try:
             log.debug('Loading UI Elements from the config file')
 
@@ -1089,12 +1159,12 @@ class ui(cgmUI.cgmGUI):
 
             if self.basePreset:
                 try:
-                    mc.textScrollList(self.uitslPresets, e=True, si=self.basePreset)
+                    mc.textScrollList(self.cgmUItslPresets, e=True, si=self.basePreset)
                     self._uiPresetSelection(Read=True)
                 except:
                     log.debug('given basePreset not found')
             if 'filterNode_preset' in AnimationUI and AnimationUI['filterNode_preset']:
-                mc.textScrollList(self.uitslPresets, e=True, si=AnimationUI['filterNode_preset'])
+                mc.textScrollList(self.cgmUItslPresets, e=True, si=AnimationUI['filterNode_preset'])
                 self._uiPresetSelection(Read=True)  # ##not sure on this yet????
             if 'keyPasteMethod' in AnimationUI and AnimationUI['keyPasteMethod']:
                 mc.optionMenu('om_PasteMethod', e=True, v=AnimationUI['keyPasteMethod'])
@@ -1109,18 +1179,18 @@ class ui(cgmUI.cgmGUI):
             if 'posePathProject' in AnimationUI and AnimationUI['posePathProject']:
                 self.posePathProject = AnimationUI['posePathProject']
             if 'poseSubPath' in AnimationUI and AnimationUI['poseSubPath']:
-                #mc.textFieldButtonGrp('uitfgPoseSubPath', edit=True, text=AnimationUI['poseSubPath'])
-                self.uiField_subPath.setValue(AnimationUI['poseSubPath'])
+                #mc.textFieldButtonGrp('cgmUItfgPoseSubPath', edit=True, text=AnimationUI['poseSubPath'])
+                self.cgmUIField_subPath.setValue(AnimationUI['poseSubPath'])
             if 'poseRoot' in AnimationUI and AnimationUI['poseRoot']:
                 if mc.objExists(AnimationUI['poseRoot']) or AnimationUI['poseRoot'] == '****  AUTO__RESOLVED  ****':
-                    mc.textFieldButtonGrp(self.uitfgPoseRootNode, e=True, text=AnimationUI['poseRoot'])
+                    mc.textFieldButtonGrp(self.cgmUItfgPoseRootNode, e=True, text=AnimationUI['poseRoot'])
 
             _uiCache_LoadCheckboxes()
 
             # callbacks
             if self.posePathMode:
                 print 'setting : ', self.posePathMode
-                mc.radioCollection(self.uircbPosePathMethod, edit=True, select=self.posePathMode)
+                mc.radioCollection(self.cgmUIrcbPosePathMethod, edit=True, select=self.posePathMode)
             self._uiCB_enableRelativeSwitches()  # relativePose switch enables
             self._uiCB_managePoseRootMethod()  # metaRig or SetRootNode for Pose Root
             self._uiCB_switchPosePathMode(self.posePathMode)  # pose Mode - 'local' or 'project'
@@ -1133,16 +1203,16 @@ class ui(cgmUI.cgmGUI):
             log.debug('failed to complete UIConfig load')
             log.warning(err)
         finally:
-            self.uiBoot = False
+            self.cgmUIBoot = False
 
     def _uiCache_readUIElements(self):
         '''
         read the config ini file for the initial state of the ui
         '''
         try:
-            if os.path.exists(self.ui_optVarConfig):
-                self.filterSettings.read(self.ui_optVarConfig)  # use the generic reader for this
-                self.ANIM_UI_OPTVARS['AnimationUI'] = configobj.ConfigObj(self.ui_optVarConfig)['AnimationUI']
+            if os.path.exists(self.cgmUI_optVarConfig):
+                self.filterSettings.read(self.cgmUI_optVarConfig)  # use the generic reader for this
+                self.ANIM_UI_OPTVARS['AnimationUI'] = configobj.ConfigObj(self.cgmUI_optVarConfig)['AnimationUI']
             else:
                 self.ANIM_UI_OPTVARS['AnimationUI'] = {}
         except:
@@ -1181,7 +1251,7 @@ class ui(cgmUI.cgmGUI):
     
         # Main Hierarchy Filters =============
         self._uiPresetFillFilter()  # fill the filterSettings Object
-        self.matchMethod = mc.optionMenu('om_MatchMethod', q=True, v=True)
+        self.matchMethod = 'stripPrefix'#mc.optionMenu('om_MatchMethod', q=True, v=True)
     
         # self.filterSettings.transformClamp = True
     
@@ -1229,9 +1299,9 @@ class ui(cgmUI.cgmGUI):
     
         except r9Setup.ProPack_Error:
             log.warning('ProPack not Available')
-        except StandardError, error:
-            traceback = sys.exc_info()[2]  # get the full traceback
-            raise StandardError(StandardError(error), traceback)
+        except Exception, error:
+            cgmGEN.cgmException(Exception,error,msg=vars())
+            
         if objs and not func == 'HierarchyTest':
             mc.select(objs)
         # close chunk
@@ -1245,41 +1315,82 @@ class ui(cgmUI.cgmGUI):
         Internal UI call for PoseLibrary Save func, note that filterSettings is bound
         but only filled by the main _uiCall call
         '''
-        # test the code behaviour under Project mode
-        if not self.__validatePoseFunc('PoseSave'):
-            return
-        if not path:
-            try:
-                path = self._uiCB_savePosePath()
-            except ValueError, error:
-                raise ValueError(error)
-
-        poseHierarchy = mc.checkBox(self.uicbPoseHierarchy, q=True, v=True)
-
-#         #Work to hook the poseSave directly to the metaRig.poseCacheStore func directly
-#         if self.filterSettings.metaRig and r9Meta.isMetaNodeInherited(self._uiCB_getPoseInputNodes(),
-#                                                                       mInstances=r9Meta.MetaRig):
-#             print 'active MetaNode, calling poseCacheSave from metaRig subclass'
-#             r9Meta.MetaClass(self._uiCB_getPoseInputNodes()).poseCacheStore(filepath=path,
-#                                                                              storeThumbnail=storeThumbnail)
-#         else:
-        r9Pose.PoseData(self.filterSettings).poseSave(self._uiCB_getPoseInputNodes(),
-                                                      path,
-                                                      useFilter=poseHierarchy,
-                                                      storeThumbnail=storeThumbnail)
-        log.info('Pose Stored to : %s' % path)
-        self._uiCB_fillPoses(rebuildFileList=True)
-
+        try:
+            # test the code behaviour under Project mode
+            if not self.__validatePoseFunc('PoseSave'):
+                return
+            if not path:
+                try:
+                    path = self._uiCB_savePosePath()
+                except Exception, error:
+                    raise Exception(error)
+    
+            poseHierarchy = False#mc.checkBox(self.cgmUIcbPoseHierarchy, q=True, v=True)
+    
+    #         #Work to hook the poseSave directly to the metaRig.poseCacheStore func directly
+    #         if self.filterSettings.metaRig and r9Meta.isMetaNodeInherited(self._uiCB_getPoseInputNodes(),
+    #                                                                       mInstances=r9Meta.MetaRig):
+    #             print 'active MetaNode, calling poseCacheSave from metaRig subclass'
+    #             r9Meta.MetaClass(self._uiCB_getPoseInputNodes()).poseCacheStore(filepath=path,
+    #                                                                              storeThumbnail=storeThumbnail)
+    #         else:
+            r9Pose.PoseData(self.filterSettings).poseSave(self._uiCB_getPoseInputNodes(),
+                                                          path,
+                                                          useFilter=poseHierarchy,
+                                                          storeThumbnail=storeThumbnail)
+            log.info('Pose Stored to : %s' % path)
+            self._uiCB_fillPoses(rebuildFileList=True)
+        except Exception,error:
+            raise cgmGEN.cgmException(Exception,error,msg=vars())
+        
+    def get_poseNodes(self,select=False):
+        nodes = self._uiCB_getPoseInputNodes()
+        log.info("Initial nodes: {0}".format(nodes))
+        l_start = []
+        if not nodes:
+            log.info("No nodes found.Checking pose file to build list...")
+            path = self.getPosePath()
+            log.info('PosePath : %s' % path)
+            #poseNode = r9Pose.PoseData(self.filterSettings)
+            #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
+            #poseNode.matchMethod = self.matchMethod
+            
+            d = configobj.ConfigObj(path)['poseData']
+            nodes=[]
+            l_start = []
+            for k in d.keys():
+                k_dat = d[k]
+                _longName = k_dat['longName']
+                l_start.append(k)
+                buff = mc.ls("*:{0}".format(_longName))
+                if buff and len(buff) == 1:
+                    log.info("ls match for for {0}".format(_longName))
+                    nodes.append(buff[0])
+                    continue                
+                elif mc.objExists(_longName):
+                    log.info("Exists: {0}".format(_longName))
+                    nodes.append(_longName)
+                    continue
+                
+                log.info("No match for for {0}".format(_longName))
+            
+        if select:
+            mc.select(nodes)
+        pprint.pprint(l_start)
+        return nodes
+                
+                        
     def __PoseLoad(self):
         '''
         Internal UI call for PoseLibrary Load func, note that filterSettings is bound
         but only filled by the main _uiCall call
         '''
-        poseHierarchy = mc.checkBox(self.uicbPoseHierarchy, q=True, v=True)
-        poseRelative = mc.checkBox(self.uicbPoseRelative, q=True, v=True)
-        maintainSpaces = mc.checkBox(self.uicbPoseSpace, q=True, v=True)
-        rotRelMethod = mc.radioCollection(self.uircbPoseRotMethod, q=True, select=True)
-        tranRelMethod = mc.radioCollection(self.uircbPoseTranMethod, q=True, select=True)
+        """
+        poseHierarchy = mc.checkBox(self.cgmUIcbPoseHierarchy, q=True, v=True)
+        poseRelative = mc.checkBox(self.cgmUIcbPoseRelative, q=True, v=True)
+        maintainSpaces = mc.checkBox(self.cgmUIcbPoseSpace, q=True, v=True)
+        rotRelMethod = mc.radioCollection(self.cgmUIrcbPoseRotMethod, q=True, select=True)
+        tranRelMethod = mc.radioCollection(self.cgmUIrcbPoseTranMethod, q=True, select=True)
 
         if poseRelative and not mc.ls(sl=True, l=True):
             log.warning('No node selected to use for reference!!')
@@ -1291,29 +1402,35 @@ class ui(cgmUI.cgmGUI):
             relativeRots = 'absolute'
         if not tranRelMethod == 'tranProjected':
             relativeTrans = 'absolute'
-
+        """
+        _sel = mc.ls(sl=1)
+        
         path = self.getPosePath()
         log.info('PosePath : %s' % path)
         poseNode = r9Pose.PoseData(self.filterSettings)
-        poseNode.prioritySnapOnly = mc.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+        #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
         poseNode.matchMethod = self.matchMethod
-        
 
-        
-        poseNode.poseLoad(self._uiCB_getPoseInputNodes(),
+        nodes = self.get_poseNodes()
+
+        poseNode.poseLoad(nodes,
                           path,
-                          useFilter=poseHierarchy,
-                          relativePose=poseRelative,
-                          relativeRots=relativeRots,
-                          relativeTrans=relativeTrans,
-                          maintainSpaces=maintainSpaces)
+                          useFilter=False,#poseHierarchy,
+                          relativePose=False,#poseRelative,
+                          relativeRots='projected',#relativeRots,
+                          relativeTrans='projected',#relativeTrans,
+                          maintainSpaces=False)#maintainSpaces)
+        
+        if _sel:
+            mc.select(_sel)
+        else:mc.select(cl=1)
 
     def __PoseCompare(self, compareDict='skeletonDict', *args):
         '''
         PRO_PACK : Internal UI call for Pose Compare func, note that filterSettings is bound
         but only filled by the main _uiCall call
         '''
-        r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.uiCB_poseCompare(filterSettings=self.filterSettings,
+        r9Setup.PRO_PACK_STUBS().AnimationUI_stubs.cgmUICB_poseCompare(filterSettings=self.filterSettings,
                                                                     nodes=self._uiCB_getPoseInputNodes(),
                                                                     posePath=self.getPosePath(),
                                                                     compareDict=compareDict)
@@ -1326,11 +1443,13 @@ class ui(cgmUI.cgmGUI):
         '''
 
         pb = r9Pose.PoseBlender(filepaths=[self.getPosePath()],
-                                nodes=self._uiCB_getPoseInputNodes(),
+                                nodes = self.get_poseNodes(),
                                 filterSettings=self.filterSettings,
-                                useFilter=mc.checkBox(self.uicbPoseHierarchy, q=True, v=True),
-                                matchMethod=self.matchMethod)
+                                useFilter=False)#mc.checkBox(self.cgmUIcbPoseHierarchy, q=True, v=True),
+                                #matchMethod=self.matchMethod)
         pb.show()
+        
+        
 
     def _uiPresetFillFilter(self):
         '''
@@ -1340,25 +1459,27 @@ class ui(cgmUI.cgmGUI):
         '''
         self.filterSettings.resetFilters(rigData=False)
         self.filterSettings.transformClamp = True
+        
+        """
+        if mc.textFieldGrp('cgmUItfgSpecificNodeTypes', q=True, text=True):
+            self.filterSettings.nodeTypes = (mc.textFieldGrp('cgmUItfgSpecificNodeTypes', q=True, text=True)).split(',')
+        if mc.textFieldGrp('cgmUItfgSpecificAttrs', q=True, text=True):
+            self.filterSettings.searchAttrs = (mc.textFieldGrp('cgmUItfgSpecificAttrs', q=True, text=True)).split(',')
+        if mc.textFieldGrp('cgmUItfgSpecificPattern', q=True, text=True):
+            self.filterSettings.searchPattern = (mc.textFieldGrp('cgmUItfgSpecificPattern', q=True, text=True)).split(',')
+        if mc.textScrollList('cgmUItslFilterPriority', q=True, ai=True):
+            self.filterSettings.filterPriority = mc.textScrollList('cgmUItslFilterPriority', q=True, ai=True)
     
-        if mc.textFieldGrp('uitfgSpecificNodeTypes', q=True, text=True):
-            self.filterSettings.nodeTypes = (mc.textFieldGrp('uitfgSpecificNodeTypes', q=True, text=True)).split(',')
-        if mc.textFieldGrp('uitfgSpecificAttrs', q=True, text=True):
-            self.filterSettings.searchAttrs = (mc.textFieldGrp('uitfgSpecificAttrs', q=True, text=True)).split(',')
-        if mc.textFieldGrp('uitfgSpecificPattern', q=True, text=True):
-            self.filterSettings.searchPattern = (mc.textFieldGrp('uitfgSpecificPattern', q=True, text=True)).split(',')
-        if mc.textScrollList('uitslFilterPriority', q=True, ai=True):
-            self.filterSettings.filterPriority = mc.textScrollList('uitslFilterPriority', q=True, ai=True)
-    
-        self.filterSettings.metaRig = mc.checkBox(self.uicbMetaRig, q=True, v=True)
-        self.filterSettings.incRoots = mc.checkBox(self.uicbIncRoots, q=True, v=True)
+        self.filterSettings.metaRig = mc.checkBox(self.cgmUIcbMetaRig, q=True, v=True)
+        self.filterSettings.incRoots = mc.checkBox(self.cgmUIcbIncRoots, q=True, v=True)
+        """
         # If the above filters are blank, then the code switches to full hierarchy mode
         if not self.filterSettings.filterIsActive():
             self.filterSettings.hierarchy = True
     
         # this is kind of against the filterSettings Idea, shoe horned in here
         # as it makes sense from the UI standpoint
-        self.filterSettings.rigData['snapPriority'] = mc.checkBox(self.uicbSnapPriorityOnly, q=True, v=True)
+        #self.filterSettings.rigData['snapPriority'] = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
         
     def _uiElementBinding(self):
         '''
@@ -1367,91 +1488,91 @@ class ui(cgmUI.cgmGUI):
         2017 via the workspace.... Maybe I'm missing something in the workspace setup but don't think so.
         Must see if there's a way of binding to the class object as you'd expect :(
         '''
-        self.uitabMain = 'uitabMain'
+        self.cgmUItabMain = 'cgmUItabMain'
 
         # CopyAttributes
         # ====================
-        self.uicbCAttrHierarchy = 'uicbCAttrHierarchy'
-        self.uicbCAttrToMany = 'uicbCAttrToMany'
-        self.uicbCAttrChnAttrs = 'uicbCAttrChnAttrs'
+        self.cgmUIcbCAttrHierarchy = 'cgmUIcbCAttrHierarchy'
+        self.cgmUIcbCAttrToMany = 'cgmUIcbCAttrToMany'
+        self.cgmUIcbCAttrChnAttrs = 'cgmUIcbCAttrChnAttrs'
 
         # CopyKeys
         # ====================
-        self.uicbCKeyHierarchy = 'uicbCKeyHierarchy'
-        self.uicbCKeyToMany = 'uicbCKeyToMany'
-        self.uicbCKeyChnAttrs = 'uicbCKeyChnAttrs'
-        self.uicbCKeyRange = 'uicbCKeyRange'
-        self.uicbCKeyAnimLay = 'uicbCKeyAnimLay'
-        self.uiffgCKeyStep = 'uiffgCKeyStep'
+        self.cgmUIcbCKeyHierarchy = 'cgmUIcbCKeyHierarchy'
+        self.cgmUIcbCKeyToMany = 'cgmUIcbCKeyToMany'
+        self.cgmUIcbCKeyChnAttrs = 'cgmUIcbCKeyChnAttrs'
+        self.cgmUIcbCKeyRange = 'cgmUIcbCKeyRange'
+        self.cgmUIcbCKeyAnimLay = 'cgmUIcbCKeyAnimLay'
+        self.cgmUIffgCKeyStep = 'cgmUIffgCKeyStep'
 
         # SnapTransforms
         # ====================
-        self.uicbSnapRange = 'uicbSnapRange'
-        self.uicbSnapTrans = 'uicbSnapTrans'
-        self.uicbSnapPreCopyKeys = 'uicbSnapPreCopyKeys'
-        self.uiifgSnapStep = 'uiifgSnapStep'
-        self.uicbSnapHierarchy = 'uicbSnapHierarchy'
-        self.uicbStapRots = 'uicbStapRots'
-        self.uicbSnapPreCopyAttrs = 'uicbSnapPreCopyAttrs'
-        self.uiifSnapIterations = 'uiifSnapIterations'
+        self.cgmUIcbSnapRange = 'cgmUIcbSnapRange'
+        self.cgmUIcbSnapTrans = 'cgmUIcbSnapTrans'
+        self.cgmUIcbSnapPreCopyKeys = 'cgmUIcbSnapPreCopyKeys'
+        self.cgmUIifgSnapStep = 'cgmUIifgSnapStep'
+        self.cgmUIcbSnapHierarchy = 'cgmUIcbSnapHierarchy'
+        self.cgmUIcbStapRots = 'cgmUIcbStapRots'
+        self.cgmUIcbSnapPreCopyAttrs = 'cgmUIcbSnapPreCopyAttrs'
+        self.cgmUIifSnapIterations = 'cgmUIifSnapIterations'
 
         # Stabilizer
         # ====================
-        self.uicbStabRange = 'uicbStabRange'
-        self.uicbStabTrans = 'uicbStabTrans'
-        self.uicbStabRots = 'uicbStabRots'
-        self.uiffgStabStep = 'uiffgStabStep'
+        self.cgmUIcbStabRange = 'cgmUIcbStabRange'
+        self.cgmUIcbStabTrans = 'cgmUIcbStabTrans'
+        self.cgmUIcbStabRots = 'cgmUIcbStabRots'
+        self.cgmUIffgStabStep = 'cgmUIffgStabStep'
 
         # TimeOffset
         # ====================
-        self.uicbTimeOffsetHierarchy = 'uicbTimeOffsetHierarchy'
-        self.uicbTimeOffsetScene = 'uicbTimeOffsetScene'
-        self.uicbTimeOffsetPlayback = 'uicbTimeOffsetPlayback'
-        self.uicbTimeOffsetRange = 'uicbTimeOffsetRange'
-        self.uicbTimeOffsetFlocking = 'uicbTimeOffsetFlocking'
-        self.uicbTimeOffsetRandom = 'uicbTimeOffsetRandom'
-        self.uicbTimeOffsetRipple = 'uicbTimeOffsetRipple'
-        self.uicbTimeOffsetStartfrm = 'uicbTimeOffsetStartfrm'
-        self.uiffgTimeOffset = 'uiffgTimeOffset'
-        self.uibtnTimeOffset = 'uibtnTimeOffset'
+        self.cgmUIcbTimeOffsetHierarchy = 'cgmUIcbTimeOffsetHierarchy'
+        self.cgmUIcbTimeOffsetScene = 'cgmUIcbTimeOffsetScene'
+        self.cgmUIcbTimeOffsetPlayback = 'cgmUIcbTimeOffsetPlayback'
+        self.cgmUIcbTimeOffsetRange = 'cgmUIcbTimeOffsetRange'
+        self.cgmUIcbTimeOffsetFlocking = 'cgmUIcbTimeOffsetFlocking'
+        self.cgmUIcbTimeOffsetRandom = 'cgmUIcbTimeOffsetRandom'
+        self.cgmUIcbTimeOffsetRipple = 'cgmUIcbTimeOffsetRipple'
+        self.cgmUIcbTimeOffsetStartfrm = 'cgmUIcbTimeOffsetStartfrm'
+        self.cgmUIffgTimeOffset = 'cgmUIffgTimeOffset'
+        self.cgmUIbtnTimeOffset = 'cgmUIbtnTimeOffset'
 
-        self.uicbMirrorHierarchy = 'uicbMirrorHierarchy'
+        self.cgmUIcbMirrorHierarchy = 'cgmUIcbMirrorHierarchy'
 
         # Hierarchy Controls
         # =====================
-        self.uiclHierarchyFilters = 'uiclHierarchyFilters'
-        self.uicbMetaRig = 'uicbMetaRig'
-        self.uitfgSpecificNodeTypes = 'uitfgSpecificNodeTypes'
-        self.uitfgSpecificAttrs = 'uitfgSpecificAttrs'
-        self.uitfgSpecificPattern = 'uitfgSpecificPattern'
-        self.uitslFilterPriority = 'uitslFilterPriority'
-        self.uicbSnapPriorityOnly = 'uicbSnapPriorityOnly'
-        self.uitslPresets = 'uitslPresets'
-        self.uicbIncRoots = 'uicbIncRoots'
+        self.cgmUIclHierarchyFilters = 'cgmUIclHierarchyFilters'
+        self.cgmUIcbMetaRig = 'cgmUIcbMetaRig'
+        self.cgmUItfgSpecificNodeTypes = 'cgmUItfgSpecificNodeTypes'
+        self.cgmUItfgSpecificAttrs = 'cgmUItfgSpecificAttrs'
+        self.cgmUItfgSpecificPattern = 'cgmUItfgSpecificPattern'
+        self.cgmUItslFilterPriority = 'cgmUItslFilterPriority'
+        self.cgmUIcbSnapPriorityOnly = 'cgmUIcbSnapPriorityOnly'
+        self.cgmUItslPresets = 'cgmUItslPresets'
+        self.cgmUIcbIncRoots = 'cgmUIcbIncRoots'
 
         # Pose Saver Tab
         # ===============
-        self.uitfgPosePath = 'uitfgPosePath'
-        self.uircbPosePathMethod = 'posePathMode'
+        self.cgmUItfgPosePath = 'cgmUItfgPosePath'
+        self.cgmUIrcbPosePathMethod = 'posePathMode'
         self.posePopupGrid = 'posePopupGrid'
 
         # SubFolder Scroller
         #=====================
-        self.uitslPoseSubFolders = 'uitslPoseSubFolders'
+        self.cgmUItslPoseSubFolders = 'cgmUItslPoseSubFolders'
 
         # Main PoseFields
         # =====================
         self.tfPoseSearchFilter = 'tfPoseSearchFilter'
-        self.uitslPoses = 'uitslPoses'
-        self.uiglPoseScroll = 'uiglPoseScroll'
-        self.uiglPoses = 'uiglPoses'
-        self.uicbPoseHierarchy = 'uicbPoseHierarchy'
-        self.uitfgPoseRootNode = 'uitfgPoseRootNode'
-        self.uicbPoseRelative = 'uicbPoseRelative'
-        self.uicbPoseSpace = 'uicbPoseSpace'
-        self.uiflPoseRelativeFrame = 'PoseRelativeFrame'
-        self.uircbPoseRotMethod = 'relativeRotate'
-        self.uircbPoseTranMethod = 'relativeTranslate'
+        self.cgmUItslPoses = 'cgmUItslPoses'
+        self.cgmUIglPoseScroll = 'cgmUIglPoseScroll'
+        self.cgmUIglPoses = 'cgmUIglPoses'
+        self.cgmUIcbPoseHierarchy = 'cgmUIcbPoseHierarchy'
+        self.cgmUItfgPoseRootNode = 'cgmUItfgPoseRootNode'
+        self.cgmUIcbPoseRelative = 'cgmUIcbPoseRelative'
+        self.cgmUIcbPoseSpace = 'cgmUIcbPoseSpace'
+        self.cgmUIflPoseRelativeFrame = 'PoseRelativeFrame'
+        self.cgmUIrcbPoseRotMethod = 'relativeRotate'
+        self.cgmUIrcbPoseTranMethod = 'relativeTranslate'
 
 
 
@@ -1827,7 +1948,7 @@ def buildFrame_mrsAnim(self,parent):
                       ut = 'cgmUITemplate',
                       l=o,
                       c=cgmGEN.Callback(uiCB_contextSetValue,self,n,v,_mode))
-                      #c=lambda *a: LOCINATOR.ui())             
+                      #c=lambda *a: LOCINATOR.cgmUI())             
             
         mUI.MelSpacer(_row,w=2)
         _row.layout()
@@ -1957,10 +2078,12 @@ def buildFrame_poses(self,parent):
     self.var_pathLocal = cgmMeta.cgmOptionVar('cgmVar_mrs_localPosePath',defaultValue = '')
     self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_mrs_projectPosePath',defaultValue = '')
     
-    self.uiField_subPath= False
-    self.uiField_posePath = False
+
+    
+    self.cgmUIField_subPath= False
+    self.cgmUIField_posePath = False
     #Red9 Stuff ====================================================================
-    self.uiBoot = True
+    self.cgmUIBoot = True
     self.poseButtonBGC = [0.27, 0.3, 0.3]
     self.buttonBgc = r9Setup.red9ButtonBGC(1)
     self.internalConfigPath = False
@@ -1972,26 +2095,26 @@ def buildFrame_poses(self,parent):
     
     # Hierarchy Controls
     # =====================
-    self.uiclHierarchyFilters = 'uiMRSclHierarchyFilters'
-    self.uicbMetaRig = 'uiMRScbMetaRig'
-    self.uitfgSpecificNodeTypes = 'uiMRStfgSpecificNodeTypes'
-    self.uitfgSpecificAttrs = 'uiMRStfgSpecificAttrs'
-    self.uitfgSpecificPattern = 'uiMRStfgSpecificPattern'
-    self.uitslFilterPriority = 'uiMRStslFilterPriority'
-    self.uicbSnapPriorityOnly = 'uiMRScbSnapPriorityOnly'
-    self.uitslPresets = 'uiMRStslPresets'
-    self.uicbIncRoots = 'uiMRScbIncRoots'    
+    self.cgmUIclHierarchyFilters = 'cgmUIMRSclHierarchyFilters'
+    self.cgmUIcbMetaRig = 'cgmUIMRScbMetaRig'
+    self.cgmUItfgSpecificNodeTypes = 'cgmUIMRStfgSpecificNodeTypes'
+    self.cgmUItfgSpecificAttrs = 'cgmUIMRStfgSpecificAttrs'
+    self.cgmUItfgSpecificPattern = 'cgmUIMRStfgSpecificPattern'
+    self.cgmUItslFilterPriority = 'cgmUIMRStslFilterPriority'
+    self.cgmUIcbSnapPriorityOnly = 'cgmUIMRScbSnapPriorityOnly'
+    self.cgmUItslPresets = 'cgmUIMRStslPresets'
+    self.cgmUIcbIncRoots = 'cgmUIMRScbIncRoots'    
     
     # Pose Saver Tab
     # ===============
-    self.uitfgPosePath = 'uiMRStfgPosePath'
-    self.uircbPosePathMethod = 'posePathMode'
+    self.cgmUItfgPosePath = 'cgmUIMRStfgPosePath'
+    self.cgmUIrcbPosePathMethod = 'posePathMode'
     self.posePopupGrid = 'posePopupGrid'
     #self.matchMethod = mc.optionMenu('om_MatchMethod', q=True, v=True)
 
     # SubFolder Scroller
     #=====================
-    self.uitslPoseSubFolders = 'uiMRStslPoseSubFolders'
+    self.cgmUItslPoseSubFolders = 'cgmUIMRStslPoseSubFolders'
 
 
     #from functools import cgmGEN.Callback
@@ -1999,16 +2122,16 @@ def buildFrame_poses(self,parent):
     # Main PoseFields
     # =====================
     self.tfPoseSearchFilter = 'tfPoseSearchFilter'
-    self.uitslPoses = 'uiMRStslPoses'
-    self.uiglPoseScroll = 'uiMRSglPoseScroll'
-    self.uiglPoses = 'uiMRSglPoses'
-    self.uicbPoseHierarchy = 'uiMRScbPoseHierarchy'
-    self.uitfgPoseRootNode = 'uiMRStfgPoseRootNode'
-    self.uicbPoseRelative = 'uiMRScbPoseRelative'
-    self.uicbPoseSpace = 'uiMRScbPoseSpace'
-    self.uiflPoseRelativeFrame = 'PoseRelativeFrame'
-    self.uircbPoseRotMethod = 'relativeRotate'
-    self.uircbPoseTranMethod = 'relativeTranslate'    
+    self.cgmUItslPoses = 'cgmUIMRStslPoses'
+    self.cgmUIglPoseScroll = 'cgmUIMRSglPoseScroll'
+    self.cgmUIglPoses = 'cgmUIMRSglPoses'
+    self.cgmUIcbPoseHierarchy = 'cgmUIMRScbPoseHierarchy'
+    self.cgmUItfgPoseRootNode = 'cgmUIMRStfgPoseRootNode'
+    self.cgmUIcbPoseRelative = 'cgmUIMRScbPoseRelative'
+    self.cgmUIcbPoseSpace = 'cgmUIMRScbPoseSpace'
+    self.cgmUIflPoseRelativeFrame = 'PoseRelativeFrame'
+    self.cgmUIrcbPoseRotMethod = 'relativeRotate'
+    self.cgmUIrcbPoseTranMethod = 'relativeTranslate'    
     
     # Pose Management variables
     self.posePath = None  # working variable
@@ -2033,21 +2156,36 @@ def buildFrame_poses(self,parent):
 
     # Internal config file setup for the UI state
     if self.internalConfigPath:
-        self.ui_optVarConfig = os.path.join(self.presetDir, '__red9config__')
+        self.cgmUI_optVarConfig = os.path.join(self.presetDir, '__red9config__')
     else:
-        self.ui_optVarConfig = os.path.join(r9Setup.mayaPrefs(), '__red9config__')
+        self.cgmUI_optVarConfig = os.path.join(r9Setup.mayaPrefs(), '__red9config__')
     self._uiCache_readUIElements()
+    
+    
+    #try:
+    v_local = self.var_pathLocal.getValue()
+    if v_local:
+        log.info('setting local on call...')
+        self.posePathLocal = v_local
+        
+    v_project = self.var_pathProject.getValue()
+    if v_project:
+        log.info('setting project on call...')        
+        self.posePathProject = v_project
+    #except:
+    #    pass    
+    
     
     
     #Pose Path ===============================================================================
     uiRow_pose = mUI.MelHSingleStretchLayout(_inside)
     mUI.MelSpacer(uiRow_pose,w=2)    
-    self.uiField_posePath = mUI.MelTextField(uiRow_pose,
+    self.cgmUIField_posePath = mUI.MelTextField(uiRow_pose,
                                              ann='Testing',
                                              cc = lambda *x:self._uiCB_setPosePath(field=False),
                                              text = '')
 
-    uiRow_pose.setStretchWidget(self.uiField_posePath)
+    uiRow_pose.setStretchWidget(self.cgmUIField_posePath)
     
     mc.button(parent=uiRow_pose,
               l = 'Set Path',
@@ -2102,14 +2240,14 @@ def buildFrame_poses(self,parent):
     #Sub path ===============================================================================
     uiRow_sub = mUI.MelHSingleStretchLayout(_inside)
     mUI.MelSpacer(uiRow_sub,w=2)    
-    self.uiField_subPath = mUI.MelLabel(uiRow_sub,
+    self.cgmUIField_subPath = mUI.MelLabel(uiRow_sub,
                                         ann='Testing',
                                         ut = 'cgmUIInstructionsTemplate',
                                         #en=False,
                                         #cc = lambda *x:self._uiCB_setPosePath(field=False),
                                         label = '')
 
-    uiRow_sub.setStretchWidget(self.uiField_subPath)
+    uiRow_sub.setStretchWidget(self.cgmUIField_subPath)
     
     mc.button(parent=uiRow_sub,
               l = 'Sub',
@@ -2136,15 +2274,15 @@ def buildFrame_poses(self,parent):
     mUI.MelSpacer(uiRow_search,w=2)
     mUI.MelLabel(uiRow_search,l='Filter:')
     
-    self.uiField_searchPath = mUI.MelTextField(uiRow_search,
+    self.cgmUIField_searchPath = mUI.MelTextField(uiRow_search,
                                             ann='Testing',
                                             w=50,
                                             en=True,
                                             text = '')
-    self.uiField_searchPath(edit=True,
-                            tcc = lambda x: self._uiCB_fillPoses(searchFilter=self.uiField_searchPath.getValue(),))
+    self.cgmUIField_searchPath(edit=True,
+                            tcc = lambda x: self._uiCB_fillPoses(searchFilter=self.cgmUIField_searchPath.getValue(),))
                             
-    uiRow_search.setStretchWidget(self.uiField_searchPath)
+    uiRow_search.setStretchWidget(self.cgmUIField_searchPath)
     
     mUI.MelIconButton(uiRow_search,
                       image='sortByName.bmp',
@@ -2181,17 +2319,17 @@ def buildFrame_poses(self,parent):
     #Pose Tumb area ===============================================================================
     # SubFolder Scroller ---------------------------------------------------
     mc.setParent(_inside)
-    mc.textScrollList(self.uitslPoseSubFolders, numberOfRows=8,
+    mc.textScrollList(self.cgmUItslPoseSubFolders, numberOfRows=8,
                       allowMultiSelection=False,
                       height=350, vis=False)
 
     # Main PoseFields ------------------------------------------------------------
-    mc.textScrollList(self.uitslPoses, numberOfRows=8, allowMultiSelection=False,
+    mc.textScrollList(self.cgmUItslPoses, numberOfRows=8, allowMultiSelection=False,
                       # selectCommand=cgmGEN.Callback(self._uiPresetSelection), \
                       height=350, vis=False)
     
     self.posePopupText = mc.popupMenu()
-    mc.scrollLayout(self.uiglPoseScroll,
+    mc.scrollLayout(self.cgmUIglPoseScroll,
                     cr=True,
                     height=350,
                     hst=16,
@@ -2199,31 +2337,33 @@ def buildFrame_poses(self,parent):
                     vis=False,
                     rc=self._uiCB_gridResize)
     
-    mc.gridLayout(self.uiglPoses, cwh=(100, 100), cr=False, ag=True)
-    self.posePopupGrid = mc.popupMenu('posePopupGrid')    
+    mc.gridLayout(self.cgmUIglPoses, cwh=(100, 100), cr=False, ag=True)
+    self.posePopupGrid = mc.popupMenu('posePopupGrid')
+    
     
     self._uiCB_setPosePath()
+    self._uiCB_switchPosePathMode('local')
     return
 
     # SubFolder Scroller
-    mc.textScrollList(self.uitslPoseSubFolders, numberOfRows=8,
+    mc.textScrollList(self.cgmUItslPoseSubFolders, numberOfRows=8,
                         allowMultiSelection=False,
                         height=350, vis=False)
 
     # Main PoseFields
-    mc.textScrollList(self.uitslPoses, numberOfRows=8, allowMultiSelection=False,
+    mc.textScrollList(self.cgmUItslPoses, numberOfRows=8, allowMultiSelection=False,
                         # selectCommand=cgmGEN.Callback(self._uiPresetSelection), \
                         height=350, vis=False)
     self.posePopupText = mc.popupMenu()
 
-    mc.scrollLayout(self.uiglPoseScroll,
+    mc.scrollLayout(self.cgmUIglPoseScroll,
                       cr=True,
                       height=350,
                       hst=16,
                       vst=16,
                       vis=False,
                       rc=self._uiCB_gridResize)
-    mc.gridLayout(self.uiglPoses, cwh=(100, 100), cr=False, ag=True)
+    mc.gridLayout(self.cgmUIglPoses, cwh=(100, 100), cr=False, ag=True)
     self.posePopupGrid = mc.popupMenu('posePopupGrid')
 
     mc.setParent(_inside)
@@ -2244,29 +2384,29 @@ def buildFrame_poses(self,parent):
     mUI.MelSpacer(_uiRow_reset, w = 2)
     mUI.MelLabel(_uiRow_reset,l='Reset')
     """
-    self.uiFF_relax = mUI.MelFloatField(_uiRow_relax, w = 50, value = .2,
-                                        #cc = lambda *a: self.uiSlider_relax.setValue(self.uiFF_relax.getValue()),
+    self.cgmUIFF_relax = mUI.MelFloatField(_uiRow_relax, w = 50, value = .2,
+                                        #cc = lambda *a: self.cgmUISlider_relax.setValue(self.cgmUIFF_relax.getValue()),
                                         )"""
 
-    self.uiSlider_reset = mUI.MelFloatSlider(_uiRow_reset, 0, 1.0, defaultValue=0, 
+    self.cgmUISlider_reset = mUI.MelFloatSlider(_uiRow_reset, 0, 1.0, defaultValue=0, 
                                              #bgc = cgmUI.guiBackgroundColor,
                                              value = 0,
                                              cc = lambda *a: uiCB_resetSlider(self))
-                                             #cc = lambda *a: self.uiFF_relax.setValue(self.uiSlider_relax.getValue()),
-                                             #dragCommand = lambda *a: log.info(self.uiSlider_relax.getValue()),
+                                             #cc = lambda *a: self.cgmUIFF_relax.setValue(self.cgmUISlider_relax.getValue()),
+                                             #dragCommand = lambda *a: log.info(self.cgmUISlider_relax.getValue()),
                                              
-    self.uiSlider_reset.setPostChangeCB(cgmGEN.Callback(uiCB_resetSliderDrop,self))
+    self.cgmUISlider_reset.setPostChangeCB(cgmGEN.Callback(uiCB_resetSliderDrop,self))
     
     mUI.MelSpacer(_uiRow_reset, w = 1)
     """
     mc.button(parent=_uiRow_relax ,
               ut = 'cgmUITemplate',
               l = 'R',
-              c = lambda *a: self.uiSlider_relax.reset(),
+              c = lambda *a: self.cgmUISlider_relax.reset(),
               ann = "Reset relaxer")
     """
     mUI.MelSpacer(_uiRow_reset, w = 2)
-    _uiRow_reset.setStretchWidget(self.uiSlider_reset)
+    _uiRow_reset.setStretchWidget(self.cgmUISlider_reset)
     _uiRow_reset.layout() 
     
     
@@ -2305,29 +2445,29 @@ def buildFrame_mrsTween(self,parent):
     mUI.MelSpacer(_uiRow_reset, w = 2)
     mUI.MelLabel(_uiRow_reset,l='Reset')
     """
-    self.uiFF_relax = mUI.MelFloatField(_uiRow_relax, w = 50, value = .2,
-                                        #cc = lambda *a: self.uiSlider_relax.setValue(self.uiFF_relax.getValue()),
+    self.cgmUIFF_relax = mUI.MelFloatField(_uiRow_relax, w = 50, value = .2,
+                                        #cc = lambda *a: self.cgmUISlider_relax.setValue(self.cgmUIFF_relax.getValue()),
                                         )"""
 
-    self.uiSlider_reset = mUI.MelFloatSlider(_uiRow_reset, 0, 1.0, defaultValue=0, 
+    self.cgmUISlider_reset = mUI.MelFloatSlider(_uiRow_reset, 0, 1.0, defaultValue=0, 
                                              #bgc = cgmUI.guiBackgroundColor,
                                              value = 0,
                                              cc = lambda *a: uiCB_resetSlider(self))
-                                             #cc = lambda *a: self.uiFF_relax.setValue(self.uiSlider_relax.getValue()),
-                                             #dragCommand = lambda *a: log.info(self.uiSlider_relax.getValue()),
+                                             #cc = lambda *a: self.cgmUIFF_relax.setValue(self.cgmUISlider_relax.getValue()),
+                                             #dragCommand = lambda *a: log.info(self.cgmUISlider_relax.getValue()),
                                              
-    self.uiSlider_reset.setPostChangeCB(cgmGEN.Callback(uiCB_resetSliderDrop,self))
+    self.cgmUISlider_reset.setPostChangeCB(cgmGEN.Callback(uiCB_resetSliderDrop,self))
     
     mUI.MelSpacer(_uiRow_reset, w = 1)
     """
     mc.button(parent=_uiRow_relax ,
               ut = 'cgmUITemplate',
               l = 'R',
-              c = lambda *a: self.uiSlider_relax.reset(),
+              c = lambda *a: self.cgmUISlider_relax.reset(),
               ann = "Reset relaxer")
     """
     mUI.MelSpacer(_uiRow_reset, w = 2)
-    _uiRow_reset.setStretchWidget(self.uiSlider_reset)
+    _uiRow_reset.setStretchWidget(self.cgmUISlider_reset)
     _uiRow_reset.layout() 
     
     #>>>Tween ===================================================================================== 
@@ -2338,12 +2478,12 @@ def buildFrame_mrsTween(self,parent):
     mUI.MelSpacer(_uiRow_tween, w = 2)
     mUI.MelLabel(_uiRow_tween,l='Tween')
 
-    self.uiSlider_tween = mUI.MelFloatSlider(_uiRow_tween, -1.5, 1.5, defaultValue=0, 
+    self.cgmUISlider_tween = mUI.MelFloatSlider(_uiRow_tween, -1.5, 1.5, defaultValue=0, 
                                              #bgc = cgmUI.guiBackgroundColor,
                                              value = 0,
                                              cc = lambda *a: uiCB_tweenSlider(self))
                                              
-    self.uiSlider_tween.setPostChangeCB(cgmGEN.Callback(uiCB_tweenSliderDrop,self))
+    self.cgmUISlider_tween.setPostChangeCB(cgmGEN.Callback(uiCB_tweenSliderDrop,self))
     cgmUI.add_Button(_uiRow_tween,'Drag',
                      cgmGEN.Callback(uiCB_contextualAction,self,**d_tween['tweenDrag']['arg']),
                      d_tween['tweenDrag']['ann'])        
@@ -2353,11 +2493,11 @@ def buildFrame_mrsTween(self,parent):
     mc.button(parent=_uiRow_tween ,
               ut = 'cgmUITemplate',
               l = 'R',
-              c = lambda *a: self.uiSlider_tween.reset(),
+              c = lambda *a: self.cgmUISlider_tween.reset(),
               ann = "Reset tweener")
     """
     mUI.MelSpacer(_uiRow_tween, w = 2)
-    _uiRow_tween.setStretchWidget(self.uiSlider_tween)
+    _uiRow_tween.setStretchWidget(self.cgmUISlider_tween)
     _uiRow_tween.layout() 
     
     
@@ -2367,25 +2507,25 @@ def buildFrame_mrsTween(self,parent):
     mUI.MelSpacer(_uiRow_twnAmount, w = 2)
     mUI.MelLabel(_uiRow_twnAmount,l='Amount')
 
-    self.uiFF_tweenBase = mUI.MelFloatField(_uiRow_twnAmount, w = 50, value = .2,
-                                            cc = lambda *a: self.uiSlider_tweenBase.setValue(self.uiFF_tweenBase.getValue()))    
+    self.cgmUIFF_tweenBase = mUI.MelFloatField(_uiRow_twnAmount, w = 50, value = .2,
+                                            cc = lambda *a: self.cgmUISlider_tweenBase.setValue(self.cgmUIFF_tweenBase.getValue()))    
 
-    self.uiSlider_tweenBase = mUI.MelFloatSlider(_uiRow_twnAmount, 0, 2.0, defaultValue=.2, 
+    self.cgmUISlider_tweenBase = mUI.MelFloatSlider(_uiRow_twnAmount, 0, 2.0, defaultValue=.2, 
                                                  #bgc = cgmUI.guiBackgroundColor,
                                                  value = .2,
-                                                 cc = lambda *a: self.uiFF_tweenBase.setValue(self.uiSlider_tweenBase.getValue()),
-                                                 #dragCommand = lambda *a: log.info(self.uiSlider_tweenBase.getValue()),
+                                                 cc = lambda *a: self.cgmUIFF_tweenBase.setValue(self.cgmUISlider_tweenBase.getValue()),
+                                                 #dragCommand = lambda *a: log.info(self.cgmUISlider_tweenBase.getValue()),
                                                  )
     mUI.MelSpacer(_uiRow_twnAmount, w = 1)
     """
     mc.button(parent=_uiRow_tween ,
               ut = 'cgmUITemplate',
               l = 'R',
-              c = lambda *a: self.uiSlider_tween.reset(),
+              c = lambda *a: self.cgmUISlider_tween.reset(),
               ann = "Reset tweener")
     """
     mUI.MelSpacer(_uiRow_twnAmount, w = 2)
-    _uiRow_twnAmount.setStretchWidget(self.uiSlider_tweenBase)
+    _uiRow_twnAmount.setStretchWidget(self.cgmUISlider_tweenBase)
     _uiRow_twnAmount.layout()    
     
     
@@ -2577,7 +2717,7 @@ def buildFrame_mrsSettings(self,parent):
                       ut = 'cgmUITemplate',
                       l = '    {0}    '.format(o),
                       c=cgmGEN.Callback(uiCB_contextSetValue,self,n,v,_mode))
-                      #c=lambda *a: LOCINATOR.ui())             
+                      #c=lambda *a: LOCINATOR.cgmUI())             
             
         mUI.MelSpacer(_row,w=2)
         _row.layout()
@@ -2638,7 +2778,7 @@ def buildFrame_puppet(self,parent):
                       ut = 'cgmUITemplate',
                       l=o,
                       c=cgmGEN.Callback(uiCB_contextSetValue,self,'puppet',n,v,_mode))
-                      #c=lambda *a: LOCINATOR.ui())             
+                      #c=lambda *a: LOCINATOR.cgmUI())             
             
         mUI.MelSpacer(_row,w=2)
         _row.layout()
@@ -2784,6 +2924,8 @@ def get_context(self, addMirrors = False,**kws):
             
             res = []
             for mModule in self.d_puppetData['mModules']:
+                res.append(mModule)
+                
                 log.debug("|{0}| >> sibling check: {1}".format(_str_func,mModule))
                 for mSib in mModule.atUtils('siblings_get'):
                     if mSib not in res:
@@ -2929,7 +3071,7 @@ def get_contextualControls(self,mirrorQuery=False,**kws):
 #@cgmGEN.Timer
 def uiCB_contextualAction(self, **kws):
     try:
-        _str_func='uiCB_contextualAction'
+        _str_func='cgmUICB_contextualAction'
         l_kws = []
         for k,v in kws.iteritems():
             l_kws.append("{0}:{1}".format(k,v))
@@ -3128,7 +3270,7 @@ def uiCB_contextualAction(self, **kws):
         elif _mode in ['tweenNext','tweenPrev','tweenAverage']:
             v_tween = kws.get('tweenValue', None)
             if v_tween is None:
-                try:v_tween = self.uiFF_tweenBase.getValue()
+                try:v_tween = self.cgmUIFF_tweenBase.getValue()
                 except:pass
                 if not v_tween:
                     return log.error("No tween value detected".format(_mode))
@@ -3184,7 +3326,7 @@ def uiCB_contextualAction(self, **kws):
         raise Exception,err
 
 def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
-    _str_func='uiCB_settingsSet'
+    _str_func='cgmUICB_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
     
     get_context(self,**kws)
@@ -3231,7 +3373,7 @@ def buildColumn_main(self,parent, asScroll = False):
     return _inside
     
 def uiCB_load_selected(self, bypassAttrCheck = False):
-    _str_func = 'uiCB_load_selected'  
+    _str_func = 'cgmUICB_load_selected'  
     #self._ml_ = []
     self._mTransformTarget = False
 
@@ -3250,22 +3392,22 @@ def uiCB_load_selected(self, bypassAttrCheck = False):
         uiCB_clear_loaded(self)
 
     #uiCB_updateFields(self)
-    #self.uiReport_do()
-    #self.uiCB_updateScrollAttrList()
+    #self.cgmUIReport_do()
+    #self.cgmUICB_updateScrollAttrList()
 
 def uiCB_clear_loaded(self):
-    _str_func = 'uiCB_clear_loaded'  
+    _str_func = 'cgmUICB_clear_loaded'  
     self._mTransformTarget = False
-    self.uiTF_objLoad(edit=True, l='',en=False)
+    self.cgmUITF_objLoad(edit=True, l='',en=False)
 
 def uiCB_tweenSliderDrop(self):
-    _str_func='uiCB_tweenSliderDrop'
+    _str_func='cgmUICB_tweenSliderDrop'
     """
     _context = self.var_mrsContext.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
-    v_tween = self.uiSlider_tween.getValue()
+    v_tween = self.cgmUISlider_tween.getValue()
     if v_tween >= 0.0:
         mode = 'tweenNext'
     else:
@@ -3274,8 +3416,8 @@ def uiCB_tweenSliderDrop(self):
     uiCB_contextualAction(self,**{'mode':mode,'tweenValue':v_tween})
     """
 
-    log.info("Last drag value: {0}".format(self.uiSlider_tween.getValue()))
-    self.uiSlider_tween.setValue(0)
+    log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
+    self.cgmUISlider_tween.setValue(0)
     self.keySel = {}#...clear thiss
     if not self._sel:
         return log.error("Nothing in context")    
@@ -3284,7 +3426,7 @@ def uiCB_tweenSliderDrop(self):
     return     
     
 def uiCB_tweenSlider(self):
-    _str_func='uiCB_tweenSlider'
+    _str_func='cgmUICB_tweenSlider'
     
     try:self.keySel
     except:self.keySel = {}
@@ -3341,7 +3483,7 @@ def uiCB_tweenSlider(self):
 
     if not self._sel:
         return     
-    v_tween = self.uiSlider_tween.getValue()
+    v_tween = self.cgmUISlider_tween.getValue()
     if v_tween > 0:
         for curve in self.keySel.curves:
             for i,v,n in zip(self.time[curve],self.value[curve],self.next[curve]):
@@ -3351,17 +3493,17 @@ def uiCB_tweenSlider(self):
             for i,v,p in zip(self.time[curve],self.value[curve],self.prev[curve]):
                 mc.keyframe(curve, time=(i,), valueChange=v+((p-v)*(-1*v_tween)))
     
-    #log.info(self.uiSlider_tween.getValue())
+    #log.info(self.cgmUISlider_tween.getValue())
     
      
 def uiCB_updateTargetDisplay(self):
-    _str_func = 'uiCB_updateTargetDisplay'  
-    #self.uiScrollList_parents.clear()
+    _str_func = 'cgmUICB_updateTargetDisplay'  
+    #self.cgmUIScrollList_parents.clear()
 
     if not self._mTransformTarget:
         log.info("|{0}| >> No target.".format(_str_func))                        
         #No obj
-        self.uiTF_objLoad(edit=True, l='',en=False)
+        self.cgmUITF_objLoad(edit=True, l='',en=False)
         self._mGroup = False
 
         #for o in self._l_toEnable:
@@ -3369,13 +3511,13 @@ def uiCB_updateTargetDisplay(self):
         return
     
     _short = self._mTransformTarget.p_nameBase
-    self.uiTF_objLoad(edit=True, ann=_short)
+    self.cgmUITF_objLoad(edit=True, ann=_short)
     
     if len(_short)>20:
         _short = _short[:20]+"..."
-    self.uiTF_objLoad(edit=True, l=_short)   
+    self.cgmUITF_objLoad(edit=True, l=_short)   
     
-    self.uiTF_objLoad(edit=True, en=True)
+    self.cgmUITF_objLoad(edit=True, en=True)
     
     return
 
@@ -3444,13 +3586,13 @@ def deleteKey():
         
         
 def uiCB_resetSliderDrop(self):
-    _str_func='uiCB_resetSliderDrop'
+    _str_func='cgmUICB_resetSliderDrop'
     """
     _context = self.var_mrsContext.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
-    v_tween = self.uiSlider_tween.getValue()
+    v_tween = self.cgmUISlider_tween.getValue()
     if v_tween >= 0.0:
         mode = 'tweenNext'
     else:
@@ -3460,8 +3602,8 @@ def uiCB_resetSliderDrop(self):
     """
     mc.undoInfo(closeChunk=True)
     if self.b_autoKey:mc.autoKeyframe(state=True)
-    log.info("Last drag value: {0}".format(self.uiSlider_tween.getValue()))
-    self.uiSlider_reset.setValue(0)
+    log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
+    self.cgmUISlider_reset.setValue(0)
     #pprint.pprint(self.d_resetDat)
     self.d_resetDat = {}#...clear thiss
     if not self._sel:
@@ -3472,7 +3614,7 @@ def uiCB_resetSliderDrop(self):
     return     
     
 def uiCB_resetSlider(self):
-    _str_func='uiCB_tweenSlider'
+    _str_func='cgmUICB_tweenSlider'
     
     try:self.d_resetDat
     except:
@@ -3504,7 +3646,7 @@ def uiCB_resetSlider(self):
     if not self._sel:
         return
     
-    v_reset = self.uiSlider_reset.getValue()
+    v_reset = self.cgmUISlider_reset.getValue()
     
     for mCtrl,aDat in self.d_resetDat.iteritems():
         for a,vDat in aDat.iteritems():
@@ -3571,7 +3713,7 @@ def mmUI_lower(self,parent):
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
     
     #Change space menu
-    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
+    DYNPARENTTOOL.cgmUIMenu_changeSpace(self,parent,False)
     
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)

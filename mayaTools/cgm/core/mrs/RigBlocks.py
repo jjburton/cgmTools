@@ -347,7 +347,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #self.atUtils('doSize', _sizeMode, postState = _postState )                
             
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
@@ -1246,7 +1246,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         try:
             _blockModule = self.p_blockModule
             return self.stringModuleCall(_blockModule,func,*args, **kws)
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+
     
     def atRigModule(self, func = '', *args,**kws):
         """
@@ -1259,7 +1260,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 return False
             
             return self.moduleTarget.atUtils(func,*args,**kws)
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
     def atRigPuppet(self, func = '', *args,**kws):
         """
@@ -1271,7 +1272,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 return self.moduleTarget.atUtils(func,*args,**kws)
             
             return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
     def atBlockUtils(self, func = '', *args,**kws):
         """
@@ -1330,7 +1331,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             for a in err.args:
                 log.error(a)
             log.error(cgmGEN._str_subLine)"""
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
         return res
 
         print res
@@ -1719,7 +1720,7 @@ class handleFactory(object):
 
             return mPivotRootHandle
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
             
     def addFootHelper(self,baseShape=None, baseSize = None, upAxis = 'y+', setAttrs = {}):
             try:
@@ -1933,7 +1934,7 @@ class handleFactory(object):
                 
                 return mPivotRootHandle,mTopLoft
             except Exception,err:
-                cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+                cgmGEN.cgmException(Exception,err,msg=vars())
                 
     def add_lidsHelper(self,upAxis = 'y+', setAttrs = {}):
         try:
@@ -2103,7 +2104,7 @@ class handleFactory(object):
 
             return mLidHandle
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def addScalePivotHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
         _baseDat = self.get_baseDat(baseShape,baseSize)
@@ -2264,7 +2265,7 @@ class handleFactory(object):
             
             return mTrans
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def setAttrs_fromDict(self, setAttrs={}):
         try:
@@ -2274,7 +2275,7 @@ class handleFactory(object):
             for a,v in setAttrs.iteritems():
                 ATTR.set(_short, a, v)
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def addOrientHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', setAttrs = {}):
         try:
@@ -2313,7 +2314,7 @@ class handleFactory(object):
 
             return mCurve
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def addProxyHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
         try:
@@ -2357,7 +2358,7 @@ class handleFactory(object):
 
             return mProxy
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def addRootMotionHelper(self,baseShape='pivotLocator', baseSize = None, shapeDirection = 'z+'):
         try:
@@ -2397,7 +2398,7 @@ class handleFactory(object):
             self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
             return mCurve
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def addJointHelper(self,baseShape=None, baseSize = None,
                        shapeDirection = 'z-', loftHelper = True,
@@ -2452,7 +2453,7 @@ class handleFactory(object):
 
             return mJointCurve
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
     def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+', rebuildHandle = True):
         _baseDat = self.get_baseDat(baseShape,baseSize)
@@ -3069,7 +3070,7 @@ class factory(object):
                         _mBlock.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
             except Exception,err:
                 log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} ".format(_str_func,a,v,blockType)) 
-                cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+                cgmGEN.cgmException(Exception,err,msg=vars())
                 if not forceReset:                
                     raise Exception,err
 
@@ -3870,7 +3871,7 @@ def get_modules_dat(update = False):
                                 #_l_unbuildable.append(name)
                         except Exception, e:
                             log.warning("|{0}| >> Module failed: {1}".format(_str_func,key))                               
-                            cgmGEN.cgmExceptCB(Exception,e,fncDat=vars())
+                            cgmGEN.cgmException(Exception,e,msg=vars())
 
                     else:
                         _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
@@ -4357,7 +4358,7 @@ class rigFactory(object):
         """
         try:reload(BUILDERUTILS)
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
         return cgmGEN.stringModuleClassCall(self, BUILDERUTILS, func, *args, **kws)
     atUtils = atBuilderUtils
     UTILS = BUILDERUTILS
@@ -4642,7 +4643,7 @@ class rigFactory(object):
             log.error("Errors...")
             for a in err.args:
                 log.error(a)
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
             #cgmGEN.log_info_dict(self.__dict__,'rigFactory')
 

@@ -23,7 +23,7 @@ from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 
 from cgm.lib import search
@@ -295,7 +295,7 @@ def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFi
             shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
         return targets[-1]
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGen.cgmException(Exception,err,msg=vars())
 
 def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
@@ -417,7 +417,7 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             if not keepSource:
                 mc.delete(c)
         except Exception,err:
-            cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
     return True
 
 def create_axisProxy(obj=None):
@@ -486,7 +486,7 @@ def create_axisProxy(obj=None):
         #match_transform(_proxy,_dag)
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err)
+        cgmGEN.cgmException(Exception,err,msg=vars())
     
 def create_localAxisProxyBAK(obj=None):
     """
@@ -552,7 +552,8 @@ def create_localAxisProxyBAK(obj=None):
         #ATTR.set(_dup,'scale',s)
 
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
     
         
 _d_proxyCreate = {'cube':'nurbsCube',
@@ -613,7 +614,7 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
         
         return _res
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
     
 def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName = 'created'):
     """
@@ -1110,7 +1111,7 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
                         mc.sets(s, remove = 'initialShadingGroup')
                         try:
                             mc.disconnectAttr ('{0}.instObjGroups.objectGroups'.format(s),
-                                           'initialShadingGroup.dagSetMembers')
+                                               'initialShadingGroup.dagSetMembers')
                         except:
                             pass
                         

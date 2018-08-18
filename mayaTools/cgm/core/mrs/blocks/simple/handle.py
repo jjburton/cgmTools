@@ -172,7 +172,7 @@ def template(self):
             
         self.msgList_connect('templateHandles',[mHandle.mNode])
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
         
 #def is_template(self):
 #    if self.getMessage('templateNull'):
@@ -231,7 +231,8 @@ def prerig(self):
         
         return
 
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 
 def prerigDelete(self):
@@ -301,7 +302,7 @@ def is_rig(self):
             return False
         return True
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 #=============================================================================================================
 #>> Skeleton
@@ -743,7 +744,8 @@ def rig_frame(self):
             ml_rigJoints[0].parent = mDirectDriver
             
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
     
 def rig_cleanUp(self):
     _short = self.d_block['shortName']

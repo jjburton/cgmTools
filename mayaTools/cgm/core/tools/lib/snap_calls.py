@@ -149,7 +149,8 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast',
         
         mc.select(objects)
         return
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag
 reload(cgmDrag)
@@ -328,7 +329,8 @@ def specialSnap(obj = None, targets = None,
             return
             
         POS.set(_obj,p)
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 
 def snap(obj = None, targets = None,

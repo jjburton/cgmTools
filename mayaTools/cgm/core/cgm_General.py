@@ -968,7 +968,7 @@ class Callback(object):
             for a in err.args:
                 log.info(a)
                 
-            cgmExceptCB(Exception,err)
+            cgmException(Exception,err)
             raise Exception,err
         
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
@@ -1508,13 +1508,21 @@ def testExceptionNested(*args,**kws):
         _nestedDictTest = {1:2,3:4}
         return testException()
     except Exception,err:cgmException(Exception,err)
-def testException(*args,**kws):
+    
+def test_cgmException(*args,**kws):
     try:
         bye = 'fred'
         _l = range(12)
         raise ValueError,"Bob's not home"
     except Exception,err:cgmException(Exception,err)
-
+    
+def test_cgmExceptCB(*args,**kws):
+    try:
+        bye = 'fred'
+        _l = range(12)
+        raise ValueError,"Bob's not home"
+    except Exception,err:cgmExceptCB(Exception,err)
+    
 def cgmException(etype = None, value = None, tb = None,msg=None):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
 

@@ -111,7 +111,8 @@ def reset(node, attrs = None, amount = None):
             except Exception,err:
                 log.error("{0}.{1} resetAttrs | error: {2}".format(node, attr,err))   	
         return _reset
-    except Exception,err:cgmGeneral.cgmExceptCB(Exception,err,localDat=vars())
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
     
         

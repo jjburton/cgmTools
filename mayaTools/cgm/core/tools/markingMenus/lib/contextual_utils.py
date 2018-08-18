@@ -394,7 +394,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             try:mc.select(objects)
             except:pass
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
         
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """

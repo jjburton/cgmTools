@@ -425,7 +425,7 @@ def get_axisBox_size(arg = None, children = False, mode = None, asEuclid = False
             log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
         return _res            
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err)
+        cgmGen.cgmException(Exception,err,msg=vars())
 
 def get_uv_position(mesh, uvValue,asEuclid = False):
     """

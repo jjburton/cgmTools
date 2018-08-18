@@ -167,4 +167,4 @@ def clean(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """, noN
                 str_Clean = str_Clean[ :-1 ]
         return str_Clean		
     except Exception,err:
-        cgmGeneral.cgmExceptCB(Exception,err,fncDat=vars())
+        cgmGeneral.cgmException(Exception,err,msg=vars())

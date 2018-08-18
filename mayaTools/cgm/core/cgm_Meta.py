@@ -6693,8 +6693,8 @@ def asMeta(*args,**kws):
         if VALID.isListArg(arg):#make sure it's not a list
             return validateObjListArg(*args,**kws)
         return validateObjArg(*args,**kws)
-    except Exception,error:
-        cgmGEN.cgmExceptCB(Exception,error)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
         """
         log.error("cgmMeta.asMeta failure... --------------------------------------------------")
         if args:

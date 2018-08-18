@@ -3340,7 +3340,7 @@ def rig_shapes(self):
                 mIKEndCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
                 mIKEndCrv.doSnapTo(ml_prerigHandles[-1].mNode)
             
-                mHandleFactory.color(mIKEndCrv.mNode, controlType = 'main',transparent=True)
+                mHandleFactory.color(mIKEndCrv.mNode, controlType = 'sub')
                 mIKEndCrv.doCopyNameTagsFromObject(self.ml_handleTargets[self.int_handleEndIdx].mNode,
                                                    ignore=['cgmType','cgmTypeModifier'])                
                 

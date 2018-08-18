@@ -2013,7 +2013,7 @@ class uiCallback_withUpdate(object):
             for a in err.args:
                 log.debug(a)
                 
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
             raise Exception,err
         
         if self._mBlock == self._ui._blockCurrent:
