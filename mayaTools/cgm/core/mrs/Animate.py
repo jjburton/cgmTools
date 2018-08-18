@@ -38,6 +38,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core import cgm_RigMeta as cgmRigMeta
 mUI = cgmUI.mUI
 
+import cgm.core.lib.name_utils as NAMES
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
@@ -1348,9 +1349,9 @@ class ui(cgmUI.cgmGUI):
         log.info("Initial nodes: {0}".format(nodes))
         l_start = []
         if not nodes:
-            log.info("No nodes found.Checking pose file to build list...")
+            log.debug("No nodes found.Checking pose file to build list...")
             path = self.getPosePath()
-            log.info('PosePath : %s' % path)
+            log.debug('PosePath : %s' % path)
             #poseNode = r9Pose.PoseData(self.filterSettings)
             #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
             #poseNode.matchMethod = self.matchMethod
@@ -1361,22 +1362,33 @@ class ui(cgmUI.cgmGUI):
             for k in d.keys():
                 k_dat = d[k]
                 _longName = k_dat['longName']
+                _longmatch = _longName.split(':')[-1]
+                _longmatch = NAMES.clean(_longmatch)
                 l_start.append(k)
-                buff = mc.ls("*:{0}".format(_longName))
-                if buff and len(buff) == 1:
-                    log.info("ls match for for {0}".format(_longName))
-                    nodes.append(buff[0])
-                    continue                
+                buff_ref = mc.ls("*:{0}".format(_longmatch))
+                buf_reg = mc.ls("*{0}".format(_longmatch))
+                if buff_ref and len(buff_ref) == 1:
+                    log.debug("Ref ls match for for {0}".format(_longmatch))
+                    nodes.append(buff_ref[0])
+                    continue
+                if buf_reg and len(buf_reg) == 1:
+                    log.debug("Reg ls match for for {0}".format(_longmatch))
+                    nodes.append(buf_reg[0])
+                    continue
+                elif mc.objExists(_longmatch):
+                    log.debug("Exists: {0}".format(_longmatch))
+                    nodes.append(_longmatch)
+                    continue
                 elif mc.objExists(_longName):
-                    log.info("Exists: {0}".format(_longName))
+                    log.debug("Exists: {0}".format(_longName))
                     nodes.append(_longName)
                     continue
                 
-                log.info("No match for for {0}".format(_longName))
+                log.debug("No match for for {0}".format(_longName))
             
         if select:
             mc.select(nodes)
-        pprint.pprint(l_start)
+        #pprint.pprint(l_start)
         return nodes
                 
                         
@@ -2162,18 +2174,18 @@ def buildFrame_poses(self,parent):
     self._uiCache_readUIElements()
     
     
-    #try:
-    v_local = self.var_pathLocal.getValue()
-    if v_local:
-        log.info('setting local on call...')
-        self.posePathLocal = v_local
-        
-    v_project = self.var_pathProject.getValue()
-    if v_project:
-        log.info('setting project on call...')        
-        self.posePathProject = v_project
-    #except:
-    #    pass    
+    try:
+        v_local = self.var_pathLocal.getValue()
+        if v_local:
+            log.info('setting local on call...')
+            self.posePathLocal = v_local
+            
+        v_project = self.var_pathProject.getValue()
+        if v_project:
+            log.info('setting project on call...')        
+            self.posePathProject = v_project
+    except:
+        pass    
     
     
     
