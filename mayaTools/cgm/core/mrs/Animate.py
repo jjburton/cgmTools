@@ -143,7 +143,7 @@ class ui(cgmUI.cgmGUI):
             return
         self.cgmUIMenu_snap.clear()
         
-        UICHUNKS.cgmUISection_snap(self.cgmUIMenu_snap)
+        UICHUNKS.uiSection_snap(self.cgmUIMenu_snap)
             
         mUI.MelMenuItemDiv(self.cgmUIMenu_snap)
         
