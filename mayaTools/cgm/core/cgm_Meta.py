@@ -1230,8 +1230,8 @@ class cgmNode(r9Meta.MetaClass):
             #print(cgmGEN._str_baseStart + "  Errors...")
             #for a in err.args:
                 #log.error(a)
-            raise Exception,err
-            #cgmGEN.cgmException(Exception,err)
+            #raise Exception,err
+            cgmGEN.cgmException(Exception,err)
         return _res    
     
     def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):

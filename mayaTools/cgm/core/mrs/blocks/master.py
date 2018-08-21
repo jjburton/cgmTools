@@ -602,7 +602,7 @@ def rigDelete(self):
         self.v = 1
         try:self.moduleTarget.masterControl.masterGroup.delete()
         except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
             raise Exception,err
         return True
     except Exception,err:

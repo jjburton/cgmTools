@@ -172,7 +172,7 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
         log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
         return floatValues(_res)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 class cgmRigBlock(cgmMeta.cgmControl):
     #These lists should be set up per rigblock as a way to get controls from message links
@@ -288,8 +288,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
                 
                 #Profiles --------------------------------------------------------------------------
-                if self.hasAttr('blockProfile'):
-                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',self.blockProfile))
+                _kw_blockProfile = kws.get('blockProfile')
+                if _kw_blockProfile:
+                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))
                 
                 _kw_buildProfile = kws.get('buildProfile')
                 if _kw_buildProfile:
@@ -428,7 +429,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #self.doStore('blockProfile',_v,attrType='string')
             
             return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
     def doName(self):
         return self.atUtils('doName')
@@ -777,7 +778,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
             return _d
         except Exception,err:
-            cgmGEN.cgmException(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
             
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat()
@@ -1184,7 +1185,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     if childBlock:
                         Block.MirrorBlockPush(childBlock)
         except Exception,err:
-            cgmGEN.cgmException(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
     @staticmethod
     def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
         '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
@@ -1281,7 +1282,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         try:
             reload(BLOCKUTILS)
             return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     atUtils = atBlockUtils
     UTILS = BLOCKUTILS
@@ -1939,9 +1940,9 @@ class handleFactory(object):
     def add_lidsHelper(self,upAxis = 'y+', setAttrs = {}):
         try:
             _str_func = 'add_lidsHelper'
-            mHandleMain = self._mTransform
+            #mHandleMain = self._mTransform
             mBlock = self.mBlock
-            _short = mHandleMain.mNode
+            _short = mBlock.mNode
             _side = self.get_side()
             
             if not mBlock.setupLid:
@@ -4756,7 +4757,7 @@ class rigFactory(object):
 
             return True
         except Exception,err:
-            cgmGEN.cgmException(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
             raise Exception,err
 
 
@@ -4952,7 +4953,7 @@ class rigFactory(object):
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
-            cgmGEN.cgmException(Exception,err)
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
 
@@ -5035,7 +5036,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                     return
                 elif not self.__verify__(name = name,**kws):
                     raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     #====================================================================================
     def __verify__(self,name = None,**kws):
@@ -5114,7 +5115,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             self.atUtils('groups_verify')
             
             return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     def atUtils(self, func = '', *args,**kws):
         """
@@ -5140,7 +5141,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 
             #self.masterNull.displayLayer.doName()
 
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     def doName(self):
         try:
@@ -5169,7 +5170,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             try:self.displayLayer.doName()
             except:pass
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
 
     def verify_masterNull(self,**kws):
@@ -5208,7 +5209,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             
             return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
     #=================================================================================================
     # Puppet Utilities
@@ -5253,7 +5254,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                     mGroup.addAttr('cgmAlias','world')
                 elif attr == 'puppetSpaceObjects':
                     mGroup.addAttr('cgmAlias','puppet')
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
 
     def verify_objectSet(self):
@@ -5295,7 +5296,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             mc.delete(self.masterNull.mNode)
             mc.delete(self.mNode)
             #del(self)
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     #=================================================================================================
     # Modules
@@ -5487,7 +5488,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             
             return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
 class cgmRigMaster(cgmMeta.cgmObject):
     """
@@ -5519,7 +5520,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             if self.__justCreatedState__ or doVerify:
                 if not self.__verify__(*args,**kws):
                     raise StandardError,"Failed to verify!"	
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
     def __verify__(self,*args,**kws):
         try:
@@ -5566,7 +5567,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             self.doName()
             return True
         
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
     def rebuildMasterShapes(self,**kws):
         """
@@ -5693,7 +5694,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 mShape.doName()
             return True
         
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     def rebuildControlCurveBAK(self,**kws):
         """
@@ -5752,7 +5753,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
     
     
             self.doName()    
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     def getBlockModule(self,update = False):
         if self._blockModule and not update:
@@ -5833,7 +5834,7 @@ class cgmRigModule(cgmMeta.cgmObject):
                     raise StandardError,"Failed to verify!"
                 
                 
-        except Exception,err:cgmGEN.cgmException(Exception,err)        
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())        
         
     def atUtils(self, func = '', *args,**kws):
         """
@@ -5841,7 +5842,7 @@ class cgmRigModule(cgmMeta.cgmObject):
         """
         try:
             reload(MODULEUTILS)
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
     UTILS = MODULEUTILS
     def __verify__(self,**kws):
@@ -5976,7 +5977,7 @@ class cgmRigModule(cgmMeta.cgmObject):
                 self.doSetParentModule(self.kw_moduleParent)
  
             return True
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
     def get_allModuleChildren(self,*args,**kws):
         return MODULEUTILS.moduleChildren_get(self,*args,**kws)
@@ -6007,7 +6008,7 @@ class cgmRigModule(cgmMeta.cgmObject):
         """
         try:
             reload(self.getBlockModule())
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         return self.stringModuleCall(self._blockModule,func,*args, **kws)    
     
     

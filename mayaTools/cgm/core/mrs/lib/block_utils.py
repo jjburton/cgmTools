@@ -3595,9 +3595,20 @@ def get_blockDagNodes(self,):
         
         ml_controls = controls_get(self)
                 
-        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh','moduleTarget']:
+        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh']:
             if self.getMessage(a):
-                ml_controls.extend(self.getMessage(a,asMeta=True))        
+                ml_controls.extend(self.getMessage(a,asMeta=True))
+                
+        if 'd_wiring_extraDags' in self.p_blockModule.__dict__.keys():
+            log.debug("|{0}| >>  Found extraDat wiring".format(_str_func))
+            for k in self.p_blockModule.d_wiring_extraDags.get('msgLinks',[]):
+                mNode = self.getMessageAsMeta(k)
+                if mNode:
+                    ml_controls.append(mNode)
+            for k in self.p_blockModule.d_wiring_extraDags.get('msgLists',[]):
+                ml = self.msgList_get(k)
+                if ml:
+                    ml_controls.extend(ml)
         return ml_controls
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -4693,8 +4704,8 @@ def blockProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
-    if not _d.get('blockProfile'):
-        _d['blockProfile'] = arg
+    #if not _d.get('blockProfile'):
+    #    _d['blockProfile'] = arg
     
     cgmGEN.func_snapShot(vars())
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    

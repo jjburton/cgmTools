@@ -295,7 +295,7 @@ def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFi
             shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
         return targets[-1]
     except Exception,err:
-        cgmGen.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
@@ -479,7 +479,7 @@ def create_axisProxy(obj=None):
         
         #SNAP.go(_proxy,_dag,pivot='bb')
 
-        #cgmGen.func_snapShot(vars())
+        #cgmGEN.func_snapShot(vars())
         
         _proxy = TRANS.parent_set(_proxy, False)
         mc.delete(_dup)
@@ -537,7 +537,7 @@ def create_localAxisProxyBAK(obj=None):
         #import cgm.core.lib.math_utils as COREMATH
         #TRANS.scaleLocal_set(_dup, COREMATH.list_mult([-1.0,-1.0,-1.0],_scaleLossy,))
         #proxy = TRANS.parent_set(_proxy, False)
-        cgmGen.func_snapShot(vars())
+        cgmGEN.func_snapShot(vars())
         
         #ATTR.set(_dup,'translate',t)
         #ATTR.set(_dup,'rotate',r)
@@ -874,7 +874,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         
         _b_RBGMode = False
         _b_2016Plus = False
-        if cgmGen.__mayaVersion__ >=2016:
+        if cgmGEN.__mayaVersion__ >=2016:
             _b_2016Plus = True
             
         if key is not None:
@@ -894,7 +894,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
                     
         if rgb is not None:
             if not _b_2016Plus:
-                raise ValueError,"|{0}|  >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGen.__mayaVersion__) 
+                raise ValueError,"|{0}|  >> RGB values introduced in maya 2016. Current version: {1}".format(_str_func,cgmGEN.__mayaVersion__) 
             
             _b_RBGMode = True        
             if len(rgb) == 3:
