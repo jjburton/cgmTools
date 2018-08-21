@@ -3725,7 +3725,7 @@ def mmUI_lower(self,parent):
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
     
     #Change space menu
-    DYNPARENTTOOL.cgmUIMenu_changeSpace(self,parent,False)
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
     
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)
