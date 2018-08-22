@@ -87,52 +87,70 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_frame',
                        'rig_cleanUp']
 
+
+
+
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_template = {'msgLinks':['templateNull','eyeOrientHelper','rootHelper'],
                      }
-
-#>>>Profiles =====================================================================================================
+d_wiring_extraDags = {'msgLinks':['bbHelper'],
+                      'msgLists':[]}
+#>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
 
-d_block_profiles = {}
+d_block_profiles = {'default':{},
+                    'eye':{'baseSize':[2.7,2.7,2.7],
+                           'eyeType':'sphere',
+                           'ikSetup':True,
+                           'setupLid':'none',
+                           },
+                    'eyeClamLid':{
+                        'baseSize':[2.7,2.7,2.7],
+                        'eyeType':'sphere',
+                        'ikSetup':True,
+                        'setupLid':'clam',
+                        'numLidUpr':1,
+                        'numLidLwr':1,
+                           }}
 
 
 
-#>>>Attrs =====================================================================================================
+#>>>Attrs =================================================================================================
 l_attrsStandard = ['side',
                    'position',
-                   'baseUp',
+                   #'baseUp',
                    'baseAim',
                    'attachPoint',
                    'nameList',
-                   'loftSides',
-                   'loftDegree',
-                   'loftSplit',
-                   'loftShape',
-                   'scaleSetup',                   
+                   #'loftSides',
+                   #'loftDegree',
+                   #'loftSplit',
+                   #'loftShape',
                    'numSpacePivots',
                    'scaleSetup',
-                   'offsetMode',
+                   #'offsetMode',
                    'proxyDirect',
-                   'settingsDirection',
+                   #'settingsDirection',
                    'moduleTarget',]
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
-                 'eyeOrb':'bool',
+                 'hasEyeOrb':'bool',
                  'ikSetup':'bool',
                  'setupPupil':'none:joint:blendshape',
                  'setupIris':'none:joint:blendshape',
                  'setupLid':'none:clam:full',
-                 'lidJointsUpr':'int',
-                 'lidJointsLwr':'int',
+                 'numLidUpr':'int',
+                 'numLidLwr':'int',
                  
                  
 }
 
 d_defaultSettings = {'version':__version__,
+                     'proxyDirect':True,
+                     'attachPoint':'end',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
@@ -288,7 +306,7 @@ def template(self):
     mHandleFactory.color(mOrientHelper.mNode)
     
     
-    if self.eyeOrb:
+    if self.hasEyeOrb:
         pass
         """
         log.debug("|{0}| >> Eye orb setup...".format(_str_func))
@@ -337,7 +355,7 @@ def prerig(self):
     
     ml_handles = []
     #Settings shape --------------------
-    if self.ikSetup or self.eyeOrb:
+    if self.ikSetup or self.hasEyeOrb:
         log.debug("|{0}| >> Settings/Orb setup ... ".format(_str_func)) 
         
         _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
@@ -420,7 +438,7 @@ def skeleton_build(self, forceNew = True):
     _str_func = '[{0}] > skeleton_build'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func)) 
     
-    _radius = 1
+    _radius = self.atUtils('get_shapeOffset')# or 1
     ml_joints = []
     mModule = self.moduleTarget
     
@@ -485,7 +503,7 @@ def skeleton_build(self, forceNew = True):
     
     mRoot = mEyeJoint
     #>> Eye =================================================================================== 
-    if self.eyeOrb:
+    if self.hasEyeOrb:
         mEyeOrbJoint = mEyeJoint.doDuplicate()
         self.copyAttrTo(_baseNameAttrs[1],mEyeOrbJoint.mNode,'cgmName',driven='target')
         name(mEyeOrbJoint,_d_base)
@@ -813,14 +831,14 @@ def rig_shapes(self):
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
-        if mBlock.eyeOrb or mBlock.ikSetup:
+        if mBlock.hasEyeOrb or mBlock.ikSetup:
             log.debug("|{0}| >> Settings needed...".format(_str_func))
             mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
             if not mSettingsHelper:
                 raise ValueError,"Settings helper should have been generated during prerig phase. Please go back"
             log.debug(mSettingsHelper)
             
-            if mBlock.eyeOrb:
+            if mBlock.hasEyeOrb:
                 log.debug("|{0}| >> EyeOrb Settings...".format(_str_func))
                 mEyeOrbJoint = mPrerigNull.getMessageAsMeta('eyeOrbJoint')
                 mEyeOrbRigJoint = mEyeOrbJoint.getMessageAsMeta('rigJoint')

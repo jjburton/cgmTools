@@ -396,7 +396,7 @@ def template(self):
     
     """
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
-    _headType = self.getEnumValueString('blockProfile')
+    _headType = self.blockProfile
     _baseSize = self.baseSize
     #_dimensions = __dimensions_by_type.get(_headType,'human')
     

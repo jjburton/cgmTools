@@ -697,15 +697,20 @@ class cgmRigBlock(cgmMeta.cgmControl):
     p_blockAttributes = property(getBlockAttributes)
 
     def getBlockModule(self,update = False):
-        if self._blockModule and not update:
-            return self._blockModule
+        if self._blockModule and  update:
+            if self._blockModule:
+                return self._blockModule
+            return get_blockModule(self.getMayaAttr('blockType'))
         blockType = self.getMayaAttr('blockType')
         blockModule = get_blockModule(blockType)
+        if not blockModule:
+            raise ValueError,"No blockModule found. blockType: {0}".format(self.blockType)
         reload(blockModule)
         return blockModule
 
-    p_blockModule = property(getBlockModule)
-
+    try:p_blockModule = property(getBlockModule)
+    except:
+        log.error("Failed to load block module. Check it. {0}".format(self))
     def getBlockDat(self,report = True):
         """
         Carry from Bokser stuff...

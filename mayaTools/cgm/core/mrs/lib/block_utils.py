@@ -4749,7 +4749,7 @@ def buildProfile_load(self, arg):
     
     _blockProfile = 'default'
     if self.hasAttr('blockProfile'):
-        _blockProfile = self.getEnumValueString('blockProfile')
+        _blockProfile = self.blockProfile
         if _d_block.get(_blockProfile):
             _d_block = _d_block.get(_blockProfile)
         else:
