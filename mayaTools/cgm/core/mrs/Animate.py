@@ -1129,6 +1129,7 @@ class ui(cgmUI.cgmGUI):
         '''
         Store some of the main components of the UI out to an ini file
         '''
+        return
         if not self.cgmUIBoot:
             log.debug('cgmUI configFile being written')
             ConfigObj = configobj.ConfigObj(indent_type='\t')
@@ -1240,6 +1241,7 @@ class ui(cgmUI.cgmGUI):
         Why not just call the procs directly? well this also manages the collection /pushing
         of the filterSettings data for all procs
         '''
+        
         # issue : up to v2011 Maya puts each action into the UndoQueue separately
         # when called by lambda or partial - Fix is to open an UndoChunk to catch
         # everything in one block
@@ -1251,8 +1253,8 @@ class ui(cgmUI.cgmGUI):
             mc.undoInfo(openChunk=True)
     
         # Main Hierarchy Filters =============
-        self._uiPresetFillFilter()  # fill the filterSettings Object
-        self.matchMethod = 'stripPrefix'#mc.optionMenu('om_MatchMethod', q=True, v=True)
+        ##self._uiPresetFillFilter()  # fill the filterSettings Object
+        ##self.matchMethod = 'stripPrefix'#mc.optionMenu('om_MatchMethod', q=True, v=True)
     
         # self.filterSettings.transformClamp = True
     
@@ -1309,7 +1311,7 @@ class ui(cgmUI.cgmGUI):
         if mel.eval('getApplicationVersionAsFloat') < 2011:
             mc.undoInfo(closeChunk=True)
     
-        self._uiCache_storeUIElements()
+        #self._uiCache_storeUIElements()
         
     def __PoseSave(self, path=None, storeThumbnail=True):
         '''
