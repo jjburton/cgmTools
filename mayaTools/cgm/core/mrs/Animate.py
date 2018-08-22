@@ -24,6 +24,7 @@ log.setLevel(logging.DEBUG)
 import maya.cmds as mc
 import maya.mel as mel
 
+import Red9.core.Red9_CoreUtils as r9Core
 import Red9.core.Red9_General as r9General
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
@@ -115,6 +116,9 @@ class ui(cgmUI.cgmGUI):
         except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext',
                                                           defaultValue = _l_contexts[0])
         
+        self.filterSettings = r9Core.FilterNode_Settings()
+        self.filterSettings.metaRig = False
+        self.filterSettings.transformClamp = False
         
     def build_menus(self):
         log.debug("build menus... "+'-'*50)
@@ -1144,6 +1148,8 @@ class ui(cgmUI.cgmGUI):
         '''
         Restore the main UI elements from the ini file
         '''
+        log.debug('CALLING: _uiCache_loadUIElements')
+        return 
         self.cgmUIBoot = True  # is the UI being booted
         try:
             log.debug('Loading UI Elements from the config file')
@@ -1247,14 +1253,14 @@ class ui(cgmUI.cgmGUI):
         # everything in one block
         objs = mc.ls(sl=True, l=True)
         self.kws = {}
-    
+        self.metaRig = None
         # If below 2011 then we need to store the undo in a chunk
         if r9Setup.mayaVersion() < 2011:
             mc.undoInfo(openChunk=True)
     
         # Main Hierarchy Filters =============
-        ##self._uiPresetFillFilter()  # fill the filterSettings Object
-        ##self.matchMethod = 'stripPrefix'#mc.optionMenu('om_MatchMethod', q=True, v=True)
+        self._uiPresetFillFilter()  # fill the filterSettings Object
+        self.matchMethod = 'stripPrefix'#mc.optionMenu('om_MatchMethod', q=True, v=True)
     
         # self.filterSettings.transformClamp = True
     
@@ -1471,6 +1477,7 @@ class ui(cgmUI.cgmGUI):
         Note we reset but leave the rigData cached as it's not all represented
         by the UI, some is cached only when the filter is read in
         '''
+        log.debug("CALLING _uiPresetFillFilter ")
         self.filterSettings.resetFilters(rigData=False)
         self.filterSettings.transformClamp = True
         
