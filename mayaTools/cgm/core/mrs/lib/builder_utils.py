@@ -742,7 +742,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     else:
         _loftDegree = 3
         
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss )
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss, autoReverse=True )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
@@ -1082,7 +1082,7 @@ def get_dynParentTargetsDat(self):
 
 
 @cgmGEN.Timer
-def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,connectionPoints=9):
+def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,f_factor = None,connectionPoints=9):
     """
     :parameters:
         self(RigBlocks.rigFactory)
@@ -1197,7 +1197,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             elif mode in ['segmentHandle','ikHandle','frameHandle','castHandle','limbHandle','limbSegmentHandleBack','limbSegmentHandle','simpleCast',
                           'ikEnd','ikBase']:
                 
-                f_factor = (maxU-minU)/(20)
+                if f_factor is None:
+                    f_factor = (maxU-minU)/(20)
                 if targets:
                     ml_fkJoints = ml_targets
                 else:

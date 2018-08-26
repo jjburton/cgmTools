@@ -109,8 +109,8 @@ class ui(cgmUI.cgmGUI):
         self.create_guiOptionVar('puppetFrameCollapse',defaultValue = 0) 
         
         self.uiPopUpMenu_poses = None
-        self.cgmUIMenu_snap = None
-        self.cgmUIMenu_help = None
+        self.uiMenu_snap = None
+        self.uiMenu_help = None
         self._l_contexts = _l_contexts
         try:self.var_mrsContext
         except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext',
@@ -122,52 +122,52 @@ class ui(cgmUI.cgmGUI):
         
     def build_menus(self):
         log.debug("build menus... "+'-'*50)
-        self.cgmUIMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
-        self.cgmUIMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
-        self.cgmUIMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
-        self.cgmUIMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
+        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
+        self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
+        self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
         
     def buildMenu_help( self, *args):
-        self.cgmUIMenu_help.clear()
-        mUI.MelMenuItem( self.cgmUIMenu_help, l="Get Pose Nodes",
+        self.uiMenu_help.clear()
+        mUI.MelMenuItem( self.uiMenu_help, l="Get Pose Nodes",
                          c=lambda *a: self.get_poseNodes(select=True) )
 
-        mc.menuItem(parent=self.cgmUIMenu_help,
+        mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
                     c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
                     rp = 'N')    
-        mUI.MelMenuItem( self.cgmUIMenu_help, l="Log Self",
+        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
-        mUI.MelMenuItem( self.cgmUIMenu_help, l="Update Display",
+        mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
                          c=lambda *a: self.cgmUIUpdate_building() )
         
         
     def buildMenu_snap( self, force=False, *args, **kws):
-        if self.cgmUIMenu_snap and force is not True:
+        if self.uiMenu_snap and force is not True:
             return
-        self.cgmUIMenu_snap.clear()
+        self.uiMenu_snap.clear()
         
-        UICHUNKS.uiSection_snap(self.cgmUIMenu_snap)
+        UICHUNKS.uiSection_snap(self.uiMenu_snap)
             
-        mUI.MelMenuItemDiv(self.cgmUIMenu_snap)
+        mUI.MelMenuItemDiv(self.uiMenu_snap)
         
-        mUI.MelMenuItem(self.cgmUIMenu_snap, l='Rebuild',
+        mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.debug("Snap menu rebuilt")
         
     def buildMenu_switch(self, *args):
         log.debug("buildMenu_switch..."+'-'*50)
-        self.cgmUIMenu_switch.clear()
+        self.uiMenu_switch.clear()
         
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         pprint.pprint(self._ml_objList)
-        DYNPARENTTOOL.cgmUIMenu_changeSpace(self,self.cgmUIMenu_switch,True)
+        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
 
     def buildMenu_first(self):
-        self.cgmUIMenu_FirstMenu.clear()
+        self.uiMenu_FirstMenu.clear()
         #>>> Reset Options
         
-        _mDev = mUI.MelMenuItem(self.cgmUIMenu_FirstMenu, l="Dev",subMenu=True)
+        _mDev = mUI.MelMenuItem(self.uiMenu_FirstMenu, l="Dev",subMenu=True)
         mUI.MelMenuItem(_mDev, l="Puppet - Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'mirrorVerify','context':'puppet'}))
@@ -176,12 +176,12 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
         
     
-        mUI.MelMenuItemDiv( self.cgmUIMenu_FirstMenu )
-        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Dock",
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
                          c = lambda *a:self.do_dock())
-        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Reload",
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
-        mUI.MelMenuItem( self.cgmUIMenu_FirstMenu, l="Reset",
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))   
         
     def build_layoutWrapper2(self,parent):

@@ -1684,8 +1684,8 @@ def rig_prechecks(self):
     mBlock = self.mBlock
     
     
-    if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
-        self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
+    #if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
+    #    self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
 
 
 @cgmGEN.Timer
@@ -2852,15 +2852,32 @@ def rig_digitShapes(self):
                 
                 mc.select(cl=True)
                 p_end = DIST.get_closest_point(mDup.mNode, ball)[0]
-                p_start = mDup.getPositionByAxisDistance(axis, offset_loli * .25)
+                p_start = mDup.getPositionByAxisDistance(axis, _offset*2.0)
                 l_starts.append(p_start)
                 line = mc.curve (d=1, ep = [p_start,p_end], os=True)
                 l_lolis.extend([ball,line])
         
             CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,l_lolis,False)
+            
+            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)            
+            ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
+                                                       targets= [mLeverRigJnt.mNode,
+                                                                 #ml_fkJoints[0].mNode],
+                                                                  mDup.mNode],
+                                                             aimVector= self.d_orientation['vectorOut'],
+                                                             connectionPoints = 5,
+                                                             f_factor=0,
+                                                             offset=_offset,
+                                                             mode = 'frameHandle')
+            CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,
+                                         ml_clavShapes[0].mNode,
+                                         False,replaceShapes=False)            
             mHandleFactory.color(mLeverFKJnt.mNode, controlType = 'main')
             mDup.delete()
-            
+            for mShape in ml_clavShapes:
+                try:mShape.delete()
+                except:pass
+                
             #limbRoot ------------------------------------------------------------------------------
             log.debug("|{0}| >> Lever -- limbRoot".format(_str_func))
             mLimbRootHandle = ml_prerigHandles[1]
@@ -2981,7 +2998,7 @@ def rig_digitShapes(self):
         self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
         
         
-        #FK/Ik ==========================================================================================    
+        #FK/Ik =========================================================================================    
         log.debug("|{0}| >> Frame shape cast...".format(_str_func))
         ml_targets = [mObj.mNode for mObj in self.ml_handleTargets]
         if mBlock.hasEndJoint:
@@ -3048,7 +3065,7 @@ def rig_digitShapes(self):
                 mJnt.radius = .00001
 
         
-        #Handles =============================================================================================    
+        #Handles =======================================================================================    
         ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
             log.debug("|{0}| >> Found Handle joints...".format(_str_func))
@@ -3108,7 +3125,6 @@ def rig_shapes(self):
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
         if str_rigSetup == 'digit':
             str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
-            
             if str_profile in ['finger','thumb']:
                 return rig_digitShapes(self)
             _offset = _offset/2.0
@@ -3194,20 +3210,27 @@ def rig_shapes(self):
                 #Dup our rig joint and move it 
                 mDup = mLeverRigJnt.doDuplicate()
                 mDup.p_parent = mLeverRigJnt
-                mDup.resetAttrs()
-                ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever)
                 
-                ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mLeverRigJnt.mNode,
+                mDup.resetAttrs()
+                ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
+                
+                mDup2 = mDup.doDuplicate()
+                ATTR.set(mDup2.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .25)
+                
+                
+                ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mDup2.mNode,
                                                                            #ml_fkJoints[0].mNode],
                                                                             mDup.mNode],
                                                                  aimVector= self.d_orientation['vectorOut'],
                                                                  offset=_offset,
+                                                                 f_factor=0,
                                                                  mode = 'frameHandle')
                 
                 mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mLeverRigJnt.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
                 CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
-                mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode])
+                
+                mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
                 
                 #limbRoot ------------------------------------------------------------------------------
                 log.debug("|{0}| >> LimbRoot".format(_str_func))
@@ -3729,7 +3752,7 @@ def rig_shapes(self):
                 mHandleFactory.color(_fk_shape, controlType = 'main')        
                 CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
                 mShape.delete()"""
-                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, True, replaceShapes=True)            
+                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
                 
                 
             else:
@@ -4008,7 +4031,7 @@ def rig_controls(self):
                 
         log.debug(cgmGEN._str_subLine)        
 
-    #>> handleJoints ========================================================================================
+    #>> handleJoints ==================================================================================
     if ml_handleJoints:
         log.debug("|{0}| >> Found Handle Joints...".format(_str_func))
         
@@ -4023,8 +4046,10 @@ def rig_controls(self):
             mObj = d_buffer['instance']
             ATTR.set_hidden(mObj.mNode,'radius',True)
             
-            for mShape in mObj.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+            ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.visibility".format(mObj.masterGroup.mNode))
+            #for mShape in mObj.getShapes(asMeta=True):
+                #ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                
         log.debug(cgmGEN._str_subLine)
     
     #Segment stuff ===================================================================
@@ -4047,9 +4072,10 @@ def rig_controls(self):
             mControlMid = _d['mObj']
             mControlMid.masterGroup.parent = ml_blend[i]
             ml_controlsAll.append(mControlMid)
+            ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.visibility".format(mControlMid.masterGroup.mNode))
             
-            for mShape in mControlMid.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))            
+            #for mShape in mControlMid.getShapes(asMeta=True):
+                #ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
         
             #Register our snapToTarget -------------------------------------------------------------
             #self.atUtils('get_switchTarget', mControlMid,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
@@ -4499,6 +4525,7 @@ def rig_segments(self):
             res_segScale = self.UTILS.get_blockScale(self,'segMeasure_{0}'.format(i),ml_segJoints)
             mPlug_masterScale = res_segScale[0]
             mMasterCurve = res_segScale[1]
+            self.fnc_connect_toRigGutsVis( mMasterCurve )
 
             mMasterCurve.p_parent = ml_blendJoints[i]#mRoot#ml_blendJoints[i]
             

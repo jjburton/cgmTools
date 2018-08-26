@@ -212,6 +212,25 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+def set_nameListFromName(self):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'set_nameListFromName'
+        log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
+        log.debug(self)
+        
+        _name = self.cgmName
+        if self.datList_exists('nameList'):
+            _len = len(self.datList_get('nameList'))
+            _l = ["{0}_{1}".format(_name,i) for i in range(_len)]
+            self.datList_connect('nameList',_l)
+            return _l
+        return False
+        
+        
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+        
 def set_nameTag(self,nameTag = None):
     try:
         _short = self.p_nameShort
@@ -2574,8 +2593,8 @@ def blockMirror_create(self, forceNew = False):
             if a in ['cgmName']:
                 _d['name'] =  self.getMayaAttr(a)
             else:
-                if self.hasAttr(a):
-                    _d[a] = self.getEnumValueString(a)
+                _d[a] =  self.getMayaAttr(a)
+
         
         log.debug("|{0}| >> Block settings...".format(_str_func, self.mNode))                    
         pprint.pprint(_d)
