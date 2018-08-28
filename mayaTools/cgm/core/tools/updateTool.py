@@ -169,7 +169,7 @@ class ui(cgmUI.cgmGUI):
             log.debug("|{0}| >> go!".format(_str_func))
             
             try:
-                cgmUpdate.here(_branch,0)
+                cgmUpdate.here(_lastBranch,0)
 
                 try:self.var_lastUpdate
                 except:self.var_lastUpdate = cgmMeta.cgmOptionVar('cgmVar_branchLastUpdate', defaultValue = ['None'])                
@@ -268,7 +268,7 @@ class ui(cgmUI.cgmGUI):
                 
                 self.uiUpdate_topReport()
             except Exception,err:
-                print err
+                pprint.pprint(vars())
             finally:pass
         else:
             return log.error("|{0}| update cancelled".format(_str_func))
