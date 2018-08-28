@@ -229,7 +229,7 @@ class ui(cgmUI.cgmGUI):
         _lastBranch = None
         _lastHash = None
         
-        _lastUpdate = self.var_lastUpdate.getValue()
+        _lastUpdate = self.var_lastUpdate.getValue() or None
         if _lastUpdate[0] != 'None':
             try:_lastBranch = _lastUpdate[0] 
             except:pass
@@ -238,7 +238,7 @@ class ui(cgmUI.cgmGUI):
             try:_lastMsg = _lastUpdate[2]
             except:pass
             try:_lastDate = _lastUpdate[3]
-            except:pass
+            except:_lastDate = None
             
         result = mc.confirmDialog(title="Update your local cgmTools...",
                                  message='Are you sure you want to get and update to build? \n Last update: {4} \n Selected: [{0}] | [{1}] \n Last: [{2}] | [{3}]'.format(_branch,

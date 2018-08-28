@@ -95,7 +95,7 @@ def get_install_path(confirm = False):
             log.debug("|{0}| >> pick...".format(_str_func))
             
             _res_pick = mc.fileDialog2(dialogStyle=2,
-                                       cap = "Pick a new location please",
+                                       cap = "Pick a new location please. Warning - if this path isn't in Maya's path library, install will fail.",
                                        startingDirectory = _path,
                                        fileMode = 2,
                                        okCaption = 'Install')
