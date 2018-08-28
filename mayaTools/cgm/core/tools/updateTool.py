@@ -139,7 +139,7 @@ class ui(cgmUI.cgmGUI):
             return log.error("No last update found. Can't check for updates")
         
         try:_lastBranch = _lastUpdate[0]
-        except:_lastBranch = None
+        except:_lastBranch = 'MRS'
         
         try:_lastHash = _lastUpdate[1]
         except:_lastHash = None
