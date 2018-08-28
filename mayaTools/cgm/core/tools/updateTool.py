@@ -36,7 +36,7 @@ import cgmUpdate
 reload(cgmUpdate)
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 0.02012018'
+__version__ = 'Alpha - 0.08272018 - 1'
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
 
@@ -230,6 +230,7 @@ class ui(cgmUI.cgmGUI):
         _lastHash = None
         
         _lastUpdate = self.var_lastUpdate.getValue() or None
+        
         if _lastUpdate[0] != 'None':
             try:_lastBranch = _lastUpdate[0] 
             except:pass
