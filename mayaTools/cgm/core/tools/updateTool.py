@@ -138,7 +138,8 @@ class ui(cgmUI.cgmGUI):
         if _lastUpdate == 'None':
             return log.error("No last update found. Can't check for updates")
         
-        _lastBranch = _lastUpdate[0]
+        try:_lastBranch = _lastUpdate[0]
+        except:_lastBranch = None
         
         try:_lastHash = _lastUpdate[1]
         except:_lastHash = None
