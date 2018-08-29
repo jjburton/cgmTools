@@ -3888,7 +3888,7 @@ def rig_controls(self):
         d_buffer = MODULECONTROL.register(mLeverFK,
                                           typeModifier='FK',
                                           mirrorSide = self.d_module['mirrorDirection'],
-                                          mirrorAxis ="translateX,rotateY,rotateZ",
+                                          mirrorAxis ="translateX,translateY,translateZ",
                                           makeAimable = False)        
         ml_controlsAll.append(mLeverFK)
         log.debug(cgmGEN._str_subLine)
@@ -3931,7 +3931,7 @@ def rig_controls(self):
     for i,mObj in enumerate(ml_fkJoints):
         d_buffer = MODULECONTROL.register(mObj,
                                           mirrorSide= self.d_module['mirrorDirection'],
-                                          mirrorAxis="translateY,translateZ",
+                                          mirrorAxis ="translateX,translateY,translateZ",
                                           makeAimable = True)
         
         mObj = d_buffer['mObj']
@@ -6592,8 +6592,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             l_targets.append(mBaseCrv.mNode)
             l_targets.reverse()
             
-            _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),
-                                               degree=1,divisions=1)
+            _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
+                                               degree=1,divisions=3)
             
             _l_combine = []
             """
@@ -6619,7 +6619,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             mMesh = cgmMeta.validateObjArg(_mesh)
             
-            if self.d_module['direction'].lower() in ['right']:
+            if self.d_module['direction'].lower() in ['left']:
                 log.debug("|{0}| >> FLIP... ".format(_str_func))                        
                 mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
                 
@@ -6629,22 +6629,21 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             #...cut it up
             if mBall:
-                _bool_size = 30
-                _bool_divs = 50
-                #Heel.-----------------------------------------------------------------------------------
-                log.debug("|{0}| >> heel... ".format(_str_func))                        
-                plane = mc.polyPlane(axis =  [0,0,1], #MATH.get_obj_vector(mBall.mNode, 'z+'),
-                                     width = _bool_size, height = _bool_size,
-                                     subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,
-                                     ch=0)
-                mPlane = cgmMeta.validateObjArg(plane[0])
-                mPlane.doSnapTo(mBall.mNode,rotation=False)
+                mHeelMesh = mMesh.doDuplicate(po=False)
+                mBallMesh = mMesh.doDuplicate(po=False)
                 
-                mMeshHeel = mMesh.doDuplicate(po=False)
+                mc.polyCut(mBallMesh.getShapes()[0],
+                           ch=0, pc=mBall.p_position,
+                           ro=mBall.p_orient, deleteFaces=True)
+                mc.polyCloseBorder(mBallMesh.mNode)
                 
-                #heel = mc.polyCBoolOp(plane[0], mMeshHeel.mNode, op=3,ch=0, classification = 1)
-                heel = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshHeel.mNode))
-                
+                mBallLoc = mBall.doLoc()
+                mc.rotate(0, 180, 0, mBallLoc.mNode, r=True, os=True, fo=True)
+                mc.polyCut(mHeelMesh.getShapes()[0],
+                           ch=0, pc=mBall.p_position,
+                           ro=mBallLoc.p_orient, deleteFaces=True)
+                mc.polyCloseBorder(mHeelMesh.mNode)
+                mBallLoc.delete()
 
                 #Add a ankleball ------------------------------------------------------------------------
                 _target = ml_templateHandles[-1].mNode
@@ -6657,7 +6656,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 SNAP.go(_sphere[0],_target)
                 #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
                 #SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
-                _mesh = mc.polyUnite([heel[0],_sphere[0]], ch=False )[0]
+                _mesh = mc.polyUnite([mHeelMesh.mNode,_sphere[0]], ch=False )[0]
                 
                 mMeshHeel = cgmMeta.validateObjArg(_mesh)
                 ml_segProxy.append(mMeshHeel)
@@ -6666,67 +6665,32 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
                 #toe -----------------------------------------------------------------------------------
                 if mToe:
-                    #ball -----------------------------------------------------------------------------------
-                    log.debug("|{0}| >> ball... ".format(_str_func))            
-                    plane = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mBall.mNode, 'z-'),
-                                         subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
-                                         width = _bool_size, height = _bool_size, ch=0)
-                    mPlane = cgmMeta.validateObjArg(plane[0])
-                    mPlane.doSnapTo(mBall.mNode,rotation=False)
-                    mMeshBall = mMesh.doDuplicate(po=False)
-                
-                    #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
-                    mMeshBall = cgmMeta.validateObjArg(ball[0])
+                    mToeMesh = mBallMesh.doDuplicate(po=False)
+                    
+                    mToeLoc = mToe.doLoc()
+                    mc.rotate(0, 180, 0, mToeLoc.mNode, r=True, os=True, fo=True)
+                    
+                    mc.polyCut(mBallMesh.getShapes()[0],
+                               ch=0, pc=mToe.p_position,
+                               ro=mToeLoc.p_orient, deleteFaces=True)
+                    mc.polyCloseBorder(mBallMesh.mNode)
+                    
+
+                    mc.polyCut(mToeMesh.getShapes()[0],
+                               ch=0, pc=mToe.p_position,
+                               ro=mToe.p_orient, deleteFaces=True)
+                    mc.polyCloseBorder(mToeMesh.mNode)                    
+                    mToeLoc.delete()
                     
                     
-                    #resplit ball...
-                    """
-                    log.debug("|{0}| >> ball resplit... ".format(_str_func))            
-                    
-                    planeToe = mc.polyPlane(axis =  MATH.get_obj_vector(mToe.mNode, 'z-'),
-                                            subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
-                                        width = _bool_size, height = _bool_size, ch=0)
-                    mPlane = cgmMeta.validateObjArg(planeToe[0])
-                    mPlane.doSnapTo(mToe.mNode,rotation=False)
-                    mMeshBallDup = mMeshBall.doDuplicate(po=False)
-                    #mc.select(cl=1)
-                    ball2 = mel.eval('polyCBoolOp -op 3-ch 0 {0} {1};'.format(mPlane.mNode, mMeshBallDup.mNode))
-                    mMeshBall.delete()
-                    mMeshBall = cgmMeta.validateObjArg(ball2[0])"""
-                    
-                    
-                    log.debug("|{0}| >> toe... ".format(_str_func))
-                    planeToe = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mToe.mNode, 'z-'),
-                                         subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
-                                         width = _bool_size, height = _bool_size, ch=0)
-                    mPlane = cgmMeta.validateObjArg(planeToe[0])
-                    mPlane.doSnapTo(mToe.mNode,rotation=False)
-                    mMeshToe = mMesh.doDuplicate(po=False)
-                
-                    #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    toe = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshToe.mNode))
-                    mMeshToe = cgmMeta.validateObjArg(toe[0])
-                    
-                    
-                    ml_segProxy.append(mMeshBall)
+                    ml_segProxy.append(mBallMesh)
                     ml_rigJoints.append(mBall)
-                    ml_segProxy.append(mMeshToe)
+                    ml_segProxy.append(mToeMesh)
                     ml_rigJoints.append(mToe)
                 else:
                     #ball -----------------------------------------------------------------------------------
                     log.debug("|{0}| >> ball... ".format(_str_func))            
-                    plane = mc.polyPlane(axis =  [0,0,-1],#MATH.get_obj_vector(mBall.mNode, 'z-'),
-                                         subdivisionsX=_bool_divs,subdivisionsY=_bool_divs,                                 
-                                         width = _bool_size, height = _bool_size, ch=0)
-                    mPlane = cgmMeta.validateObjArg(plane[0])
-                    mPlane.doSnapTo(mBall.mNode,rotation=False)
-                    mMeshBall = mMesh.doDuplicate(po=False)
-                
-                    #ball = mc.polyCBoolOp(plane[0], mMeshBall.mNode, op=3,ch=0, classification = 1)
-                    ball = mel.eval('polyCBoolOp -op 3-ch 0 -classification 1 {0} {1};'.format(mPlane.mNode, mMeshBall.mNode))
-                    mMeshBall = cgmMeta.validateObjArg(ball[0])
-                    ml_segProxy.append(mMeshBall)
+                    ml_segProxy.append(mBallMesh)
                     ml_rigJoints.append(mBall)                    
                     
                 #mMesh.p_parent=False

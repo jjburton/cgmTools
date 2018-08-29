@@ -265,7 +265,7 @@ d_defaultSettings = {'version':__version__,
                      
                      'ikBase':'cube',
                      'ikEnd':'cube',
-                     
+                     'ikSetup':'ribbon',
                      'numJoints':5,
                      'proxyDirect':True,
                      'spaceSwitch_direct':False,
@@ -1444,7 +1444,7 @@ def rig_skeleton(self):
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=True)
     pprint.pprint(ml_rigJoints)
     
-    #...fk chain -----------------------------------------------------------------------------------------------
+    #...fk chain -------------------------------------------------------------------------------------
     log.debug("|{0}| >> fk_chain".format(_str_func))
     ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints')
     
@@ -1699,8 +1699,17 @@ def rig_shapes(self):
             mSettingsShape.doSnapTo(_mTar.mNode)
             d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
             str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
-            mSettingsShape.p_position = _mTar.getPositionByAxisDistance(str_settingsDirections,
-                                                                        _settingsSize)
+            mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+            str_meshShape = mMesh_tmp.getShapes()[0]        
+            pos = SNAPCALLS.get_special_pos([_mTar,str_meshShape],
+                                            'castNear',str_settingsDirections,False)
+            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
+            
+            mSettingsShape.p_position = newPos#_mTar.getPositionByAxisDistance(str_settingsDirections,
+                                               #                         _settingsSize)
+                                               
+            mMesh_tmp.delete()
         
             SNAP.aim_atPoint(mSettingsShape.mNode,
                              _mTar.p_position,
@@ -2034,7 +2043,7 @@ def rig_controls(self):
         for mShape in mRoot.getShapes(asMeta=True):
             ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
-    #FK controls ==============================================================================================
+    #FK controls =============================================================================================
     log.debug("|{0}| >> FK Controls...".format(_str_func))
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
@@ -2047,7 +2056,8 @@ def rig_controls(self):
     if self.d_module['mirrorDirection'] == 'Centre':
         _fkMirrorAxis = 'translateY,translateZ,rotateY,rotateZ'
     else:
-        _fkMirrorAxis = 'translateY,translateZ'    
+        _fkMirrorAxis = "translateX,translateY,translateZ"
+
     
     for i,mObj in enumerate(ml_fkJoints):
         d_buffer = MODULECONTROL.register(mObj,
