@@ -79,7 +79,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
               
         if '[' in _obj:
             log.debug("|{0}| >> component mode...".format(_str_func))        
-            if ":" in _obj:
+            if ":" in _obj.split('[')[-1]:
                 raise ValueError,"|{0}| >>Please specify one obj. Component list found: {1}".format(_str_func,_obj)
             #_cType = VALID.get_mayaType(_obj)
             _l_comp = VALID.get_component(_obj)
