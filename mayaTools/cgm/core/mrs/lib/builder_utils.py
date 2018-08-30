@@ -596,7 +596,19 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
 
 
     #>>HelperJoint setup???
-
+    
+def control_convertToWorldIK(mCtrl=None):
+    """
+    """
+    _str_func = 'control_convertToWorldIK'
+    rot = mCtrl.p_orient
+    mGrp_zero = mCtrl.doGroup(True,True,asMeta=True,typeModifier = 'worldOrient')
+    mGrp_zero.p_orient = 0,0,0
+    mCtrl.p_orient = rot
+    d = {'rotateX':mCtrl.rotateX,'rotateY':mCtrl.rotateY,'rotateZ':mCtrl.rotateZ}
+    mCtrl.addAttr('defaultValues',d)
+    return
+    
  
 def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
     """

@@ -886,7 +886,7 @@ class cgmNode(r9Meta.MetaClass):
         log.warning("|{0}| >> please remove call...".format(_str_func))
         return self.delAttr(a)
     
-    def resetAttrs(self, attrs = None, transformsOnly = None, visible = None):
+    def resetAttrs(self, attrs = None, transformsOnly = None, visible = None,keyable=True):
         """   
         Reset specified attributes to their default values
         
@@ -900,19 +900,30 @@ class cgmNode(r9Meta.MetaClass):
         obj = self.p_nameShort
 
         if attrs == None:
-            attrs = mc.listAttr(obj, keyable=True, unlocked=True) or False
+            attrs = mc.listAttr(obj, keyable=keyable, unlocked=True) or False
         else:
             attrs = VALID.listArg(attrs)
+            
         l_trans = ['translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ']
-        _reset = []
+        _reset = {}
+        
+        d_defaults = {}
+        for plug in ['defaultValues','transResets']:
+            if self.hasAttr(plug):
+                d_defaults = getattr(self,plug)
+        
         for attr in attrs:
             try:
                 if transformsOnly is not None and transformsOnly:
                     if ATTR.get_nameLong(obj,attr) not in l_trans:
                         continue
-                default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
+                dVal = d_defaults.get(attr)
+                if dVal is not None:
+                    default = dVal
+                else:
+                    default = mc.attributeQuery(attr, listDefault=True, node=obj)[0]
                 ATTR.set(obj,attr,default)
-                _reset.append(attr)
+                _reset[attr] = default
             except Exception,err:
                 log.error("{0}.{1} resetAttrs | error: {2}".format(obj, attr,err))   	
         return _reset

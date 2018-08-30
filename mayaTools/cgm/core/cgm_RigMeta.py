@@ -1266,7 +1266,8 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 #=========================================================================
 d_DynParentGroupModeAttrs = {0:['space'],
                              1:['orientTo'],
-                             2:['orientTo','follow']}
+                             2:['orientTo','follow'],
+                             3:['follow']}
 
 class cgmDynParentGroup(cgmMeta.cgmObject):
     def __init__(self,node = None, name = None, dynGroup = None,
@@ -1378,7 +1379,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
         self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 
-        self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow', keyable = False, hidden=True)
+        self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow:point', keyable = False, hidden=True)
         self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
         self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)				
 
@@ -1595,6 +1596,10 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 i_dynFollowConst = cgmMeta.cgmNode(cBuffer)
                 i_dynPointConst = cgmMeta.cgmNode(pBuffer)
                 i_dynConst = cgmMeta.cgmNode(oBuffer)
+            if self.dynMode == 3:#Point
+                cBuffer = mc.pointConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+                i_dynConst = cgmMeta.cgmNode(cBuffer)
+                
         except Exception,error:
             raise Exception,"cgmDynParentGroup.verifyConstraints>> Build constraints fail! | %s"%(error)
         try:#Name and store    

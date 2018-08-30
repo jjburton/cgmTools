@@ -296,7 +296,7 @@ l_attrsStandard = ['side',
                    'offsetMode',
                    'settingsDirection',
                    'numSpacePivots',
-                   
+                   'ikOrientToWorld',
                    'squashMeasure',
                    'squash',
                    'squashExtraControl',
@@ -343,6 +343,7 @@ d_defaultSettings = {'version':__version__,
                      'numControls': 3,
                      'loftSetup':0,
                      'loftShape':0,
+                     'ikOrientToWorld':True,
                      'numShapers':3,
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
@@ -390,6 +391,10 @@ def define(self):
     ATTR.set_min(_short, 'loftSides', 3)
     ATTR.set_min(_short, 'loftSplit', 1)
     ATTR.set_min(_short, 'numShapers', 1)
+    
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz','sz'])
+    self.doConnectOut('sy',['sx','sz'])    
     
 
     _shapes = self.getShapes()
@@ -1336,11 +1341,11 @@ def prerig(self):
     _nameDict = self.getNameDict(ignore=['cgmName','cgmType'])
     #_nameDict['cgmType'] = 'blockHandle'
     
-    #_sizeUse = self.atUtils('get_shapeOffset')
+    _sizeUse = self.atUtils('get_shapeOffset')
 
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
-        _sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .5
+        #_sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .5
         
         try: _HandleSnapTo = mTemplateHandle.loftCurve.mNode
         except: _HandleSnapTo = mTemplateHandle.mNode
@@ -5045,6 +5050,9 @@ def rig_frame(self):
                 ml_distHandlesNF[1].t = 0,0,0
                 ml_distHandlesNF[1].r = 0,0,0
                 
+                if mIKControlBase:
+                    ml_distHandlesNF[0].parent = mIKControlBase
+                
                 #>>> Fix our ik_handle twist at the end of all of the parenting
                 IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
@@ -6166,6 +6174,8 @@ def rig_cleanUp(self):
     
     str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
 
+    b_ikOrientToWorld = mBlock.ikOrientToWorld
+
     #Changing targets - these change based on how the setup rolls through
     mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
 
@@ -6257,7 +6267,10 @@ def rig_cleanUp(self):
         ml_ikControls.append(mRigNull.controlIKBase)
         
     for mHandle in ml_ikControls:
-        log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))                
+        log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
+        
+        if b_ikOrientToWorld:
+            BUILDUTILS.control_convertToWorldIK(mHandle)
         
         ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
         
@@ -6286,6 +6299,9 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
         mHandle = mRigNull.controlIKMid
         
+        if b_ikOrientToWorld:
+            BUILDUTILS.control_convertToWorldIK(mHandle)        
+        
         mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = []
     
@@ -6304,11 +6320,17 @@ def rig_cleanUp(self):
     
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
         #mDynGroup.dynMode = 2
+        if b_ikOrientToWorld:
+            mDynGroup.dynMode = 3#...point
+            
+            mHandle.masterGroup.p_parent = mRoot
     
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
-        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
+        #if b_ikOrientToWorld:
+            #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
         log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
         pprint.pprint(ml_targetDynParents)                
