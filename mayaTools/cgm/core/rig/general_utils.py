@@ -23,6 +23,8 @@ log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
+import maya.mel as mel
+import Red9.core.Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -36,17 +38,99 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 
+
+def reset_channels_fromMode(mode = 0):
+    """
+    :mode
+        0 - all
+        1 - transformsOnly
+        2 - keyableOnly
+    """
+    if mode == 0:
+        _d = {'transformsOnly':False,
+              'keyableOnly':False}
+    elif mode == 1:
+        _d = {'transformsOnly':True,
+              'keyableOnly':False}
+    elif mode == 2:
+        _d = {'transformsOnly':True,
+              'keyableOnly':True}
+        
+    reset_channels(**_d)
+    
+def reset_channels(selectedChannels=True, transformsOnly=False, excludeChannels=None, keyableOnly=False):
+    '''
+    Modified from Morgan Loomis' great reset call to expand options...
+    '''
+    gChannelBoxName = mel.eval('$temp=$gChannelBoxName')
+    _reset = {}
+
+    sel = mc.ls(sl=True)
+    if not sel:
+        return
+
+    if excludeChannels and not isinstance(excludeChannels, (list, tuple)):
+        excludeChannels = [excludeChannels]
+
+    chans = None
+    if selectedChannels:
+        chans = mc.channelBox(gChannelBoxName, query=True, sma=True)
+
+    l_trans = ['translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','tx','ty','yz','rx','ry','rz','sx','sy','sz']
+
+
+    for obj in sel:
+        mObj = r9Meta.MetaClass(obj)
+
+        attrs = chans
+        if not chans:
+            attrs = mc.listAttr(obj, keyable=True, unlocked=True)
+            if excludeChannels:
+                attrs = [x for x in attrs if x not in excludeChannels]
+
+        if transformsOnly:
+            attrs = [x for x in attrs if x in l_trans]
+        if keyableOnly:
+            attrs = [x for x in attrs if ATTR.is_keyable(obj,x)]
+
+        d_defaults = {}
+        for plug in ['defaultValues','transResets']:
+            if mObj.hasAttr(plug):
+                d_defaults = getattr(mObj,plug)
+
+        for a in attrs:
+            try:
+                if transformsOnly is not None and transformsOnly:
+                    if ATTR.get_nameLong(obj,a) not in l_trans:
+                        continue
+                dVal = d_defaults.get(a)
+                if dVal is not None:
+                    default = dVal
+                else:
+                    default = mc.attributeQuery(a, listDefault=True, node=obj)[0]
+                ATTR.set(obj,a,default)
+                _reset[a] = default
+            except Exception,err:
+                log.error("{0}.{1} resetAttrs | error: {2}".format(obj, a,err))
+
+    return _reset
+
+    return
+
+
+
+
 def fbx_cleaner(delete = False, spaceString = '03FBXASC032'):
     """
     Find all the sill attributes fbx adds on import
-    
+
     :parameters:
         delete | whether to delete all userDefined attrs or not
         spaceString | Search string for what fbx did with spaces from max or other app. Replaces with underscore
     """
     _str_func = 'fbx_cleaner'
     log.debug("|{0}| >> ...".format(_str_func))
-    
+
     _res = {}
     for o in mc.ls():
         _res[o] = []
@@ -54,14 +138,14 @@ def fbx_cleaner(delete = False, spaceString = '03FBXASC032'):
         for a in _l:
             _res[o].append(a)
         _shapes = TRANS.shapes_get(o)
-        
+
         if _shapes:
             for s in _shapes:
                 _res[s] = []
                 _l = mc.listAttr(s,userDefined=True) or []
                 for a in _l:
                     _res[s].append(a)
-                    
+
     print cgmGEN._str_hardBreak
     l_renamed = []
     for k,l in _res.iteritems():
@@ -77,8 +161,8 @@ def fbx_cleaner(delete = False, spaceString = '03FBXASC032'):
                 new = mc.rename(k, NAMES.get_base(k).replace(spaceString,'_'))
                 print(" Rename  {0} | '{1}'".format(k,new))
                 l_renamed.append(k)
-            
-    
+
+
     print cgmGEN._str_hardBreak
 
 
@@ -91,24 +175,24 @@ def matchValue_iterator(matchObj = None,
                         iterMode = 'step'):
     """
     Started with Jason Schleifer's afr js_iterator and 'tweaked'
-    
+
     matchObj - The object to match to the driven
     driven - the object moved by the driver
-    
-    
+
+
     """
     _str_func = 'matchValue_iterator'
     log.debug("|{0}| >> ...".format(_str_func))    
-    
+
     if type(minIn) not in [float,int]:raise ValueError,"matchValue_iterator>>> bad minIn: %s"%minIn
     if type(maxIn) not in [float,int]:raise ValueError,"matchValue_iterator>>> bad maxIn: %s"%maxIn
 
     __matchMode__ = False
-    
+
     #>>> Data gather and arg check        
     mi_matchObj = cgmMeta.validateObjArg(matchObj,'cgmObject',noneValid=True)
     d_matchAttr = cgmMeta.validateAttrArg(matchAttr,noneValid=True)
-    
+
     if mi_matchObj:
         __matchMode__ = 'matchObj'
         minValue = minIn
@@ -124,13 +208,13 @@ def matchValue_iterator(matchObj = None,
 
     __drivenMode__ = False
     mi_drivenObj = None
-    
+
     if drivenObj and drivenAttr:
         d_drivenAttr = cgmMeta.validateAttrArg("{0}.{1}".format(drivenObj,drivenAttr),noneValid=True)        
     else:
         mi_drivenObj = cgmMeta.validateObjArg(drivenObj,'cgmObject',noneValid=True)
         d_drivenAttr = cgmMeta.validateAttrArg(drivenAttr,noneValid=True)
-    
+
     if mi_drivenObj and not drivenAttr:#not an object match but a value
         __drivenMode__ = 'object'
     elif d_drivenAttr:
@@ -141,19 +225,19 @@ def matchValue_iterator(matchObj = None,
         maxRange = float(f_baseValue + 10)  
         mPlug_driven
         log.debug("|{0}| >> Attr mode. Attr: {1} | baseValue: {2} ".format(_str_func,mPlug_driven.p_combinedShortName,f_baseValue))
-        
+
     else:
         raise ValueError,"|{0}| >> No driven given".format(_str_func)
-        
+
 
     d_driverAttr = cgmMeta.validateAttrArg(driverAttr,noneValid=False)
     mPlug_driver = d_driverAttr['mi_plug']
     if not mPlug_driver:
         raise ValueError,"|{0}| >> No driver given".format(_str_func)
 
-    
+
     log.debug("|{0}| >> Source mode: {1} | Target mode: {2}| Driver: {3}".format(_str_func,__matchMode__,__drivenMode__,mPlug_driver.p_combinedShortName))
-        
+
     # Meat ==========================================================================================
     b_autoFrameState = mc.autoKeyframe(q=True, state = True)
     if b_autoFrameState:
@@ -161,7 +245,7 @@ def matchValue_iterator(matchObj = None,
 
     minValue = float(minIn)
     maxValue = float(maxIn)
-    
+
     minUse = copy.copy(minValue)
     maxUse = copy.copy(maxValue)
     f_lastClosest = None
@@ -170,7 +254,7 @@ def matchValue_iterator(matchObj = None,
     b_matchFound = None
     b_firstIter = True
     d_valueToSetting = {}
-    
+
     #Source type: value
     for i in range(maxIterations):
         if __matchMode__ == 'value':
@@ -181,7 +265,7 @@ def matchValue_iterator(matchObj = None,
                         log.debug("matchValue_iterator>>> Match found: %s == %s | %s: %s | step: %s"%(mPlug_driven.p_combinedShortName,matchValue,mPlug_driver.p_combinedShortName,minValue,i))  			    
                         b_matchFound = minValue
                         break
-                    
+
                     f_currentDist = abs(matchValue-mPlug_driven.value)
                     mPlug_driver.value = minValue#Set to min
                     f_minDist = abs(matchValue-mPlug_driven.value)#get Dif
@@ -194,7 +278,7 @@ def matchValue_iterator(matchObj = None,
                     #First find range
                     if f_minSetValue > matchValue or f_maxSetValue < matchValue:
                         log.error("Bad range, alternate range find. minSetValue = %s > %s < maxSetValue = %s"%(f_minSetValue,matchValue,f_maxSetValue))
-    
+
                     if not MATH.is_float_equivalent(matchValue,0) and not MATH.is_float_equivalent(minValue,0) and not MATH.is_float_equivalent(f_minSetValue,0):
                         #if none of our values are 0, this is really fast
                         minValue = (minValue * matchValue)/f_minSetValue
@@ -227,14 +311,14 @@ def matchValue_iterator(matchObj = None,
                         _stepBig = 10
                         f_stepBase = mPlug_driver.value
                         f_stepEnd = f_stepBase + _stepBig
-                        
+
                         """
                         mPlug_driver.value = currentDriven + .1
                         f_up = mPlug_driven.value 
-                        
+
                         mPlug_driver.value = currentDriven - .1
                         f_down = mPlug_driven.value
-                        
+
                         diff_up = abs(f_baseValue - f_down)
                         diff_dn = abs(f_baseValue - f_up)
                         log.debug("|{0}| >> up :{1} | down: {2}".format(_str_func,diff_up,diff_dn))
@@ -244,43 +328,43 @@ def matchValue_iterator(matchObj = None,
                         else:
                             _dir = 'dn'
                             _mult = -1"""
-                            
+
                     log.info(cgmGEN._str_subLine)
-                    
+
                     log.debug("|{0}| >> Iter :{1} | stepBase: {2} | stepEnd: {5} | step: {6} | current: {3} | match: {4}".format(_str_func,
-                                                                                                  i,
-                                                                                                  f_stepBase,
-                                                                                                  currentDriven,
-                                                                                                  matchValue,
-                                                                                                  f_stepEnd,
-                                                                                                  _stepBig))
+                                                                                                                                 i,
+                                                                                                                                 f_stepBase,
+                                                                                                                                 currentDriven,
+                                                                                                                                 matchValue,
+                                                                                                                                 f_stepEnd,
+                                                                                                                                 _stepBig))
                     if MATH.is_float_equivalent(currentDriven,matchValue,3):
                         log.debug("|{0}| >> Match found...".format(_str_func))
                         b_matchFound = f_stepBase
                         break
-                    
+
                     f_currentDist = (matchValue-currentDriven)
                     mPlug_driver.value = f_stepBase#setp min
                     f_minValue = mPlug_driven.value
                     f_minDist = (matchValue-mPlug_driven.value)#get Dif
-                    
+
                     mPlug_driver.value = f_stepEnd
                     f_maxDist = (matchValue-mPlug_driven.value)#Get dif
                     f_maxValue = mPlug_driven.value
-                    
-                    
+
+
                     f_stepHalf = f_stepBase + ((_stepBig/2.0))
                     f_half = f_stepHalf
                     mPlug_driver.value = f_half
                     f_halfDist = (matchValue-mPlug_driven.value)#Get dif
                     f_halfValue = mPlug_driven.value
-                    
+
                     log.debug("|{0}| >> minValue: {1} | halfValue: {3} | maxValue: {2} | current: {4}".format(_str_func,f_minValue,f_maxValue,f_halfValue,currentDriven))
-                    
+
                     log.debug("|{0}| >> minDist: {1} | halfDist: {3} | maxDist: {2} |  | currentDist: {4}".format(_str_func,f_minDist,f_maxDist,f_halfDist,f_currentDist))
-                    
+
                     log.debug("|{0}| >> baseStep: {1} | halfStep: {3} | endStep: {2} | ".format(_str_func,f_stepBase,f_stepEnd,f_stepHalf))
-                    
+
                     if matchValue > f_minValue and matchValue < f_maxValue:
                         log.debug("|{0}| >> Between...".format(_str_func))
                         #(minStep *_mult)
@@ -294,9 +378,9 @@ def matchValue_iterator(matchObj = None,
                             f_stepEnd = f_stepBase + (_stepBig)
                         else:
                             f_stepBase = f_stepBase + (_stepSmall)
-                            
+
                         _stepBig = _stepBig/2.0
-                        
+
                         #minStep = f_lastValue + minStep
                     elif matchValue > f_maxValue:
                         log.debug("|{0}| >> Greater".format(_str_func))
@@ -305,7 +389,7 @@ def matchValue_iterator(matchObj = None,
                         _stepBig = 10
                         f_stepBase = f_stepEnd
                         f_stepEnd = f_stepEnd + (_stepBig)
-                        
+
                     elif matchValue < f_minValue:
                         log.debug("|{0}| >> Less...".format(_str_func))
                         _dir = 'dn'
@@ -314,10 +398,10 @@ def matchValue_iterator(matchObj = None,
                         f_stepEnd = f_stepBase + (_stepBig)
                     else:
                         raise ValueError,"nope"
-                        
+
                     f_closest = f_stepBase
-                    
-                    
+
+
                 #Old method
                 """
 		mPlug_driver.value = minValue#Set to min
@@ -444,10 +528,10 @@ def matchValue_iterator(matchObj = None,
 def check_nameMatches(self,mlControls,justReport = False):
     _str_func = 'check_nameMatches'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    
+
     _nameMatches = False
     mlControls  = cgmMeta.validateObjListArg(mlControls)
-    
+
     for mCtrl in mlControls:
         if mCtrl.getNameMatches(True):
             _nameMatches = True
@@ -463,17 +547,17 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
     try:
         _str_func = 'plug_insertNewValues'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        
+
         if mode not in ['multiply']:
             raise ValueError,"Mode not supported: {0}".format(mode)
-        
+
         d_driven = cgmMeta.validateAttrArg(driven)
         mPlug = d_driven['mPlug']
-        
+
         ml_drivers = []
         mPreDriver = mPlug.getDriver(asMeta=True)
         log.debug("|{0}| >>  Pre Driver: {1}".format(_str_func,mPreDriver))
-            
+
         for d in drivers:
             d_driver = cgmMeta.validateAttrArg(d)
             if d_driver:
@@ -481,18 +565,18 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
                 log.debug("|{0}| >>  Driver: {1}".format(_str_func,d_driver['mPlug']))
             else:
                 log.debug("|{0}| >>  Failed to validate: {1}".format(_str_func,d))
-                
+
 
         if not ml_drivers:
             raise ValueError, "No drivers validated"
-        
+
         if not replace:
             ml_drivers.insert(0,mPreDriver[0])
-        
+
         if len(ml_drivers) < 2:
             raise ValueError,"Must have more than two drivers. Found: {0}".format(ml_drivers)
         ATTR.break_connection(mPlug.p_combinedName)
-        
+
         lastNode = None
         for i,mDriver in enumerate(ml_drivers[:-1]):
             if not lastNode:
@@ -503,17 +587,17 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
                 newNode = mc.createNode('multDoubleLinear')
                 ATTR.connect(lastNode+'.output',newNode + '.input1')
                 ml_drivers[i+1].doConnectOut(newNode + '.input2')
-                
-                lastNode=newNode
-                
-        ATTR.connect(lastNode+'.output',mPlug.p_combinedName)
-        
-        
-                
-        
 
-        
-        
+                lastNode=newNode
+
+        ATTR.connect(lastNode+'.output',mPlug.p_combinedName)
+
+
+
+
+
+
+
     except Exception,err:
         #pprint.pprint(vars())
         cgmGEN.cgmException(Exception,err,msg=vars())

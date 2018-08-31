@@ -55,7 +55,7 @@ reload(SETTOOLS)
 #from cgm.tools import locinator
 #from cgm.tools import tdTools
 #from cgm.tools import attrTools
-
+import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
@@ -365,7 +365,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
                     #c = mmCallback(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
                     rp = "S")           
         
@@ -383,7 +383,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
                     #c = mmCallback( ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
                     rp = "S")   
  
@@ -436,7 +436,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     en = _b_sel,
                     l = 'Reset',
                     #c = lambda *a:SETTOOLS.uiFunc_selectAndDo(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),                    
-                    c = lambda *a:ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
                     rp = "S")   
  
         
@@ -472,7 +472,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
                     #c = mmCallback( ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
                     rp = "S")   
   
@@ -562,7 +562,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,l = 'Select',
                     c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'select'))
         mc.menuItem(p=parent,l = 'Reset',
-                    c = lambda *a:SETTOOLS.uiFunc_selectAndDo(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}))                   
+                    c = lambda *a:SETTOOLS.uiFunc_selectAndDo(RIGGEN.reset_channels_fromMode,self.var_resetMode.value))                   
         mc.menuItem(p=parent,l = 'Report',
                     c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'report'))
         
@@ -800,7 +800,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             #self.uiOptions_menuMode = []		
             _v = self.var_resetMode.value
             
-            for i,item in enumerate(['Default','Transform Attrs']):
+            for i,item in enumerate(SHARED.l_resetModes):
                 if i == _v:
                     _rb = True
                 else:_rb = False

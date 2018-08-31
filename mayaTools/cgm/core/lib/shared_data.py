@@ -336,3 +336,8 @@ objectSetTypes = {'animation':'animSet',
                   'td':'tdSet',
                   'fx':'fxSet',
                   'lighting':'lightingSet'}
+
+
+#>>>Option vars
+#=================================================================
+l_resetModes = 'all','transforms','keyable'

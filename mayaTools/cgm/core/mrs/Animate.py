@@ -55,6 +55,7 @@ import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.list_utils as LISTS
+import cgm.core.rig.general_utils as RIGGEN
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
@@ -3180,7 +3181,7 @@ def uiCB_contextualAction(self, **kws):
     
                     
             mc.select(l_new)
-            ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
+            RIGGEN.reset_channels_fromMode(self.var_resetMode.value)
             return endCall(self)
             
         elif _mode in ['nextKey','prevKey']:
@@ -3202,7 +3203,8 @@ def uiCB_contextualAction(self, **kws):
         elif _mode in ['key','bdKey','reset','delete',]:
             mc.select(_l_controls)
             if _mode == 'reset':
-                ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
+                RIGGEN.reset_channels_fromMode(self.var_resetMode.value)
+                #ml_resetChannels.main(**{'transformsOnly': self.var_resetMode.value})
             elif _mode == 'key':
                 setKey('default')
             elif _mode == 'bdKey':
