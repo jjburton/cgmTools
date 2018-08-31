@@ -62,6 +62,8 @@ import cgm.core.lib.position_utils as POS
 import cgm.core.rig.joint_utils as JOINT
 import cgm.core.rig.ik_utils as IK
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.builder_utils as BUILDUTILS
+reload(BUILDUTILS)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.rig.skin_utils as CORESKIN
 reload(CURVES)
@@ -166,7 +168,7 @@ d_block_profiles = {
     'spine':{'numShapers':8,
              'addCog':True,
              'loftSetup':'default',
-             'loftShape':'square',
+             'loftShape':'circle',
              'ikSetup':'ribbon',
              'ikBase':'hips',
              'ikEnd':'tipMid',             
@@ -205,6 +207,7 @@ l_attrsStandard = ['side',
                    'numControls',
                    'numShapers',
                    'numJoints',
+                   'ikOrientToWorld',
                    #'buildProfile',
                    'numSpacePivots',
                    'scaleSetup',
@@ -246,7 +249,6 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
-                     
                      'squashMeasure':'arcLength',
                      'squash':'simple',
                      'squashFactorMax':1.0,
@@ -265,6 +267,7 @@ d_defaultSettings = {'version':__version__,
                      
                      'ikBase':'cube',
                      'ikEnd':'cube',
+                     'ikOrientToWorld':True,
                      'ikSetup':'ribbon',
                      'numJoints':5,
                      'proxyDirect':True,
@@ -3084,6 +3087,7 @@ def rig_cleanUp(self):
     if not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','root')
     mBlock = self.mBlock
+    b_ikOrientToWorld = mBlock.ikOrientToWorld
     
     mRootParent = self.mDeformNull
     mMasterControl= self.d_module['mMasterControl']
@@ -3128,6 +3132,8 @@ def rig_cleanUp(self):
                     
     #...Root controls ========================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
+    
+    if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mRoot)
     
     ml_targetDynParents = [self.md_dynTargetsParent['attachDriver']]
         
@@ -3180,6 +3186,8 @@ def rig_cleanUp(self):
     for mHandle in ml_ikControls:
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
         
+        if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mHandle)
+        
         ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
         
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
@@ -3205,6 +3213,7 @@ def rig_cleanUp(self):
     if mRigNull.getMessage('controlIKMid'):
         log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
         mHandle = mRigNull.controlIKMid
+        if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mHandle)
         
         mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = []
@@ -3343,6 +3352,10 @@ def rig_cleanUp(self):
         ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
         ml_handleJoints[-1].followRoot = 1.0
         
+    if mBlock.blockProfile in ['tail']:
+        ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
+        ml_handleJoints[0].followRoot = 0.0        
+        
         
     if mSettings.hasAttr('FKIK'):
         ATTR.set_default(mSettings.mNode, 'FKIK', 1.0)
@@ -3355,14 +3368,8 @@ def rig_cleanUp(self):
     
     
     ml_controls = mRigNull.msgList_get('controlsAll')
-    
-    for mCtrl in ml_controls:
-        if mCtrl.hasAttr('radius'):
-            ATTR.set_hidden(mCtrl.mNode,'radius',True)
-        
-        for link in 'masterGroup','dynParentGroup','aimGroup':
-            if mCtrl.getMessage(link):
-                mCtrl.getMessageAsMeta(link).dagLock(True)
+    BUILDUTILS.controls_lockDown(ml_controls)
+
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))

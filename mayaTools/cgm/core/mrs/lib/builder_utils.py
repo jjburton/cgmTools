@@ -596,14 +596,67 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
 
 
     #>>HelperJoint setup???
+
+def controls_lockDown(ml_controls):
+    _str_func = 'controls_lockDown'
+    log.debug("|{0}| >> ...".format(_str_func))
     
+    for mCtrl in ml_controls:
+        if mCtrl.hasAttr('radius'):
+            ATTR.set_hidden(mCtrl.mNode,'radius',True)
+        
+        for link in 'masterGroup','dynParentGroup','aimGroup','worldOrientGroup':
+            if mCtrl.getMessage(link):
+                mCtrl.getMessageAsMeta(link).dagLock(True)    
+
 def control_convertToWorldIK(mCtrl=None):
     """
     """
     _str_func = 'control_convertToWorldIK'
     rot = mCtrl.p_orient
     mGrp_zero = mCtrl.doGroup(True,True,asMeta=True,typeModifier = 'worldOrient')
-    mGrp_zero.p_orient = 0,0,0
+    
+
+    xDot = mCtrl.getTransformDirection(MATH.Vector3.right()).dot(MATH.Vector3.forward())
+    yDot = mCtrl.getTransformDirection(MATH.Vector3.up()).dot(MATH.Vector3.forward())
+    zDot = mCtrl.getTransformDirection(MATH.Vector3.forward()).dot(MATH.Vector3.forward())
+    
+    xUpDot = mCtrl.getTransformDirection(MATH.Vector3.right()).dot(MATH.Vector3.up())
+    yUpDot = mCtrl.getTransformDirection(MATH.Vector3.up()).dot(MATH.Vector3.up())
+    zUpDot = mCtrl.getTransformDirection(MATH.Vector3.forward()).dot(MATH.Vector3.up())
+    
+    #Get our up and vector
+    closestForward = "x"
+    closestUp = "x"
+    highestDot = xDot
+    highestUpDot = xUpDot
+    
+    if(abs(yDot) > abs(highestDot)):
+        closestForward = "y"
+        highestDot = yDot
+    
+    if(abs(zDot) > abs(highestDot)):
+        closestForward = "z"
+        highestDot = zDot
+    
+    if(abs(yUpDot) > abs(highestUpDot)):
+        closestUp = "y"
+        highestUpDot = yUpDot
+    
+    if(abs(zUpDot) > abs(highestUpDot)):
+        closestUp = "z"
+        highestUpDot = zUpDot
+    
+    if(highestDot < 0):
+        closestForward = "{0}-".format(closestForward)
+    if(highestUpDot < 0):
+        closestUp = "{0}-".format(closestUp)
+        
+    print('closest forward axis is "%s" and closest up axis is "%s"' % (closestForward, closestUp))    
+    pos_aim = DIST.get_pos_by_vec_dist(mCtrl.p_position, [0,0,1], 10.0)
+    
+    SNAP.aim_atPoint(mGrp_zero.mNode, pos_aim, closestForward, mode='world', vectorUp=[0,1,0] )
+    
     mCtrl.p_orient = rot
     d = {'rotateX':mCtrl.rotateX,'rotateY':mCtrl.rotateY,'rotateZ':mCtrl.rotateZ}
     mCtrl.addAttr('defaultValues',d)

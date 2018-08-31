@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -326,7 +326,7 @@ def doName(self):
             _value = self.getEnumValueString('side')
             _d['cgmDirection'] = _value
             self.doStore('cgmDirection',_value)"""
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     #Check for special attributes to replace data, name
     self.rename(NAMETOOLS.returnCombinedNameFromDict(_d))
 
@@ -4355,23 +4355,61 @@ def rigDelete(self):
     self.blockState = 'rig>skeleton'#...buffering that we're in process
     
     mModuleTarget = self.moduleTarget
+    mModuleTarget.rig_disconnect()
+    
     if mModuleTarget:
         log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))
         
         if mModuleTarget.mClass ==  'cgmRigModule':
+            self.template = False
+            self.noTransTemplateNull.template=True
+            
+            mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
+            
+            log.info("|{0}| >> Controls...".format(_str_func))
+            ml_controls = mRigNull.msgList_get('controlsAll')
+            for mCtrl in ml_controls:
+                log.info("|{0}| >> Processing: {1}".format(_str_func,mCtrl))
+                mDynGroup = mCtrl.getMessageAsMeta('dynParentGroup')
+                if mDynGroup:
+                    mDynGroup.doPurge()
+        
+        
+                    ml_spacePivots = mCtrl.msgList_get('spacePivots')
+                    if ml_spacePivots:
+                        for mObj in ml_spacePivots:
+                            log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj)) 
+            
+            log.info("|{0}| >> Groups...".format(_str_func))            
+            for link in ['constraintGroup','constrainGroup','masterGroup']:
+                mGroup = mObj.getMessageAsMeta(link)
+                if mGroup:
+                    mGroup.delete()
+                    break            
+
             #Deform null
+            log.info("|{0}| >> deformNull...".format(_str_func))                        
             _deformNull = mModuleTarget.getMessage('deformNull')
             if _deformNull:
-                log.info("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))                                
+                log.info("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))
                 mc.delete(_deformNull)
+            
             #ModuleSet
+            log.info("|{0}| >> moduleSet...".format(_str_func))                        
             _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
             if _objectSet:
                 log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))
-                mc.delete(_objectSet)                
-            #Module                
+                mc.delete(_objectSet)
+                
+            #Module
+            log.info("|{0}| >> Children...".format(_str_func))                        
             for mChild in mModuleTarget.rigNull.getChildren(asMeta=True):
                 mChild.delete()
+                
+            log.info("|{0}| >> Children of part...".format(_str_func))                        
+            for mChild in mModuleTarget.getChildren(asMeta=True):
+                if mChild == mRigNull:continue
+                mChild.delete()            
         elif mModuleTarget.mClass == 'cgmRigPuppet':
             pass#mModuleTarget.masterControl.delete()
         
@@ -4382,7 +4420,7 @@ def rigDelete(self):
     l_blockModuleKeys = mBlockModule.__dict__.keys()
     if 'rigDelete' in l_blockModuleKeys:
         log.debug("|{0}| >> BlockModule rigDelete call found...".format(_str_func))
-        self.atBlockModule('rigDelete')
+        self.p_blockModule.rigDelete(self)
     
     self.blockState = 'skeleton'#...yes now in this state
     set_blockNullTemplateState(self, state=False, define=False, template=False, prerig=False)
@@ -4539,7 +4577,7 @@ def puppet_verify(self):
                 mPuppet = self.moduleTarget
             mPuppet.__verify__()
         else:
-            log.info("|{0}| >> Non master calling...".format(_str_func))                                                                
+            log.debug("|{0}| >> Non master calling...".format(_str_func))                                                                
             mi_module = self.moduleTarget
             if not mi_module:
                 mi_module = module_verify(self)

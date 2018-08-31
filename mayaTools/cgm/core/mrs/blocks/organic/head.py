@@ -153,6 +153,7 @@ l_attrsStandard = ['side',
                    #'ikSetup',
                    #'ikBase',
                    #'buildProfile',
+                   'ikOrientToWorld',
                    'numSpacePivots',
                    'scaleSetup',
                    #'offsetMode',
@@ -209,7 +210,7 @@ d_defaultSettings = {'version':__version__,
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stable',
-                     
+                     'ikOrientToWorld':True,
                      'proxyShape':'cube',
                      'nameList':['neck','head'],#...our datList values
                      'proxyType':'geo'}
@@ -1316,7 +1317,8 @@ def rig_prechecks(self):
         #self.l_precheckErrors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
     
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
-        self.l_precheckErrors.append("Must have more than one neck joint with segmentMidIKControl")    
+        mBlock.segmentMidIKControl = False
+        self.l_precheckWarnings.append("Must have more than one neck joint with segmentMidIKControl, turning off")    
         
     if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
         self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
@@ -2754,6 +2756,7 @@ def rig_cleanUp(self):
     mRigNull = self.mRigNull
     mHeadIK = mRigNull.headIK
     mSettings = mRigNull.settings
+    b_ikOrientToWorld = mBlock.ikOrientToWorld
     
     mRoot = mRigNull.rigRoot
     if not mRoot.hasAttr('cgmAlias'):
@@ -2765,7 +2768,6 @@ def rig_cleanUp(self):
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     ml_blendjoints = mRigNull.msgList_get('blendJoints')
-    
     
     mAttachDriver = mRigNull.getMessageAsMeta('attachDriver')
     mAttachDriver.doStore('cgmAlias', '{0}_partDriver'.format(self.d_module['partName']))
@@ -2841,6 +2843,7 @@ def rig_cleanUp(self):
         
     for mHandle in ml_ikControls:
         log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
+        if b_ikOrientToWorld:BUILDERUTILS.control_convertToWorldIK(mHandle)
         
         ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
         
@@ -2864,6 +2867,8 @@ def rig_cleanUp(self):
     if mRigNull.getMessage('controlIKMid'):
         log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
         mHandle = mRigNull.controlIKMid
+        
+        if b_ikOrientToWorld:BUILDERUTILS.control_convertToWorldIK(mHandle)
         
         mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = []
@@ -2931,6 +2936,8 @@ def rig_cleanUp(self):
         
         mHeadLookAt = mRigNull.lookAt        
         mHeadLookAt.setAttrFlags(attrs='v')
+        
+        if b_ikOrientToWorld:BUILDERUTILS.control_convertToWorldIK(mHeadLookAt)
         
         #...dynParentGroup...
         ml_headLookAtDynParents = []
@@ -3032,16 +3039,10 @@ def rig_cleanUp(self):
     for mJnt in ml_blendJoints:
         mJnt.dagLock(True)
         
-        
     ml_controls = mRigNull.msgList_get('controlsAll')
-    
-    for mCtrl in ml_controls:
-        if mCtrl.hasAttr('radius'):
-            ATTR.set_hidden(mCtrl.mNode,'radius',True)
+    BUILDERUTILS.controls_lockDown(ml_controls)
         
-        for link in 'masterGroup','dynParentGroup','aimGroup':
-            if mCtrl.getMessage(link):
-                mCtrl.getMessageAsMeta(link).dagLock(True)
+
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
@@ -3070,7 +3071,9 @@ def rig_cleanUp(self):
     
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-
+    
+    mBlock.template = True
+    mBlock.noTransTemplateNull.template=True
     #>>  Parent and constraining joints and rig parts =======================================================
 
     #>>  DynParentGroups - Register parents for various controls ============================================

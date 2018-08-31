@@ -606,32 +606,35 @@ def template(self):
         log.debug("|{0}| >> Lever base, generating base value".format(_str_func))
         _mBlockParent = self.p_blockParent
         
+        pos_lever = False
         if _mBlockParent:
             log.debug("|{0}| >> blockParent...".format(_str_func))
             #_attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
             #attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )
             if _mBlockParent.p_blockState < 1:
                 raise ValueError,"BlockParent must at least be templated"
-            ml_parentHandles = _mBlockParent.msgList_get('templateHandles')
-            _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
-            log.debug("|{0}| >> attachPoint: {1}".format(_str_func, _attachPoint))
             
-            if _attachPoint == 'base':
-                pos_attach = ml_parentHandles[0].p_position
-            elif _attachPoint == 'end':
-                pos_attach = ml_parentHandles[-1].p_position
-            else:
-                raise ValueError,"Not implemented attachPoint: {0}".format(_attachPoint)
+            if _mBlockParent.blockType != 'master':
+                ml_parentHandles = _mBlockParent.msgList_get('templateHandles')
+                _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
+                log.debug("|{0}| >> attachPoint: {1}".format(_str_func, _attachPoint))
+                
+                if _attachPoint == 'base':
+                    pos_attach = ml_parentHandles[0].p_position
+                elif _attachPoint == 'end':
+                    pos_attach = ml_parentHandles[-1].p_position
+                else:
+                    raise ValueError,"Not implemented attachPoint: {0}".format(_attachPoint)
+                
+                _vec_toAttach = MATH.get_vector_of_two_points(_l_basePos[0], pos_attach)
+                log.debug("|{0}| >> _vec_toAttach: {1} ".format(_str_func,_vec_toAttach))
+                
+                _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
+                log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
+                
+                pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
             
-            _vec_toAttach = MATH.get_vector_of_two_points(_l_basePos[0], pos_attach)
-            log.debug("|{0}| >> _vec_toAttach: {1} ".format(_str_func,_vec_toAttach))
-            
-            _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
-            log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
-            
-            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
-            
-        else:
+        if not pos_lever:
             log.debug("|{0}| >> no blockParent...".format(_str_func))
             #_mVectorAimNeg = _mVectorAim.reflect(MATH.Vector3(0,0,1))
             #_vec_AimNeg = MATH.list_mult(_baseAim,[-1,-1,-1])
@@ -1923,12 +1926,18 @@ def rig_dataBuffer(self):
             self.mBall = self.ml_handleTargets.pop(-1)
             log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
             self.int_handleEndIdx -=1
+            
     elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
         log.debug("|{0}| >> tip setup...".format(_str_func))        
-        if not mBlock.hasEndJoint and str_ikEnd == 'tipEnd':
-            self.b_ikNeedEnd = True
-            log.debug("|{0}| >> Need IK end joint".format(_str_func))
-            #self.int_handleEndIdx -=1
+        if not mBlock.hasEndJoint:
+            if str_ikEnd == 'tipEnd':
+                self.b_ikNeedEnd = True
+                log.debug("|{0}| >> Need IK end joint".format(_str_func))
+            elif str_ikEnd == 'tipBase':
+                pass
+        elif str_ikEnd == 'tipBase':
+            self.int_handleEndIdx -=1
+            
         
         if str_ikEnd in ['tipCombo']:
             log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
@@ -2771,6 +2780,9 @@ def rig_digitShapes(self):
             #CORERIG.match_transform(mIKBaseCrv.mNode,ml_ikJoints[0].mNode)
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect       
+            
+            
+            
         #Cog =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -5038,7 +5050,7 @@ def rig_frame(self):
                 ml_distHandlesNF = d_ikReturn['ml_distHandles']
                 mRPHandleNF = d_ikReturn['mRPHandle']
                 
-
+                
                 #>>>Parent IK handles -----------------------------------------------------------------
                 log.debug("|{0}| >> parent ik dat...".format(_str_func))
                 
@@ -5127,7 +5139,7 @@ def rig_frame(self):
                 mSpinGroup.dagLock(True)
                 mSpinGroupAdd.dagLock(True)
                 
-
+                
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
                 mMidControlDriver = mIKMid.doCreateAt()
@@ -6300,7 +6312,7 @@ def rig_cleanUp(self):
         mHandle = mRigNull.controlIKMid
         
         if b_ikOrientToWorld:
-            BUILDUTILS.control_convertToWorldIK(mHandle)        
+            BUILDUTILS.control_convertToWorldIK(mHandle)
         
         mParent = mHandle.masterGroup.getParent(asMeta=True)
         ml_targetDynParents = []
@@ -6428,13 +6440,15 @@ def rig_cleanUp(self):
     log.debug("|{0}| >> lock and hide..".format(_str_func))
     ml_controls = mRigNull.msgList_get('controlsAll')
     
+    BUILDUTILS.controls_lockDown(ml_controls)
+    """
     for mCtrl in ml_controls:
         if mCtrl.hasAttr('radius'):
             ATTR.set_hidden(mCtrl.mNode,'radius',True)
         
-        for link in 'masterGroup','dynParentGroup','aimGroup':
+        for link in 'masterGroup','dynParentGroup','aimGroup','worldOrient':
             if mCtrl.getMessage(link):
-                mCtrl.getMessageAsMeta(link).dagLock(True)
+                mCtrl.getMessageAsMeta(link).dagLock(True)"""
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))
@@ -6488,7 +6502,36 @@ def rig_cleanUp(self):
     #cgmGEN.func_snapShot(vars())
     return
 
-
+@cgmGEN.Timer
+def rigDelete2(self):
+    try:
+        _str_func = 'rigDelete'    
+        self.template = False
+        self.noTransTemplateNull.template=True
+        
+        ml_controls = mRigNull.msgList_get('controlsAll')
+        for mCtrl in ml_controls:
+            log.info("|{0}| >> Processing: {1}".format(_str_func,mCtrl))
+            mDynGroup = mCtrl.getMessageAsmeta('dynParentGroup')
+            if mDynGroup:
+                mDynGroup.doPurge()
+            
+        
+                ml_spacePivots = mCtrl.msgList_get('spacePivots')
+                if ml_spacePivots:
+                    for mObj in ml_spacePivots:
+                        log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj)) 
+                
+        for link in ['constraintGroup','constrainGroup','masterGroup']:
+            mGroup = mObj.getMessageAsMeta(link)
+            if mGroup:
+                mGroup.delete()
+                break
+                
+        
+        return True
+    except Exception,err:
+        raise cgmGEN.cgmException(Exception,err,msg=vars())
 
     
 
