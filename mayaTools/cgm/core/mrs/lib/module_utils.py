@@ -619,7 +619,9 @@ l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct'
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK'],
                   'ikEnd':['controlIK'],
-                  'ik':['controlIK','controlIKBase','controlIKMid','leverIK','eyeLookAt','lookAt'],
+                  'ik':['controlIK','controlIKEnd',
+                        'controlIKBase',
+                        'controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
@@ -891,7 +893,12 @@ def mirror_get(self,recheck=False):
         return False
 
     int_direction = l_direction.index(self.cgmDirection)
-    d = {'cgmName':self.cgmName,'moduleType':self.moduleType,'cgmDirection':l_direction[not int_direction]}
+    d = {'cgmName':self.cgmName,'moduleType':self.moduleType,
+         'cgmDirection':l_direction[not int_direction]}
+    for plug in 'cgmPosition','cgmPositionModifier','cgmDirectionModifier':
+        if self.hasAttr(plug):
+            d[plug] = getattr(self,plug)
+        
     log.debug("|{0}| >>  looking for: {1}".format(_str_func,d))
 
     mModulePuppet  = self.getMessage('modulePuppet',asMeta=True)
@@ -914,6 +921,7 @@ def mirror_get(self,recheck=False):
         if _match:ml_match.append(mChild)
     
     if len(ml_match)>1:
+        pprint.pprint(vars())
         raise ValueError,"Shouldn't have found more than one mirror module!"
     elif not ml_match:
         return False

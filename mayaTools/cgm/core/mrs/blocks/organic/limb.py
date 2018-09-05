@@ -126,6 +126,31 @@ d_build_profiles = {
 
 d_block_profiles = {
     'default':{},
+    'quad':{'numShapers':2,
+            'addCog':False,
+            'cgmName':'leg',
+            'loftShape':'circle',
+            'loftSetup':'default',
+            'settingsPlace':'end',
+            'settingsDirection':'down',
+            'ikSetup':'rp',
+            'ikEnd':'foot',
+            'hasQuadSetup':True,
+            'numControls':4,
+            'numShapers':3,
+            'ikRPAim':'default',
+            'rigSetup':'default',           
+            'mainRotAxis':'out',
+            'buildBaseLever':False,
+            'hasLeverJoint':False,
+            'hasBallJoint':True,
+            'hasEndJoint':True,
+            'nameList':['hip','knee','ankle','ball','toe'],
+            'baseAim':[90,0,0],
+            'baseUp':[0,0,1],
+            #'baseSize':[11.6,8,79]},
+            },    
+    
     'leg':{'numShapers':2,
            'addCog':False,
            'cgmName':'leg',
@@ -319,6 +344,7 @@ d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
+                 'hasQuadSetup':'bool',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'none:bank:foot:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
@@ -343,6 +369,7 @@ d_defaultSettings = {'version':__version__,
                      'numControls': 3,
                      'loftSetup':0,
                      'loftShape':0,
+                     'hasQuadSetup':False,
                      'ikOrientToWorld':True,
                      'numShapers':3,
                      'ikEnd':'tipEnd',
@@ -3780,6 +3807,7 @@ def rig_shapes(self):
 
         if str_ikEnd in ['tipCombo']:
             CORERIG.shapeParent_in_place(mIKEndCrv.mNode,ml_fkShapes[-2].mNode, True, replaceShapes=True)
+            mHandleFactory.color(mIKEndCrv.mNode, controlType = 'sub')
 
         for mShape in ml_fkShapes:
             try:mShape.delete()
@@ -4969,6 +4997,8 @@ def rig_frame(self):
             mIKGroup.doStore('cgmTypeModifier','ik')
             mIKGroup.doName()
             
+            mRigNull.connectChildNode(mIKGroup,'ikGroup','rigNull')#Connect
+            
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
             
             mIKGroup.parent = mRoot
@@ -5414,7 +5444,6 @@ def rig_frameSingle(self):
             if mIKControlEnd:
                 mIKControlEnd.masterGroup.p_parent = mPivotResultDriver
             
-            
             mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect
         
             
@@ -5610,6 +5639,10 @@ def rig_frameSingle(self):
             mIKGroup = mRoot.doCreateAt()
             mIKGroup.doStore('cgmTypeModifier','ik')
             mIKGroup.doName()
+            
+            mRigNull.connectChildNode(mIKGroup,'ikGroup','rigNull')#Connect
+        
+                        
             
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
             
@@ -6335,7 +6368,7 @@ def rig_cleanUp(self):
         if b_ikOrientToWorld:
             mDynGroup.dynMode = 3#...point
             
-            mHandle.masterGroup.p_parent = mRoot
+            mHandle.masterGroup.p_parent = mRigNull.getMessage('ikGroup')[0]
     
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
