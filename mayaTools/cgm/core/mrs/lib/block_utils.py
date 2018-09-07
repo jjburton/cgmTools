@@ -1520,7 +1520,8 @@ def pivots_setup(self, mControl = None,
                 NODEFACTORY.argsToNodes(arg).doBuild()
             
             #>>>Josh - resolve getting this back in and where it need to be in heirarchy
-            mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mBallJoint.mNode,jointOrientation[2]))
+            if mBallJoint:
+                mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mBallJoint.mNode,jointOrientation[2]))
         
         
             #Toe setup -----------------------------------------------------------------------------------------------
@@ -1861,7 +1862,7 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
         if not _specialName:
             _nameDictTemp['cgmIterator'] = _cnt
             
-            if _cnt == 1 and not l_dicts[-1].get('cgmIterator'):
+            if _cnt == 1 and l_dicts and not l_dicts[-1].get('cgmIterator'):
                 l_dicts[-1]['cgmIterator'] = 0
             
         l_dicts.append(_nameDictTemp)
@@ -2017,7 +2018,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
     
     ml_joints = cgmMeta.validateObjListArg(l_joints,'cgmObject',setClass=True)
-
+    
     if blockNames:
         l_names = skeleton_getNameDicts(self,False,len(l_joints))        
     else:
@@ -3715,7 +3716,11 @@ def controls_mirror(blockSource, blockMirror = None,
             
             if int_lenTarget!=int_lenSource:
                 for i,mObj in enumerate(ml_controls):
-                    log.info(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+                    try:
+                        log.info(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+                    except:
+                        log.info(" {0} >> ERROR".format(mObj.p_nameBase))
+                        
                 raise ValueError,"Control list lengths do not match. source: {0} | target: {1} ".format(int_lenSource,int_lenTarget)
             
             if ml_targetControls[0] != ml_controls[0]:

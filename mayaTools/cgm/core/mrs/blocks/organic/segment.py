@@ -927,9 +927,8 @@ def prerig(self):
         _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (self.numControls - 1)
         
         _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-        _mVectorUp = _mVectorAim.up()
+        _mVectorUp = mOrientHelper.getAxisVector('y+',asEuclid=True)#_mVectorAim.up()
         _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
-    
     
         
         #Track curve ============================================================================
@@ -994,6 +993,16 @@ def prerig(self):
             _short = mHandle.mNode
             ml_handles.append(mHandle)
             mHandle.p_position = p
+            
+            
+            if p == _l_pos[-1]:
+                SNAP.aim_atPoint(mHandle.mNode,_l_pos[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
+            else:
+                SNAP.aim_atPoint(mHandle.mNode,_l_pos[i+1], mode = 'vector',vectorUp=_worldUpVector)
+            
+            
+
+            
             """
             if p == _l_pos[-1]:
                 SNAP.aim_atPoint(_short,_l_pos[-2],'z-', 'y+', mode='vector', vectorUp = _vec_root_up)
@@ -1051,11 +1060,14 @@ def prerig(self):
         """
         
         #Aim the segment
+        """
         for i,mGroup in enumerate(ml_aimGroups):
             if mGroup == ml_aimGroups[-1]:
-                SNAP.aim_atPoint(mGroup.mNode,_pos_start,'z-', 'y+', mode='vector', vectorUp = _worldUpVector)
+                SNAP.aim_atPoint(mGroup.mNode,_pos_start,'z-', 'y+', mode='objectrotation', 
+                                 worldUpObject = mOrientHelper.mNode,
+                                 vectorUp = _worldUpVector)
             else:
-                SNAP.aim_atPoint(mGroup.mNode,_pos_end,'z+', 'y+', mode='vector', vectorUp = _worldUpVector)            
+                SNAP.aim_atPoint(mGroup.mNode,_pos_end,'z+', 'y+', mode='objectrotation', vectorUp = _worldUpVector)"""            
         
         
         """
@@ -3352,9 +3364,9 @@ def rig_cleanUp(self):
         ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
         ml_handleJoints[-1].followRoot = 1.0
         
-    if mBlock.blockProfile in ['tail']:
-        ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
-        ml_handleJoints[0].followRoot = 0.0        
+        if mBlock.blockProfile in ['tail']:
+            ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
+            ml_handleJoints[0].followRoot = 0.0        
         
         
     if mSettings.hasAttr('FKIK'):

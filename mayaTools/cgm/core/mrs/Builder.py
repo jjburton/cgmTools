@@ -645,6 +645,9 @@ class ui(cgmUI.cgmGUI):
                 
                 #Now parse to sets of data
                 ml_processed = []
+                if args[0] == 'select':
+                    return mc.select([mBlock.mNode for mBlock in ml_blocks])
+                
                 for mBlock in ml_blocks:
                     if mBlock in ml_processed:
                         log.info("|{0}| >> Already processed: {1}".format(_str_func,mBlock))                                                        

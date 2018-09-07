@@ -1887,7 +1887,7 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToStart=False, ballBase = True):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1897,8 +1897,8 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
         mRigNull = self.mRigNull
         ml_shapes = []
         
-        if upVector is None:
-            upVector = self.d_orientation['mOrientation'].p_up.p_string
+        if aimVector is None:
+            aimVector = self.d_orientation['mOrientation'].p_out.p_string
         
         #Get our prerig handles if none provided
         if targets is None:
@@ -1948,7 +1948,7 @@ def mesh_proxyCreate(self, targets = None, upVector = None, degree = 1,firstToSt
         #First loop through and get our base U Values for each point
         for i,mTar in enumerate(ml_targets):
             j = mTar.mNode
-            _d = RAYS.cast(str_meshShape,j,upVector)
+            _d = RAYS.cast(str_meshShape,j,aimVector)
             log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
             #cgmGEN.log_info_dict(_d,j)
             if not _d:
