@@ -5062,11 +5062,10 @@ def rig_frame(self):
         if mBlock.ikSetup:
             _ikSetup = mBlock.getEnumValueString('ikSetup')
             log.debug("|{0}| >> IK Type: {1}".format(_str_func,_ikSetup))    
-        
             if not mRigNull.getMessage('rigRoot'):
                 raise ValueError,"No rigRoot found"
             if not mRigNull.getMessage('controlIK'):
-                raise ValueError,"No controlIK found"            
+                raise ValueError,"No controlIK found"
             
             mIKControl = mRigNull.controlIK
             mSettings = mRigNull.settings
@@ -5274,6 +5273,10 @@ def rig_frame(self):
                     mc.orientConstraint([mPivotResultDriver.mNode],
                                             ml_ikJoints[self.int_handleEndIdx].mNode,
                                             maintainOffset = True)
+                elif str_ikEnd == 'paw':
+                    mc.orientConstraint([mPivotResultDriver.mNode],
+                                        ml_ikJoints[self.int_handleEndIdx].mNode,
+                                        maintainOffset = True)                    
                 else:
                     mc.orientConstraint([mIKEndDriver.mNode],
                                         ml_ikJoints[self.int_handleEndIdx].mNode,

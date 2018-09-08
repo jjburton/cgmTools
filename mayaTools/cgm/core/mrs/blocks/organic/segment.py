@@ -2386,7 +2386,7 @@ def rig_frame(self):
             ml_handleParents = ml_fkJoints
             if ml_blendJoints:
                 log.debug("|{0}| >> Handles parent: blend".format(_str_func))
-                ml_handleParents = ml_blendJoints            
+                ml_handleParents = ml_blendJoints
             
             if str_ikBase == 'hips':
                 log.debug("|{0}| >> hips setup...".format(_str_func))
@@ -2398,8 +2398,6 @@ def rig_frame(self):
 
             if len(ml_handleJoints) == 1:
                 mHipHandle = ml_handleJoints[0]
-                
-                reload(RIGCONSTRAINT)
                 RIGCONSTRAINT.build_aimSequence(ml_handleJoints,
                                                 ml_ribbonIkHandles,
                                                 [mRigNull.controlIKBase.mNode],#ml_handleParents,
@@ -3368,10 +3366,13 @@ def rig_cleanUp(self):
             ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
             ml_handleJoints[0].followRoot = 0.0        
         
-        
     if mSettings.hasAttr('FKIK'):
-        ATTR.set_default(mSettings.mNode, 'FKIK', 1.0)
-        mSettings.FKIK = 1.0
+        if mBlock.blockType in ['tail']:
+            _v = 0.0
+        else:
+            _v = 1.0
+        ATTR.set_default(mSettings.mNode, 'FKIK', _v)
+        mSettings.FKIK = _v
     
     #Lock and hide =================================================================================
     ml_blendJoints = mRigNull.msgList_get('blendJoints',asMeta=True)

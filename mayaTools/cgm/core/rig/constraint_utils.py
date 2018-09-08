@@ -316,7 +316,7 @@ def blendChainsBy(l_jointChain1 = None,
                 
             targetWeights = d_funcs[constraint](mConst.mNode,q=True, weightAliasList=True)
             if len(targetWeights)>2:
-                raise StandardError,"Too many weight targets: obj: %s | weights: %s"%(i_obj.mNode,targetWeights)
+                raise StandardError,"Too many weight targets: obj: %s | weights: %s"%(i_jnt.mNode,targetWeights)
 
             if mi_driver:
                 d_blendReturn = NODEFACTORY.createSingleBlendNetwork(mi_driver,

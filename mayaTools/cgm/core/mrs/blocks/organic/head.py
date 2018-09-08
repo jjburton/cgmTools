@@ -1324,7 +1324,7 @@ def rig_prechecks(self):
         self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
         
     if mBlock.neckIK not in [0,3]:
-        self.l_precheckErrors.append("Haven't setup neck IK: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
+        self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):
@@ -1537,11 +1537,24 @@ def rig_skeleton(self):
                 SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
                          vec_chainUp)
                          #mBlock.rootUpHelper.getAxisVector('y+'))
-                reload(JOINT)
                 JOINT.freezeOrientation(mMidIK.mNode)
-                mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')            
-    
-
+                mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
+                
+                
+            if mBlock.neckIK > 1:#...ribbon/spline
+                log.debug("|{0}| >> IK Drivers...".format(_str_func))            
+                ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
+                for i,mJnt in enumerate(ml_ribbonIKDrivers):
+                    mJnt.parent = False
+                    mTar = ml_blendJoints[0]
+                    if i == 0:
+                        mTar = ml_blendJoints[0]
+                    else:
+                        mTar = ml_blendJoints[-1]
+                    mJnt.doCopyNameTagsFromObject(mTar.mNode,ignore=['cgmType'])
+                    mJnt.doName()
+                ml_jointsToConnect.extend(ml_ribbonIKDrivers)
+                
         if mBlock.neckJoints > mBlock.neckControls:
             log.info("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
@@ -1575,6 +1588,7 @@ def rig_skeleton(self):
                     
             ml_jointsToHide.extend(ml_segmentChain)
             
+        """
         if mBlock.neckControls > 2 and ml_segmentHandles:
             log.info("|{0}| >> IK Drivers...".format(_str_func))            
             ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles,
@@ -1583,7 +1597,8 @@ def rig_skeleton(self):
                                                                        cgmType = 'baseIKDriver', indices=[0,-1])
             for mJnt in ml_baseIKDrivers:
                 mJnt.parent = False
-            ml_jointsToConnect.extend(ml_baseIKDrivers)
+            ml_jointsToConnect.extend(ml_baseIKDrivers)"""
+            
             
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
@@ -1865,7 +1880,7 @@ def rig_shapes(self):
             ml_shapes = self.atBuilderUtils('shapes_fromCast',
                                             targets = mControlSegMidIK,
                                             offset = _offset,
-                                            mode = 'limbSegmentHandleBack')#'simpleCast  limbSegmentHandle
+                                            mode = 'simpleCast')#'simpleCast  limbSegmentHandle
             
             CORERIG.shapeParent_in_place(mControlSegMidIK.mNode, ml_shapes[0].mNode,False)
             
@@ -2372,6 +2387,7 @@ def rig_frame(self):
     mHeadFK = mRigNull.getMessageAsMeta('headFK')
     mHeadIK = mRigNull.getMessageAsMeta('headIK')
         
+    _ikNeck = mBlock.getEnumValueString('neckIK')
     if ml_blendJoints:
         mHeadStuffParent = ml_blendJoints[-1]
     else:
@@ -2473,15 +2489,24 @@ def rig_frame(self):
         for s in mTrackCrv.getShapes(asMeta=True):
             s.overrideEnabled = 1
             s.overrideDisplayType = 2
-        mTrackCrv.doConnectIn('visibility',mPlug_aim.p_combinedShortName)        
+        mTrackCrv.doConnectIn('visibility',mPlug_aim.p_combinedShortName)
+        
+        #Parent the direct control to the 
+        if ml_rigJoints[-1].getMessage('masterGroup'):
+            ml_rigJoints[-1].masterGroup.parent = mTopHandleDriver
+        else:
+            ml_rigJoints[-1].parent = mTopHandleDriver        
     else:
         log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
-    
-    #Parent the direct control to the 
-    if ml_rigJoints[-1].getMessage('masterGroup'):
-        ml_rigJoints[-1].masterGroup.parent = mTopHandleDriver
-    else:
-        ml_rigJoints[-1].parent = mTopHandleDriver
+        #Parent the direct control to the 
+        if ml_blendJoints:
+            mTopHandleDriver = ml_blendJoints[-1]
+            
+        if ml_rigJoints[-1].getMessage('masterGroup'):
+            ml_rigJoints[-1].masterGroup.parent = mTopHandleDriver
+        else:
+            ml_rigJoints[-1].parent = mTopHandleDriver    
+
         
     #>> Neck build ======================================================================================
     if mBlock.neckBuild:
@@ -2499,6 +2524,10 @@ def rig_frame(self):
             log.debug("|{0}| >> Neck IK...".format(_str_func))
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             ml_blendJoints = mRigNull.msgList_get('blendJoints')
+            ml_handleParents = ml_fkJoints
+            if ml_blendJoints:
+                log.debug("|{0}| >> Handles parent: blend".format(_str_func))
+                ml_handleParents = ml_blendJoints            
             
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
             
@@ -2512,17 +2541,16 @@ def rig_frame(self):
               
             mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))
             
+            log.debug("|{0}| >> Neck IK | IK group...".format(_str_func))
             
             mIKGroup = mRoot.doCreateAt()
             mIKGroup.doStore('cgmTypeModifier','ik')
             mIKGroup.doName()
     
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
-    
             mIKGroup.parent = mRoot
             #mIKControl.masterGroup.parent = mIKGroup            
             mIKGroup.dagLock(True)
-            
             mHeadIK.masterGroup.p_parent = mIKGroup
             
             """
@@ -2549,9 +2577,11 @@ def rig_frame(self):
             """
             
             mIKBaseControl = mRigNull.controlIKBase
+            mIKBaseControl.masterGroup.p_parent = mIKGroup
+            
             # Neck controls --------------------------------------------------------------
             if mBlock.neckControls == 1:
-                log.debug("|{0}| >> Single joint IK...".format(_str_func))
+                log.debug("|{0}| >> Neck IK | Single Control...".format(_str_func))
                 mc.aimConstraint(mHeadIK.mNode,
                                  ml_ikJoints[0].mNode,
                                  maintainOffset = True, weight = 1,
@@ -2563,135 +2593,402 @@ def rig_frame(self):
                 mc.pointConstraint(mHeadIK.mNode,
                                    ml_ikJoints[-1].mNode,
                                    maintainOffset = True)
-            else:
-                raise ValueError,"Don't have ability for more than one neck control yet"
-            
-            mIKBaseControl.masterGroup.p_parent = mIKGroup
-
-
-            mc.pointConstraint(mHeadIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
-            mc.orientConstraint(mHeadIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
-            
-            
-            #>> handleJoints ========================================================================================
-            if ml_handleJoints:
-                log.debug("|{0}| >> Found Handles...".format(_str_func))
-                #ml_handleJoints[-1].masterGroup.parent = mHeadIK
-                #ml_handleJoints[0].masterGroup.parent = ml_blendJoints[0]
-                
-                if mBlock.neckControls == 1:
-                    reload(RIGCONSTRAINT)
-                    RIGCONSTRAINT.build_aimSequence(ml_handleJoints,
-                                                    ml_handleJoints,
-                                                    ml_blendJoints, #ml_segBlendTargets,#ml_handleParents,
-                                                    ml_segBlendTargets,
-                                                    mode = 'sequence',
-                                                    mRoot=mRoot,
-                                                    rootTargetEnd=ml_segBlendTargets[-1],
-                                                    upParent=[1,0,0],
-                                                    interpType = 2,
-                                                    upMode = 'objectRotation')
-                    
-                    """
-                    #Aim top to bottom ----------------------------
-                    mc.aimConstraint(ml_handleJoints[0].mNode,
-                                     ml_handleJoints[-1].masterGroup.mNode,
-                                     maintainOffset = True, weight = 1,
-                                     aimVector = self.d_orientation['vectorAimNeg'],
-                                     upVector = self.d_orientation['vectorUp'],
-                                     worldUpVector = self.d_orientation['vectorOut'],
-                                     worldUpObject = mTopHandleDriver.mNode,
-                                     worldUpType = 'objectRotation' )
-                    
-                    #Aim bottom to top ----------------------------
-                    mc.aimConstraint(ml_handleJoints[-1].mNode,
-                                     ml_handleJoints[0].masterGroup.mNode,
-                                     maintainOffset = True, weight = 1,
-                                     aimVector = self.d_orientation['vectorAim'],
-                                     upVector = self.d_orientation['vectorUp'],
-                                     worldUpVector = self.d_orientation['vectorOut'],
-                                     worldUpObject = ml_blendJoints[0].mNode,
-                                     worldUpType = 'objectRotation' )"""
-            
-            if ml_handleJoints:            
-                ml_handleJoints[-1].masterGroup.p_parent = mHeadBlendJoint
-            #>> midSegcontrol ========================================================================================
-            mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-            if mSegMidIK:
-                log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
-    
-                #mSegMidIK = mRigNull.controlSegMidIK
-                
-                if mBlock.neckControls > 1:
-                    mSegMidIK.masterGroup.parent = mIKGroup
-    
-                ml_midTrackJoints = copy.copy(ml_handleJoints)
-                ml_midTrackJoints.insert(1,mSegMidIK)
-    
-                d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                         'baseName' :self.d_module['partName'] + '_midRibbon',
-                         'driverSetup':'stableBlend',
-                         'squashStretch':None,
-                         'msgDriver':'masterGroup',
-                         'specialMode':'noStartEnd',
-                         'paramaterization':'floating',
-                         'connectBy':'constraint',
-                         'influences':ml_handleJoints,
-                         'moduleInstance' : mModule}
-    
-                l_midSurfReturn = IK.ribbon(**d_mid)            
-            
-            #>> baseIK Drivers ========================================================================================
-            if ml_baseIKDrivers:
-                log.debug("|{0}| >> Found baseIK drivers...".format(_str_func))
-                
-                ml_baseIKDrivers[-1].parent = mHeadIK
-                ml_baseIKDrivers[0].parent = mRoot
-                
-                #Aim top to bottom ----------------------------
-                mc.aimConstraint(mRoot.mNode,
-                                 ml_baseIKDrivers[-1].mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAimNeg'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = ml_baseIKDrivers[0].mNode,
-                                 worldUpType = 'objectRotation' )
-                
-                #Aim bottom to top ----------------------------
-                mc.aimConstraint(ml_baseIKDrivers[-1].mNode,
-                                 ml_baseIKDrivers[0].mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAim'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorOut'],
-                                 worldUpObject = ml_blendJoints[0].mNode,
-                                 worldUpType = 'objectRotation' )                
                 
                 
-            if mBlock.neckJoints == 1:
-                log.debug("|{0}| >> Single neckJoint setup...".format(_str_func))                
-                ml_rigJoints[0].masterGroup.parent = ml_blendJoints[0]
+                mc.orientConstraint(mHeadIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
                 
-                """
-                mc.aimConstraint(mHeadIK.mNode,
-                                 ml_rigJoints[0].masterGroup.mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAim'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorOut'],
-                                 worldUpObject = ml_blendJoints[0].mNode,
-                                 worldUpType = 'objectRotation' )"""
+                #ml_ikJoints[0].parent = mIKGroup            
+                if mIKBaseControl:
+                    mc.pointConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)                
                 
             else:
-                log.debug("|{0}| >> Not implemented multi yet".format(_str_func))
+                log.debug("|{0}| >> Neck IK | MultiControl...".format(_str_func))
                 
+                log.debug("|{0}| >> Neck IK | handleJoints...".format(_str_func))
+                for i,mHandle in enumerate(ml_handleJoints):
+                    log.debug("|{0}| >> Neck IK | mHandle {1} | {2}".format(_str_func, i, mHandle))                    
+                    mHandle.masterGroup.parent = ml_handleParents[i]
+                    s_rootTarget = False
+                    s_targetForward = False
+                    s_targetBack = False
+                    mMasterGroup = mHandle.masterGroup
+                    b_first = False
+                    if mHandle == ml_handleJoints[0]:
+                        log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
+                        if len(ml_handleJoints) <=2:
+                            s_targetForward = ml_handleParents[-1].mNode
+                        else:
+                            s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                        s_rootTarget = mRoot.mNode
+                        b_first = True
+            
+                    elif mHandle == ml_handleJoints[-1]:
+                        log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
+                        s_rootTarget = ml_handleParents[i].mNode                
+                        s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
+                    else:
+                        log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
+                        s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                        s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
+            
+                    #Decompose matrix for parent...
+                    mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                    mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                    mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
+                    mUpDecomp.doName()
+            
+                    ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
+            
+                    if s_targetForward:
+                        mAimForward = mHandle.doCreateAt()
+                        mAimForward.parent = mMasterGroup            
+                        mAimForward.doStore('cgmTypeModifier','forward')
+                        mAimForward.doStore('cgmType','aimer')
+                        mAimForward.doName()
+            
+                        _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                                                aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                worldUpType = 'vector', worldUpVector = [0,0,0])            
+                        s_targetForward = mAimForward.mNode
+                        ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
+            
+                    else:
+                        s_targetForward = ml_handleParents[i].mNode
+            
+                    if s_targetBack:
+                        mAimBack = mHandle.doCreateAt()
+                        mAimBack.parent = mMasterGroup                        
+                        mAimBack.doStore('cgmTypeModifier','back')
+                        mAimBack.doStore('cgmType','aimer')
+                        mAimBack.doName()
+            
+                        _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                                  aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                  worldUpType = 'vector', worldUpVector = [0,0,0])  
+                        s_targetBack = mAimBack.mNode
+                        ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
+                    else:
+                        s_targetBack = s_rootTarget
+                        #ml_handleParents[i].mNode
+            
+                    #pprint.pprint([s_targetForward,s_targetBack])
+                    mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
+            
+                    mHandle.parent = False
+            
+                    if b_first:
+                        const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
+                    else:
+                        const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
+            
+            
+                    d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,'followRoot'],
+                                                                         [mHandle.mNode,'resultRootFollow'],
+                                                                         [mHandle.mNode,'resultAimFollow'],
+                                                                         keyable=True)
+                    targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
+            
+                    #Connect                                  
+                    d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                    d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                    d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                    d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+            
+                    mHandle.parent = mAimGroup#...parent back                
+                
+                    
+                    #Defaults ---------------------------------------------------------------------
+                    for mHandle in ml_handleJoints:
+                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
+                            mHandle.followRoot = 1
+                            ATTR.set_default(mHandle.mNode,'followRoot',1.0)
+                        else:
+                            mHandle.followRoot = .5
+                            ATTR.set_default(mHandle.mNode,'followRoot',.5)
+                            
+                    #Ribbon or Spline =============================================================
+                    log.debug("|{0}| >> Neck IK | ikType: {1}".format(_str_func,_ikNeck))
+                    
+                    if not mRigNull.getMessage('rigRoot'):
+                        raise ValueError,"No rigRoot found"
+                    if not mRigNull.getMessage('controlIK'):
+                        raise ValueError,"No controlIK found"            
+                
+                    mIKControl = mRigNull.controlIK
+                    mSettings = mRigNull.settings
+                    ml_ikJoints = mRigNull.msgList_get('ikJoints')
+                    mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',
+                                                 attrType='float',
+                                                 lock=False,
+                                                 keyable=True)
+                    _jointOrientation = self.d_orientation['str']
+                
+                    mStart = ml_ikJoints[0]
+                    mEnd = ml_ikJoints[-1]
+                    _start = ml_ikJoints[0].mNode
+                    _end = ml_ikJoints[-1].mNode
+                    
+                    
+                    mIKBaseControl = False
+                    if mRigNull.getMessage('controlIKBase'):
+                        mIKBaseControl = mRigNull.controlIKBase
+            
+                        mIKBaseControl.masterGroup.parent = mIKGroup
+            
+                    else:#Spin Group#========================================================================
+                        log.debug("|{0}| >> spin setup...".format(_str_func))
+            
+                        #Make a spin group
+                        mSpinGroup = mStart.doGroup(False,False,asMeta=True)
+                        mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
+                        mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
+                        mSpinGroup.doName()
+            
+                        mSpinGroup.parent = mRoot
+            
+                        mSpinGroup.doGroup(True,True,typeModifier='zero')
+            
+                        #Setup arg
+                        mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
+                        mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
+            
+                        mSpinGroup.dagLock(True)
+            
+                    if _ikNeck == 'rp':
+                        log.debug("|{0}| >> rp setup...".format(_str_func,_ikNeck))
+            
+                        #Build the IK ---------------------------------------------------------------------
+                        _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
+                                'stretch':'translate',
+                                'lockMid':False,
+                                'rpHandle':True,
+                                'nameSuffix':'noFlip',
+                                'controlObject':mIKControl.mNode,
+                                'moduleInstance':self.mModule.mNode}
+            
+                        d_ikReturn = IK.handle(_start,_end,**_d_ik)
+            
+                        #Get our no flip position-------------------------------------------------------------------------
+                        log.debug("|{0}| >> no flip dat...".format(_str_func))
+            
+                        _side = mBlock.atUtils('get_side')
+                        _dist_ik_noFlip = DIST.get_distance_between_points(mStart.p_position,
+                                                                           mEnd.p_position)
+                        if _side == 'left':#if right, rotate the pivots
+                            pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'-',_dist_ik_noFlip)
+                        else:
+                            pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'+',_dist_ik_noFlip)
+            
+                        #No flip -------------------------------------------------------------------------
+                        log.debug("|{0}| >> no flip setup...".format(_str_func))
+            
+                        mIKHandle = d_ikReturn['mHandle']
+                        ml_distHandlesNF = d_ikReturn['ml_distHandles']
+                        mRPHandleNF = d_ikReturn['mRPHandle']
+            
+                        #No Flip RP handle -------------------------------------------------------------------
+                        mRPHandleNF.p_position = pos_noFlipOffset
+            
+                        mRPHandleNF.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])
+                        mRPHandleNF.addAttr('cgmName','{0}PoleVector'.format(self.d_module['partName']), attrType = 'string')
+                        mRPHandleNF.addAttr('cgmTypeModifier','noFlip')
+                        mRPHandleNF.doName()
+            
+                        if mIKBaseControl:
+                            mRPHandleNF.parent = mIKBaseControl.mNode
+                        else:
+                            mRPHandleNF.parent = mSpinGroup.mNode
+            
+                        #>>>Parent IK handles -----------------------------------------------------------------
+                        log.debug("|{0}| >> parent ik dat...".format(_str_func,_ikNeck))
+            
+                        mIKHandle.parent = mIKControl.mNode#handle to control	
+                        for mObj in ml_distHandlesNF[:-1]:
+                            mObj.parent = mRoot
+                        ml_distHandlesNF[-1].parent = mIKControl.mNode#handle to control
+            
+                        #>>> Fix our ik_handle twist at the end of all of the parenting
+                        IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
+            
+                        mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+            
+                        if mIKBaseControl:
+                            ml_ikJoints[0].parent = mRigNull.controlIKBase
+            
+                        if mIKBaseControl:
+                            mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+            
+                    elif _ikNeck == 'spline':# ==============================================================
+                        log.debug("|{0}| >> spline setup...".format(_str_func))
+                        ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                        if not ml_ribbonIkHandles:
+                            raise ValueError,"No ribbon IKDriversFound"
+            
+                        log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
+            
+                        if mIKBaseControl:
+                            ml_ribbonIkHandles[0].parent = mIKBaseControl
+                        else:
+                            ml_ribbonIkHandles[0].parent = mSpinGroup
+            
+                        ml_ribbonIkHandles[-1].parent = mIKControl
+            
+                        mc.aimConstraint(mIKControl.mNode,
+                                         ml_ribbonIkHandles[0].mNode,
+                                         maintainOffset = True, weight = 1,
+                                         aimVector = self.d_orientation['vectorAim'],
+                                         upVector = self.d_orientation['vectorUp'],
+                                         worldUpVector = self.d_orientation['vectorOut'],
+                                         worldUpObject = mSpinGroup.mNode,
+                                         worldUpType = 'objectRotation' )
+            
+            
+                        res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
+                                               orientation = _jointOrientation,
+                                               moduleInstance = self.mModule)
+                        mSplineCurve = res_spline['mSplineCurve']
+                        log.debug("|{0}| >> spline curve...".format(_str_func))
+            
+            
+                        #...ribbon skinCluster ---------------------------------------------------------------------
+                        log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))                
+                        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
+                                                                              mSplineCurve.mNode,
+                                                                              tsb=True,
+                                                                              maximumInfluences = 2,
+                                                                              normalizeWeights = 1,dropoffRate=2.5),
+                                                              'cgmNode',
+                                                              setClass=True)
+            
+                        mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+                        mSkinCluster.doName()    
+                        cgmGEN.func_snapShot(vars())
+            
+            
+                    elif _ikNeck == 'ribbon':#==============================================================
+                        log.debug("|{0}| >> ribbon setup...".format(_str_func))
+                        ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                        if not ml_ribbonIkHandles:
+                            raise ValueError,"No ribbon IKDriversFound"
+                        ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
+                        max_influences = 2
+            
+ 
+                        mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+            
+            
+                        if mSegMidIK:
+                            log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
+                            mSegMidIK.masterGroup.parent = mIKGroup
+                            ml_skinDrivers.append(mSegMidIK)
+                            max_influences+=1
+            
+                            ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
+                            ml_midTrackJoints.insert(1,mSegMidIK)
+            
+                            d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
+                                     'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
+                                     'baseName' :self.d_module['partName'] + '_midRibbon',
+                                     'driverSetup':None,
+                                     'squashStretch':None,
+                                     'msgDriver':'masterGroup',
+                                     'specialMode':'noStartEnd',
+                                     'paramaterization':'floating',
+                                     'connectBy':'constraint',
+                                     'influences':ml_ribbonIkHandles,
+                                     'moduleInstance' : mModule}
+                            reload(IK)
+                            l_midSurfReturn = IK.ribbon(**d_mid)
+            
+            
+            
+                        log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
+            
+                        if mIKBaseControl:
+                            ml_ribbonIkHandles[0].parent = mIKBaseControl
+                        else:
+                            ml_ribbonIkHandles[0].parent = mSpinGroup
+                            mc.aimConstraint(mIKControl.mNode,
+                                             ml_ribbonIkHandles[0].mNode,
+                                             maintainOffset = True, weight = 1,
+                                             aimVector = self.d_orientation['vectorAim'],
+                                             upVector = self.d_orientation['vectorUp'],
+                                             worldUpVector = self.d_orientation['vectorOut'],
+                                             worldUpObject = mSpinGroup.mNode,
+                                             worldUpType = 'objectRotation' )                    
+                            
+                        
+                        ml_ribbonIkHandles[-1].parent = mIKControl
+            
+            
+                        if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
+                            ml_skinDrivers.extend(ml_handleJoints)
+            
+            
+                        d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                                'baseName' : self.d_module['partName'] + '_ikRibbon',
+                                'driverSetup':'stable',
+                                'squashStretch':None,
+                                'connectBy':'constraint',
+                                'squashStretchMain':'arcLength',
+                                'paramaterization':mBlock.getEnumValueString('ribbonParam'),
+                                #masterScalePlug:mPlug_masterScale,
+                                'settingsControl': mSettings.mNode,
+                                'extraSquashControl':True,
+                                'influences':ml_skinDrivers,
+                                'moduleInstance' : self.mModule}
+            
+                        #if str_ikBase == 'hips':
+                            #d_ik['attachEndsToInfluences'] = True
+            
+                        #if mBlock.numControls == mBlock.numJoints:
+                            #d_ik['paramaterization'] = 'fixed'
+            
+            
+                        d_ik.update(self.d_squashStretchIK)
+                        res_ribbon = IK.ribbon(**d_ik)
+            
+                        const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
+                        for mConst in const:
+                            mConst.delete()
+                        mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+            
+                        """
+                            #...ribbon skinCluster ---------------------------------------------------------------------
+                            log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))
+            
+            
+            
+                            mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
+                                                                                  mSurf.mNode,
+                                                                                  tsb=True,
+                                                                                  maximumInfluences = max_influences,
+                                                                                  normalizeWeights = 1,dropoffRate=10),
+                                                                  'cgmNode',
+                                                                  setClass=True)
+            
+                            mSkinCluster.doStore('cgmName', mSurf.mNode)
+                            mSkinCluster.doName()    
+            
+                            #Tighten the weights...
+                            reload(CORESKIN)
+                            CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
+                                                         ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
+            
+                    else:
+                        raise ValueError,"Not implemented {0} ik setup".format(_ikNeck)                    
+                
+
+
+
+            
             
             #Parent --------------------------------------------------            
             ml_blendJoints[0].parent = mRoot
             ml_ikJoints[0].parent = mRigNull.controlIKBase
             
-            
+                
+                
             #Setup blend ----------------------------------------------------------------------------------
             log.debug("|{0}| >> blend setup...".format(_str_func))                
             
