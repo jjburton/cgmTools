@@ -5198,6 +5198,68 @@ def rig_frame(self):
                 else:
                     mIKEndDriver = mIKControl
                     
+                    if ml_end_children:
+                        for mChild in ml_end_children:
+                            mChild.parent = mEnd                
+                    
+                    #mc.scaleConstraint([mIKControl.mNode],
+                    #                    ml_ikJoints[self.int_handleEndIdx].mNode,
+                    #                    maintainOffset = True)                
+                    #if mIKBaseControl:
+                        #ml_ikJoints[0].parent = mRigNull.controlIKBase
+                    
+                    #if mIKBaseControl:
+                        #mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+                        
+                    
+                #Make a spin group ===========================================================
+                mSpinGroup = mStart.doGroup(False,False,asMeta=True)
+                mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
+                mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
+                mSpinGroup.doName()
+                ATTR.set(mSpinGroup.mNode, 'rotateOrder', _jointOrientation)
+                
+                
+                mSpinGroup.parent = mIKGroup
+                mSpinGroup.doGroup(True,True,typeModifier='zero')
+                mSpinGroupAdd = mSpinGroup.doDuplicate()
+                
+                mSpinGroupAdd.doStore('cgmTypeModifier','addSpin')
+                mSpinGroupAdd.doName()
+                mSpinGroupAdd.p_parent = mSpinGroup
+                
+                #Setup arg
+                #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
+                #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
+ 
+                mSpinTarget = mIKControl
+                    
+                if mBlock.ikRPAim:
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpType = 'none')
+                else:
+                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpObject = mSpinTarget.mNode,
+                                     worldUpType = 'objectrotation', 
+                                     worldUpVector = self.v_twistUp)
+                
+                mPlug_spinMid = cgmMeta.cgmAttr(mSpinTarget,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
+                
+                if self.d_module['direction'].lower() == 'right':
+                    str_arg = "{0}.r{1} = -{2}".format(mSpinGroupAdd.mNode,
+                                                       _jointOrientation[0].lower(),
+                                                       mPlug_spinMid.p_combinedShortName)
+                    log.debug("|{0}| >> Right knee spin: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()
+                else:
+                    mPlug_spinMid.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
+                    
+                mSpinGroup.dagLock(True)
+                mSpinGroupAdd.dagLock(True)
+                
+                #>>> mBallRotationControl
                 mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
                 
                 if mIKBallRotationControl:
@@ -5220,11 +5282,17 @@ def rig_frame(self):
                     
                     mAimTarget = mIKControlBase
                         
-
+                    
+                    if self.d_module['direction'].lower() == 'left':
+                        v_aim = [0,0,1]
+                    else:
+                        v_aim = [0,0,-1]
+                        
+                        
                     mc.aimConstraint(mAimTarget.mNode, mLocAim.mNode, maintainOffset = True,
-                                     aimVector = [0,0,1], upVector = [0,-1,0], 
-                                     worldUpObject = mIKMid.mNode,
-                                     worldUpType = 'object', 
+                                     aimVector = v_aim, upVector = [0,1,0], 
+                                     worldUpObject = mSpinGroupAdd.mNode,
+                                     worldUpType = 'objectrotation', 
                                      worldUpVector = self.v_twistUp)
                     
 
@@ -5283,66 +5351,7 @@ def rig_frame(self):
                                         maintainOffset = True)
                 
                 
-                if ml_end_children:
-                    for mChild in ml_end_children:
-                        mChild.parent = mEnd                
-                
-                #mc.scaleConstraint([mIKControl.mNode],
-                #                    ml_ikJoints[self.int_handleEndIdx].mNode,
-                #                    maintainOffset = True)                
-                #if mIKBaseControl:
-                    #ml_ikJoints[0].parent = mRigNull.controlIKBase
-                
-                #if mIKBaseControl:
-                    #mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-                    
-                
-                #Make a spin group
-                mSpinGroup = mStart.doGroup(False,False,asMeta=True)
-                mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
-                mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
-                mSpinGroup.doName()
-                ATTR.set(mSpinGroup.mNode, 'rotateOrder', _jointOrientation)
-                
-                
-                mSpinGroup.parent = mIKGroup
-                mSpinGroup.doGroup(True,True,typeModifier='zero')
-                mSpinGroupAdd = mSpinGroup.doDuplicate()
-                
-                mSpinGroupAdd.doStore('cgmTypeModifier','addSpin')
-                mSpinGroupAdd.doName()
-                mSpinGroupAdd.p_parent = mSpinGroup
-                
-                #Setup arg
-                #mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
-                #mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
- 
-                mSpinTarget = mIKControl
-                    
-                if mBlock.ikRPAim:
-                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpType = 'none')
-                else:
-                    mc.aimConstraint(mSpinTarget.mNode, mSpinGroup.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mSpinTarget.mNode,
-                                     worldUpType = 'objectrotation', 
-                                     worldUpVector = self.v_twistUp)
-                
-                mPlug_spinMid = cgmMeta.cgmAttr(mSpinTarget,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
-                
-                if self.d_module['direction'].lower() == 'right':
-                    str_arg = "{0}.r{1} = -{2}".format(mSpinGroupAdd.mNode,
-                                                       _jointOrientation[0].lower(),
-                                                       mPlug_spinMid.p_combinedShortName)
-                    log.debug("|{0}| >> Right knee spin: {1}".format(_str_func,str_arg))        
-                    NODEFACTORY.argsToNodes(str_arg).doBuild()
-                else:
-                    mPlug_spinMid.doConnectOut("{0}.r{1}".format(mSpinGroupAdd.mNode,_jointOrientation[0]))
-                    
-                mSpinGroup.dagLock(True)
-                mSpinGroupAdd.dagLock(True)
+
                 
                 
                 #Mid IK driver -----------------------------------------------------------------------
