@@ -1568,10 +1568,14 @@ def skeleton_build(self, forceNew = True):
         #Build our handle chain ======================================================
         l_pos = []
         
-        if not self.hasEndJoint and not self.hasBallJoint and not self.hasQuadSetup:
-            if len(ml_jointHelpers) > (self.numControls + int(self.hasLeverJoint)):
-                log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
-                ml_jointHelpers = ml_jointHelpers[:-1]
+        if self.hasQuadSetup:
+            if not self.hasEndJoint and not self.hasBallJoint:
+                if len(ml_jointHelpers) > (self.numControls + int(self.hasLeverJoint)):
+                    log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
+                    ml_jointHelpers = ml_jointHelpers[:-1]
+        elif not self.hasEndJoint and not self.hasBallJoint:
+            log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
+            ml_jointHelpers = ml_jointHelpers[:-1]
         
         for mObj in ml_jointHelpers:
             l_pos.append(mObj.p_position)
@@ -6226,6 +6230,8 @@ def rig_pivotSetup(self):
         mBallIK = False
         b_realToe = False
         if _pivotSetup == 'foot':
+            log.debug("|{0}| >> foot ...".format(_str_func))
+            
             _mode = 'foot'
             
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
@@ -6251,23 +6257,20 @@ def rig_pivotSetup(self):
             _mode = 'default'
             
         
-        
-       
-        
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
          
         mBlock.atBlockUtils('pivots_setup',
                             mControl = mIKControl, 
                             mRigNull = mRigNull, 
                             pivotResult = mPivotResultDriver,
-                            mBallJoint= None,#mBallPivotJoint,
-                            mBallWiggleJoint = None,#mBallWiggleJoint,
+                            mBallJoint= mBallPivotJoint,
+                            mBallWiggleJoint = mBallWiggleJoint,
                             mToeJoint = mToeIK,
                             rollSetup = _mode,
                             #mDag = mIKHandleDriver,
                             front = 'front', back = 'back')#front, back to clear the toe, heel defaults
         
-        if _mode == 'foot' and not mBlock.hasQuadSetup and not self.b_quadFront:
+        if _mode == 'foot':#and not mBlock.hasQuadSetup and not self.b_quadFront:
             log.info("|{0}| >> foot ik".format(_str_func))
             
             #Create foot IK -----------------------------------------------------------------------------

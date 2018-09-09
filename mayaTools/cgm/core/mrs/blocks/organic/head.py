@@ -1541,7 +1541,7 @@ def rig_skeleton(self):
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
                 
                 
-            if mBlock.neckIK > 1:#...ribbon/spline
+            if mBlock.neckIK > 1 and mBlock.neckControls > 1:#...ribbon/spline
                 log.debug("|{0}| >> IK Drivers...".format(_str_func))            
                 ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
                 for i,mJnt in enumerate(ml_ribbonIKDrivers):
@@ -2600,6 +2600,8 @@ def rig_frame(self):
                 #ml_ikJoints[0].parent = mIKGroup            
                 if mIKBaseControl:
                     mc.pointConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)                
+                    
+                ml_rigJoints[0].masterGroup.p_parent = ml_handleParents[0]
                 
             else:
                 log.debug("|{0}| >> Neck IK | MultiControl...".format(_str_func))
