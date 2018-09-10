@@ -483,16 +483,16 @@ def define(self):
         
         
         #Aim Controls ==================================================================
-        _d = {'aim':{'color':'blueBright','defaults':{'tz':1}},
+        _d = {'end':{'color':'blueBright','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':1}},
               'clav':{'color':'purple','defaults':{'tz':-3.0}}}
         
         md_handles = {}
         ml_handles = []
         md_vector = {}
+        md_jointLabels = {}
         
-        
-        for k in ['aim','up']:
+        for k in ['end','up']:
             _dtmp = _d[k]
             #_crv = CURVES.create_text(k,size = _sizeSub)
             _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
@@ -504,7 +504,9 @@ def define(self):
             mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
             mHandle.p_parent = mDefineNull
             CORERIG.override_color(_crv, _dtmp['color'])
-            mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+            
+            if k not in ['end']:
+                mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
             
             mHandle.doStore('cgmName',self.mNode)
             mHandle.doStore('cgmTypeModifier',k)
@@ -521,6 +523,7 @@ def define(self):
                              worldUpObject = self.mNode,
                              worldUpType = 'object', 
                              worldUpVector = [0,1,0])
+            
             mHandle.resetAttrs('translate')
             for a,v in _dtmp['defaults'].iteritems():
                 ATTR.set(mHandle.mNode,a, _size * v)
@@ -530,14 +533,10 @@ def define(self):
             
             ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
             
-            if k == 'aim':
-                mc.transformLimits(mHandle.mNode,  tz = [.25,.25], etz = [1,0])
-                        #mTopLoft            
-            
             #Helper --------------------------------------------------------------------------------
             _crv = CORERIG.create_at(create='curveLinear', 
                                     l_pos=[[0,0,0],[0,0,_size * 2]], 
-                                    baseName='aim')
+                                    baseName='end')
             
             CORERIG.override_color(_crv, _dtmp['color'])
             mAim = cgmMeta.validateObjArg(_crv)
@@ -565,6 +564,7 @@ def define(self):
                              aimVector = [0,0,1], upVector = [0,0,0], 
                              worldUpType = 'none')
             
+            mArrow.doStore('mClass','cgmObject')            
             mArrow.doStore('cgmName',self.mNode)
             mArrow.doStore('cgmTypeModifier',k)
             mArrow.doStore('cgmType','vectorHelper')
@@ -576,7 +576,7 @@ def define(self):
             
             #Joint Label ---------------------------------------------------------------------------
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-            
+            md_jointLabels[k] = mJointLabel
             CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
             
             mJointLabel.p_parent = mHandle
@@ -595,13 +595,35 @@ def define(self):
             
             mJointLabel.dagLock()
             
+            self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
+            self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
             
+        
+        self.msgList_connect('defineHandles', ml_handles)
+        
         #Parent Up to aim ---------------------------------------------
-        if md_handles.get('up') and md_vector.get('aim'):
-            md_handles['up'].p_parent = md_vector['aim']
+        if md_handles.get('up') and md_vector.get('end'):
+            mFollowGroup =  md_handles['up'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            mUpTrack = md_handles['up'].doCreateAt()
+            mUpTrack.p_parent = md_vector['end']
+            mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            mFollowGroup.dagLock()
+            mUpTrack.dagLock()
+            
+        #If end -----------------------
+        if md_handles.get('end'):
+            mHandleFactory.color(md_handles['end'].mNode)
+            mHandleFactory.color(md_jointLabels['end'].mNode)
+            
+
+            mEndAimLoc = md_vector['end'].doCreateAt()
+            mEndAimLoc.p_parent = md_vector['end']
+            mEndAimLoc.resetAttrs()
+            ATTR.set(mEndAimLoc.mNode,'tz',-2 * _d['end']['defaults']['tz'])
+            mEndAimLoc.dagLock()
             
         #BaseSizeHandle -------------------------------------------------
-        _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
                                       direction = 'z+', size = _sizeSub * 2)
 
         mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
@@ -609,12 +631,12 @@ def define(self):
         mBaseSizeHandle.resetAttrs()
         mBaseSizeHandle.v = False
         
-        mc.aimConstraint(md_handles['aim'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
+        mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
                          aimVector = [0,0,1], upVector = [0,1,0], 
                          worldUpObject = md_handles['up'].mNode,
                          worldUpType = 'object', 
                          worldUpVector = [0,1,0])
-        md_handles['aim'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
         
         mBaseSizeHandle.doStore('cgmName',self.mNode)
         mBaseSizeHandle.doStore('cgmTypeModifier',k)
@@ -624,15 +646,18 @@ def define(self):
         mBaseSizeHandle.dagLock()
         
         #AimLoftHandle --------------------------------------------------
-        _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
                                       direction = 'z+', size = _sizeSub * 2)
   
         mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-        mEndSizeHandle.p_parent = md_handles['aim']
+        mEndSizeHandle.p_parent = mDefineNull
         mEndSizeHandle.resetAttrs()
         mEndSizeHandle.v = False
         
-        mc.aimConstraint(self.mNode, mEndSizeHandle.mNode, maintainOffset = False,
+        mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
+        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mEndSizeHandle.mNode))
+        
+        mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
                          aimVector = [0,0,-1], upVector = [0,1,0], 
                          worldUpObject = md_handles['up'].mNode,
                          worldUpType = 'object', 
@@ -645,24 +670,15 @@ def define(self):
         
         mEndSizeHandle.dagLock()        
         
+        
         # Loft ==============================================================================
         targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
-        
-        """
-            return {'targets':targets,
-                    'mPrerigNull' : mTemplateNull,
-                    'uAttr':'numControls',
-                    'uAttr2':'loftSplit',
-                    'polyType':'bezier',
-                    'baseName':self.cgmName}"""
     
-        self.atUtils('create_prerigLoftMesh',
+        self.atUtils('create_defineLoftMesh',
                      targets,
                      mDefineNull,
-                     'numControls',                     
-                     'loftSplit',
-                     polyType='bezier',
                      baseName = self.cgmName )
+        
         #for t in targets:
             #ATTR.set(t,'v',0)
         #mNoTransformNull.v = False        
@@ -672,7 +688,7 @@ def define(self):
         
         return
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
     #Plane helper ==================================================================
     plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),

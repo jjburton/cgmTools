@@ -1524,30 +1524,34 @@ class handleFactory(object):
             if ATTR.get(t,'cgmColorLock'):
                 log.info("|{0}| >> No recolor flag! {1}".format(_str_func,t))                        
                 continue
-                
-            if VALID.is_shape(t):
-                log.debug("|{0}| >> is shape: {1}".format(_str_func, t))                
-                _shapes = [t]
-            else:
-                _shapes = TRANS.shapes_get(t,True)
             
-            for s in _shapes:
-                log.debug("|{0}| >> s: {1}".format(_str_func, s))
-                _useType = _controlType
-                if controlType is not None:
-                    log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
-                    ATTR.store_info(s,'cgmControlType',controlType)
-                    
-                if transparent is not None and VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
-                    log.debug("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
-                    ATTR.store_info(s,'cgmControlTransparent',transparent)
-                    
-                if ATTR.has_attr(s,'cgmControlType'):
-                    _useType = ATTR.get(s,'cgmControlType')
-                    log.debug("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
-                log.debug("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
-                    
-                CORERIG.colorControl(s,_side,_useType,transparent = _transparent)
+            if VALID.get_mayaType(t) == 'joint':
+                CORERIG.colorControl(t,_side,_controlType,transparent = _transparent)
+                
+            else:
+                if VALID.is_shape(t):
+                    log.debug("|{0}| >> is shape: {1}".format(_str_func, t))                
+                    _shapes = [t]
+                else:
+                    _shapes = TRANS.shapes_get(t,True)
+                
+                for s in _shapes:
+                    log.debug("|{0}| >> s: {1}".format(_str_func, s))
+                    _useType = _controlType
+                    if controlType is not None:
+                        log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
+                        ATTR.store_info(s,'cgmControlType',controlType)
+                        
+                    if transparent is not None and VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                        log.debug("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
+                        ATTR.store_info(s,'cgmControlTransparent',transparent)
+                        
+                    if ATTR.has_attr(s,'cgmControlType'):
+                        _useType = ATTR.get(s,'cgmControlType')
+                        log.debug("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
+                    log.debug("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
+                        
+                    CORERIG.colorControl(s,_side,_useType,transparent = _transparent)
 
 
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):

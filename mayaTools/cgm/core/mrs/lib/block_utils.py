@@ -894,7 +894,79 @@ def get_castMesh(self):
     return mCastMesh
 
     
+def create_defineLoftMesh(self, targets = None,
+                          mNull = None,
+                          polyType = 'mesh',
+                          baseName = 'test'):
+    try:
+        _str_func = 'create_prerigLoftMesh'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        _short = self.mNode
+        _side = 'center'
+        _rebuildNode = None
+        _loftNode = None
+        
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')  
+                
+        log.debug("|{0}| >> Creating: {1}".format(_str_func,polyType))
+        
+        
+                
+        _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False)
+        mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
+        _loftNode = _res_body[1]
+        _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+        _rebuildNode = _inputs[0]            
+        mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+        
+        _d = {'keepCorners':False}#General}
+        
+            
+        mLoftSurface.overrideEnabled = 1
+        mLoftSurface.overrideDisplayType = 2
+        
+        mLoftSurface.p_parent = mNull
+        mLoftSurface.resetAttrs()
     
+        mLoftSurface.doStore('cgmName',self.mNode)
+        mLoftSurface.doStore('cgmType','shapeApprox')
+        mLoftSurface.doName()
+        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
+    
+        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+        #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
+    
+        #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    
+        #Color our stuff...
+        log.debug("|{0}| >> Color...".format(_str_func))        
+        RIGGING.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+    
+        mLoftSurface.inheritsTransform = 0
+        for s in mLoftSurface.getShapes(asMeta=True):
+            s.overrideDisplayType = 2    
+
+        toName = [_rebuildNode,_loftNode]
+
+            
+        if _rebuildNode:
+            mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
+            if _loftNode:
+                mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
+
+        for n in toName:
+            mObj = cgmMeta.validateObjArg(n)
+            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmTypeModifier','prerigMesh')
+            mObj.doName()                        
+       
+        self.connectChildNode(mLoftSurface.mNode, 'defineLoftMesh', 'block')
+        
+        return mLoftSurface
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def create_prerigLoftMesh(self, targets = None,
                           mPrerigNull = None,
                           uAttr = 'neckControls',
@@ -3615,7 +3687,7 @@ def get_blockDagNodes(self,):
         
         ml_controls = controls_get(self)
                 
-        for a in ['proxyHelper','prerigLoftMesh','jointLoftMesh']:
+        for a in ['proxyHelper','defineLoftMesh','prerigLoftMesh','jointLoftMesh']:
             if self.getMessage(a):
                 ml_controls.extend(self.getMessage(a,asMeta=True))
                 
@@ -3661,6 +3733,11 @@ def controls_get(self,template = False, prerig= False):
         
         #if self.getMessage('orientHelper'):
             #ml_controls.append(self.orientHelper)
+        ml_handles = self.msgList_get('defineHandles',asMeta=True)
+        if ml_handles:
+            log.debug("|{0}| >> define dat found...".format(_str_func))            
+            for mObj in ml_handles:
+                addMObj(mObj)
             
         if template:
             log.debug("|{0}| >> template pass...".format(_str_func))            
