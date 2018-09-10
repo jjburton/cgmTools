@@ -432,51 +432,290 @@ d_defaultSettings = {'version':__version__,
 #>> Define
 #=============================================================================================================
 def define(self):
-    _str_func = 'define'    
-    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
-    log.debug(self)
+    try:
+        _str_func = 'define'    
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        log.debug(self)
+        
+        _short = self.mNode
+        ATTR.set_min(_short, 'numControls', 2)
+        ATTR.set_min(_short, 'numRoll', 0)
+        ATTR.set_min(_short, 'loftSides', 3)
+        ATTR.set_min(_short, 'loftSplit', 1)
+        ATTR.set_min(_short, 'numShapers', 1)
+        
+        ATTR.set_alias(_short,'sy','blockScale')    
+        self.setAttrFlags(attrs=['sx','sz','sz'])
+        self.doConnectOut('sy',['sx','sz'])    
+        
+        _shapes = self.getShapes()
+        if _shapes:
+            log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
+            mc.delete(_shapes)
+            defineNull = self.getMessage('defineNull')
+            if defineNull:
+                log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+                mc.delete(defineNull)
+                
+                
+        _size = (self.atUtils('get_shapeOffset') or 1.0) * 2
+        _sizeSub = _size / 2.0
+        _crv = CURVES.create_fromName(name='locatorForm',
+                                      direction = 'z+', size = _size * .5)
+        SNAP.go(_crv,self.mNode,)    
+        CORERIG.override_color(_crv, 'black')        
+        CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+        
+        mHandleFactory = self.asHandleFactory()
+        
+        self.addAttr('cgmColorLock',True,lock=True,visible=False)
     
-    _short = self.mNode
-    ATTR.set_min(_short, 'numControls', 2)
-    ATTR.set_min(_short, 'numRoll', 0)
-    ATTR.set_min(_short, 'loftSides', 3)
-    ATTR.set_min(_short, 'loftSplit', 1)
-    ATTR.set_min(_short, 'numShapers', 1)
+        
+        mDefineNull = self.atUtils('stateNull_verify','define')    
+        
+        #Rotate Group ==================================================================
+        mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,
+                                                                  asMeta=True,
+                                                                  typeModifier = 'rotate'),
+                                              'cgmObject',
+                                              setClass=True)
+        mRotateGroup.p_parent = mDefineNull
+        
+        
+        #Aim Controls ==================================================================
+        _d = {'aim':{'color':'blueBright','defaults':{'tz':1}},
+              'up':{'color':'greenBright','defaults':{'ty':1}},
+              'clav':{'color':'purple','defaults':{'tz':-3.0}}}
+        
+        md_handles = {}
+        ml_handles = []
+        md_vector = {}
+        
+        
+        for k in ['aim','up']:
+            _dtmp = _d[k]
+            #_crv = CURVES.create_text(k,size = _sizeSub)
+            _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+                                          direction = 'z+', size = _sizeSub * 2)
+            #CORERIG.shapeParent_in_place(_crv,_circle,False)
+
+            #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+            #                              direction = 'z+', size = _sizeSub)
+            mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+            mHandle.p_parent = mDefineNull
+            CORERIG.override_color(_crv, _dtmp['color'])
+            mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+            
+            mHandle.doStore('cgmName',self.mNode)
+            mHandle.doStore('cgmTypeModifier',k)
+            mHandle.doStore('cgmType','defineHandle')
+            mHandle.doName()
+            
+            mHandle.resetAttrs()
+            
+            #Move for initial aim ----------------------------------------------------------------------
+            ATTR.set(mHandle.mNode,'tz', _size * 5)
+            
+            mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                             worldUpObject = self.mNode,
+                             worldUpType = 'object', 
+                             worldUpVector = [0,1,0])
+            mHandle.resetAttrs('translate')
+            for a,v in _dtmp['defaults'].iteritems():
+                ATTR.set(mHandle.mNode,a, _size * v)
+                
+            md_handles[k] = mHandle
+            ml_handles.append(mHandle)        
+            
+            ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
+            
+            if k == 'aim':
+                mc.transformLimits(mHandle.mNode,  tz = [.25,.25], etz = [1,0])
+                        #mTopLoft            
+            
+            #Helper --------------------------------------------------------------------------------
+            _crv = CORERIG.create_at(create='curveLinear', 
+                                    l_pos=[[0,0,0],[0,0,_size * 2]], 
+                                    baseName='aim')
+            
+            CORERIG.override_color(_crv, _dtmp['color'])
+            mAim = cgmMeta.validateObjArg(_crv)
+            mAim.p_parent = mDefineNull
+            mAim.resetAttrs()
+            
+            mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [0,0,0], 
+                             worldUpType = 'none')
+            mAim.dagLock(True)
+            
+            #Arrow ---------------------------------------------
+            _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                            direction = 'z+', size = _sizeSub)
+            CORERIG.override_color(_arrow, _dtmp['color'])
+        
+            mArrow = cgmMeta.cgmObject(_arrow)
+            mArrow.p_parent = mDefineNull
+            mArrow.resetAttrs()
+            mArrow.tz = _sizeSub
+        
+            CORERIG.copy_pivot(mArrow.mNode,self.mNode)
+        
+            mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [0,0,0], 
+                             worldUpType = 'none')
+            
+            mArrow.doStore('cgmName',self.mNode)
+            mArrow.doStore('cgmTypeModifier',k)
+            mArrow.doStore('cgmType','vectorHelper')
+            mArrow.doName()
+            
+            mArrow.dagLock()
+            
+            md_vector[k] = mArrow
+            
+            #Joint Label ---------------------------------------------------------------------------
+            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+            
+            CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
+            
+            mJointLabel.p_parent = mHandle
+            mJointLabel.resetAttrs()
+            
+            mJointLabel.radius = 0
+            mJointLabel.side = 0
+            mJointLabel.type = 18
+            mJointLabel.drawLabel = 1
+            mJointLabel.otherType = k
+            
+            mJointLabel.doStore('cgmName',self.mNode)
+            mJointLabel.doStore('cgmTypeModifier',k)
+            mJointLabel.doStore('cgmType','jointLabel')
+            mJointLabel.doName()            
+            
+            mJointLabel.dagLock()
+            
+            
+        #Parent Up to aim ---------------------------------------------
+        if md_handles.get('up') and md_vector.get('aim'):
+            md_handles['up'].p_parent = md_vector['aim']
+            
+        #BaseSizeHandle -------------------------------------------------
+        _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+                                      direction = 'z+', size = _sizeSub * 2)
+
+        mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+        mBaseSizeHandle.p_parent = mDefineNull
+        mBaseSizeHandle.resetAttrs()
+        mBaseSizeHandle.v = False
+        
+        mc.aimConstraint(md_handles['aim'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
+                         aimVector = [0,0,1], upVector = [0,1,0], 
+                         worldUpObject = md_handles['up'].mNode,
+                         worldUpType = 'object', 
+                         worldUpVector = [0,1,0])
+        md_handles['aim'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+        
+        mBaseSizeHandle.doStore('cgmName',self.mNode)
+        mBaseSizeHandle.doStore('cgmTypeModifier',k)
+        mBaseSizeHandle.doStore('cgmType','baseSizeBase')
+        mBaseSizeHandle.doName()                    
+        
+        mBaseSizeHandle.dagLock()
+        
+        #AimLoftHandle --------------------------------------------------
+        _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+                                      direction = 'z+', size = _sizeSub * 2)
+  
+        mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+        mEndSizeHandle.p_parent = md_handles['aim']
+        mEndSizeHandle.resetAttrs()
+        mEndSizeHandle.v = False
+        
+        mc.aimConstraint(self.mNode, mEndSizeHandle.mNode, maintainOffset = False,
+                         aimVector = [0,0,-1], upVector = [0,1,0], 
+                         worldUpObject = md_handles['up'].mNode,
+                         worldUpType = 'object', 
+                         worldUpVector = [0,1,0])
+        
+        mEndSizeHandle.doStore('cgmName',self.mNode)
+        mEndSizeHandle.doStore('cgmTypeModifier',k)
+        mEndSizeHandle.doStore('cgmType','endSizeBase')
+        mEndSizeHandle.doName()                    
+        
+        mEndSizeHandle.dagLock()        
+        
+        # Loft ==============================================================================
+        targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
+        
+        """
+            return {'targets':targets,
+                    'mPrerigNull' : mTemplateNull,
+                    'uAttr':'numControls',
+                    'uAttr2':'loftSplit',
+                    'polyType':'bezier',
+                    'baseName':self.cgmName}"""
     
-    ATTR.set_alias(_short,'sy','blockScale')    
-    self.setAttrFlags(attrs=['sx','sz','sz'])
-    self.doConnectOut('sy',['sx','sz'])    
+        self.atUtils('create_prerigLoftMesh',
+                     targets,
+                     mDefineNull,
+                     'numControls',                     
+                     'loftSplit',
+                     polyType='bezier',
+                     baseName = self.cgmName )
+        #for t in targets:
+            #ATTR.set(t,'v',0)
+        #mNoTransformNull.v = False        
+        
+        
+        
+        
+        return
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
+        
+    #Plane helper ==================================================================
+    plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),
+                          width = 1, #height = 1,
+                          #subdivisionsX=10,subdivisionsY=10,
+                          ch=1)
+    mPlane = cgmMeta.validateObjArg(plane[0])
+    mPlane.doSnapTo(self.mNode)
+    mPlane.p_parent = mRotateGroup
+    mPlane.tz = .5
+    CORERIG.copy_pivot(mPlane.mNode,self.mNode)
+    mPlane.rz = 90
+
+    #self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
+
+    mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
+
+    mPlane.doStore('cgmName', self.mNode)
+    mPlane.doStore('cgmType','planeVisualize')
+    mPlane.doName() 
+    
+    #mPlane.setAttrFlags()
+    
+    
+    """mAimGroup = mPlane.doGroup(True,True,asMeta=True,typeModifier = 'aim')
+    mAimGroup.resetAttrs()
+    """
+    mc.aimConstraint(md_handles['aim'].mNode, mRotateGroup.mNode, maintainOffset = False,
+                     aimVector = [0,0,1], upVector = [1,0,0], 
+                     worldUpObject = md_handles['plane'].mNode,
+                     worldUpType = 'object', 
+                     worldUpVector = [0,1,0])    
+
+    
+    
+    
+    #Lock downs...
+    mRotateGroup.setAttrFlags()
+    
+    return
+
     
 
-    _shapes = self.getShapes()
-    if _shapes:
-        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
-        mc.delete(_shapes)
-        defineNull = self.getMessage('defineNull')
-        if defineNull:
-            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
-            mc.delete(defineNull)
-    
-    _size = MATH.average(self.baseSize[:-1])
-    _crv = CURVES.create_fromName(name='axis3d',#'arrowsAxis', 
-                                  direction = 'z+', size = _size/2.5)
-    SNAP.go(_crv,self.mNode,)    
-    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-    
-    mHandleFactory = self.asHandleFactory()
-    self.addAttr('cgmColorLock',True,lock=True,visible=False)
-    #self.addAttr('cgmNoRecolor',True,lock=True,visible=False)
-    
-    #mHandleFactory.color(self.mNode,controlType='main')
-    #CORERIG.colorControl(self.mNode,_side,'main',transparent = True)
-    
-    mDefineNull = self.atUtils('stateNull_verify','define')
-    
-    #Rotate Group ==================================================================
-    mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
-                                          'cgmObject',setClass=True)
-    mRotateGroup.p_parent = mDefineNull
-    mRotateGroup.setAttrFlags()    
     
     #Bounding box ==================================================================
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')

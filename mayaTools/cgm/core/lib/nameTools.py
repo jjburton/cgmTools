@@ -245,12 +245,17 @@ def get_objNameDict(obj,ignore=[False]):
         ChildNameObj = False
         
         nameObj = False
-        #nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
-        #if nameObj:
-            #nameObj = nameObj
-            #log.debug("nameObj: {0}".format(nameObj))
-            #namesDict['cgmName'] = nameObj
-            
+        nameObj = ATTR.get_message(obj,'cgmName')#SEARCH.get_nodeTagInfo(obj,'cgmName')
+        if nameObj:
+            nameObj = nameObj[0]
+            nameObjDict = get_objNameDict(nameObj)
+            for k in 'cgmDirection','test':
+                if nameObjDict.get(k) and namesDict.get(k):
+                    namesDict.pop(k)
+            log.info("nameObj: {0}".format(nameObj))
+            namesDict['cgmName'] = nameObj
+            return namesDict
+        
         typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
         isType = SEARCH.VALID.get_mayaType(obj)
         isShape = SEARCH.VALID.is_shape(obj)
