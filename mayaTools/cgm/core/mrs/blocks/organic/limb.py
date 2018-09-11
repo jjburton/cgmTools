@@ -2918,19 +2918,22 @@ def rig_digitShapes(self):
         if self.b_lever:            
             log.debug("|{0}| >> Lever...".format(_str_func))
             
-            mLeverRigJnt = mRigNull.getMessageAsMeta('leverDirect')
-                
-            mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
-            log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
-            log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
+            
+            mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+            if not mLeverControlJoint:
+                mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+            else:
+                mLeverControlJoint = mLeverControlJoint[0]
+            log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
+            
     
             dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
                                                           ml_prerigHandles[1].p_position)
             log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
     
             #Dup our rig joint and move it 
-            mDup = mLeverRigJnt.doDuplicate(po=True)
-            mDup.p_parent = mLeverRigJnt
+            mDup = mLeverControlJoint.doDuplicate(po=True)
+            mDup.p_parent = mLeverControlJoint
             mDup.resetAttrs()
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
     
@@ -2959,11 +2962,11 @@ def rig_digitShapes(self):
                 line = mc.curve (d=1, ep = [p_start,p_end], os=True)
                 l_lolis.extend([ball,line])
         
-            CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,l_lolis,False)
+            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,l_lolis,False)
             
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)            
             ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
-                                                       targets= [mLeverRigJnt.mNode,
+                                                       targets= [mLeverControlJoint.mNode,
                                                                  #ml_fkJoints[0].mNode],
                                                                   mDup.mNode],
                                                              aimVector= self.d_orientation['vectorOut'],
@@ -2971,10 +2974,10 @@ def rig_digitShapes(self):
                                                              f_factor=0,
                                                              offset=_offset,
                                                              mode = 'frameHandle')
-            CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,
+            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,
                                          ml_clavShapes[0].mNode,
                                          False,replaceShapes=False)            
-            mHandleFactory.color(mLeverFKJnt.mNode, controlType = 'main')
+            mHandleFactory.color(mLeverControlJoint.mNode, controlType = 'main')
             mDup.delete()
             for mShape in ml_clavShapes:
                 try:mShape.delete()
