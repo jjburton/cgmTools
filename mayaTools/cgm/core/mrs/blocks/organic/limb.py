@@ -52,6 +52,7 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
+import cgm.core.rig.create_utils as RIGCREATE
 reload(NAMETOOLS)
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
@@ -462,16 +463,15 @@ def define(self):
         _sizeSub = _size / 2.0
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size * .5)
-        SNAP.go(_crv,self.mNode,)    
-        CORERIG.override_color(_crv, 'black')        
+        
+        SNAP.go(_crv,self.mNode,)
+        CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        
         mHandleFactory = self.asHandleFactory()
-        
         self.addAttr('cgmColorLock',True,lock=True,visible=False)
-    
+        mDefineNull = self.atUtils('stateNull_verify','define')
         
-        mDefineNull = self.atUtils('stateNull_verify','define')    
+        
         
         #Rotate Group ==================================================================
         mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,
@@ -608,6 +608,10 @@ def define(self):
             
             mJointLabel.dagLock()
             
+            mJointLabel.overrideEnabled = 1
+            mJointLabel.overrideDisplayType = 2
+            
+            
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
             self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
             
@@ -629,11 +633,16 @@ def define(self):
             mHandleFactory.color(md_jointLabels['end'].mNode)
             
 
-            mEndAimLoc = md_vector['end'].doCreateAt()
+            mEndAimLoc = self.doCreateAt()
             mEndAimLoc.p_parent = md_vector['end']
             mEndAimLoc.resetAttrs()
             ATTR.set(mEndAimLoc.mNode,'tz',-2 * _d['end']['defaults']['tz'])
             mEndAimLoc.dagLock()
+            
+            #Measure height/width -----------------------
+            
+            
+            
             
         #BaseSizeHandle -------------------------------------------------
         _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
@@ -681,7 +690,40 @@ def define(self):
         mEndSizeHandle.doStore('cgmType','endSizeBase')
         mEndSizeHandle.doName()                    
         
-        mEndSizeHandle.dagLock()        
+        mEndSizeHandle.dagLock()
+        
+        #measure height/width ----------------------------------------------------------------
+        d_measure = {'height':'ty',
+                     'width':'tx'}
+        for k,d in d_measure.iteritems():
+            mPos = mEndSizeHandle.doLoc()
+            mNeg = mEndSizeHandle.doLoc()
+            
+            mPos.rename("{0}_{1}_pos_loc".format(self.p_nameBase,k))
+            mNeg.rename("{0}_{1}_neg_loc".format(self.p_nameBase,k))
+            
+            for mObj in mPos,mNeg:
+                mObj.p_parent = mEndSizeHandle
+            
+            ATTR.set(mPos.mNode,d,1.0)
+            ATTR.set(mNeg.mNode,d,-1.0)
+            
+            for mObj in mPos,mNeg:
+                mObj.v=False
+                mObj.dagLock()
+                
+            buffer =  RIGCREATE.distanceMeasure(mPos.mNode,mNeg.mNode,
+                                                baseName="{0}_{1}".format(self.p_nameBase,k))
+            buffer['mDag'].p_parent = mDefineNull
+            ATTR.copy_to(buffer['mShape'].mNode,'distance',md_handles['end'].mNode,k,driven='target')
+            ATTR.set_standardFlags(md_handles['end'].mNode,
+                                   attrs=[k],visible=True,keyable=False,lock=True)
+            
+            buffer['mShape'].overrideEnabled = 1
+            buffer['mShape'].overrideDisplayType = 2                    
+            
+            #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
+
         
         
         # Loft ==============================================================================
@@ -853,62 +895,67 @@ def template(self):
     
     self.defineNull.template = True
     
+    
     ATTR.datList_connect(self.mNode, 'rollCount', [self.numRoll for i in range(self.numControls - 1)])
     l_rollattrs = ATTR.datList_getAttrs(self.mNode,'rollCount')
     for a in l_rollattrs:
         ATTR.set_standardFlags(self.mNode, l_rollattrs, lock=False,visible=True,keyable=True)
     
+    
     #Initial checks =====================================================================================
+    log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)
     _short = self.p_nameShort
     _side = self.UTILS.get_side(self)
         
     _l_basePosRaw = self.datList_get('basePos') or [(0,0,0)]
     _l_basePos = [self.p_position]
-    _baseUp = self.baseUp
-    _baseSize = self.baseSize
-    _baseAim = self.baseAim
+    
+    #_baseUp = self.baseUp
+    #_baseSize = self.baseSize
+    #_baseAim = self.baseAim
     
     _ikSetup = self.getEnumValueString('ikSetup')
     _ikEnd = self.getEnumValueString('ikEnd')
-    
-    if MATH.is_vector_equivalent(_baseAim,_baseUp):
-        raise ValueError,"baseAim and baseUp cannot be the same. baseAim: {0} | baseUp: {1}".format(self.baseAim,self.baseUp)
-    
     _loftSetup = self.getEnumValueString('loftSetup')
             
     if _loftSetup not in ['default']:
         return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))    
     
     #Get base dat =====================================================================================    
-    #Old method...
-    """
-    _mVectorAim = MATH.get_vector_of_two_points(_l_basePos[0],_l_basePos[-1],asEuclid=True)
-    _mVectorUp = _mVectorAim.up()
-    _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
-    """
-    _mVectorAim = MATH.get_obj_vector(self.rootUpHelper.mNode,asEuclid=True)
-    mRootUpHelper = self.rootUpHelper
-    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
+    log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
     
-    mBBHelper = self.bbHelper
-    _v_range = max(TRANS.bbSize_get(self.mNode)) *2
-    _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
+    #Old method...
+    mRootUpHelper = self.vectorUpHelper    
+    _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+    mDefineEndObj = self.defineEndHelper
+    mDefineUpObj = self.defineUpHelper
+
+    mDefineLoftMesh = self.defineLoftMesh
+    _v_range = DIST.get_distance_between_points(self.p_position,
+                                                mDefineEndObj.p_position)
+    _bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
     _size_width = _bb_axisBox[0]#...x width
     log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
-                                                                                     mBBHelper.p_nameShort,
+                                                                                     mDefineLoftMesh.p_nameShort,
                                                                                      _v_range))
-    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _bb_axisBox[2])
+    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
     _l_basePos.append(_end)
     
     #for i,p in enumerate(_l_basePos):
     #    LOC.create(position=p,name="{0}_loc".format(i))
     
-    mBBHelper.v = False
+    #Hide define stuff ---------------------------------------------
+    log.debug("|{0}| >> define stuff...".format(_str_func)+ '-'*40)
     
-    cgmGEN.func_snapShot(vars())
-    
+    #mDefineLoftMesh.v = False
+    mDefineUpObj.v = False
+    mDefineEndObj.v=False
+
     
     #Create temple Null ==================================================================================
+    log.debug("|{0}| >> nulls...".format(_str_func)+ '-'*40)
+    
     #mTemplateNull = self.atUtils('templateNull_verify')
     mTemplateNull = self.UTILS.stateNull_verify(self,'template')
     mNoTransformNull = self.atUtils('noTransformNull_verify','template')
@@ -916,7 +963,8 @@ def template(self):
     #Our main rigBlock shape ...
     mHandleFactory = self.asHandleFactory()
     
-
+    cgmGEN.func_snapShot(vars())
+    return
     
     #Lever ==================================================================================================
     _b_lever = False
