@@ -936,8 +936,9 @@ def template(self):
     mDefineLoftMesh = self.defineLoftMesh
     _v_range = DIST.get_distance_between_points(self.p_position,
                                                 mDefineEndObj.p_position)
-    _bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
-    _size_width = _bb_axisBox[0]#...x width
+    #_bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
+    _size_width = mDefineEndObj.width#...x width
+    _size_height = mDefineEndObj.height#
     log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
                                                                                      mDefineLoftMesh.p_nameShort,
                                                                                      _v_range))
@@ -966,7 +967,7 @@ def template(self):
     mHandleFactory = self.asHandleFactory()
     
     cgmGEN.func_snapShot(vars())
-    return
+    
     
     #Lever ==================================================================================================
     _b_lever = False
