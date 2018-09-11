@@ -3300,18 +3300,20 @@ def rig_shapes(self):
             #Lever =============================================================================
             if self.b_lever:
                 log.debug("|{0}| >> Lever...".format(_str_func))
-                mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)[0]
-                mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
-                log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
-                log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
+                mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+                if not mLeverControlJoint:
+                    mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+                else:
+                    mLeverControlJoint = mLeverControlJoint[0]
+                log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
                 
                 dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
                                                               ml_prerigHandles[1].p_position)
                 log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
                 
                 #Dup our rig joint and move it 
-                mDup = mLeverRigJnt.doDuplicate()
-                mDup.p_parent = mLeverRigJnt
+                mDup = mLeverControlJoint.doDuplicate()
+                mDup.p_parent = mLeverControlJoint
                 
                 mDup.resetAttrs()
                 ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
@@ -3329,8 +3331,8 @@ def rig_shapes(self):
                                                                  mode = 'frameHandle')
                 
                 mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mLeverRigJnt.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
-                CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+                #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
                 
                 mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
                 
