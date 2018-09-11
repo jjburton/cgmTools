@@ -41,6 +41,16 @@ __toolname__ ='mocapBakeTool'
 
 _subLineBGC = [.75,.75,.75]
 
+class objectAlias(object):
+    item = None
+    alias = None
+    mobj = None
+
+    def __init__(self, init_item, init_alias, init_mobj):
+        item = init_item
+        alias = init_alias
+        mobj = init_mobj
+
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = '{0}_ui'.format(__toolname__)    
@@ -91,6 +101,8 @@ class ui(cgmUI.cgmGUI):
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         
     def build_layoutWrapper(self,parent):
+
+
         _str_func = 'build_layoutWrapper'
         #self._d_uiCheckBoxes = {}
     
@@ -118,15 +130,21 @@ class ui(cgmUI.cgmGUI):
 
         _parent_form = mUI.MelFormLayout(_parent_frame,ut='cgmUITemplate')
         
-        _parent_source = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=uiFunc_button_command1)
-        _parent_target = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=uiFunc_button_command2)
+        _parent_source = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=self.uiFunc_add_to_parent_source)
+        _parent_target = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=self.uiFunc_add_to_parent_target)
         
+        self.parent_source_scroll = _parent_source[1]
+        self.parent_target_scroll = _parent_target[1]
+
         self.splitFormHorizontal(_parent_form, _parent_source[0], _parent_target[0])
 
         _orient_form = mUI.MelFormLayout(_orient_frame,ut='cgmUITemplate')
         
-        _orient_source = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=uiFunc_button_command1)
-        _orient_target = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=uiFunc_button_command1)
+        _orient_source = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=self.uiFunc_add_to_orient_source)
+        _orient_target = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=self.uiFunc_add_to_orient_target)
+
+        self.orient_source_scroll = _orient_source[1]
+        self.orient_target_scroll = _orient_target[1]
         
         self.splitFormHorizontal(_orient_form, _orient_source[0], _orient_target[0])
 
@@ -256,14 +274,14 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=5)
 
 
-
+        '''
         cgmUI.add_Button(_inside,'<<',
                  cgmGEN.Callback(uiFunc_load_selected,self),
                  "Load first selected object.") 
         cgmUI.add_Button(_inside,'<<',
                  cgmGEN.Callback(uiFunc_load_selected,self),
                  "Load first selected object.") 
-
+        
         _row_objLoad2 = mUI.MelHRowLayout(_inside,ut='cgmUITemplate',padding = 5)
 
         cgmUI.add_Button(_row_objLoad2,'<<',
@@ -273,21 +291,50 @@ class ui(cgmUI.cgmGUI):
                  cgmGEN.Callback(uiFunc_load_selected,self),
                  "Load first selected object.") 
         #mUI.MelSpacer(_row_objLoad,w=10)
-
+        
+        '''
         _row.layout()
-        _row_objLoad2.layout()
+        
+        #_row_objLoad2.layout()
+        
+
         #uiFunc_load_selected(self)
 
         return _inside
 
-    def uiFunc_link_by_name(self):
+    def uiFunc_link_by_name(self, *args):
         print "Linking by name"
 
-    def uiFunc_link_by_distance(self):
+    def uiFunc_link_by_distance(self, *args):
         print "Linking by distance"
 
-    def uiFunc_add_selected_to_list(self):
+    def uiFunc_add_selected_to_list(self, *args):
         print "Button1"
+
+    def uiFunc_add_to_parent_source(self, *args):
+        current_items = self.parent_source_scroll.getItems()
+        current_items += mc.ls(sl=True)
+
+        self.parent_source_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+
+    def uiFunc_add_to_parent_target(self, *args):
+        current_items = self.parent_target_scroll.getItems()
+        current_items += mc.ls(sl=True)
+
+        self.parent_target_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+
+    def uiFunc_add_to_orient_source(self, *args):
+        current_items = self.orient_source_scroll.getItems()
+        current_items += mc.ls(sl=True)
+
+        self.orient_source_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+
+    def uiFunc_add_to_orient_target(self, *args):
+        current_items = self.orient_target_scroll.getItems()
+        current_items += mc.ls(sl=True)
+
+        self.orient_target_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+
 
 '''
 def uiFunc_load_selected(self, bypassAttrCheck = False):
