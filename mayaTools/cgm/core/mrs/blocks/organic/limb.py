@@ -943,7 +943,11 @@ def template(self):
                                                                                      mDefineLoftMesh.p_nameShort,
                                                                                      _v_range))
     _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
+    _size_length = DIST.get_distance_between_points(self.p_position, _end)
+    
+    self.baseSize = [_size_length,_size_height,_size_width]
     _l_basePos.append(_end)
+    log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
     
     #for i,p in enumerate(_l_basePos):
     #    LOC.create(position=p,name="{0}_loc".format(i))
@@ -965,8 +969,6 @@ def template(self):
     
     #Our main rigBlock shape ...
     mHandleFactory = self.asHandleFactory()
-    
-    cgmGEN.func_snapShot(vars())
     
     
     #Lever ==================================================================================================
@@ -1011,11 +1013,12 @@ def template(self):
             _vec_AimNeg = MATH.get_obj_vector(self.mNode,'z-')
             
             log.debug("|{0}| >> VecAimNeg: {1} ".format(_str_func,_vec_AimNeg))
-            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _bb_axisBox[2]*.3)
+            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _size_width*.3)
             
         log.debug("|{0}| >> pos_lever: {1} ".format(_str_func,pos_lever))
         #LOC.create(position=pos_lever, name='lever_pos_loc')
     
+    cgmGEN.func_snapShot(vars())
     
     
     #Root handles ===========================================================================================
@@ -1035,7 +1038,7 @@ def template(self):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
             mHandle = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
             mHandle.p_parent = mTemplateNull
-            
+            return
             mHandle.resetAttrs()
             
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1063,7 +1066,7 @@ def template(self):
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
 
-        
+        return
         #>> Base Orient Helper =================================================================================
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
