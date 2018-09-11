@@ -1887,7 +1887,7 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, extendToStart = True):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, ballPosition = 'joint', extendToStart = True):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1896,6 +1896,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         
         mRigNull = self.mRigNull
         ml_shapes = []
+        
+        _offset = self.mBlock.atUtils('get_shapeOffset') or .25
         
         if aimVector is None:
             aimVector = self.d_orientation['mOrientation'].p_out.p_string
@@ -2037,20 +2039,35 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             log.debug("|{0}| >> mesh created...".format(_str_func))                            
             RIGGING.match_transform(_mesh,ml_targets[i])
             mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))                                
                 RIGGING.match_transform(_loftCurves[0],ml_targets[i])
                 TRANS.pivots_recenter(_loftCurves[0])
                 
-                _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
-                _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
-                _size = [v*.8 for v in _size]
-                _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
-                TRANS.scale_to_boundingBox(_sphere[0], _size)
                 
-                SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+
                 #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
-                SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+                if ballPosition == 'joint':
+                    p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0],loc=True)[0]
+                    p1 = ml_targets[i].p_position
+                    d1 = DIST.get_distance_between_points(p1,p2)
+                    d_offset = d1 - _offset
+                    log.info("{0} : {1}".format(d1,d_offset))
+                    _sphere = mc.polySphere(axis = [1,0,0],
+                                            radius = d_offset,
+                                            subdivisionsX = 10,
+                                            subdivisionsY = 10)                    
+                    SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
+                    
+                else:
+                    _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)                    
+                    _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
+                    _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
+                    _size = [v*.8 for v in _size]
+                    SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+                    TRANS.scale_to_boundingBox(_sphere[0], _size)
+                    SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
                 
                 _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
                 #mc.polyNormal(_mesh,setUserNormal = True)
