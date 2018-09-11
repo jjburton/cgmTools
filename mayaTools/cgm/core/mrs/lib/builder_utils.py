@@ -2052,10 +2052,10 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0],loc=True)[0]
                     p1 = ml_targets[i].p_position
                     d1 = DIST.get_distance_between_points(p1,p2)
-                    d_offset = d1 - _offset
-                    log.info("{0} : {1}".format(d1,d_offset))
+                    #d_offset = d1 - _offset
+                    #log.info("{0} : {1}".format(d1,d_offset))
                     _sphere = mc.polySphere(axis = [1,0,0],
-                                            radius = d_offset,
+                                            radius = d1,
                                             subdivisionsX = 10,
                                             subdivisionsY = 10)                    
                     SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
