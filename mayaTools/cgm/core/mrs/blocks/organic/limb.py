@@ -328,8 +328,8 @@ d_block_profiles = {
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
                    'position',
-                   'baseUp',
-                   'baseAim',
+                   #'baseUp',
+                   #'baseAim',
                    'addCog',
                    'nameList',
                    #'namesHandles',
@@ -517,12 +517,12 @@ def define(self):
             
             #Move for initial aim ----------------------------------------------------------------------
             ATTR.set(mHandle.mNode,'tz', _size * 5)
-            
+            """
             mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], 
                              worldUpObject = self.mNode,
                              worldUpType = 'object', 
-                             worldUpVector = [0,1,0])
+                             worldUpVector = [0,1,0])"""
             
             mHandle.resetAttrs('translate')
             for a,v in _dtmp['defaults'].iteritems():
@@ -534,8 +534,9 @@ def define(self):
             ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
             
             #Helper --------------------------------------------------------------------------------
+            
             _crv = CORERIG.create_at(create='curveLinear', 
-                                    l_pos=[[0,0,0],[0,0,_size * 2]], 
+                                    l_pos=[[0,0,0],[0,0,_size]], 
                                     baseName='end')
             
             CORERIG.override_color(_crv, _dtmp['color'])
@@ -543,10 +544,22 @@ def define(self):
             mAim.p_parent = mDefineNull
             mAim.resetAttrs()
             
+            mAim.doStore('mClass','cgmObject')            
+            mAim.doStore('cgmName',self.mNode)
+            mAim.doStore('cgmTypeModifier',k)
+            mAim.doStore('cgmType','aimLine')
+            mAim.doName()            
+
             mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
                              aimVector = [0,0,1], upVector = [0,0,0], 
                              worldUpType = 'none')
+            
+            for mShape in mAim.getShapes(asMeta=1):
+                mShape.overrideEnabled = 1
+                mShape.overrideDisplayType = 2
+                
             mAim.dagLock(True)
+        
             
             #Arrow ---------------------------------------------
             _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
@@ -556,7 +569,7 @@ def define(self):
             mArrow = cgmMeta.cgmObject(_arrow)
             mArrow.p_parent = mDefineNull
             mArrow.resetAttrs()
-            mArrow.tz = _sizeSub
+            mArrow.tz = _sizeSub * 2.5
         
             CORERIG.copy_pivot(mArrow.mNode,self.mNode)
         
