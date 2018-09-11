@@ -683,7 +683,7 @@ def template(self):
                 _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
                 log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
                 
-                pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
+                #pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
             
         if not pos_lever:
             log.debug("|{0}| >> no blockParent...".format(_str_func))
@@ -933,7 +933,7 @@ def template(self):
         else:
             ml_handles_chain = copy.copy(ml_handles)
             
-            
+        
         #>>> Aim Main loft curves ================================================================== 
         log.debug("|{0}| >> Aim main loft curves...".format(_str_func)) 
         
@@ -3300,18 +3300,20 @@ def rig_shapes(self):
             #Lever =============================================================================
             if self.b_lever:
                 log.debug("|{0}| >> Lever...".format(_str_func))
-                mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)[0]
-                mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
-                log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
-                log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
+                mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+                if not mLeverControlJoint:
+                    mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+                else:
+                    mLeverControlJoint = mLeverControlJoint[0]
+                log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
                 
                 dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
                                                               ml_prerigHandles[1].p_position)
                 log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
                 
                 #Dup our rig joint and move it 
-                mDup = mLeverRigJnt.doDuplicate()
-                mDup.p_parent = mLeverRigJnt
+                mDup = mLeverControlJoint.doDuplicate()
+                mDup.p_parent = mLeverControlJoint
                 
                 mDup.resetAttrs()
                 ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
@@ -3329,8 +3331,8 @@ def rig_shapes(self):
                                                                  mode = 'frameHandle')
                 
                 mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mLeverRigJnt.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
-                CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+                #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
                 
                 mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
                 
@@ -6848,8 +6850,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                    ml_rigJoints[int_handleEndIdx]))                
         
     # Create ---------------------------------------------------------------------------
+    _extendToStart = True
+    if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
+        _extendToStart = False
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                 ml_rigJoints),
+                                                                 ml_rigJoints,
+                                                                 extendToStart=_extendToStart),
                                              'cgmObject')    
     
     
