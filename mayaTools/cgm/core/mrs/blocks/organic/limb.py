@@ -6850,8 +6850,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                    ml_rigJoints[int_handleEndIdx]))                
         
     # Create ---------------------------------------------------------------------------
+    _extendToStart = True
+    if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
+        _extendToStart = False
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                 ml_rigJoints),
+                                                                 ml_rigJoints,
+                                                                 extendToStart=_extendToStart),
                                              'cgmObject')    
     
     

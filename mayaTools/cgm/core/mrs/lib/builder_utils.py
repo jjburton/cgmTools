@@ -1887,7 +1887,7 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, extendToStart = True):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1981,7 +1981,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             else:
                 _l.append(l_uValues[i+1])
                 
-            if i == 0:
+            if i == 0 and extendToStart:
                 _l.insert(0,minU)
                 
             l_sets.append(_l)
