@@ -1900,8 +1900,12 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         _offset = self.mBlock.atUtils('get_shapeOffset') or .25
         
         if aimVector is None:
-            aimVector = self.d_orientation['mOrientation'].p_out.p_string
-        
+            if self.d_module['direction'].lower() == 'left':
+                aimVector = self.d_orientation['mOrientation'].p_outNegative.p_string
+            else:
+                aimVector = self.d_orientation['mOrientation'].p_out.p_string
+                
+            
         #Get our prerig handles if none provided
         if targets is None:
             ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
@@ -2049,7 +2053,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
 
                 #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
                 if ballPosition == 'joint':
-                    p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0],loc=True)[0]
+                    p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     p1 = ml_targets[i].p_position
                     d1 = DIST.get_distance_between_points(p1,p2)
                     #d_offset = d1 - _offset
