@@ -683,7 +683,7 @@ def template(self):
                 _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
                 log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
                 
-                pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
+                #pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
             
         if not pos_lever:
             log.debug("|{0}| >> no blockParent...".format(_str_func))
@@ -933,7 +933,7 @@ def template(self):
         else:
             ml_handles_chain = copy.copy(ml_handles)
             
-            
+        
         #>>> Aim Main loft curves ================================================================== 
         log.debug("|{0}| >> Aim main loft curves...".format(_str_func)) 
         

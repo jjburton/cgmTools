@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -747,7 +747,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
     log.debug(self)
     
     if puppetSet:
-        log.debug("|{0}| >> puppetSet...".format(_str_func))        
+        log.debug("|{0}| >> puppetSet...".format(_str_func)+'-'*40)        
         
         mSet = self.getMessageAsMeta('puppetSet')
         if not mSet:
@@ -761,7 +761,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
         log.debug("|{0}| >> puppetSet: {1}".format(_str_func,mSet))
         
     if bakeSet:
-        log.debug("|{0}| >> puppetSet...".format(_str_func))        
+        log.debug("|{0}| >> bakeset...".format(_str_func)+'-'*40)        
         
         mSet = self.getMessageAsMeta('bakeSet')
         if not mSet:
@@ -771,16 +771,17 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
             mSet.doStore('cgmName','bake')
             #mSet.doStore('cgmTypeModifier','bake')
         mSet.doName()
-        
+        mSet.purge()
         log.debug("|{0}| >> bakeSet: {1}".format(_str_func,mSet))
         
         ml_joints = get_joints(self,'bind')
         
         for mObj in ml_joints:
+            log.debug("|{0}| >>adding : {1}".format(_str_func,mObj))            
             mSet.addObj(mObj.mNode)
         
     if deleteSet:
-        log.debug("|{0}| >> deleteSet...".format(_str_func))        
+        log.debug("|{0}| >> deleteSet...".format(_str_func)+'-'*40)        
         
         mSet = self.getMessageAsMeta('deleteSet')
         if not mSet:
@@ -790,8 +791,8 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
             #mSet.doStore('cgmTypeModifier','bake')
             mSet.doStore('cgmName','delete')
         mSet.doName()
-            
-        
+        mSet.purge()
+
         log.debug("|{0}| >> deleteSet: {1}".format(_str_func,mSet))
         
         for mObj in get_deleteSetDat(self):
@@ -890,8 +891,12 @@ def get_deleteSetDat(self):
     _str_func = 'get_deleteSetDat'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
-    
-    _res = [self.masterNull, self, self.displayLayer]
+    mMasterNull = self.masterNull
+    l_compare = [mMasterNull.geoGroup,mMasterNull.skeletonGroup]
+    _res = []
+    for mChild in mMasterNull.getChildren(asMeta=True):
+        if mChild not in l_compare:
+            _res.append(mChild)
     
     
     return _res
