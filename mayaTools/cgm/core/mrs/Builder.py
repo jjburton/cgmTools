@@ -602,7 +602,7 @@ class ui(cgmUI.cgmGUI):
             _startMode = self.var_contextStartMode.value   
             _contextMode = kws.pop('contextMode', self._l_contextModes[self.var_contextMode.value])
             #_contextMode = self._l_contextModes[self.var_contextMode.value]
-            log.error("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
+            log.debug("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
             
             if _startMode == 0 :#Active
                 mBlock = self._blockCurrent
