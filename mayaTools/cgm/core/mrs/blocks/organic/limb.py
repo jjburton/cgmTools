@@ -364,7 +364,8 @@ l_attrsStandard = ['side',
                    #'buildProfile',
                    'moduleTarget']
 
-d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
+d_attrsToMake = {'visMeasure':'bool',
+                 'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
@@ -720,8 +721,9 @@ def define(self):
                                    attrs=[k],visible=True,keyable=False,lock=True)
             
             buffer['mShape'].overrideEnabled = 1
-            buffer['mShape'].overrideDisplayType = 2                    
+            buffer['mShape'].overrideDisplayType = 2
             
+            ATTR.connect("{0}.visMeasure".format(_short), "{0}.visibility".format(buffer['mDag'].mNode))
             #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
 
         

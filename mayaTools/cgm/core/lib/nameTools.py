@@ -252,7 +252,7 @@ def get_objNameDict(obj,ignore=[False]):
             for k in 'cgmDirection','test':
                 if nameObjDict.get(k) and namesDict.get(k):
                     namesDict.pop(k)
-            log.info("nameObj: {0}".format(nameObj))
+            log.debug("nameObj: {0}".format(nameObj))
             namesDict['cgmName'] = nameObj
             return namesDict
         
