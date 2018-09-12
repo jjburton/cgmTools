@@ -1541,7 +1541,7 @@ def rig_skeleton(self):
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
                 
                 
-            if mBlock.neckIK > 1 and mBlock.neckControls > 1:#...ribbon/spline
+            if mBlock.neckIK > 1 and mBlock.neckControls:#...ribbon/spline
                 log.debug("|{0}| >> IK Drivers...".format(_str_func))            
                 ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
                 for i,mJnt in enumerate(ml_ribbonIKDrivers):
@@ -1587,6 +1587,9 @@ def rig_skeleton(self):
                     mJnt.p_parent = False
                     
             ml_jointsToHide.extend(ml_segmentChain)
+        else:
+            for i,mJnt in enumerate(ml_rigJoints):
+                mJnt.p_parent = ml_blendJoints[i]
             
         """
         if mBlock.neckControls > 2 and ml_segmentHandles:
@@ -2698,143 +2701,218 @@ def rig_frame(self):
             
                     mHandle.parent = mAimGroup#...parent back                
                 
-                    
-                    #Defaults ---------------------------------------------------------------------
-                    for mHandle in ml_handleJoints:
-                        if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                            mHandle.followRoot = 1
-                            ATTR.set_default(mHandle.mNode,'followRoot',1.0)
-                        else:
-                            mHandle.followRoot = .5
-                            ATTR.set_default(mHandle.mNode,'followRoot',.5)
-                            
-                    #Ribbon or Spline =============================================================
-                    log.debug("|{0}| >> Neck IK | ikType: {1}".format(_str_func,_ikNeck))
-                    
-                    if not mRigNull.getMessage('rigRoot'):
-                        raise ValueError,"No rigRoot found"
-                    if not mRigNull.getMessage('controlIK'):
-                        raise ValueError,"No controlIK found"            
                 
-                    mIKControl = mRigNull.controlIK
-                    mSettings = mRigNull.settings
-                    ml_ikJoints = mRigNull.msgList_get('ikJoints')
-                    mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',
-                                                 attrType='float',
-                                                 lock=False,
-                                                 keyable=True)
-                    _jointOrientation = self.d_orientation['str']
+                #Defaults ---------------------------------------------------------------------
+                for mHandle in ml_handleJoints:
+                    if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
+                        mHandle.followRoot = 1
+                        ATTR.set_default(mHandle.mNode,'followRoot',1.0)
+                    else:
+                        mHandle.followRoot = .5
+                        ATTR.set_default(mHandle.mNode,'followRoot',.5)
+                        
+                #Ribbon or Spline =============================================================
+                log.debug("|{0}| >> Neck IK | ikType: {1}".format(_str_func,_ikNeck))
                 
-                    mStart = ml_ikJoints[0]
-                    mEnd = ml_ikJoints[-1]
-                    _start = ml_ikJoints[0].mNode
-                    _end = ml_ikJoints[-1].mNode
-                    
-                    
-                    mIKBaseControl = False
-                    if mRigNull.getMessage('controlIKBase'):
-                        mIKBaseControl = mRigNull.controlIKBase
+                if not mRigNull.getMessage('rigRoot'):
+                    raise ValueError,"No rigRoot found"
+                if not mRigNull.getMessage('controlIK'):
+                    raise ValueError,"No controlIK found"            
             
-                        mIKBaseControl.masterGroup.parent = mIKGroup
+                mIKControl = mRigNull.controlIK
+                mSettings = mRigNull.settings
+                ml_ikJoints = mRigNull.msgList_get('ikJoints')
+                mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',
+                                             attrType='float',
+                                             lock=False,
+                                             keyable=True)
+                _jointOrientation = self.d_orientation['str']
             
-                    else:#Spin Group#========================================================================
-                        log.debug("|{0}| >> spin setup...".format(_str_func))
-            
-                        #Make a spin group
-                        mSpinGroup = mStart.doGroup(False,False,asMeta=True)
-                        mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
-                        mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
-                        mSpinGroup.doName()
-            
-                        mSpinGroup.parent = mRoot
-            
-                        mSpinGroup.doGroup(True,True,typeModifier='zero')
-            
-                        #Setup arg
-                        mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
-                        mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
-            
-                        mSpinGroup.dagLock(True)
-            
-                    if _ikNeck == 'rp':
-                        log.debug("|{0}| >> rp setup...".format(_str_func,_ikNeck))
-            
-                        #Build the IK ---------------------------------------------------------------------
-                        _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
-                                'stretch':'translate',
-                                'lockMid':False,
-                                'rpHandle':True,
-                                'nameSuffix':'noFlip',
-                                'controlObject':mIKControl.mNode,
-                                'moduleInstance':self.mModule.mNode}
-            
-                        d_ikReturn = IK.handle(_start,_end,**_d_ik)
-            
-                        #Get our no flip position-------------------------------------------------------------------------
-                        log.debug("|{0}| >> no flip dat...".format(_str_func))
-            
-                        _side = mBlock.atUtils('get_side')
-                        _dist_ik_noFlip = DIST.get_distance_between_points(mStart.p_position,
-                                                                           mEnd.p_position)
-                        if _side == 'left':#if right, rotate the pivots
-                            pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'-',_dist_ik_noFlip)
-                        else:
-                            pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'+',_dist_ik_noFlip)
-            
-                        #No flip -------------------------------------------------------------------------
-                        log.debug("|{0}| >> no flip setup...".format(_str_func))
-            
-                        mIKHandle = d_ikReturn['mHandle']
-                        ml_distHandlesNF = d_ikReturn['ml_distHandles']
-                        mRPHandleNF = d_ikReturn['mRPHandle']
-            
-                        #No Flip RP handle -------------------------------------------------------------------
-                        mRPHandleNF.p_position = pos_noFlipOffset
-            
-                        mRPHandleNF.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])
-                        mRPHandleNF.addAttr('cgmName','{0}PoleVector'.format(self.d_module['partName']), attrType = 'string')
-                        mRPHandleNF.addAttr('cgmTypeModifier','noFlip')
-                        mRPHandleNF.doName()
-            
-                        if mIKBaseControl:
-                            mRPHandleNF.parent = mIKBaseControl.mNode
-                        else:
-                            mRPHandleNF.parent = mSpinGroup.mNode
-            
-                        #>>>Parent IK handles -----------------------------------------------------------------
-                        log.debug("|{0}| >> parent ik dat...".format(_str_func,_ikNeck))
-            
-                        mIKHandle.parent = mIKControl.mNode#handle to control	
-                        for mObj in ml_distHandlesNF[:-1]:
-                            mObj.parent = mRoot
-                        ml_distHandlesNF[-1].parent = mIKControl.mNode#handle to control
-            
-                        #>>> Fix our ik_handle twist at the end of all of the parenting
-                        IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
-            
-                        mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
-            
-                        if mIKBaseControl:
-                            ml_ikJoints[0].parent = mRigNull.controlIKBase
-            
-                        if mIKBaseControl:
-                            mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-            
-                    elif _ikNeck == 'spline':# ==============================================================
-                        log.debug("|{0}| >> spline setup...".format(_str_func))
-                        ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
-                        if not ml_ribbonIkHandles:
-                            raise ValueError,"No ribbon IKDriversFound"
-            
-                        log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
-            
-                        if mIKBaseControl:
-                            ml_ribbonIkHandles[0].parent = mIKBaseControl
-                        else:
-                            ml_ribbonIkHandles[0].parent = mSpinGroup
-            
-                        ml_ribbonIkHandles[-1].parent = mIKControl
-            
+                mStart = ml_ikJoints[0]
+                mEnd = ml_ikJoints[-1]
+                _start = ml_ikJoints[0].mNode
+                _end = ml_ikJoints[-1].mNode
+                
+                
+                mIKBaseControl = False
+                if mRigNull.getMessage('controlIKBase'):
+                    mIKBaseControl = mRigNull.controlIKBase
+        
+                    mIKBaseControl.masterGroup.parent = mIKGroup
+        
+                else:#Spin Group#========================================================================
+                    log.debug("|{0}| >> spin setup...".format(_str_func))
+        
+                    #Make a spin group
+                    mSpinGroup = mStart.doGroup(False,False,asMeta=True)
+                    mSpinGroup.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])	
+                    mSpinGroup.addAttr('cgmName','{0}NoFlipSpin'.format(self.d_module['partName']))
+                    mSpinGroup.doName()
+        
+                    mSpinGroup.parent = mRoot
+        
+                    mSpinGroup.doGroup(True,True,typeModifier='zero')
+        
+                    #Setup arg
+                    mPlug_spin = cgmMeta.cgmAttr(mIKControl,'spin',attrType='float',keyable=True, defaultValue = 0, hidden = False)
+                    mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
+        
+                    mSpinGroup.dagLock(True)
+        
+                if _ikNeck == 'rp':
+                    log.debug("|{0}| >> rp setup...".format(_str_func,_ikNeck))
+        
+                    #Build the IK ---------------------------------------------------------------------
+                    _d_ik= {'globalScaleAttr':mPlug_globalScale.p_combinedName,
+                            'stretch':'translate',
+                            'lockMid':False,
+                            'rpHandle':True,
+                            'nameSuffix':'noFlip',
+                            'controlObject':mIKControl.mNode,
+                            'moduleInstance':self.mModule.mNode}
+        
+                    d_ikReturn = IK.handle(_start,_end,**_d_ik)
+        
+                    #Get our no flip position-------------------------------------------------------------------------
+                    log.debug("|{0}| >> no flip dat...".format(_str_func))
+        
+                    _side = mBlock.atUtils('get_side')
+                    _dist_ik_noFlip = DIST.get_distance_between_points(mStart.p_position,
+                                                                       mEnd.p_position)
+                    if _side == 'left':#if right, rotate the pivots
+                        pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'-',_dist_ik_noFlip)
+                    else:
+                        pos_noFlipOffset = mStart.getPositionByAxisDistance(_jointOrientation[2]+'+',_dist_ik_noFlip)
+        
+                    #No flip -------------------------------------------------------------------------
+                    log.debug("|{0}| >> no flip setup...".format(_str_func))
+        
+                    mIKHandle = d_ikReturn['mHandle']
+                    ml_distHandlesNF = d_ikReturn['ml_distHandles']
+                    mRPHandleNF = d_ikReturn['mRPHandle']
+        
+                    #No Flip RP handle -------------------------------------------------------------------
+                    mRPHandleNF.p_position = pos_noFlipOffset
+        
+                    mRPHandleNF.doCopyNameTagsFromObject(self.mModule.mNode, ignore = ['cgmName','cgmType'])
+                    mRPHandleNF.addAttr('cgmName','{0}PoleVector'.format(self.d_module['partName']), attrType = 'string')
+                    mRPHandleNF.addAttr('cgmTypeModifier','noFlip')
+                    mRPHandleNF.doName()
+        
+                    if mIKBaseControl:
+                        mRPHandleNF.parent = mIKBaseControl.mNode
+                    else:
+                        mRPHandleNF.parent = mSpinGroup.mNode
+        
+                    #>>>Parent IK handles -----------------------------------------------------------------
+                    log.debug("|{0}| >> parent ik dat...".format(_str_func,_ikNeck))
+        
+                    mIKHandle.parent = mIKControl.mNode#handle to control	
+                    for mObj in ml_distHandlesNF[:-1]:
+                        mObj.parent = mRoot
+                    ml_distHandlesNF[-1].parent = mIKControl.mNode#handle to control
+        
+                    #>>> Fix our ik_handle twist at the end of all of the parenting
+                    IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
+        
+                    mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+        
+                    if mIKBaseControl:
+                        ml_ikJoints[0].parent = mRigNull.controlIKBase
+        
+                    if mIKBaseControl:
+                        mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+        
+                elif _ikNeck == 'spline':# ==============================================================
+                    log.debug("|{0}| >> spline setup...".format(_str_func))
+                    ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                    if not ml_ribbonIkHandles:
+                        raise ValueError,"No ribbon IKDriversFound"
+        
+                    log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
+        
+                    if mIKBaseControl:
+                        ml_ribbonIkHandles[0].parent = mIKBaseControl
+                    else:
+                        ml_ribbonIkHandles[0].parent = mSpinGroup
+        
+                    ml_ribbonIkHandles[-1].parent = mIKControl
+        
+                    mc.aimConstraint(mIKControl.mNode,
+                                     ml_ribbonIkHandles[0].mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorOut'],
+                                     worldUpObject = mSpinGroup.mNode,
+                                     worldUpType = 'objectRotation' )
+        
+        
+                    res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
+                                           orientation = _jointOrientation,
+                                           moduleInstance = self.mModule)
+                    mSplineCurve = res_spline['mSplineCurve']
+                    log.debug("|{0}| >> spline curve...".format(_str_func))
+        
+        
+                    #...ribbon skinCluster ---------------------------------------------------------------------
+                    log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))                
+                    mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
+                                                                          mSplineCurve.mNode,
+                                                                          tsb=True,
+                                                                          maximumInfluences = 2,
+                                                                          normalizeWeights = 1,dropoffRate=2.5),
+                                                          'cgmNode',
+                                                          setClass=True)
+        
+                    mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+                    mSkinCluster.doName()    
+                    cgmGEN.func_snapShot(vars())
+        
+        
+                elif _ikNeck == 'ribbon':#==============================================================
+                    log.debug("|{0}| >> ribbon setup...".format(_str_func))
+                    ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                    if not ml_ribbonIkHandles:
+                        raise ValueError,"No ribbon IKDriversFound"
+                    ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
+                    max_influences = 2
+        
+
+                    mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+        
+        
+                    if mSegMidIK:
+                        log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
+                        mSegMidIK.masterGroup.parent = mIKGroup
+                        ml_skinDrivers.append(mSegMidIK)
+                        max_influences+=1
+        
+                        ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
+                        ml_midTrackJoints.insert(1,mSegMidIK)
+        
+                        d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
+                                 'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
+                                 'baseName' :self.d_module['partName'] + '_midRibbon',
+                                 'driverSetup':None,
+                                 'squashStretch':None,
+                                 'msgDriver':'masterGroup',
+                                 'specialMode':'noStartEnd',
+                                 'paramaterization':'floating',
+                                 'connectBy':'constraint',
+                                 'influences':ml_ribbonIkHandles,
+                                 'moduleInstance' : mModule}
+                        reload(IK)
+                        l_midSurfReturn = IK.ribbon(**d_mid)
+        
+        
+        
+                    log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
+        
+                    if mIKBaseControl:
+                        ml_ribbonIkHandles[0].parent = mIKBaseControl
+                    else:
+                        ml_ribbonIkHandles[0].parent = mSpinGroup
                         mc.aimConstraint(mIKControl.mNode,
                                          ml_ribbonIkHandles[0].mNode,
                                          maintainOffset = True, weight = 1,
@@ -2842,143 +2920,69 @@ def rig_frame(self):
                                          upVector = self.d_orientation['vectorUp'],
                                          worldUpVector = self.d_orientation['vectorOut'],
                                          worldUpObject = mSpinGroup.mNode,
-                                         worldUpType = 'objectRotation' )
-            
-            
-                        res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
-                                               orientation = _jointOrientation,
-                                               moduleInstance = self.mModule)
-                        mSplineCurve = res_spline['mSplineCurve']
-                        log.debug("|{0}| >> spline curve...".format(_str_func))
-            
-            
+                                         worldUpType = 'objectRotation' )                    
+                        
+                    
+                    ml_ribbonIkHandles[-1].parent = mIKControl
+        
+        
+                    if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
+                        ml_skinDrivers.extend(ml_handleJoints)
+        
+                    if not len(ml_skinDrivers):
+                        raise ValueError,"No skin drivers for ribbon found!"
+                    d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                            'baseName' : self.d_module['partName'] + '_ikRibbon',
+                            'driverSetup':'stable',
+                            'squashStretch':None,
+                            'connectBy':'constraint',
+                            'squashStretchMain':'arcLength',
+                            'paramaterization':mBlock.getEnumValueString('ribbonParam'),
+                            #masterScalePlug:mPlug_masterScale,
+                            'settingsControl': mSettings.mNode,
+                            'extraSquashControl':True,
+                            'influences':ml_skinDrivers,
+                            'moduleInstance' : self.mModule}
+        
+                    #if str_ikBase == 'hips':
+                        #d_ik['attachEndsToInfluences'] = True
+        
+                    #if mBlock.numControls == mBlock.numJoints:
+                        #d_ik['paramaterization'] = 'fixed'
+        
+        
+                    d_ik.update(self.d_squashStretchIK)
+                    res_ribbon = IK.ribbon(**d_ik)
+        
+                    const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
+                    for mConst in const:
+                        mConst.delete()
+                    mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+        
+                    """
                         #...ribbon skinCluster ---------------------------------------------------------------------
-                        log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))                
-                        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_ribbonIkHandles],
-                                                                              mSplineCurve.mNode,
+                        log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))
+        
+        
+        
+                        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
+                                                                              mSurf.mNode,
                                                                               tsb=True,
-                                                                              maximumInfluences = 2,
-                                                                              normalizeWeights = 1,dropoffRate=2.5),
+                                                                              maximumInfluences = max_influences,
+                                                                              normalizeWeights = 1,dropoffRate=10),
                                                               'cgmNode',
                                                               setClass=True)
-            
-                        mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+        
+                        mSkinCluster.doStore('cgmName', mSurf.mNode)
                         mSkinCluster.doName()    
-                        cgmGEN.func_snapShot(vars())
-            
-            
-                    elif _ikNeck == 'ribbon':#==============================================================
-                        log.debug("|{0}| >> ribbon setup...".format(_str_func))
-                        ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
-                        if not ml_ribbonIkHandles:
-                            raise ValueError,"No ribbon IKDriversFound"
-                        ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
-                        max_influences = 2
-            
- 
-                        mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-            
-            
-                        if mSegMidIK:
-                            log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
-                            mSegMidIK.masterGroup.parent = mIKGroup
-                            ml_skinDrivers.append(mSegMidIK)
-                            max_influences+=1
-            
-                            ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
-                            ml_midTrackJoints.insert(1,mSegMidIK)
-            
-                            d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                                     'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
-                                     'baseName' :self.d_module['partName'] + '_midRibbon',
-                                     'driverSetup':None,
-                                     'squashStretch':None,
-                                     'msgDriver':'masterGroup',
-                                     'specialMode':'noStartEnd',
-                                     'paramaterization':'floating',
-                                     'connectBy':'constraint',
-                                     'influences':ml_ribbonIkHandles,
-                                     'moduleInstance' : mModule}
-                            reload(IK)
-                            l_midSurfReturn = IK.ribbon(**d_mid)
-            
-            
-            
-                        log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
-            
-                        if mIKBaseControl:
-                            ml_ribbonIkHandles[0].parent = mIKBaseControl
-                        else:
-                            ml_ribbonIkHandles[0].parent = mSpinGroup
-                            mc.aimConstraint(mIKControl.mNode,
-                                             ml_ribbonIkHandles[0].mNode,
-                                             maintainOffset = True, weight = 1,
-                                             aimVector = self.d_orientation['vectorAim'],
-                                             upVector = self.d_orientation['vectorUp'],
-                                             worldUpVector = self.d_orientation['vectorOut'],
-                                             worldUpObject = mSpinGroup.mNode,
-                                             worldUpType = 'objectRotation' )                    
-                            
-                        
-                        ml_ribbonIkHandles[-1].parent = mIKControl
-            
-            
-                        if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
-                            ml_skinDrivers.extend(ml_handleJoints)
-            
-            
-                        d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
-                                'baseName' : self.d_module['partName'] + '_ikRibbon',
-                                'driverSetup':'stable',
-                                'squashStretch':None,
-                                'connectBy':'constraint',
-                                'squashStretchMain':'arcLength',
-                                'paramaterization':mBlock.getEnumValueString('ribbonParam'),
-                                #masterScalePlug:mPlug_masterScale,
-                                'settingsControl': mSettings.mNode,
-                                'extraSquashControl':True,
-                                'influences':ml_skinDrivers,
-                                'moduleInstance' : self.mModule}
-            
-                        #if str_ikBase == 'hips':
-                            #d_ik['attachEndsToInfluences'] = True
-            
-                        #if mBlock.numControls == mBlock.numJoints:
-                            #d_ik['paramaterization'] = 'fixed'
-            
-            
-                        d_ik.update(self.d_squashStretchIK)
-                        res_ribbon = IK.ribbon(**d_ik)
-            
-                        const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
-                        for mConst in const:
-                            mConst.delete()
-                        mc.parentConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
-            
-                        """
-                            #...ribbon skinCluster ---------------------------------------------------------------------
-                            log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))
-            
-            
-            
-                            mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
-                                                                                  mSurf.mNode,
-                                                                                  tsb=True,
-                                                                                  maximumInfluences = max_influences,
-                                                                                  normalizeWeights = 1,dropoffRate=10),
-                                                                  'cgmNode',
-                                                                  setClass=True)
-            
-                            mSkinCluster.doStore('cgmName', mSurf.mNode)
-                            mSkinCluster.doName()    
-            
-                            #Tighten the weights...
-                            reload(CORESKIN)
-                            CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
-                                                         ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
-            
-                    else:
-                        raise ValueError,"Not implemented {0} ik setup".format(_ikNeck)                    
+        
+                        #Tighten the weights...
+                        reload(CORESKIN)
+                        CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
+                                                     ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
+        
+                else:
+                    raise ValueError,"Not implemented {0} ik setup".format(_ikNeck)                    
                 
 
 
