@@ -5176,6 +5176,7 @@ def rig_frame(self):
                         'lockMid':True,
                         'rpHandle':mIKMid.mNode,
                         'nameSuffix':'ik',
+                        'baseName':'{0}_ikRP'.format(self.d_module['partName']),
                         'controlObject':mMainIKControl.mNode,
                         'moduleInstance':self.mModule.mNode}
                 
@@ -5414,7 +5415,7 @@ def rig_frame(self):
                             'stretch':'translate',
                             'lockMid':False,
                             'rpHandle':mIKMid.mNode,
-                            'baseName':'ikFullChain',
+                            'baseName':'{0}_ikFullChain'.format(self.d_module['partName']),
                             'nameSuffix':'ikFull',
                             'controlObject':mIKControl.mNode,
                             'moduleInstance':self.mModule.mNode}
@@ -6013,7 +6014,7 @@ def rig_blendFrame(self):
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     mSettings = mRigNull.settings    
-    mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
+    mPlug_FKIK = cgmMeta.cgmAttr(mSettings,'FKIK',attrType='float',lock=False,keyable=True)
     
     #ml_handleJoints = mRigNull.msgList_get('handleJoints')
     #ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
@@ -6030,6 +6031,7 @@ def rig_blendFrame(self):
                            self.mDeformNull.mNode,
                            maintainOffset=True,
                            scaleCompensate=False)"""
+    
     
     ml_scaleJoints = []
     def getScaleJoint(mJnt):
@@ -6081,7 +6083,7 @@ def rig_blendFrame(self):
         """
         
 
-        #pprint.pprint(vars())
+        pprint.pprint(vars())
         
 
         log.debug(cgmGEN._str_subLine)    
@@ -6171,9 +6173,10 @@ def rig_blendFrame(self):
         for mJnt in ml_scaleJoints:
             mJnt.dagLock(True)
     else:
-        log.debug("|{0}| >> Normal setup...".format(_str_func))                        
+        log.debug("|{0}| >> Normal setup...".format(_str_func))
+        
         RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
-                                    driver = mPlug_FKIK.p_combinedName,
+                                    driver = mPlug_FKIK,
                                     l_constraints=['point','orient'])
         
 

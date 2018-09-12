@@ -284,6 +284,7 @@ def blendChainsBy(l_jointChain1 = None,
     ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,'cgmObject',noneValid=False)
     ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,'cgmObject',noneValid=False)
     d_driver = cgmMeta.validateAttrArg(driver,noneValid=True)
+    d_blendReturn = {}
     mi_driver = False
     if d_driver:
         mi_driver = d_driver.get('mi_plug') or False
@@ -293,7 +294,6 @@ def blendChainsBy(l_jointChain1 = None,
     if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
         raise StandardError,"Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
     
-    pprint.pprint(vars())
 
     ml_nodes = []
 
@@ -308,12 +308,12 @@ def blendChainsBy(l_jointChain1 = None,
                                                                              ml_jointChain2[i].getShortName(),
                                                                              ml_blendChain[i].getShortName(),
                                                                              constraint))	    
-            mConst = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].getShortName(),ml_jointChain1[i].getShortName()],
-                                                       ml_blendChain[i].getShortName(),maintainOffset = maintainOffset,**_d)[0])
+            mConst = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].mNode,ml_jointChain1[i].mNode],
+                                                       ml_blendChain[i].mNode,maintainOffset = maintainOffset,**_d)[0])
 
             if constraint in ['parent','orient']:
                 mConst.interpType = 2
-                
+           
             targetWeights = d_funcs[constraint](mConst.mNode,q=True, weightAliasList=True)
             if len(targetWeights)>2:
                 raise StandardError,"Too many weight targets: obj: %s | weights: %s"%(i_jnt.mNode,targetWeights)
@@ -331,6 +331,7 @@ def blendChainsBy(l_jointChain1 = None,
             ml_nodes.append(mConst)
 
     d_blendReturn['ml_nodes'] = ml_nodes
+    pprint.pprint(vars())
 
     return d_blendReturn
 
