@@ -2163,6 +2163,7 @@ def rig_skeleton(self):
     
     #...lever -------------------------------------------------------------------------------------------------
     if self.b_lever:
+        log.debug("|{0}| >> Lever...".format(_str_func)+'-'*40)          
         if self.b_leverJoint:
             log.debug("|{0}| >> Lever handle joint remap...".format(_str_func))  
             
@@ -2918,13 +2919,14 @@ def rig_digitShapes(self):
         if self.b_lever:            
             log.debug("|{0}| >> Lever...".format(_str_func))
             
+            mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
+            mLeverFK = mRigNull.getMessageAsMeta('leverFK')
             
-            mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
-            if not mLeverControlJoint:
-                mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
-            else:
-                mLeverControlJoint = mLeverControlJoint[0]
-            log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
+            mLeverControlCast = mLeverDirect
+            if not mLeverControlCast:
+                mLeverControlCast = mLeverFK
+                
+            log.debug("|{0}| >> mLeverControlCast: {1}".format(_str_func,mLeverControlCast))            
             
     
             dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
@@ -2932,8 +2934,8 @@ def rig_digitShapes(self):
             log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
     
             #Dup our rig joint and move it 
-            mDup = mLeverControlJoint.doDuplicate(po=True)
-            mDup.p_parent = mLeverControlJoint
+            mDup = mLeverControlCast.doDuplicate(po=True)
+            mDup.p_parent = mLeverControlCast
             mDup.resetAttrs()
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
     
@@ -2962,11 +2964,11 @@ def rig_digitShapes(self):
                 line = mc.curve (d=1, ep = [p_start,p_end], os=True)
                 l_lolis.extend([ball,line])
         
-            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,l_lolis,False)
+            CORERIG.shapeParent_in_place(mLeverFK.mNode,l_lolis,False)
             
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)            
             ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
-                                                       targets= [mLeverControlJoint.mNode,
+                                                       targets= [mLeverControlCast.mNode,
                                                                  #ml_fkJoints[0].mNode],
                                                                   mDup.mNode],
                                                              aimVector= self.d_orientation['vectorOut'],
@@ -2974,10 +2976,10 @@ def rig_digitShapes(self):
                                                              f_factor=0,
                                                              offset=_offset,
                                                              mode = 'frameHandle')
-            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,
+            CORERIG.shapeParent_in_place(mLeverFK.mNode,
                                          ml_clavShapes[0].mNode,
                                          False,replaceShapes=False)            
-            mHandleFactory.color(mLeverControlJoint.mNode, controlType = 'main')
+            mHandleFactory.color(mLeverFK.mNode, controlType = 'main')
             mDup.delete()
             for mShape in ml_clavShapes:
                 try:mShape.delete()
@@ -6033,19 +6035,20 @@ def rig_blendFrame(self):
         ml_scaleJoints.append(mDup)
         return mDup
     
+    if mBlock.getEnumValueString('rigSetup') == 'digit':
+        #This was causing issues with toe setup , need to resolve...
+        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
+        #raise ValueError,"This was causing issues with toe setup , need to resolve..."
+    
+        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode    
+    
     #Setup blend ----------------------------------------------------------------------------------
     if self.b_scaleSetup:
-        if mBlock.getEnumValueString('rigSetup') == 'digit':
-            #This was causing issues with toe setup , need to resolve...
-            log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
-            raise ValueError,"This was causing issues with toe setup , need to resolve..."
-            
-            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
-            """
-                mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                                   self.mDeformNull.mNode,
-                                   maintainOffset=True,
-                                   scaleCompensate=False)"""        
+        """
+            mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                               self.mDeformNull.mNode,
+                               maintainOffset=True,
+                               scaleCompensate=False)"""        
 
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
         
@@ -6180,8 +6183,6 @@ def rig_blendFrame(self):
                                     driver = mPlug_FKIK,
                                     l_constraints=['point','orient'])
         
-
-
 @cgmGEN.Timer
 def rig_pivotSetup(self):
     _short = self.d_block['shortName']
@@ -6458,7 +6459,6 @@ def rig_cleanUp(self):
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mLimbRoot.mNode,dynMode=0)
         
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mLimbRoot))
-        pprint.pprint(ml_targetDynParents)
         
         if not mLimbRoot.hasAttr('cgmAlias'):
             mLimbRoot.addAttr('cgmAlias','{0}_limbRoot'.format(self.d_module['partName']))
@@ -6477,7 +6477,8 @@ def rig_cleanUp(self):
         ml_baseDynParents.append(mLeverFK)
     else:
         ml_baseDynParents.append(mRoot)
-        
+    
+    #pprint.pprint(vars())
     
     #...Root controls ================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
