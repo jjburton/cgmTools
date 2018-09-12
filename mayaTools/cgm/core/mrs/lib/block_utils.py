@@ -4231,10 +4231,16 @@ def templateDelete(self):
     if self.getMessage('noTransTemplateNull'):
         mc.delete(self.getMessage('noTransTemplateNull'))
     
-    if 'define' in l_blockModuleKeys:
-        log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
-        self.atBlockModule('define')
-    
+    #if 'define' in l_blockModuleKeys:
+        #log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
+        #self.atBlockModule('define')
+    if self.getMessage('defineNull'):
+        log.debug("|{0}| >> DefineNull found...".format(_str_func))        
+        self.defineNull.template = False
+    else:
+        if 'define' in l_blockModuleKeys:
+            log.debug("|{0}| >> BlockModule define call found...".format(_str_func))
+            self.atBlockModule('define')        
     #mc.delete(self.getShapes())
     
     d_links = get_stateLinks(self, 'template')
@@ -4646,8 +4652,8 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                     log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))
                     return False
                 
-                if _idx_target == 0:
-                    define(self)
+                #if _idx_target == 0:
+                    #define(self)
             return True
         else:
             log.error('Forcing recreate')
@@ -4793,6 +4799,9 @@ def getState(self, asString = True, fastCheck=True):
                      'skeleton':is_skeleton,
                      'rig':is_rigged}
     try:
+        _str_func = 'getState'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
         _l_blockStates = BLOCKSHARE._l_blockStates
         
         def returnRes(arg):

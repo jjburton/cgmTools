@@ -887,8 +887,9 @@ def define(self):
 #=============================================================================================================
 #>> Template
 #=============================================================================================================    
-#def templateDelete(self):
-    #self.atUtils('delete_msgDat',msgLinks = ['noTemplateNull','templateLoftMesh'])
+def templateDelete(self):
+    self.defineEndHelper.v = True
+    self.defineUpHelper.v = True
         
 def template(self):
     _str_func = 'template'
@@ -955,9 +956,9 @@ def template(self):
     #Hide define stuff ---------------------------------------------
     log.debug("|{0}| >> define stuff...".format(_str_func)+ '-'*40)
     
-    #mDefineLoftMesh.v = False
+    mDefineLoftMesh.v = False
     mDefineUpObj.v = False
-    mDefineEndObj.v=False
+    #mDefineEndObj.v=False
 
     
     #Create temple Null ==================================================================================
@@ -1036,14 +1037,15 @@ def template(self):
         
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
+            mHandle = mHandleFactory.buildBaseShape('sphere',baseSize = _size_width, shapeDirection = 'y+')
             mHandle.p_parent = mTemplateNull
-            return
+            
             mHandle.resetAttrs()
             
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
             mHandle.doStore('cgmType','blockHandle')
             mHandle.doStore('cgmNameModifier',n)
+            
             mHandle.doName()
             
             #Convert to loft curve setup ----------------------------------------------------
@@ -1052,7 +1054,6 @@ def template(self):
             
             mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_loftShape, _size_width, shapeDirection = 'z+',rebuildHandle = False)
             mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
-            
             
             mHandleFactory.color(mHandle.mNode)            
             mHandle.p_position = _l_basePos[i]
@@ -1063,10 +1064,19 @@ def template(self):
             md_loftHandles[n] = mLoftCurve                
             ml_loftHandles.append(mLoftCurve)
             
+            mLoftCurve.p_parent = mTemplateNull
+            mScaleGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'scale')
+            mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
+            mc.pointConstraint(mHandle.mNode,mScaleGroup.mNode,maintainOffset=False)
+            
+            
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
 
-        return
+        #Constrain the define end to the end of the template handles
+        mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
+        
+        
         #>> Base Orient Helper =================================================================================
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
@@ -1084,7 +1094,7 @@ def template(self):
                                   aimVector = [0,0,1], upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
                                   worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,1,0])
+                                  worldUpVector = [0,0,1])
                                   #worldUpType = 'vector',
                                   #worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
         
@@ -1238,7 +1248,7 @@ def template(self):
                                       upVector = [0,1,0], 
                                       worldUpObject = mRootUpHelper.mNode,
                                       worldUpType = 'objectrotation', 
-                                      worldUpVector = [0,1,0])
+                                      worldUpVector = [0,0,1])
             
 
             
