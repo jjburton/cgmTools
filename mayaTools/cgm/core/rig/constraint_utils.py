@@ -65,30 +65,30 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         mObj = cgmMeta.validateObjArg(obj,'cgmObject')
         targetShape = VALID.mNodeString(targetShape)
         log.info("targetShape: {0}".format(targetShape))
-        
+
         #Get our data...
         d_closest = DIST.get_closest_point_data(targetShape,
                                                 mObj.mNode)
-    
+
         log.debug("|{0}| >> jnt: {1} | {2}".format(_str_func,mObj.mNode, d_closest))
         pprint.pprint(d_closest)
-        
+
         if d_closest['type'] in ['mesh','nurbsSurface']:
             log.debug("|{0}| >> Follicle mode...".format(_str_func))
             _shape = SHAPES.get_nonintermediate(d_closest['shape'] )
             log.info("_shape: {0}".format(_shape))
-            
+
             l_follicleInfo = NODES.createFollicleOnMesh( _shape )
-            
+
             i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
             i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
-        
+
             #> Name...
             i_follicleTrans.doStore('cgmName',mObj.mNode)
             i_follicleTrans.doStore('cgmTypeModifier','surfaceTrack')            
             i_follicleTrans.doName()
             _trackTransform = i_follicleTrans.mNode
-            
+
             #>Set follicle value...
             if d_closest['type'] == 'mesh':
                 i_follicleShape.parameterU = d_closest['parameterU']
@@ -104,22 +104,22 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             mPOCI = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
             mc.connectAttr("%s.worldSpace"%_shape,"%s.inputCurve"%mPOCI.mNode)
             mPOCI.parameter = d_closest['parameter']
-            
+
             mTrack = mObj.doCreateAt()
             mTrack.doStore('cgmName',mObj.mNode)
             mTrack.doStore('cgmType','surfaceTrack')
             mTrack.doName()
-            
+
             _trackTransform = mTrack.mNode
-            
+
             mc.connectAttr("%s.position"%mPOCI.mNode,"%s.t"%_trackTransform)
             mPOCI.doStore('cgmName',mObj.mNode)            
             mPOCI.doName()            
             _res = [mTrack.mNode, mPOCI.mNode]
-            
+
         if connectBy is None:
             return _res 
-            
+
         elif connectBy == 'parent':
             mObj.p_parent = _trackTransform
             return _res
@@ -141,26 +141,26 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             mGroup = mObj.doGroup(asMeta=True)
             mc.pointConstraint(mLoc.mNode,mGroup.mNode)
             return _res + [mGroup.mNode]        
-            
+
         elif connectBy == 'conPointOrientGroup':
             mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
-            
+
             mc.pointConstraint(mLoc.mNode,mGroup.mNode)
             mc.orientConstraint(mLoc.mNode,mGroup.mNode)
             return _res + [mGroup.mNode]        
-            
+
         elif connectBy == 'conParentGroup':
             mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
             mc.parentConstraint(mLoc.mNode,mGroup.mNode)
             return _res + [mGroup.mNode]        
-            
+
         else:
             raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)  
-        
+
         #pprint.pprint(vars())
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -168,9 +168,9 @@ def driven_disconnect(driven = None, driver = None, mode = 'best'):
     """
     :parameters:
         l_jointChain1 - First set of objects
-        
+
     :returns:
-        
+
     :raises:
         Exception | if reached
 
@@ -181,7 +181,7 @@ def driven_disconnect(driven = None, driver = None, mode = 'best'):
     l_drivers = []
     for a in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
         l_drivers.append(ATTR.get_driver(_short,a,True))
-    
+
     l_drivers = LISTS.get_noDuplicates(l_drivers)
     log.debug("|{0}| >> drivers: {1}".format(_str_func,l_drivers))
     mc.delete(l_drivers)
@@ -190,9 +190,9 @@ def driven_connect(driven = None, driver = None, mode = 'best'):
     """
     :parameters:
         l_jointChain1 - First set of objects
-        
+
     :returns:
-        
+
     :raises:
         Exception | if reached
 
@@ -200,10 +200,10 @@ def driven_connect(driven = None, driver = None, mode = 'best'):
     _str_func = 'driven_connect'
     mDriven = cgmMeta.asMeta(driven)
     mDriver = cgmMeta.asMeta(driver)
-    
+
     if mode == 'best':
         mode = 'rigDefault'
-    
+
     if mode == 'rigDefault':
         mc.pointConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
         mc.orientConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1) 
@@ -253,33 +253,32 @@ def blendChainsBy(l_jointChain1 = None,
     :parameters:
         l_jointChain1 - First set of objects
         l_jointChain2 - Second set of objects
-        
+
         l_blendChain - blend set 
         driver - Attribute to drive our blend
         l_constraints - constraints to be driven by the setup. Default is ['point','orient']
 
     :returns:
-        
+
     :raises:
         Exception | if reached
 
     """
     _str_func = 'blendChainsBy'
-    
     d_funcs = {'point':mc.pointConstraint,
                'orient':mc.orientConstraint,
                'scale':mc.scaleConstraint,
-               'parent':mc.scaleConstraint}
-    
+               'parent':mc.parentConstraint}
+
     for c in l_constraints:
         if c not in ['point','orient','scale','parent']:
             log.warning("|{0}| >> Bad constraint arg. Removing: {1}".format(_str_func, c))
             l_constraints.remove(c)
-            
+
     if not l_constraints:
         raise StandardError,"Need valid constraints"
-    
-    
+
+
     ml_jointChain1 = cgmMeta.validateObjListArg(l_jointChain1,'cgmObject',noneValid=False)
     ml_jointChain2 = cgmMeta.validateObjListArg(l_jointChain2,'cgmObject',noneValid=False)
     ml_blendChain = cgmMeta.validateObjListArg(l_blendChain,'cgmObject',noneValid=False)
@@ -293,27 +292,37 @@ def blendChainsBy(l_jointChain1 = None,
 
     if not len(ml_jointChain1) >= len(ml_blendChain) or not len(ml_jointChain2) >= len(ml_blendChain):
         raise StandardError,"Joint chains aren't equal lengths: l_jointChain1: %s | l_jointChain2: %s | l_blendChain: %s"%(len(l_jointChain1),len(l_jointChain2),len(l_blendChain))
-    
 
     ml_nodes = []
 
-    #>>> Actual meat
-    #===========================================================
+    #>>> Actual meat ===========================================================
+    _creates = []
     for i,i_jnt in enumerate(ml_blendChain):
+        log.debug(i_jnt)
         for constraint in l_constraints:
             _d = {}
             if constraint == 'scale':
                 _d = d_scale
-            log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].getShortName(),
-                                                                             ml_jointChain2[i].getShortName(),
-                                                                             ml_blendChain[i].getShortName(),
-                                                                             constraint))	    
-            mConst = cgmMeta.cgmNode( d_funcs[constraint]([ml_jointChain2[i].mNode,ml_jointChain1[i].mNode],
-                                                       ml_blendChain[i].mNode,maintainOffset = maintainOffset,**_d)[0])
+            """
+            log.debug("connectBlendChainByConstraint>>> %s || %s = %s | %s"%(ml_jointChain1[i].mNode,
+                                                                             ml_jointChain2[i].mNode,
+                                                                             ml_blendChain[i].mNode,
+                                                                             constraint))"""
+            
+            _buff = d_funcs[constraint]([ml_jointChain2[i].mNode,ml_jointChain1[i].mNode],
+                                                          ml_blendChain[i].mNode,
+                                                          maintainOffset = maintainOffset,**_d)
+            
+            #func = getattr(mc,'{0}Constraint'.format(constraint))
+            #_buff = func([ml_jointChain2[i].mNode,ml_jointChain1[i].mNode],
+            #             ml_blendChain[i].mNode,
+            #             maintainOffset = maintainOffset,**_d)
+            _creates.append(_buff)
+            mConst = cgmMeta.cgmNode(_buff[0])
 
-            if constraint in ['parent','orient']:
-                mConst.interpType = 2
-           
+            #if constraint in ['parent','orient']:
+                #mConst.interpType = 2
+            
             targetWeights = d_funcs[constraint](mConst.mNode,q=True, weightAliasList=True)
             if len(targetWeights)>2:
                 raise StandardError,"Too many weight targets: obj: %s | weights: %s"%(i_jnt.mNode,targetWeights)
@@ -327,12 +336,10 @@ def blendChainsBy(l_jointChain1 = None,
                 #Connect                                  
                 d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mConst.mNode,targetWeights[0]))
                 d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mConst.mNode,targetWeights[1]))
-
             ml_nodes.append(mConst)
 
     d_blendReturn['ml_nodes'] = ml_nodes
-    pprint.pprint(vars())
-
+    #pprint.pprint(vars())
     return d_blendReturn
 
 
@@ -353,36 +360,36 @@ def build_aimSequence(l_driven = None,
                       maintainOffset = False):
     """
     This kind of setup is for setting up a blended constraint so  that obj2 in an obj1/obj2/obj3 sequence can aim forward or back as can obj3.
-    
+
     :parameters:
         l_jointChain1 - First set of objects
-        
+
     :returns:
-        
+
     :raises:
         Exception | if reached
 
     """
     _str_func = 'build_aimSequence'
-    
+
     ml_driven = cgmMeta.validateObjListArg(l_driven,'cgmObject')
     ml_targets = cgmMeta.validateObjListArg(l_targets,'cgmObject',noneValid=True)
     ml_parents = cgmMeta.validateObjListArg(l_parents,'cgmObject',noneValid=True)
     ml_upTargets = cgmMeta.validateObjListArg(l_upTargets,'cgmObject',noneValid=True)
-    
+
     if not ml_upTargets:
         ml_upTargets = ml_parents
-    
+
     axis_aim = VALID.simpleAxis(aim)
     axis_aimNeg = axis_aim.inverse
     axis_up = VALID.simpleAxis(up)
-    
+
     v_aim = axis_aim.p_vector#aimVector
     v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
     v_up = axis_up.p_vector   #upVector
-    
+
     #cgmGEN.func_snapShot(vars())
-    
+
     if mode == 'singleBlend':
         if len(ml_targets) != 2:
             cgmGEN.func_snapShot(vars())            
@@ -396,27 +403,27 @@ def build_aimSequence(l_driven = None,
         if len(ml_parents) != 1:
             cgmGEN.func_snapShot(vars())            
             return log.error("|{0}| >> Single blend mode must have 1 handleParent.".format(_str_func))
-        
+
         mDriven = ml_driven[0]
         if not mDriven.getMessage(msgLink_masterGroup):
             log.debug("|{0}| >> No master group, creating...".format(_str_func))
             raise ValueError, log.error("|{0}| >> Add the create masterGroup setup, Josh".format(_str_func))
-        
+
         mMasterGroup = mDriven.getMessage(msgLink_masterGroup,asMeta=True)[0]
-        
+
         s_rootTarget = False
         s_targetForward = ml_targets[-1].mNode
         s_targetBack = ml_targets[0].mNode
         i = 0
-        
+
         mMasterGroup.p_parent = ml_parents[i]
         mUpDecomp = None
-        
+
         if upMode == 'decomposeMatrix':
             #Decompose matrix for parent...
             mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
             mUpDecomp.rename("{0}_aimMatrix".format(ml_parents[i].p_nameBase))
-            
+
             #mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
             #mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
             #mUpDecomp.doName()
@@ -429,31 +436,31 @@ def build_aimSequence(l_driven = None,
                          'worldUpType' : 'objectRotation', 'worldUpVector': upParent}            
         else:
             raise ValueError, log.error("|{0}| >> Unknown upMode: {1}".format(_str_func,upMode))
-            
+
         if s_targetForward:
             mAimForward = mDriven.doCreateAt()
             mAimForward.parent = mMasterGroup            
             mAimForward.doStore('cgmTypeModifier','forward')
             mAimForward.doStore('cgmType','aimer')
             mAimForward.doName()
-    
+
             _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
                                     aimVector = v_aim, upVector = v_up, **d_worldUp)            
             s_targetForward = mAimForward.mNode
-            
+
             if mUpDecomp:
                 ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
-    
+
         else:
             s_targetForward = ml_parents[i].mNode
-    
+
         if s_targetBack:
             mAimBack = mDriven.doCreateAt()
             mAimBack.parent = mMasterGroup                        
             mAimBack.doStore('cgmTypeModifier','back')
             mAimBack.doStore('cgmType','aimer')
             mAimBack.doName()
-    
+
             _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
                                       aimVector = v_aimNeg, upVector = v_up, **d_worldUp)  
             s_targetBack = mAimBack.mNode
@@ -462,35 +469,35 @@ def build_aimSequence(l_driven = None,
         else:
             s_targetBack = s_rootTarget
             #ml_parents[i].mNode
-    
+
         pprint.pprint([s_targetForward,s_targetBack])
         mAimGroup = mDriven.doGroup(True,asMeta=True,typeModifier = 'aim')
-    
+
         mDriven.parent = False
-    
+
 
         const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
-    
-    
+
+
         d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mDriven.mNode,'followRoot'],
                                                              [mDriven.mNode,'resultRootFollow'],
                                                              [mDriven.mNode,'resultAimFollow'],
                                                              keyable=True)
-        
+
         targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-    
+
         #Connect                                  
         d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
         d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
         d_blendReturn['d_result1']['mi_plug'].p_hidden = True
         d_blendReturn['d_result2']['mi_plug'].p_hidden = True
-    
+
         mDriven.parent = mAimGroup#...parent back
-    
+
 
         mDriven.followRoot = .5        
         return True
-    
+
     elif mode == 'sequence':
         """
         if len(ml_targets) != 2:
@@ -506,7 +513,7 @@ def build_aimSequence(l_driven = None,
             cgmGEN.func_snapShot(vars())            
             return log.error("|{0}| >> Single blend mode must have 1 handleParent.".format(_str_func))
         """
-        
+
 
         for i,mDriven in enumerate(ml_driven):
             log.debug("|{0}| >> on: {1} | {2}".format(_str_func,i,mDriven))
@@ -514,19 +521,19 @@ def build_aimSequence(l_driven = None,
             if not mDriven.getMessage(msgLink_masterGroup):
                 log.debug("|{0}| >> No master group, creating...".format(_str_func))
                 raise ValueError, log.error("|{0}| >> Add the create masterGroup setup, Josh".format(_str_func))
-            
+
             mDriven.masterGroup.parent = ml_parents[i]
-            
-            
+
+
             if upMode == 'decomposeMatrix':
                 #Decompose matrix for parent...
                 mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
                 mUpDecomp.rename("{0}_aimMatrix".format(ml_parents[i].p_nameBase))
-                
+
                 #mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
                 #mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                 #mUpDecomp.doName()
-    
+
                 ATTR.connect("{0}.worldMatrix".format(ml_upTargets[i].mNode),"{0}.{1}".format(mUpDecomp.mNode,'inputMatrix'))
                 d_worldUp = {'worldUpObject' : ml_upTargets[i].mNode,
                              'worldUpType' : 'vector', 'worldUpVector': [0,0,0]}
@@ -535,9 +542,9 @@ def build_aimSequence(l_driven = None,
                              'worldUpType' : 'objectRotation', 'worldUpVector': upParent}            
             else:
                 raise ValueError, log.error("|{0}| >> Unknown upMode: {1}".format(_str_func,upMode))            
-            
-            
-            
+
+
+
             s_rootTarget = False
             s_targetForward = False
             s_targetBack = False
@@ -549,33 +556,33 @@ def build_aimSequence(l_driven = None,
                     s_targetForward = ml_parents[-1].mNode
                 else:
                     s_targetForward = ml_driven[i+1].getMessage('masterGroup')[0]
-                    
+
                 if rootTargetStart:
                     s_rootTarget = rootTargetStart.mNode
                 else:
                     s_rootTarget = mRoot.mNode
                 b_first = True
-        
+
             elif mDriven == ml_driven[-1]:
                 log.debug("|{0}| >> Last handle: {1}".format(_str_func,mDriven))
                 if rootTargetEnd:
                     s_rootTarget = rootTargetEnd.mNode
                 else:
                     s_rootTarget = ml_parents[i].mNode
-                    
+
                 s_targetBack = ml_driven[i-1].getMessage('masterGroup')[0]
             else:
                 log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mDriven))            
                 s_targetForward = ml_driven[i+1].getMessage('masterGroup')[0]
                 s_targetBack = ml_driven[i-1].getMessage('masterGroup')[0]
-        
+
             #Decompose matrix for parent...
             """
             mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
             mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
             mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
             mUpDecomp.doName()
-        
+
             ATTR.connect("%s.worldMatrix"%(ml_parents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
             """
             if s_targetForward:
@@ -584,66 +591,66 @@ def build_aimSequence(l_driven = None,
                 mAimForward.doStore('cgmTypeModifier','forward')
                 mAimForward.doStore('cgmType','aimer')
                 mAimForward.doName()
-        
+
                 _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
                                         aimVector = v_aim, upVector = v_up,**d_worldUp)            
-                
+
                 s_targetForward = mAimForward.mNode
-                
+
                 if mUpDecomp:
                     ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))         
             elif s_rootTarget:
                 s_targetForward = s_rootTarget
             else:
                 s_targetForward = ml_parents[i].mNode
-        
+
             if s_targetBack:
                 mAimBack = mDriven.doCreateAt()
                 mAimBack.parent = mMasterGroup                        
                 mAimBack.doStore('cgmTypeModifier','back')
                 mAimBack.doStore('cgmType','aimer')
                 mAimBack.doName()
-        
+
                 _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
                                           aimVector = v_aimNeg, upVector = v_up, **d_worldUp)  
-                
+
                 s_targetBack = mAimBack.mNode
                 if mUpDecomp:
                     ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                         
             else:
                 s_targetBack = s_rootTarget
                 #ml_parents[i].mNode
-        
+
             #pprint.pprint([s_targetForward,s_targetBack])
             mAimGroup = mDriven.doGroup(True,asMeta=True,typeModifier = 'aim')
-        
+
             mDriven.parent = False
-            
+
             log.info("|{0}| >> obj: {1} | {2}".format(_str_func,i,mDriven))
             log.info("|{0}| >> forward: {1}".format(_str_func,s_targetForward))
             log.info("|{0}| >> back: {1}".format(_str_func,s_targetBack))
             log.info(cgmGEN._str_subLine)
-        
+
             if b_first:
                 const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
             else:
                 const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
-        
-        
+
+
             d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mDriven.mNode,'followRoot'],
                                                                  [mDriven.mNode,'resultRootFollow'],
                                                                  [mDriven.mNode,'resultAimFollow'],
                                                                  keyable=True)
             targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-        
+
             #Connect                                  
             d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
             d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
             d_blendReturn['d_result1']['mi_plug'].p_hidden = True
             d_blendReturn['d_result2']['mi_plug'].p_hidden = True
-        
+
             mDriven.parent = mAimGroup#...parent back
-            
+
             if interpType:
                 ATTR.set(const,'interpType',interpType)
             #if mDriven in [ml_driven[0],ml_driven[-1]]:
@@ -651,15 +658,15 @@ def build_aimSequence(l_driven = None,
             #else:
             mDriven.followRoot = .5
         return True
-            
+
     raise ValueError,"Not done..."
     return
     for i,mObj in enumerate(ml_driven):
-        
-        
+
+
         return
-        
-        
+
+
         mObj.masterGroup.parent = ml_parents[i]
         s_rootTarget = False
         s_targetForward = False
@@ -674,7 +681,7 @@ def build_aimSequence(l_driven = None,
                 s_targetForward = ml_driven[i+1].getMessage('masterGroup')[0]
             s_rootTarget = mRoot.mNode
             b_first = True
-    
+
         elif mObj == ml_driven[-1]:
             log.debug("|{0}| >> Last handle: {1}".format(_str_func,mObj))
             s_rootTarget = ml_parents[i].mNode                
@@ -683,38 +690,38 @@ def build_aimSequence(l_driven = None,
             log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mObj))            
             s_targetForward = ml_driven[i+1].getMessage('masterGroup')[0]
             s_targetBack = ml_driven[i-1].getMessage('masterGroup')[0]
-    
+
         #Decompose matrix for parent...
         mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
         mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
         mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
         mUpDecomp.doName()
-    
+
         ATTR.connect("%s.worldMatrix"%(ml_parents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
-    
+
         if s_targetForward:
             mAimForward = mObj.doCreateAt()
             mAimForward.parent = mMasterGroup            
             mAimForward.doStore('cgmTypeModifier','forward')
             mAimForward.doStore('cgmType','aimer')
             mAimForward.doName()
-    
+
             _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
                                     aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_parents[i].mNode,
                                     worldUpType = 'vector', worldUpVector = [0,0,0])            
             s_targetForward = mAimForward.mNode
             ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
-    
+
         else:
             s_targetForward = ml_parents[i].mNode
-    
+
         if s_targetBack:
             mAimBack = mObj.doCreateAt()
             mAimBack.parent = mMasterGroup                        
             mAimBack.doStore('cgmTypeModifier','back')
             mAimBack.doStore('cgmType','aimer')
             mAimBack.doName()
-    
+
             _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
                                       aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_parents[i].mNode,
                                       worldUpType = 'vector', worldUpVector = [0,0,0])  
@@ -723,35 +730,34 @@ def build_aimSequence(l_driven = None,
         else:
             s_targetBack = s_rootTarget
             #ml_parents[i].mNode
-    
+
         pprint.pprint([s_targetForward,s_targetBack])
         mAimGroup = mObj.doGroup(True,asMeta=True,typeModifier = 'aim')
-    
+
         mObj.parent = False
-    
+
         if b_first:
             const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
         else:
             const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
-    
-    
+
+
         d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mObj.mNode,'followRoot'],
                                                              [mObj.mNode,'resultRootFollow'],
                                                              [mObj.mNode,'resultAimFollow'],
                                                              keyable=True)
         targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-    
+
         #Connect                                  
         d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
         d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
         d_blendReturn['d_result1']['mi_plug'].p_hidden = True
         d_blendReturn['d_result2']['mi_plug'].p_hidden = True
-    
+
         mObj.parent = mAimGroup#...parent back
-    
+
         if mObj in [ml_driven[0],ml_driven[-1]]:
             mObj.followRoot = 1
         else:
             mObj.followRoot = .5
-    
-    
+

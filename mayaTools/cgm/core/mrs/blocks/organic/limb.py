@@ -80,7 +80,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.08102018'
+__version__ = 'alpha.1.09122018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -6023,16 +6023,6 @@ def rig_blendFrame(self):
     #mPlug_globalScale = self.d_module['mPlug_globalScale']
     #mRoot = mRigNull.rigRoot
     
-    if mBlock.getEnumValueString('rigSetup') == 'digit':
-        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
-        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
-        """
-        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                           self.mDeformNull.mNode,
-                           maintainOffset=True,
-                           scaleCompensate=False)"""
-    
-    
     ml_scaleJoints = []
     def getScaleJoint(mJnt):
         mDup = mJnt.doDuplicate(po=True,ic=False)
@@ -6045,6 +6035,18 @@ def rig_blendFrame(self):
     
     #Setup blend ----------------------------------------------------------------------------------
     if self.b_scaleSetup:
+        if mBlock.getEnumValueString('rigSetup') == 'digit':
+            #This was causing issues with toe setup , need to resolve...
+            log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
+            raise ValueError,"This was causing issues with toe setup , need to resolve..."
+            
+            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+            """
+                mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                                   self.mDeformNull.mNode,
+                                   maintainOffset=True,
+                                   scaleCompensate=False)"""        
+
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
         
         log.debug("|{0}| >> fk setup...".format(_str_func))
@@ -6174,7 +6176,6 @@ def rig_blendFrame(self):
             mJnt.dagLock(True)
     else:
         log.debug("|{0}| >> Normal setup...".format(_str_func))
-        
         RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                     driver = mPlug_FKIK,
                                     l_constraints=['point','orient'])
