@@ -889,9 +889,25 @@ def define(self):
 #>> Template
 #=============================================================================================================    
 def templateDelete(self):
+    _str_func = 'templateDelete'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mDefineEndHelper = self.defineEndHelper
+    l_const = mDefineEndHelper.getConstraintsTo()
+    if l_const:
+        log.debug("currentConstraints...")
+        pos = mDefineEndHelper.p_position
+        
+        for i,c in enumerate(l_const):
+            log.info("    {0} : {1}".format(i,c))
+        mc.delete(l_const)
+        mDefineEndHelper.p_position = pos
+        
     self.defineEndHelper.v = True
     self.defineUpHelper.v = True
-        
+    self.defineLoftMesh.v = True
+    
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -1024,7 +1040,7 @@ def template(self):
     
     
     #Root handles ===========================================================================================
-    log.debug("|{0}| >> root handles...".format(_str_func)) 
+    log.debug("|{0}| >> root handles...".format(_str_func) + '-'*40) 
     md_handles = {'lever':None}
     ml_handles = []
     md_loftHandles = {}
@@ -1070,7 +1086,6 @@ def template(self):
             mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
             mc.pointConstraint(mHandle.mNode,mScaleGroup.mNode,maintainOffset=False)
             
-            
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
 
@@ -1079,11 +1094,12 @@ def template(self):
         
         
         #>> Base Orient Helper =================================================================================
+        log.debug("|{0}| >> Base orient helper...".format(_str_func) + '-'*40) 
+        
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
                                                           shapeDirection = 'y+',
                                                           setAttrs = {'ty':_size_width})
-        #'tz':- _size_width})
     
         self.copyAttrTo('cgmName',mBaseOrientCurve.mNode,'cgmName',driven='target')
         mBaseOrientCurve.doName()
@@ -1175,6 +1191,14 @@ def template(self):
                 mGroup.resetAttrs('rotate')
                 
                 
+                mLoftCurve.p_parent = mTemplateNull
+                mScaleGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'scale')
+                #mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
+                mc.scaleConstraint(mHandle.mNode,
+                                   mScaleGroup.mNode,maintainOffset = False)                
+                mc.pointConstraint(mHandle.mNode,mScaleGroup.mNode,maintainOffset=False)
+                
+                
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
         
@@ -1190,6 +1214,8 @@ def template(self):
                 
             
             #Lever Handle ===============================================================================
+            log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
+            
             if _b_lever:
                 crv = CURVES.create_fromName('sphere', _size_width * .75, direction = 'y+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
@@ -1242,8 +1268,8 @@ def template(self):
             
             #AimStartHandle ============================================================================
             log.debug("|{0}| >> Aim main handles...".format(_str_func)) 
-            
-            _const = mc.aimConstraint(md_handles['end'].mNode, md_handles['start'].mNode,
+            mGroup =  md_handles['start'].doGroup(True,True,asMeta=True,typeModifier = 'aim')            
+            _const = mc.aimConstraint(md_handles['end'].mNode, mGroup.mNode,
                                       maintainOffset = False,
                                       aimVector = [0,0,1],
                                       upVector = [0,1,0], 
