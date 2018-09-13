@@ -3555,7 +3555,9 @@ def rig_shapes(self):
                 mHandleFactory.color(mKnee.mNode, controlType = 'main')
         
                 mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
-                mKnee.doStore('cgmAlias','midIK')            
+                mKnee.doStore('cgmAlias','midIK')
+                mKnee.doStore('cgmTypeModifier','ikPole')
+                
                 mKnee.doName()
         
                 self.mRigNull.connectChildNode(mKnee,'controlIKMid','rigNull')#Connect
