@@ -1645,7 +1645,8 @@ class argsToNodes(object):
                 l_matchCandidates = mc.ls(type=nodeType)
             log.debug("argsToNodes.verifyNode>> l_matchCandidates: %s"%l_matchCandidates)
 
-            if l_matchCandidates:
+            if l_matchCandidates and not fastCheck:
+                raise ValueError,"Shouldn't be here"
                 matchFound = False
                 for cnt,n in enumerate(l_matchCandidates):
                     falseCnt = []

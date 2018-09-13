@@ -48,6 +48,7 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.classes.NodeFactory as NODEFACTORY
+reload(NODEFACTORY)
 from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
@@ -81,7 +82,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.08102018'
+__version__ = 'alpha.1.09122018'
 __autoTemplate__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -1005,7 +1006,7 @@ def template(self):
                 _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
                 log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
                 
-                pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
+                #pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
             
         if not pos_lever:
             log.debug("|{0}| >> no blockParent...".format(_str_func))
@@ -1265,7 +1266,7 @@ def template(self):
         else:
             ml_handles_chain = copy.copy(ml_handles)
             
-            
+        
         #>>> Aim Main loft curves ================================================================== 
         log.debug("|{0}| >> Aim main loft curves...".format(_str_func)) 
         
@@ -2495,6 +2496,7 @@ def rig_skeleton(self):
     
     #...lever -------------------------------------------------------------------------------------------------
     if self.b_lever:
+        log.debug("|{0}| >> Lever...".format(_str_func)+'-'*40)          
         if self.b_leverJoint:
             log.debug("|{0}| >> Lever handle joint remap...".format(_str_func))  
             
@@ -3250,19 +3252,23 @@ def rig_digitShapes(self):
         if self.b_lever:            
             log.debug("|{0}| >> Lever...".format(_str_func))
             
-            mLeverRigJnt = mRigNull.getMessageAsMeta('leverDirect')
+            mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
+            mLeverFK = mRigNull.getMessageAsMeta('leverFK')
+            
+            mLeverControlCast = mLeverDirect
+            if not mLeverControlCast:
+                mLeverControlCast = mLeverFK
                 
-            mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
-            log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
-            log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
+            log.debug("|{0}| >> mLeverControlCast: {1}".format(_str_func,mLeverControlCast))            
+            
     
             dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
                                                           ml_prerigHandles[1].p_position)
             log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
     
             #Dup our rig joint and move it 
-            mDup = mLeverRigJnt.doDuplicate(po=True)
-            mDup.p_parent = mLeverRigJnt
+            mDup = mLeverControlCast.doDuplicate(po=True)
+            mDup.p_parent = mLeverControlCast
             mDup.resetAttrs()
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
     
@@ -3291,11 +3297,11 @@ def rig_digitShapes(self):
                 line = mc.curve (d=1, ep = [p_start,p_end], os=True)
                 l_lolis.extend([ball,line])
         
-            CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,l_lolis,False)
+            CORERIG.shapeParent_in_place(mLeverFK.mNode,l_lolis,False)
             
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)            
             ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
-                                                       targets= [mLeverRigJnt.mNode,
+                                                       targets= [mLeverControlCast.mNode,
                                                                  #ml_fkJoints[0].mNode],
                                                                   mDup.mNode],
                                                              aimVector= self.d_orientation['vectorOut'],
@@ -3303,10 +3309,10 @@ def rig_digitShapes(self):
                                                              f_factor=0,
                                                              offset=_offset,
                                                              mode = 'frameHandle')
-            CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,
+            CORERIG.shapeParent_in_place(mLeverFK.mNode,
                                          ml_clavShapes[0].mNode,
                                          False,replaceShapes=False)            
-            mHandleFactory.color(mLeverFKJnt.mNode, controlType = 'main')
+            mHandleFactory.color(mLeverFK.mNode, controlType = 'main')
             mDup.delete()
             for mShape in ml_clavShapes:
                 try:mShape.delete()
@@ -3632,18 +3638,20 @@ def rig_shapes(self):
             #Lever =============================================================================
             if self.b_lever:
                 log.debug("|{0}| >> Lever...".format(_str_func))
-                mLeverRigJnt = mRigNull.getMessage('leverDirect',asMeta=True)[0]
-                mLeverFKJnt = mRigNull.getMessage('leverFK',asMeta=True)[0]
-                log.debug("|{0}| >> mLeverRigJnt: {1}".format(_str_func,mLeverRigJnt))            
-                log.debug("|{0}| >> mLeverFKJnt: {1}".format(_str_func,mLeverFKJnt))            
+                mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+                if not mLeverControlJoint:
+                    mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+                else:
+                    mLeverControlJoint = mLeverControlJoint[0]
+                log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
                 
                 dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
                                                               ml_prerigHandles[1].p_position)
                 log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
                 
                 #Dup our rig joint and move it 
-                mDup = mLeverRigJnt.doDuplicate()
-                mDup.p_parent = mLeverRigJnt
+                mDup = mLeverControlJoint.doDuplicate()
+                mDup.p_parent = mLeverControlJoint
                 
                 mDup.resetAttrs()
                 ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
@@ -3661,8 +3669,8 @@ def rig_shapes(self):
                                                                  mode = 'frameHandle')
                 
                 mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mLeverRigJnt.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
-                CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+                #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
                 
                 mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
                 
@@ -3879,7 +3887,9 @@ def rig_shapes(self):
                 mHandleFactory.color(mKnee.mNode, controlType = 'main')
         
                 mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
-                mKnee.doStore('cgmAlias','midIK')            
+                mKnee.doStore('cgmAlias','midIK')
+                mKnee.doStore('cgmTypeModifier','ikPole')
+                
                 mKnee.doName()
         
                 self.mRigNull.connectChildNode(mKnee,'controlIKMid','rigNull')#Connect
@@ -5503,6 +5513,7 @@ def rig_frame(self):
                         'lockMid':True,
                         'rpHandle':mIKMid.mNode,
                         'nameSuffix':'ik',
+                        'baseName':'{0}_ikRP'.format(self.d_module['partName']),
                         'controlObject':mMainIKControl.mNode,
                         'moduleInstance':self.mModule.mNode}
                 
@@ -5693,7 +5704,7 @@ def rig_frame(self):
                 #Mid IK driver -----------------------------------------------------------------------
                 log.info("|{0}| >> mid IK driver.".format(_str_func))
                 mMidControlDriver = mIKMid.doCreateAt()
-                mMidControlDriver.addAttr('cgmName','midIK')
+                mMidControlDriver.addAttr('cgmName','{0}_midIK'.format(self.d_module['partName']))
                 mMidControlDriver.addAttr('cgmType','driver')
                 mMidControlDriver.doName()
                 mMidControlDriver.addAttr('cgmAlias', 'midDriver')
@@ -5741,7 +5752,7 @@ def rig_frame(self):
                             'stretch':'translate',
                             'lockMid':False,
                             'rpHandle':mIKMid.mNode,
-                            'baseName':'ikFullChain',
+                            'baseName':'{0}_ikFullChain'.format(self.d_module['partName']),
                             'nameSuffix':'ikFull',
                             'controlObject':mIKControl.mNode,
                             'moduleInstance':self.mModule.mNode}
@@ -6340,23 +6351,7 @@ def rig_blendFrame(self):
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     mSettings = mRigNull.settings    
-    mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
-    
-    #ml_handleJoints = mRigNull.msgList_get('handleJoints')
-    #ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
-    #ml_blendJoints = mRigNull.msgList_get('blendJoints')
-    #ml_templateHandles = mBlock.msgList_get('templateHandles')
-    #mPlug_globalScale = self.d_module['mPlug_globalScale']
-    #mRoot = mRigNull.rigRoot
-    
-    if mBlock.getEnumValueString('rigSetup') == 'digit':
-        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
-        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
-        """
-        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                           self.mDeformNull.mNode,
-                           maintainOffset=True,
-                           scaleCompensate=False)"""
+    mPlug_FKIK = cgmMeta.cgmAttr(mSettings,'FKIK',attrType='float',lock=False,keyable=True)
     
     ml_scaleJoints = []
     def getScaleJoint(mJnt):
@@ -6368,8 +6363,21 @@ def rig_blendFrame(self):
         ml_scaleJoints.append(mDup)
         return mDup
     
+    
+    if mBlock.getEnumValueString('rigSetup') == 'digit':
+        #This was causing issues with toe setup , need to resolve...
+        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
+        #raise ValueError,"This was causing issues with toe setup , need to resolve..."
+        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+    
     #Setup blend ----------------------------------------------------------------------------------
     if self.b_scaleSetup:
+        """
+            mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                               self.mDeformNull.mNode,
+                               maintainOffset=True,
+                               scaleCompensate=False)"""        
+
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
         
         log.debug("|{0}| >> fk setup...".format(_str_func))
@@ -6408,7 +6416,7 @@ def rig_blendFrame(self):
         """
         
 
-        #pprint.pprint(vars())
+        pprint.pprint(vars())
         
 
         log.debug(cgmGEN._str_subLine)    
@@ -6498,13 +6506,11 @@ def rig_blendFrame(self):
         for mJnt in ml_scaleJoints:
             mJnt.dagLock(True)
     else:
-        log.debug("|{0}| >> Normal setup...".format(_str_func))                        
+        log.debug("|{0}| >> Normal setup...".format(_str_func))
         RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
-                                    driver = mPlug_FKIK.p_combinedName,
+                                    driver = mPlug_FKIK,
                                     l_constraints=['point','orient'])
         
-
-
 @cgmGEN.Timer
 def rig_pivotSetup(self):
     _short = self.d_block['shortName']
@@ -6742,7 +6748,8 @@ def rig_cleanUp(self):
     str_blockProfile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
     
     str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
-
+    str_rigSetup  =  mBlock.getEnumValueString('rigSetup')
+   
     b_ikOrientToWorld = mBlock.ikOrientToWorld
 
     #Changing targets - these change based on how the setup rolls through
@@ -6776,12 +6783,14 @@ def rig_cleanUp(self):
         mLeverFK = mRigNull.leverFK
         mLimbRoot = mRigNull.limbRoot
         
-        ml_targetDynParents = [mLeverFK, self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
+        ml_targetDynParents = [mLeverFK]# + self.md_dynTargetsParent['attachDriver']+ ml_endDynParents
+        #if str_rigSetup not in ['digit']:
+        ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+        ml_targetDynParents.extend(ml_endDynParents)
         
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mLimbRoot.mNode,dynMode=0)
         
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mLimbRoot))
-        pprint.pprint(ml_targetDynParents)
         
         if not mLimbRoot.hasAttr('cgmAlias'):
             mLimbRoot.addAttr('cgmAlias','{0}_limbRoot'.format(self.d_module['partName']))
@@ -6800,18 +6809,24 @@ def rig_cleanUp(self):
         ml_baseDynParents.append(mLeverFK)
     else:
         ml_baseDynParents.append(mRoot)
-        
+    
+    #pprint.pprint(vars())
     
     #...Root controls ================================================================================
     log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))
+    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)
     
+    ml_targetDynParents = []
+    #if str_rigSetup not in ['digit']:
     ml_targetDynParents = [self.md_dynTargetsParent['attachDriver']]
-    
+    #else:
+    #    ml_targetDynParents = [mDynGroup.p_parent]
+        
     if not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
-        
+    
+    #if str_rigSetup not in ['digit']:
     ml_targetDynParents.extend(self.ml_dynEndParents)
-    mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)
 
     log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
     pprint.pprint(ml_targetDynParents)
@@ -6841,7 +6856,10 @@ def rig_cleanUp(self):
         if b_ikOrientToWorld:
             BUILDUTILS.control_convertToWorldIK(mHandle)
         
-        ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
+        ml_targetDynParents = ml_baseDynParents
+        #if str_rigSetup not in ['digit']:
+        ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+        ml_targetDynParents.extend(ml_endDynParents)
         
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
         ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -6885,7 +6903,9 @@ def rig_cleanUp(self):
         
         ml_targetDynParents.append(mControlIK)
             
-        ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
+        ml_targetDynParents.extend(ml_baseDynParents)
+        #if str_rigSetup not in ['digit']:
+        ml_targetDynParents.extend(ml_endDynParents)        
         #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
@@ -6972,6 +6992,7 @@ def rig_cleanUp(self):
             ml_targetDynParents.insert(0,mParent)
             _mode = 1
             
+        #if str_rigSetup not in ['digit']:
         ml_targetDynParents.extend(ml_endDynParents)
         ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
 
@@ -7180,8 +7201,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                    ml_rigJoints[int_handleEndIdx]))                
         
     # Create ---------------------------------------------------------------------------
+    _extendToStart = True
+    if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
+        _extendToStart = False
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                 ml_rigJoints),
+                                                                 ml_rigJoints,
+                                                                 extendToStart=_extendToStart),
                                              'cgmObject')    
     
     
@@ -7325,8 +7350,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 #mMesh.p_parent=False
                 mMesh.delete()
             else: 
-                ml_segProxy.pop(-1)
-                ml_segProxy.append(mMesh)
+                _mesh = mc.polyUnite([mMesh.mNode,ml_segProxy[-1].mNode], ch=False )[0]
+                mMesh = cgmMeta.validateObjArg(_mesh)                
+                ml_segProxy[-1] = mMesh
                 
     
     if directProxy:

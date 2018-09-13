@@ -2704,7 +2704,7 @@ def blockMirror_create(self, forceNew = False):
                 _subShapers[str(i)]['r'][ii] = l_r
                 _subShapers[str(i)]['r'][ii] = l_t"""
             
-                    
+        
         #if blockDat['ud'].get('cgmDirection'):
             #blockDat['ud']['cgmDirection'] = _side
         #blockDat_load(mMirror, blockDat, mirror = False)
