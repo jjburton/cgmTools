@@ -5249,6 +5249,10 @@ class cgmAttr(object):
         return '%s.%s'%(self.obj.getShortName(),self.attr)  
     p_combinedShortName = property(asCombinedShortName) 
 
+    def asCombinedLongName(self):
+        return '{0}.{1}'.format(self.obj.p_nameLong,self.attr)  
+    p_combinedLongName = property(asCombinedLongName)
+
     #>>> Property - p_nameLong ================== 
     def getEnum(self):
         #attributeQuery(attr, node=self.mNode, listEnum=True)[0].split(':')

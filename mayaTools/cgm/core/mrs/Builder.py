@@ -182,6 +182,9 @@ class ui(cgmUI.cgmGUI):
         _menu = self.uiMenu_post
         
         #_mPuppet = mUI.MelMenuItem(self.uiMenu_post, l="Puppet",subMenu=True)
+        mUI.MelMenuItem( _menu, l="Gather Blocks",
+                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
+        mUI.MelMenuItemDiv(_menu)
         
         mUI.MelMenuItem(_menu, l="Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -1519,8 +1522,6 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
                          c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
-        mUI.MelMenuItem( self.uiMenu_help, l="Gather Blocks",
-                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
         mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
                          c=lambda *a: self.uiFunc_contextuaBlockCall('VISUALIZEHEIRARCHY') )
         
