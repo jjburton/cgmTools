@@ -1082,9 +1082,11 @@ def template(self):
             ml_loftHandles.append(mLoftCurve)
             
             mLoftCurve.p_parent = mTemplateNull
-            mScaleGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'scale')
-            mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
-            mc.pointConstraint(mHandle.mNode,mScaleGroup.mNode,maintainOffset=False)
+            mTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
+            if not mTransformedGroup:
+                mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed')
+            mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
+            mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
             
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
@@ -1135,6 +1137,9 @@ def template(self):
             mMidTrackCurve = cgmMeta.validateObjArg(_midTrackCurve,'cgmObject')
             mMidTrackCurve.rename(self.cgmName + 'midHandlesTrack_crv')
             mMidTrackCurve.parent = mNoTransformNull
+            
+            for s in _midTrackResult[1]:
+                ATTR.set(s[1],'visibility',False)
         
             #>>> mid main handles =====================================================================
             l_scales = []
@@ -1192,11 +1197,15 @@ def template(self):
                 
                 
                 mLoftCurve.p_parent = mTemplateNull
-                mScaleGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'scale')
+                mTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
+                if not mTransformedGroup:
+                    mTransformedGroup = mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'transformed')
+                    
+                #mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed')
                 #mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
                 mc.scaleConstraint(mHandle.mNode,
-                                   mScaleGroup.mNode,maintainOffset = False)                
-                mc.pointConstraint(mHandle.mNode,mScaleGroup.mNode,maintainOffset=False)
+                                   mTransformedGroup.mNode,maintainOffset = False)                
+                mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
                 
                 
                 for c in [_scale]:
@@ -1277,7 +1286,8 @@ def template(self):
                                       worldUpType = 'objectrotation', 
                                       worldUpVector = [0,0,1])
             
-
+            
+            
             
             #Main Track curve ============================================================================
             ml_handles_chain = [ml_handles[0]] + ml_midHandles + [ml_handles[-1]]
@@ -1289,6 +1299,9 @@ def template(self):
             mMainTrackCurve = cgmMeta.validateObjArg(_mainTrackResult[0],'cgmObject')
             mMainTrackCurve.rename(self.cgmName + 'mainHandlesTrack_crv')
             mMainTrackCurve.parent = mNoTransformNull
+            
+            for s in _mainTrackResult[1]:
+                ATTR.set(s[1],'visibility',False)            
         else:
             ml_handles_chain = copy.copy(ml_handles)
             
@@ -1306,7 +1319,9 @@ def template(self):
             mLoft = mHandle.loftCurve
             _str_handle = mHandle.mNode
             
-            mLoftAimGroup = mLoft.doGroup(True,asMeta=True,typeModifier = 'aim')
+            mTransformedGroup = mLoft.getMessageAsMeta('transformedGroup')
+            if not mTransformedGroup:
+                mTransformedGroup = mLoft.doGroup(True,asMeta=True,typeModifier = 'transformed')
             mLoft.visibility = 1
             #mLoft.setAttrFlags(['translate'])
             
@@ -1327,19 +1342,22 @@ def template(self):
             if mHandle == ml_handles_chain[0]:
                 _aimForward = ml_handles_chain[i+1].mNode
             elif mHandle == ml_handles_chain[-1]:
-                _aimBack = md_handles['start'].mNode#ml_handles_chain[].mNode
+                if len(ml_handles_chain)>2:
+                    _aimBack = ml_handles_chain[-2].mNode#md_handles['start'].mNode#ml_handles_chain[].mNode
+                else:
+                    _aimBack = md_handles['start'].mNode
             else:
                 _aimForward =  ml_handles_chain[i+1].mNode
                 _aimBack  =  ml_handles_chain[i-1].mNode
                 
             if _aimForward and _aimBack is None:
-                mc.aimConstraint(_aimForward, mLoftAimGroup.mNode, maintainOffset = False,
+                mc.aimConstraint(_aimForward, mTransformedGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
                                  worldUpObject = mBaseOrientCurve.mNode,
                                  worldUpType = _worldUpType, 
                                  worldUpVector = [0,1,0])
             elif _aimBack and _aimForward is None:
-                mc.aimConstraint(_aimBack, mLoftAimGroup.mNode, maintainOffset = False,
+                mc.aimConstraint(_aimBack, mTransformedGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,-1], upVector = [0,1,0], 
                                  worldUpObject = mBaseOrientCurve.mNode,
                                  worldUpType = _worldUpBack, 
@@ -1371,16 +1389,16 @@ def template(self):
                                  worldUpVector = [0,1,0])                
                 
                 const = mc.orientConstraint([mAimForward.mNode, mAimBack.mNode],
-                                            mLoftAimGroup.mNode, maintainOffset = False)[0]
+                                            mTransformedGroup.mNode, maintainOffset = False)[0]
                 
                 ATTR.set(const,'interpType',2)#.shortest...
                 
                 #...also aim our main handles...
                 if mHandle not in [md_handles['end'],md_handles['start']]:
-                    if not mHandle.getMessage('aimGroup'):
-                        mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
+                    if not mHandle.getMessage('transformed'):
+                        mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
                     else:
-                        mHandleAimGroup = mHandle.getMessageAsMeta('aimGroup')
+                        mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
                         
                     mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
@@ -1391,7 +1409,17 @@ def template(self):
             if mHandle == md_handles['lever']:
                 pass
                 #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
-            elif mHandle not in [md_handles['end']]:
+            elif mHandle in [md_handles['start'],md_handles['end']]:
+                _lock = ['sz','sx']
+                if mHandle == md_handles['start']:
+                    _lock.append('rotate')
+                    
+                ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
+                ATTR.set_standardFlags( mHandle.mNode, _lock)
+                mHandle.doConnectOut('sy',['sx','sz'])
+                ATTR.set_standardFlags( mHandle.mNode, _lock)
+                
+            else:
                 ATTR.set_standardFlags( mHandle.mNode, ['rotate','sz'])
                 ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
