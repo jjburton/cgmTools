@@ -6370,7 +6370,8 @@ def rig_pivotSetup(self):
         
         mControlFollowParentBank.masterGroup.parent = self.d_module['mModuleParent'].rigNull.controlIK
         mIKControlTarget = ml_followParentBankJoints[-1]
-
+        ml_fkAimJoints = ml_followParentBankJoints
+        
         if 'yes' == 'yes':
             ml_chain1 = ml_followParentBankJoints[:-1]
             mChain2Base = ml_followParentBankJoints[-2].doDuplicate(po=True)
@@ -6380,6 +6381,23 @@ def rig_pivotSetup(self):
             ml_chain2 = [mChain2Base, ml_followParentBankJoints[-1]]
             pprint.pprint(vars())
             
+            #Make our fk chain -----------------------------------------------------
+            mFKAim_base = ml_followParentBankJoints[0].doDuplicate(po=True)
+            mFKAim_end = ml_followParentBankJoints[-1].doDuplicate(po=True)
+            ml_fkAimJoints = [mFKAim_base, mFKAim_end]
+            mFKAim_end.p_parent = mFKAim_base
+            
+            mFKAim_base.p_parent = mLimbRoot
+            
+            JOINT.orientChain(ml_fkAimJoints,
+                              worldUpAxis=mBlock.rootUpHelper.getAxisVector('y+'))
+            
+            for i,mJnt in enumerate(ml_fkAimJoints):
+                mJnt.rename('{0}_bank_fkDriver_{1}'.format(self.d_module['partName'],i))
+            
+            
+            
+            #IK follow setup -------------------------------------------------------
             d_chains = {'start':{'start':ml_chain1[0],
                                  'end':ml_chain1[-1],
                                  'baseName':self.d_module['partName'] + 'followParentBankIK1',},
@@ -6398,6 +6416,9 @@ def rig_pivotSetup(self):
                 
             mIKControlTarget = ml_chain2[0]
             
+            #--------------------------------------------------------------
+            
+            
         else:
             #Build IK Chain
             log.debug("|{0}| >> followParentBank ik chain ...".format(_str_func)+'-'*40)
@@ -6413,25 +6434,37 @@ def rig_pivotSetup(self):
 
         #Connect the parts -------------------------------------------------------------------------
         log.debug("|{0}| >> pivotBank | fk connection setup ...".format(_str_func)+'-'*40)
+        mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
+        
         
         #Setup blends to turn off and on
         mFKGroup = self.mRigNull.getMessageAsMeta('fkGroup')
-        mAimGroup = mFKGroup.doGroup(True,True,typeModifier='aim',asMeta=True)
-        mAimDriver = mFKGroup.groupChild.doCreateAt(setClass=True)
+        #mAimGroup = mFKGroup.doGroup(True,True,typeModifier='aim',asMeta=True)
+        #mAimDriver = mFKGroup.groupChild.doCreateAt(setClass=True)
         
-        mAimDriver.doStore('cgmName',self.d_module['partName'] + 'bankAimFK')
-        mAimDriver.doStore('cgmType','driver')
-        mAimDriver.doName()
-        mAimDriver.p_parent = mFKGroup
+        #mAimDriver.doStore('cgmName',self.d_module['partName'] + 'bankAimFK')
+        #mAimDriver.doStore('cgmType','driver')
+        #mAimDriver.doName()
+        #mAimDriver.p_parent = ml_followParentBankJoints[0]
         
-        mAimDriver.doStore('cgmAlias', 'followParentBank')
-        mRigNull.connectChildNode(mAimDriver,'bankParentFKDriver','rigNull')#Connect
+        #mAimDriver.doStore('cgmAlias', 'followParentBank')
+        #mRigNull.connectChildNode(mAimDriver,'bankParentFKDriver','rigNull')#Connect
         
+        d_aimFK = IK.handle(ml_fkAimJoints[0].mNode,
+                            ml_fkAimJoints[-1].mNode,
+                            solverType='ikSCsolver',
+                            baseName = self.d_module['partName'] + 'followFKBank',
+                            moduleInstance=mModule)
+        mHandle = d_aimFK['mHandle']
+        mHandle.parent = mControlFollowParentBank.mNode#toeIK to wiggle
+        
+        
+        """
         mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimDriver.mNode, maintainOffset = True,
                                 aimVector = [0,0,1], upVector = [0,1,0], 
                                 worldUpObject = mLimbRoot.mNode,
                                 worldUpType = 'objectrotation', 
-                                worldUpVector = [0,1,0])
+                                worldUpVector = [0,1,0])"""
         """
         mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimGroup.mNode, maintainOffset = True,
                          aimVector = [0,0,1], upVector = [0,1,0], 
