@@ -1031,13 +1031,13 @@ def template(self):
             _vec_AimNeg = MATH.get_obj_vector(self.mNode,'z-')
             
             log.debug("|{0}| >> VecAimNeg: {1} ".format(_str_func,_vec_AimNeg))
-            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _size_width*.3)
+            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _size_length * .3)
             
         log.debug("|{0}| >> pos_lever: {1} ".format(_str_func,pos_lever))
         #LOC.create(position=pos_lever, name='lever_pos_loc')
     
-    cgmGEN.func_snapShot(vars())
-    
+    #cgmGEN.func_snapShot(vars())
+    #return
     
     #Root handles ===========================================================================================
     log.debug("|{0}| >> root handles...".format(_str_func) + '-'*40) 
@@ -1095,7 +1095,7 @@ def template(self):
         mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
         
         
-        #>> Base Orient Helper =================================================================================
+        #>> Base Orient Helper ============================================================================
         log.debug("|{0}| >> Base orient helper...".format(_str_func) + '-'*40) 
         
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
@@ -1151,7 +1151,7 @@ def template(self):
             #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
         
         
-            #Sub handles... ------------------------------------------------------------------------------------
+            #Sub handles... -----------------------------------------------------------------------------------
             log.debug("|{0}| >> Mid Handle creation...".format(_str_func))
             ml_aimGroups = []
             ml_midHandles = []
@@ -1180,32 +1180,35 @@ def template(self):
                 mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
                 ml_midLoftHandles.append(mLoftCurve)
                 
-                mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
-                mAimGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'aim')
+                mTransformedGroup = mHandle.getMessageAsMeta('transformedGroup')
+                if not mTransformedGroup:
+                    mTransformedGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'transformed')
+                #mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
+                #mAimGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'aim')
                 
                 
-                _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,
+                _vList = DIST.get_normalizedWeightsByDistance(mTransformedGroup.mNode,
                                                               [ml_handles[0].mNode,ml_handles[-1].mNode])
 
                 _scale = mc.scaleConstraint([ml_handles[0].mNode,ml_handles[-1].mNode],
-                                            mAimGroup.mNode,maintainOffset = False)
+                                            mTransformedGroup.mNode,maintainOffset = False)
         
-                _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
+                _res_attach = RIGCONSTRAINT.attach_toShape(mTransformedGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
                 TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
                 
-                mGroup.resetAttrs('rotate')
+                mTransformedGroup.resetAttrs('rotate')
                 
                 
                 mLoftCurve.p_parent = mTemplateNull
-                mTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
-                if not mTransformedGroup:
-                    mTransformedGroup = mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'transformed')
+                mLoftTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
+                if not mLoftTransformedGroup:
+                    mLoftTransformedGroup = mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'transformed')
                     
                 #mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed')
                 #mHandle.doConnectOut('scale', "{0}.scale".format(mScaleGroup.mNode))
                 mc.scaleConstraint(mHandle.mNode,
-                                   mTransformedGroup.mNode,maintainOffset = False)                
-                mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
+                                   mLoftTransformedGroup.mNode,maintainOffset = False)                
+                mc.pointConstraint(mHandle.mNode,mLoftTransformedGroup.mNode,maintainOffset=False)
                 
                 
                 for c in [_scale]:
@@ -1250,7 +1253,6 @@ def template(self):
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
                 CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
-                
                 
                 SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorUp)
                 """
@@ -1338,6 +1340,7 @@ def template(self):
                 
             _aimBack = None
             _aimForward = None
+            _backUpObj = None
             
             if mHandle == ml_handles_chain[0]:
                 _aimForward = ml_handles_chain[i+1].mNode
@@ -1349,6 +1352,10 @@ def template(self):
             else:
                 _aimForward =  ml_handles_chain[i+1].mNode
                 _aimBack  =  ml_handles_chain[i-1].mNode
+                
+            if _aimBack and md_handles.get('lever'):
+                if _aimBack == md_handles.get('lever').mNode:
+                    _backUpObj = md_handles.get('lever').mNode
                 
             if _aimForward and _aimBack is None:
                 mc.aimConstraint(_aimForward, mTransformedGroup.mNode, maintainOffset = False,
@@ -1382,10 +1389,14 @@ def template(self):
                                  worldUpObject = mBaseOrientCurve.mNode,
                                  worldUpType = _worldUpType, 
                                  worldUpVector = [0,1,0])
+                
+                if _backUpObj == None:
+                    _backUpObj =  mBaseOrientCurve.mNode
+                    
                 mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                  aimVector = [0,0,-1], upVector = [0,1,0], 
-                                 worldUpObject = mBaseOrientCurve.mNode,
-                                 worldUpType = _worldUpBack, 
+                                 worldUpObject = _backUpObj,
+                                 worldUpType = _worldUpType, 
                                  worldUpVector = [0,1,0])                
                 
                 const = mc.orientConstraint([mAimForward.mNode, mAimBack.mNode],
@@ -1395,10 +1406,9 @@ def template(self):
                 
                 #...also aim our main handles...
                 if mHandle not in [md_handles['end'],md_handles['start']]:
-                    if not mHandle.getMessage('transformed'):
+                    mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
+                    if not mHandleAimGroup:
                         mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
-                    else:
-                        mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
                         
                     mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
@@ -1455,8 +1465,11 @@ def template(self):
                 _pos_start = _mStart.p_position
                 _pos_end = _mEnd.p_position 
                 
+                _leverLoftAimMode = False
+                
                 if i == 0 and self.buildLeverBase:
                     _numShapers = 1
+                    _leverLoftAimMode = True
                 else:
                     _numShapers = self.numShapers
 
@@ -1506,7 +1519,7 @@ def template(self):
                     #l_scales_seg.append(mHandle.scale)
                     #mHandle.scale = 1,1,1
                 
-                #Sub handles... ------------------------------------------------------------------------------------
+                #Sub handles... --------------------------------------------------------------------------
                 for ii,p in enumerate(_l_pos_seg[1:-1]):
                     #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
                     mHandle = cgmMeta.cgmObject(name = 'subHandle_{0}_{1}'.format(i,ii))
@@ -1545,9 +1558,14 @@ def template(self):
             
                     _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
                     
-                    mc.aimConstraint([_end], mGroup.mNode, maintainOffset = True, #skip = 'z',
+                    if _leverLoftAimMode:
+                        upObj = md_handles['lever'].mNode
+                    else:
+                        upObj = mBaseOrientCurve.mNode
+                    
+                    mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
                                      aimVector = [0,0,1], upVector = [0,1,0],
-                                     worldUpObject = mBaseOrientCurve.mNode,
+                                     worldUpObject = upObj,
                                      worldUpType = 'objectrotation', worldUpVector = [0,1,0])                    
             
                     _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
@@ -1596,7 +1614,7 @@ def template(self):
                                      worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
                 
                 
-        #>>> Connections =======================================================================================
+        #>>> Connections ====================================================================================
         self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
         
         #if ml_shapers:
@@ -1789,8 +1807,8 @@ def prerig(self):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
         #_sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .5
         
-        try: _HandleSnapTo = mTemplateHandle.loftCurve.mNode
-        except: _HandleSnapTo = mTemplateHandle.mNode
+        #try: _HandleSnapTo = mTemplateHandle.loftCurve.mNode
+        _HandleSnapTo = mTemplateHandle.mNode
         
         crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
         mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
