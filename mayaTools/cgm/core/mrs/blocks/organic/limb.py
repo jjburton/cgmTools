@@ -487,18 +487,28 @@ def define(self):
         #Aim Controls ==================================================================
         _d = {'end':{'color':'blueBright','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':1}},
-              'clav':{'color':'purple','defaults':{'tz':-3.0}}}
+              'lever':{'color':'purple','defaults':{'tz':-3.0}}}
         
         md_handles = {}
         ml_handles = []
         md_vector = {}
         md_jointLabels = {}
         
-        for k in ['end','up']:
+        _l_order = ['end','up']
+        
+        if self.hasLeverJoint or self.buildLeverBase:
+            _l_order.append('lever')
+        
+        for k in _l_order:
             _dtmp = _d[k]
             #_crv = CURVES.create_text(k,size = _sizeSub)
+            if k == 'end':
+                _useSize = _sizeSub * 2
+            else:
+                _useSize = _sizeSub
+                
             _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
-                                          direction = 'z+', size = _sizeSub * 2)
+                                          direction = 'z+', size = _useSize)
             #CORERIG.shapeParent_in_place(_crv,_circle,False)
 
             #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
@@ -947,9 +957,10 @@ def template(self):
     #Old method...
     mRootUpHelper = self.vectorUpHelper    
     _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
     mDefineEndObj = self.defineEndHelper
     mDefineUpObj = self.defineUpHelper
+        
 
     mDefineLoftMesh = self.defineLoftMesh
     _v_range = DIST.get_distance_between_points(self.p_position,
@@ -991,48 +1002,16 @@ def template(self):
     
     #Lever ==================================================================================================
     _b_lever = False
-    if self.buildLeverBase:
+    if self.buildLeverBase or self.hasLeverJoint:
         _b_lever = True
         log.debug("|{0}| >> Lever base, generating base value".format(_str_func))
         _mBlockParent = self.p_blockParent
+
+        mDefineLeverObj = self.defineLeverHelper
+        _mVectorLeverUp = MATH.get_obj_vector(mDefineLeverObj.mNode,asEuclid=True)
         
-        pos_lever = False
-        if _mBlockParent:
-            log.debug("|{0}| >> blockParent...".format(_str_func))
-            #_attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
-            #attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )
-            if _mBlockParent.p_blockState < 1:
-                raise ValueError,"BlockParent must at least be templated"
-            
-            if _mBlockParent.blockType != 'master':
-                ml_parentHandles = _mBlockParent.msgList_get('templateHandles')
-                _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
-                log.debug("|{0}| >> attachPoint: {1}".format(_str_func, _attachPoint))
-                
-                if _attachPoint == 'base':
-                    pos_attach = ml_parentHandles[0].p_position
-                elif _attachPoint == 'end':
-                    pos_attach = ml_parentHandles[-1].p_position
-                else:
-                    raise ValueError,"Not implemented attachPoint: {0}".format(_attachPoint)
-                
-                _vec_toAttach = MATH.get_vector_of_two_points(_l_basePos[0], pos_attach)
-                log.debug("|{0}| >> _vec_toAttach: {1} ".format(_str_func,_vec_toAttach))
-                
-                _dist_toAttach = DIST.get_distance_between_points(_l_basePos[0], pos_attach)
-                log.debug("|{0}| >> _dist_toAttach: {1} ".format(_str_func,_dist_toAttach))
-                
-                #pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_toAttach, _dist_toAttach * .7 )
-            
-        if not pos_lever:
-            log.debug("|{0}| >> no blockParent...".format(_str_func))
-            #_mVectorAimNeg = _mVectorAim.reflect(MATH.Vector3(0,0,1))
-            #_vec_AimNeg = MATH.list_mult(_baseAim,[-1,-1,-1])
-            _vec_AimNeg = MATH.get_obj_vector(self.mNode,'z-')
-            
-            log.debug("|{0}| >> VecAimNeg: {1} ".format(_str_func,_vec_AimNeg))
-            pos_lever = DIST.get_pos_by_vec_dist(_l_basePos[0],_vec_AimNeg, _size_length * .3)
-            
+        pos_lever = mDefineLeverObj.p_position
+        
         log.debug("|{0}| >> pos_lever: {1} ".format(_str_func,pos_lever))
         #LOC.create(position=pos_lever, name='lever_pos_loc')
     
@@ -1054,7 +1033,7 @@ def template(self):
         
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('sphere',baseSize = _size_width, shapeDirection = 'y+')
+            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_width, shapeDirection = 'z+')
             mHandle.p_parent = mTemplateNull
             
             mHandle.resetAttrs()
@@ -1158,7 +1137,7 @@ def template(self):
             ml_midLoftHandles = []
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-                crv = CURVES.create_fromName('sphere', _size_width * .75, direction = 'y+')
+                crv = CURVES.create_fromName('squareDoubleRounded', _size_width, direction = 'z+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1229,7 +1208,7 @@ def template(self):
             log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
             
             if _b_lever:
-                crv = CURVES.create_fromName('sphere', _size_width * .75, direction = 'y+')
+                crv = CURVES.create_fromName('squareDoubleRounded', _size_width, direction = 'z+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 md_handles['lever'] = mHandle
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1252,9 +1231,12 @@ def template(self):
                 mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
-                CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
+                CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
                 
-                SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorUp)
+                SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorLeverUp)
+                
+                
+                mc.pointConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
                 """
                 mc.aimConstraint(md_handles['start'].mNode, mHandle.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
@@ -1526,7 +1508,11 @@ def template(self):
                     _short = mHandle.mNode
                     ml_handles.append(mHandle)
                     mHandle.p_position = p
-                    SNAP.aim_atPoint(_short,_l_pos_seg[ii+2],'z+', 'y+', mode='vector', vectorUp = _mVectorUp)
+                    if _leverLoftAimMode:
+                        SNAP.aim_atPoint(_short,_l_pos_seg[ii+2],'z+', 'y+', mode='vector',
+                                         vectorUp = _mVectorLeverUp)
+                    else:
+                        SNAP.aim_atPoint(_short,_l_pos_seg[ii+2],'z+', 'y+', mode='vector', vectorUp = _mVectorUp)
             
                     #...Make our curve
                     _d = RAYS.cast(_str_tmpMesh, _short, 'y+')
@@ -1586,7 +1572,8 @@ def template(self):
                     #LOC.create(position = p)
                     ml_shapers.append(mHandle)
                     ml_shapersTmp.append(mHandle)
-                    
+                
+                
                 ml_shapers.append(mPair[1])
                 mc.delete(_res_body)
                 
