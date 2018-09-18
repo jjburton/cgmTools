@@ -2660,7 +2660,7 @@ def blockMirror_create(self, forceNew = False):
         _d = {'blockType':self.blockType, 'side':_side,
               'autoTemplate':False,
               'blockParent':self.p_blockParent,
-              'baseAim':[self.baseAimX,-self.baseAimY,self.baseAimZ],
+              #'baseAim':[self.baseAimX,-self.baseAimY,self.baseAimZ],
               'baseSize':self.baseSize}
         for a in 'blockProfile','buildProfile','cgmName':
             if a in ['cgmName']:
@@ -3303,7 +3303,7 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 ATTR.set(mObj.mNode,'t',_t[ii])
                                 ATTR.set(mObj.mNode,'r',_r[ii])
                                 ATTR.set(mObj.mNode,'s',_s[ii])    
-    return
+    
     #>>Template Controls ====================================================================================
     if _target_state_idx >= 1:
         log.info("|{0}| >> template dat....".format(_str_func))

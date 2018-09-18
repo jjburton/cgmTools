@@ -487,6 +487,7 @@ def define(self):
         #Aim Controls ==================================================================
         _d = {'end':{'color':'blueBright','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':1}},
+              'rp':{'color':'orange','defaults':{'tx':1}},
               'lever':{'color':'purple','defaults':{'tz':-3.0}}}
         
         md_handles = {}
@@ -494,7 +495,7 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
         
-        _l_order = ['end','up']
+        _l_order = ['end','up','rp']
         
         if self.hasLeverJoint or self.buildLeverBase:
             _l_order.append('lever')
@@ -633,11 +634,22 @@ def define(self):
         #Parent Up to aim ---------------------------------------------
         if md_handles.get('up') and md_vector.get('end'):
             mFollowGroup =  md_handles['up'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
-            mUpTrack = md_handles['up'].doCreateAt()
-            mUpTrack.p_parent = md_vector['end']
-            mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
-            mFollowGroup.dagLock()
-            mUpTrack.dagLock()
+            #mUpTrack = md_handles['up'].doCreateAt()
+            #mUpTrack.p_parent = md_vector['end']
+            #mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            #mFollowGroup.dagLock()
+            #mUpTrack.dagLock()
+            
+        if md_handles.get('rp') and md_vector.get('rp'):
+            mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            mFollowGroup.p_parent = md_vector['end']
+            
+            #mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            #mRPTrack = md_handles['rp'].doCreateAt()
+            #mRPTrack.p_parent = md_vector['end']
+            #mc.pointConstraint(mRPTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            #mFollowGroup.dagLock()
+            #mRPTrack.dagLock()            
             
         #If end -----------------------
         if md_handles.get('end'):
@@ -752,7 +764,47 @@ def define(self):
         #mNoTransformNull.v = False        
         
         
+        #Plane helper ==================================================================
+        if md_handles.get('rp'):
+            pass
+            """
+            plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),
+                                  width = 1, #height = 1,
+                                  #subdivisionsX=10,subdivisionsY=10,
+                                  ch=1)
+            mPlane = cgmMeta.validateObjArg(plane[0])
+            mPlane.doSnapTo(self.mNode)
+            mPlane.p_parent = mRotateGroup
+            mPlane.tz = .5
+            CORERIG.copy_pivot(mPlane.mNode,self.mNode)
+            mPlane.rz = 90
         
+            #self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
+        
+            mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
+        
+            mPlane.doStore('cgmName', self.mNode)
+            mPlane.doStore('cgmType','planeVisualize')
+            mPlane.doName() 
+            
+            #mPlane.setAttrFlags()
+            
+            
+            #mAimGroup = mPlane.doGroup(True,True,asMeta=True,typeModifier = 'aim')
+            mAimGroup.resetAttrs()
+            
+            mc.aimConstraint(md_handles['aim'].mNode, mRotateGroup.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [1,0,0], 
+                             worldUpObject = md_handles['plane'].mNode,
+                             worldUpType = 'object', 
+                             worldUpVector = [0,1,0])    
+           
+               
+               
+               
+            #Lock downs...
+            mRotateGroup.setAttrFlags()        
+            """
         
         return
     except Exception,err:
@@ -973,7 +1025,7 @@ def template(self):
                                                                                      _v_range))
     _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
     _size_length = DIST.get_distance_between_points(self.p_position, _end)
-    
+    _size_handle = _size_width * 1.25
     self.baseSize = [_size_length,_size_height,_size_width]
     _l_basePos.append(_end)
     log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
@@ -1033,7 +1085,7 @@ def template(self):
         
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_width, shapeDirection = 'z+')
+            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_handle, shapeDirection = 'z+')
             mHandle.p_parent = mTemplateNull
             
             mHandle.resetAttrs()
@@ -1137,7 +1189,7 @@ def template(self):
             ml_midLoftHandles = []
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-                crv = CURVES.create_fromName('squareDoubleRounded', _size_width, direction = 'z+')
+                crv = CURVES.create_fromName('squareDoubleRounded', _size_handle, direction = 'z+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1208,7 +1260,7 @@ def template(self):
             log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
             
             if _b_lever:
-                crv = CURVES.create_fromName('squareDoubleRounded', _size_width, direction = 'z+')
+                crv = CURVES.create_fromName('squareDoubleRounded', _size_handle, direction = 'z+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 md_handles['lever'] = mHandle
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1515,7 +1567,7 @@ def template(self):
                         SNAP.aim_atPoint(_short,_l_pos_seg[ii+2],'z+', 'y+', mode='vector', vectorUp = _mVectorUp)
             
                     #...Make our curve
-                    _d = RAYS.cast(_str_tmpMesh, _short, 'y+')
+                    _d = RAYS.cast(_str_tmpMesh, _short, 'x+')
                     pprint.pprint(_d)
                     log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                     cgmGEN.log_info_dict(_d)
@@ -1603,12 +1655,7 @@ def template(self):
                 
         #>>> Connections ====================================================================================
         self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
-        
-        #if ml_shapers:
-        #    self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_shapers])
-        #else:
-        #    self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
-            
+
         #>>Loft Mesh =========================================================================================
         if self.numShapers:
             targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
@@ -1641,17 +1688,20 @@ def template(self):
             mEndHandle = ml_handles_chain[-1]
             log.debug("|{0}| >> ikSetup. End: {1}".format(_str_func,mEndHandle))
             mHandleFactory.setHandle(mEndHandle.mNode)
+            _bankSize = [_size_width,
+                         _size_width,
+                         _size_width]
             
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
-                mHandleFactory.addPivotSetupHelper().p_parent = mTemplateNull
+                mHandleFactory.addPivotSetupHelper(baseSize = _bankSize).p_parent = mTemplateNull
             elif _ikEnd in ['foot','paw']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
-                mFoot,mFootLoftTop = mHandleFactory.addFootHelper()
+                mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseSize=_bankSize)
                 mFoot.p_parent = mTemplateNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
-                mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+')
+                mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+',baseSize=_bankSize)
                 mProxy.p_parent = mEndHandle
                 
                 pos_proxy = SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,

@@ -1677,7 +1677,8 @@ class handleFactory(object):
                     ml_pivots.append(mPivot)
                 else:
                     if not _axisBox:
-                        _axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+                        _axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
+                        SNAP.go(_axisBox,self._mTransform.mNode)
 
                     mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
                     _inverse = mAxis.inverse.p_string
@@ -1806,7 +1807,9 @@ class handleFactory(object):
 
                 
                 if not _axisBox:
-                    _axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
+                    _axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
+                    SNAP.go(_axisBox,self._mTransform.mNode)
+                    #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
                     
                 #Sub pivots =============================================================================
                 for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
@@ -1854,12 +1857,12 @@ class handleFactory(object):
                             #mPivot.tz = .75
                                 
                 #Clean up Pivot root after all else --------------------------------------------------
-                mAxis = VALID.simpleAxis(d_pivotDirections['back'])
-                p_Base = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,
-                                                   d_pivotDirections['back'],
-                                                   _size/4 )
+                #mAxis = VALID.simpleAxis(d_pivotDirections['back'])
+                #p_Base = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,
+                #                                   d_pivotDirections['back'],
+                #                                   _size/4 )
                 
-                mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
+                #mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
                 
                 for mPivot in ml_pivots:#Unparent for loft
                     mPivot.p_parent = False
@@ -1921,8 +1924,8 @@ class handleFactory(object):
                     
                     mPivot.parent = mPivotRootHandle
                     
-                    if mPivot.cgmName in ['ball','left','right']:
-                        mPivot.tz = .5
+                    #if mPivot.cgmName in ['ball','left','right']:
+                        #mPivot.tz = .5
                         
                     #mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
                     self.mBlock.msgList_append('prerigHandles',mPivot)
