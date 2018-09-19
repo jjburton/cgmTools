@@ -461,10 +461,10 @@ def define(self):
                 mc.delete(defineNull)
                 
                 
-        _size = (self.atUtils('get_shapeOffset') or 1.0) * 2
-        _sizeSub = _size / 2.0
+        _size = (self.atUtils('get_shapeOffset') or 1.0)
+        #_sizeSub = _size / 2.0
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * .5)
+                                      direction = 'z+', size = _size)
         
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
@@ -474,14 +474,14 @@ def define(self):
         mDefineNull = self.atUtils('stateNull_verify','define')
         
         
-        
+        """
         #Rotate Group ==================================================================
         mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,
                                                                   asMeta=True,
                                                                   typeModifier = 'rotate'),
                                               'cgmObject',
                                               setClass=True)
-        mRotateGroup.p_parent = mDefineNull
+        mRotateGroup.p_parent = mDefineNull"""
         
         
         #Aim Controls ==================================================================
@@ -497,8 +497,11 @@ def define(self):
         
         _l_order = ['end','up','rp']
         
+        if self.hasLeverJoint or self.buildLeverBase:
+            _l_order.append('lever')
+        
         self.UTILS.create_defineHandles(self, _l_order, _d, _size)
-        #self.UTILS.define_set_baseSize(self)
+        self.UTILS.define_set_baseSize(self)
         
         return
     except Exception,err:
@@ -720,7 +723,7 @@ def template(self):
     _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
     _size_length = DIST.get_distance_between_points(self.p_position, _end)
     _size_handle = _size_width * 1.25
-    self.baseSize = [_size_length,_size_height,_size_width]
+    self.baseSize = [_size_width,_size_height,_size_length]
     _l_basePos.append(_end)
     log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
     
@@ -746,7 +749,7 @@ def template(self):
     mHandleFactory = self.asHandleFactory()
     
     
-    #Lever ==================================================================================================
+    #Lever =============================================================================================
     _b_lever = False
     if self.buildLeverBase or self.hasLeverJoint:
         _b_lever = True
@@ -754,7 +757,7 @@ def template(self):
         _mBlockParent = self.p_blockParent
 
         mDefineLeverObj = self.defineLeverHelper
-        _mVectorLeverUp = MATH.get_obj_vector(mDefineLeverObj.mNode,asEuclid=True)
+        _mVectorLeverUp = MATH.get_obj_vector(mDefineLeverObj.mNode,'y+',asEuclid=True)
         
         pos_lever = mDefineLeverObj.p_position
         

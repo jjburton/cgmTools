@@ -756,6 +756,16 @@ def average(*args):
         l = [a for a in args]
     return sum(l)/len(l)
 
+def get_greatest(*args):
+    """ 
+    """
+    if VALID.isListArg(args[0]):
+        l=args[0]
+    else:
+        l = [a for a in args]
+        
+    return max(l)
+
 def median(*args):
     """ 
     https://stackoverflow.com/questions/24101524/finding-median-of-list-in-python

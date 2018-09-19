@@ -5488,7 +5488,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         md_jointLabels = {}
         
         _size = baseSize
-        _sizeSub = _size / 4.0
+        _sizeSub = _size / 2.0
+        _offset = _size * 4
         
         mDefineNull = self.atUtils('stateNull_verify','define')
         mHandleFactory = self.asHandleFactory()
@@ -5532,7 +5533,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
             mHandle.resetAttrs('translate')
             for a,v in _dtmp['defaults'].iteritems():
-                ATTR.set(mHandle.mNode,a, _size * v)
+                ATTR.set(mHandle.mNode,a, _offset * v)
         
             md_handles[k] = mHandle
             ml_handles.append(mHandle)        
@@ -5540,12 +5541,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             
             #Aim the handle.........................
             if k == 'end':
+                """
                 mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
                                  aimVector = [0,0,-1], upVector = [0,0,0], 
-                                 worldUpType = 'none')
-                
-            ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
-        
+                                 worldUpType = 'none')"""
+                        
             #Helper --------------------------------------------------------------------------------
         
             _crv = CORERIG.create_at(create='curveLinear', 
@@ -5632,15 +5632,16 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         self.msgList_connect('defineHandles', ml_handles)
         
         #Parent Up to aim ---------------------------------------------
+        """
         if md_handles.get('up') and md_vector.get('end'):
             log.debug("|{0}| >> Up track to end...".format(_str_func))            
             mFollowGroup =  md_handles['up'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
-            mFollowGroup.p_parent = md_vector['end']            
-            #mUpTrack = md_handles['up'].doCreateAt()
-            #mUpTrack.p_parent = md_vector['end']
-            #mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
-            #mFollowGroup.dagLock()
-            #mUpTrack.dagLock()
+            #mFollowGroup.p_parent = md_vector['end']            
+            mUpTrack = md_handles['up'].doCreateAt()
+            mUpTrack.p_parent = md_vector['end']
+            mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            mFollowGroup.dagLock()
+            mUpTrack.dagLock()"""
     
         if md_handles.get('rp') and md_vector.get('rp'):
             mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
@@ -5664,15 +5665,21 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mEndAimLoc.resetAttrs()
             ATTR.set(mEndAimLoc.mNode,'tz',-2)
             mEndAimLoc.dagLock()
-    
-            #Measure height/width -----------------------
-    
+            
+            
+            #aim
+            mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
+                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                             worldUpObject = md_vector.get('up').mNode,
+                             worldUpType = 'objectRotation', 
+                             worldUpVector = [0,0,1])    
+
     
     
     
         #BaseSizeHandle -------------------------------------------------
         _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
-                                      direction = 'z+', size = _sizeSub * 2)
+                                      direction = 'z+', size = 1.0)
     
         mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
         mBaseSizeHandle.p_parent = mDefineNull
@@ -5695,7 +5702,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
     
         #AimLoftHandle --------------------------------------------------
         _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
-                                      direction = 'z+', size = _sizeSub * 2)
+                                      direction = 'z+', size = 1.0)
     
         mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
         mEndSizeHandle.p_parent = mDefineNull
@@ -5731,8 +5738,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             for mObj in mPos,mNeg:
                 mObj.p_parent = mEndSizeHandle
     
-            ATTR.set(mPos.mNode,d,1.0)
-            ATTR.set(mNeg.mNode,d,-1.0)
+            ATTR.set(mPos.mNode,d,.5)
+            ATTR.set(mNeg.mNode,d,-.5)
     
             for mObj in mPos,mNeg:
                 mObj.v=False
@@ -5761,6 +5768,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                      mDefineNull,
                      baseName = self.cgmName )
     
+        
+        for tag,mHandle in md_handles.iteritems():
+            ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
+            
 
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,

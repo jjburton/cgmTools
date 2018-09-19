@@ -666,7 +666,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         if objRotAxis:
             mc.xform(_created, ws=True, ra= objRotAxis,p=False)
         
-    elif _create in ['curve','curveLinear','linearTrack']:
+    elif _create in ['curve','curveLinear','linearTrack','cubicTrack']:
         if not l_pos:
             l_pos = []
             #_sel = mc.ls(sl=True,flatten=True)
@@ -677,7 +677,10 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         
         if len(l_pos) <= 1:
             raise ValueError,"Must have more than one position to create curve"
-        if _create == 'linearTrack':
+        if _create in ['linearTrack','cubicTrack']:
+            _d = 1
+            if _create == 'cubicTrack':
+                _d = 3
             _trackCurve = mc.curve(d=1,p=l_pos)
             _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
     
@@ -689,6 +692,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                 l_clusters.append(_res)
                 
             return _trackCurve,l_clusters
+            
                 
                 
         elif _create == 'curve':
