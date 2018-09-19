@@ -35,6 +35,7 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core import cgm_RigMeta as RIGMETA
+import cgm.core.rig.create_utils as RIGCREATE
 
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -42,7 +43,7 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
-from cgm.core.lib import rigging_utils as RIGGING
+from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
@@ -226,9 +227,7 @@ def set_nameListFromName(self):
             self.datList_connect('nameList',_l)
             return _l
         return False
-        
-        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
         
 def set_nameTag(self,nameTag = None):
@@ -519,7 +518,7 @@ def templateDeleteBAK(self,msgLinks = []):
         
 def templateNull_verify(self):
     if not self.getMessage('templateNull'):
-        str_templateNull = RIGGING.create_at(self.mNode)
+        str_templateNull = CORERIG.create_at(self.mNode)
         templateNull = cgmMeta.validateObjArg(str_templateNull, mType = 'cgmObject',setClass = True)
         templateNull.connectParentNode(self, 'rigBlock','templateNull') 
         templateNull.doStore('cgmName', self.mNode)
@@ -543,7 +542,7 @@ def stateNull_verify(self,state='define'):
     _strPlug = state.lower() + 'Null'
     
     if not self.getMessage(_strPlug):
-        str_null = RIGGING.create_at(self.mNode)
+        str_null = CORERIG.create_at(self.mNode)
         mNull = cgmMeta.validateObjArg(str_null, mType = 'cgmObject',setClass = True)
         mNull.connectParentNode(self, 'rigBlock',_strPlug) 
         mNull.doStore('cgmName', self.mNode)
@@ -626,7 +625,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
     
         #Color our stuff...
         self.asHandleFactory().color(mLoft.mNode,transparent=True)
-        #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
+        #CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = True)
     
         mLoft.inheritsTransform = 0
         for s in mLoft.getShapes(asMeta=True):
@@ -666,7 +665,7 @@ def noTransformNull_verify(self,mode='template'):
 def prerigNull_verify(self):
     try:
         if not self.getMessage('prerigNull'):
-            str_prerigNull = RIGGING.create_at(self.mNode)
+            str_prerigNull = CORERIG.create_at(self.mNode)
             mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
             mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
             mPrerigNull.doStore('cgmName', self.mNode)
@@ -941,7 +940,7 @@ def create_defineLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        RIGGING.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
@@ -1043,7 +1042,7 @@ def create_prerigLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        RIGGING.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
@@ -1160,7 +1159,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mLoft.doName()
 
     #Color our stuff...
-    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = False)
+    CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = False)
 
     mLoft.inheritsTransform = 0
     for s in mLoft.getShapes(asMeta=True):
@@ -1219,7 +1218,7 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
     mLoft.doName()
 
     #Color our stuff...
-    RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = False)
+    CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = False)
 
     mLoft.inheritsTransform = 0
     for s in mLoft.getShapes(asMeta=True):
@@ -5474,3 +5473,342 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
     
     for uValue in l_uIsos:
         mCrv = getCurve(uValue,l_newCurves)
+        
+        
+def create_defineHandles(self,l_order,d_definitions,baseSize):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'create_defineHandles'
+        log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
+        log.debug(self)
+        
+        md_handles = {}
+        ml_handles = []
+        md_vector = {}
+        md_jointLabels = {}
+        
+        _size = baseSize
+        _sizeSub = _size / 4.0
+        
+        mDefineNull = self.atUtils('stateNull_verify','define')
+        mHandleFactory = self.asHandleFactory()
+        
+        for k in l_order:
+            _dtmp = d_definitions[k]
+            if k == 'end':
+                _useSize = _sizeSub# * 2
+            else:
+                _useSize = _sizeSub
+            
+            #sphere
+            _crv = CURVES.create_fromName(name='locatorForm',#'arrowsAxis', 
+                                          direction = 'z+', size = _useSize)
+            #CORERIG.shapeParent_in_place(_crv,_circle,False)
+        
+            #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+            #                              direction = 'z+', size = _sizeSub)
+            mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+            mHandle.p_parent = mDefineNull
+            CORERIG.override_color(_crv, _dtmp['color'])
+        
+            if k not in ['end']:
+                mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+        
+            mHandle.doStore('cgmName',self.mNode)
+            mHandle.doStore('cgmTypeModifier',k)
+            mHandle.doStore('cgmType','defineHandle')
+            mHandle.doName()
+        
+            mHandle.resetAttrs()
+        
+            #Move for initial aim ----------------------------------------------------------------------
+            ATTR.set(mHandle.mNode,'tz', _size * 5)
+            """
+                    mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
+                                     aimVector = [0,0,-1], upVector = [0,1,0], 
+                                     worldUpObject = self.mNode,
+                                     worldUpType = 'object', 
+                                     worldUpVector = [0,1,0])"""
+        
+            mHandle.resetAttrs('translate')
+            for a,v in _dtmp['defaults'].iteritems():
+                ATTR.set(mHandle.mNode,a, _size * v)
+        
+            md_handles[k] = mHandle
+            ml_handles.append(mHandle)        
+        
+            
+            #Aim the handle.........................
+            if k == 'end':
+                mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
+                                 aimVector = [0,0,-1], upVector = [0,0,0], 
+                                 worldUpType = 'none')
+                
+            ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
+        
+            #Helper --------------------------------------------------------------------------------
+        
+            _crv = CORERIG.create_at(create='curveLinear', 
+                                     l_pos=[[0,0,0],[0,0,_size / 2.0]], 
+                                     baseName='end')
+        
+            CORERIG.override_color(_crv, _dtmp['color'])
+            mAim = cgmMeta.validateObjArg(_crv)
+            mAim.p_parent = mDefineNull
+            mAim.resetAttrs()
+        
+            mAim.doStore('mClass','cgmObject')            
+            mAim.doStore('cgmName',self.mNode)
+            mAim.doStore('cgmTypeModifier',k)
+            mAim.doStore('cgmType','aimLine')
+            mAim.doName()            
+        
+            mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [0,0,0], 
+                             worldUpType = 'none')
+        
+            for mShape in mAim.getShapes(asMeta=1):
+                mShape.overrideEnabled = 1
+                mShape.overrideDisplayType = 2
+        
+            mAim.dagLock(True)
+        
+        
+            #Arrow ---------------------------------------------
+            _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                            direction = 'z+', size = _sizeSub)
+            CORERIG.override_color(_arrow, _dtmp['color'])
+        
+            mArrow = cgmMeta.cgmObject(_arrow)
+            mArrow.p_parent = mDefineNull
+            mArrow.resetAttrs()
+            mArrow.tz = _sizeSub * 2.5
+        
+            CORERIG.copy_pivot(mArrow.mNode,self.mNode)
+        
+            mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [0,0,0], 
+                             worldUpType = 'none')
+        
+            mArrow.doStore('mClass','cgmObject')            
+            mArrow.doStore('cgmName',self.mNode)
+            mArrow.doStore('cgmTypeModifier',k)
+            mArrow.doStore('cgmType','vectorHelper')
+            mArrow.doName()
+        
+            mArrow.dagLock()
+        
+            md_vector[k] = mArrow
+        
+            #Joint Label ---------------------------------------------------------------------------
+            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+            md_jointLabels[k] = mJointLabel
+            CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
+        
+            mJointLabel.p_parent = mHandle
+            mJointLabel.resetAttrs()
+        
+            mJointLabel.radius = 0
+            mJointLabel.side = 0
+            mJointLabel.type = 18
+            mJointLabel.drawLabel = 1
+            mJointLabel.otherType = k
+        
+            mJointLabel.doStore('cgmName',self.mNode)
+            mJointLabel.doStore('cgmTypeModifier',k)
+            mJointLabel.doStore('cgmType','jointLabel')
+            mJointLabel.doName()            
+        
+            mJointLabel.dagLock()
+        
+            mJointLabel.overrideEnabled = 1
+            mJointLabel.overrideDisplayType = 2
+        
+        
+            self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
+            self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+        
+        
+        self.msgList_connect('defineHandles', ml_handles)
+        
+        #Parent Up to aim ---------------------------------------------
+        if md_handles.get('up') and md_vector.get('end'):
+            log.debug("|{0}| >> Up track to end...".format(_str_func))            
+            mFollowGroup =  md_handles['up'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            mFollowGroup.p_parent = md_vector['end']            
+            #mUpTrack = md_handles['up'].doCreateAt()
+            #mUpTrack.p_parent = md_vector['end']
+            #mc.pointConstraint(mUpTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            #mFollowGroup.dagLock()
+            #mUpTrack.dagLock()
+    
+        if md_handles.get('rp') and md_vector.get('rp'):
+            mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            mFollowGroup.p_parent = md_vector['end']
+    
+            #mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
+            #mRPTrack = md_handles['rp'].doCreateAt()
+            #mRPTrack.p_parent = md_vector['end']
+            #mc.pointConstraint(mRPTrack.mNode,mFollowGroup.mNode,maintainOffset=True)
+            #mFollowGroup.dagLock()
+            #mRPTrack.dagLock()            
+    
+        #If end -----------------------
+        if md_handles.get('end'):
+            mHandleFactory.color(md_handles['end'].mNode)
+            mHandleFactory.color(md_jointLabels['end'].mNode)
+    
+    
+            mEndAimLoc = self.doCreateAt()
+            mEndAimLoc.p_parent = md_vector['end']
+            mEndAimLoc.resetAttrs()
+            ATTR.set(mEndAimLoc.mNode,'tz',-2)
+            mEndAimLoc.dagLock()
+    
+            #Measure height/width -----------------------
+    
+    
+    
+    
+        #BaseSizeHandle -------------------------------------------------
+        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
+                                      direction = 'z+', size = _sizeSub * 2)
+    
+        mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+        mBaseSizeHandle.p_parent = mDefineNull
+        mBaseSizeHandle.resetAttrs()
+        mBaseSizeHandle.v = False
+    
+        mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
+                         aimVector = [0,0,1], upVector = [0,1,0], 
+                         worldUpObject = md_handles['up'].mNode,
+                         worldUpType = 'object', 
+                         worldUpVector = [0,1,0])
+        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+    
+        mBaseSizeHandle.doStore('cgmName',self.mNode)
+        mBaseSizeHandle.doStore('cgmTypeModifier',k)
+        mBaseSizeHandle.doStore('cgmType','baseSizeBase')
+        mBaseSizeHandle.doName()                    
+    
+        mBaseSizeHandle.dagLock()
+    
+        #AimLoftHandle --------------------------------------------------
+        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
+                                      direction = 'z+', size = _sizeSub * 2)
+    
+        mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+        mEndSizeHandle.p_parent = mDefineNull
+        mEndSizeHandle.resetAttrs()
+        mEndSizeHandle.v = False
+    
+        mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
+        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mEndSizeHandle.mNode))
+    
+        mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
+                         aimVector = [0,0,-1], upVector = [0,1,0], 
+                         worldUpObject = md_handles['up'].mNode,
+                         worldUpType = 'object', 
+                         worldUpVector = [0,1,0])
+    
+        mEndSizeHandle.doStore('cgmName',self.mNode)
+        mEndSizeHandle.doStore('cgmTypeModifier',k)
+        mEndSizeHandle.doStore('cgmType','endSizeBase')
+        mEndSizeHandle.doName()                    
+    
+        mEndSizeHandle.dagLock()
+    
+        #measure height/width ----------------------------------------------------------------
+        d_measure = {'height':'ty',
+                     'width':'tx'}
+        for k,d in d_measure.iteritems():
+            mPos = mEndSizeHandle.doLoc()
+            mNeg = mEndSizeHandle.doLoc()
+    
+            mPos.rename("{0}_{1}_pos_loc".format(self.p_nameBase,k))
+            mNeg.rename("{0}_{1}_neg_loc".format(self.p_nameBase,k))
+    
+            for mObj in mPos,mNeg:
+                mObj.p_parent = mEndSizeHandle
+    
+            ATTR.set(mPos.mNode,d,1.0)
+            ATTR.set(mNeg.mNode,d,-1.0)
+    
+            for mObj in mPos,mNeg:
+                mObj.v=False
+                mObj.dagLock()
+    
+            buffer =  RIGCREATE.distanceMeasure(mPos.mNode,mNeg.mNode,
+                                                baseName="{0}_{1}".format(self.p_nameBase,k))
+            buffer['mDag'].p_parent = mDefineNull
+            ATTR.copy_to(buffer['mShape'].mNode,'distance',md_handles['end'].mNode,k,driven='target')
+            ATTR.set_standardFlags(md_handles['end'].mNode,
+                                   attrs=[k],visible=True,keyable=False,lock=True)
+    
+            buffer['mShape'].overrideEnabled = 1
+            buffer['mShape'].overrideDisplayType = 2
+    
+            ATTR.connect("{0}.visMeasure".format(_short), "{0}.visibility".format(buffer['mDag'].mNode))
+            #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
+    
+    
+    
+        # Loft ==============================================================================
+        targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
+    
+        self.atUtils('create_defineLoftMesh',
+                     targets,
+                     mDefineNull,
+                     baseName = self.cgmName )
+    
+
+        return {'md_handles':md_handles,
+                'ml_handles':ml_handles,
+                'md_vector':md_vector,
+                'md_jointLabels':md_jointLabels}
+ 
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    
+    
+def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
+    _str_func = 'define_set_baseSize'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    if baseSize is None:
+        try:baseSize = self.baseSize
+        except:raise ValueError,"No baseSize offered or found"
+        
+
+    if not baseSize:
+        return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
+    log.debug("|{0}| >>  baseSize: {1}".format(_str_func,baseSize))
+    
+    if baseAim is None:
+        try:baseAim = self.baseAim
+        except:raise ValueError,"No baseAim offered or found"
+        
+    if not baseAim:
+        log.debug("|{0}| >>  No baseAim value. Using default.".format(_str_func))
+        baseAim = baseAimDefault
+    log.debug("|{0}| >>  baseAim: {1}".format(_str_func,baseAim))
+        
+    
+    try:mDefineEndObj = self.defineEndHelper
+    except:raise ValueError,"No defineEndHelper found"
+    log.debug("|{0}| >>  mDefineEndObj: {1}".format(_str_func,mDefineEndObj))
+    
+    
+    #Meat ==================================================
+    log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*40)
+    
+    pos = DIST.get_pos_by_vec_dist(self.p_position, baseAim, baseSize[2])
+    
+    mDefineEndObj.p_position = pos
+    
+    _width = baseSize[0]
+    _height = baseSize[1]
+    
+    mDefineEndObj.sx = _width
+    mDefineEndObj.sy = _height
+    mDefineEndObj.sz = MATH.average(_width,_height)
+

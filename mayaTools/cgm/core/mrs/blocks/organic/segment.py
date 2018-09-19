@@ -49,6 +49,7 @@ import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
+import cgm.core.rig.create_utils as RIGCREATE
 
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
@@ -184,7 +185,7 @@ d_block_profiles = {
              'ribbonAim':'stable',
              'templateAim':'toEnd',
              'settingsPlace':'cog',
-             'baseAim':[-90,0,0],
+             'baseAim':[0,1,0],
              'baseUp':[0,0,-1],
              'baseSize':[15,16,36]}}
 
@@ -218,7 +219,8 @@ l_attrsStandard = ['side',
                    'settingsDirection',
                    'moduleTarget']
 
-d_attrsToMake = {'proxyShape':'cube:sphere:cylinder',
+d_attrsToMake = {'visMeasure':'bool',
+                 'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:torso',
                  
                  'squashMeasure' : 'none:arcLength:pointDist',
@@ -319,21 +321,59 @@ def define(self):
             log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
             mc.delete(defineNull)
     
-    _size = MATH.average(self.baseSize[1:])
-    _crv = CURVES.create_fromName(name='axis3d',#'arrowsAxis', 
-                                  direction = 'z+', size = _size/4)
-    SNAP.go(_crv,self.mNode,)
-    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     
+    _size = (self.atUtils('get_shapeOffset') or 1.0) * 2
+    _crv = CURVES.create_fromName(name='locatorForm',
+                                  direction = 'z+', size = _size * .5)
+
+    SNAP.go(_crv,self.mNode,)
+    CORERIG.override_color(_crv, 'white')
+    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
     mHandleFactory = self.asHandleFactory()
     self.addAttr('cgmColorLock',True,lock=True,visible=False)
-    #self.doStore('cgmNoRecolor',True)
-    #self.setAttrFlags('cgmNoRecolor',lock=True,visible=False,keyable=False)
-    
-    mHandleFactory.color(self.mNode,controlType='main')
-    #CORERIG.colorControl(self.mNode,_side,'main',transparent = True)
-    
     mDefineNull = self.atUtils('stateNull_verify','define')
+    
+    
+    #Joint Label ---------------------------------------------------------------------------
+    mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+    CORERIG.override_color(mJointLabel.mNode, 'white')
+
+    mJointLabel.p_parent = mDefineNull
+    mJointLabel.resetAttrs()
+
+    mJointLabel.radius = 0
+    mJointLabel.side = 0
+    mJointLabel.type = 18
+    mJointLabel.drawLabel = 1
+    mJointLabel.otherType = self.blockType
+
+    mJointLabel.doStore('cgmName',self.mNode)
+    mJointLabel.doStore('cgmTypeModifier',self.blockType)
+    mJointLabel.doStore('cgmType','jointLabel')
+    mJointLabel.doName()            
+
+    mJointLabel.dagLock()
+
+    mJointLabel.overrideEnabled = 1
+    mJointLabel.overrideDisplayType = 2    
+    
+
+    #Define our controls ===================================================================
+    _d = {'end':{'color':'blueBright','defaults':{'ty':1}},
+          'up':{'color':'greenBright','defaults':{'tz':-1}}}
+    
+    md_handles = {}
+    ml_handles = []
+    md_vector = {}
+    md_jointLabels = {}
+
+    _l_order = ['end','up']
+
+    self.UTILS.create_defineHandles(self, _l_order, _d, _size)
+    
+    self.UTILS.define_set_baseSize(self)
+    
+    return
     
     #Aim Group ==================================================================
     mDefineNull.doConnectIn('rotate',"{0}.baseAim".format(_short))
@@ -440,7 +480,27 @@ def define(self):
     
 #================================================================================================
 #>> Template
-#===============================================================================================  
+#===============================================================================================
+def templateDelete(self):
+    _str_func = 'templateDelete'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mDefineEndHelper = self.defineEndHelper
+    l_const = mDefineEndHelper.getConstraintsTo()
+    if l_const:
+        log.debug("currentConstraints...")
+        pos = mDefineEndHelper.p_position
+        
+        for i,c in enumerate(l_const):
+            log.info("    {0} : {1}".format(i,c))
+        mc.delete(l_const)
+        mDefineEndHelper.p_position = pos
+        
+    self.defineEndHelper.v = True
+    self.defineUpHelper.v = True
+    self.defineLoftMesh.v = True
+    
 @cgmGEN.Timer
 def template(self):
     _str_func = 'template'
@@ -456,17 +516,10 @@ def template(self):
         
     _l_basePosRaw = self.datList_get('basePos') or [(0,0,0)]
     _l_basePos = [self.p_position]
-    _baseUp = self.baseUp
-    _baseSize = self.baseSize
-    _baseAim = self.baseAim
     
     _ikSetup = self.getEnumValueString('ikSetup')
     _ikEnd = self.getEnumValueString('ikEnd')
     _templateAim = self.getEnumValueString('templateAim')
-    
-    if MATH.is_vector_equivalent(_baseAim,_baseUp):
-        raise ValueError,"baseAim and baseUp cannot be the same. baseAim: {0} | baseUp: {1}".format(self.baseAim,self.baseUp)
-    
     _loftSetup = self.getEnumValueString('loftSetup')
             
     if _loftSetup not in ['default']:
@@ -475,35 +528,41 @@ def template(self):
 
     
     #Get base dat =============================================================================    
-    """#OLD METHOD...
-    if not len(_l_basePos)>1:
-        log.debug("|{0}| >> Generating more pos dat".format(_str_func))
-        _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _baseAim, max(_baseSize))
-        _l_basePos.append(_end)
+    log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
     
-    _mVectorAim = MATH.get_vector_of_two_points(_l_basePos[0],_l_basePos[1],asEuclid=True)
-    _mVectorUp = _mVectorAim.up()
-    _worldUpVector = MATH.EUCLID.Vector3(self.baseUp[0],self.baseUp[1],self.baseUp[2])
-    cgmGEN.func_snapShot(vars())"""
-    
-    _mVectorAim = MATH.get_obj_vector(self.bbHelper.mNode,asEuclid=True)
-    mRootUpHelper = self.rootUpHelper
-    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
-    
-    mBBHelper = self.bbHelper
-    _v_range = max(TRANS.bbSize_get(self.mNode)) *2
-    _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
-    _size_width = _bb_axisBox[0]#...x width
+    #Old method...
+    mRootUpHelper = self.vectorUpHelper    
+    _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
+    mDefineEndObj = self.defineEndHelper
+    mDefineUpObj = self.defineUpHelper
+        
+
+    mDefineLoftMesh = self.defineLoftMesh
+    _v_range = DIST.get_distance_between_points(self.p_position,
+                                                mDefineEndObj.p_position)
+    #_bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
+    _size_width = mDefineEndObj.width#...x width
+    _size_height = mDefineEndObj.height#
     log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
-                                                                                     mBBHelper.p_nameShort,
+                                                                                     mDefineLoftMesh.p_nameShort,
                                                                                      _v_range))
-    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _bb_axisBox[2])
+    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
+    _size_length = DIST.get_distance_between_points(self.p_position, _end)
+    _size_handle = _size_width * 1.25
+    self.baseSize = [_size_length,_size_height,_size_width]
     _l_basePos.append(_end)
+    log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
     
     #for i,p in enumerate(_l_basePos):
     #    LOC.create(position=p,name="{0}_loc".format(i))
     
-    mBBHelper.v = False
+    #Hide define stuff ---------------------------------------------
+    log.debug("|{0}| >> define stuff...".format(_str_func)+ '-'*40)
+    
+    mDefineLoftMesh.v = False
+    mDefineUpObj.v = False
+    #mDefineEndObj.v=False
     
 
     #Create temple Null  ==================================================================================
@@ -532,7 +591,7 @@ def template(self):
         log.debug("|{0}| >> Default loft setup...".format(_str_func))         
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('sphere', _size_width, shapeDirection = 'y+')
+            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_handle, shapeDirection = 'z+')            
             
             mHandle.p_parent = mTemplateNull
             
@@ -563,11 +622,19 @@ def template(self):
             md_loftHandles[n] = mLoftCurve                
             ml_loftHandles.append(mLoftCurve)
             
-            mBaseAttachGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'attach')
-            mBaseAimGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'aim')
+            mBaseAttachGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'attach', setClass='cgmObject')
+            mBaseAimGroup = mHandle.doGroup(True, asMeta=True,typeModifier = 'aim', setClass='cgmObject')
             
-            for mObj in mBaseAimGroup,mBaseAttachGroup:
-                cgmMeta.validateObjArg(mObj,'cgmObject',setClass=True)
+            #Loft curve 
+            mLoftCurve.p_parent = mTemplateNull
+            mTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
+            if not mTransformedGroup:
+                mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed',setClass='cgmObject')
+            mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
+            mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
+        
+            
+
             
             
         #Aim the first and last joint with the root handle so the segment scales properly along line...
@@ -584,7 +651,8 @@ def template(self):
                          worldUpVector = [0,1,0])
         
         
-        #>> Base Orient Helper =================================================================================
+        
+        #>> Base Orient Helper ================================================================================
         mHandleFactory = self.asHandleFactory(md_handles['start'].mNode)
         mBaseOrientCurve = mHandleFactory.addOrientHelper(baseSize = _size_width,
                                                           shapeDirection = 'y+',
@@ -602,7 +670,7 @@ def template(self):
                                   aimVector = [0,0,1], upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
                                   worldUpType = 'objectrotation',
-                                  worldUpVector = [0,1,0])
+                                  worldUpVector = [0,0,1])
         
         self.connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
         md_handles['start'].connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
@@ -616,25 +684,21 @@ def template(self):
         
         
     
-        #>>> Aim loft curves ===========================================================================        
+        #>>> Aim loft curves ==========================================================================        
         mStartLoft = md_loftHandles['start']
         mEndLoft = md_loftHandles['end']
         
-        mStartAimGroup = mStartLoft.doGroup(True,asMeta=True,typeModifier = 'aim')
-        mEndAimGroup = mEndLoft.doGroup(True,asMeta=True,typeModifier = 'aim')        
+        mStartAimGroup = mStartLoft.transformedGroup
+        mEndAimGroup = mEndLoft.transformedGroup
         
-        #mc.aimConstraint(ml_handles[1].mNode, mStartAimGroup.mNode, maintainOffset = False,
-        #                 aimVector = [0,1,0], upVector = [1,0,0], worldUpObject = ml_handles[0].mNode, #skip = 'z',
-        #                 worldUpType = 'objectrotation', worldUpVector = [1,0,0])
-        #mc.aimConstraint(ml_handles[0].mNode, mEndAimGroup.mNode, maintainOffset = False,
-        #                 aimVector = [0,-1,0], upVector = [1,0,0], worldUpObject = ml_handles[-1].mNode,
-        #                 worldUpType = 'objectrotation', worldUpVector = [1,0,0])             
+
         mc.aimConstraint(ml_handles[1].mNode, mStartAimGroup.mNode, maintainOffset = False,
                          aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mBaseOrientCurve.mNode,
                          worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
         mc.aimConstraint(ml_handles[0].mNode, mEndAimGroup.mNode, maintainOffset = False,
                          aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mBaseOrientCurve.mNode,
                          worldUpType = 'objectrotation', worldUpVector = [0,1,0])             
+        
         
         #Sub handles=========================================================================================
         if self.numShapers > 2:
@@ -704,7 +768,6 @@ def template(self):
 
             #Sub handles... ------------------------------------------------------------------------------------
             for i,p in enumerate(_l_pos[1:-1]):
-                #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
                 mHandle = cgmMeta.cgmObject(name = 'handle_{0}'.format(i))
                 _short = mHandle.mNode
                 ml_handles.append(mHandle)
@@ -713,14 +776,12 @@ def template(self):
         
                 #...Make our curve
                 _d = RAYS.cast(_str_tmpMesh, _short, 'y+')
-                pprint.pprint(_d)
                 log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                 #cgmGEN.log_info_dict(_d,j)
                 _v = _d['uvs'][_str_tmpMesh][0][0]
                 log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
         
                 #>>For each v value, make a new curve -----------------------------------------------------------------        
-                #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
                 _crv = mc.duplicateCurve("{0}.u[{1}]".format(_str_tmpMesh,_v), ch = 0, rn = 0, local = 0)
                 log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))  
         
