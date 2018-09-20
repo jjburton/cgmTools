@@ -198,7 +198,7 @@ d_block_profiles = {
            'nameList':['hip','knee','ankle','ball','toe'],
            'baseAim':[0,-1,0],
            'baseUp':[0,0,1],
-           'baseSize':[11.6,8,79],
+           'baseSize':[11.6,13,79],
            },
     
     'arm':{'numShapers':2,
@@ -222,7 +222,7 @@ d_block_profiles = {
            'nameList':['clav','shoulder','elbow','wrist'],
            'baseAim':[-1,0,0],
            'baseUp':[0,1,0],
-           'baseSize':[2,2,8],
+           'baseSize':[14,9,76],
            },
     
     'finger':{'numShapers':2,
@@ -821,6 +821,7 @@ def template(self):
 
         #Constrain the define end to the end of the template handles
         mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
+        mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
         
         
         #>> Base Orient Helper ============================================================================
@@ -946,9 +947,7 @@ def template(self):
             #Push scale back...
             for i,mHandle in enumerate(ml_handles):
                 mHandle.scale = l_scales[i]
-                
-                
-                
+
             
             #Lever Handle ===============================================================================
             log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
@@ -983,6 +982,8 @@ def template(self):
                 
                 
                 mc.pointConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
+                self.connectChildNode(mHandle.mNode,'templateLeverHandle')      
+                
                 """
                 mc.aimConstraint(md_handles['start'].mNode, mHandle.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
@@ -1474,7 +1475,7 @@ def prerig(self):
     ml_jointHandles = []        
     
     _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
-    #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]
+    #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]    
     _sizeSub = _size * .33    
     _vec_root_up = mOrientHelper.getAxisVector('y+')
     
@@ -1530,19 +1531,21 @@ def prerig(self):
     _nameDict = self.getNameDict(ignore=['cgmName','cgmType'])
     #_nameDict['cgmType'] = 'blockHandle'
     
-    _sizeUse = self.atUtils('get_shapeOffset')
+    mDefineEndObj = self.defineEndHelper    
+    _size_width = mDefineEndObj.width#...x width
+    _sizeUse = _size_width/ 2.0 #self.atUtils('get_shapeOffset')
 
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
         _HandleSnapTo = mTemplateHandle.mNode
         
         if mTemplateHandle == mEndHandle:
-            crv = CURVES.create_fromName('axis3d', size = _sizeUse * 3.0)
+            crv = CURVES.create_fromName('axis3d', size = _sizeUse)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
             
             ml_shapes = mHandle.getShapes(asMeta=1)
-            crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 6)
+            crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 1.75)
             CORERIG.override_color(crv2, 'black')
             SNAP.go(crv2,mHandle.mNode)
             CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)
@@ -1551,7 +1554,7 @@ def prerig(self):
             #    mShape.addAttr('cgmColorLock',True,lock=True,visible=False)
                 
         else:
-            crv = CURVES.create_fromName('cubeOpen', size = _sizeUse * 1.5)
+            crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         _short = mHandle.mNode
         
@@ -1579,11 +1582,12 @@ def prerig(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------
-        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub /2.0))
+        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse /2.0))
         #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
         mHandleFactory.color(mHandle.mNode,controlType='sub')
     
-    
+        mTemplateHandle.connectChildNode(mHandle.mNode,'prerigHandle')
+        
     self.msgList_connect('prerigHandles', ml_handles)
     
     #ml_handles[0].connectChildNode(mOrientHelper.mNode,'orientHelper')      
@@ -7454,8 +7458,32 @@ def snapBall(self,driven = 'L_ball_blend_frame',
     CORERIGGEN.matchValue_iterator(**_d)    
 
 
+def get_handleIndices(self):
+    _str_func = 'get_handleIndices'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    idx_start = 0
+    idx_end = -1
+    
+    if self.getMessage('templateLeverHandle'):
+        log.debug("|{0}| >> lever base".format(_str_func))
+        idx_start +=1
 
-
+    str_ikEnd = ATTR.get_enumValueString(self.mNode,'ikEnd')
+    log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
+    
+    """
+    if str_ikEnd in ['foot']:
+        idx_end -=1
+    elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
+        log.debug("|{0}| >> tip setup...".format(_str_func))        
+        if str_ikEnd == 'tipEnd':
+            self.b_ikNeedEnd = True
+            log.debug("|{0}| >> Need IK end joint".format(_str_func))
+        elif str_ikEnd == 'tipBase':
+            idx_end -=1"""
+            
+    return idx_start,idx_end
 
 
 

@@ -1797,8 +1797,6 @@ def prerig(self):
                 SNAP.aim_atPoint(mHandle.mNode,_l_pos[i+1], mode = 'vector',vectorUp=_worldUpVector)
             
             
-
-            
             """
             if p == _l_pos[-1]:
                 SNAP.aim_atPoint(_short,_l_pos[-2],'z-', 'y+', mode='vector', vectorUp = _vec_root_up)
@@ -1853,7 +1851,7 @@ def prerig(self):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2            
+            mJointLabel.overrideDisplayType = 2
         
 
         

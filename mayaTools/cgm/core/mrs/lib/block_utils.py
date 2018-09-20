@@ -5832,3 +5832,83 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     mDefineEndObj.sy = _height
     mDefineEndObj.sz = MATH.average(_width,_height)
 
+
+def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
+    _str_func = 'prerig_snapHandlesToRotatePlane'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    log.debug("|{0}| >>  Dat get...".format(_str_func)+ '-'*40)
+    
+    
+    ml_prerig = self.msgList_get('prerigHandles')
+    if not ml_prerig:
+        raise ValueError,"|{0}| >>  No prerig handles | {1}".format(_str_func,self)
+    
+    
+    mOrientHelper = self.getMessageAsMeta('vectorRpHelper')
+    if mOrientHelper:
+        log.debug("|{0}| >>  RP helper found...".format(_str_func))
+        vector_pos = mOrientHelper.getAxisVector('z+',asEuclid = 0)
+        vector_neg = mOrientHelper.getAxisVector('z-',asEuclid = 0)        
+    else:
+        try:mOrientHelper = self.orientHelper
+        except:raise ValueError,"No orientHelper found"
+        
+        vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
+        vector_neg = mOrientHelper.getAxisVector('y-',asEuclid = 0)        
+    
+    log.debug("|{0}| >>  mOrientHelper: {1}".format(_str_func,mOrientHelper))
+   
+    idx_start,idx_end = self.atBlockModule('get_handleIndices')
+    
+    mStart = ml_prerig[idx_start]
+    mEnd = ml_prerig[idx_end]
+    ml_toSnap = ml_prerig[idx_start:idx_end]
+    
+    if not ml_toSnap:
+        raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
+        
+    
+    pprint.pprint(vars())
+    
+    f_dist = DIST.get_distance_between_points(mStart.p_position,mEnd.p_position)
+    f_cast = f_dist * 1.0
+    
+     
+    #Meat ==================================================
+    log.debug("|{0}| >>  processing...".format(_str_func)+ '-'*40)
+
+    #Setup Loft curves and plane ----------------------------------------------------------------
+    log.debug("|{0}| >> Setup curves...".format(_str_func))                     
+    
+            
+    l_crvs = []
+    for mObj in [mStart,mEnd]:
+        _pos = mObj.p_position
+        crv =   mc.curve (d=1, ep = [DIST.get_pos_by_vec_dist(_pos, vector_pos, f_cast),
+                                     DIST.get_pos_by_vec_dist(_pos, vector_neg, f_cast)],
+                               os=True)
+        log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+        l_crvs.append(crv)
+        
+    _res_body = mc.loft(l_crvs, o = True, d = 1, po = 1 )
+    _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+    _tessellate = _inputs[0]
+    
+    _d = {'format':2,#General
+          'polygonType':1,#'quads'
+          }
+          
+    for a,v in _d.iteritems():
+        ATTR.set(_tessellate,a,v)    
+            
+    #Snap our joints ---------------------------------------------------------------------------------
+    for mObj in ml_toSnap:
+        SNAP.go(mObj, _res_body[0], rotation=False, pivot='closestPoint')
+            
+    #Cleanup --------------------------------------------------------------------------------------------
+    if cleanUp:
+        mc.delete(_res_body + l_crvs)
+        mStart.delete()
+        
+
