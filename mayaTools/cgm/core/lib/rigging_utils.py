@@ -686,6 +686,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
             for i,cv in enumerate(mc.ls(['{0}.cv[*]'.format(_trackCurve)],flatten=True)):
                 _res = mc.cluster(cv, n = '{0}_{1}_cluster'.format(baseName,i))
                 TRANS.parent_set( _res[1], obj[i])
+                ATTR.set(_res[1],'visibility',0)
                 l_clusters.append(_res)
                 
             return _trackCurve,l_clusters

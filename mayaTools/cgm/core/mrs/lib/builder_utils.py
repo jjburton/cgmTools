@@ -1421,12 +1421,13 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
+                    reload(SURF)
                     l_curves = SURF.get_splitValues(str_meshShape,
                                                     l_uValues,
                                                     mode='u',
                                                     insertMax=True,
-                                                    preInset = f_factor,
-                                                    postInset = -f_factor,
+                                                    preInset = f_factor*.25,
+                                                    postInset = -f_factor*.25,
                                                     curvesCreate=True,
                                                     curvesConnect=True,
                                                     connectionPoints=connectionPoints,
