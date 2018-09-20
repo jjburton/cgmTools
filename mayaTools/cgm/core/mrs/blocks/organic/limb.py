@@ -196,7 +196,7 @@ d_block_profiles = {
            'hasBallJoint':True,
            'hasEndJoint':True,
            'nameList':['hip','knee','ankle','ball','toe'],
-           'baseAim':[90,0,0],
+           'baseAim':[0,-1,0],
            'baseUp':[0,0,1],
            'baseSize':[11.6,8,79],
            },
@@ -1451,9 +1451,7 @@ def prerig(self):
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
         
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-    
-    #pprint.pprint(vars())
-    
+        
     #Create some nulls Null  =========================================================================
     mPrerigNull = self.atUtils('stateNull_verify','prerig')
     mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
@@ -1536,13 +1534,25 @@ def prerig(self):
 
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
-        #_sizeUse = MATH.average(mHandleFactory.get_axisBox_size(mTemplateHandle.mNode)) * .5
-        
-        #try: _HandleSnapTo = mTemplateHandle.loftCurve.mNode
         _HandleSnapTo = mTemplateHandle.mNode
         
-        crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
-        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        if mTemplateHandle == mEndHandle:
+            crv = CURVES.create_fromName('axis3d', size = _sizeUse * 3.0)
+            mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+            mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+            
+            ml_shapes = mHandle.getShapes(asMeta=1)
+            crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 6)
+            CORERIG.override_color(crv2, 'black')
+            SNAP.go(crv2,mHandle.mNode)
+            CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)
+            
+            #for mShape in ml_shapes:
+            #    mShape.addAttr('cgmColorLock',True,lock=True,visible=False)
+                
+        else:
+            crv = CURVES.create_fromName('cubeOpen', size = _sizeUse * 1.5)
+            mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         _short = mHandle.mNode
         
         #if b_iterNames:
@@ -1561,7 +1571,7 @@ def prerig(self):
         
         mHandle.doSnapTo(_HandleSnapTo)
         mHandle.p_parent = mPrerigNull
-        mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
+        mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
         ml_aimGroups.append(mGroup)
         
         mc.parentConstraint(_HandleSnapTo, mGroup.mNode, maintainOffset=True)
@@ -1569,9 +1579,9 @@ def prerig(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------
-        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
-        CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
-    
+        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub /2.0))
+        #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
+        mHandleFactory.color(mHandle.mNode,controlType='sub')
     
     
     self.msgList_connect('prerigHandles', ml_handles)
@@ -1582,8 +1592,42 @@ def prerig(self):
     #self.UTILS.prerigHandles_getNameDat(self,True)
                              
     #Joint placer loft....
+    for i,mObj in enumerate(ml_handles[:-1]):
+        mLoft = mObj.jointHelper.loftCurve
+        mAimGroup = mLoft.doGroup(True,True,asMeta=True)
+        mc.aimConstraint(ml_handles[i+1].masterGroup.mNode,
+                         mAimGroup.mNode,
+                         maintainOffset = True, weight = 1,
+                         aimVector = [0,0,1],
+                         upVector = [0,1,0],
+                         worldUpVector = [0,1,0],
+                         worldUpObject = mObj.masterGroup.mNode,
+                         worldUpType = 'objectRotation' )          
     targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
     
+    #Name Handles...
+    for mHandle in ml_handles:
+        #Joint Label ---------------------------------------------------------------------------
+        mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+        #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
+    
+        mJointLabel.p_parent = mHandle
+        mJointLabel.resetAttrs()
+    
+        mJointLabel.radius = 0
+        mJointLabel.side = 0
+        mJointLabel.type = 18
+        mJointLabel.drawLabel = 1
+        mJointLabel.otherType = mHandle.cgmName
+    
+        mJointLabel.doStore('cgmName',mHandle.mNode)
+        mJointLabel.doStore('cgmType','jointLabel')
+        mJointLabel.doName()            
+    
+        mJointLabel.dagLock()
+    
+        mJointLabel.overrideEnabled = 1
+        mJointLabel.overrideDisplayType = 2    
     
     self.msgList_connect('jointHelpers',targets)
     

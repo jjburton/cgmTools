@@ -1136,7 +1136,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
 
     log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
-    _d = {'format':2,#General
+    _d = {'format':1,#fit, 2 - #General
           'polygonType':1,#'quads',
           'uNumber': baseCount + len(targets)}
 
@@ -5727,20 +5727,29 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
     
         #measure height/width ----------------------------------------------------------------
         d_measure = {'height':'ty',
-                     'width':'tx'}
+                     'width':'tx',
+                     'length':'tz'}
         for k,d in d_measure.iteritems():
-            mPos = mEndSizeHandle.doLoc()
-            mNeg = mEndSizeHandle.doLoc()
-    
+            if k == 'length':
+                mPos =mEndSizeHandle.doLoc()
+                mNeg = mBaseSizeHandle.doLoc()
+                
+                mPos.p_parent = mEndSizeHandle
+                mNeg.p_parent = mBaseSizeHandle
+                
+            else:
+                mPos = mEndSizeHandle.doLoc()
+                mNeg = mEndSizeHandle.doLoc()
+        
+                for mObj in mPos,mNeg:
+                    mObj.p_parent = mEndSizeHandle
+        
+                ATTR.set(mPos.mNode,d,.5)
+                ATTR.set(mNeg.mNode,d,-.5)
+                
             mPos.rename("{0}_{1}_pos_loc".format(self.p_nameBase,k))
             mNeg.rename("{0}_{1}_neg_loc".format(self.p_nameBase,k))
-    
-            for mObj in mPos,mNeg:
-                mObj.p_parent = mEndSizeHandle
-    
-            ATTR.set(mPos.mNode,d,.5)
-            ATTR.set(mNeg.mNode,d,-.5)
-    
+            
             for mObj in mPos,mNeg:
                 mObj.v=False
                 mObj.dagLock()

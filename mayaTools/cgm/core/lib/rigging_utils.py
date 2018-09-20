@@ -690,6 +690,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                 _res = mc.cluster(cv, n = '{0}_{1}_cluster'.format(baseName,i))
                 TRANS.parent_set( _res[1], obj[i])
                 l_clusters.append(_res)
+                ATTR.set(_res[1],'visibility',False)
                 
             return _trackCurve,l_clusters
             
@@ -1016,10 +1017,10 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'colorB',_rgb[2])
             
             if transparent:
-                ATTR.set(_node,'ambientColorR',_rgb[0])
-                ATTR.set(_node,'ambientColorG',_rgb[1])
-                ATTR.set(_node,'ambientColorB',_rgb[2])        
-                ATTR.set(_node,'transparency',.9)
+                ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
+                ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
+                ATTR.set(_node,'ambientColorB',_rgb[2]*.1)        
+                ATTR.set(_node,'transparency',.5)
                 ATTR.set(_node,'incandescence',0)
       
     if not _set:
