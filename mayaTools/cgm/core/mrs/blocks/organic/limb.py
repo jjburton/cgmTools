@@ -3749,9 +3749,11 @@ def rig_shapes(self):
                 else:
                     ml_targets = ml_fkJoints
                     
+                _settingsSize = _offset * 2
+                
                 if _settingsPlace == 'start':
                     _mTar = ml_targets[0]
-                    _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
+                    #_settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
                     _mSnapTo = _mTar
                 else:
                     _mTar = ml_targets[self.int_handleEndIdx]
@@ -3762,7 +3764,7 @@ def rig_shapes(self):
                         
                     mIKTemplateHandle = ml_templateHandles[-1]
                     bb_ik = TRANS.bbSize_get(mIKTemplateHandle.mNode)#mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                    _settingsSize = MATH.average(bb_ik) * .75
+                    #_settingsSize = MATH.average(bb_ik) * .75
                     #_settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
                     
                 mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .75,
@@ -3771,8 +3773,21 @@ def rig_shapes(self):
                 mSettingsShape.doSnapTo(_mSnapTo.mNode)
                 d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
                 str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
+                
+                """
                 mSettingsShape.p_position = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
                                                                                _settingsSize + (_offset * 2))
+                """
+                mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+                str_meshShape = mMesh_tmp.getShapes()[0]        
+                pos = SNAPCALLS.get_special_pos([_mTar,str_meshShape],
+                                                'castNear',str_settingsDirections,False)
+                vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+                newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
+        
+                mSettingsShape.p_position = newPos
+                mMesh_tmp.delete()                
+                
                 
                 SNAP.aim_atPoint(mSettingsShape.mNode,
                                  _mTar.p_position,
@@ -3946,7 +3961,7 @@ def rig_shapes(self):
                 mRigNull.connectChildNode(mDag,'controlBallRotation','rigNull')#Connect                        
                 
                 
-            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1:# and str_ikEnd in ['foot']:
+            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1 and str_ikEnd not in ['tipCombo']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
@@ -4247,7 +4262,8 @@ def rig_controls(self):
     if mIKControlEnd:
         log.debug("|{0}| >> Found controlIKEnd : {1}".format(_str_func, mIKControlEnd)+'-'*40)
         
-        mPlug_visIKEnd = cgmMeta.cgmAttr(mSettings.mNode,'visIKEnd',attrType='bool',lock=False,keyable=False)
+        mPlug_visIKEnd = cgmMeta.cgmAttr(mSettings.mNode,'visIKEnd',attrType='bool',defaultValue=True,lock=False,keyable=False)
+        mPlug_visIKEnd.p_value = True
         
         _d = MODULECONTROL.register(mIKControlEnd,
                                     addDynParentGroup = False,
@@ -5018,10 +5034,10 @@ def rig_frame(self):
             mIKControlEnd.masterGroup.p_parent =mIKControl
         pprint.pprint(vars())
         
-        
+        mPivotResultDriver = False
         #Pivot Driver =======================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
-        if mPivotHolderHandle.getMessage('pivotHelper'):
+        if mPivotHolderHandle.getMessage('pivotHelper') or self.b_quadSetup:
             log.debug("|{0}| >> Pivot setup initial".format(_str_func))
             
             if str_rigSetup == 'digit':

@@ -1700,15 +1700,17 @@ def rig_shapes(self):
                 ml_targets = ml_blendJoints
             else:
                 ml_targets = ml_fkJoints
-        
+                
+                
+            _settingsSize = _offset * 2
             if _settingsPlace == 'start':
                 _mTar = ml_targets[0]
-                _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
+                #_settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
             else:
                 _mTar = ml_targets[self.int_handleEndIdx]
-                _settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
+                #_settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
         
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .5,
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
         
             mSettingsShape.doSnapTo(_mTar.mNode)
@@ -1965,7 +1967,7 @@ def rig_shapes(self):
         log.debug("|{0}| >> Frame shape cast...".format(_str_func))
         ml_fkShapesSimple = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
-                                          mode = 'simpleCast')
+                                          mode = 'frameHandle')
                                           #mode = 'frameHandle')
         
         
