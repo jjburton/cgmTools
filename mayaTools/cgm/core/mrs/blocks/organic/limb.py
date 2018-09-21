@@ -298,6 +298,7 @@ d_block_profiles = {
                  'hasBallJoint':False,
                  'nameList':['nub'],
                  'scaleSetup':False,
+                 'numSpacePivots':0,
                  #'baseAim':[1,0,0],
                  'baseUp':[0,1,0],
                  #'baseSize':[1.4,1,6.4]},
@@ -3961,7 +3962,7 @@ def rig_shapes(self):
                 mRigNull.connectChildNode(mDag,'controlBallRotation','rigNull')#Connect                        
                 
                 
-            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1 and str_ikEnd not in ['tipCombo']:# and str_ikEnd in ['foot']:
+            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1 and str_ikEnd not in ['tipCombo','tipBase']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
@@ -4006,6 +4007,11 @@ def rig_shapes(self):
         if str_ikEnd in ['tipCombo']:
             CORERIG.shapeParent_in_place(mIKEndCrv.mNode,ml_fkShapes[-2].mNode, True, replaceShapes=True)
             mHandleFactory.color(mIKEndCrv.mNode, controlType = 'sub')
+            
+        if str_ikEnd in ['tipBase']:
+            CORERIG.shapeParent_in_place(mIKCrv.mNode,ml_fkShapes[-2].mNode, True, replaceShapes=True)
+            mHandleFactory.color(mIKCrv.mNode, controlType = 'sub')            
+            
 
         for mShape in ml_fkShapes:
             try:mShape.delete()

@@ -5168,7 +5168,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             try:
                 mMasterNull = self.masterNull
-                mMasterNull.rename(mMasterNull.cgmName)
             except:
                 pass
             
