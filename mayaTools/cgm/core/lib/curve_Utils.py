@@ -157,12 +157,12 @@ def get_shape_info(crvShape):
         mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve')) 
         
         _rawKnots = mc.getAttr(_infoNode + '.knots')[0]
-        #log.info( mc.getAttr(_infoNode + '.knots[*]'))
+        #log.debug( mc.getAttr(_infoNode + '.knots[*]'))
         
-        """log.info(_rawKnots)
+        """log.debug(_rawKnots)
         for knot in _rawKnots:
             #knots.append(decimal.Decimal(knot))
-            log.info(knot)
+            log.debug(knot)
             if 'e' in str(knot):
                 _knots.append('%f' % (knot))
             else:
@@ -173,7 +173,7 @@ def get_shape_info(crvShape):
             _cvs.extend(_cvs[:_degree])
             _cps.extend(_cps[:_degree])
         
-        """log.info("|{0}| >> knot info 1...".format(_str_func))
+        """log.debug("|{0}| >> knot info 1...".format(_str_func))
         if _form == 2:
             _knotInfo.append(_knots[0]-1)
         else:
@@ -185,7 +185,7 @@ def get_shape_info(crvShape):
             #i+=1
         _knotInfo.extend(_knots)
         
-        log.info("|{0}| >> knot info 2...".format(_str_func))
+        log.debug("|{0}| >> knot info 2...".format(_str_func))
         if _form == 2:
             _knotInfo.append(_knots[-1]+1)
         else:
@@ -236,13 +236,13 @@ def get_curve_shape_info(curve):
             return False
         _d = {}
         for shape in _shapes:
-            log.info("|{0}| >> shape: {1}".format(_str_func,shape))                            
+            log.debug("|{0}| >> shape: {1}".format(_str_func,shape))                            
             if cgmValid.get_mayaType(shape) == 'nurbsCurve':
                 #transform = mc.group(em=True)
                 #RIGGING.shapeParent_in_place(transform, shape)
                 #tmpShapeNode = mc.listRelatives (transform, shapes=True, fullPath=True)
                 _bfr = RIGGING.duplicate_shape(shape)
-                log.info(_bfr)
+                log.debug(_bfr)
                 _d[shape] = (get_shape_info(_bfr[1]))
                 mc.delete(_bfr[0])
                 #mc.delete(transform)
@@ -898,7 +898,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
     _targets = cgmValid.objStringList(target,noneValid=True,calledFrom=_str_func)
     _sizeMode = cgmValid.kw_fromList(sizeMode,['guess','fixed','cast'],True,calledFrom=_str_func)
     
-    log.info("|{0}| >> target:{1} | shape:{2} | color:{3} | sizeMode:{4} | size:{5} | direction:{6}".format(_str_func,_targets,shape,color,sizeMode,size,direction))
+    log.debug("|{0}| >> target:{1} | shape:{2} | color:{3} | sizeMode:{4} | size:{5} | direction:{6}".format(_str_func,_targets,shape,color,sizeMode,size,direction))
     
     _res = []
     if not _targets:
@@ -1467,7 +1467,7 @@ def attachObjToCurve(obj = None, crv = None):
     returns param
     """
     _str_funcName = 'attachObjToCurve'
-    log.info(">>> %s >> "%_str_funcName + "="*75)
+    log.debug(">>> %s >> "%_str_funcName + "="*75)
     try:
 	obj = cgmValid.objString(obj,isTransform=True)
 	crv = cgmValid.objString(crv,mayaType='nurbsCurve')	
@@ -1514,7 +1514,7 @@ def getUParamOnCurve(obj = None, crv = None):
     returns param
     """
     _str_funcName = 'getUParamOnCurve'
-    log.info(">>> %s >> "%_str_funcName + "="*75)
+    log.debug(">>> %s >> "%_str_funcName + "="*75)
     mi_obj = cgmValid.objString(obj)
     mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
     mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0])
@@ -1544,7 +1544,7 @@ def getUParamOnCurveFromObj(obj = None, crv = None):
     returns param
     """
     _str_funcName = 'getUParamOnCurve'
-    log.info(">>> %s >> "%_str_funcName + "="*75)
+    log.debug(">>> %s >> "%_str_funcName + "="*75)
     mi_obj = cgmValid.objString(obj)
     mi_crv = cgmValid.objString(crv,mayaType='nurbsCurve')
     mi_shape = cgmMeta.validateObjArg(mc.listRelatives(mi_crv,shapes = True,f=True)[0])
@@ -1552,7 +1552,7 @@ def getUParamOnCurveFromObj(obj = None, crv = None):
     _node = mc.createNode ('nearestPointOnCurve', n = 'TESTING')
     _loc = mc.spaceLocator()[0]
     SNAP.go(_loc,obj)
-    #log.info(_loc)
+    #log.debug(_loc)
     p = []
     distances = []
     
@@ -1581,7 +1581,7 @@ def isEP(*args, **kws):
                                          {'kw':'reportTimes',"default":False}]	    
             self.__dataBind__(*args, **kws)
             #=================================================================
-            #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+            #log.debug(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
 
         def __func__(self):
             """
@@ -1622,7 +1622,7 @@ def getPercentPointOnCurve(*args, **kws):
                                          {'kw':'factor',"default":.1}]	    
             self.__dataBind__(*args, **kws)
             #=================================================================
-            #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+            #log.debug(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
 
         def __func__(self):
             """
@@ -1658,7 +1658,7 @@ def convertCurve(*args, **kws):
                                          {'kw':"keepOriginal","default":True}]	    
             self.__dataBind__(*args, **kws)
             #=================================================================
-            #log.info(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
+            #log.debug(">"*3 + " Log Level: %s "%log.getEffectiveLevel())	
 
         def __func__(self):
             """
@@ -1739,23 +1739,23 @@ def mirrorCurve(*args, **kws):
             if not mi_target:#if no target, mirror self
                 if not self.d_base['b_oneSided']:
                     if self.d_base['b_even']:
-                        log.info("%s Even mirror"%self._str_reportStart)			
+                        log.debug("%s Even mirror"%self._str_reportStart)			
                         l_cvPos = self.d_base['l_cvPos']
                         l_cvs = self.d_base['l_cvs']			
                         int_split = int(len(l_cvPos)/2)
-                        log.info(int_split)
+                        log.debug(int_split)
                         l_splitDriven = l_cvs[int_split:]
                         l_splitDriver = l_cvs[:int_split]
                         l_splitDriverPos = l_cvPos[:int_split]			
                         l_splitDriverPos.reverse()
-                        log.info("%s l_splitDriven: %s"%(self._str_reportStart,l_splitDriven))
-                        log.info("%s l_splitDriver: %s"%(self._str_reportStart,l_splitDriver))			
+                        log.debug("%s l_splitDriven: %s"%(self._str_reportStart,l_splitDriven))
+                        log.debug("%s l_splitDriver: %s"%(self._str_reportStart,l_splitDriver))			
                         for i,cv in enumerate(l_splitDriven):
                             pos = l_splitDriverPos[i]
                             mc.move(-pos[0],pos[1],pos[2], cv, ws=True)
                         return True
                     else:
-                        log.info("%s nonEven mirror"%self._str_reportStart)			
+                        log.debug("%s nonEven mirror"%self._str_reportStart)			
                         l_cvPos = self.d_base['l_cvPos']
                         l_cvs = self.d_base['l_cvs']			
                         int_split = int(len(l_cvPos)/2)
@@ -1765,14 +1765,14 @@ def mirrorCurve(*args, **kws):
                         l_splitDriver = l_cvs[:int_split]
                         l_splitDriverPos = l_cvPos[:int_split]			
                         l_splitDriverPos.reverse()
-                        log.info("%s l_splitDriven: %s"%(self._str_reportStart,l_splitDriven))
-                        log.info("%s l_splitDriver: %s"%(self._str_reportStart,l_splitDriver))			
+                        log.debug("%s l_splitDriven: %s"%(self._str_reportStart,l_splitDriven))
+                        log.debug("%s l_splitDriver: %s"%(self._str_reportStart,l_splitDriver))			
                         for i,cv in enumerate(l_splitDriven):
                             pos = l_splitDriverPos[i]
                             mc.move(-pos[0],pos[1],pos[2], cv, ws=True)
                         return True		
                 else:#it's one sided
-                    log.info("%s Build other side. New crv"%self._str_reportStart)
+                    log.debug("%s Build other side. New crv"%self._str_reportStart)
                     l_epPos = self.d_base['l_epPos']
                     l_otherSide = copy.copy(l_epPos)
                     l_otherSide.reverse()

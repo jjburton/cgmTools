@@ -349,7 +349,8 @@ def is_template(self):
 #>> Prerig
 #=============================================================================================================
 def prerig(self):
-    self.atUtils('puppet_verify')
+    #self.atUtils('puppet_verify')
+    self.UTILS.puppet_verify(self)
     
     
     #Create preRig Null  ==================================================================================

@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -96,8 +96,10 @@ def get_splitValues(surface = None, values = [], mode='u',
     l_sets = []
     
     for i,v in enumerate(values):
+        log.debug("|{0}| >>  Prcoessing: {1} | {2}".format(_str_func,i,v))        
         _last = False
         if v == values[-1]:
+            log.debug("|{0}| >>  last...".format(_str_func))                    
             _last = True
         if preInset:
             v+=preInset
@@ -120,35 +122,34 @@ def get_splitValues(surface = None, values = [], mode='u',
         if _last and insertMax:
             _l.append(maxKnot)
             
-        if not _last:
+        if _last != True:
             _l.append(values[i+1])
     
         if insertMin and i == 0:
             _l.insert(0,minKnot)
     
         if postInset:
-            v =  _l[-1] + postInset
-            log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],v))
-            
-                    
+            vPost =  _l[-1] + postInset
+            log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],vPost))
             if len(_l) > 1:
-                if v > max(_l[:-1]):
-                    _l[-1] = v
+                if vPost > max(_l[:-1]):
+                    _l[-1] = vPost
                 else:
                     _l = _l[:-1]
             else:
-                _l.append(v)
-            
+                _l.append(vPost)
+            """
             if _last != True:
                 for v2 in _l:
                     if v2 > v:
-                        _l.remove(v2)
+                        _l.remove(v2)"""
         
         
         _l = LISTS.get_noDuplicates(_l)
         _l.sort()
         
         l_sets.append(_l)                        
+        log.debug("|{0}| >>  result: {1} | {2} | {3}".format(_str_func,i,v,_l))        
     
     l_pre = copy.copy(l_sets)
     #pprint.pprint(vars())
@@ -179,9 +180,10 @@ def get_splitValues(surface = None, values = [], mode='u',
     for i,uSet in enumerate(l_sets):
         _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
         
+        """
         if len(uSet)<2:
             l_finalCurves.append(mc.duplicate(_loftCurves[0])[0])
-            continue
+            continue"""
         
         log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
         """
