@@ -3775,19 +3775,28 @@ def rig_shapes(self):
                 d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
                 str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
                 
+                
+                mMesh_tmp = False
+                try:
+                    mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+                    str_meshShape = mMesh_tmp.getShapes()[0]        
+                    pos = SNAPCALLS.get_special_pos([_mTar,str_meshShape],
+                                                    'castNear',str_settingsDirections,False)
+                    vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+                    newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
+            
+                    mMesh_tmp.delete()
+                except:
+                    if mMesh_tmp:mMesh_tmp.delete()
+                    newPos = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
+                                                                _settingsSize * 4)
+                    
                 """
                 mSettingsShape.p_position = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
                                                                                _settingsSize + (_offset * 2))
                 """
-                mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
-                str_meshShape = mMesh_tmp.getShapes()[0]        
-                pos = SNAPCALLS.get_special_pos([_mTar,str_meshShape],
-                                                'castNear',str_settingsDirections,False)
-                vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
-                newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
-        
+
                 mSettingsShape.p_position = newPos
-                mMesh_tmp.delete()                
                 
                 
                 SNAP.aim_atPoint(mSettingsShape.mNode,
