@@ -198,7 +198,9 @@ d_block_profiles = {
            'nameList':['hip','knee','ankle','ball','toe'],
            'baseAim':[0,-1,0],
            'baseUp':[0,0,1],
-           'baseSize':[11.6,13,79],
+           'baseSize':[11.6,13,70],
+           'baseDat':{'rp':[0,0,1],'up':[0,0,1]},
+           
            },
     
     'arm':{'numShapers':2,
@@ -221,8 +223,8 @@ d_block_profiles = {
            'rigSetup':'default',
            'nameList':['clav','shoulder','elbow','wrist'],
            'baseAim':[-1,0,0],
-           'baseUp':[0,1,0],
            'baseSize':[14,9,76],
+           'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
            },
     
     'finger':{'numShapers':2,
@@ -366,6 +368,7 @@ l_attrsStandard = ['side',
                    'moduleTarget']
 
 d_attrsToMake = {'visMeasure':'bool',
+                 'baseDat':'string',
                  'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
                  'mainRotAxis':'up:out',
@@ -461,8 +464,9 @@ def define(self):
                 mc.delete(defineNull)
                 
                 
-        _size = (self.atUtils('get_shapeOffset') or 1.0)
+        _size = (self.atUtils('get_shapeOffset') or 1.0) * 2.0
         #_sizeSub = _size / 2.0
+        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size)
         
@@ -652,27 +656,35 @@ def templateDelete(self):
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
-    mDefineEndHelper = self.defineEndHelper
-    l_const = mDefineEndHelper.getConstraintsTo()
-    if l_const:
-        log.debug("currentConstraints...")
-        pos = mDefineEndHelper.p_position
+    for k in ['end','rp','up','lever']:
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+        if mHandle:
+            l_const = mHandle.getConstraintsTo()
+            if l_const:
+                log.debug("currentConstraints...")
+                pos = mHandle.p_position
+                
+                for i,c in enumerate(l_const):
+                    log.info("    {0} : {1}".format(i,c))
+                mc.delete(l_const)
+                mHandle.p_position = pos
+                
+            mHandle.v = True
+            mHandle.template = False
+            
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
+        if mHandle:
+            mHandle.template=False
         
-        for i,c in enumerate(l_const):
-            log.info("    {0} : {1}".format(i,c))
-        mc.delete(l_const)
-        mDefineEndHelper.p_position = pos
-        
-    self.defineEndHelper.v = True
-    self.defineUpHelper.v = True
     self.defineLoftMesh.v = True
+    
     
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
-    self.defineNull.template = True
+    #self.defineNull.template = True
     
     
     ATTR.datList_connect(self.mNode, 'rollCount', [self.numRoll for i in range(self.numControls - 1)])
@@ -709,7 +721,12 @@ def template(self):
     _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
     mDefineEndObj = self.defineEndHelper
     mDefineUpObj = self.defineUpHelper
-        
+    
+    #Template our vectors
+    for k in ['end','rp','up','lever']:
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
+        if mHandle:
+            mHandle.template=True
 
     mDefineLoftMesh = self.defineLoftMesh
     _v_range = DIST.get_distance_between_points(self.p_position,
@@ -735,8 +752,7 @@ def template(self):
     
     mDefineLoftMesh.v = False
     mDefineUpObj.v = False
-    #mDefineEndObj.v=False
-
+    mDefineEndObj.v=False
     
     #Create temple Null ==================================================================================
     log.debug("|{0}| >> nulls...".format(_str_func)+ '-'*40)
@@ -758,6 +774,7 @@ def template(self):
 
         mDefineLeverObj = self.defineLeverHelper
         _mVectorLeverUp = MATH.get_obj_vector(mDefineLeverObj.mNode,'y+',asEuclid=True)
+        mDefineLeverObj.v=False
         
         pos_lever = mDefineLeverObj.p_position
         
@@ -1488,7 +1505,9 @@ def prerig(self):
     _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
     
     _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-    _mVectorUp = _mVectorAim.up()
+    _mVectorUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)    
+    
+    #_mVectorUp = _mVectorAim.up()
     _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]
     
     #Foot helper ============================================================================
@@ -1498,11 +1517,16 @@ def prerig(self):
         mFootHelper = ml_templateHandles[-1].pivotHelper
 
     _ikEnd = self.getEnumValueString('ikEnd')
+    ml_noParent = []
     if _ikEnd not in ['paw']:
         if self.hasBallJoint and mFootHelper:
-            ml_templateHandles.append(mFootHelper.pivotCenter)
+            mHelp = mFootHelper.pivotCenter
+            ml_templateHandles.append(mHelp)
+            ml_noParent.append(mHelp)
         if self.hasEndJoint and mFootHelper:
-            ml_templateHandles.append(mFootHelper.pivotFront)
+            mHelp = mFootHelper.pivotFront            
+            ml_templateHandles.append(mHelp)
+            ml_noParent.append(mHelp)
         
     #Finger Tip ============================================================================
     if _ikSetup != 'none' and _ikEnd == 'catInTheHat':#bankTip
@@ -1534,7 +1558,7 @@ def prerig(self):
     mDefineEndObj = self.defineEndHelper    
     _size_width = mDefineEndObj.width#...x width
     _sizeUse = _size_width/ 2.0 #self.atUtils('get_shapeOffset')
-
+    
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
         _HandleSnapTo = mTemplateHandle.mNode
@@ -1550,9 +1574,6 @@ def prerig(self):
             SNAP.go(crv2,mHandle.mNode)
             CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)
             
-            #for mShape in ml_shapes:
-            #    mShape.addAttr('cgmColorLock',True,lock=True,visible=False)
-                
         else:
             crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
@@ -1575,10 +1596,18 @@ def prerig(self):
         mHandle.doSnapTo(_HandleSnapTo)
         mHandle.p_parent = mPrerigNull
         mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
+        
+        if mTemplateHandle == mEndHandle and _ikEnd in ['foot','paw','bank']:
+            #_size_width = mDefineEndObj.width#...x width
+            SNAP.aim_atPoint(mHandle.mNode, DIST.get_pos_by_vec_dist(mHandle.p_position, _mVectorUp, mDefineEndObj.length))
+        
         ml_aimGroups.append(mGroup)
         
-        mc.parentConstraint(_HandleSnapTo, mGroup.mNode, maintainOffset=True)
-        
+        if mTemplateHandle not in ml_noParent:
+            mc.parentConstraint(_HandleSnapTo, mGroup.mNode, maintainOffset=True)
+        elif mFootHelper:
+            mc.parentConstraint(mFootHelper.mNode, mGroup.mNode, maintainOffset=True)
+            
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------

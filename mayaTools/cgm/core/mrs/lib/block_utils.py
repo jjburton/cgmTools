@@ -4901,15 +4901,20 @@ def blockProfile_load(self, arg):
         try:
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
-
-            if issubclass(type(v),list):
+            _typeDat = type(v)
+            if issubclass(_typeDat,list):
                 if self.datList_exists(a):
                     log.debug("|{0}| datList...".format(_str_func))                                     
                     mc.select(cl=True)
                     ATTR.datList_connect(_short, a, v, mode='string')
                     _done = True
                 else:
-                    log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))                     
+                    log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))
+            if issubclass(_typeDat,dict):
+                log.debug("|{0}| dict...".format(_str_func))                                     
+                #self.__dict__['a'] = v
+                setattr(self,a,v)
+                _done = True
             if not _done:
                 ATTR.set(_short,a,v)
         except Exception,err:
@@ -5643,9 +5648,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mFollowGroup.dagLock()
             mUpTrack.dagLock()"""
     
+        """
         if md_handles.get('rp') and md_vector.get('rp'):
             mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
-            mFollowGroup.p_parent = md_vector['end']
+            mFollowGroup.p_parent = md_vector['end']"""
     
             #mFollowGroup =  md_handles['rp'].doGroup(True,True,asMeta=True,typeModifier = 'follow')
             #mRPTrack = md_handles['rp'].doCreateAt()
@@ -5811,17 +5817,20 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
         log.debug("|{0}| >>  No baseAim value. Using default.".format(_str_func))
         baseAim = baseAimDefault
     log.debug("|{0}| >>  baseAim: {1}".format(_str_func,baseAim))
-        
+    
     
     try:mDefineEndObj = self.defineEndHelper
     except:raise ValueError,"No defineEndHelper found"
     log.debug("|{0}| >>  mDefineEndObj: {1}".format(_str_func,mDefineEndObj))
     
+    d_baseDat = {}
+    if self.hasAttr('baseDat'):
+        d_baseDat = self.baseDat
     
     #Meat ==================================================
     log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*40)
-    
-    pos = DIST.get_pos_by_vec_dist(self.p_position, baseAim, baseSize[2])
+    pos_self = self.p_position
+    pos = DIST.get_pos_by_vec_dist(pos_self, baseAim, baseSize[2])
     
     mDefineEndObj.p_position = pos
     
@@ -5831,6 +5840,17 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     mDefineEndObj.sx = _width
     mDefineEndObj.sy = _height
     mDefineEndObj.sz = MATH.average(_width,_height)
+    
+    if d_baseDat:
+        log.debug("|{0}| >>  baseDat...".format(_str_func)+ '-'*40)
+        for k,vec in d_baseDat.iteritems():
+            mHandle = self.getMessageAsMeta('define{0}Helper'.format(k.capitalize()))
+            if mHandle:
+                log.debug("|{0}| >>  mHandle: {1}".format(_str_func,mHandle))
+                mHandle.p_position = DIST.get_pos_by_vec_dist(pos_self, vec, baseSize[1])
+            else:
+                log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
+    
 
 
 def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
