@@ -5502,12 +5502,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         for k in l_order:
             _dtmp = d_definitions[k]
             if k == 'end':
-                _useSize = _sizeSub# * 2
+                _useSize = _sizeSub/2.0
             else:
                 _useSize = _sizeSub
             
             #sphere
-            _crv = CURVES.create_fromName(name='locatorForm',#'arrowsAxis', 
+            _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
                                           direction = 'z+', size = _useSize)
             #CORERIG.shapeParent_in_place(_crv,_circle,False)
         
@@ -5587,7 +5587,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mArrow = cgmMeta.cgmObject(_arrow)
             mArrow.p_parent = mDefineNull
             mArrow.resetAttrs()
-            mArrow.tz = _sizeSub * 2.5
+            mArrow.tz = _sizeSub * 3.0
         
             CORERIG.copy_pivot(mArrow.mNode,self.mNode)
         
@@ -5852,8 +5852,26 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
                 log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
     
 
+def prerig_snapRPtoOrientHelper(self):
+    _str_func = 'prerig_snapRPtoOrientHelper'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    mRP = self.getMessageAsMeta('defineRpHelper')
+    if not mRP:
+        return log.error("No rp found")
 
-def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
+    try:mOrientHelper = self.orientHelper
+    except:return log.error("No orientHelper found")
+    log.debug("|{0}| >>  mOrientHelper: {1}".format(_str_func,mOrientHelper))    
+    log.debug("|{0}| >>  mRP: {1}".format(_str_func,mRP))    
+
+    pos_self = self.p_position
+    dist = DIST.get_distance_between_points(pos_self, mRP.p_position)
+    vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
+    
+    mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+    
+def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     _str_func = 'prerig_snapHandlesToRotatePlane'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
@@ -5929,6 +5947,5 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     #Cleanup --------------------------------------------------------------------------------------------
     if cleanUp:
         mc.delete(_res_body + l_crvs)
-        mStart.delete()
         
 

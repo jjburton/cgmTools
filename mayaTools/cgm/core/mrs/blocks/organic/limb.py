@@ -151,6 +151,7 @@ d_block_profiles = {
             'baseAim':[90,0,0],
             'baseUp':[0,0,1],
             'baseSize':[11.6,8,79],
+            'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
             },
     'quadFront':{'numShapers':2,
                 'addCog':False,
@@ -175,6 +176,7 @@ d_block_profiles = {
                 'baseAim':[90,0,0],
                 'baseUp':[0,0,1],
                 'baseSize':[11.6,8,79],
+                'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
                 },    
     
     'leg':{'numShapers':2,
@@ -199,7 +201,7 @@ d_block_profiles = {
            'baseAim':[0,-1,0],
            'baseUp':[0,0,1],
            'baseSize':[11.6,13,70],
-           'baseDat':{'rp':[0,0,1],'up':[0,0,1]},
+           'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
            
            },
     
@@ -248,9 +250,11 @@ d_block_profiles = {
               'hasEndJoint':True,
               'nameList':['index'],
               'scaleSetup':False,
-              'baseAim':[1,0,0],
+              'baseAim':[0,0,1],
               'baseUp':[0,1,0],
-              'baseSize':[1.4,1,6.4],
+              'baseSize':[3,2.5,13],
+              'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
+              
               },
     'thumb':{'numShapers':2,
               'addCog':False,
@@ -275,58 +279,36 @@ d_block_profiles = {
               'scaleSetup':False,
               'baseAim':[1,0,0],
               'baseUp':[0,1,0],
-              'baseSize':[1.4,1,6.4],
+              'baseSize':[3,2.5,13],
+              'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},              
               },    
     
     'nub':{'numShapers':2,
-                 'addCog':False,
-                 'attachPoint':'end',
-                 'cgmName':'nub',
-                 'loftShape':'wideDown',
-                 'loftSetup':'default',
-                 'settingsPlace':'end',
-                 'ikSetup':'rp',
-                 'ikEnd':'tipEnd',
-                 'numControls':2,
-                 'numRoll':0,
-                 'ikRPAim':'default',
-                 'rigSetup':'digit',
-                 'mainRotAxis':'out',
-                 'buildLeverBase':False,
-                 'hasLeverJoint':False,
-                 'hasLeverJoint':False,
-                 'hasBallJoint':False,
-                 'nameList':['nub'],
-                 'scaleSetup':False,
-                 'baseAim':[1,0,0],
-                 'baseUp':[0,1,0],
-                 'baseSize':[1.4,1,6.4],
-                 },    
+           'addCog':False,
+           'attachPoint':'end',
+           'cgmName':'nub',
+           'loftShape':'wideDown',
+           'loftSetup':'default',
+           'settingsPlace':'end',
+           'ikSetup':'rp',
+           'ikEnd':'tipEnd',
+           'numControls':2,
+           'numRoll':0,
+           'ikRPAim':'default',
+           'rigSetup':'digit',
+           'mainRotAxis':'out',
+           'buildLeverBase':False,
+           'hasLeverJoint':False,
+           'hasLeverJoint':False,
+           'hasBallJoint':False,
+           'nameList':['nub'],
+           'scaleSetup':False,
+           'baseAim':[0,0,1],
+           'baseUp':[0,1,0],
+           'baseSize':[4,4,8],
+           'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+           },    
     
-    'thumb':{'numShapers':1,
-             'addCog':False,
-             'attachPoint':'end',
-             'cgmName':'thumb',
-             'loftShape':'wideUp',
-             'loftSetup':'default',
-             'settingsPlace':'end',
-             'ikSetup':'rp',
-             'ikEnd':'tipEnd',
-             'numControls':4,
-             'numRoll':0,
-             'ikRPAim':'default',
-             'rigSetup':'digit',
-             'mainRotAxis':'out',
-             'offsetMode':'proxyAverage',
-             'buildLeverBase':False,
-             'hasLeverJoint':False,
-             'hasEndJoint':False,
-             'nameList':['thumb'],
-             'scaleSetup':False,
-             'baseAim':[1,0,0],
-             'baseUp':[0,1,0],
-             'baseSize':[1.4,1,6.4],
-             },
    }
 
 #>>>Attrs =====================================================================================================
@@ -468,7 +450,7 @@ def define(self):
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size)
+                                      direction = 'z+', size = _size * 2.0)
         
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
@@ -7501,16 +7483,18 @@ def get_handleIndices(self):
     str_ikEnd = ATTR.get_enumValueString(self.mNode,'ikEnd')
     log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
     
-    """
+    
+    
     if str_ikEnd in ['foot']:
-        idx_end -=1
+        if self.hasBallJoint:
+            idx_end -=2
     elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
         log.debug("|{0}| >> tip setup...".format(_str_func))        
         if str_ikEnd == 'tipEnd':
             self.b_ikNeedEnd = True
             log.debug("|{0}| >> Need IK end joint".format(_str_func))
         elif str_ikEnd == 'tipBase':
-            idx_end -=1"""
+            idx_end -=1
             
     return idx_start,idx_end
 
