@@ -1170,8 +1170,13 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         _short = self.mBlock.mNode
         _str_func = 'shapes_build ( {0} )'.format(_short)
         
+        
+        _dir = self.d_module.get('direction')
         if aimVector is None:
-            str_aim = self.d_orientation['str'][1] + '-'
+            if _dir and _dir.lower() == 'left':
+                str_aim = self.d_orientation['mOrientation'].p_outNegative.p_string
+            else:
+                str_aim = self.d_orientation['mOrientation'].p_out.p_string        
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
             
