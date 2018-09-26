@@ -183,7 +183,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
-                        self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+                        strValue = ATTR.get_enumValueString(_short,a)
+                        self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)
+                        if strValue:
+                            ATTR.set(_short,a,strValue)
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
                         mc.select(cl=True)
@@ -303,8 +306,8 @@ def doName(self):
         if _d.get('cgmDirection'):_d.pop('cgmDirection')
         self.doStore('cgmDirection','')
 
-    _position = self.getEnumValueString('position')
-    if self.getMayaAttr('position'):
+    _position = self.getMayaAttr('position')#self.getEnumValueString('position')
+    if _position:
         _d['cgmPosition'] = _position            
         self.doStore('cgmPosition',_position)
     else:self.cgmPosition = ''
@@ -374,14 +377,32 @@ def set_side(self,side=None):
             
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def set_position(self,position=None):
+def set_position(self,position=None,ui=False):
     try:
         _short = self.p_nameShort
         _str_func = 'set_position'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        if position is None:
-            position = 0
+        
+        if ui:
+            log.debug("|{0}| >> getting value by ui prompt".format(_str_func))
+            position = self.getMayaAttr('cgmPosition')
+            _title = 'Set position tag...'
+            result = mc.promptDialog(title=_title,
+                                     message='Block: {0} | Current: {1}'.format(_short,position),
+                                     button=['OK', 'Cancel'],
+                                     text = position,
+                                     defaultButton='OK',
+                                     cancelButton='Cancel',
+                                     dismissString='Cancel')
+            if result == 'OK':
+                position =  mc.promptDialog(query=True, text=True) or ''
+                log.debug("|{0}| >> from prompt: {1}".format(_str_func,position))
+            else:
+                log.error("|{0}| >> Change cancelled | {1}.".format(_str_func,self))
+                #self.doName()
+                return False        
+        
         try:
             ATTR.set(_short,'position',position)
         except Exception,err:

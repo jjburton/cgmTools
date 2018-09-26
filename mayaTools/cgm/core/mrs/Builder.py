@@ -183,6 +183,9 @@ class ui(cgmUI.cgmGUI):
         _menu = self.uiMenu_post
         
         #_mPuppet = mUI.MelMenuItem(self.uiMenu_post, l="Puppet",subMenu=True)
+        mUI.MelMenuItem( _menu, l="Gather Blocks",
+                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
+        mUI.MelMenuItemDiv(_menu)
         
         mUI.MelMenuItem(_menu, l="Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -556,6 +559,21 @@ class ui(cgmUI.cgmGUI):
             return log.error("|{0}| >> No active block detected".format(_str_func))
         return getattr(_mActiveBlock,func)(*args,**kws)
     
+    def get_activeBlock(self):
+        _str_func = 'get_activeBlock'        
+        _indices = self.uiScrollList_blocks.getSelectedIdxs()        
+        if not _indices:
+            log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+            return False
+        
+        if not self._ml_blocks:
+            log.error("|{0}| >> No blocks detected".format(_str_func))
+            return False            
+        
+        _index = int(str(_indices[0]).split('L')[0])
+        return self._ml_blocks[_index]
+        
+        
     def uiFunc_blockManange_fromScrollList(self,**kws):          
         _str_func = 'uiFunc_blockManange_fromScrollList'
         _indices = self.uiScrollList_blocks.getSelectedIdxs()
@@ -604,6 +622,19 @@ class ui(cgmUI.cgmGUI):
             _contextMode = kws.pop('contextMode', self._l_contextModes[self.var_contextMode.value])
             #_contextMode = self._l_contextModes[self.var_contextMode.value]
             log.debug("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
+            _mode = kws.get('mode')
+            
+            _mActiveBlock = self._blockCurrent
+            
+            if _mode == 'setParentToActive':
+                if not _mActiveBlock:
+                    log.error("|{0}| >> mode: {1} requires active block".format(_str_func,_mode)) 
+                    return
+                kws['parent'] = _mActiveBlock
+                kws.pop('mode')
+            #elif  _mode == 'clearParentBlock':
+            #else:
+                #raise ValueError,"Mode not setup: {0}".format(_mode)            
             
             if _startMode == 0 :#Active
                 mBlock = self._blockCurrent
@@ -826,8 +857,7 @@ class ui(cgmUI.cgmGUI):
         
             mUI.MelMenuItem(_mirror,
                             label = 'Verify',
-                            ann = '[{0}] Create or load mirror block'.format(_short),                                                    
-                            #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
+                            ann = '[{0}] Create or load mirror block'.format(_short),
                             c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,False) )    
             mUI.MelMenuItem(_mirror,
                             label = 'Rebuild',
@@ -879,7 +909,7 @@ class ui(cgmUI.cgmGUI):
                                 label = side,
                                 ann = 'Specify the side for the current block to : {0}'.format(side),
                                 c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',i))
-            #...position -------------------------------------------------------------------------------------
+            #...position ------------------------------------------------------------------------------
             #none:upper:lower:front:back:top:bottom
             sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = 'Set position')
@@ -1225,15 +1255,233 @@ class ui(cgmUI.cgmGUI):
         self.uiFrame_blockUtils.clear()
         
         _column = self.uiFrame_blockUtils
+                
         
+        
+        #General ======================================================
+        log.debug("|{0}| >> General ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="General: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
         
+        mc.button(parent=_row,
+                  l = 'Select',
+                  ut = 'cgmUITemplate',                                    
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'select',
+                                      **{}),
+                  ann = 'Select blocks')
+        mc.button(parent=_row,
+                  l = 'Verify',
+                  ut = 'cgmUITemplate',                                    
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'verify',
+                                      **{}),
+                  ann = 'Verify conextual blocks')
+        
+        mc.button(parent=_row,
+                  l = 'Recolor',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','color',
+                                      **{}),
+                  ann = 'Recolor conextual blocks')
+        
+        mc.button(parent=_row,
+                  l = 'Duplicate',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','duplicate',
+                                      **{}),
+                  ann = 'Duplicate conextual blocks')
+        mc.button(parent=_row,
+                  l = 'Delete',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','delete',
+                                      **{}),
+                  ann = 'Delete conextual blocks')
+        
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        #General ======================================================
+        log.debug("|{0}| >> Queries ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="Queries: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        mc.button(parent=_row,
+                  l = 'Buildable?',
+                  ut = 'cgmUITemplate',                                    
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'getModuleStatus',
+                                      **{'updateUI':0}),
+                  ann = "Check if the block is buildable (DEV)")
+        mc.button(parent=_row,
+                  l = 'Visualize',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'VISUALIZEHEIRARCHY',
+                                      **{'updateUI':0}),
+                  ann = 'Visualize the block tree in the script editor')
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        #Parent ======================================================
+        log.debug("|{0}| >> parenting ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="Parent: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        
+        mc.button(parent=_row,
+                  l = 'To Active',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockParent_set',
+                                      **{'mode':'setParentToActive'}),
+                  ann = 'Set parent block to active block')
+        mc.button(parent=_row,
+                  l = 'Clear',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockParent_set',
+                                      **{'parent':False}),
+                  ann = 'Clear blockParent')
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        #Naming ======================================================
+        log.debug("|{0}| >> naming ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="Naming: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        
+        mc.button(parent=_row,
+                  l = 'Set Name',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','set_nameTag',
+                                      **{}),
+                  ann = 'Set the name tag of the block and rename dags')
+        mc.button(parent=_row,
+                  l = 'Set Position',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','set_position',
+                                      **{'ui':True}),
+                  ann = 'Set the position tag of the block and rename dags')
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()        
+        
+        
+        #Naming ======================================================
+        log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="BlockDat: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        
+        mc.button(parent=_row,
+                  l = 'Save',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'saveBlockDat',
+                                      **{}),
+                  ann = self._d_ui_annotations.get('save blockDat'))
+        mc.button(parent=_row,
+                  l = 'Load',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'loadBlockDat',
+                                      **{}),
+                  ann = self._d_ui_annotations.get('load blockDat'))
+        mc.button(parent=_row,
+                  l = 'Query',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'getBlockDat',
+                                      **{}),
+                  ann = self._d_ui_annotations.get('get blockDat'))
+        mc.button(parent=_row,
+                  l = 'Reset',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'resetBlockDat',
+                                      **{}),
+                  ann = self._d_ui_annotations.get('reset blockDat'))        
+        
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        
+        #Mirror ======================================================
+        log.debug("|{0}| >> mirror ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)                
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)
+        
+        mUI.MelLabel(_row,l="Mirror: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        mc.button(parent=_row,
+                  l = 'Verify',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockMirror_create',
+                                      **{}),
+                  ann = 'Verify block mirrors. WARNING - do not do this with a block and its mirror selected')
+        mc.button(parent=_row,
+                  l = 'Rebuild',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockMirror_create',True,
+                                      **{}),
+                  ann = 'Rebuild mirror block from scratch. WARNING - do not do this with a block and its mirror selected')
+        
+        
+        mc.button(parent=_row,
+                  l = 'Push',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockMirror_go',
+                                      **{'mode':'push'}),
+                  ann = 'Push setup to the mirror')
+        mc.button(parent=_row,
+                  l = 'Pull',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'atUtils','blockMirror_go',
+                                      **{'mode':'pull'}),
+                  ann = 'pull setup to the mirror')
+        
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        
+
         #Define ======================================================
         log.debug("|{0}| >> define ...".format(_str_func)+ '-'*40)
-        CGMUI.add_Header('Define')
+        mc.setParent(_column)                
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)
         
-        _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 5)
-    
+        mUI.MelLabel(_row,l="Define: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
         mc.button(parent=_row,
                   l = 'Load base size dat',
                   ut = 'cgmUITemplate',                                    
@@ -1242,50 +1490,21 @@ class ui(cgmUI.cgmGUI):
                                       **{}),
                   
                   ann = "Reset define dat to base")
-
+        mUI.MelSpacer(_row,w=1)
         _row.layout()
         
-        
-        """
-        _row_orient = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelSpacer(_row_orient,w=5)                              
-        mUI.MelLabel(_row_orient,l='Orient')
-        _row_orient.setStretchWidget( mUI.MelSeparator(_row_orient) )  
 
-        for i,item in enumerate(['None','Normal']):
-            if i == _on:
-                _rb = True
-            else:_rb = False
-
-            uiRC.createButton(_row_orient,label=item,sl=_rb,
-                              onCommand = cgmGEN.Callback(self.var_rayCastOrientMode.setValue,i))
-
-            mUI.MelSpacer(_row1,w=2)   
-
-        cgmUI.add_Button(_row_orient,'Set drag interval',
-                         lambda *a:self.var_rayCastDragInterval.uiPrompt_value('Set drag interval'),
-                         'Set the rayCast drag interval by ui prompt')   
-        cgmUI.add_Button(_row_orient,'Set Offset',
-                         lambda *a:self.var_rayCastOffsetDist.uiPrompt_value('Set offset distance'),
-                         'Set the the rayCast offset distance by ui prompt')         
-        mUI.MelSpacer(_row_orient,w=5)                                                  
-        _row_orient.layout()        """
-        
-        
-        
-        #Template ======================================================
-        log.debug("|{0}| >> template ...".format(_str_func)+ '-'*40)
-        mc.setParent(_column)        
-        CGMUI.add_Header('template')
         
         
         #Prerig ======================================================
         log.debug("|{0}| >> prerig ...".format(_str_func)+ '-'*40)
-        mc.setParent(_column)        
-        CGMUI.add_Header('prerig')
+        mc.setParent(_column)
         
-        _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 5)
-    
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="Prerig: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )        
+            
         mc.button(parent=_row,
                          l = 'Snap RP to Orient',
                          ut = 'cgmUITemplate',                                    
@@ -1300,7 +1519,6 @@ class ui(cgmUI.cgmGUI):
                                       'atBlockModule', 'get_handleIndices',
                                       **{}),
                   ann = "Snap handles to rp plane")
-        
         mc.button(parent=_row,
                   l = 'Snap to RP',
                   ut = 'cgmUITemplate',                                    
@@ -1308,8 +1526,50 @@ class ui(cgmUI.cgmGUI):
                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
                                       **{}),
                   ann = "Snap handles to rp plane")        
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        #General ======================================================
+        log.debug("|{0}| >> rig ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="Rig: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        mc.button(parent=_row,
+                  l = 'Verify Proxy',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                      'verify_proxyMesh',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('verify proxy mesh'))
+        mc.button(parent=_row,
+                  l = 'Reset Controls',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextModuleCall,
+                                      'rig_reset',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('reset rig controls'))
+        mc.button(parent=_row,
+                  l = 'Connect',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextModuleCall,
+                                      'rig_connect',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('connect rig'))
+        mc.button(parent=_row,
+                  l = 'Disconnect',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextModuleCall,
+                                      'rig_disconnect',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('disconnect rig'))
+        
 
+        mUI.MelSpacer(_row,w=1)
         _row.layout()        
+        
         
         #Joint ======================================================
         log.debug("|{0}| >> skeleton ...".format(_str_func)+ '-'*40)
@@ -1345,7 +1605,7 @@ class ui(cgmUI.cgmGUI):
         _row.layout()        
         
         
-    
+    @cgmGEN.Timer
     def uiUpdate_blockShared(self):
         _str_func = 'uiUpdate_blockShared'
         self.uiFrame_shared.clear()
@@ -1361,7 +1621,7 @@ class ui(cgmUI.cgmGUI):
     
         for n in l_locks:
             _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
-    
+            
             mUI.MelLabel(_row,l=' {0}:'.format(n))
             _row.setStretchWidget( mUI.MelSeparator(_row) )
     
@@ -1406,7 +1666,6 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=2)
             _row.layout()
                         
-        
         
         d_attrDat = copy.copy(BLOCKSHARE._d_attrsTo_make)
         
@@ -1469,29 +1728,6 @@ class ui(cgmUI.cgmGUI):
                                                                 self._d_attrFieldsContextual[a]),
                                           )                
  
-                """
-                elif _type == 'long':
-                    self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
-                                                             value = ATTR.get(_short,a),
-                                                             maxValue=20,
-                                                             minValue=ATTR.get_min(_short,a),
-                                                              )
-                    self._d_attrFields[a](e=True,
-                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                                self._d_attrFields[a]),
-                                          )                
-                elif _type == 'string':
-                    self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
-                                                             text = ATTR.get(_short,a),
-                                                              )
-                    self._d_attrFields[a](e=True,
-                                          cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
-                                                                self._d_attrFields[a]),
-                                          )
-                
-                else:
-                    mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
-                """
                 mUI.MelSpacer(_row,w=_sidePadding)                
                 _row.layout()
             except Exception,err:
@@ -1655,8 +1891,6 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
                          c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
-        mUI.MelMenuItem( self.uiMenu_help, l="Gather Blocks",
-                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
         mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
                          c=lambda *a: self.uiFunc_contextuaBlockCall('VISUALIZEHEIRARCHY') )
         
