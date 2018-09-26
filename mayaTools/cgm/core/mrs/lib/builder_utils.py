@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -41,7 +41,7 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import snap_utils as SNAP
-from cgm.core.lib import rigging_utils as RIGGING
+from cgm.core.lib import rigging_utils as CORERIG
 import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
@@ -59,7 +59,7 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 
-for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN:
+for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN,SNAPCALLS:
     reload(m)
 
 from cgm.core.cgmPy import os_Utils as cgmOS
@@ -763,7 +763,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     for i,c in enumerate(_l_newCurves[:-1]):
         _pair = [c,_l_newCurves[i+1]]
         _mesh = create_loftMesh(_pair, name="{0}_{1}".format(_name,i))
-        RIGGING.match_transform(_mesh,_l_joints[i])
+        CORERIG.match_transform(_mesh,_l_joints[i])
         _l_new.append(_mesh)
     
     #...clean up 
@@ -1147,7 +1147,7 @@ def get_dynParentTargetsDat(self):
 
 
 @cgmGEN.Timer
-def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,f_factor = None,connectionPoints=9):
+def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,f_factor = None,connectionPoints=6):
     """
     :parameters:
         self(RigBlocks.rigFactory)
@@ -1170,8 +1170,13 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         _short = self.mBlock.mNode
         _str_func = 'shapes_build ( {0} )'.format(_short)
         
+        
+        _dir = self.d_module.get('direction')
         if aimVector is None:
-            str_aim = self.d_orientation['str'][1] + '-'
+            if _dir and _dir.lower() == 'left':
+                str_aim = self.d_orientation['mOrientation'].p_outNegative.p_string
+            else:
+                str_aim = self.d_orientation['mOrientation'].p_out.p_string        
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
             
@@ -1256,7 +1261,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
                     #mc.delete(baseCrv)
                     #mTrans = mTar.doCreateAt()
-                    #RIGGING.shapeParent_in_place(mTrans.mNode, crv, False)
+                    #CORERIG.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
                     
             elif mode in ['segmentHandle','ikHandle','frameHandle','castHandle','limbHandle','limbSegmentHandleBack','limbSegmentHandle','simpleCast',
@@ -1328,7 +1333,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             l_mainCurves.append(crv_connect)
                             
                         for crv in l_mainCurves[1:]:
-                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                            CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
                             
@@ -1382,7 +1387,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         l_mainCurves.append(crv_connect)
                         
                     for crv in l_mainCurves[1:]:
-                        RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                        CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                         
                     ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
                     
@@ -1401,14 +1406,11 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     l_vectors.append(  MATH.get_vector_of_two_points(ml_fkJoints[-2].p_position, ml_fkJoints[-1].p_position) )
                     l_vectors.append( l_vectors[-1])#...add it again
                     """
-                    
                     l_failSafes = MATH.get_splitValueList(minU,maxU,
                                                           len(ml_fkJoints))                    
                     
                     #...Get our uValues...
                     l_uValues = []
-                    #l_sets = []
-                    
                     
                     for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
@@ -1421,12 +1423,13 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
+                    reload(SURF)
                     l_curves = SURF.get_splitValues(str_meshShape,
                                                     l_uValues,
                                                     mode='u',
                                                     insertMax=True,
-                                                    preInset = f_factor,
-                                                    postInset = -f_factor,
+                                                    preInset = f_factor*.25,
+                                                    postInset = -f_factor*.25,
                                                     curvesCreate=True,
                                                     curvesConnect=True,
                                                     connectionPoints=connectionPoints,
@@ -1551,7 +1554,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             l_mainCurves.append(crv_connect)
                             
                         for crv in l_mainCurves[1:]:
-                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                            CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                    
                 elif mode == 'simpleCast':#================================================================
@@ -1588,9 +1591,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                             _v = l_failSafes[i]
                         l_uValues.append( _v )
                         
-                    #l_uValues.append( l_uValues[-1] + (maxU - l_uValues[-1])/2 )
-                    #l_uValues.append(maxU)
+
                 
+                    
                     ml_shapes = []
                     _add = f_factor/2
                     
@@ -1612,24 +1615,28 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         l_mainCurves.append(endCrv)
                         
-                        """
+                        
                         log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
                         d_epPos = {}
+                    
                         for i,crv in enumerate(l_mainCurves):
-                            mCrv = cgmMeta.cgmObject(crv,'cgmObject')
-                            for ii,ep in enumerate(mCrv.getComponents('ep',True)):
+                            _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
+                    
+                            for ii,p in enumerate(_l):
                                 if not d_epPos.get(ii):
                                     d_epPos[ii] = []
-                                    
                                 _l = d_epPos[ii]
-                                _l.append(POS.get(ep))
-                                
+                                _l.append(p)
+                    
                         for k,points in d_epPos.iteritems():
-                            crv_connect = CURVES.create_fromList(posList=points)
-                            l_mainCurves.append(crv_connect)
-                        """
+                            try:
+                                crv_connect = CURVES.create_fromList(posList=points)
+                                l_mainCurves.append(crv_connect)
+                            except Exception,err:
+                                print err
+
                         for crv in l_mainCurves[1:]:
-                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                            CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))
                                         
@@ -1724,7 +1731,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         for crv in l_mainCurves[1:]:
                             log.debug("|{0}| >> combining: {1}".format(_str_func,crv))
-                            RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                            CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                             
                         mCrv = cgmMeta.validateObjArg(l_mainCurves[0])
                         mCrv.rename('shapeCast_{0}'.format(i))
@@ -1776,7 +1783,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
 
                         for crv in l_shapes[1:]:
                             log.debug("|{0}| >> combining: {1}".format(_str_func,crv))
-                            RIGGING.shapeParent_in_place(l_shapes[0], crv, False)
+                            CORERIG.shapeParent_in_place(l_shapes[0], crv, False)
                             
                         ml_shapes.append(cgmMeta.validateObjArg(l_shapes[0],'cgmObject'))
     
@@ -1832,7 +1839,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         l_mainCurves.append(crv_connect)
                         
                     for crv in l_mainCurves[1:]:
-                        RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+                        CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
                         
                     ml_shapes.append(cgmMeta.validateObjArg(l_mainCurves[0]))                        
                     
@@ -1887,7 +1894,7 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, extendToStart = True):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, ballPosition = 'joint', extendToStart = True):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1897,9 +1904,15 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         mRigNull = self.mRigNull
         ml_shapes = []
         
+        _offset = self.mBlock.atUtils('get_shapeOffset') or .25
+        _dir = self.d_module.get('direction')
         if aimVector is None:
-            aimVector = self.d_orientation['mOrientation'].p_out.p_string
-        
+            if _dir and _dir.lower() == 'left':
+                aimVector = self.d_orientation['mOrientation'].p_outNegative.p_string
+            else:
+                aimVector = self.d_orientation['mOrientation'].p_out.p_string
+                
+            
         #Get our prerig handles if none provided
         if targets is None:
             ml_targets = self.mRigNull.msgList_get('rigJoints',asMeta = True)
@@ -2035,28 +2048,43 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             
             _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
             log.debug("|{0}| >> mesh created...".format(_str_func))                            
-            RIGGING.match_transform(_mesh,ml_targets[i])
+            CORERIG.match_transform(_mesh,ml_targets[i])
             mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))                                
-                RIGGING.match_transform(_loftCurves[0],ml_targets[i])
+                CORERIG.match_transform(_loftCurves[0],ml_targets[i])
                 TRANS.pivots_recenter(_loftCurves[0])
                 
-                _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
-                _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
-                _size = [v*.8 for v in _size]
-                _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
-                TRANS.scale_to_boundingBox(_sphere[0], _size)
                 
-                SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+
                 #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
-                SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+                if ballPosition == 'joint':
+                    p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
+                    p1 = ml_targets[i].p_position
+                    d1 = DIST.get_distance_between_points(p1,p2)
+                    #d_offset = d1 - _offset
+                    #log.info("{0} : {1}".format(d1,d_offset))
+                    _sphere = mc.polySphere(axis = [1,0,0],
+                                            radius = d1,
+                                            subdivisionsX = 10,
+                                            subdivisionsY = 10)                    
+                    SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
+                    
+                else:
+                    _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)                    
+                    _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
+                    _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
+                    _size = [v*.8 for v in _size]
+                    SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+                    TRANS.scale_to_boundingBox(_sphere[0], _size)
+                    SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
                 
                 _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
                 #mc.polyNormal(_mesh,setUserNormal = True)
                 log.debug("|{0}| >> ball done...".format(_str_func))                
                 
-            RIGGING.match_transform(_mesh,ml_targets[i])
+            CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
         
         #...clean up 

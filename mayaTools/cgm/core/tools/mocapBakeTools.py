@@ -1,12 +1,12 @@
 """
 ------------------------------------------
 baseTool: cgm.core.tools
-Author: Josh Burton
-email: jjburton@cgmonks.com
+Author: Josh Burton and David Bokser
+email: dbokser@cgmonks.com
 
 Website : http://www.cgmonks.com
 ------------------------------------------
-Example ui to start from
+mocapBakeTools
 ================================================================
 """
 # From Python =============================================================
@@ -15,6 +15,8 @@ import re
 import time
 import pprint
 import os
+import sys
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -34,6 +36,7 @@ import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
+import cgm.core.lib.string_utils as STRING
 
 #>>> Root settings =============================================================
 __version__ = '0.08312017'
@@ -41,15 +44,15 @@ __toolname__ ='mocapBakeTool'
 
 _subLineBGC = [.75,.75,.75]
 
-class objectAlias(object):
+class cgmListItem(object):
     item = None
     alias = None
-    mobj = None
+    #mobj = None
 
-    def __init__(self, init_item, init_alias, init_mobj):
-        item = init_item
-        alias = init_alias
-        mobj = init_mobj
+    def __init__(self, init_item, init_alias):
+        self.item = init_item
+        self.alias = init_alias
+        #self.mobj = init_mobj
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -63,6 +66,14 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 425,350
     TOOLNAME = '{0}.ui'.format(__toolname__)
     
+    parent_source_items = []
+    parent_target_items = []
+    orient_source_items = []
+    orient_target_items = []
+
+    parent_links = []
+    orient_links = []
+
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -93,6 +104,12 @@ class ui(cgmUI.cgmGUI):
         #>>> Reset Options		                     
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+
+        self._multiple_parent_target_cb = mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=False, l="Allow multiple parent targets",
+                 c = cgmGEN.Callback(self.save_options))
+
+        self._multiple_orient_target_cb = mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=True, l="Allow multiple orient targets",
+                 c = cgmGEN.Callback(self.save_options))
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -130,8 +147,8 @@ class ui(cgmUI.cgmGUI):
 
         _parent_form = mUI.MelFormLayout(_parent_frame,ut='cgmUITemplate')
         
-        _parent_source = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=self.uiFunc_add_to_parent_source)
-        _parent_target = self.buildScrollForm(_parent_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=self.uiFunc_add_to_parent_target)
+        _parent_source = self.buildScrollForm(_parent_form, hasHeader=True, buttonArgs = [{'label':'Remove Item', 'command':self.uiFunc_remove_from_parent_source}, {'label':'Add Selected', 'command':self.uiFunc_add_to_parent_source}], headerText = 'source', allowMultiSelection=False, selectCommand=self.uiFunc_on_select_parent_source_item, doubleClickCommand=self.uiFunc_toggle_link_parent_targets)
+        _parent_target = self.buildScrollForm(_parent_form, hasHeader=True, buttonArgs = [{'label':'Remove Item', 'command':self.uiFunc_remove_from_parent_target}, {'label':'Add Selected', 'command':self.uiFunc_add_to_parent_target}], headerText = 'target', allowMultiSelection=True, selectCommand=self.uiFunc_on_select_parent_target_item, doubleClickCommand=self.uiFunc_toggle_link_parent_targets)
         
         self.parent_source_scroll = _parent_source[1]
         self.parent_target_scroll = _parent_target[1]
@@ -140,8 +157,8 @@ class ui(cgmUI.cgmGUI):
 
         _orient_form = mUI.MelFormLayout(_orient_frame,ut='cgmUITemplate')
         
-        _orient_source = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'source', buttonCommand=self.uiFunc_add_to_orient_source)
-        _orient_target = self.buildScrollForm(_orient_form, hasButton=True, hasHeader=True, buttonLabel='Add Selected', headerText = 'target', buttonCommand=self.uiFunc_add_to_orient_target)
+        _orient_source = self.buildScrollForm(_orient_form, hasHeader=True, buttonArgs = [{'label':'Remove Item', 'command':self.uiFunc_remove_from_orient_source}, {'label':'Add Selected', 'command':self.uiFunc_add_to_orient_source}], headerText = 'source', allowMultiSelection=False, selectCommand=self.uiFunc_on_select_orient_source_item, doubleClickCommand=self.uiFunc_toggle_link_orient_targets)
+        _orient_target = self.buildScrollForm(_orient_form, hasHeader=True, buttonArgs = [{'label':'Remove Item', 'command':self.uiFunc_remove_from_orient_target}, {'label':'Add Selected', 'command':self.uiFunc_add_to_orient_target}], headerText = 'target', allowMultiSelection=True, selectCommand=self.uiFunc_on_select_orient_target_item, doubleClickCommand=self.uiFunc_toggle_link_orient_targets)
 
         self.orient_source_scroll = _orient_source[1]
         self.orient_target_scroll = _orient_target[1]
@@ -161,7 +178,7 @@ class ui(cgmUI.cgmGUI):
                   ac = [(_item_form,"bottom",2,_options_column)],
                   attachNone = [(_options_column,"top")])
         
-    def buildScrollForm(self, parent, hasHeader = False, hasButton = False, buttonLabel = 'Button', headerText = 'Header', buttonCommand=None):
+    def buildScrollForm(self, parent, hasHeader = False, buttonArgs = [], headerText = 'Header', allowMultiSelection=True, buttonCommand=None, doubleClickCommand=None, selectCommand=None):
         main_form = mUI.MelFormLayout(parent,ut='cgmUITemplate')
 
         header = None
@@ -169,13 +186,18 @@ class ui(cgmUI.cgmGUI):
             header = cgmUI.add_Header(headerText, overrideUpper = True)
         
         scroll_list = mUI.MelObjectScrollList( main_form, ut='cgmUITemplate',
-                                                  allowMultiSelection=True )
+                                                  allowMultiSelection=allowMultiSelection, doubleClickCommand=cgmGEN.Callback(doubleClickCommand,self), selectCommand=cgmGEN.Callback(selectCommand,self) )
 
-        button = None
+        buttonLayout = None
+        buttons = []
+        hasButton = len(buttonArgs) > 0
         if(hasButton):
-            button = cgmUI.add_Button(main_form,buttonLabel,
-                         cgmGEN.Callback(buttonCommand,self),
-                         "Help.")
+            buttonLayout = mUI.MelColumnLayout(main_form,useTemplate = 'cgmUISubTemplate')
+            for btn in buttonArgs:
+                button = cgmUI.add_Button(buttonLayout,btn['label'],
+                             cgmGEN.Callback(btn['command'],self),
+                             "Help.")
+                buttons.append(button)
 
 
         af = [(scroll_list,"left",0), (scroll_list,"right",0)]
@@ -192,11 +214,11 @@ class ui(cgmUI.cgmGUI):
             af += [ (scroll_list,"top",0) ]
 
         if(hasButton):
-            af += [ (button,"bottom",0),
-                    (button,"left",0),
-                    (button,"right",0)]
-            ac += [(scroll_list,"bottom",0,button)]
-            attachNone += [(button,"top")]
+            af += [ (buttonLayout,"bottom",0),
+                    (buttonLayout,"left",0),
+                    (buttonLayout,"right",0)]
+            ac += [(scroll_list,"bottom",0,buttonLayout)]
+            attachNone += [(buttonLayout,"top")]
         else:
             af += [ (scroll_list,"bottom",0) ]
 
@@ -204,7 +226,7 @@ class ui(cgmUI.cgmGUI):
                                 ac = ac,
                                 attachNone = attachNone)
         
-        return [main_form, scroll_list, header, button]
+        return [main_form, scroll_list, header, buttons]
 
     def splitFormHorizontal(self, form_layout, element1, element2, division = 50, padding = 0):
         form_layout(edit = True,
@@ -303,7 +325,33 @@ class ui(cgmUI.cgmGUI):
         return _inside
 
     def uiFunc_link_by_name(self, *args):
-        print "Linking by name"
+        for i, trg in enumerate(self.parent_target_items):
+            wantedLink = []
+            closest = sys.maxint
+            for j, src in enumerate(self.parent_source_items):
+                closeness = STRING.levenshtein(trg.item, src.item)
+                if closeness < closest:
+                    wantedLink = [j, i]
+                    closest = closeness
+            
+            if not self.has_link(wantedLink, self.parent_links):
+                self.parent_links.append(wantedLink)
+
+        for i, trg in enumerate(self.orient_target_items):
+            wantedLink = []
+            closest = sys.maxint
+            for j, src in enumerate(self.orient_source_items):
+                closeness = STRING.levenshtein(trg.item, src.item)
+                if closeness < closest:
+                    wantedLink = [j, i]
+                    closest = closeness
+            
+            if not self.has_link(wantedLink, self.orient_links):
+                self.orient_links.append(wantedLink)
+
+        self.refresh_aliases()
+        self.refresh_parent_scrolls()
+        self.refresh_orient_scrolls()
 
     def uiFunc_link_by_distance(self, *args):
         print "Linking by distance"
@@ -311,30 +359,331 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_add_selected_to_list(self, *args):
         print "Button1"
 
+    # add items to scroll lists
     def uiFunc_add_to_parent_source(self, *args):
-        current_items = self.parent_source_scroll.getItems()
-        current_items += mc.ls(sl=True)
+        for item in mc.ls(sl=True):
+            if not item in [x.item for x in self.parent_source_items]:
+                self.parent_source_items.append( cgmListItem(item, item) )
+        
+        self.parent_source_scroll.setItems( [x.alias for x in self.parent_source_items] )
 
-        self.parent_source_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+        self.print_data()
 
     def uiFunc_add_to_parent_target(self, *args):
-        current_items = self.parent_target_scroll.getItems()
-        current_items += mc.ls(sl=True)
+        for item in mc.ls(sl=True):
+            if not item in [x.item for x in self.parent_target_items]:
+                self.parent_target_items.append( cgmListItem(item, item) )
 
-        self.parent_target_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+        self.parent_target_scroll.setItems( [x.alias for x in self.parent_target_items] )
+
+        self.print_data()
 
     def uiFunc_add_to_orient_source(self, *args):
-        current_items = self.orient_source_scroll.getItems()
-        current_items += mc.ls(sl=True)
+        for item in mc.ls(sl=True):
+            if not item in [x.item for x in self.orient_source_items]:
+                self.orient_source_items.append( cgmListItem(item, item) )
+        
+        self.orient_source_scroll.setItems( [x.alias for x in self.orient_source_items] )
 
-        self.orient_source_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+        self.print_data()
 
     def uiFunc_add_to_orient_target(self, *args):
-        current_items = self.orient_target_scroll.getItems()
-        current_items += mc.ls(sl=True)
+        for item in mc.ls(sl=True):
+            if not item in [x.item for x in self.orient_target_items]:
+                self.orient_target_items.append( cgmListItem(item, item) )
+        
+        self.orient_target_scroll.setItems( [x.alias for x in self.orient_target_items] )
 
-        self.orient_target_scroll.setItems( lists.returnListNoDuplicates(current_items) )
+        self.print_data()
 
+    # helper functions
+    def save_options(self, *args):
+        log.debug("Saving Options")
+
+    def add_link(self, link, link_list):
+        if self.has_link(link, link_list):
+            return
+
+        trg_index = link[1]
+
+        if( trg_index in [x[1] for x in link_list] ):
+            link_list[[x[1] for x in link_list].index(trg_index)] = link
+        else:
+            link_list.append(link)
+
+    def has_link(self, link, link_list):
+        for list_link in link_list:
+            if list_link[0] == link[0] and list_link[1] == link[1]:
+                return True
+        return False
+
+    def remove_link(self, link, link_list):
+        for i, list_link in enumerate(link_list):
+            if list_link[0] == link[0] and list_link[1] == link[1]:
+                del link_list[i]
+                break
+
+        self.refresh_aliases()
+
+    def print_data(self, *args):
+        log.debug( "==  DATA  ==")
+        log.debug( "parent source >> %s" % ','.join([x.item for x in self.parent_source_items]))
+        log.debug( "parent target >> %s" % ','.join([x.item for x in self.parent_target_items]))
+        for i,link in enumerate(self.parent_links):
+            log.debug("link[%i] >> [%i]%s -> [%i]%s" % (i, link[0], self.parent_source_items[link[0]].item, link[1], self.parent_target_items[link[1]].item)) 
+
+    # refresh UI displays
+    def refresh_parent_scrolls(self, *args):
+        self.parent_source_scroll.setItems( [x.alias for x in self.parent_source_items] )
+        self.parent_target_scroll.setItems( [x.alias for x in self.parent_target_items] )
+
+    def refresh_orient_scrolls(self, *args):
+        self.orient_source_scroll.setItems( [x.alias for x in self.orient_source_items] )
+        self.orient_target_scroll.setItems( [x.alias for x in self.orient_target_items] )
+
+    def refresh_aliases(self, *args):
+        # refresh parent aliases
+        for i, item in enumerate(self.parent_source_items):
+            link_items = []
+            for link in self.parent_links:
+                if link[0] == i:
+                    link_items.append( self.parent_target_items[link[1]].item )
+            
+            if link_items:
+                self.parent_source_items[i].alias = "%s -> %s" % (self.parent_source_items[i].item, ','.join(link_items))
+            else:
+                self.parent_source_items[i].alias = self.parent_source_items[i].item
+
+        for i, item in enumerate(self.parent_target_items):
+            self.parent_target_items[i].alias = self.parent_target_items[i].item
+
+            for link in self.parent_links:
+                if link[1] == i:
+                    self.parent_target_items[i].alias += " <- %s" % self.parent_source_items[link[0]].item
+                    break
+
+        # refresh orient aliases
+        for i, item in enumerate(self.orient_source_items):
+            link_items = []
+            for link in self.orient_links:
+                if link[0] == i:
+                    link_items.append( self.orient_target_items[link[1]].item )
+            
+            if link_items:
+                self.orient_source_items[i].alias = "%s -> %s" % (self.orient_source_items[i].item, ','.join(link_items))
+            else:
+                self.orient_source_items[i].alias = self.orient_source_items[i].item
+
+        for i, item in enumerate(self.orient_target_items):
+            self.orient_target_items[i].alias = self.orient_target_items[i].item
+
+            for link in self.orient_links:
+                if link[1] == i:
+                    self.orient_target_items[i].alias += " <- %s" % self.orient_source_items[link[0]].item
+                    break
+
+        self.refresh_parent_scrolls()
+        self.refresh_orient_scrolls()
+
+    # remove items from scroll lists
+    def uiFunc_remove_from_parent_source(self, *args):
+        idx = self.parent_source_scroll.getSelectedIdxs()[0]
+
+        # remove links
+        remove_indexes = []
+        for i, link in enumerate(self.parent_links):
+            if link[0] == idx:
+                remove_indexes.append(i)
+
+        #for ridx in remove_indexes:
+        for i, link in enumerate(self.parent_links):
+            if link[0] > idx:
+                link[0] = link[0]-1
+                self.parent_links[i] = link
+
+        remove_indexes.reverse()
+
+        for ridx in remove_indexes:
+            del self.parent_links[ridx]
+
+        del self.parent_source_items[idx]
+
+        self.print_data()
+
+        self.refresh_aliases()
+        self.refresh_parent_scrolls()
+
+    def uiFunc_remove_from_parent_target(self, *args):
+        idxs = self.parent_target_scroll.getSelectedIdxs()
+
+        remove_indexes = []
+        for idx in idxs:
+            # remove links
+            for i, link in enumerate(self.parent_links):
+                if link[1] == idx:
+                    remove_indexes.append(i)
+                if link[1] > idx:
+                    link[1] = link[1]-1
+                    self.parent_links[i] = link
+
+
+        remove_indexes.reverse()
+
+        for ridx in remove_indexes:
+            del self.parent_links[ridx]
+
+        del self.parent_target_items[idx]
+
+        self.print_data()
+
+        self.refresh_aliases()
+        self.refresh_parent_scrolls()
+
+    def uiFunc_remove_from_orient_source(self, *args):
+        idx = self.orient_source_scroll.getSelectedIdxs()[0]
+
+        # remove links
+        remove_indexes = []
+        for i, link in enumerate(self.orient_links):
+            if link[0] == idx:
+                remove_indexes.append(i)
+
+        #for ridx in remove_indexes:
+        for i, link in enumerate(self.orient_links):
+            if link[0] > idx:
+                link[0] = link[0]-1
+                self.orient_links[i] = link
+
+        remove_indexes.reverse()
+
+        for ridx in remove_indexes:
+            del self.orient_links[ridx]
+
+        del self.orient_source_items[idx]
+
+        self.print_data()
+
+        self.refresh_aliases()
+        self.refresh_orient_scrolls()
+
+    def uiFunc_remove_from_orient_target(self, *args):
+        idxs = self.orient_target_scroll.getSelectedIdxs()
+
+        remove_indexes = []
+        for idx in idxs:
+            # remove links
+            for i, link in enumerate(self.orient_links):
+                if link[1] == idx:
+                    remove_indexes.append(i)
+                if link[1] > idx:
+                    link[1] = link[1]-1
+                    self.orient_links[i] = link
+
+
+        remove_indexes.reverse()
+
+        for ridx in remove_indexes:
+            del self.orient_links[ridx]
+
+        del self.orient_target_items[idx]
+
+        self.print_data()
+
+        self.refresh_aliases()
+        self.refresh_orient_scrolls()
+
+    # establish links upon double click
+    def uiFunc_toggle_link_parent_targets(self, *args):
+        src_index = self.parent_source_scroll.getSelectedIdxs()[0]
+        trg_indexes = self.parent_target_scroll.getSelectedIdxs()
+        
+        links = [[ src_index, x ] for x in trg_indexes]
+        for link in links:
+            if self.has_link(link, self.parent_links):
+                self.remove_link(link, self.parent_links)
+            else:
+                self.add_link(link, self.parent_links)
+
+        self.refresh_aliases()
+        self.refresh_parent_scrolls()
+
+        for x in trg_indexes:
+            self.parent_target_scroll.selectByIdx(x)
+        self.parent_source_scroll.selectByIdx(src_index)
+
+        self.print_data()
+
+    def uiFunc_toggle_link_orient_targets(self, *args):
+        src_index = self.orient_source_scroll.getSelectedIdxs()[0]
+        trg_indexes = self.orient_target_scroll.getSelectedIdxs()
+        
+        links = [[ src_index, x ] for x in trg_indexes]
+        for link in links:
+            if self.has_link(link, self.orient_links):
+                self.remove_link(link, self.orient_links)
+            else:
+                self.add_link(link, self.orient_links)
+
+        self.refresh_aliases()
+        self.refresh_orient_scrolls()
+
+        for x in trg_indexes:
+            self.orient_target_scroll.selectByIdx(x)
+        self.orient_source_scroll.selectByIdx(src_index) 
+
+        self.print_data()
+
+    # on select item in scroll list
+    def uiFunc_on_select_parent_source_item(self, *args):
+        pass
+
+    def uiFunc_on_select_parent_target_item(self, *args):
+        pass
+
+    def uiFunc_on_select_orient_source_item(self, *args):
+        pass
+
+    def uiFunc_on_select_orient_target_item(self, *args):
+        pass
+
+    # select associated link items
+    def uiFunc_select_parent_source_link(self, *args):
+        idx = self.parent_source_scroll.getSelectedIdxs()[0]
+        if idx in [x[0] for x in self.parent_links]:
+            self.parent_target_scroll.clearSelection()
+            for link in self.parent_links:
+                if link[0] == idx:
+                    self.parent_target_scroll.selectByIdx(link[1])
+
+    def uiFunc_select_parent_target_link(self, *args):
+        idx = self.parent_target_scroll.getSelectedIdxs()[-1]
+
+        if idx in [x[1] for x in self.parent_links]:
+            self.parent_target_scroll.clearSelection()
+            self.parent_target_scroll.selectByIdx(idx)
+
+            link = self.parent_links[[x[1] for x in self.parent_links].index(idx)]
+            self.parent_source_scroll.clearSelection()
+            self.parent_source_scroll.selectByIdx(link[0])
+
+    def uiFunc_select_orient_source_link(self, *args):
+        idx = self.orient_source_scroll.getSelectedIdxs()[0]
+        if idx in [x[0] for x in self.orient_links]:
+            self.orient_target_scroll.clearSelection()
+            for link in self.orient_links:
+                if link[0] == idx:
+                    self.orient_target_scroll.selectByIdx(link[1])
+
+    def uiFunc_select_orient_target_link(self, *args):
+        idx = self.orient_target_scroll.getSelectedIdxs()[-1]
+
+        if idx in [x[1] for x in self.orient_links]:
+            self.orient_target_scroll.clearSelection()
+            self.orient_target_scroll.selectByIdx(idx)
+
+            link = self.orient_links[[x[1] for x in self.orient_links].index(idx)]
+            self.orient_source_scroll.clearSelection()
+            self.orient_source_scroll.selectByIdx(link[0])
 
 '''
 def uiFunc_load_selected(self, bypassAttrCheck = False):

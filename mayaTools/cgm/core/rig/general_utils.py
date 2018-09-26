@@ -38,8 +38,7 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 
-
-def reset_channels_fromMode(mode = 0):
+def reset_channels_fromMode(mode = 0,selectedChannels=None):
     """
     :mode
         0 - all
@@ -55,10 +54,16 @@ def reset_channels_fromMode(mode = 0):
     elif mode == 2:
         _d = {'transformsOnly':True,
               'keyableOnly':True}
-        
+    
+    if selectedChannels == None:
+        try:selectedChannels = cgmMeta.cgmOptionVar('cgmVar_KeyMode').value
+        except:
+            log.debug("nope...")
+            selectedChannels = False
+    _d['selectedChannels'] = selectedChannels
     reset_channels(**_d)
     
-def reset_channels(selectedChannels=True, transformsOnly=False, excludeChannels=None, keyableOnly=False):
+def reset_channels(selectedChannels=False, transformsOnly=False, excludeChannels=None, keyableOnly=False):
     '''
     Modified from Morgan Loomis' great reset call to expand options...
     '''
@@ -112,7 +117,8 @@ def reset_channels(selectedChannels=True, transformsOnly=False, excludeChannels=
                 _reset[a] = default
             except Exception,err:
                 log.error("{0}.{1} resetAttrs | error: {2}".format(obj, a,err))
-
+    
+    #pprint.pprint(vars())
     return _reset
 
     return

@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -81,7 +81,7 @@ def get_splitValues(surface = None, values = [], mode='u',
         
     hat tip: http://ewertb.soundlinker.com/mel/mel.074.php
     """
-    _str_func = 'get_dat'
+    _str_func = 'get_splitValues'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     _shape = SHAPES.get_nonintermediate(surface)
     if mode == 'u':
@@ -96,46 +96,60 @@ def get_splitValues(surface = None, values = [], mode='u',
     l_sets = []
     
     for i,v in enumerate(values):
+        log.debug("|{0}| >>  Prcoessing: {1} | {2}".format(_str_func,i,v))        
         _last = False
         if v == values[-1]:
+            log.debug("|{0}| >>  last...".format(_str_func))                    
             _last = True
         if preInset:
             v+=preInset
         _l = [v]
     
         for knot in l_base:
-            if knot > v:
+            if knot > v or knot < v:
+                if _last != True and knot < values[i+1] and knot > v:
+                    _l.append(knot)
+                if _last:
+                    if knot > v and knot < maxKnot:
+                        _l.append(knot) 
+                """
                 if v == values[-1]:
                     if knot < maxKnot:
                         _l.append(knot)
                 elif _last != True and knot < values[i+1]:
-                    _l.append(knot)
+                    _l.append(knot)"""
     
         if _last and insertMax:
             _l.append(maxKnot)
             
-        if not _last:
+        if _last != True:
             _l.append(values[i+1])
     
         if insertMin and i == 0:
             _l.insert(0,minKnot)
     
         if postInset:
-            v =  _l[-1] + postInset
-            log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],v))
-            
+            vPost =  _l[-1] + postInset
+            log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],vPost))
             if len(_l) > 1:
-                if v > max(_l[:-1]):
-                    _l[-1] = v
+                if vPost > max(_l[:-1]):
+                    _l[-1] = vPost
                 else:
                     _l = _l[:-1]
             else:
-                _l.append(v)
-            
+                _l.append(vPost)
+            """
+            if _last != True:
+                for v2 in _l:
+                    if v2 > v:
+                        _l.remove(v2)"""
+        
         
         _l = LISTS.get_noDuplicates(_l)
         _l.sort()
+        
         l_sets.append(_l)                        
+        log.debug("|{0}| >>  result: {1} | {2} | {3}".format(_str_func,i,v,_l))        
     
     l_pre = copy.copy(l_sets)
     #pprint.pprint(vars())
@@ -166,9 +180,10 @@ def get_splitValues(surface = None, values = [], mode='u',
     for i,uSet in enumerate(l_sets):
         _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
         
+        """
         if len(uSet)<2:
             l_finalCurves.append(mc.duplicate(_loftCurves[0])[0])
-            continue
+            continue"""
         
         log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
         """
@@ -186,7 +201,7 @@ def get_splitValues(surface = None, values = [], mode='u',
         if curvesConnect:
             log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
             d_epPos = {}
-    
+
             for i,crv in enumerate(_loftCurves):
                 _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
     
@@ -197,8 +212,11 @@ def get_splitValues(surface = None, values = [], mode='u',
                     _l.append(p)
     
             for k,points in d_epPos.iteritems():
-                crv_connect = CURVES.create_fromList(posList=points)
-                l_mainCurves.append(crv_connect)
+                try:
+                    crv_connect = CURVES.create_fromList(posList=points)
+                    l_mainCurves.append(crv_connect)
+                except Exception,err:
+                    print err
 
         for crv in l_mainCurves[1:]:
             CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)

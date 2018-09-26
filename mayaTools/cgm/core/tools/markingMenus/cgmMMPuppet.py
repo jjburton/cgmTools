@@ -40,6 +40,8 @@ from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
+import cgm.core.rig.general_utils as RIGGEN
+reload(RIGGEN)
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.lib import list_utils as LISTS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS

@@ -48,6 +48,8 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
+import cgm.core.rig.general_utils as RIGGEN
+
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
@@ -55,7 +57,6 @@ import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
-
 def example(self):
     try:
         _short = self.p_nameShort
@@ -502,7 +503,8 @@ def anim_reset(self,transformsOnly = True):
         
         self.puppetSet.select()
         if mc.ls(sl=True):
-            ml_resetChannels.main(transformsOnly = transformsOnly)
+            RIGGEN.reset_channels(transformsOnly = transformsOnly)
+            #ml_resetChannels.main(transformsOnly = transformsOnly)
             _result = True
         if _sel:mc.select(_sel)
         return _result

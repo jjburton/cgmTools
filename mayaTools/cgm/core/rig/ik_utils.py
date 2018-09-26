@@ -49,7 +49,7 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.position_utils as POS
 
-for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES:
+for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NodeF:
     reload(m)
 
 def spline(jointList = None,
@@ -304,11 +304,11 @@ def spline(jointList = None,
                 #Let's build our args
                 l_argBuild = []
                 #distance by master
-                l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedShortName,
+                l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalBaseDist.p_combinedName,
                                                            '{0}.baseDist_{1}'.format(mIKHandle.mNode,i),
                                                            "{0}.masterScale".format(mSegmentCurve.mNode)))
-                l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedShortName,
-                                                           mPlug_attrDist.p_combinedShortName,
+                l_argBuild.append("{0} = {1} / {2}".format(mPlug_attrNormalDist.p_combinedName,
+                                                           mPlug_attrDist.p_combinedName,
                                                            "{0}.masterScale".format(mSegmentCurve.mNode)))			
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
@@ -487,14 +487,14 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
        
         #First Handle ----------------------------------------------------------------------------------------
         
-        arg1 = "{0} = {1} - {2}".format(mPlug_midDiff.p_combinedShortName,
-                                        mPlug_end.p_combinedShortName,
-                                        mPlug_start.p_combinedShortName)    
-        arg2 = "{0} = {1} / 2".format(mPlug_midDiv.p_combinedShortName,
-                                      mPlug_midDiff.p_combinedShortName)
-        arg3 = "{0} = {1} + {2}".format(mPlug_midResult.p_combinedShortName,
-                                        mPlug_midDiv.p_combinedShortName,
-                                        mPlug_mid.p_combinedShortName)
+        arg1 = "{0} = {1} - {2}".format(mPlug_midDiff.p_combinedName,
+                                        mPlug_end.p_combinedName,
+                                        mPlug_start.p_combinedName)    
+        arg2 = "{0} = {1} / 2".format(mPlug_midDiv.p_combinedName,
+                                      mPlug_midDiff.p_combinedName)
+        arg3 = "{0} = {1} + {2}".format(mPlug_midResult.p_combinedName,
+                                        mPlug_midDiv.p_combinedName,
+                                        mPlug_mid.p_combinedName)
         
         for a in arg1,arg2,arg3:
             NodeF.argsToNodes(a).doBuild()
@@ -514,37 +514,37 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         mPlug_midSum.doConnectOut("{0}.roll".format(mMidHandle.p_nameShort))
         mPlug_midTwist.doConnectOut("{0}.twist".format(mMidHandle.p_nameShort))
         
-        arg1 = "{0} = {1}".format(mPlug_midSum.p_combinedShortName,
+        arg1 = "{0} = {1}".format(mPlug_midSum.p_combinedName,
                                   ' + '.join(["{0}.r{1}".format(mJnt.p_nameShort,orientation[0]) for mJnt in ml_joints]))
         log.debug(arg1)
-        arg2 = "{0} = {1} - {2}".format(mPlug_midTwist.p_combinedShortName,
-                                        mPlug_end.p_combinedShortName,
-                                        mPlug_midSum.p_combinedShortName)
+        arg2 = "{0} = {1} - {2}".format(mPlug_midTwist.p_combinedName,
+                                        mPlug_end.p_combinedName,
+                                        mPlug_midSum.p_combinedName)
         for a in arg1,arg2:
             NodeF.argsToNodes(a).doBuild()
         
         """arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mMidHandle.p_nameShort,
                                                                mPlug_start.p_combinedName,
                                                                mPlug_end.p_combinedName,                                                               
-                                                               mPlug_endMidDiffResult.p_combinedShortName,
-                                                               mPlug_endMidDiffNegResult.p_combinedShortName)"""        
+                                                               mPlug_endMidDiffResult.p_combinedName,
+                                                               mPlug_endMidDiffNegResult.p_combinedName)"""        
         
         #Second roll...
         
         
         """
         arg1 = "{0}.twist = {1} - {2}".format(mMidHandle.p_nameShort,
-                                              mPlug_end.p_combinedShortName,
-                                              mPlug_midNegResult.p_combinedShortName)
+                                              mPlug_end.p_combinedName,
+                                              mPlug_midNegResult.p_combinedName)
         """
         
         
     else:
         mPlug_start.doConnectOut("%s.roll"%mIKHandle.mNode)
         #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
-        arg1 = "{0} = {1} - {2}".format(mPlug_twist.p_combinedShortName,
-                                        mPlug_end.p_combinedShortName,
-                                        mPlug_start.p_combinedShortName)
+        arg1 = "{0} = {1} - {2}".format(mPlug_twist.p_combinedName,
+                                        mPlug_end.p_combinedName,
+                                        mPlug_start.p_combinedName)
         NodeF.argsToNodes(arg1).doBuild()
         
         
@@ -559,7 +559,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
 
         mPlug_existingTwistType = cgmMeta.cgmAttr(mi_ramp,'interpolation')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
-        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
+        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedName)	
     else:
         mPlug_existingTwistType = cgmMeta.cgmAttr(mIKHandle,'twistType')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
@@ -610,7 +610,7 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
     mPlug_start.doConnectOut("%s.roll"%mIKHandle.mNode)
     d_return['mi_plug_twist']=mPlug_twist
     #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
-    arg1 = "%s = %s - %s"%(mPlug_twist.p_combinedShortName,mPlug_end.p_combinedShortName,mPlug_start.p_combinedShortName)
+    arg1 = "%s = %s - %s"%(mPlug_twist.p_combinedName,mPlug_end.p_combinedName,mPlug_start.p_combinedName)
     log.debug("arg1: '%s'"%arg1)    
     log.debug( NodeF.argsToNodes(arg1).doBuild() )       
 
@@ -626,12 +626,12 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
 
         mPlug_existingTwistType = cgmMeta.cgmAttr(mi_ramp,'interpolation')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
-        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
+        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedName)	
     else:
         mPlug_existingTwistType = cgmMeta.cgmAttr(mIKHandle,'twistType')
         mPlug_twistType = cgmMeta.cgmAttr(mi_crv,'twistType', attrType = 'enum', enum = ":".join(mPlug_existingTwistType.p_enum))
         mPlug_twistType.twistType = 'linear'	
-        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedShortName)	
+        mPlug_twistType.doConnectOut(mPlug_existingTwistType.p_combinedName)	
     return d_return
 
 
@@ -1178,17 +1178,17 @@ def ribbon(jointList = None,
         if not masterScalePlug or masterScalePlug == 'create':
             plug_master = '{0}_segMasterScale'.format(str_baseName)
             mPlug_masterScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_master,'float')
-            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
                                                        '{0}.arcLengthInV'.format(mArcLen.mNode),
                                                        "{0}.baseDist".format(mArcLen.mNode)))
             masterScalePlug = mPlug_masterScale"""
             
         
         """
-        l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+        l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
                                                    '{0}.arcLength'.format(mInfoNode.mNode),
                                                    "{0}.baseDist".format(mCrv.mNode)))"""
-        l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedShortName,
+        l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
                                                    '{0}.arcLengthInV'.format(mArcLen.mNode),
                                                    "{0}.baseDist".format(mArcLen.mNode)))        
         
@@ -1237,7 +1237,7 @@ def ribbon(jointList = None,
                                       hidden = False,
                                       lock=False)
         
-        l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedShortName,
+        l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedName,
                                                    maxV,minV))        
                 
         if str_paramaterization == 'blend':
@@ -1296,13 +1296,13 @@ def ribbon(jointList = None,
             
 
             
-            l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sum.p_combinedShortName,
+            l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sum.p_combinedName,
                                                                   minV,
                                                                   srfNode))
             
-            l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalized.p_combinedShortName,
-                                                       mPlug_sum.p_combinedShortName,
-                                                       mPlug_vSize.p_combinedShortName))
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalized.p_combinedName,
+                                                       mPlug_sum.p_combinedName,
+                                                       mPlug_vSize.p_combinedName))
             
             
             if str_paramaterization == 'blend':
@@ -1328,7 +1328,7 @@ def ribbon(jointList = None,
                 d_vParameters[i] = "{0}.output".format(mBlendNode.mNode)
                 
             else:
-                d_vParameters[i] = mPlug_normalized.p_combinedShortName
+                d_vParameters[i] = mPlug_normalized.p_combinedName
 
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
@@ -1361,7 +1361,7 @@ def ribbon(jointList = None,
             mPlug_masterScale = cgmMeta.cgmAttr(mControlSurface.mNode,plug,'float')
     
             l_argBuild=[]
-            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedShortName,
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
                                                        '{0}.arcLength'.format(mInfoNode.mNode),
                                                        "{0}.baseDist".format(mInfoNode.mNode)))
             for arg in l_argBuild:
@@ -1682,9 +1682,9 @@ def ribbon(jointList = None,
                                              attrType = 'float',
                                              hidden = False,)
                 
-            arg = "{0} = {1} * {2}".format(mPlug_inverseNormalized.p_combinedShortName,
-                                           mPlug_inverseScale.p_combinedShortName,
-                                           mPlug_masterScale.p_combinedShortName)
+            arg = "{0} = {1} * {2}".format(mPlug_inverseNormalized.p_combinedName,
+                                           mPlug_inverseScale.p_combinedName,
+                                           mPlug_masterScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()
             
         
@@ -1911,21 +1911,21 @@ def ribbon(jointList = None,
                     #>> x + (y - x) * blend --------------------------------------------------------
                     mPlug_baseRes = mPlug_inverseNormalized
                     """
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedShortName,
-                                                               mPlug_aimBaseNorm.p_combinedShortName,
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
+                                                               mPlug_aimBaseNorm.p_combinedName,
                                                                "{0}.distance".format(mActive_aim.mNode)))"""
-                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedShortName,
-                                                               mPlug_jointMult.p_combinedShortName))
-                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedShortName,
-                                                             mPlug_baseRes.p_combinedShortName))
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedShortName,
-                                                               mPlug_jointDiff.p_combinedShortName,
-                                                               mPlug_jointRes.p_combinedShortName))
+                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
+                                                               mPlug_jointMult.p_combinedName))
+                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
+                                                             mPlug_baseRes.p_combinedName))
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedName,
+                                                               mPlug_jointDiff.p_combinedName,
+                                                               mPlug_jointRes.p_combinedName))
                     
                     
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedShortName,
-                                                               mPlug_jointFactor.p_combinedShortName,
-                                                               mPlug_segScale.p_combinedShortName))                    
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
+                                                               mPlug_jointFactor.p_combinedName,
+                                                               mPlug_segScale.p_combinedName))                    
     
                     
                 else:
@@ -1970,9 +1970,9 @@ def ribbon(jointList = None,
                                                   minValue = 0)
                 
                 l_argBuild = []
-                l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedShortName,
-                                                           mPlug_aimBase.p_combinedShortName,
-                                                           mPlug_masterScale.p_combinedShortName,))
+                l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedName,
+                                                           mPlug_aimBase.p_combinedName,
+                                                           mPlug_masterScale.p_combinedName,))
 
                 
                 #baseSquashScale = distBase / distActual
@@ -2008,27 +2008,27 @@ def ribbon(jointList = None,
                                                       attrType = 'float')                    
                     
                     #>> x + (y - x) * blend --------------------------------------------------------
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedShortName,
-                                                               mPlug_aimBaseNorm.p_combinedShortName,
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
+                                                               mPlug_aimBaseNorm.p_combinedName,
                                                                "{0}.distance".format(mActive_aim.mNode),
                                                                ))
-                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedShortName,
-                                                               mPlug_jointMult.p_combinedShortName))
-                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedShortName,
-                                                             mPlug_baseRes.p_combinedShortName))
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedShortName,
-                                                               mPlug_jointDiff.p_combinedShortName,
-                                                               mPlug_jointRes.p_combinedShortName))
+                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
+                                                               mPlug_jointMult.p_combinedName))
+                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
+                                                             mPlug_baseRes.p_combinedName))
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedName,
+                                                               mPlug_jointDiff.p_combinedName,
+                                                               mPlug_jointRes.p_combinedName))
                     
                     
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedShortName,
-                                                               mPlug_jointFactor.p_combinedShortName,
-                                                               mPlug_segScale.p_combinedShortName))                    
+                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
+                                                               mPlug_jointFactor.p_combinedName,
+                                                               mPlug_segScale.p_combinedName))                    
     
                     
                 else:
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedShortName,
-                                                               mPlug_aimBaseNorm.p_combinedShortName,
+                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedName,
+                                                               mPlug_aimBaseNorm.p_combinedName,
                                                                "{0}.distance".format(mActive_aim.mNode),
                                                                ))
                 
@@ -2083,22 +2083,22 @@ def ribbon(jointList = None,
                                                             lock=True)                    
                          
                         l_argBuild = []
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outBaseNorm.p_combinedShortName,
-                                                                   mPlug_outBase.p_combinedShortName,
-                                                                   mPlug_masterScale.p_combinedShortName,))
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outBaseNorm.p_combinedName,
+                                                                   mPlug_outBase.p_combinedName,
+                                                                   mPlug_masterScale.p_combinedName,))
                         
                         #baseSquashScale = distBase / distActual
                         #out scale = baseSquashScale * (outBase / outActual)
     
      
                         
-                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBaseRes.p_combinedShortName,
+                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBaseRes.p_combinedName,
                                                                    '{0}.distance'.format(mActive_out.mNode),
-                                                                   mPlug_outBaseNorm.p_combinedShortName,))
+                                                                   mPlug_outBaseNorm.p_combinedName,))
                         
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedShortName,
-                                                                   mPlug_aimResult.p_combinedShortName,
-                                                                   mPlug_outBaseRes.p_combinedShortName))
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedName,
+                                                                   mPlug_aimResult.p_combinedName,
+                                                                   mPlug_outBaseRes.p_combinedName))
                         
                         
                         for arg in l_argBuild:
@@ -2138,9 +2138,9 @@ def ribbon(jointList = None,
                                                           minValue = 0)
                         
                         l_argBuild = []
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upBaseNorm.p_combinedShortName,
-                                                                   mPlug_upBase.p_combinedShortName,
-                                                                   mPlug_masterScale.p_combinedShortName,))                    
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upBaseNorm.p_combinedName,
+                                                                   mPlug_upBase.p_combinedName,
+                                                                   mPlug_masterScale.p_combinedName,))                    
                         
                         #baseSquashScale = distBase / distActual
                         #up scale = baseSquashScale * (upBase / upActual)
@@ -2148,13 +2148,13 @@ def ribbon(jointList = None,
                         
     
                         
-                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBaseRes.p_combinedShortName,
+                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBaseRes.p_combinedName,
                                                                    '{0}.distance'.format(mActive_up.mNode),
-                                                                   mPlug_upBaseNorm.p_combinedShortName,))
+                                                                   mPlug_upBaseNorm.p_combinedName,))
                         
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedShortName,
-                                                                   mPlug_aimResult.p_combinedShortName,
-                                                                   mPlug_upBaseRes.p_combinedShortName))
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedName,
+                                                                   mPlug_aimResult.p_combinedName,
+                                                                   mPlug_upBaseRes.p_combinedName))
                         
                         
                         for arg in l_argBuild:
@@ -2199,7 +2199,7 @@ def ribbon(jointList = None,
             #Normal Base -----------------------------------------------------------------
             #normalbase = base value * master
             #mult_normalBase = mc.createNode('multDoubleLinear')
-            #ATTR.connect(mPlug_masterScale.p_combinedShortName, mult_normalBase + '.input1')
+            #ATTR.connect(mPlug_masterScale.p_combinedName, mult_normalBase + '.input1')
             #ATTR.set(mult_normalBase,'input2',mDistanceDag.mNode + '.distance')
             #ATTR.connect(mDistanceDag.mNode + '.distance', mult_normalBase + '.input2')
             
@@ -2226,11 +2226,11 @@ def ribbon(jointList = None,
             log.debug("|{0}| >> Attrs registered...".format(_str_func))
             
             l_argBuild = []
-            l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedShortName,
-                                                       mPlug_aimBase.p_combinedShortName,
-                                                       mPlug_masterScale.p_combinedShortName,))
-            l_argBuild.append("{0} = {2} / {1}".format(mPlug_aimResult.p_combinedShortName,
-                                                       mPlug_aimBaseNorm.p_combinedShortName,
+            l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedName,
+                                                       mPlug_aimBase.p_combinedName,
+                                                       mPlug_masterScale.p_combinedName,))
+            l_argBuild.append("{0} = {2} / {1}".format(mPlug_aimResult.p_combinedName,
+                                                       mPlug_aimBaseNorm.p_combinedName,
                                                        "{0}.distance".format(mDistanceShape.mNode),
                                                        ))
         
@@ -2241,7 +2241,7 @@ def ribbon(jointList = None,
                 
             if not skipAim:
                 RIGGEN.plug_insertNewValues('{0}.scaleZ'.format(mJnt.mNode),
-                                            [mPlug_aimResult.p_combinedShortName],replace=False)
+                                            [mPlug_aimResult.p_combinedName],replace=False)
             
     #>>> Connect our iModule vis stuff
     if mModule:#if we have a module, connect vis
@@ -2354,6 +2354,7 @@ def handle(startJoint,
            baseName = None,
            orientation = 'zyx',
            nameSuffix = None,
+           newSolver = False,#Create a new solver node for this?
            handles = [],#If one given, assumed to be mid, can't have more than length of joints
            moduleInstance = None):
     """
@@ -2454,11 +2455,20 @@ def handle(startJoint,
     
         #Figure out our aimaxis
         str_localAimSingle = orientation[0]
-    
+        
+        
+        
+        if newSolver:
+            _node = mc.createNode(solverType)
+            mSolver = cgmMeta.asMeta(_node)
+            mSolver.rename("{0}_{1}".format(str_baseName,solverType))
+            _useSolver = mSolver.mNode
+        else:
+            _useSolver = solverType
     
         #Create IK handle ==================================================================================
         buffer = mc.ikHandle( sj=mStart.mNode, ee=mEnd.mNode,
-                              solver = solverType, forceSolver = True,
+                              solver = _useSolver, forceSolver = True,
                               snapHandleFlagToggle=True )  	
     
     
@@ -2565,56 +2575,56 @@ def handle(startJoint,
             d_baseAttrs['distIKRaw'].value = md_baseDistReturn['mShape'].distance
             """
             #dist ikStretch normal -----------------------------------------------------------------            
-            arg = "{0} = {1} * {2}".format(d_baseAttrs['distIKNormal'].p_combinedShortName,
+            arg = "{0} = {1} * {2}".format(d_baseAttrs['distIKNormal'].p_combinedName,
                                            md_baseDistReturn['mShape'].distance,
-                                           mPlug_globalScale.p_combinedShortName)
+                                           mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()    
             
             #ik stretch normal ----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['stretchMultiplier'].p_combinedShortName,
+            _arg = "{0} = {1} / {2}".format(d_baseAttrs['stretchMultiplier'].p_combinedName,
                                              mPlug_rawDistance.mNode,
-                                             d_baseAttrs['distIKNormal'].p_combinedShortName)
+                                             d_baseAttrs['distIKNormal'].p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            """
             
             #Normal base -----------------------------------------------------------------------
-            _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedShortName,
+            _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedName,
                                             mPlug_rawDistance.value,
-                                            mPlug_globalScale.p_combinedShortName)
+                                            mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()
             
             #Normal active -----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['distActiveNormal'].p_combinedShortName,
-                                          mPlug_rawDistance.p_combinedShortName,
-                                          mPlug_globalScale.p_combinedShortName)
+            _arg = "{0} = {1} / {2}".format(d_baseAttrs['distActiveNormal'].p_combinedName,
+                                          mPlug_rawDistance.p_combinedName,
+                                          mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            
             
 
             #dist fullLenth normal -----------------------------------------------------------------            
-            _arg = "{0} = {1} * {2}".format(d_baseAttrs['distFullLengthNormal'].p_combinedShortName,
+            _arg = "{0} = {1} * {2}".format(d_baseAttrs['distFullLengthNormal'].p_combinedName,
                                             f_baseDist,
-                                            mPlug_globalScale.p_combinedShortName)
+                                            mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            
             
             #scaleFactorRaw  -----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRaw'].p_combinedShortName,
-                                            mPlug_rawDistance.p_combinedShortName,
-                                            d_baseAttrs['distFullLengthNormal'].p_combinedShortName)
+            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRaw'].p_combinedName,
+                                            mPlug_rawDistance.p_combinedName,
+                                            d_baseAttrs['distFullLengthNormal'].p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()
             
             """
             #scaleFactorRawMid  -----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedShortName,
-                                            d_baseAttrs['distActiveNormal'].p_combinedShortName,
-                                            d_baseAttrs['distBaseNormal'].p_combinedShortName)
+            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedName,
+                                            d_baseAttrs['distActiveNormal'].p_combinedName,
+                                            d_baseAttrs['distBaseNormal'].p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            
             
             """
             
             #scaleFactorReal ---------------------------------------------------------------
-            _arg = "{0} = if {1} >= {2}: {3} else 1".format(d_baseAttrs['scaleFactor'].p_combinedShortName,
-                                                            mPlug_rawDistance.p_combinedShortName,
-                                                            d_baseAttrs['distFullLengthNormal'].p_combinedShortName,
-                                                            d_baseAttrs['scaleFactorRaw'].p_combinedShortName)
+            _arg = "{0} = if {1} >= {2}: {3} else 1".format(d_baseAttrs['scaleFactor'].p_combinedName,
+                                                            mPlug_rawDistance.p_combinedName,
+                                                            d_baseAttrs['distFullLengthNormal'].p_combinedName,
+                                                            d_baseAttrs['scaleFactorRaw'].p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            
             
 
@@ -2662,13 +2672,13 @@ def handle(startJoint,
                                                          "t{0}".format(str_localAimSingle))
                 
                 #Normal base -----------------------------------------------------------------------
-                _arg = "{0} = {1} * {2}".format(md_jntAttrs['distNormal'].p_combinedShortName,
-                                                md_jntAttrs['distBase'].p_combinedShortName,
-                                                mPlug_globalScale.p_combinedShortName)
+                _arg = "{0} = {1} * {2}".format(md_jntAttrs['distNormal'].p_combinedName,
+                                                md_jntAttrs['distBase'].p_combinedName,
+                                                mPlug_globalScale.p_combinedName)
                 NodeF.argsToNodes(_arg).doBuild()
                 
-                _arg = "{0} = {1} * {2}.output".format(md_jntAttrs['stretchReg'].p_combinedShortName,
-                                                       md_jntAttrs['distBase'].p_combinedShortName,
+                _arg = "{0} = {1} * {2}.output".format(md_jntAttrs['stretchReg'].p_combinedName,
+                                                       md_jntAttrs['distBase'].p_combinedName,
                                                        mStretchBlend.mNode)
                 NodeF.argsToNodes(_arg).doBuild()
                 
@@ -2678,15 +2688,15 @@ def handle(startJoint,
                     md_jntAttrs['distMidRaw'].doConnectIn("%s.distance"%ml_distanceShapes[i].mNode)	  
                     
                     #Normal base distance
-                    arg = "%s = %s * %s"%(md_jntAttrs['distMidBaseNormal'].p_combinedShortName,
+                    arg = "%s = %s * %s"%(md_jntAttrs['distMidBaseNormal'].p_combinedName,
                                           md_jntAttrs['distBase'].p_combinedName,
-                                          mPlug_globalScale.p_combinedShortName)
+                                          mPlug_globalScale.p_combinedName)
                     NodeF.argsToNodes(arg).doBuild()
                 
                     #Normal distance
-                    arg = "%s = %s / %s"%(md_jntAttrs['distMidNormal'].p_combinedShortName,
+                    arg = "%s = %s / %s"%(md_jntAttrs['distMidNormal'].p_combinedName,
                                           md_jntAttrs['distMidRaw'].p_combinedName,
-                                          mPlug_globalScale.p_combinedShortName)
+                                          mPlug_globalScale.p_combinedName)
                     NodeF.argsToNodes(arg).doBuild()
 
                 
@@ -2781,7 +2791,7 @@ def handle(startJoint,
             d_return['ml_lengthMultiPlugs'] = ml_multiPlugs
     
         if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
-    
+        
         return d_return   
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
@@ -2950,9 +2960,9 @@ def handleBAK(startJoint,
             
             f_baseDist = DIST.get_distance_between_targets(l_jointChain)
             mPlug_lengthFullNormal = cgmMeta.cgmAttr(mIKHandle,'result_fullLengthNormal',keyable = False, hidden=True, attrType = 'float')
-            _arg = "{0} = {1} * {2}".format(mPlug_lengthFullNormal.p_combinedShortName,
+            _arg = "{0} = {1} * {2}".format(mPlug_lengthFullNormal.p_combinedName,
                                             f_baseDist,
-                                            mPlug_globalScale.p_combinedShortName)
+                                            mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()
             #--------------------------------------------------------------------------------------
             
@@ -3021,43 +3031,43 @@ def handleBAK(startJoint,
     
             #EVEN METHOD ==================================================================================================
             #Normal base -----------------------------------------------------------------------
-            arg = "%s = %s * %s"%(mPlug_baseDistNormal.p_combinedShortName,
-                                  mPlug_baseDist.p_combinedShortName,
-                                  mPlug_globalScale.p_combinedShortName)
+            arg = "%s = %s * %s"%(mPlug_baseDistNormal.p_combinedName,
+                                  mPlug_baseDist.p_combinedName,
+                                  mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()
     
             #Normal Length-------------------------------------------------------------------
-            arg = "%s = %s / %s"%(mPlug_ikDistNormal.p_combinedShortName,
-                                  mPlug_baseDistRaw.p_combinedShortName,
-                                  mPlug_globalScale.p_combinedShortName)
+            arg = "%s = %s / %s"%(mPlug_ikDistNormal.p_combinedName,
+                                  mPlug_baseDistRaw.p_combinedName,
+                                  mPlug_globalScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()	
     
             #ik scale raw---------------------------------------------------
-            arg = "%s = %s / %s"%(mPlug_ikScaleRaw.p_combinedShortName,
-                                  mPlug_baseDistRaw.p_combinedShortName,
-                                  mPlug_baseDistNormal.p_combinedShortName)
+            arg = "%s = %s / %s"%(mPlug_ikScaleRaw.p_combinedName,
+                                  mPlug_baseDistRaw.p_combinedName,
+                                  mPlug_baseDistNormal.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()	
             
             
             #ik scale real ----------------------------------------
-            _arg = "{0} = if {1} <= {2}: {3} else 1".format(mPlug_ikScale.p_combinedShortName,
-                                                            mPlug_baseDistNormal.p_combinedShortName,
-                                                            mPlug_lengthFullNormal.p_combinedShortName,
-                                                            mPlug_ikScaleRaw.p_combinedShortName)
+            _arg = "{0} = if {1} <= {2}: {3} else 1".format(mPlug_ikScale.p_combinedName,
+                                                            mPlug_baseDistNormal.p_combinedName,
+                                                            mPlug_lengthFullNormal.p_combinedName,
+                                                            mPlug_ikScaleRaw.p_combinedName)
             NodeF.argsToNodes(_arg).doBuild()            
             
 
             #ik max clamp-------------------------------------------------------------
             """ This is for maya 2013 (at least) which honors the max over the  min """
-            arg = "%s = if %s >= 1: %s else 1"%(mPlug_ikClampMax.p_combinedShortName,
-                                                mPlug_ikScale.p_combinedShortName,
-                                                mPlug_ikScale.p_combinedShortName)
+            arg = "%s = if %s >= 1: %s else 1"%(mPlug_ikClampMax.p_combinedName,
+                                                mPlug_ikScale.p_combinedName,
+                                                mPlug_ikScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()
     
             #ik clamp scale-----------------------------------------------
-            arg = "%s = clamp(1,%s,%s)"%(mPlug_ikClampScale.p_combinedShortName,
-                                         mPlug_ikClampMax.p_combinedShortName,
-                                         mPlug_ikScale.p_combinedShortName)
+            arg = "%s = clamp(1,%s,%s)"%(mPlug_ikClampScale.p_combinedName,
+                                         mPlug_ikClampMax.p_combinedName,
+                                         mPlug_ikScale.p_combinedName)
             NodeF.argsToNodes(arg).doBuild()	
     
             #Create our blend to stretch or not - blend normal base and stretch base
@@ -3082,14 +3092,14 @@ def handleBAK(startJoint,
             
             #Reg method ===========================================================================================
             """
-            arg = "{0} = {1} * {2}".format(mPlug_distSumNormal.p_combinedShortName,
-                                           mPlug_distSumRaw.p_combinedShortName,
-                                           mPlug_globalScale.p_combinedShortName)
+            arg = "{0} = {1} * {2}".format(mPlug_distSumNormal.p_combinedName,
+                                           mPlug_distSumRaw.p_combinedName,
+                                           mPlug_globalScale.p_combinedName)
             
             NodeF.argsToNodes(arg).doBuild()
             
             argSum = ' + '.join(["{0}.distance".format(mShape.mNode) for mShape in ml_distanceShapes])
-            arg = "{0} = {1}".format(mPlug_distSumRaw.p_combinedShortName,
+            arg = "{0} = {1}".format(mPlug_distSumRaw.p_combinedName,
                                      argSum)"""
             
             #--------------------------------------------------------------------------------------------
@@ -3108,33 +3118,33 @@ def handleBAK(startJoint,
                 mPlug_rawDist.doConnectIn("%s.distance"%ml_distanceShapes[i].mNode)	  
     
                 #Normal base distance
-                arg = "%s = %s * %s"%(mPlug_normalBaseDist.p_combinedShortName,
+                arg = "%s = %s * %s"%(mPlug_normalBaseDist.p_combinedName,
                                       mPlug_baseDist.p_combinedName,
-                                      mPlug_globalScale.p_combinedShortName)
+                                      mPlug_globalScale.p_combinedName)
                 NodeF.argsToNodes(arg).doBuild()
     
                 #Normal distance
-                arg = "%s = %s / %s"%(mPlug_normalDist.p_combinedShortName,
+                arg = "%s = %s / %s"%(mPlug_normalDist.p_combinedName,
                                       mPlug_rawDist.p_combinedName,
-                                      mPlug_globalScale.p_combinedShortName)
+                                      mPlug_globalScale.p_combinedName)
                 NodeF.argsToNodes(arg).doBuild()
     
                 #Stretch Distance
-                arg = "%s = %s * %s.output"%(mPlug_stretchDist.p_combinedShortName,
+                arg = "%s = %s * %s.output"%(mPlug_stretchDist.p_combinedName,
                                              mPlug_normalBaseDist.p_combinedName,
                                              mi_stretchBlend.getShortName())
                 NodeF.argsToNodes(arg).doBuild()
     
                 #Then pull the global out of the stretchdistance 
-                arg = "%s = %s / %s"%(mPlug_stretchNormalDist.p_combinedShortName,
+                arg = "%s = %s / %s"%(mPlug_stretchNormalDist.p_combinedName,
                                       mPlug_stretchDist.p_combinedName,
                                       mPlug_globalScale.p_combinedName)
                 NodeF.argsToNodes(arg).doBuild()	    
     
                 #Segment scale
-                arg = "%s = %s / %s"%(mPlug_resultSegmentScale.p_combinedShortName,
+                arg = "%s = %s / %s"%(mPlug_resultSegmentScale.p_combinedName,
                                       mPlug_normalDist.p_combinedName,
-                                      mPlug_baseDist.p_combinedShortName)
+                                      mPlug_baseDist.p_combinedName)
                 NodeF.argsToNodes(arg).doBuild()
     
                 #Create our blend to stretch or not - blend normal base and stretch base
@@ -3272,14 +3282,14 @@ def handle_fixTwist(ikHandle, aimAxis = None):
         mIKHandle.twist = -mPlug_rot.value#try inversed driven joint rotate value first
 
     if not MATH.is_float_equivalent(mPlug_rot.value,0,2):#if we have a value, we need to fix it
-        log.debug("|{0}| >> drivenAttr='{1}',driverAttr='{2}.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001".format(_str_func,mPlug_rot.p_combinedShortName,mIKHandle.p_nameShort))        
+        log.debug("|{0}| >> drivenAttr='{1}',driverAttr='{2}.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001".format(_str_func,mPlug_rot.p_combinedName,mIKHandle.p_nameShort))        
         
         RIGGEN.matchValue_iterator(drivenAttr="%s.r%s"%(mStartJoint.mNode,aimAxis),
                                    driverAttr="%s.twist"%mIKHandle.mNode,
                                    minIn = -170, maxIn = 180,
                                    maxIterations = 30,
                                    matchValue=0)
-        log.debug("|{0}| >> drivenAttr='{1}',driverAttr='{2}.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001".format(_str_func,mPlug_rot.p_combinedShortName,mIKHandle.p_nameShort))        
+        log.debug("|{0}| >> drivenAttr='{1}',driverAttr='{2}.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001".format(_str_func,mPlug_rot.p_combinedName,mIKHandle.p_nameShort))        
         
         #log.debug("rUtils.matchValue_iterator(drivenAttr='%s.r%s',driverAttr='%s.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001)"%(mStartJoint.getShortName(),str_localAimSingle,mIKHandle.getShortName()))
     return True

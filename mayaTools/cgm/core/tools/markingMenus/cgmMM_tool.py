@@ -56,6 +56,7 @@ reload(SETTOOLS)
 #from cgm.tools import tdTools
 #from cgm.tools import attrTools
 import cgm.core.rig.general_utils as RIGGEN
+reload(RIGGEN)
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS

@@ -44,7 +44,7 @@ from cgm.core.lib import rigging_utils as RIGGING
 import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import list_utils as LISTS
-
+import cgm.core.rig.general_utils as RIGGEN
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
@@ -806,7 +806,8 @@ def anim_reset(self,transformsOnly = True):
         mRigNull = self.rigNull
         mRigNull.moduleSet.select()
         if mc.ls(sl=True):
-            ml_resetChannels.main(transformsOnly = transformsOnly)
+            RIGGEN.reset_channels(transformsOnly = transformsOnly)
+            #ml_resetChannels.main(transformsOnly = transformsOnly)
             _result = True
         if _sel:mc.select(_sel)
         return _result

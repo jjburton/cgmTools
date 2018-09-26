@@ -5168,7 +5168,6 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             
             try:
                 mMasterNull = self.masterNull
-                mMasterNull.rename(mMasterNull.cgmName)
             except:
                 pass
             
@@ -5219,7 +5218,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
 
             #See if it's named properly. Need to loop back after scene stuff is querying properly
             #mMasterNull.doName()
-            mMasterNull.rename(mMasterNull.cgmName)
+            mMasterNull.rename('master')#mMasterNull.cgmName)
             mc.editDisplayLayerMembers(self.displayLayer.mNode, mMasterNull.mNode,noRecurse=True)
 
             

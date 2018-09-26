@@ -182,7 +182,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
-                        self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)		    
+                        strValue = ATTR.get_enumValueString(_short,a)
+                        self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)
+                        if strValue:
+                            ATTR.set(_short,a,strValue)
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
                         mc.select(cl=True)
