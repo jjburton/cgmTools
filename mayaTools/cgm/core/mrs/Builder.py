@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = 'ALPHA 0.08162018'
+__version__ = '1.09262018'
 _sidePadding = 25
 
 def check_cgm():
@@ -80,7 +80,7 @@ def check_cgm():
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'cgmBuilder_ui'    
-    WINDOW_TITLE = 'Builder - {0}'.format(__version__)
+    WINDOW_TITLE = 'mrsBuilder - {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
     MIN_BUTTON = True
@@ -139,7 +139,7 @@ class ui(cgmUI.cgmGUI):
             
     def build_menus(self):
         self.uiMenu_profile = mUI.MelMenu( l='Profile', pmc=self.buildMenu_profile)                
-        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
+        #self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
         self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True)
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True)
@@ -160,7 +160,7 @@ class ui(cgmUI.cgmGUI):
             self.var_buildProfile.setValue(_profile)
             
         if self.uiScrollList_blocks.getSelectedIdxs() or self._blockCurrent:
-            self.uiFunc_contextuaBlockCall('atUtils','buildProfile_load',_profile, **{'contextMode':'root'})
+            self.uiFunc_contextBlockCall('atUtils','buildProfile_load',_profile, **{'contextMode':'root'})
             
     def buildMenu_profile( self, *args, **kws):
         self.uiMenu_profile.clear()
@@ -220,6 +220,35 @@ class ui(cgmUI.cgmGUI):
                                            'qss_verify',**{'puppetSet':False,
                                                            'bakeSet':False,
                                                            'deleteSet':True}),)
+        #>>Mesh ---------------------------------------------------------------------
+        mUI.MelMenuItemDiv(_menu)        
+        _mMesh = mUI.MelMenuItem(_menu, l="Puppet Mesh",
+                                 subMenu = True)
+        
+        mUI.MelMenuItem(_mMesh, l="Unified",
+                        ann = "Create a unified unskinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                                            **{'unified':True,'skin':False}))
+        mUI.MelMenuItem(_mMesh, l="Unified [Skinned]",
+                        ann = "Create parts skinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                                            **{'unified':True,'skin':True}))        
+        mUI.MelMenuItem(_mMesh, l="Parts Mesh",
+                        ann = "Create parts unskinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                                            **{'unified':False,'skin':False}))
+        mUI.MelMenuItem(_mMesh, l="Parts Mesh [Skinned]",
+                        ann = "Create parts skinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                                            **{'unified':False,'skin':True}))
+        mUI.MelMenuItem(_mMesh, l="Proxy Mesh [Parented]",
+                        ann = "Create proxy puppet mesh parented to skin joints from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                                            **{'proxy':True,'unified':False,'skin':False}))        
+        mUI.MelMenuItem(_mMesh, l="Delete",
+                        ann = "Remove skinned or wired puppet mesh",
+                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_delete'))
+            
         
     def buildMenu_block( self, *args, **kws):
         self.uiMenu_block.clear()
@@ -227,7 +256,7 @@ class ui(cgmUI.cgmGUI):
         
         _str_context = "Context: {0} {1}".format(self._l_contextStartModes[self.var_contextStartMode.value],
                                         self._l_contextModes[self.var_contextMode.value])
-        #c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'select',None,**{}))
+        #c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'select',None,**{}))
         
         
         _d_ui_annotations = {'select':"Select rigBlocks in maya from ui. Context: {0}".format(_str_context),
@@ -254,18 +283,18 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItem(self.uiMenu_block, l="Select",
                         ann = _d_ui_annotations.get('select',"NEED select"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'select',**{'updateUI':0}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'select',**{'updateUI':0}))
         mUI.MelMenuItem(self.uiMenu_block, l="Rebuild",
                         ann = _d_ui_annotations.get('rebuild',"NEED rebuild"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'rebuild'))        
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'rebuild'))        
         mUI.MelMenuItem(self.uiMenu_block, l="Verify",
                         ann = _d_ui_annotations.get('verify',"NEED verify"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'verify'))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'verify'))
         mUI.MelMenuItem(self.uiMenu_block, l="Buildable?",
                         ann = _d_ui_annotations.get('Buildable Status',"Nope"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'getModuleStatus',**{'updateUI':0}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'getModuleStatus',**{'updateUI':0}))
         mUI.MelMenuItem(self.uiMenu_block, l="Visualize Heirarchy",
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'VISUALIZEHEIRARCHY',**{'updateUI':0}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'VISUALIZEHEIRARCHY',**{'updateUI':0}))
         
        
         
@@ -295,13 +324,13 @@ class ui(cgmUI.cgmGUI):
                         ann = 'Create or verify mirror block',
                         #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
                         #c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,False) )
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1}))
         
         mUI.MelMenuItem(_mirror,
                         label = 'Rebuild',
                         ann = 'Rebuild mirror block from scratch',
                         #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1,'forceNew':True}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils', 'blockMirror_create',**{'updateUI':1,'forceNew':True}))
         
         _l_mirror = [#['Create','blockMirror_create', {}],
                      #['Recreate','blockMirror_create', {'forceNew':True}],
@@ -313,7 +342,7 @@ class ui(cgmUI.cgmGUI):
                             ann = '{0} block controls'.format(mirrorDat[0]),
                             #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
                             #c=cgmGEN.Callback( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
-                            c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'atUtils', mirrorDat[1], **mirrorDat[2]))
+                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils', mirrorDat[1], **mirrorDat[2]))
         
 
         
@@ -325,7 +354,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_mRig,
                         label = 'Verify Proxy',
                         ann = self._d_ui_annotations.get('verify proxy mesh',"FIX") + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'verify_proxyMesh',**{'updateUI':0}))  
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'verify_proxyMesh',**{'updateUI':0}))  
                         
                         #c=cgmGEN.Callback( _mBlock.verify_proxyMesh,True ))
         mUI.MelMenuItem(_mRig,
@@ -348,20 +377,21 @@ class ui(cgmUI.cgmGUI):
         #>>BlockData ---------------------------------------------------------------------
         mUI.MelMenuItem(_mBlockDat, l="Save",
                         ann = self._d_ui_annotations.get('save blockDat') + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'saveBlockDat',**{'updateUI':0}))        
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'saveBlockDat',**{'updateUI':0}))        
         mUI.MelMenuItem(_mBlockDat, l="Load",
                         ann = self._d_ui_annotations.get('load blockDat') + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'loadBlockDat'))        
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'loadBlockDat'))        
         mUI.MelMenuItem(_mBlockDat, l="Copy - TO DO",
                         en=False,
                         ann = self._d_ui_annotations.get('copy blockDat') + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'loadBlockDat'))  
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'loadBlockDat'))  
         mUI.MelMenuItem(_mBlockDat, l="Query",
                         ann = self._d_ui_annotations.get('Get blockDat','nope') + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'getBlockDat',**{'updateUI':0}))  
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'getBlockDat',**{'updateUI':0}))  
         mUI.MelMenuItem(_mBlockDat, l="Reset",
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'resetBlockDat'), 
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'resetBlockDat'), 
                         ann = self._d_ui_annotations.get('reset blockDat') + _str_context)
+        
         
         #>>Mesh ---------------------------------------------------------------------
         mUI.MelMenuItem(_mMesh, l="Unified",
@@ -391,19 +421,19 @@ class ui(cgmUI.cgmGUI):
         """
         mUI.MelMenuItem(_mMesh, l="Block Mesh",
                         ann = _d_ui_annotations.get('Block Mesh','Block Mesh'),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'create_simpleMesh',**{'skin':False,'updateUI':0}))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'create_simpleMesh',**{'skin':False,'updateUI':0}))
         mUI.MelMenuItem(_mMesh, l="Block Mesh - skinned",
                         ann = _d_ui_annotations.get('Block Mesh Skinned','Block Mesh Skinned'),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'create_simpleMesh',**{'skin':True,'updateUI':0}))"""
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'create_simpleMesh',**{'skin':True,'updateUI':0}))"""
         
         """
         #>>Skeleton -----------------------------------------------------------------------
         mUI.MelMenuItem(_mSkeleton, l="Generate",
                         ann = _d_ui_annotations.get('Skeletonize',"NEED Skeletonize"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'skeletonize'))        
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'skeletonize'))        
         mUI.MelMenuItem(_mSkeleton, l="Delete",
                         ann = _d_ui_annotations.get('DeleteSkeleton',"NEED load DeleteSkeleton"),
-                        c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'loadBlockDat'))"""
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'loadBlockDat'))"""
   
     
     def buildMenu_snap( self, force=False, *args, **kws):
@@ -613,8 +643,8 @@ class ui(cgmUI.cgmGUI):
                 
         self.uiUpdate_scrollList_blocks(_mBlock)
         
-
-    def uiFunc_contextuaBlockCall(self,*args,**kws):
+    #@cgmGEN.Timer
+    def uiFunc_contextBlockCall(self,*args,**kws):
         try:
             _str_func = ''
             _updateUI = kws.pop('updateUI',True)
@@ -623,8 +653,9 @@ class ui(cgmUI.cgmGUI):
             #_contextMode = self._l_contextModes[self.var_contextMode.value]
             log.debug("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
             _mode = kws.get('mode')
-            
+            ml_blocks = []
             _mActiveBlock = self._blockCurrent
+            
             
             if _mode == 'setParentToActive':
                 if not _mActiveBlock:
@@ -637,6 +668,7 @@ class ui(cgmUI.cgmGUI):
                 #raise ValueError,"Mode not setup: {0}".format(_mode)            
             
             if _startMode == 0 :#Active
+                log.debug("|{0}| >> Active start".format(_str_func))                
                 mBlock = self._blockCurrent
                 
                 if not mBlock:
@@ -650,30 +682,21 @@ class ui(cgmUI.cgmGUI):
                     self.uiUpdate_blockDat()
                 
             else:
+                log.debug("|{0}| >> start: {1}".format(_str_func,_startMode))
                 _indices = self.uiScrollList_blocks.getSelectedIdxs()
                 if not _indices:
-                    log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+                    log.error("|{0}| >> Nothing selected".format(_str_func))
                     return False    
                 if not self._ml_blocks:
-                    log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
+                    log.error("|{0}| >> No blocks detected".format(_str_func))
                     return False    
-                
-                #_index = _indices[0]
-                #try:mBlock = self._ml_blocks[_index]   
-                ##except:
-                #    log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
-                #    return False
-                
-                ml_blocks = []
+
                 for i in _indices:
                     ml_blocks.append( self._ml_blocks[int(str(i).split('L')[0])])
                     
                 if not ml_blocks:
-                    log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))                                                        
+                    log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
                     return False
-                
-                #_l_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,context,True,False)
-                #pprint.pprint(vars())
                 
                 #Now parse to sets of data
                 ml_processed = []
@@ -681,21 +704,28 @@ class ui(cgmUI.cgmGUI):
                     return mc.select([mBlock.mNode for mBlock in ml_blocks])
                 
                 for mBlock in ml_blocks:
+                    log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)                    
                     if mBlock in ml_processed:
-                        log.info("|{0}| >> Already processed: {1}".format(_str_func,mBlock))                                                        
-                        continue                    
+                        log.info("|{0}| >> Already processed: {1}".format(_str_func,mBlock))
+                        continue
+                    
                     RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
-                    ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
                     
                 if _updateUI:
                     self.uiUpdate_scrollList_blocks()
-                    self.uiScrollList_blocks.selectByIdx(_indices[0])
-                    #self.uiUpdate_blockDat()                
-                return ml_blocks
+                    
+                if args[0] not in ['delete']:
+                    ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
+                    
+                    if _updateUI:
+                        self.uiScrollList_blocks.selectByIdx(_indices[0])
+
+            return ml_blocks
                 
         except Exception,err:
             cgmGEN.cgmException(Exception,err)
-            
+    
+    @cgmGEN.Timer
     def uiFunc_contextModuleCall(self,*args,**kws):
         _str_func = ''
         _updateUI = kws.pop('updateUI',True)
@@ -726,6 +756,10 @@ class ui(cgmUI.cgmGUI):
         if _updateUI:
             self.uiUpdate_scrollList_blocks(mBlock)
             self.uiUpdate_blockDat()
+            
+            if args[0] not in ['delete']:
+                self.uiScrollList_blocks.selectByIdx(_indices[0])
+
             
     def uiFunc_contextPuppetCall(self,*args,**kws):
         _str_func = ''
@@ -831,7 +865,7 @@ class ui(cgmUI.cgmGUI):
             
             mUI.MelMenuItem(_popUp,
                             ann = 'Select',
-                            c = cgmGEN.Callback( self.uiFunc_contextuaBlockCall, 'select'),
+                            c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
                             label = "Select")            
             
             #>>>Heirarchy ------------------------------------------------------------------------------------
@@ -1223,12 +1257,12 @@ class ui(cgmUI.cgmGUI):
         
         log.info("{0} | {1}".format(attr,_v))
 
-        self.uiFunc_contextuaBlockCall('atUtils', 'blockAttr_set', **{'updateUI':False, attr:_v})
+        self.uiFunc_contextBlockCall('atUtils', 'blockAttr_set', **{'updateUI':False, attr:_v})
         
         if attr == 'buildProfile':
             #_strValue = BLOCKSHARE._d_attrsTo_make['buildProfile'].split(':')[_v]
             log.info("Loading buildProfile... {0}".format(_v))
-            self.uiFunc_contextuaBlockCall('atUtils', 'buildProfile_load', _v, **{'updateUI':False})
+            self.uiFunc_contextBlockCall('atUtils', 'buildProfile_load', _v, **{'updateUI':False})
             
         
         return
@@ -1269,14 +1303,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Select',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'select',
                                       **{}),
                   ann = 'Select blocks')
         mc.button(parent=_row,
                   l = 'Verify',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify',
                                       **{}),
                   ann = 'Verify conextual blocks')
@@ -1284,7 +1318,7 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Recolor',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','color',
                                       **{}),
                   ann = 'Recolor conextual blocks')
@@ -1292,16 +1326,16 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Duplicate',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','duplicate',
-                                      **{}),
+                                      **{'updateUI':1}),
                   ann = 'Duplicate conextual blocks')
         mc.button(parent=_row,
                   l = 'Delete',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
-                                      'atUtils','delete',
-                                      **{}),
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'delete',
+                                      **{'updateUI':1}),
                   ann = 'Delete conextual blocks')
         
         mUI.MelSpacer(_row,w=1)
@@ -1318,14 +1352,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Buildable?',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'getModuleStatus',
                                       **{'updateUI':0}),
                   ann = "Check if the block is buildable (DEV)")
         mc.button(parent=_row,
                   l = 'Visualize',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'VISUALIZEHEIRARCHY',
                                       **{'updateUI':0}),
                   ann = 'Visualize the block tree in the script editor')
@@ -1344,14 +1378,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'To Active',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockParent_set',
                                       **{'mode':'setParentToActive'}),
                   ann = 'Set parent block to active block')
         mc.button(parent=_row,
                   l = 'Clear',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockParent_set',
                                       **{'parent':False}),
                   ann = 'Clear blockParent')
@@ -1371,14 +1405,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Set Name',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','set_nameTag',
                                       **{}),
                   ann = 'Set the name tag of the block and rename dags')
         mc.button(parent=_row,
                   l = 'Set Position',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','set_position',
                                       **{'ui':True}),
                   ann = 'Set the position tag of the block and rename dags')
@@ -1399,28 +1433,28 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Save',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'saveBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('save blockDat'))
         mc.button(parent=_row,
                   l = 'Load',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'loadBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('load blockDat'))
         mc.button(parent=_row,
                   l = 'Query',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'getBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('get blockDat'))
         mc.button(parent=_row,
                   l = 'Reset',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'resetBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('reset blockDat'))        
@@ -1440,14 +1474,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Verify',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_create',
                                       **{}),
                   ann = 'Verify block mirrors. WARNING - do not do this with a block and its mirror selected')
         mc.button(parent=_row,
                   l = 'Rebuild',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_create',True,
                                       **{}),
                   ann = 'Rebuild mirror block from scratch. WARNING - do not do this with a block and its mirror selected')
@@ -1456,14 +1490,14 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Push',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_go',
                                       **{'mode':'push'}),
                   ann = 'Push setup to the mirror')
         mc.button(parent=_row,
                   l = 'Pull',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_go',
                                       **{'mode':'pull'}),
                   ann = 'pull setup to the mirror')
@@ -1485,7 +1519,7 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Load base size dat',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils', 'define_set_baseSize',
                                       **{}),
                   
@@ -1508,21 +1542,21 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                          l = 'Snap RP to Orient',
                          ut = 'cgmUITemplate',                                    
-                         c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                              'atUtils', 'prerig_snapRPtoOrientHelper',
                                              **{}),
                          ann = "Snap rp hanlde to orient vector")    
         mc.button(parent=_row,
                   l = 'Query Indices',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atBlockModule', 'get_handleIndices',
                                       **{}),
                   ann = "Snap handles to rp plane")
         mc.button(parent=_row,
                   l = 'Snap to RP',
                   ut = 'cgmUITemplate',                                    
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
                                       **{}),
                   ann = "Snap handles to rp plane")        
@@ -1540,7 +1574,7 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=_row,
                   l = 'Verify Proxy',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify_proxyMesh',
                                       **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('verify proxy mesh'))
@@ -1597,7 +1631,7 @@ class ui(cgmUI.cgmGUI):
             mc.button(parent = _row,
                       ut = 'cgmUITemplate',
                       l=o,
-                      c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                      c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                         'atUtils', 'messageConnection_setAttr',
                                         _plug,**{'template':v}),
                       )
@@ -1640,7 +1674,7 @@ class ui(cgmUI.cgmGUI):
                 mc.button(parent = _row,
                           ut = 'cgmUITemplate',
                           l=o,
-                          c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                          c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                             'atUtils', 'messageConnection_setAttr',
                                             _plug,**{'template':v}),
                           )
@@ -1659,7 +1693,7 @@ class ui(cgmUI.cgmGUI):
                 mc.button(parent = _row,
                           ut = 'cgmUITemplate',
                           l=o,
-                          c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                          c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                             'atUtils', 'blockAttr_set',
                                             **{n:v})
                           )
@@ -1700,7 +1734,7 @@ class ui(cgmUI.cgmGUI):
                         mc.button(parent = _row,
                                   ut = 'cgmUITemplate',
                                   l=o,
-                                  c=cgmGEN.Callback(self.uiFunc_contextuaBlockCall,
+                                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                     'atUtils', 'blockAttr_set',
                                                     **{'updateUI':False,a:v}))
                                   
@@ -1785,7 +1819,7 @@ class ui(cgmUI.cgmGUI):
                          cgmGEN.Callback(self._blockCurrent.loadBlockDat),
                          self._d_ui_annotations.get('load blockDat') )       
         CGMUI.add_Button(_mBlockDat, "Copy",
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'loadBlockDat'),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'loadBlockDat'),
                          self._d_ui_annotations.get('copy blockDat'),                         
                          en=False)         
     
@@ -1892,7 +1926,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
                          c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
         mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
-                         c=lambda *a: self.uiFunc_contextuaBlockCall('VISUALIZEHEIRARCHY') )
+                         c=lambda *a: self.uiFunc_contextBlockCall('VISUALIZEHEIRARCHY') )
         
         
         
@@ -2135,22 +2169,22 @@ class ui(cgmUI.cgmGUI):
         CGMUI.add_LineSubBreak()
         _row_push = mUI.MelHLayout(_RightColumn,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(_row_push,'Define>',
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'changeState','define',**{}),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{}),
                          '[Define] - initial block state')
         CGMUI.add_Button(_row_push,'<Templ>',
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'changeState','template',**{'forceNew':True}),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','template',**{'forceNew':True}),
                          '[Template] - Shaping the proxy and initial look at settings')
                          
         CGMUI.add_Button(_row_push,'<Prerig>',
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'changeState','prerig',**{'forceNew':True}),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','prerig',**{'forceNew':True}),
                          '[Prerig] - More refinded placement and setup before rig process')
 
         CGMUI.add_Button(_row_push,'<Joint>',
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'changeState','skeleton',**{'forceNew':True}),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','skeleton',**{'forceNew':True}),
                          '[Joint] - Build skeleton if necessary')
 
         CGMUI.add_Button(_row_push,'<Rig',
-                         cgmGEN.Callback(self.uiFunc_contextuaBlockCall,'changeState','rig',**{'forceNew':True}),
+                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','rig',**{'forceNew':True}),
                          '[Rig] - Push to a fully rigged state.')
 
         _row_push.layout()

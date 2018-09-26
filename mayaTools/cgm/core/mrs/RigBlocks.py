@@ -4182,13 +4182,16 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
     if func in ['select']:
         mc.select([mBlock.mNode for mBlock in _l_context])
         return
+    
 
     for mBlock in _l_context:
         try:
             _short = mBlock.getShortName()            
             log.debug("|{0}| >> On: {1}".format(_str_func,_short))            
             res = getattr(mBlock,func)(*args,**kws) or None
-            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(a for a in args),_kwString, res))                        
+            print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(a for a in args),
+                                                           _kwString,))
+            if res not in [True,None,False]:print(res)
             _res.append(res)
         except Exception,err:
             log.error(cgmGEN._str_hardLine)
