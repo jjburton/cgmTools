@@ -3045,7 +3045,7 @@ def blockDat_save(self):
 
 def blockDat_reset(self):
     #This needs more work.
-    self._factory.verify(self.blockType, forceReset=True) 
+    blockProfile_load(self, self.blockProfile)
 
 def blockDat_getControlDat(self,mode = 'define',report = True):
     _short = self.p_nameShort        
@@ -4908,7 +4908,7 @@ def blockProfile_load(self, arg):
     _short = self.mNode
     
     mBlockModule = self.p_blockModule
-    log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+    log.debug("|{0}| >>  BlockModule: {1} | profile: {2}".format(_str_func,mBlockModule,arg))
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
@@ -5527,6 +5527,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             else:
                 _useSize = _sizeSub
             
+            str_name = _dtmp.get('name') or k
+            
             #sphere
             _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
                                           direction = 'z+', size = _useSize)
@@ -5542,7 +5544,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                 mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
         
             mHandle.doStore('cgmName',self.mNode)
-            mHandle.doStore('cgmTypeModifier',k)
+            mHandle.doStore('cgmTypeModifier',str_name)
             mHandle.doStore('cgmType','defineHandle')
             mHandle.doName()
         
@@ -5585,7 +5587,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
             mAim.doStore('mClass','cgmObject')            
             mAim.doStore('cgmName',self.mNode)
-            mAim.doStore('cgmTypeModifier',k)
+            mAim.doStore('cgmTypeModifier',str_name)
             mAim.doStore('cgmType','aimLine')
             mAim.doName()            
         
@@ -5618,7 +5620,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
             mArrow.doStore('mClass','cgmObject')            
             mArrow.doStore('cgmName',self.mNode)
-            mArrow.doStore('cgmTypeModifier',k)
+            mArrow.doStore('cgmTypeModifier',str_name)
             mArrow.doStore('cgmType','vectorHelper')
             mArrow.doName()
         
@@ -5641,7 +5643,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mJointLabel.otherType = k
         
             mJointLabel.doStore('cgmName',self.mNode)
-            mJointLabel.doStore('cgmTypeModifier',k)
+            mJointLabel.doStore('cgmTypeModifier',str_name)
             mJointLabel.doStore('cgmType','jointLabel')
             mJointLabel.doName()            
         
@@ -5703,111 +5705,112 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
 
     
     
-    
-        #BaseSizeHandle -------------------------------------------------
-        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
-                                      direction = 'z+', size = 1.0)
-    
-        mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-        mBaseSizeHandle.p_parent = mDefineNull
-        mBaseSizeHandle.resetAttrs()
-        mBaseSizeHandle.v = False
-    
-        mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
-                         aimVector = [0,0,1], upVector = [0,1,0], 
-                         worldUpObject = md_handles['up'].mNode,
-                         worldUpType = 'object', 
-                         worldUpVector = [0,1,0])
-        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
-    
-        mBaseSizeHandle.doStore('cgmName',self.mNode)
-        mBaseSizeHandle.doStore('cgmTypeModifier',k)
-        mBaseSizeHandle.doStore('cgmType','baseSizeBase')
-        mBaseSizeHandle.doName()                    
-    
-        mBaseSizeHandle.dagLock()
-    
-        #AimLoftHandle --------------------------------------------------
-        _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
-                                      direction = 'z+', size = 1.0)
-    
-        mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-        mEndSizeHandle.p_parent = mDefineNull
-        mEndSizeHandle.resetAttrs()
-        mEndSizeHandle.v = False
-    
-        mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
-        md_handles['end'].doConnectOut('scale', "{0}.scale".format(mEndSizeHandle.mNode))
-    
-        mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
-                         aimVector = [0,0,-1], upVector = [0,1,0], 
-                         worldUpObject = md_handles['up'].mNode,
-                         worldUpType = 'object', 
-                         worldUpVector = [0,1,0])
-    
-        mEndSizeHandle.doStore('cgmName',self.mNode)
-        mEndSizeHandle.doStore('cgmTypeModifier',k)
-        mEndSizeHandle.doStore('cgmType','endSizeBase')
-        mEndSizeHandle.doName()                    
-    
-        mEndSizeHandle.dagLock()
-    
-        #measure height/width ----------------------------------------------------------------
-        d_measure = {'height':'ty',
-                     'width':'tx',
-                     'length':'tz'}
-        for k,d in d_measure.iteritems():
-            if k == 'length':
-                mPos =mEndSizeHandle.doLoc()
-                mNeg = mBaseSizeHandle.doLoc()
-                
-                mPos.p_parent = mEndSizeHandle
-                mNeg.p_parent = mBaseSizeHandle
-                
-            else:
-                mPos = mEndSizeHandle.doLoc()
-                mNeg = mEndSizeHandle.doLoc()
         
+        if md_handles.get('end'):
+            #BaseSizeHandle -------------------------------------------------
+            _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
+                                          direction = 'z+', size = 1.0)
+        
+            mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+            mBaseSizeHandle.p_parent = mDefineNull
+            mBaseSizeHandle.resetAttrs()
+            mBaseSizeHandle.v = False
+        
+            mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
+                             aimVector = [0,0,1], upVector = [0,1,0], 
+                             worldUpObject = md_handles['up'].mNode,
+                             worldUpType = 'object', 
+                             worldUpVector = [0,1,0])
+            md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+        
+            mBaseSizeHandle.doStore('cgmName',self.mNode)
+            mBaseSizeHandle.doStore('cgmTypeModifier',k)
+            mBaseSizeHandle.doStore('cgmType','baseSizeBase')
+            mBaseSizeHandle.doName()                    
+        
+            mBaseSizeHandle.dagLock()
+        
+            #AimLoftHandle --------------------------------------------------
+            _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
+                                          direction = 'z+', size = 1.0)
+        
+            mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
+            mEndSizeHandle.p_parent = mDefineNull
+            mEndSizeHandle.resetAttrs()
+            mEndSizeHandle.v = False
+        
+            mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
+            md_handles['end'].doConnectOut('scale', "{0}.scale".format(mEndSizeHandle.mNode))
+        
+            mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                             worldUpObject = md_handles['up'].mNode,
+                             worldUpType = 'object', 
+                             worldUpVector = [0,1,0])
+        
+            mEndSizeHandle.doStore('cgmName',self.mNode)
+            mEndSizeHandle.doStore('cgmTypeModifier',k)
+            mEndSizeHandle.doStore('cgmType','endSizeBase')
+            mEndSizeHandle.doName()                    
+        
+            mEndSizeHandle.dagLock()
+        
+            #measure height/width ----------------------------------------------------------------
+            d_measure = {'height':'ty',
+                         'width':'tx',
+                         'length':'tz'}
+            for k,d in d_measure.iteritems():
+                if k == 'length':
+                    mPos =mEndSizeHandle.doLoc()
+                    mNeg = mBaseSizeHandle.doLoc()
+                    
+                    mPos.p_parent = mEndSizeHandle
+                    mNeg.p_parent = mBaseSizeHandle
+                    
+                else:
+                    mPos = mEndSizeHandle.doLoc()
+                    mNeg = mEndSizeHandle.doLoc()
+            
+                    for mObj in mPos,mNeg:
+                        mObj.p_parent = mEndSizeHandle
+            
+                    ATTR.set(mPos.mNode,d,.5)
+                    ATTR.set(mNeg.mNode,d,-.5)
+                    
+                mPos.rename("{0}_{1}_pos_loc".format(self.p_nameBase,k))
+                mNeg.rename("{0}_{1}_neg_loc".format(self.p_nameBase,k))
+                
                 for mObj in mPos,mNeg:
-                    mObj.p_parent = mEndSizeHandle
+                    mObj.v=False
+                    mObj.dagLock()
         
-                ATTR.set(mPos.mNode,d,.5)
-                ATTR.set(mNeg.mNode,d,-.5)
+                buffer =  RIGCREATE.distanceMeasure(mPos.mNode,mNeg.mNode,
+                                                    baseName="{0}_{1}".format(self.p_nameBase,k))
+                buffer['mDag'].p_parent = mDefineNull
+                ATTR.copy_to(buffer['mShape'].mNode,'distance',md_handles['end'].mNode,k,driven='target')
+                ATTR.set_standardFlags(md_handles['end'].mNode,
+                                       attrs=[k],visible=True,keyable=False,lock=True)
+        
+                buffer['mShape'].overrideEnabled = 1
+                buffer['mShape'].overrideDisplayType = 2
+        
+                ATTR.connect("{0}.visMeasure".format(_short), "{0}.visibility".format(buffer['mDag'].mNode))
+                #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
+        
+        
+        
+            # Loft ==============================================================================
+            targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
+        
+            self.atUtils('create_defineLoftMesh',
+                         targets,
+                         mDefineNull,
+                         baseName = self.cgmName )
+        
+            
+            for tag,mHandle in md_handles.iteritems():
+                ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
-            mPos.rename("{0}_{1}_pos_loc".format(self.p_nameBase,k))
-            mNeg.rename("{0}_{1}_neg_loc".format(self.p_nameBase,k))
-            
-            for mObj in mPos,mNeg:
-                mObj.v=False
-                mObj.dagLock()
-    
-            buffer =  RIGCREATE.distanceMeasure(mPos.mNode,mNeg.mNode,
-                                                baseName="{0}_{1}".format(self.p_nameBase,k))
-            buffer['mDag'].p_parent = mDefineNull
-            ATTR.copy_to(buffer['mShape'].mNode,'distance',md_handles['end'].mNode,k,driven='target')
-            ATTR.set_standardFlags(md_handles['end'].mNode,
-                                   attrs=[k],visible=True,keyable=False,lock=True)
-    
-            buffer['mShape'].overrideEnabled = 1
-            buffer['mShape'].overrideDisplayType = 2
-    
-            ATTR.connect("{0}.visMeasure".format(_short), "{0}.visibility".format(buffer['mDag'].mNode))
-            #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
-    
-    
-    
-        # Loft ==============================================================================
-        targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
-    
-        self.atUtils('create_defineLoftMesh',
-                     targets,
-                     mDefineNull,
-                     baseName = self.cgmName )
-    
-        
-        for tag,mHandle in md_handles.iteritems():
-            ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
-            
 
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,
@@ -5824,7 +5827,11 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     if baseSize is None:
         try:baseSize = self.baseSize
         except:raise ValueError,"No baseSize offered or found"
-        
+
+    d_baseDat = {}
+    if self.hasAttr('baseDat'):
+        d_baseDat = self.baseDat
+        log.debug("|{0}| >>  Base dat found | {1}".format(_str_func,d_baseDat))        
 
     if not baseSize:
         return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
@@ -5832,21 +5839,26 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     
     if baseAim is None:
         try:baseAim = self.baseAim
-        except:raise ValueError,"No baseAim offered or found"
+        except:pass
         
     if not baseAim:
-        log.debug("|{0}| >>  No baseAim value. Using default.".format(_str_func))
-        baseAim = baseAimDefault
+        baseAim = d_baseDat.get('end',None)
+        if baseAim is None:
+            log.debug("|{0}| >>  No baseAim value. Using default.".format(_str_func))
+            baseAim = baseAimDefault
+        else:
+            log.debug("|{0}| >>  Found base aim in baseDat.".format(_str_func))
+            
     log.debug("|{0}| >>  baseAim: {1}".format(_str_func,baseAim))
     
     
     try:mDefineEndObj = self.defineEndHelper
-    except:raise ValueError,"No defineEndHelper found"
+    except:
+        return log.warning("|{0}| >>  no defineEndHelper".format(_str_func))
+        
     log.debug("|{0}| >>  mDefineEndObj: {1}".format(_str_func,mDefineEndObj))
     
-    d_baseDat = {}
-    if self.hasAttr('baseDat'):
-        d_baseDat = self.baseDat
+
     
     #Meat ==================================================
     log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*40)

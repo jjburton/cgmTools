@@ -86,7 +86,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 550,400
+    DEFAULT_SIZE = 600,400
     __modes = 'space','orient','follow'
     
     check_cgm()
@@ -465,7 +465,6 @@ class ui(cgmUI.cgmGUI):
             
         for b in _d[1]['blocks']:
             if _d[0][b].__dict__.get('__menuVisible__'):
-                
                 mUI.MelMenuItem(self.uiMenu_add, l=b,
                                 c=cgmGEN.Callback(self.uiFunc_block_build,b),
                                 ann="{0} : {1}".format(b, self.uiFunc_block_build))
@@ -477,15 +476,35 @@ class ui(cgmUI.cgmGUI):
                                         c=cgmGEN.Callback(self.uiFunc_block_build,b,o),
                                         ann="{0} : {1}".format(b, self.uiFunc_block_build))
         
+        for c in _d[1].keys():
+            #d_sections[c] = []
+            if c == 'blocks':continue
+            for b in _d[1][c]:
+                if _d[0][b].__dict__.get('__menuVisible__'):
+                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
+                    l_options = RIGBLOCKS.get_blockProfile_options(b)
+                    if l_options:
+                        _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,l=b)
+                        l_options.sort()
+                        for o in l_options:
+                            _l = "{0}".format(o)
+                            _c = cgmGEN.Callback(self.uiFunc_block_build,b,o)
+                            mUI.MelMenuItem(_sub, l=_l,
+                                            c=_c,
+                                            ann="{0} : {1}".format(_l, _c)
+                                            )                            
+                            """
+                            d_sections[c].append( ["{0} ({1})".format(o,b),
+                                                   cgmGEN.Callback(self.uiFunc_block_build,b,o)] )       """ 
+        
+        """
         d_sections = {}
         for c in _d[1].keys():
             d_sections[c] = []
             if c == 'blocks':continue
             for b in _d[1][c]:
                 if _d[0][b].__dict__.get('__menuVisible__'):
-                    
                     d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
-                    
                     l_options = RIGBLOCKS.get_blockProfile_options(b)                
                     if l_options:
                         for o in l_options:
@@ -496,11 +515,10 @@ class ui(cgmUI.cgmGUI):
                 _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
                                         l=s)                
                 for option in d_sections[s]:
-                    
                     mUI.MelMenuItem(_sub, l=option[0],
                                     c=option[1],
                                     ann="{0} : {1}".format(option[0], option[1])
-                                    )
+                                    )"""
 
         mUI.MelMenuItemDiv(self.uiMenu_add)
         uiOptionMenu_blockSizeMode(self, self.uiMenu_add)        
@@ -1455,7 +1473,7 @@ class ui(cgmUI.cgmGUI):
                   l = 'Reset',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                      'resetBlockDat',
+                                      'atUtils','blockDat_reset',
                                       **{}),
                   ann = self._d_ui_annotations.get('reset blockDat'))        
         
