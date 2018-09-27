@@ -5721,7 +5721,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                              worldUpObject = md_handles['up'].mNode,
                              worldUpType = 'object', 
                              worldUpVector = [0,1,0])
-            md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+            #md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+            md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mBaseSizeHandle.mNode))
+            md_handles['end'].doConnectOut('scaleZ', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
         
             mBaseSizeHandle.doStore('cgmName',self.mNode)
             mBaseSizeHandle.doStore('cgmTypeModifier',k)
@@ -5740,7 +5742,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mEndSizeHandle.v = False
         
             mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
-            md_handles['end'].doConnectOut('scale', "{0}.scale".format(mEndSizeHandle.mNode))
+            md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mEndSizeHandle.mNode))
+            md_handles['end'].doConnectOut('scaleZ', "{0}.scaleY".format(mEndSizeHandle.mNode))
         
             mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], 

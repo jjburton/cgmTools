@@ -93,7 +93,7 @@ d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull'],
+d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
                      'msgLists':['templateHandles']}
 
 #>>>Profiles =====================================================================================================
@@ -357,9 +357,10 @@ def templateDelete(self):
         mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
         if mHandle:
             mHandle.template=False
-    try:self.defineLoftMesh.v = True
+    try:self.defineLoftMesh.template = False
     except:pass
     self.bbHelper.v = True
+    
   
 def template(self):
     _str_func = 'template'
@@ -401,6 +402,8 @@ def template(self):
         if mHandle:
             log.debug("define handle: {0} | {1}".format(k,mHandle))                        
             md_defineHandles[k] = mHandle
+            if k in ['end','aim']:
+                mHandle.template = True
     
     #Create temple Null  ==================================================================================
     mTemplateNull = BLOCKUTILS.templateNull_verify(self)
@@ -423,7 +426,7 @@ def template(self):
     
     CORERIG.colorControl(mHeadHandle.mNode,_side,'main',transparent = True) 
     mBBHelper.v = False
-    self.defineNull.template=True
+    #self.defineNull.template=True
     v_baseSize = DIST.get_bb_size(mBBHelper.mNode)
     
     #Orient Helper ==============================================================================
@@ -433,7 +436,6 @@ def template(self):
                                                               'tz': v_baseSize[2] * .8})
     self.copyAttrTo(_baseNameAttrs[-1],mOrientCurve.mNode,'cgmName',driven='target')
     mOrientCurve.doName()    
-    #mOrientCurve.p_parent = mHeadHandle
     CORERIG.colorControl(mOrientCurve.mNode,_side,'sub')
     
     _mVectorAim = MATH.get_obj_vector(md_vectorHandles['aim'].mNode,
@@ -448,11 +450,14 @@ def template(self):
     
     mOrientCurve.setAttrFlags(['rz','translate','scale','v'])
     
-    mc.pointConstraint(mOrientCurve.mNode,
+    mAimTrans = md_defineHandles['aim'].doCreateAt(setClass = True)
+    mAimTrans.p_parent = mOrientCurve.mNode
+    
+    mc.pointConstraint(mAimTrans.mNode,
                        md_defineHandles['aim'].mNode,
                        maintainOffset = True)
     
-    """
+    
     #Proxies ==============================================================================
     ml_proxies = []        
     log.info("|{0}| >> Geo proxyType...".format(_str_func,))     
@@ -518,7 +523,7 @@ def template(self):
                                                                                  ATTR.get_enumValueString(self.mNode,'proxyType'))
     
     self.msgList_connect('headMeshProxy',ml_proxies,'block')#Connect
-    """
+    
     
     #Neck ==================================================================================================
     if not self.neckBuild:
@@ -526,6 +531,7 @@ def template(self):
         #...just so we have something here. Replaced if we have a neck        
     else:
         log.debug("|{0}| >> Neck ...".format(_str_func)+ '-'*60)
+        self.defineLoftMesh.template = True
         
         #Get base dat =============================================================================
         log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
@@ -610,9 +616,7 @@ def template(self):
                 mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
         
         
-            #Constrain the define end to the end of the template handles
-            mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
+
         
         
             #>> Base Orient Helper ============================================================================
@@ -1179,7 +1183,9 @@ def template(self):
             SNAP.aim_atPoint(md_handles['start'].mNode, position=_l_basePos[-1], 
                              aimAxis="z+", mode='vector', vectorUp=_mVectorUp)
             
-            mc.parentConstraint(md_handles['start'].mNode, md_defineHandles['end'].mNode, maintainOffset = True)
+            #Constrain the define end to the end of the template handles
+            mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
+            mc.scaleConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=True)
             
             self.blockState = 'template'#...buffer        
            
@@ -1247,24 +1253,21 @@ def prerig(self):
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
     
     #Initial validation ================================================================================
+    log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)
+    
     self.atUtils('module_verify')
     mPrerigNull = BLOCKUTILS.prerigNull_verify(self)   
     #mNoTransformNull = self.atUtils('noTransformNull_verify')
     mNoTransformNull = self.UTILS.noTransformNull_verify(self,'prerig')
     ml_templateHandles = self.msgList_get('templateHandles')
+    _sizeSub = self.atUtils('get_shapeOffset')*2#_size * .2
     
-    _sizeSub = self.atUtils('get_shapeOffset')*2#_size * .2   
-    
-    #>>New handles ==================================================================================================
+    #>>New handles =====================================================================================
     mHandleFactory = self.asHandleFactory(self.mNode)   
     
     if not self.neckBuild:
-        #_size = DIST.get_bb_size(self.mNode,True,True)
-        
-        #log.info("|{0}| >> [{1}]  NO NECK | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
-
-        #Joint Helper ==========================================================================================
-        mJointHelper = self.asHandleFactory(self.mNode).addJointHelper(baseSize = _sizeSub)
+        #Joint Helper ======================================================================================
+        mJointHelper = mHandleFactory.addJointHelper(baseSize = _sizeSub, loftHelper = False)
         ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
                               lock=False, visible=True,keyable=False)
         
