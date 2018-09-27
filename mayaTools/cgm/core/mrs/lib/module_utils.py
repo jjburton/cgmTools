@@ -44,6 +44,8 @@ from cgm.core.lib import rigging_utils as RIGGING
 import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import list_utils as LISTS
+import cgm.core.lib.name_utils as NAMES
+import cgm.core.cgmPy.str_Utils as STRINGS
 
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
@@ -64,7 +66,9 @@ def get_partName(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:#Quick select sets ================================================================
-        return NAMETOOLS.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+        _str= NAMETOOLS.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+        return STRINGS.stripInvalidChars(_str)
+
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 def get_dynSwitch(self):

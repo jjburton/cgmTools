@@ -3243,11 +3243,11 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
     
     if blockDat.get('blockScale'):
         self.blockScale = blockDat['blockScale']
-    else:
-        for ii,v in enumerate(_scale):
+    #else:
+        #for ii,v in enumerate(_scale):
             #_a = 's'+'xyz'[ii]
             #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
-            setAttr(_short,_a,v)
+            #setAttr(_short,_a,v)
         
     #>>Define Controls ====================================================================================
     log.info("|{0}| >> define dat....".format(_str_func))
@@ -5933,8 +5933,9 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     
     log.debug("|{0}| >>  mOrientHelper: {1}".format(_str_func,mOrientHelper))
    
-    idx_start,idx_end = self.atBlockModule('get_handleIndices')
-    
+    try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+    except:idx_start,idx_end = 0,len(ml_prerig)-1
+        
     mStart = ml_prerig[idx_start]
     mEnd = ml_prerig[idx_end]
     ml_toSnap = ml_prerig[idx_start:idx_end]

@@ -1487,7 +1487,7 @@ def prerig(self):
     _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
     
     _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-    _mVectorUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)    
+    _mVectorUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
     
     #_mVectorUp = _mVectorAim.up()
     _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]
@@ -1557,7 +1557,7 @@ def prerig(self):
             CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)
             
         else:
-            crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
+            crv = CURVES.create_fromName('axis3d', size = _sizeUse)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         _short = mHandle.mNode
         

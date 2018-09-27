@@ -2415,7 +2415,7 @@ class handleFactory(object):
         except Exception,err:
             cgmGEN.cgmException(Exception,err,msg=vars())
 
-    def addJointHelper(self,baseShape=None, baseSize = None,
+    def addJointHelper(self,baseShape='jack', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:
@@ -2433,7 +2433,7 @@ class handleFactory(object):
 
             #Joint helper ======================================================================================
             #jack
-            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,'axis3d',  direction= shapeDirection, sizeMode = 'fixed', size = _size)
+            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
 
             if mHandle.hasAttr('cgmName'):

@@ -1710,7 +1710,7 @@ def prerig(self):
     
         
         #Track curve ============================================================================
-        log.debug("|{0}| >> TrackCrv...".format(_str_func)) 
+        log.debug("|{0}| >> TrackCrv...".format(_str_func)+'-'*40) 
         
         _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_templateHandles])
         mTrackCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
@@ -1783,7 +1783,7 @@ def prerig(self):
                 SNAP.go(crv2,mHandle.mNode)
                 CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            
             else:
-                crv = CURVES.create_fromName('cubeOpen', size = _sizeSub)
+                crv = CURVES.create_fromName('axis3d', size = _sizeSub)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             #mHandle = cgmMeta.cgmObject(crv, name = 'handle_{0}'.format(i))
             _short = mHandle.mNode
