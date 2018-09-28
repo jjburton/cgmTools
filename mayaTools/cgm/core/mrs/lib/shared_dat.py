@@ -69,7 +69,7 @@ d_build_profiles = {
 
 #These are our default attrs to make library. To be called via modules
 _d_attrsTo_make = {'side':'none:left:right:center',
-                   'position':'none:upper:lower:front:back:top:bottom',
+                   'position':'string',#'none:upper:lower:front:back:top:bottom',
                    'baseUp':'float3',
                    'baseAim':'float3',
                    'basePoint':'float3',

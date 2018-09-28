@@ -666,7 +666,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         if objRotAxis:
             mc.xform(_created, ws=True, ra= objRotAxis,p=False)
         
-    elif _create in ['curve','curveLinear','linearTrack']:
+    elif _create in ['curve','curveLinear','linearTrack','cubicTrack']:
         if not l_pos:
             l_pos = []
             #_sel = mc.ls(sl=True,flatten=True)
@@ -677,7 +677,10 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         
         if len(l_pos) <= 1:
             raise ValueError,"Must have more than one position to create curve"
-        if _create == 'linearTrack':
+        if _create in ['linearTrack','cubicTrack']:
+            _d = 1
+            if _create == 'cubicTrack':
+                _d = 3
             _trackCurve = mc.curve(d=1,p=l_pos)
             _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
     
@@ -688,8 +691,10 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                 TRANS.parent_set( _res[1], obj[i])
                 ATTR.set(_res[1],'visibility',0)
                 l_clusters.append(_res)
+                ATTR.set(_res[1],'visibility',False)
                 
             return _trackCurve,l_clusters
+            
                 
                 
         elif _create == 'curve':
@@ -1013,10 +1018,10 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'colorB',_rgb[2])
             
             if transparent:
-                ATTR.set(_node,'ambientColorR',_rgb[0])
-                ATTR.set(_node,'ambientColorG',_rgb[1])
-                ATTR.set(_node,'ambientColorB',_rgb[2])        
-                ATTR.set(_node,'transparency',.9)
+                ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
+                ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
+                ATTR.set(_node,'ambientColorB',_rgb[2]*.1)        
+                ATTR.set(_node,'transparency',.5)
                 ATTR.set(_node,'incandescence',0)
       
     if not _set:
