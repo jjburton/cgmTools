@@ -728,7 +728,8 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
         _str_func = 'prerig_delete'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        self.moduleTarget.delete()
+        try:self.moduleTarget.delete()
+        except:log.debug("|{0}| >> No moduleTarget...".format(_str_func))
         self.prerigNull.delete()
         if self.getMessage('noTransformNull'):
             self.noTransformNull.delete()

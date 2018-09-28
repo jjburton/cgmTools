@@ -2415,7 +2415,40 @@ class handleFactory(object):
         except Exception,err:
             cgmGEN.cgmException(Exception,err,msg=vars())
 
-    def addJointHelper(self,baseShape='jack', baseSize = None,
+    def addJointLabel(self,mHandle = None, label = None):
+        _bfr = mHandle.getMessage('jointLabel')
+        if _bfr:
+            mc.delete(_bfr)
+        
+        if label is None:
+            label = mHandle.cgmName
+            
+        #Joint Label ---------------------------------------------------------------------------
+        mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+    
+        mJointLabel.p_parent = mHandle
+        mJointLabel.resetAttrs()
+    
+        mJointLabel.radius = 0
+        mJointLabel.side = 0
+        mJointLabel.type = 18
+        mJointLabel.drawLabel = 1
+        mJointLabel.otherType = label
+    
+        mJointLabel.doStore('cgmName',mHandle.mNode)
+        mJointLabel.doStore('cgmType','jointLabel')
+        mJointLabel.doName()
+    
+        mJointLabel.dagLock()
+    
+        mJointLabel.overrideEnabled = 1
+        mJointLabel.overrideDisplayType = 2
+        
+        mJointLabel.connectParentNode(mHandle.mNode,'handle','jointLabel')   
+        
+        return mJointLabel
+        
+    def addJointHelper(self,baseShape='sphere', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:

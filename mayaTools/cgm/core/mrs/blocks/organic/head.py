@@ -1272,8 +1272,12 @@ def prerig(self):
         ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
                               lock=False, visible=True,keyable=False)
         
-        self.msgList_connect('jointHelpers',[mJointHelper.mNode])
-        self.msgList_connect('prerigHandles',[self.mNode])
+        self.msgList_connect('jointHelpers',[mJointHelper])#mJointHelper.mNode
+        self.msgList_connect('prerigHandles',[mJointHelper])#self.mNode
+        
+        mHandleFactory.addJointLabel(mJointHelper,'head')
+        
+        
 
     else:#NECK build ==========================================================================================
         int_neckControls = self.neckControls + 1
@@ -1431,6 +1435,8 @@ def prerig(self):
         #Name Handles...
         log.debug("|{0}| >> name handles...".format(_str_func)+'-'*40)                
         for mHandle in ml_handles:
+            mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
+            """
             #Joint Label ---------------------------------------------------------------------------
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
         
@@ -1450,7 +1456,7 @@ def prerig(self):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2
+            mJointLabel.overrideDisplayType = 2"""
         
         self.msgList_connect('jointHelpers',targets)
         self.atUtils('create_jointLoft',
@@ -1527,7 +1533,10 @@ def skeleton_build(self, forceNew = True):
     
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
-    p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
+    if self.neckBuild:
+        p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )        
+    else:
+        p = POS.get( self.jointHelper.mNode )
     mHeadHelper = self.orientHelper
     
     #...create ---------------------------------------------------------------------------
@@ -1549,11 +1558,7 @@ def skeleton_build(self, forceNew = True):
                       'z+', 'y+', 'vector',
                       vectorUp=mHeadHelper.getAxisVector('y+'))    
     """
-    LOC.create(position=p_orientAxis)
-    
-    #JOINT.orientChain(mHead_jnt, 'z+', 'y+', mHeadHelper.getAxisVector('z+'))
-    #mHead_jnt.rx = 0
-    #mHead_jnt.rz = 0
+    #LOC.create(position=p_orientAxis)
     JOINT.freezeOrientation(mHead_jnt.mNode)
     
     #...name ----------------------------------------------------------------------------

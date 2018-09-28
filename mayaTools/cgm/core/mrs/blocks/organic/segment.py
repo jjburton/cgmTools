@@ -324,9 +324,9 @@ def define(self):
             mc.delete(defineNull)
     
     
-    _size = (self.atUtils('get_shapeOffset') or 1.0) * 2
+    _size = (self.atUtils('get_shapeOffset') or 1.0) * 2.0
     _crv = CURVES.create_fromName(name='locatorForm',
-                                  direction = 'z+', size = _size * .5)
+                                  direction = 'z+', size = _size * 2.0)
 
     SNAP.go(_crv,self.mNode,)
     CORERIG.override_color(_crv, 'white')
@@ -1763,7 +1763,10 @@ def prerig(self):
         _l_pos = CURVES.returnSplitCurveList(mTrackCurve.mNode,self.numControls,markPoints = False)
         #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
             
-        _sizeUse = self.atUtils('get_shapeOffset')
+        #_sizeUse = self.atUtils('get_shapeOffset')
+        mDefineEndObj = self.defineEndHelper    
+        _size_width = mDefineEndObj.width#...x width        
+        _sizeUse = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
 
         #Sub handles... ------------------------------------------------------------------------------------
         log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
@@ -1773,12 +1776,12 @@ def prerig(self):
             
             
             if p == _l_pos[idx_IK]:
-                crv = CURVES.create_fromName('axis3d', size = _sizeUse * 3.0)
+                crv = CURVES.create_fromName('axis3d', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
             
                 ml_shapes = mHandle.getShapes(asMeta=1)
-                crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 6)
+                crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 1.25)
                 CORERIG.override_color(crv2, 'black')
                 SNAP.go(crv2,mHandle.mNode)
                 CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            
@@ -1816,7 +1819,7 @@ def prerig(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
+            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub / 4.0))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
