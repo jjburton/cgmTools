@@ -2626,7 +2626,7 @@ def rig_skeleton(self):
                                                                ml_set[-1].p_position])
             
                 SNAP.aim(mMidIK.mNode, ml_set[-1].mNode, 'z+','y+','vector',
-                         mBlock.rootUpHelper.getAxisVector('y+'))
+                         mBlock.orientHelper.getAxisVector('y+'))
                 
                 JOINT.freezeOrientation(mMidIK.mNode)
                 
@@ -3465,9 +3465,9 @@ def rig_shapes(self):
         ml_joints = self.d_joints['ml_moduleJoints']
         
         #Our base size will be the average of the bounding box sans the largest
-        _bbSize = TRANS.bbSize_get(mBlock.getMessage('prerigLoftMesh')[0],shapes=True)
-        _bbSize.remove(max(_bbSize))
-        _size = MATH.average(_bbSize)
+        #_bbSize = TRANS.bbSize_get(mBlock.getMessage('prerigLoftMesh')[0],shapes=True)
+        #_bbSize.remove(max(_bbSize))
+        #_size = MATH.average(_bbSize)
 
         #Pivots =======================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
@@ -3476,7 +3476,7 @@ def rig_shapes(self):
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
             mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
 
-
+        
         if self.md_roll:#Segment stuff ===================================================================
             log.debug("|{0}| >> Checking for mid handles...".format(_str_func))
             for i in self.md_roll.keys():
