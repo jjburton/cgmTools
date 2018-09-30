@@ -377,107 +377,7 @@ def define(self):
     
     return
     
-    #Aim Group ==================================================================
-    mDefineNull.doConnectIn('rotate',"{0}.baseAim".format(_short))
     
-    #Bounding box ==================================================================
-    if self.getMessage('bbHelper'):
-        self.bbHelper.delete()
-
-    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1, sizeMode='fixed')
-    _bb_newSize = MATH.list_mult(self.baseSize,[_blockScale,_blockScale,_blockScale])
-    TRANS.scale_to_boundingBox(_bb_shape,_bb_newSize)
-    mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-    mBBShape.p_parent = mDefineNull
-
-    mBBShape.inheritsTransform = False
-    mc.parentConstraint(mDefineNull.mNode,mBBShape.mNode,maintainOffset=False)
-
-    SNAPCALLS.snap( mBBShape.mNode,mDefineNull.mNode,objPivot='axisBox',objMode='z-')
-
-    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
-    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
-    mHandleFactory.color(mBBShape.mNode,controlType='sub')
-    mBBShape.setAttrFlags()
-
-    mBBShape.doStore('cgmName', self.mNode)
-    mBBShape.doStore('cgmType','bbVisualize')
-    mBBShape.doName()
-    #mBBShape.template = True
-    self.connectChildNode(mBBShape.mNode,'bbHelper')            
-    
-    
-    #Up helper ==================================================================
-    mTarget = self.doCreateAt()
-    mTarget.p_parent = mDefineNull
-    mTarget.rename('aimTarget')
-    self.doConnectOut('baseSizeZ', "{0}.tz".format(mTarget.mNode))
-    mTarget.setAttrFlags()
-    
-    _arrowUp = CURVES.create_fromName('pyramid', _size/5, direction= 'y+')
-    mArrow = cgmMeta.validateObjArg(_arrowUp, 'cgmObject',setClass=True)
-    mArrow.p_parent = mDefineNull    
-    mArrow.resetAttrs()
-    mHandleFactory.color(mArrow.mNode,controlType='sub')
-    
-    mArrow.doStore('cgmName', self.mNode)
-    mArrow.doStore('cgmType','upVector')
-    mArrow.doName()
-    mArrow.setAttrFlags()
-    
-    
-    #self.doConnectOut('baseSizeY', "{0}.ty".format(mArrow.mNode))
-    NODEFACTORY.argsToNodes("{0}.ty = {1}.baseSizeY".format(mArrow.mNode,
-                                                                self.mNode,
-                                                                self.baseSize[1])).doBuild()
-    
-    mAimGroup = cgmMeta.validateObjArg(mArrow.doGroup(True,True,asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
-    mAimGroup.resetAttrs()
-    
-    _const = mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
-                              aimVector = [0,0,1], upVector = [0,1,0], 
-                              worldUpObject = mDefineNull.mNode,
-                              worldUpType = 'objectrotation', 
-                              worldUpVector = [0,1,0])
-    cgmMeta.cgmNode(_const[0]).doConnectIn('worldUpVector','{0}.baseUp'.format(self.mNode))    
-    mAimGroup.setAttrFlags()
-    
-    self.connectChildNode(mAimGroup.mNode,'rootUpHelper')
-    
- 
-    #Plane helper ==================================================================
-    plane = mc.nurbsPlane(axis = [1,0,0],#axis =  MATH.get_obj_vector(self.mNode, 'x+'),
-                          width = 1, #height = 1,
-                          #subdivisionsX=1,subdivisionsY=1,
-                          ch=0)
-    mPlane = cgmMeta.validateObjArg(plane[0])
-    mPlane.doSnapTo(mDefineNull.mNode)
-    mPlane.p_parent = mAimGroup
-    mPlane.tz = .5
-    CORERIG.copy_pivot(mPlane.mNode,self.mNode)
-
-    self.doConnectOut('baseSize', "{0}.scale".format(mPlane.mNode))
-
-    mHandleFactory.color(mPlane.mNode,controlType='sub')
-
-    mPlane.doStore('cgmName', self.mNode)
-    mPlane.doStore('cgmType','planeVisualize')
-    mPlane.doName() 
-    
-    mPlane.setAttrFlags()
-    
-    
-    """mAimGroup = mPlane.doGroup(True,True,asMeta=True,typeModifier = 'aim')
-    mAimGroup.resetAttrs()
-    
-    mc.aimConstraint(mTarget.mNode, mAimGroup.mNode, maintainOffset = False,
-                     aimVector = [0,0,1], upVector = [0,1,0], 
-                     worldUpObject = self.rootUpHelper.mNode,
-                     worldUpType = 'objectrotation', 
-                     worldUpVector = [0,1,0])    """
-
- 
-    return    
     
     
 #================================================================================================
@@ -2296,7 +2196,7 @@ def rig_skeleton(self):
             #DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,ml_rigJoints[-1].p_position])
         
             SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
-                     mBlock.rootUpHelper.getAxisVector('y+'))
+                     mBlock.orientHelper.getAxisVector('y+'))
             reload(JOINT)
             JOINT.freezeOrientation(mMidIK.mNode)
             mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
