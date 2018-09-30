@@ -1157,11 +1157,10 @@ def skeleton_build(self, forceNew = True):
     log.debug("|{0}| >> ...".format(_str_func)) 
     
     _radius = self.atUtils('get_shapeOffset')
+    mModule = self.atUtils('module_verify')
     
     ml_joints = []
-    mModule = self.moduleTarget
-    if not mModule:
-        raise ValueError,"No moduleTarget connected"
+
     mRigNull = mModule.rigNull
     if not mRigNull:
         raise ValueError,"No rigNull connected"

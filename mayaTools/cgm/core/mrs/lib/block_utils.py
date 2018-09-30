@@ -4629,6 +4629,25 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
         _str_func = 'module_verify'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         _moduleType = moduleType or self.blockType
+        
+        def checkAttrs(mModule):
+            _nameDict = self.getNameDict(ignore='cgmType')
+    
+            if not _nameDict.get('cgmName'):
+                _nameDict['cgmName'] = kws.get('moduleType',self.blockType)
+            _side = self.atUtils('get_side')
+    
+            if _side != 'center':
+                log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))
+                _nameDict['cgmDirection'] = _side
+    
+            for k,v in _nameDict.iteritems():
+                if v:
+                    log.debug("|{0}| >> Name dat k: {1} | v:{2}".format(_str_func,k,v))
+                    mModule.addAttr(k,value = v,lock = True)
+            mModule.doName()
+            
+        
         log.debug("|{0}| >>  moduleType: {1}".format(_str_func,_moduleType))
         
         if self.blockType == 'master':
@@ -4641,6 +4660,7 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
             log.debug("|{0}| >> moduleTarget found: {1}".format(_str_func,_bfr))
             mModule = cgmMeta.validateObjArg(_bfr,'cgmObject')
             if mModule.moduleType ==_moduleType:
+                checkAttrs(mModule)
                 return mModule
  
         log.debug("|{0}| >> Creating moduleTarget...".format(_str_func))  

@@ -1510,11 +1510,8 @@ def skeleton_build(self, forceNew = True):
         ml_joints = []
         
         mPrerigNull = self.prerigNull
-        self.atUtils('module_verify')
+        mModule = self.atUtils('module_verify')
         
-        mModule = self.moduleTarget
-        if not mModule:
-            raise ValueError,"No moduleTarget connected"
         mRigNull = mModule.rigNull
         if not mRigNull:
             raise ValueError,"No rigNull connected"

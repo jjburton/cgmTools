@@ -34,6 +34,7 @@ from cgm.core.lib import node_utils as NODE
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
 from cgm.core.lib import euclid as EUCLID
+import cgm.core.lib.name_utils as NAMES
 
 reload(LISTS)
 reload(SHARED)
@@ -609,9 +610,6 @@ def get_curveMidPointFromDagList(sourceList):
     return pos
     
     
-
-
-
 def get_positionPlug(obj):
     _str_func = 'get_positionPlug'
     
@@ -621,6 +619,24 @@ def get_positionPlug(obj):
     for attr in l_elibiblePlugs:
         if ATTR.has_attr(obj,attr):
             _res = "{0}.{1}".format(obj,d_plugTypes.get(attr))
-    return _res      
+    return _res
+
+def create_loc(obj):
+    _str_func = 'create_loc'
+    infoDict = get_info(obj)
+    
+    _loc = mc.spaceLocator(name="{0}_loc".format(NAMES.get_base(obj)))[0]
+    pos =infoDict['position']
+    mc.move (pos[0],pos[1],pos[2], _loc, ws=True)
+    mc.xform(_loc, roo=infoDict['rotateOrder'],p=True)
+    mc.xform(_loc, ro=infoDict['rotation'], ws = True)
+    mc.xform(_loc, ra=infoDict['rotateAxis'],p=True)
+
+    #mTarget = r9Meta.getMObject(target)
+    mc.xform(_loc, rp=infoDict['position'], ws = True, p=True)        
+    if infoDict.get('scalePivot'):mc.xform(_loc, sp=infoDict['scalePivot'], ws = True, p=True)
+    
+    return _loc
+    
 
 #Vector ===================================================================================================

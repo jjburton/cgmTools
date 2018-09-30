@@ -250,19 +250,21 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             mc.delete(_constraint + [_loc])"""
         elif mode in ['local','world','vector','object']:
             _loc = mc.spaceLocator(name='test')[0]
+            _loc_snap = POS.create_loc(_obj)
+            
             mc.move (position[0],position[1],position[2], _loc, ws=True)  
             mAxis_aim = VALID.simpleAxis(aimAxis)
             mAxis_up = VALID.simpleAxis(upAxis) 
             
             if mode == 'world':                
-                _constraint = mc.aimConstraint(_loc,_obj,
+                _constraint = mc.aimConstraint(_loc,_loc_snap,
                                                maintainOffset = False,
                                                aimVector = mAxis_aim.p_vector,
                                                upVector = mAxis_up.p_vector,
                                                worldUpType = 'scene',) 
             elif mode == 'object':
                 vectorUp = VALID.mNodeString(vectorUp)
-                _constraint = mc.aimConstraint(_loc,_obj,
+                _constraint = mc.aimConstraint(_loc,_loc_snap,
                                                maintainOffset = False,
                                                aimVector = mAxis_aim.p_vector,
                                                upVector = mAxis_up.p_vector,
@@ -274,14 +276,15 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                     _vUp = vectorUp
                 else:
                     _vUp = MATH.get_obj_vector(_obj,upAxis)
-                _constraint = mc.aimConstraint(_loc,_obj,
+                _constraint = mc.aimConstraint(_loc,_loc_snap,
                                                maintainOffset = False,
                                                aimVector = mAxis_aim.p_vector,
                                                upVector = mAxis_up.p_vector,
                                                worldUpType = 'vector',
                                                worldUpVector = _vUp)                 
                 
-            mc.delete(_constraint)    
+            go(obj,_loc_snap)
+            mc.delete(_constraint,_loc_snap)    
         else:
             raise NotImplementedError,"mode: {0}".format(mode)
         
