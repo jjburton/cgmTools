@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -95,29 +95,41 @@ def get_splitValues(surface = None, values = [], mode='u',
         
     l_sets = []
     
+    log.debug("|{0}| >>  l_base: {1}".format(_str_func,l_base))                    
+    
     for i,v in enumerate(values):
-        log.debug("|{0}| >>  Prcoessing: {1} | {2}".format(_str_func,i,v))        
+        log.debug("|{0}| >>  Processing: {1} | {2}".format(_str_func,i,v)+"-"*40)        
         _last = False
         if v == values[-1]:
             log.debug("|{0}| >>  last...".format(_str_func))                    
             _last = True
+            
         if preInset:
             v+=preInset
+            log.debug("|{0}| >>  preinset: {1}".format(_str_func,v))                    
+            
         _l = [v]
     
+        _stop = False
         for knot in l_base:
+            if _stop or MATH.is_float_equivalent(knot,v) == v:continue            
+            log.debug("|{0}| >>  checking knot: {1}".format(_str_func,knot))
+            if _last:
+                if knot > v:
+                    _stop = True
+                    _l.append(knot)
+                        
             if knot > v or knot < v:
                 if _last != True and knot < values[i+1] and knot > v:
                     _l.append(knot)
-                if _last:
-                    if knot > v and knot < maxKnot:
-                        _l.append(knot) 
-                """
-                if v == values[-1]:
-                    if knot < maxKnot:
-                        _l.append(knot)
-                elif _last != True and knot < values[i+1]:
-                    _l.append(knot)"""
+            log.debug("|{0}| >>  knot add: {1}".format(_str_func,_l))
+                
+            """
+            if v == values[-1]:
+                if knot < maxKnot:
+                    _l.append(knot)
+            elif _last != True and knot < values[i+1]:
+                _l.append(knot)"""
     
         if _last and insertMax:
             _l.append(maxKnot)
@@ -130,9 +142,14 @@ def get_splitValues(surface = None, values = [], mode='u',
     
         if postInset:
             vPost =  _l[-1] + postInset
+            if vPost < _l[-2]:
+                log.debug("|{0}| >>  alternate postInset".format(_str_func))
+                vPost = _l[-2] + -postInset
+                
             log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],vPost))
             if len(_l) > 1:
                 if vPost > max(_l[:-1]):
+                    log.debug("|{0}| >>  v post creater the max".format(_str_func))                    
                     _l[-1] = vPost
                 else:
                     _l = _l[:-1]

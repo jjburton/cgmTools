@@ -1180,7 +1180,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
             
-        
         mRigNull = self.mRigNull
         ml_shapes = []
         mMesh_tmp = None
@@ -1217,7 +1216,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     'limbSegmentHandleBack',
                     'simpleCast']:
             #Get our cast mesh        
-            
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
 
             mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
@@ -1455,7 +1453,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #...Get our uValues...
                     l_uValues = []
                     #l_sets = []
-                    
                     
                     for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode

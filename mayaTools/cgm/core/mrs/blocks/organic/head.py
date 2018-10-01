@@ -1125,7 +1125,7 @@ def template(self):
         
         
             #>>> Connections ====================================================================================
-            self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
+            self.msgList_connect('templateHandles',[mHeadHandle]+[mObj.mNode for mObj in ml_handles_chain])
         
             #>>Loft Mesh =========================================================================================
             if self.neckShapers:
@@ -1284,8 +1284,8 @@ def prerig(self):
         ml_templateHandles_neck = ml_templateHandles[1:]
         ml_noParent = []
         
-        mStartHandle = ml_templateHandles[0]#...changed
-        mEndHandle = ml_templateHandles[-1]    
+        mStartHandle = ml_templateHandles_neck[0]#...changed
+        mEndHandle = ml_templateHandles_neck[-1]    
         mOrientHelper = self.orientHelper
         mOrientNeckHelper = self.orientNeckHelper
         
@@ -1344,7 +1344,7 @@ def prerig(self):
         """
         
         
-        for i,mTemplateHandle in enumerate(ml_templateHandles):
+        for i,mTemplateHandle in enumerate(ml_templateHandles_neck):
             log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
             _HandleSnapTo = mTemplateHandle.mNode
             
@@ -1364,7 +1364,7 @@ def prerig(self):
                 
             _short = mHandle.mNode
             
-            if mTemplateHandle == ml_templateHandles[-1]:
+            if mTemplateHandle == ml_templateHandles_neck[-1]:
                 mHandle.doStore('cgmName','{0}'.format(_l_baseNames[-1]))
             else:
                 mHandle.doStore('cgmName','{0}_{1}'.format(_l_baseNames[0],i))
@@ -1659,6 +1659,8 @@ def rig_prechecks(self):
     if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
         mBlock.segmentMidIKControl = False
         self.l_precheckWarnings.append("Must have more than one neck joint with segmentMidIKControl, turning off")    
+    if mBlock.neckJoints < mBlock.neckControls-1:
+        self.l_precheckErrors.append("Neck control count must be equal or less than neck joint count")
         
     if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
         self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
@@ -2078,7 +2080,10 @@ def rig_shapes(self):
                 
                 self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect    
             else:
-                self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect            
+                self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+        else:
+            self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+            
     else:
         mHeadTar = ml_rigJoints[-1]
         mFKHead = ml_rigJoints[-1].doCreateAt()
@@ -2249,8 +2254,6 @@ def rig_shapes(self):
             
             mShape.delete()
 
-    
-    
     #Direct Controls =============================================================================
     ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
     
@@ -2449,7 +2452,8 @@ def rig_controls(self):
     mHeadIK.masterGroup.parent = mRootParent
     ml_controlsAll.append(mHeadIK)
     
-    self.atUtils('get_switchTarget', mHeadIK, ml_blendJoints[-1])
+    if mBlock.neckBuild:
+        self.atUtils('get_switchTarget', mHeadIK, ml_blendJoints[-1])
     
     
     #>> headLookAt ========================================================================================
@@ -2727,16 +2731,19 @@ def rig_frame(self):
     mTopHandleDriver = mHeadIK
     
     mHeadFK = False
-    mAimParent = ml_blendJoints[-1]
     
     mHeadFK = mRigNull.getMessageAsMeta('headFK')
     mHeadIK = mRigNull.getMessageAsMeta('headIK')
         
     _ikNeck = mBlock.getEnumValueString('neckIK')
+    
     if ml_blendJoints:
         mHeadStuffParent = ml_blendJoints[-1]
+        mAimParent = ml_blendJoints[-1]        
     else:
-        mHeadStuffParent = mHeadFK
+        mHeadStuffParent = mHeadIK
+        mAimParent = self.mDeformNull
+        
 
     #>> headFK ========================================================================================
     """We use the ik head sometimes."""
@@ -2756,10 +2763,11 @@ def rig_frame(self):
         if ml_handleJoints:
             mTopDriver = ml_handleJoints[-1].doCreateAt()
         else:
-            mTopDriver = ml_fkJoints[-1].doCreateAt()
+            mTopDriver = mHeadFKJoint.doCreateAt()#ml_fkJoints[-1]
             
         mTopDriver.p_parent = mHeadBlendJoint
-        ml_segBlendTargets[-1] = mTopDriver#...insert into here our new twist driver
+        if ml_segBlendTargets:
+            ml_segBlendTargets[-1] = mTopDriver#...insert into here our new twist driver
         
         mHeadLookAt.doStore('drivenBlend', mHeadBlendJoint.mNode)
         mHeadLookAt.doStore('drivenAim', mHeadAimJoint.mNode)
@@ -3403,8 +3411,8 @@ def rig_cleanUp(self):
     mSettings = mRigNull.settings
     b_ikOrientToWorld = mBlock.ikOrientToWorld
     
-    mRoot = mRigNull.rigRoot
-    if not mRoot.hasAttr('cgmAlias'):
+    mRoot = mRigNull.getMessageAsMeta('rigRoot')
+    if mRoot and not mRoot.hasAttr('cgmAlias'):
         mRoot.addAttr('cgmAlias','root')    
     
     mMasterControl= self.d_module['mMasterControl']
@@ -3412,7 +3420,7 @@ def rig_cleanUp(self):
     mMasterNull = self.d_module['mMasterNull']
     mModuleParent = self.d_module['mModuleParent']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
-    ml_blendjoints = mRigNull.msgList_get('blendJoints')
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     mAttachDriver = mRigNull.getMessageAsMeta('attachDriver')
     mAttachDriver.doStore('cgmAlias', '{0}_partDriver'.format(self.d_module['partName']))
@@ -3453,26 +3461,28 @@ def rig_cleanUp(self):
     ml_baseHeadDynParents.append(mMasterNull.puppetSpaceObjectsGroup)"""
     
     #...Root controls ================================================================================
-    log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
-    #mParent = mRoot.getParent(asMeta=True)
-    ml_targetDynParents = [self.md_dynTargetsParent['attachDriver']]
-
-    if not mRoot.hasAttr('cgmAlias'):
-        mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
-
-    #if not mParent.hasAttr('cgmAlias'):
-    #    mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
-    #ml_targetDynParents.append(mParent)    
+    ml_targetDynParents = []
+    if mRoot:
+        log.debug("|{0}| >>  Root: {1}".format(_str_func,mRoot))                
+        #mParent = mRoot.getParent(asMeta=True)
+        ml_targetDynParents = [self.md_dynTargetsParent['attachDriver']]
     
-    ml_targetDynParents.extend(ml_endDynParents)
-
-    mDynGroup = mRoot.dynParentGroup
-    #mDynGroup.dynMode = 2
-
-    for mTar in ml_targetDynParents:
-        mDynGroup.addDynParent(mTar)
-    mDynGroup.rebuild()
-    #mDynGroup.dynFollow.p_parent = self.mDeformNull    
+        if not mRoot.hasAttr('cgmAlias'):
+            mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
+    
+        #if not mParent.hasAttr('cgmAlias'):
+        #    mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
+        #ml_targetDynParents.append(mParent)    
+        
+        ml_targetDynParents.extend(ml_endDynParents)
+    
+        mDynGroup = mRoot.dynParentGroup
+        #mDynGroup.dynMode = 2
+    
+        for mTar in ml_targetDynParents:
+            mDynGroup.addDynParent(mTar)
+        mDynGroup.rebuild()
+        #mDynGroup.dynFollow.p_parent = self.mDeformNull    
     
     
     #...ik controls ==================================================================================
@@ -3503,10 +3513,11 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
-    log.debug("|{0}| >>  IK targets...".format(_str_func))
-    pprint.pprint(ml_targetDynParents)        
+    if ml_targetDynParents:
+        log.debug("|{0}| >>  IK targets...".format(_str_func))
+        pprint.pprint(ml_targetDynParents)        
     
-    log.debug(cgmGEN._str_subLine)
+        log.debug(cgmGEN._str_subLine)
               
     
     if mRigNull.getMessage('controlIKMid'):
@@ -3589,9 +3600,10 @@ def rig_cleanUp(self):
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
         ml_headLookAtDynParents.extend(ml_endDynParents)    
         
-        ml_headLookAtDynParents.insert(0, ml_blendjoints[-1])
-        if not ml_blendjoints[-1].hasAttr('cgmAlias'):
-            ml_blendjoints[-1].addAttr('cgmAlias','blendHead')        
+        if ml_blendJoints:
+            ml_headLookAtDynParents.insert(0, ml_blendJoints[-1])
+            if not ml_blendJoints[-1].hasAttr('cgmAlias'):
+                ml_blendJoints[-1].addAttr('cgmAlias','blendHead')        
         #mHeadIK.masterGroup.addAttr('cgmAlias','headRoot')
         
         #Add our parents...
@@ -3631,42 +3643,42 @@ def rig_cleanUp(self):
     #...fk controls ============================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func)+'-'*80)                
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
-    
-    for i,mObj in enumerate([ml_fkJoints[0],ml_fkJoints[-1]]):
-        if not mObj.getMessage('masterGroup'):
-            log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
-            continue
-        log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
-        ml_targetDynParents = copy.copy(ml_baseDynParents)
-        ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+    if ml_fkJoints:
+        for i,mObj in enumerate([ml_fkJoints[0],ml_fkJoints[-1]]):
+            if not mObj.getMessage('masterGroup'):
+                log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
+                continue
+            log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
+            ml_targetDynParents = copy.copy(ml_baseDynParents)
+            ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+            
+            mParent = mObj.masterGroup.getParent(asMeta=True)
+            if mParent and mParent.hasAttr('cgmAlias'):
+                mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
+            _mode = 2
+            if i == 0:
+                ml_targetDynParents.append(mParent)
+                #_mode = 2            
+            else:
+                ml_targetDynParents.insert(0,mParent)
+                #_mode = 1
+            
+            ml_targetDynParents.extend(ml_endDynParents)
+            ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
         
-        mParent = mObj.masterGroup.getParent(asMeta=True)
-        if mParent and mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
-        _mode = 2
-        if i == 0:
-            ml_targetDynParents.append(mParent)
-            #_mode = 2            
-        else:
-            ml_targetDynParents.insert(0,mParent)
-            #_mode = 1
+            mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=_mode)# dynParents=ml_targetDynParents)
+            #mDynGroup.dynMode = 2
         
-        ml_targetDynParents.extend(ml_endDynParents)
-        ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
+            for mTar in ml_targetDynParents:
+                mDynGroup.addDynParent(mTar)
+            mDynGroup.rebuild()
     
-        mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=_mode)# dynParents=ml_targetDynParents)
-        #mDynGroup.dynMode = 2
-    
-        for mTar in ml_targetDynParents:
-            mDynGroup.addDynParent(mTar)
-        mDynGroup.rebuild()
-
-        if _mode == 2:
-            mDynGroup.dynFollow.p_parent = mRoot    
-        
-        log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
-        pprint.pprint(ml_targetDynParents)                
-        log.debug(cgmGEN._str_subLine)    
+            if _mode == 2:
+                mDynGroup.dynFollow.p_parent = mRoot    
+            
+            log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
+            pprint.pprint(ml_targetDynParents)                
+            log.debug(cgmGEN._str_subLine)    
         
     #Settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))
