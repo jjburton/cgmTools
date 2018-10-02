@@ -312,7 +312,7 @@ def doName(self):
         
 
     _position = self.getMayaAttr('position')#self.getEnumValueString('position')
-    if _position != '':
+    if _position and _position != '':
         _d['cgmPosition'] = _position            
         self.doStore('cgmPosition',_position)
     else:self.cgmPosition = ''
@@ -3335,7 +3335,7 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                     log.error("|{0}| >> Define handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_defineHandles),len(_posTempl))) 
                 else:
                     for i_loop in range(3):
-                        log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                        log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop)+ '-'*80)
 
                         for i,mObj in enumerate(_ml_defineHandles):
                             log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
@@ -3346,8 +3346,10 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                             _tmp_short = mObj.mNode
                             for ii,v in enumerate(_scaleTempl[i]):
                                 _a = 's'+'xyz'[ii]
-                                if not self.isAttrConnected(_a):
-                                    ATTR.set(_tmp_short,_a,v)   
+                                if not mObj.isAttrConnected(_a):
+                                    ATTR.set(_tmp_short,_a,v)
+                                else:
+                                    log.debug("|{0}| >> connected scale: {1}".format(_str_func,a))
                             if _jointHelpers and _jointHelpers.get(i):
                                 mObj.jointHelper.translate = _jointHelpers[i]
                             
@@ -3431,7 +3433,7 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 _tmp_short = mObj.mNode
                                 for ii,v in enumerate(_scaleTempl[i]):
                                     _a = 's'+'xyz'[ii]
-                                    if not self.isAttrConnected(_a):
+                                    if not mObj.isAttrConnected(_a):
                                         ATTR.set(_tmp_short,_a,v)   
                                 if _jointHelpers and _jointHelpers.get(i):
                                     mObj.jointHelper.translate = _jointHelpers[i]
@@ -3515,7 +3517,7 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 _tmp_short = mObj.mNode
                                 for ii,v in enumerate(_scalePre[i]):
                                     _a = 's'+'xyz'[ii]
-                                    if not self.isAttrConnected(_a):
+                                    if not mObj.isAttrConnected(_a):
                                         ATTR.set(_tmp_short,_a,v)   
                                 if _jointHelpersPre and _jointHelpersPre.get(i):
                                     mObj.jointHelper.translate = _jointHelpersPre[i]
@@ -5714,6 +5716,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             md_vector[k] = mArrow
         
             #Joint Label ---------------------------------------------------------------------------
+            mJointLabel = mHandleFactory.addJointLabel(mHandle,"{0}_{1}".format(self.blockProfile,k))
+            md_jointLabels[k] = mJointLabel
+
+            """
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
             md_jointLabels[k] = mJointLabel
             CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
@@ -5735,7 +5741,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2
+            mJointLabel.overrideDisplayType = 2"""
         
         
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')

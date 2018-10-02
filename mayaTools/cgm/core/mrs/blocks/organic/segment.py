@@ -334,9 +334,11 @@ def define(self):
     mHandleFactory = self.asHandleFactory()
     self.addAttr('cgmColorLock',True,lock=True,visible=False)
     mDefineNull = self.atUtils('stateNull_verify','define')
-    
+    mHandleFactory = self.asHandleFactory()
     
     #Joint Label ---------------------------------------------------------------------------
+    mHandleFactory.addJointLabel(self,self.blockProfile)
+    """
     mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
     CORERIG.override_color(mJointLabel.mNode, 'white')
 
@@ -347,17 +349,17 @@ def define(self):
     mJointLabel.side = 0
     mJointLabel.type = 18
     mJointLabel.drawLabel = 1
-    mJointLabel.otherType = self.blockType
+    mJointLabel.otherType = self.blockProfile
 
     mJointLabel.doStore('cgmName',self.mNode)
-    mJointLabel.doStore('cgmTypeModifier',self.blockType)
+    mJointLabel.doStore('cgmTypeModifier',self.blockProfile)
     mJointLabel.doStore('cgmType','jointLabel')
     mJointLabel.doName()            
 
     mJointLabel.dagLock()
 
     mJointLabel.overrideEnabled = 1
-    mJointLabel.overrideDisplayType = 2    
+    mJointLabel.overrideDisplayType = 2    """
     
 
     #Define our controls ===================================================================
