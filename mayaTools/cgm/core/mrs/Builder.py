@@ -100,6 +100,7 @@ class ui(cgmUI.cgmGUI):
                          'rig disconnect': 'Disconnect the bind joints from the rig joints',
                          'proxy verify': 'Verify proxy geo per block (if available)',
                          'reset rig': 'Reset rig controls',
+                         'query rig nodes':"Query and display the rig nodes of the block",
                          'verify':"Verify the attributes rigBlocks"}    
     
     def insert_init(self,*args,**kws):
@@ -1581,7 +1582,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=1)
         _row.layout()
         
-        #General ======================================================
+        #Rig ======================================================
         log.debug("|{0}| >> rig ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
@@ -1604,6 +1605,28 @@ class ui(cgmUI.cgmGUI):
                                       **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('reset rig controls'))
         mc.button(parent=_row,
+                  l = 'Query Nodes',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','rigNodes_get',
+                                      **{'updateUI':0,'report':True}),
+                  ann = self._d_ui_annotations.get('query rig nodes'))        
+        
+        
+        
+
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()        
+        
+        #Rig Connect ======================================================
+        log.debug("|{0}| >> Rig Connect...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="Rig Connect: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        mc.button(parent=_row,
                   l = 'Connect',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextModuleCall,
@@ -1618,15 +1641,9 @@ class ui(cgmUI.cgmGUI):
                                       **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('disconnect rig'))
         
-
         mUI.MelSpacer(_row,w=1)
-        _row.layout()        
-        
-        
-        #Joint ======================================================
-        log.debug("|{0}| >> skeleton ...".format(_str_func)+ '-'*40)
-        mc.setParent(_column)        
-        CGMUI.add_Header('skeleton')        
+        _row.layout()                
+    
         
         return
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)

@@ -3731,6 +3731,9 @@ def rig_cleanUp(self):
     
     mBlock.template = True
     mBlock.noTransTemplateNull.template=True
+    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    self.UTILS.rigNodes_store(self)
+    
     #>>  Parent and constraining joints and rig parts =======================================================
 
     #>>  DynParentGroups - Register parents for various controls ============================================

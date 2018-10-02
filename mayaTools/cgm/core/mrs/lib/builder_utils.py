@@ -1082,6 +1082,35 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
+
+def rigNodes_store(self):
+    """
+    :parameters:
+
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _str_func = 'rigNodes_store'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    ml_postNodes = cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
+    
+    _res = []
+    for mObj in ml_postNodes:
+        if mObj not in self.ml_preNodesBuffer:
+            _res.append(mObj)
+
+    if self.__dict__.get('mRigNull'):
+        self.mRigNull.connectChildrenNodes(_res,'rigNodes','rigBlock')
+    else:
+        self.mPuppet.connectChildrenNodes(_res,'rigNodes','rigBlock')
+
+
+
 @cgmGEN.Timer
 def get_dynParentTargetsDat(self):
     """
@@ -2094,6 +2123,14 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         return l_new
     except Exception,err:
         cgmGEN.cgmException(Exception,err,msg=vars())
+
+
+
+
+
+
+
+
 
 def joints_connectToParent(self):
     try:

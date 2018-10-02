@@ -268,6 +268,7 @@ def set_nameTag(self,nameTag = None):
 
 def set_blockNullTemplateState(self,state=True, define = True, template=True,prerig=True):
     _str_func = 'set_blockNullTemplateState'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     self.template = state
     
@@ -2480,6 +2481,31 @@ def verify_dynSwitch(self):
     return mDynSwitch
 
 
+def rigNodes_get(self,report = False):
+    _str_func = 'rigNodes_get'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    mModuleTarget = self.getMessageAsMeta('moduleTarget')
+    if not mModuleTarget:
+        return False
+    
+    if mModuleTarget.mClass == 'cgmRigPuppet':
+        _res = mModuleTarget.getMessageAsMeta('rigNodes')
+    else:
+        _res = mModuleTarget.rigNull.getMessageAsMeta('rigNodes')
+        
+    if report:
+        log.info(cgmGEN._str_subLine)        
+        for i,mNode in enumerate(_res):
+            print("{0} | {1}".format(i,mNode))
+        log.info(cgmGEN._str_subLine)
+        log.info("|{0}| >>  Rig nodes: {1} | {2}".format(_str_func,len(_res),self))
+        log.info(cgmGEN._str_hardLine)
+    return _res
+
+
+
 def prerig_getHandleTargets(self):
     """
     
@@ -4483,7 +4509,6 @@ def rig(self,**kws):
     else:
         self.blockState = 'rig'
     skeleton_connectToParent(self)
-    set_blockNullTemplateState(self)
     return True
 
 def rigDelete(self):
@@ -4513,7 +4538,6 @@ def rigDelete(self):
         if mModuleTarget.mClass ==  'cgmRigModule':
             self.template = False
             self.noTransTemplateNull.template=True
-            
             mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
             
             log.info("|{0}| >> Controls...".format(_str_func))
@@ -4523,8 +4547,7 @@ def rigDelete(self):
                 mDynGroup = mCtrl.getMessageAsMeta('dynParentGroup')
                 if mDynGroup:
                     mDynGroup.doPurge()
-        
-        
+
                     ml_spacePivots = mCtrl.msgList_get('spacePivots')
                     if ml_spacePivots:
                         for mObj in ml_spacePivots:
@@ -4535,8 +4558,18 @@ def rigDelete(self):
                 mGroup = mObj.getMessageAsMeta(link)
                 if mGroup:
                     mGroup.delete()
-                    break            
-
+                    break
+                
+            #Rig nodes....
+            ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
+            for mNode in ml_rigNodes:
+                try:
+                    log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
+                    mNode.delete()
+                except:
+                    log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
+                    
+            """
             #Deform null
             log.info("|{0}| >> deformNull...".format(_str_func))                        
             _deformNull = mModuleTarget.getMessage('deformNull')
@@ -4559,7 +4592,7 @@ def rigDelete(self):
             log.info("|{0}| >> Children of part...".format(_str_func))                        
             for mChild in mModuleTarget.getChildren(asMeta=True):
                 if mChild == mRigNull:continue
-                mChild.delete()            
+                mChild.delete()            """
         elif mModuleTarget.mClass == 'cgmRigPuppet':
             pass#mModuleTarget.masterControl.delete()
         
@@ -4573,7 +4606,7 @@ def rigDelete(self):
         self.p_blockModule.rigDelete(self)
     
     self.blockState = 'skeleton'#...yes now in this state
-    set_blockNullTemplateState(self, state=False, define=False, template=False, prerig=False)
+    set_blockNullTemplateState(self, state=False, define=False)
     return True
 
 @cgmGEN.Timer

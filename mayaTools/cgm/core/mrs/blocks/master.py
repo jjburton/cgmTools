@@ -562,7 +562,8 @@ def rig_cleanUp(self):
     
     mBlock.template = True
     mBlock.noTransTemplateNull.template=True
-
+    self.UTILS.rigNodes_store(self)
+    
     self.version = self.d_block['buildVersion']
     
     mMasterControl.doStore('version', self.d_block['buildVersion'])
@@ -573,10 +574,12 @@ def rig_cleanUp(self):
 @cgmGEN.Timer
 def rigDelete(self):
     try:
-        _str_func = 'rigDelete'    
+        _str_func = 'rigDelete'
+        log.debug("|{0}| >> ...".format(_str_func,)+'-'*80)
+        log.debug(self)
         self.template = False
         self.noTransTemplateNull.template=True
-        
+        mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:
             mRootMotion.dynParentGroup.doPurge()
@@ -596,6 +599,17 @@ def rigDelete(self):
                         break
                 
         self.moduleTarget.masterControl.masterGroup.delete()
+        
+        log.debug("|{0}| >> rigNodes...".format(_str_func,)+'-'*40)                             
+        ml_rigNodes = mPuppet.getMessageAsMeta('rigNodes')
+        for mNode in ml_rigNodes:
+            try:
+                log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
+                mNode.delete()
+            except:
+                log.debug("|{0}| >> failed...".format(_str_func,mNode))         
+        
+        
         
         return True
         self.v = 1

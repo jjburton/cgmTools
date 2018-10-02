@@ -327,6 +327,7 @@ def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
         mode(varied): 
             True/'max': Only return max value
             'min': Only min
+            maxFill - [max,max.max]
 
     :returns
         boundingBox size(list)
@@ -365,6 +366,9 @@ def get_bb_size(arg = None, shapes = False, mode = None, asEuclid = False):
         return max(_res)
     elif mode in ['min']:
         return min(_res)
+    elif mode == 'maxFill':
+        _max = max(_res)
+        return [_max,_max,_max]
     else:
         log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
     return _res    

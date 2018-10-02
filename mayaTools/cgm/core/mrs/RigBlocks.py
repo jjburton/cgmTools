@@ -4358,7 +4358,7 @@ class rigFactory(object):
         
         #cgmGEN.log_info_dict(self.call_kws,_str_func)
         
-        self.l_preNodesBuffer = SEARCH.get_nodeSnapShot()
+        self.ml_preNodesBuffer = cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
         
         self.fnc_check_rigBlock()
         
@@ -4395,10 +4395,7 @@ class rigFactory(object):
         self.fnc_deformConstrainNulls()
         self.fnc_processBuild(**kws)
         
-        l_diff = SEARCH.get_nodeSnapShotDifferential(self.l_preNodesBuffer)
-        #self.mBlock.addAttr('rigNodeBuffer','message',l_diff)
-        self.mRigNull.connectChildrenNodes(l_diff,'rigNodes','rigBlock')
-        pprint.pprint(l_diff)
+
 
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
 
@@ -5015,8 +5012,9 @@ class rigFactory(object):
                     if _Break:
                         log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
                         break
-
-
+                    
+            #self.mBlock.addAttr('rigNodeBuffer','message',l_diff)
+            
             CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar

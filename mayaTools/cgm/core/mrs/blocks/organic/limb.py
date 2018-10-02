@@ -297,6 +297,7 @@ d_block_profiles = {
            'ikRPAim':'default',
            'rigSetup':'digit',
            'mainRotAxis':'out',
+           'hasEndJoint':False,           
            'buildLeverBase':False,
            'hasLeverJoint':False,
            'hasLeverJoint':False,
@@ -1473,7 +1474,7 @@ def prerig(self):
     ml_handles = []
     ml_jointHandles = []        
     
-    _size = MATH.average(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
+    _size = MATH.average(POS.get_bb_size(mStartHandle.mNode,True,'maxFill'))#(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
     #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]    
     _sizeSub = _size * .33    
     _vec_root_up = mOrientHelper.getAxisVector('y+')
@@ -2875,8 +2876,8 @@ def rig_digitShapes(self):
             if ml_templateHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
                 mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
-                bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
-    
+                #bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
+                bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,'maxFill')
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.5)
                 mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
@@ -3036,7 +3037,8 @@ def rig_digitShapes(self):
             log.debug("|{0}| >> baseIK...".format(_str_func))
         
             mIK_templateHandle = self.mRootTemplateHandle
-            bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,'maxFill')
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
             ATTR.set(_ik_shape,'scale', 1.1)
         
@@ -3063,7 +3065,7 @@ def rig_digitShapes(self):
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect       
             
             
-            
+        
         #Cog =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -3624,7 +3626,7 @@ def rig_shapes(self):
             elif ml_templateHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
                 mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
-                bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
+                bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,mode='maxFill')#mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
                 
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.5)
@@ -3646,7 +3648,9 @@ def rig_shapes(self):
             elif str_ikEnd in ['tipCombo']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> tipCombo IK shape...".format(_str_func))                
                 mIKTemplateHandle = ml_templateHandles[-1]
-                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                
                 _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 2.5)
                 
@@ -3682,7 +3686,9 @@ def rig_shapes(self):
                 _ikDefault = True
                 log.debug("|{0}| >> default IK shape...".format(_str_func))                
                 mIKTemplateHandle = ml_templateHandles[-1]
-                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 #ATTR.set(_ik_shape,'scale', 1.5)
                 
@@ -3761,7 +3767,8 @@ def rig_shapes(self):
             log.debug("|{0}| >> baseIK...".format(_str_func))
             
             mIK_templateHandle = self.mRootTemplateHandle
-            bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='maxFill')
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)#[v+_offset for v in bb_ik])
             #ATTR.set(_ik_shape,'scale', 1.5)
     
@@ -3785,7 +3792,7 @@ def rig_shapes(self):
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
         
-
+        
         #Cog/Settings =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -3814,7 +3821,8 @@ def rig_shapes(self):
             
             mRoot = ml_rigJoints[0].doCreateAt()
             
-            _size_root =  MATH.average(mHandleFactory.get_axisBox_size(self.mRootTemplateHandle.mNode))
+            #mHandleFactory.get_axisBox_size(self.mRootTemplateHandle.mNode)
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode,True,'maxFill'))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cube', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
         
@@ -4048,7 +4056,7 @@ def rig_shapes(self):
                 log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
                 mIKTemplateHandle = ml_templateHandles[-1]
                 
-                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,'maxFill')#mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
                 _fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
                 ATTR.set(_fk_shape,'scale', 1.50)
                 SNAP.go(_fk_shape,mJnt.mNode)
@@ -6946,6 +6954,8 @@ def rig_cleanUp(self):
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
+    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    self.UTILS.rigNodes_store(self)
     
     #cgmGEN.func_snapShot(vars())
     return
@@ -7163,7 +7173,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
                 #Add a ankleball ------------------------------------------------------------------------
                 _target = ml_templateHandles[-1].mNode
-                _bb_size = SNAPCALLS.get_axisBox_size(_target)
+                _bb_size = POS.get_bb_size(_target,True,'maxFill')#SNAPCALLS.get_axisBox_size(_target)
                 _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
                 _size = [v*.8 for v in _size]
                 _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)

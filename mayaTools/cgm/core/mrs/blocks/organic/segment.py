@@ -4080,6 +4080,10 @@ def rig_cleanUp(self):
     #Close out ========================================================================================
     mBlock.blockState = 'rig'
     mRigNull.version = self.d_block['buildVersion']
+    
+    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    self.UTILS.rigNodes_store(self)    
+
     #cgmGEN.func_snapShot(vars())
     return
 
