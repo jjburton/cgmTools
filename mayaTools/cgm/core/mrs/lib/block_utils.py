@@ -296,19 +296,23 @@ def doName(self):
     """
     _short = self.p_nameShort
     _str_func = '[{0}] doName'.format(_short)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
     _direction = self.getEnumValueString('side')
     if _direction != 'none':
+        log.debug("|{0}| >>  direction: {1}".format(_str_func,_direction))
         _d['cgmDirection'] = _direction        
         self.doStore('cgmDirection',_direction)
     else:
         if _d.get('cgmDirection'):_d.pop('cgmDirection')
         self.doStore('cgmDirection','')
+        log.debug("|{0}| >>  cgmDirection: {1}".format(_str_func,self.cgmDirection))
+        
 
     _position = self.getMayaAttr('position')#self.getEnumValueString('position')
-    if _position:
+    if _position != '':
         _d['cgmPosition'] = _position            
         self.doStore('cgmPosition',_position)
     else:self.cgmPosition = ''
@@ -331,8 +335,15 @@ def doName(self):
             self.doStore('cgmDirection',_value)"""
     #pprint.pprint(vars())
     #Check for special attributes to replace data, name
-    self.rename(NAMETOOLS.returnCombinedNameFromDict(_d))
-
+    _d_new = {}
+    for k,v in _d.iteritems():
+        if v in ['none','None','NONE',None]:
+            continue
+        _d_new[k] = v
+    log.debug("|{0}| >>  dict: {1}".format(_str_func,_d_new))
+    self.rename(NAMETOOLS.returnCombinedNameFromDict(_d_new))
+    
+    
     if self.getMessage('moduleTarget'):
         log.debug("|{0}| >> Module target naming...".format(_str_func))            
         self.moduleTarget.doName()
@@ -2491,16 +2502,36 @@ def rigNodes_get(self,report = False):
         return False
     
     if mModuleTarget.mClass == 'cgmRigPuppet':
-        _res = mModuleTarget.getMessageAsMeta('rigNodes')
+        _res = mModuleTarget.getMessage('rigNodes')
     else:
-        _res = mModuleTarget.rigNull.getMessageAsMeta('rigNodes')
+        _res = mModuleTarget.rigNull.getMessage('rigNodes')
         
     if report:
-        log.info(cgmGEN._str_subLine)        
-        for i,mNode in enumerate(_res):
-            print("{0} | {1}".format(i,mNode))
+        _len = len(_res)
         log.info(cgmGEN._str_subLine)
-        log.info("|{0}| >>  Rig nodes: {1} | {2}".format(_str_func,len(_res),self))
+        ml = [cgmMeta.cgmNode(o) for o in _res]
+        md = {}
+        d_counts = {}
+        
+        for mObj in ml:
+            _type = mObj.getMayaType()
+            if not md.get(_type):
+                md[_type] = []
+            md[_type].append(mObj)
+            
+        for k,l in md.iteritems():
+            _len_type = len(l)
+            print("|{0}| >>  Type: {1} ...".format(_str_func,k))
+            d_counts[k] = _len_type
+            for i,mNode in enumerate(l):
+                print("{0} | {1}".format(i,mNode))
+                
+        log.info(cgmGEN._str_subLine)
+        _sort = d_counts.keys()
+        _sort.sort()
+        for k in _sort:
+            print("|{0}| >>  {1} : {2}".format(_str_func,k,d_counts[k]))  
+        print("|{0}| >>  Total: {1} | {2}".format(_str_func,_len,self))
         log.info(cgmGEN._str_hardLine)
     return _res
 

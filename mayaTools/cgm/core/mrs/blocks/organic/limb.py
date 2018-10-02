@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -40,7 +40,7 @@ import cgm.core.mrs.assets as MRSASSETS
 path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
@@ -48,13 +48,13 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.classes.NodeFactory as NODEFACTORY
-reload(NODEFACTORY)
+#reload(NODEFACTORY)
 from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.rig.create_utils as RIGCREATE
-reload(NAMETOOLS)
+#reload(NAMETOOLS)
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rayCaster as RAYS
@@ -71,10 +71,10 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-reload(CURVES)
-reload(BUILDUTILS)
-reload(DIST)
-reload(RIGCONSTRAINT)
+#reload(CURVES)
+#reload(BUILDUTILS)
+#reload(DIST)
+#reload(RIGCONSTRAINT)
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta

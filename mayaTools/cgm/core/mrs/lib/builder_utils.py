@@ -1097,18 +1097,19 @@ def rigNodes_store(self):
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
-    ml_postNodes = cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
-    
+    l_postNodes = SEARCH.get_nodeSnapShot()
     _res = []
-    for mObj in ml_postNodes:
-        if mObj not in self.ml_preNodesBuffer:
-            _res.append(mObj)
+    for o in l_postNodes:
+        if o not in self.l_preNodesBuffer:
+            _res.append(o)
+            
 
     if self.__dict__.get('mRigNull'):
         self.mRigNull.connectChildrenNodes(_res,'rigNodes','rigBlock')
     else:
         self.mPuppet.connectChildrenNodes(_res,'rigNodes','rigBlock')
-
+        
+    print _res
 
 
 @cgmGEN.Timer

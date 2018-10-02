@@ -123,106 +123,111 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     :raises:
     TypeError | if not passed a dict
     '''
-    _str_func = 'walk_blockDict'
-    
-    if arg == None:
-        arg = get_scene_block_heirarchy(True)
+    try:
+        _str_func = 'walk_blockDict'
         
-    if not isinstance(arg,dict):
-        raise ValueError, "need dict: {0}".format(arg)
-    
-    if blockList is None:
-        blockList = []
-    if stringList is None:
-        stringList = []
-        
-    l_keys = arg.keys()
-    if not l_keys:
-        return [],[]
-        
-    d_keys_to_idx = {}
-    d_idx_to_keys = {}
-    l_mNodeKeys = []
-    for i,k in enumerate(l_keys):
-        l_mNodeKeys.append(k.mNode)
-        d_keys_to_idx[k.mNode] = i
-        d_idx_to_keys[i] = k
-        
-    l_mNodeKeys.sort()
-    l_keys = []#.reset and fill...
-    for KmNode in l_mNodeKeys:
-        l_keys.append( d_idx_to_keys[ d_keys_to_idx[KmNode]] )
-        
-    
-    counter+=1
-    
-    for k in l_keys:
-        mBlock = k
-        #>>>Build strings
-        _short = mBlock.p_nameShort
-        #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
-
-        _l_report = []
-
-        _l_parents = mBlock.getBlockParents(False)
-        log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
-        
-        _len = len(_l_parents)
-        
-        if _len:
-            s_start = ' '*_len +' '
-        else:
-            s_start = ''
+        if arg == None:
+            arg = get_scene_block_heirarchy(True)
             
-        if counter == 1:
-            s_start = s_start + " "            
-        else:
-            #s_start = s_start + '-[{0}] '.format(counter-1)
-            s_start = s_start + ' ^-' + '-'*(counter-1) + ' '
-
-        if mBlock.getMayaAttr('position'):
-            _v = mBlock.getEnumValueString('position')
-            _l_report.append( _d_scrollList_shorts.get(_v,_v) )
-        if mBlock.getMayaAttr('side'):
-            _v = mBlock.getEnumValueString('side')
-            _l_report.append( _d_scrollList_shorts.get(_v,_v))
-
-        if mBlock.hasAttr('cgmName'):
-            _l_report.append(mBlock.cgmName)
-        else:
-            _l_report.append( ATTR.get(_short,'blockType') )
-            
-        #_l_report.append(ATTR.get(_short,'blockState'))
-        _l_report.append("[{0}]".format(mBlock.getState().upper()))
+        if not isinstance(arg,dict):
+            raise ValueError, "need dict: {0}".format(arg)
         
-        """
-        if mObj.hasAttr('baseName'):
-            _l_report.append(mObj.baseName)                
-        else:
-            _l_report.append(mObj.p_nameBase)"""                
+        if blockList is None:
+            blockList = []
+        if stringList is None:
+            stringList = []
+            
+        l_keys = arg.keys()
+        if not l_keys:
+            return [],[]
+            
+        d_keys_to_idx = {}
+        d_idx_to_keys = {}
+        l_mNodeKeys = []
+        for i,k in enumerate(l_keys):
+            l_mNodeKeys.append(k.mNode)
+            d_keys_to_idx[k.mNode] = i
+            d_idx_to_keys[i] = k
+            
+        l_mNodeKeys.sort()
+        l_keys = []#.reset and fill...
+        for KmNode in l_mNodeKeys:
+            l_keys.append( d_idx_to_keys[ d_keys_to_idx[KmNode]] )
+            
+        
+        counter+=1
+        
+        for k in l_keys:
+            mBlock = k
+            #>>>Build strings
+            _short = mBlock.p_nameShort
+            #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
     
-        if mBlock.isReferenced():
-            _l_report.append("Referenced")
-
-        _str = s_start + " - ".join(_l_report)
-        log.debug(_str + "   >> " + mBlock.mNode)
-        #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
-        stringList.append(_str)        
-        blockList.append(mBlock)
- 
-        buffer = arg[k]
-        if buffer:
-            get_uiScollList_dat(buffer,k,counter,blockList,stringList)   
+            _l_report = []
+    
+            _l_parents = mBlock.getBlockParents(False)
+            log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
             
-
-    """if counter == 0:
-        print('> {0} '.format(mBlock.mNode))			                	            
-    else:
-        print('-'* counter + '> {0} '.format(mBlock.mNode) )"""	
+            _len = len(_l_parents)
+            
+            if _len:
+                s_start = ' '*_len +' '
+            else:
+                s_start = ''
+                
+            if counter == 1:
+                s_start = s_start + " "            
+            else:
+                #s_start = s_start + '-[{0}] '.format(counter-1)
+                s_start = s_start + ' ^-' + '-'*(counter-1) + ' '
+                
+            
+            if mBlock.getMayaAttr('position'):
+                _v = mBlock.getMayaAttr('position')
+                if _v.lower() not in ['','none']:
+                    _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                
+            if mBlock.getMayaAttr('side'):
+                _v = mBlock.getEnumValueString('side')
+                _l_report.append( _d_scrollList_shorts.get(_v,_v))
+    
+            if mBlock.hasAttr('cgmName'):
+                _l_report.append(mBlock.cgmName)
+            else:
+                _l_report.append( ATTR.get(_short,'blockType') )
+                
+            #_l_report.append(ATTR.get(_short,'blockState'))
+            _l_report.append("[{0}]".format(mBlock.getState().upper()))
+            
+            """
+            if mObj.hasAttr('baseName'):
+                _l_report.append(mObj.baseName)                
+            else:
+                _l_report.append(mObj.p_nameBase)"""                
         
-
-    return blockList,stringList
-
+            if mBlock.isReferenced():
+                _l_report.append("Referenced")
+    
+            _str = s_start + " - ".join(_l_report)
+            log.debug(_str + "   >> " + mBlock.mNode)
+            #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
+            stringList.append(_str)        
+            blockList.append(mBlock)
+     
+            buffer = arg[k]
+            if buffer:
+                get_uiScollList_dat(buffer,k,counter,blockList,stringList)   
+                
+    
+        """if counter == 0:
+            print('> {0} '.format(mBlock.mNode))			                	            
+        else:
+            print('-'* counter + '> {0} '.format(mBlock.mNode) )"""	
+            
+    
+        return blockList,stringList
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 def walk_rigBlock_heirarchy(mBlock,dataDict = None, asMeta = True,l_processed = None):
     """
     

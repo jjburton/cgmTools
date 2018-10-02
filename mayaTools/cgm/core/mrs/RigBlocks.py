@@ -57,12 +57,13 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
 import cgm.core.mrs.lib.module_utils as MODULEUTILS
+import cgm.core.rig.general_utils as RIGGEN
 
-reload(BUILDERUTILS)
+#reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
-reload(BLOCKSHARE)
+#reload(BLOCKSHARE)
 from cgm.core.classes import GuiFactory as CGMUI
-reload(CGMUI)
+#reload(CGMUI)
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 get_from_scene = BLOCKGEN.get_from_scene
 
@@ -4358,7 +4359,7 @@ class rigFactory(object):
         
         #cgmGEN.log_info_dict(self.call_kws,_str_func)
         
-        self.ml_preNodesBuffer = cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
+        self.fnc_get_nodeSnapShot()
         
         self.fnc_check_rigBlock()
         
@@ -4443,7 +4444,11 @@ class rigFactory(object):
                 if vis: cgmMeta.cgmAttr(mRigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
                 cgmMeta.cgmAttr(mRigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
 
-    #@cgmGEN.Timer
+    @cgmGEN.Timer
+    def fnc_get_nodeSnapShot(self):
+        #self.ml_preNodesBuffer = RIGGEN.get_metaNodeSnapShot()#cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
+        self.l_preNodesBuffer = SEARCH.get_nodeSnapShot()
+        
     def fnc_check_rigBlock(self):
         """
         Check the rig block data 
