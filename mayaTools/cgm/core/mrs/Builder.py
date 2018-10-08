@@ -2139,13 +2139,16 @@ class ui(cgmUI.cgmGUI):
   
         
         
-        _RightColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUITemplate')
+        _RightColumn = mUI.MelFormLayout(_MainForm)
+        _RightUpperColumn = mUI.MelColumn(_RightColumn)
+        _RightScroll = mUI.MelScrollLayout(_RightColumn,useTemplate = 'cgmUITemplate')
         
-        
+
         #=============================================================================================
         #>> Top
         #=============================================================================================
-        cgmUI.add_Header('Active',overrideUpper=True) 
+        mc.setParent(_RightUpperColumn)
+        cgmUI.add_Header('Push',overrideUpper=True) 
         """self.uiField_inspector= mUI.MelLabel(_RightColumn,
                                              bgc = SHARED._d_gui_state_colors.get('help'),
                                              label = '...',
@@ -2164,7 +2167,7 @@ class ui(cgmUI.cgmGUI):
         
         #build our sub section options
         #MelHSingleStretchLayout
-        _row_contextModes = mUI.MelHSingleStretchLayout(_RightColumn,ut='cgmUISubTemplate',padding = 5)
+        _row_contextModes = mUI.MelHSingleStretchLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextModes,w=1)
         mUI.MelLabel(_row_contextModes,l = 'Context:')
         _row_contextModes.setStretchWidget( mUI.MelSeparator(_row_contextModes) )
@@ -2191,7 +2194,7 @@ class ui(cgmUI.cgmGUI):
     
         #build our sub section options
         #MelHSingleStretchLayout
-        _row_contextStartModes = mUI.MelHSingleStretchLayout(_RightColumn,ut='cgmUISubTemplate',padding = 5)
+        _row_contextStartModes = mUI.MelHSingleStretchLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Begin actions with:')
         _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
@@ -2208,9 +2211,9 @@ class ui(cgmUI.cgmGUI):
         _row_contextStartModes.layout()       
         
         #Push Rows  -------------------------------------------------------------------------------  
-        mc.setParent(_RightColumn)
+        mc.setParent(_RightUpperColumn)
         CGMUI.add_LineSubBreak()
-        _row_push = mUI.MelHLayout(_RightColumn,ut='cgmUISubTemplate',padding = 2)
+        _row_push = mUI.MelHLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(_row_push,'Define>',
                          cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{}),
                          '[Define] - initial block state')
@@ -2238,7 +2241,7 @@ class ui(cgmUI.cgmGUI):
         
         self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0)       
     
-        _frame_blockUtils = mUI.MelFrameLayout(_RightColumn,label = 'Utilities - Contextual',vis=True,
+        _frame_blockUtils = mUI.MelFrameLayout(_RightScroll,label = 'Utilities - Contextual',vis=True,
                                                 collapse=self.var_blockUtilsFrameCollapse.value,
                                                 collapsable=True,
                                                 enable=True,
@@ -2260,7 +2263,7 @@ class ui(cgmUI.cgmGUI):
         
         self.create_guiOptionVar('blockSettingsFrameCollapse',defaultValue = 0)       
     
-        _frame_blockSettings = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Active',vis=True,
+        _frame_blockSettings = mUI.MelFrameLayout(_RightScroll,label = 'Block Dat - Active',vis=True,
                                                   collapse=self.var_blockSettingsFrameCollapse.value,
                                                   collapsable=True,
                                                   enable=True,
@@ -2276,7 +2279,7 @@ class ui(cgmUI.cgmGUI):
         #Contextual frame ------------------------------------------------------------------------------------
         log.debug("|{0}| >>  Contextual block frame...".format(_str_func)+ '-'*40)
         
-        _frame_shared = mUI.MelFrameLayout(_RightColumn,label = 'Block Dat - Contextual',vis=True,
+        _frame_shared = mUI.MelFrameLayout(_RightScroll,label = 'Block Dat - Contextual',vis=True,
                                            collapse=self.var_blockSharedFrameCollapse.value,
                                            collapsable=True,
                                            enable=True,
@@ -2291,7 +2294,7 @@ class ui(cgmUI.cgmGUI):
         
 
         #Info ------------------------------------------------------------------------------------
-        _frame_info = mUI.MelFrameLayout(_RightColumn,label = 'Info',vis=True,
+        _frame_info = mUI.MelFrameLayout(_RightScroll,label = 'Info',vis=True,
                                         collapse=self.var_blockInfoFrameCollapse.value,
                                         collapsable=True,
                                         enable=True,
@@ -2319,6 +2322,22 @@ class ui(cgmUI.cgmGUI):
         
         _frame_attr_inside = mUI.MelColumnLayout(_frame_attr,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockAttrs = _frame_attr_inside"""
+
+        _RightColumn(edit = True,
+                     af = [(_RightUpperColumn,"top",0),
+                           (_RightUpperColumn,"left",0),
+                           (_RightUpperColumn,"right",0),
+    
+                           (_RightScroll,"left",0),
+                           (_RightScroll,"right",0),
+                           (_RightScroll,"bottom",0),
+    
+                           ],
+                     ac = [(_RightScroll,"top",0,_RightUpperColumn),
+    
+                           ],)
+                #attachNone = [(button_refresh,'top')])#(_row_cgm,"top")
+
 
         #>>> Layout form ---------------------------------------------------------------------------------------
         _MainForm(edit = True,
