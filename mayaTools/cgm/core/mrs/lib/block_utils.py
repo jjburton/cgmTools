@@ -5601,8 +5601,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         md_jointLabels = {}
         
         _size = baseSize
-        _sizeSub = _size / 2.0
-        _offset = _size * 4
+        _sizeSub = _size / 4
+        _offset = _size * 2
         
         mDefineNull = self.atUtils('stateNull_verify','define')
         mHandleFactory = self.asHandleFactory()
@@ -5614,7 +5614,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             else:
                 _useSize = _sizeSub
             
-            str_name = _dtmp.get('name') or k
+            str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
+            
             
             #sphere
             _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
@@ -5716,7 +5717,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             md_vector[k] = mArrow
         
             #Joint Label ---------------------------------------------------------------------------
-            mJointLabel = mHandleFactory.addJointLabel(mHandle,"{0}_{1}".format(self.blockProfile,k))
+            mJointLabel = mHandleFactory.addJointLabel(mHandle,str_name)
             md_jointLabels[k] = mJointLabel
 
             """

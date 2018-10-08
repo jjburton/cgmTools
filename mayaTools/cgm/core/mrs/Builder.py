@@ -1435,6 +1435,14 @@ class ui(cgmUI.cgmGUI):
                                       'atUtils','set_position',
                                       **{'ui':True}),
                   ann = 'Set the position tag of the block and rename dags')
+        mc.button(parent=_row,
+                  l = 'NameList',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','set_nameListFromName',
+                                      **{}),
+                  ann = 'Set nameList values from name attribute')        
+        
         mUI.MelSpacer(_row,w=1)
         _row.layout()        
         

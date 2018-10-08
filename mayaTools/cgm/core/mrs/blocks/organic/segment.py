@@ -266,7 +266,7 @@ d_defaultSettings = {'version':__version__,
                      'settingsPlace':1,
                      'loftSides': 10,
                      'loftSplit':1,
-                     'loftDegree':'cubic',
+                     'loftDegree':'linear',
                      'numSpacePivots':2,
                      
                      'ikBase':'cube',
@@ -1668,27 +1668,28 @@ def prerig(self):
         #_sizeUse = self.atUtils('get_shapeOffset')
         mDefineEndObj = self.defineEndHelper    
         _size_width = mDefineEndObj.width#...x width        
-        _sizeUse = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
-
+        _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
+        _sizeUse2 = self.atUtils('get_shapeOffset') * 2
+        _sizeUse = min([_sizeUse1,_sizeUse2])
+        
         #Sub handles... ------------------------------------------------------------------------------------
         log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
         ml_aimGroups = []
         for i,p in enumerate(_l_pos):
             log.debug("|{0}| >> handle cnt: {1} | p: {2}".format(_str_func,i,p))
             
-            
             if p == _l_pos[idx_IK]:
-                crv = CURVES.create_fromName('axis3d', size = _sizeUse)
+                crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
             
                 ml_shapes = mHandle.getShapes(asMeta=1)
-                crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 1.25)
+                crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 2.5)
                 CORERIG.override_color(crv2, 'black')
                 SNAP.go(crv2,mHandle.mNode)
                 CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            
             else:
-                crv = CURVES.create_fromName('axis3d', size = _sizeSub)
+                crv = CURVES.create_fromName('axis3d', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             #mHandle = cgmMeta.cgmObject(crv, name = 'handle_{0}'.format(i))
             _short = mHandle.mNode
@@ -1721,7 +1722,7 @@ def prerig(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub / 4.0))
+            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub / 2.0))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -1805,7 +1806,7 @@ def prerig(self):
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
-            self.asHandleFactory(ml_templateHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull        
+            mCog = self.asHandleFactory(ml_templateHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull        
         
         #Close out =======================================================================================
         mNoTransformNull.v = False

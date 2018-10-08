@@ -148,7 +148,7 @@ d_block_profiles = {
             'hasBallJoint':False,
             'hasEndJoint':True,
             'nameList':['hip','knee','ankle','ball','toe'],
-            'baseAim':[90,0,0],
+            'baseAim':[0,-1,0],
             'baseUp':[0,0,1],
             'baseSize':[11.6,8,79],
             'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
@@ -173,7 +173,7 @@ d_block_profiles = {
                 'hasBallJoint':False,
                 'hasEndJoint':True,
                 'nameList':['hip','knee','ankle','ball','toe'],
-                'baseAim':[90,0,0],
+                'baseAim':[0,-1,0],
                 'baseUp':[0,0,1],
                 'baseSize':[11.6,8,79],
                 'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
@@ -247,6 +247,7 @@ d_block_profiles = {
               'buildLeverBase':True,
               'hasLeverJoint':True,
               'hasBallJoint':False,
+              'followParentBank':True,              
               'hasEndJoint':True,
               'nameList':['index'],
               'scaleSetup':False,
@@ -258,7 +259,7 @@ d_block_profiles = {
     'toe':{'numShapers':1,
            'addCog':False,
            'attachPoint':'end',
-           'cgmName':'finger',
+           'cgmName':'toe',
            'loftShape':'wideDown',
            'loftSetup':'default',
            'settingsPlace':'end',
@@ -271,8 +272,9 @@ d_block_profiles = {
            'mainRotAxis':'out',
            'numSpacePivots':0,
            'offsetMode':'default',
-           'buildLeverBase':True,
-           'hasLeverJoint':True,
+           'followParentBank':True,           
+           'buildLeverBase':False,
+           'hasLeverJoint':False,
            'hasBallJoint':False,
            'hasEndJoint':True,
            'nameList':['index'],
@@ -296,7 +298,8 @@ d_block_profiles = {
               'numRoll':0,
               'ikRPAim':'default',              
               'rigSetup':'digit',
-              'mainRotAxis':'out',                             
+              'mainRotAxis':'out',
+              'followParentBank':True,              
               'offsetMode':'default',
               'buildLeverBase':False,
               'hasLeverJoint':False,
@@ -324,7 +327,8 @@ d_block_profiles = {
            'ikRPAim':'default',
            'rigSetup':'digit',
            'mainRotAxis':'out',
-           'hasEndJoint':False,           
+           'hasEndJoint':False,
+           'followParentBank':True,           
            'buildLeverBase':False,
            'hasLeverJoint':False,
            'hasLeverJoint':False,
@@ -377,6 +381,7 @@ l_attrsStandard = ['side',
 
 d_attrsToMake = {'visMeasure':'bool',
                  'baseDat':'string',
+                 'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
                  'mainRotAxis':'up:out',
@@ -410,6 +415,7 @@ d_defaultSettings = {'version':__version__,
                      'hasQuadSetup':False,
                      'ikOrientToWorld':True,
                      'numShapers':3,
+                     'followParentBank':True,                     
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
                      'settingsDirection':'up',
@@ -419,7 +425,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'linear',
-                     'numRoll':1,
+                     'numRoll':0,
                      'ribbonParam':'blend',
                      'proxyDirect':True,
                      'nameList':['',''],
@@ -476,7 +482,7 @@ def define(self):
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
+                                      direction = 'z+', size = _size)
         
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
@@ -1565,19 +1571,21 @@ def prerig(self):
     
     mDefineEndObj = self.defineEndHelper    
     _size_width = mDefineEndObj.width#...x width
-    _sizeUse = _size_width/ 2.0 #self.atUtils('get_shapeOffset')
+    _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
+    _sizeUse2 = self.atUtils('get_shapeOffset') * 2
+    _sizeUse = min([_sizeUse1,_sizeUse2])
     
     for i,mTemplateHandle in enumerate(ml_templateHandles):
         log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
         _HandleSnapTo = mTemplateHandle.mNode
         
         if mTemplateHandle == mEndHandle:
-            crv = CURVES.create_fromName('axis3d', size = _sizeUse)
+            crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
             
             ml_shapes = mHandle.getShapes(asMeta=1)
-            crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 1.75)
+            crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 2.5)
             CORERIG.override_color(crv2, 'black')
             SNAP.go(crv2,mHandle.mNode)
             CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)
@@ -2029,6 +2037,19 @@ def rig_dataBuffer(self):
         
     log.debug("|{0}| >> Single chain | self.b_singleChain: {1} ".format(_str_func,self.b_singleChain))
     
+    #FollowParent ============================================================================
+    self.b_followParentBank = False
+    self.mPivotResult_moduleParent = False
+    if mBlock.followParentBank:
+        mModuleParent = self.d_module['mModuleParent']
+        if mModuleParent:
+            mPivotResult_moduleParent = mModuleParent.rigNull.getMessageAsMeta('pivotResultDriver')
+            if mPivotResult_moduleParent:
+                self.mPivotResult_moduleParent = mPivotResult_moduleParent
+                self.b_followParentBank = True
+    log.debug("|{0}| >> Follow parentBank | self.b_followParentBank: {1} ".format(_str_func,self.b_followParentBank))
+    log.debug("|{0}| >> Follow parentBank | self.mPivotResult_moduleParent: {1} ".format(_str_func,self.mPivotResult_moduleParent))
+    log.debug(cgmGEN._str_subLine)    
     
     #Lever ============================================================================    
     _b_lever = False
@@ -2418,6 +2439,36 @@ def rig_skeleton(self):
             JOINT.freezeOrientation(mLever.mNode)
             mRigNull.connectChildNode(mLever,'leverFK','rigNull')
         
+    #Followbase ============================================================
+    if self.b_followParentBank:
+        log.debug("|{0}| >> followParentBank joints...".format(_str_func)+'-'*40)
+        
+        mFollowBase = cgmMeta.validateObjArg(mc.joint(),setClass=True)#ml_fkJointsToUse[0].doDuplicate(po=True)
+        mFollowBase.p_parent = False
+        mFollowBase.p_position = ml_fkJointsToUse[0].p_position
+
+        mFollowMid = mFollowBase.doDuplicate(po=True)
+        mFollowMid.p_position = ml_jointHelpers[self.int_handleEndIdx].p_position
+        mFollowMid.p_parent = mFollowBase        
+        
+        mFollowEnd = mFollowBase.doDuplicate(po=True)
+        mFollowEnd.p_position = self.ml_templateHandles[-1].p_position
+        mFollowEnd.p_parent = mFollowMid
+        
+        JOINT.orientChain([mFollowBase.mNode, mFollowMid, mFollowEnd.mNode],
+                          worldUpAxis=mBlock.rootUpHelper.getAxisVector('y+'))
+        
+        l_tags = ['start','mid','end']
+        for i,mJnt in enumerate([mFollowBase,mFollowMid,mFollowEnd]):
+            mJnt.doStore('cgmName',self.d_module['partName'] + '_followBase')
+            mJnt.doStore('cgmType',l_tags[i])
+            mJnt.doName()
+        
+        mFollowEnd.doName()        
+        ml_followJoints = [mFollowBase,mFollowMid,mFollowEnd]
+        mRigNull.msgList_connect('followParentBankJoints', [mFollowBase,mFollowMid,mFollowEnd])
+        ml_jointsToConnect.extend(ml_followJoints)    
+    
     
     #...ik joints-------------------------------------------------------------------------------------------
     if mBlock.ikSetup:
@@ -3090,7 +3141,29 @@ def rig_digitShapes(self):
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect       
             
             
-        
+        #FollowParent =============================================================================
+        if self.b_followParentBank:
+            log.debug("|{0}| >> follow parent handle...".format(_str_func))
+            ml_followParentBankJoints = mRigNull.msgList_get('followParentBankJoints')
+    
+            mDag = ml_followParentBankJoints[-1].doCreateAt(setClass=True)
+    
+            if not bb_ik:
+                bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
+    
+            _ik_shape = CURVES.create_fromName('cube', size = bb_ik)            
+            SNAP.go(_ik_shape,mDag.mNode)
+    
+            CORERIG.shapeParent_in_place(mDag.mNode, _ik_shape,False)
+    
+            mDag.doStore('cgmName',self.d_module['partName'] + '_followBank')
+            mDag.doStore('cgmTypeModifier','ik')
+            mDag.doName()
+            mHandleFactory.color(mDag.mNode, controlType = 'sub')                
+    
+            self.mRigNull.connectChildNode(mDag,'controlFollowParentBank','rigNull')#            
+            log.debug(cgmGEN._str_subLine)
+                    
         #Cog =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -3816,7 +3889,28 @@ def rig_shapes(self):
     
             mHandleFactory.color(mIKBaseCrv.mNode, controlType = 'main')        
             self.mRigNull.connectChildNode(mIKBaseCrv,'controlIKBase','rigNull')#Connect
-        
+        #FollowParent =============================================================================
+        if self.b_followParentBank:
+            log.debug("|{0}| >> follow parent handle...".format(_str_func))
+            ml_followParentBankJoints = mRigNull.msgList_get('followParentBankJoints')
+    
+            mDag = ml_followParentBankJoints[-1].doCreateAt(setClass=True)
+    
+            if not bb_ik:
+                bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
+    
+            _ik_shape = CURVES.create_fromName('cube', size = bb_ik)            
+            SNAP.go(_ik_shape,mDag.mNode)
+    
+            CORERIG.shapeParent_in_place(mDag.mNode, _ik_shape,False)
+    
+            mDag.doStore('cgmName',self.d_module['partName'] + '_followBank')
+            mDag.doStore('cgmTypeModifier','ik')
+            mDag.doName()
+            mHandleFactory.color(mDag.mNode, controlType = 'sub')                
+    
+            self.mRigNull.connectChildNode(mDag,'controlFollowParentBank','rigNull')#            
+            log.debug(cgmGEN._str_subLine)        
         
         #Cog/Settings =============================================================================
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
@@ -4166,6 +4260,9 @@ def rig_controls(self):
     if not b_cog:
         mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
     mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+    
+    if self.b_followParentBank:
+        mPlug_followParentBankVis = cgmMeta.cgmAttr(mSettings.mNode,'visParentBank',attrType='bool', defaultValue = False,keyable = False,hidden = False)    
     log.debug(cgmGEN._str_subLine)
     
     #Root ==============================================================================================
@@ -4480,7 +4577,29 @@ def rig_controls(self):
         for mShape in mObj.getShapes(asMeta=True):
             ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
     log.debug(cgmGEN._str_subLine)
+    
+    #controlFollowParentBank -----------------------------------------------------------------------
+    mControlFollowParentBank = mRigNull.getMessageAsMeta('controlFollowParentBank')
+    if mControlFollowParentBank:
+        log.debug("|{0}| >> controlFollowParentBank...".format(_str_func)+'-'*40)
+        log.debug("|{0}| >> Found rigRoot : {1}".format(_str_func, mControlFollowParentBank))
+    
+        _d = MODULECONTROL.register(mControlFollowParentBank,
+                                    addDynParentGroup = False,
+                                    mirrorSide= self.d_module['mirrorDirection'],
+                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    makeAimable = False)
+    
+        mControlFollowParentBank = _d['mObj']
 
+        ml_controlsAll.append(mControlFollowParentBank)
+    
+    
+        for mShape in mControlFollowParentBank.getShapes(asMeta=True):
+            ATTR.connect(mPlug_followParentBankVis.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))        
+        log.debug(cgmGEN._str_subLine)    
+
+    log.debug("|{0}| >> Closeout...".format(_str_func)+'-'*40)
 
     mHandleFactory = mBlock.asHandleFactory()
     for mCtrl in ml_controlsAll:
@@ -6413,7 +6532,7 @@ def rig_pivotSetup(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
-    if not self.b_pivotSetup:
+    if not self.b_pivotSetup and not self.b_followParentBank:
         log.info("|{0}| >> No pivot setup...".format(_str_func))
         return True
     
@@ -6448,7 +6567,140 @@ def rig_pivotSetup(self):
     else:
         mIKHandleDriver = mIKControl
         
-    #Pivot Driver ========================================================================================
+    #Follow parent bank ===============================================================================
+    if self.b_followParentBank:
+        log.debug("|{0}| >> followParentBank setup ...".format(_str_func)+'-'*40)
+        ml_followParentBankJoints = mRigNull.msgList_get('followParentBankJoints')
+        mControlFollowParentBank = mRigNull.getMessageAsMeta('controlFollowParentBank')
+    
+        #ml_followParentBankJoints[0].p_parent = self.mPivotResult_moduleParent
+        mLimbRoot = mRigNull.limbRoot
+        ml_followParentBankJoints[0].p_parent = mLimbRoot
+        #mc.parentConstraint(mLimbRoot.mNode,
+        #                    ml_followParentBankJoints[0].mNode,
+        #                    maintainOffset = True)
+    
+        mControlFollowParentBank.masterGroup.parent = self.d_module['mModuleParent'].rigNull.controlIK
+        mIKControlTarget = ml_followParentBankJoints[-1]
+        ml_fkAimJoints = ml_followParentBankJoints
+    
+        if 'yes' == 'yes':
+            ml_chain1 = ml_followParentBankJoints[:-1]
+            mChain2Base = ml_followParentBankJoints[-2].doDuplicate(po=True)
+            mChain2Base.p_parent = ml_followParentBankJoints[-2]
+    
+            ml_followParentBankJoints[-1].p_parent = mChain2Base
+            ml_chain2 = [mChain2Base, ml_followParentBankJoints[-1]]
+            pprint.pprint(vars())
+    
+            #Make our fk chain -----------------------------------------------------
+            mFKAim_base = ml_followParentBankJoints[0].doDuplicate(po=True)
+            mFKAim_end = ml_followParentBankJoints[-1].doDuplicate(po=True)
+            ml_fkAimJoints = [mFKAim_base, mFKAim_end]
+            mFKAim_end.p_parent = mFKAim_base
+    
+            mFKAim_base.p_parent = mLimbRoot
+    
+            JOINT.orientChain(ml_fkAimJoints,
+                              worldUpAxis=mBlock.rootUpHelper.getAxisVector('y+'))
+    
+            for i,mJnt in enumerate(ml_fkAimJoints):
+                mJnt.rename('{0}_bank_fkDriver_{1}'.format(self.d_module['partName'],i))
+    
+    
+    
+            #IK follow setup -------------------------------------------------------
+            d_chains = {'start':{'start':ml_chain1[0],
+                                 'end':ml_chain1[-1],
+                                 'baseName':self.d_module['partName'] + 'followParentBankIK1',},
+                        'end':{'start':ml_chain2[0],
+                               'end':ml_chain2[-1],
+                               'baseName':self.d_module['partName'] + 'followParentBankIK2'}}
+            for t in ['start','end']:
+                d_return = IK.handle(d_chains[t]['start'].mNode,
+                                     d_chains[t]['end'].mNode,
+                                     solverType='ikSCsolver',
+                                     baseName=d_chains[t]['baseName'],
+                                     moduleInstance=mModule)
+    
+                mIKHandle = d_return['mHandle']
+                mIKHandle.parent = mControlFollowParentBank
+    
+            mIKControlTarget = ml_chain2[0]
+    
+            #--------------------------------------------------------------
+    
+    
+        else:
+            #Build IK Chain
+            log.debug("|{0}| >> followParentBank ik chain ...".format(_str_func)+'-'*40)
+    
+            d_return = IK.handle(ml_followParentBankJoints[0].mNode,
+                                 ml_followParentBankJoints[-1].mNode,
+                                 solverType='ikSCsolver',
+                                 baseName=self.d_module['partName'] + 'followParentBankIK',
+                                 moduleInstance=mModule)
+    
+            mIKHandle = d_return['mHandle']
+            mIKHandle.parent = mControlFollowParentBank
+    
+        #Connect the parts -------------------------------------------------------------------------
+        log.debug("|{0}| >> pivotBank | fk connection setup ...".format(_str_func)+'-'*40)
+        mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
+    
+    
+        #Setup blends to turn off and on
+        mFKGroup = self.mRigNull.getMessageAsMeta('fkGroup')
+        #mAimGroup = mFKGroup.doGroup(True,True,typeModifier='aim',asMeta=True)
+        #mAimDriver = mFKGroup.groupChild.doCreateAt(setClass=True)
+    
+        #mAimDriver.doStore('cgmName',self.d_module['partName'] + 'bankAimFK')
+        #mAimDriver.doStore('cgmType','driver')
+        #mAimDriver.doName()
+        #mAimDriver.p_parent = ml_followParentBankJoints[0]
+    
+        #mAimDriver.doStore('cgmAlias', 'followParentBank')
+        #mRigNull.connectChildNode(mAimDriver,'bankParentFKDriver','rigNull')#Connect
+    
+        d_aimFK = IK.handle(ml_fkAimJoints[0].mNode,
+                            ml_fkAimJoints[-1].mNode,
+                            solverType='ikSCsolver',
+                            baseName = self.d_module['partName'] + 'followFKBank',
+                            moduleInstance=mModule)
+        mHandle = d_aimFK['mHandle']
+        mHandle.parent = mControlFollowParentBank.mNode#toeIK to wiggle
+    
+    
+        """
+            mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimDriver.mNode, maintainOffset = True,
+                                    aimVector = [0,0,1], upVector = [0,1,0], 
+                                    worldUpObject = mLimbRoot.mNode,
+                                    worldUpType = 'objectrotation', 
+                                    worldUpVector = [0,1,0])"""
+        """
+            mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimGroup.mNode, maintainOffset = True,
+                             aimVector = [0,0,1], upVector = [0,1,0], 
+                             worldUpObject = mFKGroup.mNode,
+                             worldUpType = 'objectrotation', 
+                             worldUpVector = [0,1,0])"""
+    
+        #mc.parentConstraint(ml_followParentBankJoints[0].mNode, mLimbRoot.mNode, maintainOffset=True)
+    
+        log.debug("|{0}| >> pivotBank | ik connection setup ...".format(_str_func)+'-'*40)
+        mIKControlTarget.doStore('cgmAlias', 'followParentBank')        
+        mRigNull.connectChildNode(mIKControlTarget,'bankParentIKDriver','rigNull')#Connect
+        """
+            mc.parentConstraint(mIKControlTarget.mNode,
+                                mIKControl.mNode,
+                                maintainOffset=True)"""
+    
+        return    
+    
+    
+    
+    
+        
+    #Pivot Driver ===============================================================================
     mBallPivotJoint = None
     mBallWiggleJoint = None
     
@@ -6751,7 +7003,13 @@ def rig_cleanUp(self):
         if b_ikOrientToWorld:
             BUILDUTILS.control_convertToWorldIK(mHandle)
         
-        ml_targetDynParents = ml_baseDynParents
+        ml_targetDynParents = copy.copy(ml_baseDynParents)
+        if mHandle == mControlIK:
+            mParentBank = mRigNull.getMessageAsMeta('bankParentIKDriver')
+            if mParentBank:
+                log.debug("|{0}| >>  found parent bank".format(_str_func,mHandle))
+                ml_targetDynParents.insert(0,mParentBank)
+                
         #if str_rigSetup not in ['digit']:
         ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
         ml_targetDynParents.extend(ml_endDynParents)
@@ -6886,6 +7144,12 @@ def rig_cleanUp(self):
         else:
             ml_targetDynParents.insert(0,mParent)
             _mode = 1
+            
+        mParentBank = False
+        if i == 0:
+            mParentBank = mRigNull.getMessageAsMeta('bankParentFKDriver')
+            if mParentBank:
+                ml_targetDynParents.insert(0,mParentBank)
             
         #if str_rigSetup not in ['digit']:
         ml_targetDynParents.extend(ml_endDynParents)
