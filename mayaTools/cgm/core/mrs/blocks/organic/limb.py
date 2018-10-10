@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -408,7 +408,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  }
 
 d_defaultSettings = {'version':__version__,
-                     'baseSize':MATH.get_space_value(__dimensions[1]),
+                     #'baseSize':MATH.get_space_value(__dimensions[1]),
                      'numControls': 3,
                      'loftSetup':0,
                      'loftShape':0,
@@ -478,7 +478,7 @@ def define(self):
                 mc.delete(defineNull)
                 
                 
-        _size = (self.atUtils('get_shapeOffset') or 1.0) * 2.0
+        _size = (self.atUtils('get_shapeOffset') or 1.0)# * 2.0
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
@@ -2001,6 +2001,7 @@ def rig_dataBuffer(self):
     mRigNull = self.mRigNull
     mPrerigNull = mBlock.prerigNull
     ml_templateHandles = mBlock.msgList_get('templateHandles')
+    self.ml_templateHandles=ml_templateHandles
     ml_prerigHandles = mBlock.msgList_get('prerigHandles')
     
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
@@ -2219,6 +2220,7 @@ def rig_dataBuffer(self):
     self.mToe = False
     self.mBall = False
     self.int_handleEndIdx = -1
+    self.b_cullFKEnd = False
     self.b_ikNeedFullChain = False
     l= []
     
@@ -2249,6 +2251,7 @@ def rig_dataBuffer(self):
                     pass
             elif str_ikEnd == 'tipBase':
                 self.int_handleEndIdx -=1
+                self.b_cullFKEnd = True
 
                 
         if str_ikEnd in ['tipCombo']:
@@ -2258,6 +2261,8 @@ def rig_dataBuffer(self):
     #elif mBlock.ikEndIndex > 1:
         #log.debug("|{0}| >> Using ikEndIndex...".format(_str_func))        
         #self.int_handleEndIdx = - mBlock.ikEndIndex
+    log.debug("|{0}| >> self.b_cullFKEnd: {1}".format(_str_func,
+                                                        self.b_cullFKEnd))            
     log.debug("|{0}| >> self.ml_handleTargets: {1} | {2}".format(_str_func,
                                                                      len(self.ml_handleTargets),
                                                                      self.ml_handleTargets))
@@ -2369,6 +2374,7 @@ def rig_skeleton(self):
     ml_joints = mRigNull.msgList_get('moduleJoints')
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
     ml_prerigHandles = mBlock.msgList_get('prerigHandles')
+    ml_jointHelpers = mBlock.msgList_get('jointHelpers')
     
     self.d_joints['ml_moduleJoints'] = ml_joints
     str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
@@ -2401,7 +2407,13 @@ def rig_skeleton(self):
     ml_jointsToHide.extend(ml_fkJoints)
     
     ml_handleJointsToUse = ml_handleJoints
+    
+    #if self.int_handleEndIdx < -1:
+        #log.debug("|{0}| >> culling extra fk joints...".format(_str_func))
+        
+    
     ml_fkJointsToUse = ml_fkJoints
+    
     
     #...lever -------------------------------------------------------------------------------------------------
     if self.b_lever:
@@ -2434,7 +2446,7 @@ def rig_skeleton(self):
             mLever.p_position = ml_jointHelpers[0].p_position
             
             SNAP.aim(mLever.mNode, ml_fkJoints[0].mNode, 'z+','y+','vector',
-                     mBlock.rootUpHelper.getAxisVector('y+'))
+                     mBlock.orientHelper.getAxisVector('y+'))
             reload(JOINT)
             JOINT.freezeOrientation(mLever.mNode)
             mRigNull.connectChildNode(mLever,'leverFK','rigNull')
@@ -2456,7 +2468,7 @@ def rig_skeleton(self):
         mFollowEnd.p_parent = mFollowMid
         
         JOINT.orientChain([mFollowBase.mNode, mFollowMid, mFollowEnd.mNode],
-                          worldUpAxis=mBlock.rootUpHelper.getAxisVector('y+'))
+                          worldUpAxis=mBlock.orientHelper.getAxisVector('y+'))
         
         l_tags = ['start','mid','end']
         for i,mJnt in enumerate([mFollowBase,mFollowMid,mFollowEnd]):
@@ -4152,6 +4164,9 @@ def rig_shapes(self):
                     continue
                 i+=1"""
                 
+            if mShape == ml_fkShapes[-1] and self.b_cullFKEnd:
+                log.debug("|{0}| >> Last fk shape and b_cullFKEnd...".format(_str_func))                
+                continue
             try:mJnt = ml_fkJoints[i]
             except:continue
             
@@ -6542,6 +6557,7 @@ def rig_pivotSetup(self):
     mModule = self.mModule
     _jointOrientation = self.d_orientation['str']
     _side = mBlock.atUtils('get_side')
+    mRoot = mRigNull.rigRoot
     
     #ml_rigJoints = mRigNull.msgList_get('rigJoints')
     #ml_fkJoints = mRigNull.msgList_get('fkJoints')
@@ -6574,7 +6590,9 @@ def rig_pivotSetup(self):
         mControlFollowParentBank = mRigNull.getMessageAsMeta('controlFollowParentBank')
     
         #ml_followParentBankJoints[0].p_parent = self.mPivotResult_moduleParent
-        mLimbRoot = mRigNull.limbRoot
+        mLimbRoot = mRigNull.getMessageAsMeta('limbRoot')
+        if not mLimbRoot:
+            mLimbRoot = mRoot
         ml_followParentBankJoints[0].p_parent = mLimbRoot
         #mc.parentConstraint(mLimbRoot.mNode,
         #                    ml_followParentBankJoints[0].mNode,
@@ -6602,7 +6620,7 @@ def rig_pivotSetup(self):
             mFKAim_base.p_parent = mLimbRoot
     
             JOINT.orientChain(ml_fkAimJoints,
-                              worldUpAxis=mBlock.rootUpHelper.getAxisVector('y+'))
+                              worldUpAxis=mBlock.orientHelper.getAxisVector('y+'))
     
             for i,mJnt in enumerate(ml_fkAimJoints):
                 mJnt.rename('{0}_bank_fkDriver_{1}'.format(self.d_module['partName'],i))

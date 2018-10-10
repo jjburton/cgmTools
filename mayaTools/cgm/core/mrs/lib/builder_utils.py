@@ -2090,12 +2090,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     p1 = ml_targets[i].p_position
                     d1 = DIST.get_distance_between_points(p1,p2)
+                    
+                    try:p1_2 = ml_targets[i+1].p_position
+                    except:p1_2 = ml_targets[i-1].p_position
+                    
+                    d2 = DIST.get_distance_between_points(p1,p1_2)
+                    d2 = min([d1,d2])
+                    
                     #d_offset = d1 - _offset
                     #log.info("{0} : {1}".format(d1,d_offset))
-                    _sphere = mc.polySphere(axis = [1,0,0],
+                    _sphere = mc.polySphere(axis = [0,0,1],
                                             radius = d1,
                                             subdivisionsX = 10,
-                                            subdivisionsY = 10)                    
+                                            subdivisionsY = 10)
+                    TRANS.scale_to_boundingBox(_sphere[0], [d1,d1,d2])
+                    
                     SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
                     
                 else:

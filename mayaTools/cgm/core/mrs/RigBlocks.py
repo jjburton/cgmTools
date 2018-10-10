@@ -205,6 +205,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _sel = None
         _size = kws.get('size',None)
         _side =  kws.get('side')
+        _baseSize = kws.get('baseSize')
         _sizeMode = None
         _postState = None#...for sizeMode call
         
@@ -324,9 +325,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 self._blockModule = _blockModule
                 
                 if self.__justCreatedState__:
+                    if _baseSize:
+                        log.info("|{0}| >> on call base size: {1}".format(_str_func,_baseSize))
+                        self.baseSize = _baseSize
                     if 'define' in _blockModule.__dict__.keys():
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-                        _blockModule.define(self)                          
+                        _blockModule.define(self)
                 
                 #Template -------------------------------------------------
                 if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):

@@ -3534,7 +3534,7 @@ def rig_cleanUp(self):
         ml_targetDynParents.append(self.md_dynTargetsParent['world'])
         ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
-        mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
+        mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
         #mDynGroup.dynMode = 2
     
         for mTar in ml_targetDynParents:

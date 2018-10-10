@@ -96,6 +96,8 @@ class ui(cgmUI.cgmGUI):
                          'load blockDat':'Load existing blockDat from the block to current settings',
                          'reset blockDat': 'Reset blockDat to defaults as defined by the module',
                          'copy blockDat': 'Copy the blockDat from one block to another',
+                         'load state blockDat': 'Load the blockDat only for this state',
+                         
                          'rig connect': 'Connect the bind joints to rig joints',
                          'rig disconnect': 'Disconnect the bind joints from the rig joints',
                          'proxy verify': 'Verify proxy geo per block (if available)',
@@ -681,6 +683,12 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >> mode: {1} requires active block".format(_str_func,_mode)) 
                     return
                 kws['parent'] = _mActiveBlock
+                kws.pop('mode')
+            elif _mode == 'blockDatCopyActive':
+                if not _mActiveBlock:
+                    log.error("|{0}| >> mode: {1} requires active block".format(_str_func,_mode)) 
+                    return
+                kws['sourceBlock'] = _mActiveBlock
                 kws.pop('mode')
             #elif  _mode == 'clearParentBlock':
             #else:
@@ -1471,6 +1479,15 @@ class ui(cgmUI.cgmGUI):
                                       'loadBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('load blockDat'))
+        
+        mc.button(parent=_row,
+                  l = 'Load State',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'loadBlockDat',
+                                      **{'autoPush':False}),
+                  ann = self._d_ui_annotations.get('load state blockDat'))
+        
         mc.button(parent=_row,
                   l = 'Query',
                   ut = 'cgmUITemplate',
@@ -1478,6 +1495,15 @@ class ui(cgmUI.cgmGUI):
                                       'getBlockDat',
                                       **{}),
                   ann = self._d_ui_annotations.get('get blockDat'))
+        
+        mc.button(parent=_row,
+                  l = 'Copy',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','blockDat_copy',
+                                      **{'mode':'blockDatCopyActive'}),
+                  ann = "Copy the active blocks data")
+        
         mc.button(parent=_row,
                   l = 'Reset',
                   ut = 'cgmUITemplate',

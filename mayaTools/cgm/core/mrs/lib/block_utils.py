@@ -2619,7 +2619,8 @@ def blockParent_set(self, parent = False, attachPoint = None):
                     
         #blockProfile ----------------------------------------------------
         if mParent.hasAttr('buildProfile'):
-            self.atUtils('buildProfile_load', ATTR.get_enumValueString(mParent.mNode,'buildProfile'))
+            log.debug("|{0}| >>  buildProfile_load...".format(_str_func))
+            self.atUtils('buildProfile_load', mParent.getMayaAttr('buildProfile'))
             
 
 
@@ -2651,14 +2652,15 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         _d = {'blockType':self.blockType,
               'autoTemplate':False,
               'side':_side,
+              'baseSize':baseSize_get(self),
+              'blockProfile':self.blockProfile,
               'blockParent': self.p_blockParent}
         
-        for a in 'cgmName','blockProfile','buildProfile':
+        for a in 'cgmName','blockProfile':
             if a in ['cgmName']:
                 _d['name'] =  self.getMayaAttr(a)
-            else:
-                if self.hasAttr(a):
-                    _d[a] = self.getEnumValueString(a)        
+            elif self.hasAttr(a):
+                _d[a] = self.getMayaAttr(a)        
         
         _title = 'New name for duplicate'.format(_blockType)
         result = mc.promptDialog(title=_title,
@@ -2681,7 +2683,6 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         
         log.debug("|{0}| >> Block settings...".format(_str_func))                    
         pprint.pprint(_d)
-        
         mDup = cgmMeta.createMetaNode('cgmRigBlock',
                                       **_d)
         
@@ -2700,15 +2701,13 @@ def duplicate(self, uiPrompt = True, forceNew = False):
                     blockDat['ud'].remove(a)
             blockDat['nameList_0'] = _v
             
-        
         mDup.blockDat = blockDat
         blockDat_load(mDup)
         #log.info('here...')
-        blockDat_load(mDup)#...investigate why we need two...
+        #blockDat_load(mDup)#...investigate why we need two...
         
-        mDup.p_blockParent = self.p_blockParent
+        #mDup.p_blockParent = self.p_blockParent
         #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
-        
         return mDup
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
@@ -3033,9 +3032,27 @@ def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
 
     Block.MirrorBlock(mirrorBlock, block, reflectionVector)
     
+    
 #=============================================================================================================
 #>> blockDat
 #=============================================================================================================
+def baseSize_get(self):
+    
+    mBlockModule = self.p_blockModule
+    
+    if 'baseSize_get' in mBlockModule.__dict__.keys():
+        log.debug("|{0}| >> BlockModule call found...".format(_str_func))            
+        return mBlockModule.baseSize_get
+    
+    _baseSize = self.baseSize
+    try:mDefineEndObj = self.defineEndHelper
+    except:mDefineEndObj = False
+    
+    if mDefineEndObj and mDefineEndObj.hasAttr('length'):
+        return [mDefineEndObj.width,mDefineEndObj.height,mDefineEndObj.length]
+    return _baseSize
+
+
 def blockDat_get(self,report = True):
     """
     Carry from Bokser stuff...
@@ -3050,6 +3067,8 @@ def blockDat_get(self,report = True):
         _ml_controls = []
         _short = self.p_nameShort
         _blockState_int = self.getState(False)
+        
+        self.baseSize = baseSize_get(self)
         #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
         _d = {#"name":_short, 
               "blockType":self.blockType,
@@ -3105,6 +3124,39 @@ def blockDat_reset(self):
     #This needs more work.
     blockProfile_load(self, self.blockProfile)
 
+def blockDat_copy(self,sourceBlock=None,ignoreChecks=False,load=False):
+    _str_func = 'blockDat_copy'
+    log.info("|{0}| >>  ".format(_str_func)+ '='*80)
+    log.info("|{0}| {1}".format(_str_func,self))
+    
+    if self == sourceBlock:
+        raise ValueError,"Can't copy blockDat from self."
+    blockDat = sourceBlock.getBlockDat()
+    
+    _type = blockDat['ud'].get('blockType')
+    _profile = blockDat['ud'].get('blockProfile')
+    
+    if not ignoreChecks:
+        if _type != self.blockType:
+            raise ValueError,"Incompatible blockTypes. dat: {0} | {1}".format(_type,self.blockType)
+        if _profile != self.blockProfile:
+            raise ValueError,"Incompatible blockProfiles. dat: {0} | {1}".format(_profile,self.blockProfile)
+    
+    blockDat['baseName'] = self.cgmName
+    blockDat['ud']['cgmName'] = self.cgmName
+    
+    if blockDat['ud'].get('rigSetup') in ['finger']:
+        log.debug("|{0}| >> Clearing nameList".format(_str_func))
+        for a in blockDat['ud'].iteritems():
+            if 'nameList' in a:
+                blockDat['ud'].remove(a)
+        blockDat['nameList_0'] = _v
+        
+    self.blockDat = blockDat
+    
+    if load:
+        blockDat_load(self)
+    
 def blockDat_getControlDat(self,mode = 'define',report = True):
     _short = self.p_nameShort        
     _str_func = 'blockDat_getControlDat'
@@ -3157,13 +3209,15 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
             #_l_jointHelpers.append(mObj.jointHelper.translate)
             _d_jointHelpers[i] = mObj.jointHelper.translate
             
-        if mObj.getMessage('loftCurve'):
-            log.info("|{0}| >>  loftcurve...".format(_str_func))
-            if mObj.loftCurve.v:
+        mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+        if mLoftCurve:
+            log.info("|{0}| >>  loftcurve: {1}".format(_str_func,mLoftCurve)+'-'*20)
+            if mLoftCurve.v:
                 _d = {}
-                _rot = mObj.loftCurve.rotate
-                _trans = mObj.loftCurve.translate
-                _scale = mObj.loftCurve.scale
+                _rot = mLoftCurve.rotate
+                _trans = mLoftCurve.translate
+                _scale = mLoftCurve.scale
+                _p = mLoftCurve.p_position
                 
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
@@ -3171,8 +3225,11 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                     _d['s'] = _scale
                 if not MATH.is_float_equivalent(sum(_trans),0.0):
                     _d['t'] = _trans
+                    
+                _d['p'] = _p
                 if _d:
                     _d_loftCurves[i] = _d
+                    log.info("|{0}| >>  d: {1}".format(_str_func,_d))
         
         ml_subShapers = mObj.msgList_get('subShapers')
         if ml_subShapers:
@@ -3216,7 +3273,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     return _d
 
 @cgmGEN.Timer
-def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False):
+def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False, autoPush = True):
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     
@@ -3378,9 +3435,10 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                             _t = d_sub.get('t')
                             _r = d_sub.get('r')
                             _s = d_sub.get('s')
-                            
+                            _p = d_sub.get('p')
                             for ii,mObj in enumerate(ml_subs):
-                                ATTR.set(mObj.mNode,'t',_t[ii])
+                                mObj.p_position = _p[ii]
+                                #ATTR.set(mObj.mNode,'t',_t[ii])
                                 ATTR.set(mObj.mNode,'r',_r[ii])
                                 ATTR.set(mObj.mNode,'s',_s[ii])    
     
@@ -3388,6 +3446,9 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
     if _target_state_idx >= 1:
         log.info("|{0}| >> template dat....".format(_str_func))
         if _current_state_idx < 1:
+            if not autoPush:
+                log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
+                return True
             log.info("|{0}| >> Pushing to template....".format(_str_func))
             self.p_blockState = 1
         
@@ -3448,12 +3509,15 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                         _rot = _d_loft.get('r')
                                         _s = _d_loft.get('s')
                                         _t = _d_loft.get('t')
+                                        _p = _d_loft.get('p')
                                         if _rot:
                                             ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                                         if _s:
                                             ATTR.set(mLoftCurve.mNode,'scale',_s)
                                         if _t:
                                             ATTR.set(mLoftCurve.mNode,'translate',_t)
+                                        if _p:
+                                            mLoftCurve.p_position = _p
                                         
                             for i,d_sub in _subShapers.iteritems():
                                 ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
@@ -3463,9 +3527,11 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 _t = d_sub.get('t')
                                 _r = d_sub.get('r')
                                 _s = d_sub.get('s')
+                                _p = d_sub.get('p')
                                 
                                 for ii,mObj in enumerate(ml_subs):
-                                    ATTR.set(mObj.mNode,'t',_t[ii])
+                                    mObj.p_position = _p[ii]                                    
+                                    #ATTR.set(mObj.mNode,'t',_t[ii])
                                     ATTR.set(mObj.mNode,'r',_r[ii])
                                     ATTR.set(mObj.mNode,'s',_s[ii])
                                 
@@ -3482,6 +3548,10 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
     if _target_state_idx >= 2:
         log.info("|{0}| >> prerig dat....".format(_str_func))
         if _current_state_idx < 2:
+            if not autoPush:
+                log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
+                return True
+            
             log.info("|{0}| >> Pushing to prerig....".format(_str_func))
             self.p_blockState = 2
             
@@ -3962,7 +4032,7 @@ def controls_mirror(blockSource, blockMirror = None,
         
         for i,mObj in enumerate(ml_controls[1:]):
             log.debug(cgmGEN._str_subLine)                        
-            log.debug("|{0}| >> Get {1} | {2}".format(_str_func,i,mObj.p_nameBase))
+            log.debug("|{0}| >> Get {1} | {2}".format(_str_func,i+1,mObj.p_nameBase))
             str_obj = mObj.mNode
             _dat = {'source':str_obj,'target':ml_targetControls[i+1].mNode}
             
@@ -3970,7 +4040,7 @@ def controls_mirror(blockSource, blockMirror = None,
             posBase = mObj.p_positionEuclid
             #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
             posNew = mObj.p_positionEuclid.reflect(reflectionVector)            
-            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i, posBase,posNew))
+            log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i+1, posBase,posNew))
             #mObj.p_positionEuclid = posNew
             
             _dat['pos'] = posNew
@@ -4041,7 +4111,7 @@ def controls_mirror(blockSource, blockMirror = None,
             if ml_subShapers:
                 _d = {}
                 log.info("|{0}| >>  subShapers...".format(_str_func))
-                for i,mShaper in enumerate(ml_subShapers):
+                for ii,mShaper in enumerate(ml_subShapers):
                     str_shaper = mShaper.mNode
                     _d_sub = {}
                     
@@ -4059,7 +4129,7 @@ def controls_mirror(blockSource, blockMirror = None,
                             _l_sub.append(ATTR.get(str_shaper,"{0}{1}".format(atr,axs)))
                         _d_sub[atr] = _l_sub
                     if _d_sub:
-                        _d[i] = _d_sub
+                        _d[ii] = _d_sub
                 if _d:
                     _dat['subShapers'] = _d
                     pprint.pprint(_d)
@@ -5610,7 +5680,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         for k in l_order:
             _dtmp = d_definitions[k]
             if k == 'end':
-                _useSize = _sizeSub/2.0
+                _useSize = 1.0
             else:
                 _useSize = _sizeSub
             
@@ -5795,9 +5865,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                              worldUpType = 'objectRotation', 
                              worldUpVector = [0,0,1])    
 
-    
-    
-        
+
         if md_handles.get('end'):
             #BaseSizeHandle -------------------------------------------------
             _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 

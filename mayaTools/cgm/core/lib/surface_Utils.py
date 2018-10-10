@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -221,7 +221,6 @@ def get_splitValues(surface = None, values = [], mode='u',
 
             for i,crv in enumerate(_loftCurves):
                 _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
-    
                 for ii,p in enumerate(_l):
                     if not d_epPos.get(ii):
                         d_epPos[ii] = []
@@ -229,8 +228,11 @@ def get_splitValues(surface = None, values = [], mode='u',
                     _l.append(p)
     
             for k,points in d_epPos.iteritems():
+                log.debug("|{0}| >> {1} | k: {1} | points: {2}".format(_str_func,k,points))
                 try:
-                    crv_connect = CURVES.create_fromList(posList=points)
+                    crv_connect = mc.curve (d=1, ep = points, os=True) 
+
+                    #CURVES.create_fromList(posList=points)
                     l_mainCurves.append(crv_connect)
                 except Exception,err:
                     print err
