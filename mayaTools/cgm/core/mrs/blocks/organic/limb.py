@@ -477,8 +477,11 @@ def define(self):
                 log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
                 mc.delete(defineNull)
                 
-                
-        _size = (self.atUtils('get_shapeOffset') or 1.0)# * 2.0
+        _baseSize = self.baseSize
+        if _baseSize:
+            _size = MATH.average(_baseSize[:-2])/2.0
+        else:
+            self.atUtils('get_shapeOffset') or 1.0# * 2.0
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
@@ -852,7 +855,7 @@ def template(self):
 
         #Constrain the define end to the end of the template handles
         mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-        mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
+        #mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
         
         
         #>> Base Orient Helper ============================================================================

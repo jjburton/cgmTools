@@ -2733,12 +2733,19 @@ def blockMirror_create(self, forceNew = False):
             log.debug("|{0}| >> focing new... ".format(_str_func, mMirror))            
             mMirror.delete()
             
+        log.debug("|{0}| >>  blockParent....".format(_str_func))
+        mBlockParent = self.p_blockParent
+        if mBlockParent.getMessage('blockMirror'):
+            mBlockParent = mBlockParent.blockMirror
+            log.debug("|{0}| >>  blockParent has blockMirror: {1}".format(_str_func,mBlockParent))
+            
         log.debug("|{0}| >> Creating mirror block. {1} | {2}".format(_str_func, _blockType, _side))
+        
         _d = {'blockType':self.blockType, 'side':_side,
               'autoTemplate':False,
-              'blockParent':self.p_blockParent,
+              'blockParent':mBlockParent,
               #'baseAim':[self.baseAimX,-self.baseAimY,self.baseAimZ],
-              'baseSize':self.baseSize}
+              'baseSize':baseSize_get(self)}
         for a in 'blockProfile','buildProfile','cgmName':
             if a in ['cgmName']:
                 _d['name'] =  self.getMayaAttr(a)
@@ -2785,11 +2792,7 @@ def blockMirror_create(self, forceNew = False):
         #if blockDat['ud'].get('cgmDirection'):
             #blockDat['ud']['cgmDirection'] = _side
         #blockDat_load(mMirror, blockDat, mirror = False)
-        log.debug("|{0}| >>  blockParent....".format(_str_func))
-        mBlockParent = self.p_blockParent
-        if mBlockParent.getMessage('blockMirror'):
-            mBlockParent = mBlockParent.blockMirror
-            log.debug("|{0}| >>  blockParent has blockMirror: {1}".format(_str_func,mBlockParent))
+       
             
         self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect
         mMirror.p_blockParent = mBlockParent
@@ -2860,6 +2863,8 @@ def blockMirror_settings(blockSource, blockMirror = None,
         _udFail = {}
         if not blockDat.get('ud'):
             raise ValueError,"|{0}| >> No ud data found".format(_str_func)
+        
+        _ud['baseSize'] = baseSize_get(mSource)
         
         _mask = ['side','version','blockState','baseAim','baseAimY']
         for a,v in _ud.iteritems():
@@ -3112,13 +3117,16 @@ def blockDat_get(self,report = True):
                         _d['ud'][a] = ATTR.get(_short,a)
                 except Exception,err:
                     log.error("Failed to query attr: {0} | type: {1} | err: {2}".format(a,_type,err))
+        
+        _d['ud']['baseSize'] = baseSize_get(self)
+        
         if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
         return _d
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
 def blockDat_save(self):
-    self.blockDat = self.getBlockDat()
+    self.blockDat = blockDat_get(self)
 
 def blockDat_reset(self):
     #This needs more work.
@@ -4039,7 +4047,7 @@ def controls_mirror(blockSource, blockMirror = None,
             #Pos... ----------------------------------------------------------------------------------------
             posBase = mObj.p_positionEuclid
             #posNew = (mObj.p_positionEuclid - self.p_positionEuclid).reflect(rootReflectionVector) + self.p_positionEuclid
-            posNew = mObj.p_positionEuclid.reflect(reflectionVector)            
+            posNew = mObj.p_positionEuclid.reflect(reflectionVector)
             log.debug("|{0}| >> Mirror pos [{1}] | base: {2} | result: {3}".format(_str_func, i+1, posBase,posNew))
             #mObj.p_positionEuclid = posNew
             
@@ -4115,7 +4123,12 @@ def controls_mirror(blockSource, blockMirror = None,
                     str_shaper = mShaper.mNode
                     _d_sub = {}
                     
-                    for atr in 'trs':
+                    _d_sub['position'] =  mShaper.p_positionEuclid.reflect(reflectionVector)
+                    
+                    #import cgm.core.lib.locator_utils as LOC
+                    #LOC.create(position=_d_sub['position'])
+
+                    for atr in 'rs':
                         _l_sub = []
                         for axs in 'xyz':
                             if atr == 't':
@@ -4142,8 +4155,9 @@ def controls_mirror(blockSource, blockMirror = None,
                 log.info("|{0}| >>  loftCurve: {1}.".format(_str_func,mLoftCurve))
                 str_shaper = mLoftCurve.mNode
                 _d_sub = {}
+                _d_sub['position'] =  mLoftCurve.p_positionEuclid.reflect(reflectionVector)
                 
-                for atr in 'trs':
+                for atr in 'rs':
                     _l_sub = []
                     for axs in 'xyz':
                         if atr == 't':
@@ -4207,6 +4221,7 @@ def controls_mirror(blockSource, blockMirror = None,
                             _dat = l_dat[ md_remap['pivotHelper'][_cgmName] ]
         
                     log.debug("|{0}| >> Push mObj: {1}".format(_str_func,mObj.p_nameShort))            
+                    #mObj.p_positionEuclid = _dat['pos']
                     mObj.p_positionEuclid = _dat['pos']
                     
                     if _dat.has_key('simpleRot'):
@@ -4226,6 +4241,7 @@ def controls_mirror(blockSource, blockMirror = None,
                             print mObj.mNode
                             print _dat['aimPoint']
                             print _dat['up']"""
+                        
                     #Subshapers ----------------------------------------------------------------------
                     if _dat.has_key('subShapers'):
                         ml_subShapers = mObj.msgList_get('subShapers')
@@ -4235,8 +4251,17 @@ def controls_mirror(blockSource, blockMirror = None,
                         for i_sub,mSub in enumerate(ml_subShapers):
                             _d_sub = _dat['subShapers'][i_sub]
                             for a,d in _d_sub.iteritems():
-                                ATTR.set(mSub.mNode,a,d)
+                                if a == 'position':
+                                    log.debug("|{0}| >> subShaper position: {1} | {2}".format(_str_func,mSub,d))
+                                    mSub.p_positionEuclid = d
+                                else:
+                                    ATTR.set(mSub.mNode,a,d)
                                 
+                                """
+                            if _d_sub.get('position'):
+                                log.debug("|{0}| >> subShaper position: {1}".format(_str_func,_d_sub.get('position')))
+                                mSub.p_position = _d_sub.get('position')"""
+                    
                     #Loft Curve ----------------------------------------------------------------------
                     if _dat.has_key('loftCurve'):
                         mLoftCurve = mObj.getMessage('loftCurve',asMeta=True)[0]
@@ -4245,7 +4270,12 @@ def controls_mirror(blockSource, blockMirror = None,
                         
                         _d_sub = _dat['loftCurve']
                         for a,d in _d_sub.iteritems():
-                            ATTR.set(mLoftCurve.mNode,a,d)
+                            if a == 'position':
+                                log.debug("|{0}| >> loftCurve position: {1} | {2}".format(_str_func,mLoftCurve,d))
+                                mLoftCurve.p_positionEuclid = d                            
+                            else:
+                                ATTR.set(mLoftCurve.mNode,a,d)
+                            
                     #Scale -----------------------------------------------------------------------
                     if _dat.has_key('simpleScale'):
                         _scale = _dat.get('simpleScale')
