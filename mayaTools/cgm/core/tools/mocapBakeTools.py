@@ -100,6 +100,8 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
+        self.create_guiOptionVar('mocap_allow_multiple_targets',defaultValue = 0)
+        self.create_guiOptionVar('mocap_set_connection_at_bake',defaultValue = 1)
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
@@ -116,11 +118,8 @@ class ui(cgmUI.cgmGUI):
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
-        self._multiple_parent_target_cb = mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=False, l="Allow multiple parent targets",
-                 c = cgmGEN.Callback(self.save_options))
-
-        self._multiple_orient_target_cb = mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=True, l="Allow multiple orient targets",
-                 c = cgmGEN.Callback(self.save_options))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=self.var_mocap_allow_multiple_targets.value, l="Allow multiple targets",
+                 c=lambda *a: self.uiFunc_toggle_multiple_targets(self) )#not mc.optionVar(q='cgm_mocap_allow_multiple_targets')))
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -134,12 +133,14 @@ class ui(cgmUI.cgmGUI):
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
 
         _item_form = mUI.MelFormLayout(_MainForm,ut='cgmUITemplate')
-      
+        
         _parent_source = self.buildScrollForm(_item_form, hasHeader=True, buttonArgs = [{'label':'Add Selected', 'command':self.uiFunc_add_to_parent_source, 'annotation':_d_annotations.get('addSource','fix')}, {'label':'Remove Item', 'command':self.uiFunc_remove_from_parent_source, 'annotation':_d_annotations.get('removeSource','fix')}], headerText = 'source', allowMultiSelection=False, selectCommand=self.uiFunc_on_select_parent_source_item, doubleClickCommand=self.uiFunc_toggle_link_parent_targets)
         _parent_target = self.buildScrollForm(_item_form, hasHeader=True, buttonArgs = [{'label':'Add Selected', 'command':self.uiFunc_add_to_parent_target, 'annotation':_d_annotations.get('addTarget','fix')}, {'label':'Remove Item', 'command':self.uiFunc_remove_from_parent_target, 'annotation':_d_annotations.get('removeTarget','fix')}], headerText = 'target', allowMultiSelection=True, selectCommand=self.uiFunc_select_parent_target_link, doubleClickCommand=self.uiFunc_toggle_link_parent_targets)
         
         self.parent_source_scroll = _parent_source[1]
         self.parent_target_scroll = _parent_target[1]
+
+        self.parent_target_scroll(e=True, allowMultiSelection=self.var_mocap_allow_multiple_targets.value)
 
         self.splitFormHorizontal(_item_form, _parent_source[0], _parent_target[0])
 
@@ -287,9 +288,9 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_row,l='Set Connection Pose')
         _row.setStretchWidget( mUI.MelSeparator(_row) )
         self.cb_set_connection_at_bake = mUI.MelCheckBox(_row,
-                           v = mc.optionVar(q='cgm_mocap_set_connection_at_bake'),
-                           onCommand = self.uiFunc_set_connection_at_bake,
-                           offCommand = self.uiFunc_set_connection_at_bake,
+                           v = self.var_mocap_set_connection_at_bake.value,
+                           onCommand = lambda *a: self.var_mocap_set_connection_at_bake.setValue(1),
+                           offCommand = lambda *a: self.var_mocap_set_connection_at_bake.setValue(0),
                            label="Set On Bake")
         cgmUI.add_Button(_row,'Manual Set',
                  cgmGEN.Callback(self.uiFunc_set_connection_pose,1,self),
@@ -366,9 +367,9 @@ class ui(cgmUI.cgmGUI):
 
         return _inside
 
-    def uiFunc_set_connection_at_bake(self, *args):
-        log.debug("setting connection at bake to %s" % args[0])
-        mc.optionVar(iv=['cgm_mocap_set_connection_at_bake', args[0]])
+    def uiFunc_toggle_multiple_targets(self, *args):
+        self.var_mocap_allow_multiple_targets.toggle()
+        self.parent_target_scroll(e=True, allowMultiSelection=self.var_mocap_allow_multiple_targets.value)
 
     def uiFunc_updateTimeRange(self,mode = 'slider'):
         _range = SEARCH.get_time(mode)
@@ -389,7 +390,7 @@ class ui(cgmUI.cgmGUI):
             bake_range[0] = current_frame
 
         mc.currentTime(bake_range[0])
-        if mc.optionVar(q='cgm_mocap_set_connection_at_bake'):
+        if self.var_mocap_set_connection_at_bake.value:
             self.uiFunc_set_connection_pose()
         
         bake(self.connection_data, bake_range[0], bake_range[1]) 
@@ -414,6 +415,9 @@ class ui(cgmUI.cgmGUI):
 
         for idx in idxs:
             self.parent_target_scroll.selectByIdx(idx)
+            for link in self.parent_links:
+                if link[1] == idx:
+                    self.parent_source_scroll.selectByIdx(link[0])
 
     def uiFunc_link_by_name(self, *args):
         self.parent_links = []
@@ -428,7 +432,28 @@ class ui(cgmUI.cgmGUI):
                     closest = closeness
             
             if not self.has_link(wantedLink, self.parent_links):
-                self.parent_links.append(wantedLink)
+                make_link = True
+                if not self.var_mocap_allow_multiple_targets.value:
+                    current_closest = sys.maxint
+                    for link in self.parent_links:
+                        if link[0] == wantedLink[0]:
+                            closeness = STRING.levenshtein(self.parent_target_items[link[1]].item, self.parent_source_items[link[0]].item)
+                            if closeness < current_closest:
+                                current_closest = closeness
+                    if current_closest < closest:
+                        make_link = False
+
+                    # remove current links if we're making a new link
+                    remove_indexes = []
+                    if make_link:
+                        for i, link in enumerate(self.parent_links):
+                            if link[0] == wantedLink[0]:
+                                remove_indexes.append(i)
+                        remove_indexes.reverse()
+                        for idx in remove_indexes:
+                            del self.parent_links[idx]
+                if make_link:
+                    self.parent_links.append(wantedLink)
 
         self.refresh_aliases()
 
@@ -446,7 +471,28 @@ class ui(cgmUI.cgmGUI):
                     closest = closeness
             
             if not self.has_link(wantedLink, self.parent_links):
-                self.parent_links.append(wantedLink)
+                make_link = True
+                if not self.var_mocap_allow_multiple_targets.value:
+                    current_closest = sys.float_info.max
+                    for link in self.parent_links:
+                        if link[0] == wantedLink[0]:
+                            closeness = DIST.get_distance_between_targets( [self.parent_target_items[link[1]].item, self.parent_source_items[link[0]].item] )
+                            if closeness < current_closest:
+                                current_closest = closeness
+                    if current_closest < closest:
+                        make_link = False
+
+                    # remove current links if we're making a new link
+                    remove_indexes = []
+                    if make_link:
+                        for i, link in enumerate(self.parent_links):
+                            if link[0] == wantedLink[0]:
+                                remove_indexes.append(i)
+                        remove_indexes.reverse()
+                        for idx in remove_indexes:
+                            del self.parent_links[idx]
+                if make_link:
+                    self.parent_links.append(wantedLink)
 
         self.refresh_aliases()
 
@@ -597,6 +643,18 @@ class ui(cgmUI.cgmGUI):
         src_index = self.parent_source_scroll.getSelectedIdxs()[0]
         trg_indexes = self.parent_target_scroll.getSelectedIdxs()
         
+        # remove existing links from trg if only 1 is allowed
+        if not self.var_mocap_allow_multiple_targets.value:
+            remove_indexes = []
+            for i, link in enumerate(self.parent_links):
+                if link[0] == src_index and link[1] != trg_indexes[0]:
+                    remove_indexes.append(i)
+
+            remove_indexes.reverse()
+
+            for idx in remove_indexes:
+                del self.parent_links[idx]
+
         links = [[ src_index, x ] for x in trg_indexes]
         for link in links:
             if self.has_link(link, self.parent_links):
