@@ -56,7 +56,6 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
-reload(BUILDUTILS)
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
 
@@ -3042,7 +3041,6 @@ def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
 #>> blockDat
 #=============================================================================================================
 def baseSize_get(self):
-    
     mBlockModule = self.p_blockModule
     
     if 'baseSize_get' in mBlockModule.__dict__.keys():
@@ -3056,6 +3054,13 @@ def baseSize_get(self):
     if mDefineEndObj and mDefineEndObj.hasAttr('length'):
         return [mDefineEndObj.width,mDefineEndObj.height,mDefineEndObj.length]
     return _baseSize
+
+
+def defineSize_get(self):
+    _baseSize = self.baseSize
+    if _baseSize:
+        return MATH.average(_baseSize[:-2])/2.0
+    return self.atUtils('get_shapeOffset') or 1.0# * 2.0    
 
 
 def blockDat_get(self,report = True):

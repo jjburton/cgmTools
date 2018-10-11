@@ -159,6 +159,7 @@ l_attrsStandard = ['side',
                    #'baseUp',
                    #'baseAim',
                    #'hasRootJoint',
+                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'loftSides',
@@ -182,7 +183,6 @@ d_attrsToMake = {'visMeasure':'bool',
                  'proxyType':'base:geo',
                  'headAim':'bool',
                  'headRotate':'double3',
-                 'baseDat':'string',
                  
                  'squashMeasure' : 'none:arcLength:pointDist',
                  'squash' : 'none:simple:single:both',
@@ -267,7 +267,7 @@ def define(self):
             log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
             mc.delete(defineNull)
     
-    _size = (self.atUtils('get_shapeOffset') or 1.0) * 2.0
+    _size = self.atUtils('defineSize_get')
     #_sizeSub = _size / 2.0
     log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
     _crv = CURVES.create_fromName(name='locatorForm',

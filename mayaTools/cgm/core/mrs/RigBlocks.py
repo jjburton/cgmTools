@@ -272,14 +272,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     if kw_name:
                         self.cgmName = kw_name
 
-                if blockParent is not None:
-                    try:
-                        self.p_blockParent = blockParent
-                    except Exception,err:
-                        log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
-                        for arg in err.args:
-                            log.error(arg)
-
                 log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
                 if self.isReferenced():
                     log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
@@ -348,14 +340,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
                     else:
                         self.p_blockState = 'template'                
-            else:
-                if blockParent is not None:
-                    try:
-                        self.p_blockParent = blockParent
-                    except Exception,err:
-                        log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
-                        for arg in err.args:
-                            log.error(arg)
+            if blockParent is not None:
+                try:
+                    self.p_blockParent = blockParent
+                except Exception,err:
+                    log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
+                    for arg in err.args:
+                        log.error(arg)
                         
             #if _sizeMode:
                 #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))

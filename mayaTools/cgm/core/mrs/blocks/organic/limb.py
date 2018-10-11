@@ -337,7 +337,7 @@ d_block_profiles = {
            'scaleSetup':False,
            'baseAim':[0,0,1],
            'baseUp':[0,1,0],
-           'baseSize':[4,4,8],
+           'baseSize':[10,10,20],
            'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
            },    
     
@@ -348,6 +348,7 @@ l_attrsStandard = ['side',
                    'position',
                    #'baseUp',
                    'baseAim',
+                   'baseDat',
                    'addCog',
                    'nameList',
                    #'namesHandles',
@@ -380,7 +381,6 @@ l_attrsStandard = ['side',
                    'moduleTarget']
 
 d_attrsToMake = {'visMeasure':'bool',
-                 'baseDat':'string',
                  'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
                  'loftSetup':'default:morpheus',
@@ -477,15 +477,12 @@ def define(self):
                 log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
                 mc.delete(defineNull)
                 
-        _baseSize = self.baseSize
-        if _baseSize:
-            _size = MATH.average(_baseSize[:-2])/2.0
-        else:
-            self.atUtils('get_shapeOffset') or 1.0# * 2.0
+        _size = self.atUtils('defineSize_get')
+            
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size)
+                                      direction = 'z+', size = _size * 2.0)
         
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')

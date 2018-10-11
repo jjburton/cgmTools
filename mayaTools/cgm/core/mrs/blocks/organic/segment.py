@@ -151,7 +151,8 @@ d_block_profiles = {
             'templateAim':'chain',
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
-            'baseSize':[2,8,2]},
+            'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,1]},
+            'baseSize':[14,9,76]},
     'fish':{'numShapers':5,
             'addCog':True,
             'cgmName':'fish',
@@ -164,7 +165,7 @@ d_block_profiles = {
             'templateAim':'chain',            
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
-            'baseSize':[2,8,2]},
+            'baseSize':[18,15,30]},
     
     'spine':{'numShapers':5,
              'addCog':True,
@@ -186,14 +187,16 @@ d_block_profiles = {
              'templateAim':'toEnd',
              'settingsPlace':'cog',
              'baseAim':[0,1,0],
-             'baseUp':[0,0,-1],
-             'baseSize':[15,16,36]}}
+             #'baseUp':[0,0,-1],
+             'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'lever':[0,0,1]},             
+             'baseSize':[30,15,76]}}
 
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
                    'position',
                    'baseUp',
                    'baseAim',
+                   'baseDat',
                    'addCog',
                    #'hasRootJoint',
                    'nameList',
@@ -324,9 +327,10 @@ def define(self):
             mc.delete(defineNull)
     
     
-    _size = (self.atUtils('get_shapeOffset') or 1.0) * 2.0
+    _size = self.atUtils('defineSize_get')
+    
     _crv = CURVES.create_fromName(name='locatorForm',
-                                  direction = 'z+', size = _size * 2.0)
+                                  direction = 'z+', size = _size)
 
     SNAP.go(_crv,self.mNode,)
     CORERIG.override_color(_crv, 'white')
