@@ -2100,10 +2100,15 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     #d_offset = d1 - _offset
                     #log.info("{0} : {1}".format(d1,d_offset))
                     _sphere = mc.polySphere(axis = [0,0,1],
-                                            radius = d1,
+                                            radius = d1*.5,
                                             subdivisionsX = 10,
                                             subdivisionsY = 10)
-                    TRANS.scale_to_boundingBox(_sphere[0], [d1,d1,d2])
+                    #_sphere = mc.polyCylinder(axis = [0,0,1],
+                    #                          radius = d1,
+                    #                          height = d2,
+                    #                          subdivisionsX = 1,
+                    #                          subdivisionsY = 1)                    
+                    #TRANS.scale_to_boundingBox(_sphere[0], [d1*1.75,d1*1.75,d2])
                     
                     SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
                     
