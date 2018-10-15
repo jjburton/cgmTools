@@ -10,6 +10,8 @@ Website : http://www.cgmonks.com
 # From Python =============================================================
 import pprint
 import copy
+import math
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -757,6 +759,16 @@ def average(*args):
         l = [a for a in args]
     return sum(l)/len(l)
 
+def get_greatest(*args):
+    """ 
+    """
+    if VALID.isListArg(args[0]):
+        l=args[0]
+    else:
+        l = [a for a in args]
+        
+    return max(l)
+
 def median(*args):
     """ 
     https://stackoverflow.com/questions/24101524/finding-median-of-list-in-python
@@ -773,6 +785,16 @@ def median(*args):
             return sorted(l)[n//2]
     else:
             return sum(sorted(l)[n//2-1:n//2+1])/2.0    
+
+def angleBetween(p1, p2, p3):
+    p1 = VALID.euclidVector3Arg(p1)
+    p2 = VALID.euclidVector3Arg(p2)
+    p3 = VALID.euclidVector3Arg(p3)
+    
+    v1 = (p2 - p1).normalized()
+    v2 = (p3 - p2).normalized()
+    
+    return math.degrees(v1.angle(v2))
 
 
 

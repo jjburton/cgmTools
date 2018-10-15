@@ -1082,6 +1082,36 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
+
+def rigNodes_store(self):
+    """
+    :parameters:
+
+    :returns:
+        
+    :raises:
+        Exception | if reached
+
+    """
+    _str_func = 'rigNodes_store'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    l_postNodes = SEARCH.get_nodeSnapShot()
+    _res = []
+    for o in l_postNodes:
+        if o not in self.l_preNodesBuffer:
+            _res.append(o)
+            
+
+    if self.__dict__.get('mRigNull'):
+        self.mRigNull.connectChildrenNodes(_res,'rigNodes','rigBlock')
+    else:
+        self.mPuppet.connectChildrenNodes(_res,'rigNodes','rigBlock')
+        
+    print _res
+
+
 @cgmGEN.Timer
 def get_dynParentTargetsDat(self):
     """
@@ -1180,7 +1210,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
             
-        
         mRigNull = self.mRigNull
         ml_shapes = []
         mMesh_tmp = None
@@ -1217,7 +1246,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     'limbSegmentHandleBack',
                     'simpleCast']:
             #Get our cast mesh        
-            
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
 
             mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
@@ -1455,7 +1483,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #...Get our uValues...
                     l_uValues = []
                     #l_sets = []
-                    
                     
                     for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
@@ -2063,12 +2090,26 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     p1 = ml_targets[i].p_position
                     d1 = DIST.get_distance_between_points(p1,p2)
+                    
+                    try:p1_2 = ml_targets[i+1].p_position
+                    except:p1_2 = ml_targets[i-1].p_position
+                    
+                    d2 = DIST.get_distance_between_points(p1,p1_2)
+                    d2 = min([d1,d2])
+                    
                     #d_offset = d1 - _offset
                     #log.info("{0} : {1}".format(d1,d_offset))
-                    _sphere = mc.polySphere(axis = [1,0,0],
-                                            radius = d1,
+                    _sphere = mc.polySphere(axis = [0,0,1],
+                                            radius = d1*.5,
                                             subdivisionsX = 10,
-                                            subdivisionsY = 10)                    
+                                            subdivisionsY = 10)
+                    #_sphere = mc.polyCylinder(axis = [0,0,1],
+                    #                          radius = d1,
+                    #                          height = d2,
+                    #                          subdivisionsX = 1,
+                    #                          subdivisionsY = 1)                    
+                    #TRANS.scale_to_boundingBox(_sphere[0], [d1*1.75,d1*1.75,d2])
+                    
                     SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
                     
                 else:
@@ -2097,6 +2138,14 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         return l_new
     except Exception,err:
         cgmGEN.cgmException(Exception,err,msg=vars())
+
+
+
+
+
+
+
+
 
 def joints_connectToParent(self):
     try:

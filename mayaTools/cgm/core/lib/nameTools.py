@@ -170,9 +170,9 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    _str_funcName = "returnCombinedNameFromDict(%s)"%nameDict
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    if type(nameDict) is not dict:raise StandardError,"%s >>> nameDict is not type dict. type: %s"%(_str_funcName,type(nameDict))
+    _str_func = "returnCombinedNameFromDict(%s)"%nameDict
+    log.debug(">>> %s "%(_str_func) + "="*75)   
+    if type(nameDict) is not dict:raise StandardError,"%s >>> nameDict is not type dict. type: %s"%(_str_func,type(nameDict))
     
     divider = returnCGMDivider()
     order = returnCGMOrder()
@@ -184,6 +184,8 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
         buffer = str(SEARCH.get_tagInfoShort(buffer,item))
         if buffer not in ['False','None','ignore']:
             nameBuilder.append(buffer)
+        log.debug("|{0}| >>  buffer: {1}".format(_str_func,nameBuilder))
+        
     _str = divider.join(nameBuilder)
     if stripInvalid: _str = strUtils.stripInvalidChars(_str)
     return _str
@@ -215,8 +217,8 @@ def get_objNameDict(obj,ignore=[False]):
         order = returnCGMOrder()
         nameBuilder = []
         #>>> Get our cgmVar_iables
-        userAttrs = attributes.returnUserAttributes(obj)
-        cgmAttrs = lists.returnMatchList(userAttrs,order)
+        #userAttrs = attributes.returnUserAttributes(obj)
+        #cgmAttrs = lists.returnMatchList(userAttrs,order)
         #>>> Tag ignoring
         if ignore:
             for i in ignore:
@@ -245,12 +247,22 @@ def get_objNameDict(obj,ignore=[False]):
         ChildNameObj = False
         
         nameObj = False
-        #nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
-        #if nameObj:
-            #nameObj = nameObj
-            #log.debug("nameObj: {0}".format(nameObj))
-            #namesDict['cgmName'] = nameObj
-            
+        cgmNameAttrType = ATTR.get_type(obj,'cgmName')
+        log.debug("cgmNameAttrType: {0}".format(cgmNameAttrType))
+        
+        if cgmNameAttrType == 'message':
+            #nameObj = SEARCH.get_nodeTagInfo(obj,'cgmName')
+            nameObj = ATTR.get_message(obj,'cgmName',simple=True)#SEARCH.get_nodeTagInfo(obj,'cgmName')
+            if nameObj:
+                nameObj = nameObj[0]
+                nameObjDict = get_objNameDict(nameObj)
+                for k in 'cgmDirection','test':
+                    if nameObjDict.get(k) and namesDict.get(k):
+                        namesDict.pop(k)
+                log.debug("nameObj: {0}".format(nameObj))
+                namesDict['cgmName'] = nameObj
+                return namesDict
+        
         typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')
         isType = SEARCH.VALID.get_mayaType(obj)
         isShape = SEARCH.VALID.is_shape(obj)

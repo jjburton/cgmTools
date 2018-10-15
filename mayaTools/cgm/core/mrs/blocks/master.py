@@ -50,7 +50,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.05312018'
 __autoTemplate__ = True
 __menuVisible__ = True
-__baseSize__ = 10,10,10
+__baseSize__ = 170,170,170
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {'unityLow':{'addMotionJoint':True},
@@ -70,7 +70,7 @@ d_attrsToMake = {'rootJoint':'messageSimple',
 d_defaultSettings = {'version':__version__,
                      'baseName':'MasterBlock',
                      'addMotionJoint':True,
-                     'controlOffset':1,
+                     'controlOffset':.9999,
                      'numSpacePivots':1,
                      'attachPoint':'end'}
 
@@ -96,8 +96,6 @@ def uiBuilderMenu(self,parent = None):
 #=============================================================================================================
 def define(self):
     _short = self.mNode
-    #self.translate = 0,0,0
-    #self.rotate = 0,0,0
     ATTR.set_alias(_short,'sy','blockScale')    
     self.setAttrFlags(attrs=['sx','sz','sz'])
     self.doConnectOut('sy',['sx','sz'])
@@ -136,12 +134,12 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         _average = MATH.average([_bb[0],_bb[2]])
         _size = _average * 1.5
-        _offsetSize = _average * .1    
+        _offsetSize = _average * .01    
         _blockScale = self.blockScale
         mTemplateNull = self.atUtils('stateNull_verify','template')
         mNoTransformNull = self.atUtils('noTransformNull_verify','template')
         
-        if resize:
+        if resize or self.controlOffset == .9999:
             self.controlOffset = _offsetSize
             
         #Main curve ===========================================================================
@@ -564,7 +562,8 @@ def rig_cleanUp(self):
     
     mBlock.template = True
     mBlock.noTransTemplateNull.template=True
-
+    self.UTILS.rigNodes_store(self)
+    
     self.version = self.d_block['buildVersion']
     
     mMasterControl.doStore('version', self.d_block['buildVersion'])
@@ -575,10 +574,12 @@ def rig_cleanUp(self):
 @cgmGEN.Timer
 def rigDelete(self):
     try:
-        _str_func = 'rigDelete'    
+        _str_func = 'rigDelete'
+        log.debug("|{0}| >> ...".format(_str_func,)+'-'*80)
+        log.debug(self)
         self.template = False
         self.noTransTemplateNull.template=True
-        
+        mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:
             mRootMotion.dynParentGroup.doPurge()
@@ -598,6 +599,17 @@ def rigDelete(self):
                         break
                 
         self.moduleTarget.masterControl.masterGroup.delete()
+        
+        log.debug("|{0}| >> rigNodes...".format(_str_func,)+'-'*40)                             
+        ml_rigNodes = mPuppet.getMessageAsMeta('rigNodes')
+        for mNode in ml_rigNodes:
+            try:
+                log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
+                mNode.delete()
+            except:
+                log.debug("|{0}| >> failed...".format(_str_func,mNode))         
+        
+        
         
         return True
         self.v = 1

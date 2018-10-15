@@ -37,6 +37,7 @@ reload(DIST)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
+import cgm.core.lib.search_utils as SEARCH
 
 def reset_channels_fromMode(mode = 0,selectedChannels=None):
     """
@@ -529,7 +530,12 @@ def matchValue_iterator(matchObj = None,
     #log.warning("matchValue_iterator>>> Failed to find value for: %s"%mPlug_driven.p_combinedShortName)    
     return False
 
-
+@cgmGEN.Timer
+def get_metaNodeSnapShot():
+    #return [cgmMeta.cgmNode(n) for n in SEARCH.get_nodeSnapShot()]
+    #_res= [r9Meta.MetaClass(n) for n in SEARCH.get_nodeSnapShot()]
+    #return cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
+    _res =  SEARCH.get_nodeSnapShot()
 
 def check_nameMatches(self,mlControls,justReport = False):
     _str_func = 'check_nameMatches'
