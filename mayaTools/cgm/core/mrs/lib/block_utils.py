@@ -4983,9 +4983,8 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
                                          moduleType = _moduleType,
                                          **kws)
 
-        ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
-        
-        return mModule        
+        #ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
+        return mModule
  
     except Exception,err:cgmGEN.cgmException(Exception,err)
     

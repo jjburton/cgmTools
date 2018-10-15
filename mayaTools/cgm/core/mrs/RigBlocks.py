@@ -5906,8 +5906,11 @@ class cgmRigModule(cgmMeta.cgmObject):
                     raise StandardError,"Failed to verify!"
                 
                 
-        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())        
+        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         
+    def doName(self):
+        return self.atUtils('doName')
+    
     def atUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
@@ -5917,6 +5920,7 @@ class cgmRigModule(cgmMeta.cgmObject):
         except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
     UTILS = MODULEUTILS
+    
     def __verify__(self,**kws):
         """"""
         """ 
@@ -5965,8 +5969,10 @@ class cgmRigModule(cgmMeta.cgmObject):
                     except Exception,err:
                         log.error("|{0}| Failed to set: {1}|{2}".format(_str_func,k,v,err))
                         
+                        
             #rigBlock
             #--------------------------------------------------------------------------------
+            _moduleType = kws.get('moduleType','base')
             if kws.get('rigBlock'):
                 _moduleLink = kws.get('moduleLink','moduleTarget')
                 mRigBlock = cgmMeta.validateObjArg(kws.get('rigBlock'),'cgmRigBlock')
@@ -5995,11 +6001,10 @@ class cgmRigModule(cgmMeta.cgmObject):
                     log.debug("|{0}| >> Name dat k: {1} | v:{2}".format(_str_func,k,v))                
                     self.addAttr(k,value = v,lock = True)
                 
-            self.doName()  
             
             #Attributes
             #--------------------------------------------------------------------------------
-            self.addAttr('moduleType',initialValue = 'base',lock=True)
+            self.addAttr('moduleType',initialValue = _moduleType,lock=True)
     
             self.addAttr('moduleParent',attrType='messageSimple')#Changed to message for now till Mark decides if we can use single
             self.addAttr('modulePuppet',attrType='messageSimple')
@@ -6010,7 +6015,7 @@ class cgmRigModule(cgmMeta.cgmObject):
     
             self.addAttr('rigNull',attrType='messageSimple',lock=True)
             self.addAttr('deformNull',attrType='messageSimple',lock=True)	
-    
+            
 
             #Groups
             #--------------------------------------------------------------------------------
@@ -6048,6 +6053,7 @@ class cgmRigModule(cgmMeta.cgmObject):
                 raise NotImplemented,'Not finished moduleParent on call yet...'
                 self.doSetParentModule(self.kw_moduleParent)
  
+            self.doName()  
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
         

@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -146,7 +146,22 @@ def moduleChildren_get(self,excludeSelf = True):
     
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+def doName(self):
+    _str_func = ' doName'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    reload(NAMETOOLS)
+    try:
+        _d = NAMETOOLS.get_objNameDict(self.mNode)
+        
+        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+        _d['cgmType'] = 'part'
+        log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+        
+        _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+        log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
+        self.rename(_str)
     
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 #=============================================================================================================
 #>> verify
 #=============================================================================================================

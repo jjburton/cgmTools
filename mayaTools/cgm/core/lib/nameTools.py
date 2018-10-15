@@ -170,9 +170,9 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     name(string)
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     """
-    _str_funcName = "returnCombinedNameFromDict(%s)"%nameDict
-    log.debug(">>> %s "%(_str_funcName) + "="*75)   
-    if type(nameDict) is not dict:raise StandardError,"%s >>> nameDict is not type dict. type: %s"%(_str_funcName,type(nameDict))
+    _str_func = "returnCombinedNameFromDict(%s)"%nameDict
+    log.debug(">>> %s "%(_str_func) + "="*75)   
+    if type(nameDict) is not dict:raise StandardError,"%s >>> nameDict is not type dict. type: %s"%(_str_func,type(nameDict))
     
     divider = returnCGMDivider()
     order = returnCGMOrder()
@@ -184,6 +184,8 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
         buffer = str(SEARCH.get_tagInfoShort(buffer,item))
         if buffer not in ['False','None','ignore']:
             nameBuilder.append(buffer)
+        log.debug("|{0}| >>  buffer: {1}".format(_str_func,nameBuilder))
+        
     _str = divider.join(nameBuilder)
     if stripInvalid: _str = strUtils.stripInvalidChars(_str)
     return _str
