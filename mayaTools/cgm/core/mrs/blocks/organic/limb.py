@@ -3588,6 +3588,76 @@ def rig_shapes(self):
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
             mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
 
+
+        #Lever =============================================================================
+        if self.b_lever:
+            log.debug("|{0}| >> Lever...".format(_str_func))
+            mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+            if not mLeverControlJoint:
+                mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+            else:
+                mLeverControlJoint = mLeverControlJoint[0]
+            log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
+    
+            dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
+                                                          ml_prerigHandles[1].p_position)
+            log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
+    
+            #Dup our rig joint and move it 
+            mDup = mLeverControlJoint.doDuplicate()
+            mDup.p_parent = mLeverControlJoint
+    
+            mDup.resetAttrs()
+            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
+    
+            mDup2 = mDup.doDuplicate()
+            ATTR.set(mDup2.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .25)
+    
+    
+            ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mDup2.mNode,
+                                                                       #ml_fkJoints[0].mNode],
+                                                                       mDup.mNode],
+                                                             aimVector= self.d_orientation['vectorOut'],
+                                                             offset=_offset,
+                                                             f_factor=0,
+                                                             mode = 'frameHandle')
+    
+            mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
+            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+            #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
+    
+            mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
+    
+            #limbRoot ------------------------------------------------------------------------------
+            log.debug("|{0}| >> LimbRoot".format(_str_func))
+            idx = 0
+            if self.b_lever:
+                idx = 1
+            mLimbRootHandle = ml_prerigHandles[idx]
+            mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
+    
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode))
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
+            mRootCrv.doSnapTo(mLimbRootHandle)
+    
+            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+    
+            CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
+    
+            for a in 'cgmName','cgmDirection','cgmModifier':
+                if ATTR.get(_short_module,a):
+                    ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+    
+            mLimbRoot.doStore('cgmTypeModifier','limbRoot')
+            mLimbRoot.doName()
+    
+            mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
+            self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect            
+    
+            log.debug(cgmGEN._str_subLine)
+
+
+
         
         if self.md_roll:#Segment stuff ===================================================================
             log.debug("|{0}| >> Checking for mid handles...".format(_str_func))
@@ -3609,72 +3679,8 @@ def rig_shapes(self):
             
             log.debug(cgmGEN._str_subLine)
                 
-            #Lever =============================================================================
-            if self.b_lever:
-                log.debug("|{0}| >> Lever...".format(_str_func))
-                mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
-                if not mLeverControlJoint:
-                    mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
-                else:
-                    mLeverControlJoint = mLeverControlJoint[0]
-                log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
-                
-                dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
-                                                              ml_prerigHandles[1].p_position)
-                log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
-                
-                #Dup our rig joint and move it 
-                mDup = mLeverControlJoint.doDuplicate()
-                mDup.p_parent = mLeverControlJoint
-                
-                mDup.resetAttrs()
-                ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
-                
-                mDup2 = mDup.doDuplicate()
-                ATTR.set(mDup2.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .25)
-                
-                
-                ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mDup2.mNode,
-                                                                           #ml_fkJoints[0].mNode],
-                                                                            mDup.mNode],
-                                                                 aimVector= self.d_orientation['vectorOut'],
-                                                                 offset=_offset,
-                                                                 f_factor=0,
-                                                                 mode = 'frameHandle')
-                
-                mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
-                #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
-                
-                mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
-                
-                #limbRoot ------------------------------------------------------------------------------
-                log.debug("|{0}| >> LimbRoot".format(_str_func))
-                idx = 0
-                if self.b_lever:
-                    idx = 1
-                mLimbRootHandle = ml_prerigHandles[idx]
-                mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
             
-                _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode))
-                mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
-                mRootCrv.doSnapTo(mLimbRootHandle)
-            
-                #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
-            
-                CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
-            
-                for a in 'cgmName','cgmDirection','cgmModifier':
-                    if ATTR.get(_short_module,a):
-                        ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
-            
-                mLimbRoot.doStore('cgmTypeModifier','limbRoot')
-                mLimbRoot.doName()
-            
-                mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
-                self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect            
-                
-                log.debug(cgmGEN._str_subLine)
+        
         
         #IK End ================================================================================
         if mBlock.ikSetup:
