@@ -4410,9 +4410,6 @@ class rigFactory(object):
         try:return "{0}(rigBlock: {1})".format(self.__class__, self.mBlock.mNode)
         except:return self
 
-    def log_self(self):
-        pprint.pprint(self.__dict__)
-
     def atBlockModule(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
@@ -4725,7 +4722,9 @@ class rigFactory(object):
 
     #@cgmGEN.Timer
     def log_self(self):
-        pprint.pprint(self.__dict__)
+        _d = copy.copy(self.__dict__)
+        _d.pop('l_preNodesBuffer')
+        pprint.pprint(_d)
 
     #@cgmGEN.Timer
     def fnc_bufferDat(self):

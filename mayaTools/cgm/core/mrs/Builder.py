@@ -1485,7 +1485,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'loadBlockDat',
-                                      **{'autoPush':False}),
+                                      **{'autoPush':False,'currentOnly':True}),
                   ann = self._d_ui_annotations.get('load state blockDat'))
         
         mc.button(parent=_row,

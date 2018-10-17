@@ -1532,7 +1532,7 @@ def prerig(self):
 
     _ikEnd = self.getEnumValueString('ikEnd')
     ml_noParent = []
-    if _ikEnd not in ['paw']:
+    if _ikEnd not in ['paw','bank']:
         if self.hasBallJoint and mFootHelper:
             mHelp = mFootHelper.pivotCenter
             ml_templateHandles.append(mHelp)
@@ -1568,15 +1568,19 @@ def prerig(self):
     ml_aimGroups = []
     _nameDict = self.getNameDict(ignore=['cgmName','cgmType'])
     #_nameDict['cgmType'] = 'blockHandle'
+    mPivotHelper = ml_templateHandles[-1].getMessageAsMeta('pivotHelper')
     
     mDefineEndObj = self.defineEndHelper    
     _size_width = mDefineEndObj.width#...x width
     _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
     _sizeUse2 = self.atUtils('get_shapeOffset') * 2
     _sizeUse = min([_sizeUse1,_sizeUse2])
-    
+    mPivotHelper = ml_templateHandles[-1].getMessageAsMeta('pivotHelper')
     for i,mTemplateHandle in enumerate(ml_templateHandles):
-        log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
+        log.debug("|{0}| >> prerig handle cnt: {1} | {2}".format(_str_func,i,mTemplateHandle))
+        if mTemplateHandle == mPivotHelper:
+            log.debug("|{0}| >> pivotHelper. Skipping".format(_str_func,i))
+            continue        
         _HandleSnapTo = mTemplateHandle.mNode
         
         if mTemplateHandle == mEndHandle:
@@ -2458,9 +2462,16 @@ def rig_skeleton(self):
         mFollowBase = cgmMeta.validateObjArg(mc.joint(),setClass=True)#ml_fkJointsToUse[0].doDuplicate(po=True)
         mFollowBase.p_parent = False
         mFollowBase.p_position = ml_fkJointsToUse[0].p_position
-
+        
+        
         mFollowMid = mFollowBase.doDuplicate(po=True)
-        mFollowMid.p_position = ml_jointHelpers[self.int_handleEndIdx].p_position
+        if mBlock.hasEndJoint:
+            _idxUse = -1
+        else:
+            _idxUse = -2
+            
+        #self.int_handleEndIdx
+        mFollowMid.p_position = ml_jointHelpers[_idxUse].p_position
         mFollowMid.p_parent = mFollowBase        
         
         mFollowEnd = mFollowBase.doDuplicate(po=True)
@@ -2872,7 +2883,7 @@ def rig_skeleton(self):
 def rig_digitShapes(self):
     try:
         _short = self.d_block['shortName']
-        _str_func = 'rig_shapes'
+        _str_func = 'rig_digitShapes'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         #_str_func = '[{0}] > rig_shapes'.format(_short)
@@ -2916,7 +2927,7 @@ def rig_digitShapes(self):
         #_bbSize.remove(max(_bbSize))
         #_size = MATH.average(_bbSize)
         
-        _bbSize = TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True)
+        _bbSize = TRANS.bbSize_get(self.mRootTemplateHandle.loftCurve.mNode,shapes=True)
         _size = MATH.average(_bbSize[1:])
         
         
@@ -3125,9 +3136,9 @@ def rig_digitShapes(self):
             log.debug("|{0}| >> baseIK...".format(_str_func))
         
             mIK_templateHandle = self.mRootTemplateHandle
-            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,'maxFill')
+            #bb_ik = POS.get_bb_size(mIK_templateHandle.loftCurve.mNode,True,'maxFill')
             #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
-            _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
+            _ik_shape = CURVES.create_fromName('sphere', size = [_size,_size,_size])
             ATTR.set(_ik_shape,'scale', 1.1)
         
             mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
@@ -3160,10 +3171,10 @@ def rig_digitShapes(self):
     
             mDag = ml_followParentBankJoints[-1].doCreateAt(setClass=True)
     
-            if not bb_ik:
-                bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
+            #if not bb_ik:
+                #bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
     
-            _ik_shape = CURVES.create_fromName('cube', size = bb_ik)            
+            _ik_shape = CURVES.create_fromName('cube', size =[v*.75 for v in [_size,_size,_size]])            
             SNAP.go(_ik_shape,mDag.mNode)
     
             CORERIG.shapeParent_in_place(mDag.mNode, _ik_shape,False)
@@ -3592,11 +3603,12 @@ def rig_shapes(self):
         #Lever =============================================================================
         if self.b_lever:
             log.debug("|{0}| >> Lever...".format(_str_func))
-            mLeverControlJoint = mRigNull.getMessage('leverDirect',asMeta=True)
+            mLeverControlJoint = mRigNull.getMessageAsMeta('leverDirect')
+            mLeverControlFK =  mRigNull.getMessageAsMeta('leverFK')
             if not mLeverControlJoint:
-                mLeverControlJoint = mRigNull.getMessage('leverFK',asMeta=True)[0]
+                mLeverControlJoint = mLeverControlFK
             else:
-                mLeverControlJoint = mLeverControlJoint[0]
+                mLeverControlJoint = mLeverControlJoint
             log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
     
             dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
@@ -3623,7 +3635,7 @@ def rig_shapes(self):
                                                              mode = 'frameHandle')
     
             mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-            CORERIG.shapeParent_in_place(mLeverControlJoint.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+            CORERIG.shapeParent_in_place(mLeverControlFK.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
             #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
     
             mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
@@ -6669,9 +6681,63 @@ def rig_pivotSetup(self):
             mIKHandle.parent = mControlFollowParentBank
     
         #Connect the parts -------------------------------------------------------------------------
+        log.debug("|{0}| >> pivotBank | ik connection setup ...".format(_str_func)+'-'*40)
+        
+        def create_digitParentBlendDag(mBankDriver,
+                                       plugToRigNull,
+                                       alias,
+                                       mRoot,
+                                       mParentSettings,
+                                       attrOne,
+                                       attrTwo):
+        
+            #Need to create a dag to blend
+            #Create a dag as a solid base
+            #Find parent blend attrs            
+            mBase = mBankDriver.doDuplicate(po=True)
+            mBlend = mBankDriver.doDuplicate(po=True)
+            
+            for mDag in mBase,mBlend:
+                mDag.p_parent = mRoot
+                
+            
+            _constraint = mc.parentConstraint([mBase.mNode,mBankDriver.mNode],
+                                              mBlend.mNode,
+                                              maintainOffset=True)[0]
+            
+            targetWeights = mc.parentConstraint(_constraint,q=True,
+                                                weightAliasList=True,
+                                                maintainOffset=True)
+            
+            #Connect                                  
+            _parentsettings = mParentSettings.mNode
+            ATTR.connect("{0}.{1}".format(_parentsettings,attrOne),
+                         "{0}.{1}".format(_constraint,targetWeights[0]))
+            ATTR.connect("{0}.{1}".format(_parentsettings,attrTwo),
+                         "{0}.{1}".format(_constraint,targetWeights[1]))    
+                
+            
+            
+            mBlend.doStore('cgmAlias', alias)                    
+            mRigNull.connectChildNode(mBlend,plugToRigNull,'rigNull')#Connect        
+            
+            return mBlend
+        
+        mParentSettings = self.d_module['mModuleParent'].rigNull.settings
+        
+        create_digitParentBlendDag(mIKControlTarget,'bankParentIKDriver',
+                                   'followParentBank',mLimbRoot,mParentSettings,
+                                   'result_FKon','result_IKon')
+        
+        #mIKControlTarget.doStore('cgmAlias', 'followParentBank')        
+        #mRigNull.connectChildNode(mIKControlTarget,'bankParentIKDriver','rigNull')#Connect        
+        
+        
         log.debug("|{0}| >> pivotBank | fk connection setup ...".format(_str_func)+'-'*40)
-        mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
-    
+        #mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
+        create_digitParentBlendDag(ml_fkAimJoints[0],'bankParentFKDriver',
+                                   'followParentBank',mLimbRoot,mParentSettings,
+                                   'result_FKon','result_IKon')
     
         #Setup blends to turn off and on
         mFKGroup = self.mRigNull.getMessageAsMeta('fkGroup')
@@ -6685,7 +6751,8 @@ def rig_pivotSetup(self):
     
         #mAimDriver.doStore('cgmAlias', 'followParentBank')
         #mRigNull.connectChildNode(mAimDriver,'bankParentFKDriver','rigNull')#Connect
-    
+        
+        """
         d_aimFK = IK.handle(ml_fkAimJoints[0].mNode,
                             ml_fkAimJoints[-1].mNode,
                             solverType='ikSCsolver',
@@ -6693,14 +6760,14 @@ def rig_pivotSetup(self):
                             moduleInstance=mModule)
         mHandle = d_aimFK['mHandle']
         mHandle.parent = mControlFollowParentBank.mNode#toeIK to wiggle
-    
-    
         """
-            mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimDriver.mNode, maintainOffset = True,
-                                    aimVector = [0,0,1], upVector = [0,1,0], 
-                                    worldUpObject = mLimbRoot.mNode,
-                                    worldUpType = 'objectrotation', 
-                                    worldUpVector = [0,1,0])"""
+    
+        
+        mc.aimConstraint(mControlFollowParentBank.mNode.mNode, ml_fkAimJoints[0].mNode, maintainOffset = True,
+                         aimVector = [0,0,1], upVector = [0,1,0], 
+                         worldUpObject = mLimbRoot.mNode,
+                         worldUpType = 'objectrotation', 
+                         worldUpVector = [0,1,0])
         """
             mc.aimConstraint(ml_followParentBankJoints[-1].mNode, mAimGroup.mNode, maintainOffset = True,
                              aimVector = [0,0,1], upVector = [0,1,0], 
@@ -6710,9 +6777,7 @@ def rig_pivotSetup(self):
     
         #mc.parentConstraint(ml_followParentBankJoints[0].mNode, mLimbRoot.mNode, maintainOffset=True)
     
-        log.debug("|{0}| >> pivotBank | ik connection setup ...".format(_str_func)+'-'*40)
-        mIKControlTarget.doStore('cgmAlias', 'followParentBank')        
-        mRigNull.connectChildNode(mIKControlTarget,'bankParentIKDriver','rigNull')#Connect
+
         """
             mc.parentConstraint(mIKControlTarget.mNode,
                                 mIKControl.mNode,
@@ -7409,7 +7474,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             
         # Foot --------------------------------------------------------------------------
-        elif ml_templateHandles[-1].getMessage('pivotHelper'):
+        elif ml_templateHandles[-1].getMessage('pivotHelper') and mBlock.blockProfile not in ['arm']:
             if mEnd:ml_rigJoints.append(mEnd)#...add this back
             mPivotHelper = ml_templateHandles[-1].pivotHelper
             log.debug("|{0}| >> foot ".format(_str_func))

@@ -3286,7 +3286,11 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     return _d
 
 @cgmGEN.Timer
-def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False, autoPush = True):
+def blockDat_load(self, blockDat = None,
+                  useMirror = False,
+                  settingsOnly = False,
+                  autoPush = True,
+                  currentOnly=False):
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     
@@ -3346,11 +3350,13 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
     _target_state = _stateArgs[1]
     
     _current_state = self.getState()
-    
+    _onlyState = False
     _current_state_idx = self.getState(False)
     if _target_state != _current_state:
         log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
         #self.p_blockState = _state
+    elif currentOnly:
+        _onlyState = _target_state
         
     
     #>>Controls ====================================================================================
@@ -3385,120 +3391,30 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
         controls_mirror(mMirror,self,define=True)
     
     else:
-        _d_define = blockDat.get('define',False)
-        if not _d_define:
-            log.error("|{0}| >> No define data found in blockDat".format(_str_func)) 
-        else:
-            _ml_defineHandles = self.atUtils('controls_get',define=True)
-
-            if not _ml_defineHandles:
-                log.error("|{0}| >> No define handles found".format(_str_func))
+        if not currentOnly or _onlyState == 'define':
+            _d_define = blockDat.get('define',False)
+            if not _d_define:
+                log.error("|{0}| >> No define data found in blockDat".format(_str_func)) 
             else:
-                _posTempl = _d_define.get('positions')
-                _orientsTempl = _d_define.get('orients')
-                _scaleTempl = _d_define.get('scales')
-                _jointHelpers = _d_define.get('jointHelpers')
-                _loftCurves = _d_define.get('loftCurves',{})
-                _subShapers = _d_define.get('subShapers',{})
-                
-                if len(_ml_defineHandles) != len(_posTempl):
-                    log.error("|{0}| >> Define handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_defineHandles),len(_posTempl))) 
-                else:
-                    for i_loop in range(3):
-                        log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop)+ '-'*80)
-
-                        for i,mObj in enumerate(_ml_defineHandles):
-                            log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
-                            mObj.p_position = _posTempl[i]
-                            if not ATTR.is_locked(mObj.mNode,'rotate'):
-                                mObj.p_orient = _orientsTempl[i]
-                                
-                            _tmp_short = mObj.mNode
-                            for ii,v in enumerate(_scaleTempl[i]):
-                                _a = 's'+'xyz'[ii]
-                                if not mObj.isAttrConnected(_a):
-                                    ATTR.set(_tmp_short,_a,v)
-                                else:
-                                    log.debug("|{0}| >> connected scale: {1}".format(_str_func,a))
-                            if _jointHelpers and _jointHelpers.get(i):
-                                mObj.jointHelper.translate = _jointHelpers[i]
-                            
-                            
-                            _d_loft = _loftCurves.get(str(i))
-                            if _d_loft:
-                                if i_loop:
-                                    log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
-                                
-                                    mLoftCurve = mObj.loftCurve
-                                    _rot = _d_loft.get('r')
-                                    _s = _d_loft.get('s')
-                                    _t = _d_loft.get('t')
-                                    if _rot:
-                                        ATTR.set(mLoftCurve.mNode,'rotate',_rot)
-                                    if _s:
-                                        ATTR.set(mLoftCurve.mNode,'scale',_s)
-                                    if _t:
-                                        ATTR.set(mLoftCurve.mNode,'translate',_t)
-                                    
-                        for i,d_sub in _subShapers.iteritems():
-                            ml_subs = _ml_defineHandles[int(i)].msgList_get('subShapers')
-                            log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
-                            if not ml_subs:
-                                raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
-                            _t = d_sub.get('t')
-                            _r = d_sub.get('r')
-                            _s = d_sub.get('s')
-                            _p = d_sub.get('p')
-                            for ii,mObj in enumerate(ml_subs):
-                                mObj.p_position = _p[ii]
-                                #ATTR.set(mObj.mNode,'t',_t[ii])
-                                ATTR.set(mObj.mNode,'r',_r[ii])
-                                ATTR.set(mObj.mNode,'s',_s[ii])    
+                _ml_defineHandles = self.atUtils('controls_get',define=True)
     
-    #>>Template Controls ====================================================================================
-    if _target_state_idx >= 1:
-        log.info("|{0}| >> template dat....".format(_str_func))
-        if _current_state_idx < 1:
-            if not autoPush:
-                log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
-                return True
-            log.info("|{0}| >> Pushing to template....".format(_str_func))
-            self.p_blockState = 1
-        
-        if mMirror:
-            log.info("|{0}| >> mMirror template pull...".format(_str_func))            
-            self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
-        
-        else:
-            if _orientHelper:
-                _ctrl = self.orientHelper.mNode
-                for ii,v in enumerate(_orientHelper):
-                    _a = 'r'+'xyz'[ii]
-                    setAttr(_ctrl,_a,v)
-            
-            _d_template = blockDat.get('template',False)
-            if not _d_template:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
-            else:
-                _ml_templateHandles = self.atUtils('controls_get',template=True)
-
-                if not _ml_templateHandles:
-                    log.error("|{0}| >> No template handles found".format(_str_func))
+                if not _ml_defineHandles:
+                    log.error("|{0}| >> No define handles found".format(_str_func))
                 else:
-                    _posTempl = _d_template.get('positions')
-                    _orientsTempl = _d_template.get('orients')
-                    _scaleTempl = _d_template.get('scales')
-                    _jointHelpers = _d_template.get('jointHelpers')
-                    _loftCurves = _d_template.get('loftCurves',{})
-                    _subShapers = _d_template.get('subShapers',{})
+                    _posTempl = _d_define.get('positions')
+                    _orientsTempl = _d_define.get('orients')
+                    _scaleTempl = _d_define.get('scales')
+                    _jointHelpers = _d_define.get('jointHelpers')
+                    _loftCurves = _d_define.get('loftCurves',{})
+                    _subShapers = _d_define.get('subShapers',{})
                     
-                    if len(_ml_templateHandles) != len(_posTempl):
-                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                    if len(_ml_defineHandles) != len(_posTempl):
+                        log.error("|{0}| >> Define handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_defineHandles),len(_posTempl))) 
                     else:
                         for i_loop in range(3):
-                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop)+ '-'*80)
     
-                            for i,mObj in enumerate(_ml_templateHandles):
+                            for i,mObj in enumerate(_ml_defineHandles):
                                 log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
                                 mObj.p_position = _posTempl[i]
                                 if not ATTR.is_locked(mObj.mNode,'rotate'):
@@ -3508,7 +3424,9 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 for ii,v in enumerate(_scaleTempl[i]):
                                     _a = 's'+'xyz'[ii]
                                     if not mObj.isAttrConnected(_a):
-                                        ATTR.set(_tmp_short,_a,v)   
+                                        ATTR.set(_tmp_short,_a,v)
+                                    else:
+                                        log.debug("|{0}| >> connected scale: {1}".format(_str_func,a))
                                 if _jointHelpers and _jointHelpers.get(i):
                                     mObj.jointHelper.translate = _jointHelpers[i]
                                 
@@ -3522,18 +3440,15 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                         _rot = _d_loft.get('r')
                                         _s = _d_loft.get('s')
                                         _t = _d_loft.get('t')
-                                        _p = _d_loft.get('p')
                                         if _rot:
                                             ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                                         if _s:
                                             ATTR.set(mLoftCurve.mNode,'scale',_s)
                                         if _t:
                                             ATTR.set(mLoftCurve.mNode,'translate',_t)
-                                        if _p:
-                                            mLoftCurve.p_position = _p
                                         
                             for i,d_sub in _subShapers.iteritems():
-                                ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
+                                ml_subs = _ml_defineHandles[int(i)].msgList_get('subShapers')
                                 log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
                                 if not ml_subs:
                                     raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
@@ -3541,23 +3456,117 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
                                 _r = d_sub.get('r')
                                 _s = d_sub.get('s')
                                 _p = d_sub.get('p')
-                                
                                 for ii,mObj in enumerate(ml_subs):
-                                    mObj.p_position = _p[ii]                                    
+                                    mObj.p_position = _p[ii]
                                     #ATTR.set(mObj.mNode,'t',_t[ii])
                                     ATTR.set(mObj.mNode,'r',_r[ii])
-                                    ATTR.set(mObj.mNode,'s',_s[ii])
-                                
-                                
-                            
+                                    ATTR.set(mObj.mNode,'s',_s[ii])    
     
-                #if _d_template.get('rootOrientHelper'):
-                    #if self.getMessage('orientHelper'):
-                    #    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
-                    #else:
-                        #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
-    #pprint.pprint(vars())
+    #>>Template Controls ====================================================================================
+    if _target_state_idx >= 1:
+        log.info("|{0}| >> template dat....".format(_str_func))
+        if _current_state_idx < 1:
+            if not autoPush:
+                log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
+                return True
+            log.info("|{0}| >> Pushing to template....".format(_str_func))
+            self.p_blockState = 1
+        
+        if not currentOnly or _onlyState == 'template':
+        
+            if mMirror:
+                log.info("|{0}| >> mMirror template pull...".format(_str_func))            
+                self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
+            
+            else:
+                if _orientHelper:
+                    _ctrl = self.orientHelper.mNode
+                    for ii,v in enumerate(_orientHelper):
+                        _a = 'r'+'xyz'[ii]
+                        setAttr(_ctrl,_a,v)
+                
+                _d_template = blockDat.get('template',False)
+                if not _d_template:
+                    log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+                else:
+                    _ml_templateHandles = self.atUtils('controls_get',template=True)
     
+                    if not _ml_templateHandles:
+                        log.error("|{0}| >> No template handles found".format(_str_func))
+                    else:
+                        _posTempl = _d_template.get('positions')
+                        _orientsTempl = _d_template.get('orients')
+                        _scaleTempl = _d_template.get('scales')
+                        _jointHelpers = _d_template.get('jointHelpers')
+                        _loftCurves = _d_template.get('loftCurves',{})
+                        _subShapers = _d_template.get('subShapers',{})
+                        
+                        if len(_ml_templateHandles) != len(_posTempl):
+                            log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                        else:
+                            for i_loop in range(3):
+                                log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+        
+                                for i,mObj in enumerate(_ml_templateHandles):
+                                    log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                                    mObj.p_position = _posTempl[i]
+                                    if not ATTR.is_locked(mObj.mNode,'rotate'):
+                                        mObj.p_orient = _orientsTempl[i]
+                                        
+                                    _tmp_short = mObj.mNode
+                                    for ii,v in enumerate(_scaleTempl[i]):
+                                        _a = 's'+'xyz'[ii]
+                                        if not mObj.isAttrConnected(_a):
+                                            ATTR.set(_tmp_short,_a,v)   
+                                    if _jointHelpers and _jointHelpers.get(i):
+                                        mObj.jointHelper.translate = _jointHelpers[i]
+                                    
+                                    
+                                    _d_loft = _loftCurves.get(str(i))
+                                    if _d_loft:
+                                        if i_loop:
+                                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                                        
+                                            mLoftCurve = mObj.loftCurve
+                                            _rot = _d_loft.get('r')
+                                            _s = _d_loft.get('s')
+                                            _t = _d_loft.get('t')
+                                            _p = _d_loft.get('p')
+                                            if _rot:
+                                                ATTR.set(mLoftCurve.mNode,'rotate',_rot)
+                                            if _s:
+                                                ATTR.set(mLoftCurve.mNode,'scale',_s)
+                                            if _t:
+                                                ATTR.set(mLoftCurve.mNode,'translate',_t)
+                                            if _p:
+                                                mLoftCurve.p_position = _p
+                                            
+                                for i,d_sub in _subShapers.iteritems():
+                                    ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
+                                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                                    if not ml_subs:
+                                        raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                                    _t = d_sub.get('t')
+                                    _r = d_sub.get('r')
+                                    _s = d_sub.get('s')
+                                    _p = d_sub.get('p')
+                                    
+                                    for ii,mObj in enumerate(ml_subs):
+                                        mObj.p_position = _p[ii]                                    
+                                        #ATTR.set(mObj.mNode,'t',_t[ii])
+                                        ATTR.set(mObj.mNode,'r',_r[ii])
+                                        ATTR.set(mObj.mNode,'s',_s[ii])
+                                    
+                                    
+                                
+        
+                    #if _d_template.get('rootOrientHelper'):
+                        #if self.getMessage('orientHelper'):
+                        #    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                        #else:
+                            #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+        #pprint.pprint(vars())
+        
     if _target_state_idx >= 2:
         log.info("|{0}| >> prerig dat....".format(_str_func))
         if _current_state_idx < 2:
@@ -3567,52 +3576,54 @@ def blockDat_load(self, blockDat = None, useMirror = False, settingsOnly = False
             
             log.info("|{0}| >> Pushing to prerig....".format(_str_func))
             self.p_blockState = 2
-            
-        if mMirror:
-            log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
-            self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
-        else:
-            _d_prerig = blockDat.get('prerig',False)
-            if not _d_prerig:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+        
+        if not currentOnly or _onlyState == 'prerig':
+        
+            if mMirror:
+                log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
+                self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
             else:
-                _ml_prerigControls = self.atUtils('controls_get',prerig=True)
-        
-                if not _ml_prerigControls:
-                    log.error("|{0}| >> No prerig handles found".format(_str_func))
+                _d_prerig = blockDat.get('prerig',False)
+                if not _d_prerig:
+                    log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
                 else:
-                    _posPre = _d_prerig.get('positions')
-                    _orientsPre = _d_prerig.get('orients')
-                    _scalePre = _d_prerig.get('scales')
-                    _jointHelpersPre = _d_prerig.get('jointHelpers')
-        
-                    if len(_ml_prerigControls) != len(_posPre):
-                        log.error("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
-                        pprint.pprint(_ml_prerigControls)
+                    _ml_prerigControls = self.atUtils('controls_get',prerig=True)
+            
+                    if not _ml_prerigControls:
+                        log.error("|{0}| >> No prerig handles found".format(_str_func))
                     else:
-                        for i_loop in range(3):
-                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
-        
-                            for i,mObj in enumerate(_ml_prerigControls):
-                                log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
-                                mObj.p_position = _posPre[i]
-                                mObj.p_orient = _orientsPre[i]
-                                _tmp_short = mObj.mNode
-                                for ii,v in enumerate(_scalePre[i]):
-                                    _a = 's'+'xyz'[ii]
-                                    if not mObj.isAttrConnected(_a):
-                                        ATTR.set(_tmp_short,_a,v)   
-                                if _jointHelpersPre and _jointHelpersPre.get(i):
-                                    mObj.jointHelper.translate = _jointHelpersPre[i]
-        
-                #if _d_prerig.get('rootOrientHelper'):
-                    #if self.getMessage('orientHelper'):
-                        #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
-                    #else:
-                        #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
-        
-        #if _target_state_idx > 2:
-        #    self.p_blockState = _target_state
+                        _posPre = _d_prerig.get('positions')
+                        _orientsPre = _d_prerig.get('orients')
+                        _scalePre = _d_prerig.get('scales')
+                        _jointHelpersPre = _d_prerig.get('jointHelpers')
+            
+                        if len(_ml_prerigControls) != len(_posPre):
+                            log.error("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
+                            pprint.pprint(_ml_prerigControls)
+                        else:
+                            for i_loop in range(3):
+                                log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+            
+                                for i,mObj in enumerate(_ml_prerigControls):
+                                    log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
+                                    mObj.p_position = _posPre[i]
+                                    mObj.p_orient = _orientsPre[i]
+                                    _tmp_short = mObj.mNode
+                                    for ii,v in enumerate(_scalePre[i]):
+                                        _a = 's'+'xyz'[ii]
+                                        if not mObj.isAttrConnected(_a):
+                                            ATTR.set(_tmp_short,_a,v)   
+                                    if _jointHelpersPre and _jointHelpersPre.get(i):
+                                        mObj.jointHelper.translate = _jointHelpersPre[i]
+            
+                    #if _d_prerig.get('rootOrientHelper'):
+                        #if self.getMessage('orientHelper'):
+                            #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
+                        #else:
+                            #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
+            
+            #if _target_state_idx > 2:
+            #    self.p_blockState = _target_state
 
     return
     #>>Generators ====================================================================================

@@ -182,7 +182,7 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
     for item in order:
         buffer = nameDict.get(item)
         buffer = str(SEARCH.get_tagInfoShort(buffer,item))
-        if buffer not in ['False','None','ignore']:
+        if buffer.lower() not in ['false','none','ignore',]:
             nameBuilder.append(buffer)
         log.debug("|{0}| >>  buffer: {1}".format(_str_func,nameBuilder))
         
