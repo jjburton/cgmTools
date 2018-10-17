@@ -17,6 +17,8 @@ import pprint
 import os
 import sys
 import math
+import json
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -50,6 +52,7 @@ __version__ = '0.08312017'
 __toolname__ ='mocapBakeTool'
 
 _subLineBGC = [.75,.75,.75]
+_buttonBGC = [.3,.3,.3]
 
 class cgmListItem(object):
     item = None
@@ -105,6 +108,7 @@ class ui(cgmUI.cgmGUI):
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_tools = mUI.MelMenu( l='Tools', pmc = cgmGEN.Callback(self.buildMenu_help))
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
 
     def buildMenu_help( self, *args):
@@ -112,14 +116,31 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                                  c=lambda *a: cgmUI.log_selfReport(self) )
 
+    def buildMenu_tools( self, *args):
+        self.uiMenu_tools.clear()
+        mUI.MelMenuItem( self.uiMenu_tools, l="Make Constraints",
+                                 c=lambda *a: self.uiFunc_make_constraints(self) )
+
+
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options                           
 
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        #mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=self.var_mocap_allow_multiple_targets.value, l="Allow multiple targets",
                  c=lambda *a: self.uiFunc_toggle_multiple_targets(self) )#not mc.optionVar(q='cgm_mocap_allow_multiple_targets')))
+
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save Data",
+                 c=lambda *a: self.uiFunc_save_data(self) )
+
+
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load Data",
+                 c=lambda *a: self.uiFunc_load_data(self) )
+
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -176,7 +197,7 @@ class ui(cgmUI.cgmGUI):
             for btn in buttonArgs:
                 button = cgmUI.add_Button(buttonLayout,btn['label'],
                              cgmGEN.Callback(btn['command'],self),
-                             btn['annotation'])
+                             btn['annotation'], bgc=_buttonBGC)
                 buttons.append(button)
             buttonLayout.layout()
 
@@ -260,25 +281,32 @@ class ui(cgmUI.cgmGUI):
     
         cgmUI.add_Button(_row,'Name',
                  cgmGEN.Callback(self.uiFunc_link_by_name,self),
-                 _d_annotations.get('linkName','fix')) 
+                 _d_annotations.get('linkName','fix'), bgc=_buttonBGC) 
         cgmUI.add_Button(_row,'Distance',
                  cgmGEN.Callback(self.uiFunc_link_by_distance,self),
-                 _d_annotations.get('linkDistance','fix')) 
+                 _d_annotations.get('linkDistance','fix'), bgc=_buttonBGC) 
         mUI.MelSpacer(_row,w=5)
         _row.layout()
 
-        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5,bgc=_subLineBGC)
-        mUI.MelSpacer(_row,w=5)
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 1,bgc=_subLineBGC)
+        mUI.MelSpacer(_row,w=9)
         mUI.MelLabel(_row,l='Set Target Constraint to')
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         cgmUI.add_Button(_row,'Point/Orient',
-                 cgmGEN.Callback(self.uiFunc_set_constraint_type,1,self),
-                 _d_annotations.get('setPointOrient','fix')) 
+                 cgmGEN.Callback(self.uiFunc_set_constraint_type,1,True,self),
+                 _d_annotations.get('setPointOrient','fix'), bgc=_buttonBGC) 
+        cgmUI.add_Button(_row,'A',
+                 cgmGEN.Callback(self.uiFunc_set_constraint_type,1,False,self),
+                 _d_annotations.get('setPointOrientAll','fix'), bgc=_buttonBGC) 
+        mUI.MelSpacer(_row,w=4)
         cgmUI.add_Button(_row,'Orient',
-                 cgmGEN.Callback(self.uiFunc_set_constraint_type,0,self),
-                 _d_annotations.get('setOrient','fix')) 
-        mUI.MelSpacer(_row,w=5)
+                 cgmGEN.Callback(self.uiFunc_set_constraint_type,0,True,self),
+                 _d_annotations.get('setOrient','fix'), bgc=_buttonBGC) 
+        cgmUI.add_Button(_row,'A',
+                 cgmGEN.Callback(self.uiFunc_set_constraint_type,1,False,self),
+                 _d_annotations.get('setOrientAll','fix'), bgc=_buttonBGC) 
+        mUI.MelSpacer(_row,w=9)
 
         _row.layout()
 
@@ -294,7 +322,7 @@ class ui(cgmUI.cgmGUI):
                            label="Set On Bake")
         cgmUI.add_Button(_row,'Manual Set',
                  cgmGEN.Callback(self.uiFunc_set_connection_pose,1,self),
-                 _d_annotations.get('setConnectionPose','fix')) 
+                 _d_annotations.get('setConnectionPose','fix'), bgc = [.5,.2,0.2]) 
         mUI.MelSpacer(_row,w=5)
 
         _row.layout()
@@ -317,13 +345,13 @@ class ui(cgmUI.cgmGUI):
 
         cgmUI.add_Button(_row,'Slider',
                  cgmGEN.Callback(self.uiFunc_updateTimeRange,'slider'),
-                 _d_annotations.get('sliderRange','fix')) 
+                 _d_annotations.get('sliderRange','fix'), bgc=_buttonBGC) 
         cgmUI.add_Button(_row,'Sel',
                  cgmGEN.Callback(self.uiFunc_updateTimeRange,'selected'),
-                 _d_annotations.get('selectedRange','fix')) 
+                 _d_annotations.get('selectedRange','fix'), bgc=_buttonBGC) 
         cgmUI.add_Button(_row,'Scene',
                  cgmGEN.Callback(self.uiFunc_updateTimeRange,'scene'),
-                 _d_annotations.get('sceneRange','fix')) 
+                 _d_annotations.get('sceneRange','fix'), bgc=_buttonBGC) 
         mUI.MelSpacer(_row,w=5)
         _row.layout()
 
@@ -348,16 +376,16 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row,' <<',
                          cgmGEN.Callback(self.uiFunc_bake,'back'),                         
                          #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-                         _d_annotations.get('<<<','fix'))
+                         _d_annotations.get('<<<','fix'), bgc=_buttonBGC)
     
         cgmUI.add_Button(_row,'Bake',
                          cgmGEN.Callback(self.uiFunc_bake,'all'),                         
-                         _d_annotations.get('All','fix'))
+                         _d_annotations.get('All','fix'), bgc=_buttonBGC)
         
         
         cgmUI.add_Button(_row,'>>',
                          cgmGEN.Callback(self.uiFunc_bake,'forward'),                         
-                         _d_annotations.get('>>>','fix'))
+                         _d_annotations.get('>>>','fix'), bgc=_buttonBGC)
 
         mUI.MelSpacer(_row,w=5)
         _row.layout()
@@ -390,22 +418,33 @@ class ui(cgmUI.cgmGUI):
             bake_range[0] = current_frame
 
         mc.currentTime(bake_range[0])
+        
+        if len(self.connection_data) != len(self.parent_links):
+            self.connection_data = self.get_ui_connection_data()
+
         if self.var_mocap_set_connection_at_bake.value:
             self.uiFunc_set_connection_pose()
-        
+
         bake(self.connection_data, bake_range[0], bake_range[1]) 
 
     def uiFunc_set_constraint_type(self, *args):
         
-        idxs = self.parent_target_scroll.getSelectedIdxs()
+        mode = args[0]
+        onlySelected = args[1]
+
+        idxs = []
+        if onlySelected:
+            idxs = self.parent_target_scroll.getSelectedIdxs()
+        else:
+            idxs = range( len(self.parent_target_scroll.getAllItems()) )
 
         # point/orient
-        if args[0] == 0:
+        if mode == 0:
             for idx in idxs:
                 self.parent_target_items[idx].data["constraintType"] = "o"
             log.debug("orient")
         # orient
-        elif args[0] == 1:
+        elif mode == 1:
             for idx in idxs:
                 self.parent_target_items[idx].data["constraintType"] = "po"
 
@@ -575,7 +614,7 @@ class ui(cgmUI.cgmGUI):
                 self.parent_source_items[i].alias = "%s -> %s" % (self.parent_source_items[i].item, ','.join(link_items))
             else:
                 self.parent_source_items[i].alias = self.parent_source_items[i].item
-
+            self.parent_source_items[i].alias = self.parent_source_items[i].alias.replace('|', '/')
         for i, item in enumerate(self.parent_target_items):
             self.parent_target_items[i].alias = self.parent_target_items[i].item
 
@@ -584,7 +623,56 @@ class ui(cgmUI.cgmGUI):
                     self.parent_target_items[i].alias += " <- %s  [%s]" % (self.parent_source_items[link[0]].item, self.parent_target_items[link[1]].data["constraintType"])
                     break
 
+            self.parent_target_items[i].alias = self.parent_target_items[i].alias.replace('|', '/')
+
         self.refresh_parent_scrolls()
+
+    # create live constraints between source and targets
+    def uiFunc_make_constraints(self, *args):
+        ui_data = self.get_ui_connection_data()
+        for conn in ui_data:
+            if conn['setPosition']:
+                mc.pointConstraint( conn['source'], conn['target'], mo=True )
+            if conn['setRotation']:
+                mc.orientConstraint( conn['source'], conn['target'], mo=True )
+
+    # saves link data
+    def uiFunc_save_data(self, *args):
+        basicFilter = "*.ccl"
+        file = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2)[0]
+
+        if file:
+            stored_data = [ [x.item for x in self.parent_source_items], [x.data for x in self.parent_source_items], [x.item for x in self.parent_target_items], [x.data for x in self.parent_target_items], self.parent_links, self.connection_data ]
+            f = open(file, 'w')
+            f.write( json.dumps( stored_data ) )
+            f.close()
+
+    # saves link data
+    def uiFunc_load_data(self, *args):
+        basicFilter = "*.ccl"
+        file = mc.fileDialog2(fileFilter=basicFilter, fileMode = 1, dialogStyle=2)[0]
+
+        if file:
+            f = open(file, 'r')
+            loaded_data = json.loads( f.read() )
+            f.close()
+
+            for i, item in enumerate(loaded_data[0]):
+                if not item in [x.item for x in self.parent_source_items]:
+                    self.parent_source_items.append( cgmListItem(item, item, loaded_data[1][i]) )
+            
+            self.parent_source_scroll.setItems( [x.alias for x in self.parent_source_items] )
+
+            for i, item in enumerate(loaded_data[2]):
+                if not item in [x.item for x in self.parent_target_items]:
+                    self.parent_target_items.append( cgmListItem(item, item, loaded_data[3][i]) )
+
+            self.parent_target_scroll.setItems( [x.alias for x in self.parent_target_items] )
+
+            self.parent_links = loaded_data[4]
+            self.connection_data = loaded_data[5]
+
+            self.refresh_aliases()
 
     # remove items from scroll lists
     def uiFunc_remove_from_parent_source(self, *args):
@@ -771,10 +859,14 @@ def set_connection_offsets(connection_data):
         source_pos = POS.get(connection['source'], asEuclid=True)
         target_pos = POS.get(connection['target'], asEuclid=True)
 
-        connection['positionOffset'] = target_pos - source_pos
+        v = target_pos - source_pos
+        connection['positionOffset'] = [v.x, v.y, v.z]
 
-        connection['offsetForward'] = TRANS.transformInverseDirection(connection['source'], TRANS.transformDirection(connection['target'], euclid.Vector3(0,0,1)))
-        connection['offsetUp'] = TRANS.transformInverseDirection(connection['source'], TRANS.transformDirection(connection['target'], euclid.Vector3(0,1,0)))
+        v = TRANS.transformInverseDirection(connection['source'], TRANS.transformDirection(connection['target'], euclid.Vector3(0,0,1)))
+        connection['offsetForward'] = [v.x, v.y, v.z]
+
+        v = TRANS.transformInverseDirection(connection['source'], TRANS.transformDirection(connection['target'], euclid.Vector3(0,1,0)))
+        connection['offsetUp'] = [v.x, v.y, v.z]
 
 
 def bake(connection_data, start, end):
@@ -791,7 +883,8 @@ def bake(connection_data, start, end):
             if conn['setPosition']:
                 positionOffset = euclid.Vector3(0,0,0)
                 if 'positionOffset' in conn:
-                    positionOffset = conn['positionOffset']
+                    pos = conn['positionOffset']
+                    positionOffset = euclid.Vector3(pos[0], pos[1], pos[2])
                 wanted_position = source_pos + positionOffset
                 POS.set(conn['target'], [wanted_position.x, wanted_position.y, wanted_position.z])
                 mc.setKeyframe('%s.translate' % conn['target'])
@@ -800,10 +893,12 @@ def bake(connection_data, start, end):
             if conn['setRotation']:
                 offsetForward = euclid.Vector3(0,0,1)
                 if 'offsetForward' in conn:
-                    offsetForward = conn['offsetForward']
+                    fwd = conn['offsetForward']
+                    offsetForward = euclid.Vector3(fwd[0], fwd[1], fwd[2])
                 offsetUp = euclid.Vector3(0,1,0)
                 if 'offsetUp' in conn:
-                    offsetUp = conn['offsetUp']
+                    up = conn['offsetUp']
+                    offsetUp = euclid.Vector3(up[0], up[1], up[2])
                 fwd = TRANS.transformDirection(conn['source'], offsetForward)
                 up = TRANS.transformDirection(conn['source'], offsetUp)
                 SNAP.aim_atPoint(conn['target'], target_pos + fwd, vectorUp=up, mode='matrix')
@@ -817,7 +912,9 @@ _d_annotations = {'addSource':'Adds the selected objects to the source list.',
                   'linkName':'Link source and target by closest name between target and source.',
                   'linkDistance':'Link source and target by shortest distance between target and source.',
                   'setPointOrient':'Set source/target constraints to point/orient',
+                  'setPointOrientAll':'Set source/target constraints to point/orient on all targets',
                   'setOrient':'Set source/target constraints to orient',
+                  'setOrientAll':'Set source/target constraints to orient on all targets',
                   'setConnectionPose':'Set connection offset based off these source/target positions',
                   'sliderRange':' Push the slider range values to the int fields',
                   'selectedRange': 'Push the selected timeline range (if active)',
