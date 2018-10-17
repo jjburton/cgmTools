@@ -413,6 +413,9 @@ def transform_direction(obj, v):
 
 def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
     try:
+        aim = Vector3.Create( aim )
+        up = Vector3.Create( up )
+
         reload(VALID)
         aim = aim.normalized()
         up = up.normalized()
