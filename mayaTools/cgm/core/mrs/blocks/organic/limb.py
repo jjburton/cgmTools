@@ -6763,7 +6763,7 @@ def rig_pivotSetup(self):
         """
     
         
-        mc.aimConstraint(mControlFollowParentBank.mNode.mNode, ml_fkAimJoints[0].mNode, maintainOffset = True,
+        mc.aimConstraint(mControlFollowParentBank.mNode, ml_fkAimJoints[0].mNode, maintainOffset = True,
                          aimVector = [0,0,1], upVector = [0,1,0], 
                          worldUpObject = mLimbRoot.mNode,
                          worldUpType = 'objectrotation', 
