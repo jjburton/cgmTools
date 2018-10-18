@@ -144,7 +144,7 @@ def get_splitValues(surface = None, values = [], mode='u',
             vPost =  _l[-1] + postInset
             if vPost < _l[-2]:
                 log.debug("|{0}| >>  alternate postInset".format(_str_func))
-                vPost = _l[-2] + -postInset
+                vPost = _l[-2] + postInset
                 
             log.debug("|{0}| >>  postInset: {1} | new: {2}".format(_str_func,_l[-1],vPost))
             if len(_l) > 1:

@@ -781,7 +781,7 @@ def template(self):
     
     #Lever =============================================================================================
     _b_lever = False
-    if self.buildLeverBase or self.hasLeverJoint:
+    if self.buildLeverBase:
         _b_lever = True
         log.debug("|{0}| >> Lever base, generating base value".format(_str_func))
         _mBlockParent = self.p_blockParent
@@ -3730,6 +3730,20 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
                 
+                
+                if mBlock.blockProfile in ['arm']:
+                    log.debug("|{0}| >> default IK shape...".format(_str_func))                
+                    mIKTemplateHandle = ml_templateHandles[-1]
+                    #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                
+                    _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                    SNAP.go(_ik_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
+                
+                    CORERIG.shapeParent_in_place(mIKCrv.mNode, _ik_shape, False)
+
+                
+                
                 """
                 if str_ikEnd in ['foot']:
                     #Make our ikEnd -----------------------------------------------------
@@ -3773,6 +3787,9 @@ def rig_shapes(self):
                 
                 #CORERIG.match_transform(mIKShape.mNode, self.ml_handleTargets[self.int_handleEndIdx].mNode)
                 
+                
+                    
+                    
             elif str_ikEnd in ['tipCombo']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> tipCombo IK shape...".format(_str_func))                
                 mIKTemplateHandle = ml_templateHandles[-1]
@@ -7253,7 +7270,7 @@ def rig_cleanUp(self):
         
         if i == 0:
             mDynGroup.dynFollow.p_parent = mRoot
-            if self.b_lever:
+            if self.b_lever and not mParentBank:
                 #_attachPoint = mBlock.getEnumValueString('attachPoint')
                 #_idx = ml_targetDynParents.index( self.md_dynTargetsParent.get(_attachPoint))
                 ATTR.set_default(mObj.mNode,'orientTo',2)
