@@ -38,6 +38,7 @@ import cgm.core.lib.distance_utils as DIST
 from cgm.core.lib import node_utils as NODES
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
+import cgm.core.tools.mocapBakeTools as MOCAPBAKE
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.tools.locinator as LOCINATOR
@@ -1464,7 +1465,13 @@ def buildTab_anim(self,parent):
               ut = 'cgmUITemplate',  
               l='cgmTransformTools',
               ann = "Launch cgmTransformTools - a tool for tweaking values",                                                                                                                                       
-              c=lambda *a: TT.ui())  
+              c=lambda *a: TT.ui())
+    mc.button(parent = _column,
+              ut = 'cgmUITemplate',
+              l='cgmMocapBakeTool',
+              ann = "Launch cgmMocapBakeTool -A tool for retargeting and baking control transforms from an animated source",
+              c=lambda *a: MOCAPBAKE.ui())
+    
     mc.button(parent = _column,
               ut = 'cgmUITemplate',                                                                                                
               l='cgmSetTools',

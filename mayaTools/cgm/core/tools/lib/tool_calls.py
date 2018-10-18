@@ -35,6 +35,14 @@ def cgmSnapTools():
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def mocapBakeTool():
+    try:
+        import cgm.core.tools.mocapBakeTools as MOCAPBAKE
+        reload(MOCAPBAKE)
+        MOCAPBAKE.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def cgmUpdateTool():
     try:
         import cgm.core.tools.updateTool as CGMUPDATE

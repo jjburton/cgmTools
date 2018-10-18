@@ -532,7 +532,10 @@ def uiSection_animUtils(parent):
                 l='cgmSnapTools',
                 ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
                 c=lambda *a: TOOLCALLS.cgmSnapTools())
-    
+    mc.menuItem(parent = parent,
+                l='cgmMocapBakeTool',
+                ann = "Mocap Bake Tool - A tool for retargeting and baking control transforms from an animated source",
+                c=lambda *a:TOOLCALLS.mocapBakeTool())    
     
     mc.menuItem(parent = parent,
                 l='mlBreakdown',
@@ -599,6 +602,7 @@ def uiSection_mrs(parent):
                 l='mrsBuilder',
                 ann = "WIP",
                 c=lambda *a:TOOLCALLS.mrsUI())
+
     
 def uiSection_hotkeys(parent):
     _str_func = 'uiSection_hotkeys'  
