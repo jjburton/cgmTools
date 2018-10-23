@@ -1880,7 +1880,7 @@ class handleFactory(object):
                     
                     l_footTargets = [self._mTransform.loftCurve.mNode, mTopLoft.mNode,mPivotRootHandle.mNode]
                     
-                    _res_body = mc.loft(l_footTargets, o = True, d = 3, po = 0 )
+                    _res_body = mc.loft(l_footTargets, o = True, d = 3, po = 0,reverseSurfaceNormals=True)
                     
                     mTopLoft.parent = mPivotRootHandle
                     

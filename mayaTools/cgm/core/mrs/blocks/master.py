@@ -336,7 +336,8 @@ def template(self):
     return True
 
 def templateDelete(self):
-    self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
+    pass
+    #self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
 
 def is_template(self):
     if self.getShapes():

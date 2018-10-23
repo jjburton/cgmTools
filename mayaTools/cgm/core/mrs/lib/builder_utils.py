@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -663,7 +663,7 @@ def control_convertToWorldIK(mCtrl=None):
     return
     
  
-def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
+def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True,reverseSurfaceNormals=True):
     """
     Core rig block factory. Runs processes for rig blocks.
 
@@ -684,7 +684,7 @@ def build_loftMesh(root, jointCount = 3, degree = 3, cap = True, merge = True):
     #tess method - general, uType 1, vType 2+ joint count
     
     #>>Body -----------------------------------------------------------------
-    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 1 )
+    _res_body = mc.loft(_l_targets, o = True, d = degree, po = 1,reverseSurfaceNormals=reverseSurfaceNormals )
 
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
@@ -772,7 +772,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
-                    cap = True, merge = True,form = 1,planar=False ):
+                    cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True ):
     """
     Create lofted mesh from target curves.
 
@@ -807,7 +807,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     else:
         _loftDegree = 3
         
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss, autoReverse=True )
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss, autoReverse=True,reverseSurfaceNormals=False )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
@@ -1921,7 +1921,7 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, ballPosition = 'joint', extendToStart = True):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, ballPosition = 'joint', extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1971,7 +1971,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         l_newCurves = []
         str_meshShape = mMesh_tmp.getShapes()[0]
         log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
-        
+        """
         minU = ATTR.get(str_meshShape,'minValueU')
         maxU = ATTR.get(str_meshShape,'maxValueU')
         
@@ -1981,6 +1981,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         
         l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
         log.debug("|{0}| >> Isoparms U: {1}".format(_str_func,l_uIsos))
+        """
+        _cap = method.capitalize()
+        minU = ATTR.get(str_meshShape,'minValue{0}'.format(_cap))
+        maxU = ATTR.get(str_meshShape,'maxValue{0}'.format(_cap))
+        
+        l_failSafes = MATH.get_splitValueList(minU,maxU,
+                                              len(ml_targets))
+        log.debug("|{0}| >> Failsafes: {1}".format(_str_func,l_failSafes))
+        
+        if method == 'u':
+            l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+        else:
+            l_uIsos = SURF.get_dat(str_meshShape, vKnots=True)['vKnots']
+            
+        log.debug("|{0}| >> Isoparms {2}: {1}".format(_str_func,l_uIsos,_cap))        
         
         l_uValues = []
         str_start = False
@@ -1995,7 +2010,12 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
                 _v = l_failSafes[i]
             else:
-                _v = _d['uvsRaw'][str_meshShape][0][0]
+                if method == 'v':
+                    _v = _d['uvsRaw'][str_meshShape][0][1]
+                else:
+                    _v = _d['uvsRaw'][str_meshShape][0][0]
+                    
+                
             log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
             
             l_uValues.append(_v)
@@ -2045,7 +2065,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         def getCurve(uValue,l_curves):
             _crv = d_curves.get(uValue)
             if _crv:return _crv
-            _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,uValue), ch = 0, rn = 0, local = 0)[0]
+            _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,uValue,method), ch = 0, rn = 0, local = 0)[0]
             d_curves[uValue] = _crv
             log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
             l_curves.append(_crv)
@@ -2076,7 +2096,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
             log.debug("|{0}| >> mesh created...".format(_str_func))                            
             CORERIG.match_transform(_mesh,ml_targets[i])
-            mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
             
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))                                

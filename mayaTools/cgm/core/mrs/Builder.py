@@ -469,36 +469,36 @@ class ui(cgmUI.cgmGUI):
         for b in _d[1]['blocks']:
             if _d[0][b].__dict__.get('__menuVisible__'):
                 mUI.MelMenuItem(self.uiMenu_add, l=b,
-                                c=cgmGEN.Callback(self.uiFunc_block_build,b),
-                                ann="{0} : {1}".format(b, self.uiFunc_block_build))
+                                c=cgmGEN.Callback(self.uiFunc_block_create,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_create))
                 
                 l_options = RIGBLOCKS.get_blockProfile_options(b)                
                 if l_options:
                     for o in l_options:
                         mUI.MelMenuItem(self.uiMenu_add, l=o,
-                                        c=cgmGEN.Callback(self.uiFunc_block_build,b,o),
-                                        ann="{0} : {1}".format(b, self.uiFunc_block_build))
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
         
         for c in _d[1].keys():
             #d_sections[c] = []
             if c == 'blocks':continue
             for b in _d[1][c]:
                 if _d[0][b].__dict__.get('__menuVisible__'):
-                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
+                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
                     l_options = RIGBLOCKS.get_blockProfile_options(b)
                     if l_options:
                         _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,l=b)
                         l_options.sort()
                         for o in l_options:
                             _l = "{0}".format(o)
-                            _c = cgmGEN.Callback(self.uiFunc_block_build,b,o)
+                            _c = cgmGEN.Callback(self.uiFunc_block_create,b,o)
                             mUI.MelMenuItem(_sub, l=_l,
                                             c=_c,
                                             ann="{0} : {1}".format(_l, _c)
                                             )                            
                             """
                             d_sections[c].append( ["{0} ({1})".format(o,b),
-                                                   cgmGEN.Callback(self.uiFunc_block_build,b,o)] )       """ 
+                                                   cgmGEN.Callback(self.uiFunc_block_create,b,o)] )       """ 
         
         """
         d_sections = {}
@@ -507,11 +507,11 @@ class ui(cgmUI.cgmGUI):
             if c == 'blocks':continue
             for b in _d[1][c]:
                 if _d[0][b].__dict__.get('__menuVisible__'):
-                    d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_build,b)] )
+                    d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
                     l_options = RIGBLOCKS.get_blockProfile_options(b)                
                     if l_options:
                         for o in l_options:
-                            d_sections[c].append( ["{0} ({1})".format(o,b),cgmGEN.Callback(self.uiFunc_block_build,b,o)] )
+                            d_sections[c].append( ["{0} ({1})".format(o,b),cgmGEN.Callback(self.uiFunc_block_create,b,o)] )
 
         for s in d_sections.keys():
             if d_sections[s]:
@@ -536,8 +536,8 @@ class ui(cgmUI.cgmGUI):
         
         
             
-    def uiFunc_block_build(self, blockType = None, blockProfile = None):
-        _str_func = 'uiFunc_block_build'
+    def uiFunc_block_create(self, blockType = None, blockProfile = None):
+        _str_func = 'uiFunc_block_create'
         
         #index = _indices[0]
         #_mBlock = self._ml_blocks[_index]
@@ -568,7 +568,7 @@ class ui(cgmUI.cgmGUI):
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
         self.uiUpdate_building()
-        self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
+        #self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
         
         if _sel:
             mc.select(_sel)
@@ -1268,8 +1268,9 @@ class ui(cgmUI.cgmGUI):
             field.setValue(ATTR.get(obj,attr))
             
         if attr == 'numRoll':
+            log.info("numRoll check...")                            
             if ATTR.datList_exists(obj,'rollCount'):
-                log.info("numRoll...")                            
+                log.info("rollCount Found...")                                            
                 l = ATTR.datList_getAttrs(obj,'rollCount')
                 for a in l:
                     log.info("{0}...".format(a))                                                
@@ -1290,7 +1291,7 @@ class ui(cgmUI.cgmGUI):
             #_strValue = BLOCKSHARE._d_attrsTo_make['buildProfile'].split(':')[_v]
             log.info("Loading buildProfile... {0}".format(_v))
             self.uiFunc_contextBlockCall('atUtils', 'buildProfile_load', _v, **{'updateUI':False})
-            
+        
         
         return
         if attrType == 'enum':

@@ -1021,7 +1021,7 @@ def create_prerigLoftMesh(self, targets = None,
         log.debug("|{0}| >> Creating: {1}".format(_str_func,polyType))
         
         if polyType == 'mesh':
-            _res_body = mc.loft(targets, o = True, d = 3, po = 1 )
+            _res_body = mc.loft(targets, o = True, d = 3, po = 1,autoReverse=False)
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
         
@@ -1037,13 +1037,16 @@ def create_prerigLoftMesh(self, targets = None,
                 ATTR.set(_tessellate,a,v)  
                 
         elif polyType in ['bezier','noMult']:
-            _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False)
+            _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=False)
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
             _loftNode = _res_body[1]
             _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             
+            if polyType == 'bezier':
+                mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+                
             _d = {'keepCorners':False}#General}
             
             if polyType == 'noMult':
@@ -1053,10 +1056,11 @@ def create_prerigLoftMesh(self, targets = None,
                 ATTR.set(_rebuildNode,a,v)
                 
         else:
-            _res_body = mc.loft(targets, o = True, d = 3, po = 0 )
+            _res_body = mc.loft(targets, o = True, d = 3, po = 0,autoReverse=False)
             _loftNode = _res_body[1]
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
             
+        
         mLoftSurface.overrideEnabled = 1
         mLoftSurface.overrideDisplayType = 2
         
@@ -2685,7 +2689,6 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         mDup = cgmMeta.createMetaNode('cgmRigBlock',
                                       **_d)
         
-        
         mDup.doSnapTo(self)
         
         blockDat = self.getBlockDat()
@@ -2700,8 +2703,9 @@ def duplicate(self, uiPrompt = True, forceNew = False):
                     blockDat['ud'].remove(a)
             blockDat['nameList_0'] = _v
             
+        #changeState(mDup,'define',forceNew=True)#redefine to catch any optional created items from settings
         mDup.blockDat = blockDat
-        blockDat_load(mDup)
+        blockDat_load(mDup,redefine=True)
         #log.info('here...')
         #blockDat_load(mDup)#...investigate why we need two...
         
@@ -2797,7 +2801,7 @@ def blockMirror_create(self, forceNew = False):
         mMirror.p_blockParent = mBlockParent
         mMirror.blockDat = blockDat
         
-        blockDat_load(mMirror,useMirror=True)
+        blockDat_load(mMirror,useMirror=True,redefine=True)
         
         #mMirror.loadBlockDat(blockDat)
         controls_mirror(self,mMirror)
@@ -3290,7 +3294,11 @@ def blockDat_load(self, blockDat = None,
                   useMirror = False,
                   settingsOnly = False,
                   autoPush = True,
-                  currentOnly=False):
+                  currentOnly=False,
+                  redefine=False):
+    """
+    redefine - When duplicating, sometimes we need to redfine after data load
+    """
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     
@@ -3313,6 +3321,8 @@ def blockDat_load(self, blockDat = None,
             mMirror = self.blockMirror
         log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))                
         
+    self.blockScale = blockDat['blockScale']
+    
     #.>>>..UD ====================================================================================
     log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
     _ud = blockDat.get('ud')
@@ -3385,6 +3395,9 @@ def blockDat_load(self, blockDat = None,
         
     #>>Define Controls ====================================================================================
     log.info("|{0}| >> define dat....".format(_str_func))
+    
+    if redefine:
+        changeState(self,'define')
     
     if mMirror == 'cat':
         log.info("|{0}| >> mMirror define pull...".format(_str_func))            
@@ -3552,10 +3565,10 @@ def blockDat_load(self, blockDat = None,
                                     _p = d_sub.get('p')
                                     
                                     for ii,mObj in enumerate(ml_subs):
-                                        mObj.p_position = _p[ii]                                    
+                                        mObj.p_position = _p[0]                                    
                                         #ATTR.set(mObj.mNode,'t',_t[ii])
-                                        ATTR.set(mObj.mNode,'r',_r[ii])
-                                        ATTR.set(mObj.mNode,'s',_s[ii])
+                                        ATTR.set(mObj.mNode,'r',_r[0])
+                                        ATTR.set(mObj.mNode,'s',_s[0])
                                     
                                     
                                 
@@ -3862,6 +3875,19 @@ def blockAttr_set(self, **kws):
                 ATTR.set(_short,a,v)
             except Exception,err:
                 log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+                
+            if a == 'numRoll':
+                log.info("numRoll check...")
+                if ATTR.datList_exists(_short,'rollCount'):
+                    log.info("rollCount Found...")                                            
+                    l = ATTR.datList_getAttrs(_short,'rollCount')
+                    for a in l:
+                        log.info("{0}...".format(a))                                                
+                        ATTR.set(_short,a, v)                    
+    
+        
+        
+        
         else:
             log.warning("|{0}| Lacks attr >> '{1}'".format(_str_func,a)) 
             
@@ -4026,8 +4052,7 @@ def controls_mirror(blockSource, blockMirror = None,
         if not ml_controls:
             raise ValueError,"No controls"
         
-            
-        
+        blockMirror.blockScale = blockSource.blockScale
         #Root ----------------------------------------------------------------------------------
         log.debug("|{0}| >> root dat...".format(_str_func))
         
@@ -5595,7 +5620,7 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
                 if mSub.getMessage('loftCurve'):
                     ml_loftCurves.append(mSub.getMessage('loftCurve',asMeta=1)[0])
         
-    if ml_templateHandles[-1].getMessage('pivotHelper'):
+    if ml_templateHandles[-1].getMessage('pivotHelper') and self.blockProfile not in ['arm']:
         mPivotHelper = ml_templateHandles[-1].pivotHelper
         log.debug("|{0}| >> pivot helper found ".format(_str_func))
     
