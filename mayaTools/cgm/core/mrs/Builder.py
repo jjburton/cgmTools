@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.09262018'
+__version__ = '1.10242018'
 _sidePadding = 25
 
 def check_cgm():
@@ -667,10 +667,24 @@ class ui(cgmUI.cgmGUI):
     #@cgmGEN.Timer
     def uiFunc_contextBlockCall(self,*args,**kws):
         try:
+            def confirm(title,message,funcString):
+                result = mc.confirmDialog(title=title,
+                                          message= message,
+                                          button=['OK', 'Cancel'],
+                                          defaultButton='OK',
+                                          cancelButton='Cancel',
+                                          dismissString='Cancel')
+        
+                if result != 'OK':
+                    log.error("|{0}| >> Cancelled | {1}.".format(_str_func,funcString))
+                    return False
+                return True
+                                    
             _str_func = ''
             _updateUI = kws.pop('updateUI',True)
             _startMode = self.var_contextStartMode.value   
             _contextMode = kws.pop('contextMode', self._l_contextModes[self.var_contextMode.value])
+            _b_confirm = False            
             #_contextMode = self._l_contextModes[self.var_contextMode.value]
             log.debug("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
             _mode = kws.get('mode')
@@ -694,6 +708,26 @@ class ui(cgmUI.cgmGUI):
             #else:
                 #raise ValueError,"Mode not setup: {0}".format(_mode)            
             
+            b_changeState = False
+            b_rootMode = False
+            if args[0] == 'changeState':
+                b_changeState = True
+                if _contextMode in ['self','scene']:
+                    log.warning("|{0}| >> Change state cannot be run in any mode but self. Changing context.".format(_str_func))                    
+                    _contextMode = 'self'
+                elif _contextMode == 'root':
+                    b_rootMode = True
+            
+            if _contextMode != 'self':
+                if b_changeState:
+                    _b_confirm = True
+                    _funcString = 'changeState'
+                    log.debug("|{0}| >> Change state and not self... | {1}".format(_str_func,_contextMode)) 
+                    _title = 'Confirm non self state rig change...'
+                    _message = '{0} | This is a long process with lots of blocks'.format(_funcString)
+                    _text = _contextMode
+            
+
             if _startMode == 0 :#Active
                 log.debug("|{0}| >> Active start".format(_str_func))                
                 mBlock = self._blockCurrent
@@ -702,6 +736,16 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >> No Active block".format(_str_func))
                     return False
                 
+                if _b_confirm:
+                    if not confirm(_title, _message, _funcString):return False                
+                
+                if b_rootMode:
+                    mRoot = mBlock.getBlockRoot()
+                    if mRoot:
+                        mBlock = mRoot
+                    else:
+                        mBlock = mBlock.getBlockRoot()
+                    
                 RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
                 
                 if _updateUI:
@@ -725,17 +769,32 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
                     return False
                 
+                _len = len(ml_blocks)
+                if _b_confirm and _len>1:
+                    _message = "{0} \n Selected: {1}".format(_message,len(ml_blocks))
+                    if not confirm(_title, _message, _funcString):return False
+                
                 #Now parse to sets of data
                 ml_processed = []
                 if args[0] == 'select':
                     return mc.select([mBlock.mNode for mBlock in ml_blocks])
                 
+                if b_rootMode:
+                    log.warning("|{0}| >> changeState root mode".format(_str_func))                    
+                    ml_tmp = []
+                    for mBlock in ml_blocks:
+                        mRoot = mBlock.getBlockRoot()
+                        if mRoot and mRoot not in ml_tmp:
+                            ml_tmp.append(mRoot)
+                    ml_blocks = ml_tmp
+                    log.warning("|{0}| >> new blocks: {1}".format(_str_func,ml_blocks))                    
+                    
+                
                 for mBlock in ml_blocks:
                     log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)                    
                     if mBlock in ml_processed:
-                        log.info("|{0}| >> Already processed: {1}".format(_str_func,mBlock))
+                        log.info("|{0}| >> Processed: {1}".format(_str_func,mBlock))
                         continue
-                    
                     RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
                     
                 if _updateUI:

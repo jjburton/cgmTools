@@ -110,7 +110,11 @@ def get_scene_block_heirarchy(asMeta = True):
 _d_scrollList_shorts = {'left':'L',
                         'right':'R',
                         'center':'C',
-                        'front':'FRNT'}
+                        'front':'FRNT',
+                        'define':'def',
+                        'template':'tmp',
+                        'prerig':'pre',
+                        'skeleton':'skl'}
 def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None):
     '''
     Log a dictionary.
@@ -179,7 +183,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 s_start = s_start + " "            
             else:
                 #s_start = s_start + '-[{0}] '.format(counter-1)
-                s_start = s_start + ' ^-' + '-'*(counter-1) + ' '
+                s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
                 
             
             if mBlock.getMayaAttr('position'):
@@ -197,7 +201,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 _l_report.append( ATTR.get(_short,'blockType') )
                 
             #_l_report.append(ATTR.get(_short,'blockState'))
-            _l_report.append("[{0}]".format(mBlock.getState().upper()))
+            _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
+            _l_report.append("[{0}]".format(_blockState.upper()))
             
             """
             if mObj.hasAttr('baseName'):

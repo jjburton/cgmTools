@@ -4714,7 +4714,6 @@ def rigDelete(self):
     if _str_state != 'rig':
         raise ValueError,"[{0}] is not in rig state. state: {1}".format(self.mNode, _str_state)
 
-    #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
     self.blockState = 'rig>skeleton'#...buffering that we're in process
@@ -4722,14 +4721,19 @@ def rigDelete(self):
     mModuleTarget = self.moduleTarget
     mModuleTarget.rig_disconnect()
     
+    
     if mModuleTarget:
         log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))
-        
+        ml_blockControls = self.UTILS.controls_get(self,True,True,True)
+        for mNode in ml_blockControls:
+            try:ml_blockControls.extend(mNode.getShapes(asMeta=1))
+            except:pass
+            
         if mModuleTarget.mClass ==  'cgmRigModule':
             self.template = False
             self.noTransTemplateNull.template=True
             mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
-            
+            """
             log.info("|{0}| >> Controls...".format(_str_func))
             ml_controls = mRigNull.msgList_get('controlsAll')
             for mCtrl in ml_controls:
@@ -4748,17 +4752,23 @@ def rigDelete(self):
                 mGroup = mObj.getMessageAsMeta(link)
                 if mGroup:
                     mGroup.delete()
-                    break
+                    break"""
                 
             #Rig nodes....
             ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
             for mNode in ml_rigNodes:
+                if mNode in [mModuleTarget,mRigNull]:
+                    continue
+                if mNode in ml_blockControls:
+                    log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))
+                    continue
                 try:
-                    log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
+                    #log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
                     mNode.delete()
-                except:
-                    log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
-                    
+                except:pass
+                    #log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
+            
+            mRigNull.rigNodes = []
             """
             #Deform null
             log.info("|{0}| >> deformNull...".format(_str_func))                        
@@ -4783,6 +4793,8 @@ def rigDelete(self):
             for mChild in mModuleTarget.getChildren(asMeta=True):
                 if mChild == mRigNull:continue
                 mChild.delete()            """
+            
+            mModuleTarget.p_parent = False
         elif mModuleTarget.mClass == 'cgmRigPuppet':
             pass#mModuleTarget.masterControl.delete()
         
@@ -4837,6 +4849,8 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         _state_target = stateArgs[1]
     
         log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
+        
+        
     
         #>>> Meat
         #========================================================================
@@ -4862,7 +4876,45 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
         #If we're here, we're going to move through the set states till we get to our spot
         log.debug("|{0}| >> Changing states...".format(_str_func))
         if _idx_target > currentState:
-            startState = currentState+1        
+            startState = currentState+1
+            
+            
+            #>>>Parents ------------------------------------------------------------------------------------
+            ml_parents = self.getBlockParents() or []
+            ml_dependencies = []
+            if ml_parents:
+                #ml_children.reverse()
+                for mParent in ml_parents:
+                    _parentState = mParent.getState(False)
+                    if _parentState < _idx_target:
+                        ml_dependencies.append(mParent)
+                        
+                
+                if ml_dependencies:
+                    _msg = "Target state: {1} \nThe Following [{0}] parents need processing: ".format(len(ml_dependencies),_state_target)
+                    _l_parents = []
+                    for mParent in ml_dependencies:
+                        _l_parents.append(mParent.p_nameShort)
+                    if _l_parents:
+                        _msg = _msg + '\n' + '\n'.join(_l_parents)
+                    result = mc.confirmDialog(title="Shall we continue",
+                                              message= _msg,
+                                              button=['OK', 'Cancel'],
+                                              defaultButton='OK',
+                                              cancelButton='Cancel',
+                                              dismissString='Cancel')
+                    
+                    if result != 'OK':
+                        log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+                        return False
+                        
+                    for mParent in ml_dependencies:
+                        log.error("|{0}| >> Parent state lower than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mParent))
+                        changeState(mParent,_idx_target)
+        
+            
+            
+            
             doStates = _l_moduleStates[startState:_idx_target+1]
             log.debug("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
     
@@ -4879,6 +4931,40 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 #    log.debug("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
             return True
         elif _idx_target < currentState:#Going down
+            #>>>Children ------------------------------------------------------------------------------------
+            ml_children = self.getBlockChildren() or []
+            ml_dependencies = []            
+            if ml_children:
+                ml_children.reverse()
+                for mChild in ml_children:
+                    _childState = mChild.getState(False)
+                    if _childState > _idx_target:
+                        ml_dependencies.append(mChild)
+                                                
+                                        
+                if ml_dependencies:
+                    _msg = "Target state: {1} \nThe Following [{0}] children need processing: ".format(len(ml_dependencies),_state_target)
+                    _l_parents = []
+                    for mChild in ml_dependencies:
+                        _l_parents.append(mChild.p_nameShort)
+                    if _l_parents:
+                        _msg = _msg + '\n' + '\n'.join(_l_parents)
+                        result = mc.confirmDialog(title="Shall we continue",
+                                                  message= _msg,
+                                                  button=['OK', 'Cancel'],
+                                                  defaultButton='OK',
+                                                  cancelButton='Cancel',
+                                                  dismissString='Cancel')
+                    
+                    if result != 'OK':
+                        log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+                        return False
+                        
+                    for mChild in ml_dependencies:
+                        log.error("|{0}| >> Child state higher than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mChild))
+                        changeState(mChild,_idx_target)
+                        
+            
             l_reverseModuleStates = copy.copy(_l_moduleStates)
             l_reverseModuleStates.reverse()
             startState = currentState 
