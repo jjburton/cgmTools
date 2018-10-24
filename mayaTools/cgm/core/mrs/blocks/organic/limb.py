@@ -3572,7 +3572,7 @@ def rig_shapes(self):
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
         if str_rigSetup == 'digit':
             str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
-            if str_profile in ['finger','thumb']:
+            if str_profile in ['finger','thumb','toe']:
                 return rig_digitShapes(self)
             _offset = _offset/2.0
         
@@ -3904,21 +3904,14 @@ def rig_shapes(self):
             if not self.b_singleChain:
                 #Mid IK...---------------------------------------------------------------------------------
                 log.debug("|{0}| >> midIK...".format(_str_func))
-                #mKnee = self.mMidTemplateHandle.doCreateAt(setClass=True)
                 size_knee =  MATH.average(POS.get_bb_size(self.mMidTemplateHandle.mNode,True)) * .75
                 crv = CURVES.create_fromName('sphere',
                                               direction = 'z+',#_jointOrientation[0]+'+',
                                               size = size_knee)#max(size_knee) * 1.25)            
                 
                 mKnee = cgmMeta.validateObjArg(crv,setClass=True)
-                #CORERIG.shapeParent_in_place(mKnee.mNode, crv, False)
-                #mKnee.doSnapTo(ml_ikJoints[1].mNode)
-        
                 #Get our point for knee...
                 mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargetsCulled,False)
-        
-                #CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
-                #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
                 mHandleFactory.color(mKnee.mNode, controlType = 'main')
         
                 mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
@@ -3935,7 +3928,7 @@ def rig_shapes(self):
             
             mIK_templateHandle = self.mRootTemplateHandle
             #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
-            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='maxFill')
+            bb_ik = POS.get_bb_size(mIK_templateHandle.loftCurve.mNode,True,mode='maxFill')
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)#[v+_offset for v in bb_ik])
             #ATTR.set(_ik_shape,'scale', 1.5)
     
@@ -4065,8 +4058,18 @@ def rig_shapes(self):
                 mSettingsShape.doSnapTo(_mSnapTo.mNode)
                 d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
                 str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
-                mSettingsShape.p_position = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
-                                                                               _settingsSize + (_offset * 2))
+                
+            
+                mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+                str_meshShape = mMesh_tmp.getShapes()[0]        
+                pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)                
+                
+                mSettingsShape.p_position = pos
+                
+                mMesh_tmp.delete()
+                
+                #mSettingsShape.p_position = _mSnapTo.getPositionByAxisDistance(str_settingsDirections,
+                #                                                               _settingsSize + (_offset * 2))
                 
                 SNAP.aim_atPoint(mSettingsShape.mNode,
                                  _mTar.p_position,
@@ -4240,50 +4243,23 @@ def rig_shapes(self):
                 mDag.doName()
                 mHandleFactory.color(mDag.mNode, controlType = 'sub')
             
-                mRigNull.connectChildNode(mDag,'controlBallRotation','rigNull')#Connect                        
-                
-                
-            if mJnt == ml_fkJoints[self.int_handleEndIdx] and len(ml_fkJoints)>1:# and str_ikEnd in ['foot']:
-                log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
-                mIKTemplateHandle = ml_templateHandles[-1]
-                
-                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,'maxFill')#mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                _fk_shape = CURVES.create_fromName('sphere', size = bb_ik)
-                ATTR.set(_fk_shape,'scale', 1.50)
-                SNAP.go(_fk_shape,mJnt.mNode)
-                
-                mHandleFactory.color(_fk_shape, controlType = 'main')        
-                
-                
-                """
-                mIKTemplateHandle = ml_templateHandles[-1]
-                
-                mShape1 = mIKTemplateHandle.loftCurve.doDuplicate(po = False)
-                mShape2 = mIKTemplateHandle.loftCurve.doDuplicate(po = False)
-                
-                for mShp in mShape1,mShape2:
-                    ATTR.set_standardFlags(mShp.mNode,lock=False,keyable=True)
-                    mShp.p_parent = False
-                    SNAP.go(mShp.mNode,mJnt.mNode)
-                
-                _p = mJnt.p_position
-                DIST.offsetShape_byVector(mShape1.mNode,_offset,_p)
-                DIST.offsetShape_byVector(mShape2.mNode,_offset * 2,_p)
-                
-                CORERIG.combineShapes([mShape2.mNode,mShape1.mNode])
-                _fk_shape = mShape1.mNode
+                mRigNull.connectChildNode(mDag,'controlBallRotation','rigNull')#Connect
 
-                mHandleFactory.color(_fk_shape, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
-                mShape.delete()"""
-                CORERIG.shapeParent_in_place(mJnt.mNode,_fk_shape, False, replaceShapes=True)            
+            mHandleFactory.color(mShape.mNode, controlType = 'main')
+            #if _ikDefault:
+            #    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
+            CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, True, replaceShapes=True)
+            
+        if mBlock.hasQuadSetup and not self.b_cullFKEnd:
+            log.debug("|{0}| >> Last fk handle before toes/ball: {1}".format(_str_func,mJnt))
+            ml_shapes = self.atBuilderUtils('shapes_fromCast',
+                                            targets = ml_fkJoints[-1],
+                                            offset = _offset,
+                                            mode = 'simpleCast')#'segmentHan
                 
-                
-            else:
-                mHandleFactory.color(mShape.mNode, controlType = 'main')
-                #if _ikDefault:
-                #    CORERIG.shapeParent_in_place(mIKCrv.mNode,mShape.mNode, True, replaceShapes=True)
-                CORERIG.shapeParent_in_place(mJnt.mNode,mShape.mNode, True, replaceShapes=True)
+            _fk_shape = ml_shapes[0].mNode
+            mHandleFactory.color(_fk_shape, controlType = 'main')        
+            CORERIG.shapeParent_in_place(ml_fkJoints[-1].mNode,_fk_shape, True, replaceShapes=True)                       
 
         if str_ikEnd in ['tipCombo']:
             CORERIG.shapeParent_in_place(mIKEndCrv.mNode,ml_fkShapes[-2].mNode, True, replaceShapes=True)
@@ -7493,8 +7469,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     _extendToStart = True
     if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
         _extendToStart = False
+    _ballMode = 'loft'
+    _ballBase = True
+    if mBlock.blockProfile in ['wingBase']:
+        _ballBase = False
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
                                                                  ml_rigJoints,
+                                                                 ballBase = _ballBase,
+                                                                 ballMode = _ballMode,
                                                                  extendToStart=_extendToStart),
                                              'cgmObject')    
     

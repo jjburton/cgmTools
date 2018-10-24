@@ -48,6 +48,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
+import cgm.core.lib.node_utils as NODES
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.locator_utils as LOC
@@ -1921,7 +1922,11 @@ def joints_flipChainForBehavior(self,ml_chain=None):
                 mChild.parent = mJoint                    
 
 
-def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, ballBase = True, ballPosition = 'joint', extendToStart = True,method = 'u'):
+def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
+                     ballBase = True,
+                     ballMode = 'loft',
+                     ballPosition = 'joint',
+                     extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
         _str_func = 'mesh_proxyCreate'
@@ -1969,6 +1974,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         
         #Process ----------------------------------------------------------------------------------
         l_newCurves = []
+        l_pos = []
         str_meshShape = mMesh_tmp.getShapes()[0]
         log.debug("|{0}| >> Shape: {1}".format(_str_func,str_meshShape))
         """
@@ -2004,6 +2010,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         for i,mTar in enumerate(ml_targets):
             j = mTar.mNode
             _d = RAYS.cast(str_meshShape,j,aimVector)
+            l_pos.append(mTar.p_position)
             log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
             #cgmGEN.log_info_dict(_d,j)
             if not _d:
@@ -2099,54 +2106,119 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
             
             if ballBase and i != 0:
-                log.debug("|{0}| >> ball started...".format(_str_func))                                
+                log.debug("|{0}| >> ball started...".format(_str_func))
                 CORERIG.match_transform(_loftCurves[0],ml_targets[i])
                 TRANS.pivots_recenter(_loftCurves[0])
                 
                 
-
-                #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
-                if ballPosition == 'joint':
-                    p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
-                    p1 = ml_targets[i].p_position
-                    d1 = DIST.get_distance_between_points(p1,p2)
-                    
-                    try:p1_2 = ml_targets[i+1].p_position
-                    except:p1_2 = ml_targets[i-1].p_position
-                    
-                    d2 = DIST.get_distance_between_points(p1,p1_2)
-                    d2 = min([d1,d2])
-                    
-                    #d_offset = d1 - _offset
-                    #log.info("{0} : {1}".format(d1,d_offset))
-                    _sphere = mc.polySphere(axis = [0,0,1],
-                                            radius = d1*.5,
-                                            subdivisionsX = 10,
-                                            subdivisionsY = 10)
-                    #_sphere = mc.polyCylinder(axis = [0,0,1],
-                    #                          radius = d1,
-                    #                          height = d2,
-                    #                          subdivisionsX = 1,
-                    #                          subdivisionsY = 1)                    
-                    #TRANS.scale_to_boundingBox(_sphere[0], [d1*1.75,d1*1.75,d2])
-                    
-                    SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
-                    
-                else:
-                    _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)                    
-                    _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
-                    _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
-                    _size = [v*.8 for v in _size]
-                    SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
-                    TRANS.scale_to_boundingBox(_sphere[0], _size)
-                    SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+                if ballMode == 'loft':
                 
-                _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
-                #mc.polyNormal(_mesh,setUserNormal = True)
-                log.debug("|{0}| >> ball done...".format(_str_func))                
+                    root = mc.duplicate(_loftCurves[0])[0]
+                    try:
+                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
+                        vecRaw = SURF.get_uvNormal(_planar,.5,.5)
+                        vec = [-v for v in vecRaw]
+                        p1 = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,position=True)#l_pos[i]                    
+                    except Exception,err:
+                        vec = [1,1,1]
+                        p1 = l_pos[i]                    
+                        log.debug("|{0}| >> surf fail. Using last vector: {1}".format(_str_func,vec))                
+                        
+                        
+                    
+                    p2 = l_pos[i-1]
+                    pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
+                    dClose = DIST.get_distance_between_points(p1,pClose)
+                    d2 = DIST.get_distance_between_points(p1,p2)
+                    
+                    
+                    #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
+                    #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
+    
+                    
+                    #vec = _resClosest['normal']
+                    
+                    """
+                    if uSet == l_sets[-1]:
+                        vec = MATH.get_vector_of_two_points(p1,p2)                    
+                    else:
+                        vec = MATH.get_vector_of_two_points(p1,l_pos[i-1])"""                
+                        #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
+                        
+                    #dMax = min([dClose,_offset*10])
+                    dMax = (mc.arclen(root)/3.14)/2
+                    
+                    #dMax = dClose * .5#_offset *10
+                    pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
+                    pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .8)
+                    pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
+                    
+                    DIST.offsetShape_byVector(root,-_offset)
+                    mid1 = mc.duplicate(root)[0]
+                    ATTR.set(mid1,'scale',.9)
+                    mid2 = mc.duplicate(root)[0]
+                    ATTR.set(mid2,'scale',.65)                
+                    end = mc.duplicate(root)[0]
+                    ATTR.set(end,'scale',.1)
+                    
+                    #DIST.offsetShape_byVector(end,-_offset)
+                    
+    
+                        
+                    TRANS.position_set(mid1,pSet1)
+                    TRANS.position_set(mid2,pSet2)
+                    TRANS.position_set(end,pSet3)
+                    
+                    #now loft new mesh...
+                    _meshEnd = create_loftMesh([end,mid2,mid1,root], name="{0}_{1}".format('test',i), degree=1,divisions=1)
+                    
+                    _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
+                    mc.delete([end,mid1,mid2,root])
+                    try:mc.delete(_planar)
+                    except:pass
+                else:
+                
+                    #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
+                    if ballPosition == 'joint':
+                        p2 = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
+                        p1 = ml_targets[i].p_position
+                        d1 = DIST.get_distance_between_points(p1,p2)
+                        
+                        try:p1_2 = ml_targets[i+1].p_position
+                        except:p1_2 = ml_targets[i-1].p_position
+                        
+                        d2 = DIST.get_distance_between_points(p1,p1_2)
+                        d2 = min([d1,d2])
+                        
+                        #d_offset = d1 - _offset
+                        #log.info("{0} : {1}".format(d1,d_offset))
+                        _sphere = mc.polySphere(axis = [0,0,1],
+                                                radius = d1*.5,
+                                                subdivisionsX = 10,
+                                                subdivisionsY = 10)
+                        #_sphere = mc.polyCylinder(axis = [0,0,1],
+                        #                          radius = d1,
+                        #                          height = d2,
+                        #                          subdivisionsX = 1,
+                        #                          subdivisionsY = 1)                    
+                        #TRANS.scale_to_boundingBox(_sphere[0], [d1*1.75,d1*1.75,d2])
+                        
+                        SNAP.go(_sphere[0],ml_targets[i].mNode,True,True)
+                        
+                    else:
+                        _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)                    
+                        _bb_size = SNAPCALLS.get_axisBox_size(_loftCurves[0])
+                        _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
+                        _size = [v*.8 for v in _size]
+                        SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
+                        TRANS.scale_to_boundingBox(_sphere[0], _size)
+                        SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+            #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
+            #mc.polyNormal(_mesh,setUserNormal = True)
                 
             CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
+            log.debug("|{0}| >> ball done...".format(_str_func))                
         
         #...clean up 
         mc.delete(l_newCurves)# + [str_tmpMesh]

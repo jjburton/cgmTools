@@ -137,6 +137,10 @@ _l_pivotOrder = ['center','back','front','left','right']
 _d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
                       'right':{'left':'inner','right':'outer'}}
 
+_d_mirrorAttrCheck = {'loftShape':{'widePos':'wideNeg',
+                               'wideNeg':'widePos'},
+                      'testing':{}}
+
 #>> State Attr Masks =================================================================================
 _l_attrMask_all = ['visibility']
 _l_attrMask_template = ['baseSize','blockScale']

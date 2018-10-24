@@ -2770,7 +2770,15 @@ def blockMirror_create(self, forceNew = False):
             for a in 'XYZ':
                 if blockDat['ud'].has_key(k+a):
                     blockDat['ud'].pop(k+a)
-
+                    
+        
+        
+        for k,dIter in BLOCKSHARE._d_mirrorAttrCheck.iteritems():
+            _check = blockDat['ud'].get(k)
+            if _check:
+                log.debug("|{0}| >> mirror dat check {1} | {2}".format(_str_func, k, dIter))
+                blockDat['ud'][k] = dIter.get(blockDat['ud'][k])
+        
         """
         #Mirror some specfic dat
         if blockDat.get('template'):
@@ -2864,14 +2872,22 @@ def blockMirror_settings(blockSource, blockMirror = None,
         _short = mTarget.mNode
         _ud = blockDat.get('ud')
         _udFail = {}
+        _l_done = []
         if not blockDat.get('ud'):
             raise ValueError,"|{0}| >> No ud data found".format(_str_func)
         
         _ud['baseSize'] = baseSize_get(mSource)
         
+        for k,dIter in BLOCKSHARE._d_mirrorAttrCheck.iteritems():
+            _check = _ud.get(k)
+            if _check:
+                log.debug("|{0}| >> mirror dat check {1} | {2}".format(_str_func, k, dIter))
+                blockDat['ud'][k] = dIter.get(blockDat['ud'][k])        
+                _l_done.append(k)
+                
         _mask = ['side','version','blockState','baseAim','baseAimY']
         for a,v in _ud.iteritems():
-            if a in _mask:
+            if a in _mask or a in _l_done:
                 continue
             _type = ATTR.get_type(_short,a)
             if _type == 'enum':

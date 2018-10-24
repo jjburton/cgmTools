@@ -12,11 +12,11 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
-from maya import OpenMaya
+from maya import OpenMaya as om
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -210,32 +210,38 @@ def get_splitValues(surface = None, values = [], mode='u',
                                 _pair = [c,l_newCurves[i+1]]"""
 
 
-        crvBase = mc.duplicate(_loftCurves[0])[0]
-        crvEnd = mc.duplicate(_loftCurves[-1])[0]
-
-        l_mainCurves = [crvBase,crvEnd]
+        if len(_loftCurves)==1:
+            l_mainCurves = [mc.duplicate(_loftCurves[0])[0]]
         
-        if curvesConnect:
-            log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
-            d_epPos = {}
-
-            for i,crv in enumerate(_loftCurves):
-                _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
-                for ii,p in enumerate(_l):
-                    if not d_epPos.get(ii):
-                        d_epPos[ii] = []
-                    _l = d_epPos[ii]
-                    _l.append(p)
+        else:
+            crvBase = mc.duplicate(_loftCurves[0])[0]
+            crvEnd = mc.duplicate(_loftCurves[-1])[0]
     
-            for k,points in d_epPos.iteritems():
-                log.debug("|{0}| >> {1} | k: {1} | points: {2}".format(_str_func,k,points))
-                try:
-                    crv_connect = mc.curve (d=1, ep = points, os=True) 
-
-                    #CURVES.create_fromList(posList=points)
-                    l_mainCurves.append(crv_connect)
-                except Exception,err:
-                    print err
+            l_mainCurves = [crvBase,crvEnd]
+            
+            if curvesConnect:
+                log.debug("|{0}| >> {1} | Making connectors".format(_str_func,i))
+                d_epPos = {}
+                
+                
+    
+                for i,crv in enumerate(_loftCurves):
+                    _l = CURVES.getUSplitList(crv,connectionPoints,rebuild=True,rebuildSpans=30)[:-1]
+                    for ii,p in enumerate(_l):
+                        if not d_epPos.get(ii):
+                            d_epPos[ii] = []
+                        _l = d_epPos[ii]
+                        _l.append(p)
+        
+                for k,points in d_epPos.iteritems():
+                    log.debug("|{0}| >> {1} | k: {1} | points: {2}".format(_str_func,k,points))
+                    try:
+                        crv_connect = mc.curve (d=1, ep = points, os=True) 
+    
+                        #CURVES.create_fromList(posList=points)
+                        l_mainCurves.append(crv_connect)
+                    except Exception,err:
+                        print err
 
         for crv in l_mainCurves[1:]:
             CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
@@ -247,7 +253,37 @@ def get_splitValues(surface = None, values = [], mode='u',
     mc.delete(l_newCurves)    
     return l_finalCurves
 
+def get_uvNormal(surface = None,u = .5, v= .5):
+    _str_func = 'get_normalAtPoint'
+    
+    selectionList = om.MSelectionList()
+    #mPoint_source = om.MFloatPoint(point[0], point[1], point[2])
 
+    #Create an empty MFloatPoint to receive the hit point from the call.
+    mPointArray_hits = om.MFloatPointArray()
+    spc = om.MSpace.kWorld	    
+    
+
+    selectionList.add(surface)
+    surfacePath = om.MDagPath()
+    selectionList.getDagPath(0, surfacePath)
+    surfaceFn = om.MFnNurbsSurface(surfacePath)
+
+
+    #log.debug("Raw: {0} | {1}".format(uRaw,vRaw))
+    #__d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
+
+    #l_rawUV.append([uRaw,vRaw])
+    #l_uv.append(__d['uv'])
+
+    #....normal
+    try:
+        _res = surfaceFn.normal( u, v,om.MSpace.kWorld)
+        return [_res.x, _res.y, _res.z]
+    except Exception,err:
+        log.warning(">>> {0} >> Failed to process normal: {1}".format(_str_func,err))
+        return [0,0,0]
+    
 
 def get_dat(surface = None, uKnots = True, vKnots = True):
     """
@@ -270,7 +306,6 @@ def get_dat(surface = None, uKnots = True, vKnots = True):
     
     _short = NAMES.short(surface)
     mSurfaceInfo = cgmMeta.asMeta( NODES.create(_short,'surfaceInfo') )
-    
     mSurfaceInfo.doConnectIn('inputSurface','{0}.worldSpace'.format(surface))
     
     if uKnots:

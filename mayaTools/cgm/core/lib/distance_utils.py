@@ -500,6 +500,8 @@ def get_pos_by_axis_dist(obj, axis, distance = 1):
     obj =  VALID.mNodeString(obj)
     _vector = MATHUTILS.get_obj_vector(obj,axis,False)
     return get_pos_by_vec_dist(POS.get(obj),_vector,distance)
+
+
     
 def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
     _str_func = 'get_posList_fromStartEnd'
@@ -552,9 +554,6 @@ def get_closestTarget(source = None, objects = None):
         pos = POS.get(obj)
         l_dists.append (get_distance_between_points(_point, pos))
     return objects[(l_dists.index ((min(l_dists))))]    
-
-    
-
 
 def get_closest_point(source = None, targetSurface = None, loc = False):
     """

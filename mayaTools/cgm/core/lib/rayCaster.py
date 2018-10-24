@@ -58,7 +58,7 @@ def get_eligibleMesh():
                 log.debug("|{0}| >> Inelibible: {1} | {2}".format(_str_func,_type,_mesh))
     return _res
 
-def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = True, startPoint = None, maxDistance = 1000, asEuclid = False):
+def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = False, startPoint = None, maxDistance = 1000, asEuclid = False):
     """
     Get the 
 
@@ -906,7 +906,7 @@ def findMeshIntersections_OM2(mesh, raySource, rayDir, maxDistance = 1000, toler
         return d_return 
     except Exception,error:
         log.debug(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))
-        log.debug(">>> {0} >> error: {1}".format(_str_func,error))        
+        log.debug(">>> {0} >> error: {1}".format(_str_func,error))
         return None
 
 def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, tolerance = .1):
@@ -1076,49 +1076,60 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
         l_normals = []
         if gotHit:
             for i in range( mPointArray_hits.length() ):
-                l_hits.append( MATH.get_space_value( [mPointArray_hits[i].x, mPointArray_hits[i].y,mPointArray_hits[i].z] ))
-
-                #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
-                mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
-                log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
-
-
-                #for i4,item in enumerate(gotHit):
+                try:
+                
+                    l_hits.append( MATH.get_space_value( [mPointArray_hits[i].x, mPointArray_hits[i].y,mPointArray_hits[i].z] ))
+        
+                    #Thank you Mattias Bergbom, http://bergbom.blogspot.com/2009/01/float2-and-float3-in-maya-python-api.html
+                    mPoint_hit = om.MPoint(mPointArray_hits[i]) # Thank you Capper on Tech-artists.org          
+                    log.debug("{0} | Hit! [{1},{2},{3}]".format(_str_func,mPoint_hit.x, mPoint_hit.y, mPoint_hit.z))
+        
+        
+                    #for i4,item in enumerate(gotHit):
                     #log.debug("|{2}| >> {0} : {1}".format(i4,item,_str_func))
-
-                pArray = [0.0,0.0]
-                x1 = om.MScriptUtil()
-                x1.createFromList( pArray, 2 )
-                uvPoint = x1.asFloat2Ptr()
-                uvSet = None
-                closestPolygon=None
-                if _str_objType == 'mesh':
-                    uvReturn = meshFn.getUVAtPoint(mPoint_hit,uvPoint,om.MSpace.kWorld)
-                    uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
-                    vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
-                    if uValue and vValue:
-                        l_uv.append([uValue,vValue])
-
-                    #....normal
-                    mVector_normal = om.MVector()
-                    meshFn.getClosestNormal(mPoint_hit,mVector_normal,om.MSpace.kWorld)
-                    l_normals.append([mVector_normal.x, mVector_normal.y, mVector_normal.z])
-
-
-                else:#Nurbs
-                    uRaw = mPointArray_u[i]
-                    vRaw =  mPointArray_v[i]
-
-                    log.debug("Raw: {0} | {1}".format(uRaw,vRaw))
-                    __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
-
-                    l_rawUV.append([uRaw,vRaw])
-                    l_uv.append(__d['uv'])
-
-                    #....normal
-                    _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
-                    l_normals.append([_res.x, _res.y, _res.z])    
-
+                    pArray = [0.0,0.0]
+                    x1 = om.MScriptUtil()
+                    x1.createFromList( pArray, 2 )
+                    uvPoint = x1.asFloat2Ptr()
+                    uvSet = None
+                    closestPolygon=None
+                    if _str_objType == 'mesh':
+                        uvReturn = meshFn.getUVAtPoint(mPoint_hit,uvPoint,om.MSpace.kWorld)
+                        uValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 0) or False
+                        vValue = om.MScriptUtil.getFloat2ArrayItem(uvPoint, 0, 1) or False
+                        if uValue and vValue:
+                            l_uv.append([uValue,vValue])
+    
+                        #....normal
+                        try:
+                            mVector_normal = om.MVector()
+                            meshFn.getClosestNormal(mPoint_hit,mVector_normal,om.MSpace.kWorld)
+                            l_normals.append([mVector_normal.x, mVector_normal.y, mVector_normal.z])
+                        except Exception,err:
+                            log.debug(">>> {0} >> Failed to process normal: {1} | err: {2}".format(_str_func,i,err))
+                            l_normals.append([0,0,0])
+    
+                    else:#Nurbs
+                        uRaw = mPointArray_u[i]
+                        vRaw =  mPointArray_v[i]
+    
+                        log.debug("Raw: {0} | {1}".format(uRaw,vRaw))
+                        __d = DIST.get_normalized_uv(mesh,uRaw,vRaw)#normalize data
+    
+                        l_rawUV.append([uRaw,vRaw])
+                        l_uv.append(__d['uv'])
+    
+                        #....normal
+                        try:
+                            _res = surfaceFn.normal( uRaw, vRaw,om.MSpace.kWorld)
+                            l_normals.append([_res.x, _res.y, _res.z])
+                        except Exception,err:
+                            log.debug(">>> {0} >> Failed to process normal: {1} | err: {2}".format(_str_func,i,err))
+                            l_normals.append([0,0,0])
+                        
+                except Exception,err:
+                    log.debug(">>> {0} >> Failed to process hit: {1} | err: {2}".format(_str_func,i,err))
+                    continue
 
             try:            
                 d_return['hits'] = l_hits
@@ -1130,7 +1141,8 @@ def findMeshIntersections_OM1(mesh, raySource, rayDir, maxDistance = 1000, toler
                 if l_normals:
                     d_return['normals'] = l_normals
             except Exception,err:
-                raise Exception,"Return processing |{0}".format(err) 
+                log.debug(">>> {0} >> Processing fail".format(_str_func))
+                raise Exception,err
         return d_return 
     except Exception,error:
         log.error(">>> {0} >> Failure! mesh: '{1}' | raysource: {2} | rayDir {3}".format(_str_func,mesh,raySource,rayDir))

@@ -2395,7 +2395,8 @@ def rig_shapes(self):
             #mRoot = ml_joints[0].doCreateAt()
             mRoot = ml_joints[0].doCreateAt()
             
-            _size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_templateHandles[0].mNode))
+            #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_templateHandles[0].mNode))
+            _size_root = POS.get_bb_size(ml_templateHandles[0].loftCurve.mNode,True,mode='max')
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
         
@@ -2448,8 +2449,8 @@ def rig_shapes(self):
             
             mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
             str_meshShape = mMesh_tmp.getShapes()[0]        
-            pos = SNAPCALLS.get_special_pos([_mTar,str_meshShape],
-                                            'castNear',str_settingsDirections,False)
+            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
             
@@ -2547,7 +2548,8 @@ def rig_shapes(self):
             if ml_templateHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
                 mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
-                bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
+                bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,mode='max')
     
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.5)
@@ -2602,7 +2604,8 @@ def rig_shapes(self):
             else:
                 log.debug("|{0}| >> default IK shape...".format(_str_func))
                 mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
-                bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+                bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.1)
                 
@@ -2648,7 +2651,9 @@ def rig_shapes(self):
             else:
                 log.debug("|{0}| >> default IK base shape...".format(_str_func))
                 mIK_templateHandle = ml_templateHandles[ 0 ]
-                bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+                bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+                
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.1)
             

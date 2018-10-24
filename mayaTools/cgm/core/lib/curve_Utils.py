@@ -7,6 +7,7 @@ www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -24,21 +25,19 @@ from Red9.core import Red9_Meta as r9Meta
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
-reload(cgmGEN)
 from cgm.core.cgmPy import validateArgs as cgmValid
-reload(cgmValid)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
 import cgm.core.lib.transform_utils as TRANS
-reload(TRANS)
-reload(RIGGING)
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import attribute_utils as ATTR
-reload(SHAPES)
+
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.list_utils as LISTS
 from cgm.lib import (distance,
                      locators,
                      attributes,
@@ -52,7 +51,6 @@ from cgm.lib import (distance,
                      nodes,
                      joints,
                      cgmMath)
-reload(distance)
 
 #>>> Utilities
 #===================================================================    
@@ -1896,10 +1894,6 @@ def mirrorCurve(*args, **kws):
 
     return fncWrap(*args, **kws).go()
 
-import pprint
-import cgm.core.lib.math_utils as MATH
-reload(MATH)
-import cgm.core.lib.list_utils as LISTS
 
 def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
     _str_func = 'mirror_worldSpace'    
@@ -1931,6 +1925,8 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
             _new =  MATH.list_mult(_pos,_mult)
             POS.set(_l_ep_target[ii], _new)
             log.debug("|{0}| >> shape: {7} || {1} | {2} > {3} | {4} >> {5} | ?actual: {6}".format(_str_func,ii,ep,_l_ep_target[ii],_pos,_new,  POS.get(_l_ep_target[ii]), s))                                                            
+    
+    mc.reverseCurve(target,constructionHistory=False,replaceOriginal=True)
         
     #pprint.pprint(vars())
     

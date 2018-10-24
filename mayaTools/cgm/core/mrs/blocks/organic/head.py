@@ -2262,9 +2262,12 @@ def rig_shapes(self):
             mShape = ml_fkShapes[i]
             mHandleFactory.color(mShape.mNode, controlType = 'main')        
             CORERIG.shapeParent_in_place(ml_fkJoints[i].mNode, mShape.mNode, True, replaceShapes=True)
-            
             mShape.delete()
-
+            
+    
+        for mShape in ml_fkShapes:
+            try:mShape.delete()
+            except:pass
     #Direct Controls =============================================================================
     ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
     
@@ -3522,7 +3525,7 @@ def rig_cleanUp(self):
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
-        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        mDynGroup.dynFollow.p_parent = self.mDeformNull
         
     if ml_targetDynParents:
         log.debug("|{0}| >>  IK targets...".format(_str_func))
