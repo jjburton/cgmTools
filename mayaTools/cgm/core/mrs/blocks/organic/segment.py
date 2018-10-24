@@ -2298,6 +2298,13 @@ def rig_skeleton(self):
                                                                         cgmType = 'handle', indices=[1])
             
         
+    #Mirror if side...
+    if self.d_module['mirrorDirection'] == 'Left':
+        log.info("|{0}| >> Mirror direction ...".format(_str_func))
+        ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
+        ml_jointsToConnect.extend(ml_fkAttachJoints)
+       
+    
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
         try:
@@ -2353,6 +2360,10 @@ def rig_shapes(self):
         
         #Figure out our handle targets...
         ml_handleTargets = ml_fkJoints
+        
+        ml_fkCastTargets = self.mRigNull.msgList_get('fkAttachJoints')
+        if not ml_fkCastTargets:
+            ml_fkCastTargets = copy.copy(ml_fkJoints)
         
         #controlSegMidIK =============================================================================
         if mRigNull.getMessage('controlSegMidIK'):
@@ -2429,7 +2440,7 @@ def rig_shapes(self):
             if ml_blendJoints:
                 ml_targets = ml_blendJoints
             else:
-                ml_targets = ml_fkJoints
+                ml_targets = ml_fkCastTargets
                 
                 
             _settingsSize = _offset * 2
@@ -2538,7 +2549,7 @@ def rig_shapes(self):
     
         #IK Shapes =============================================================================
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
-                                          targets = ml_fkJoints,
+                                          targets = ml_fkCastTargets,
                                           offset = _offset,
                                           mode = 'frameHandle')
         
@@ -2699,9 +2710,10 @@ def rig_shapes(self):
         #FK=============================================================================================    
         log.debug("|{0}| >> Frame shape cast...".format(_str_func))
         ml_fkShapesSimple = self.atBuilderUtils('shapes_fromCast',
-                                          offset = _offset,
-                                          mode = 'frameHandle')
-                                          #mode = 'frameHandle')
+                                                ml_fkCastTargets,
+                                                offset = _offset,
+                                                mode = 'frameHandle')
+                                                #mode = 'frameHandle')
         
         
         log.debug("|{0}| >> FK...".format(_str_func))    
@@ -3694,11 +3706,15 @@ def rig_frame(self):
             ml_blendJoints[0].parent = mRoot
             ml_ikJoints[0].parent = mIKGroup
             
+            ml_fkAttachJoints = []
+            for mObj in ml_fkJoints:
+                mAttach = mObj.getMessageAsMeta('fkAttach')
+                ml_fkAttachJoints.append(mAttach or mObj)                
 
             #Setup blend ----------------------------------------------------------------------------------
             if self.b_scaleSetup:
                 log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
-                RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+                RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
                                             l_constraints=['point','orient','scale'])
                 
@@ -3743,7 +3759,7 @@ def rig_frame(self):
                 
                 
             else:
-                RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
+                RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
                                             l_constraints=['point','orient'])
         

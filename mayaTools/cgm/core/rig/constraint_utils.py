@@ -320,8 +320,8 @@ def blendChainsBy(l_jointChain1 = None,
             _creates.append(_buff)
             mConst = cgmMeta.cgmNode(_buff[0])
 
-            #if constraint in ['parent','orient']:
-                #mConst.interpType = 2
+            if constraint in ['parent','orient']:
+                mConst.interpType = 2
             
             targetWeights = d_funcs[constraint](mConst.mNode,q=True, weightAliasList=True)
             if len(targetWeights)>2:

@@ -2838,7 +2838,10 @@ def rig_skeleton(self):
     #Mirror if side...
     if self.d_module['mirrorDirection'] == 'Left':
         log.info("|{0}| >> Mirror direction ...".format(_str_func))
-        #ml_fkAttachJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'fkAttach','fkAttachJoints')ml_fkAttachJoints = 
+        ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
+        ml_jointsToConnect.extend(ml_fkAttachJoints)
+        
+        """
         ml_fkAttachJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_fkJoints,
                                                                     'fkAttach',mRigNull,'fkAttachJoints',
                                                                     blockNames=False,cgmType = 'frame')
@@ -2850,7 +2853,7 @@ def rig_skeleton(self):
             ml_fkJoints[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
             #attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
             cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
-            mJoint.p_parent = ml_fkJoints[i]
+            mJoint.p_parent = ml_fkJoints[i]"""
     
     if self.b_pivotSetup:
         log.info("|{0}| >> Pivot joints...".format(_str_func))        
@@ -2960,7 +2963,7 @@ def rig_digitShapes(self):
         
         ml_fkCastTargets = self.mRigNull.msgList_get('fkAttachJoints')
         if not ml_fkCastTargets:
-            ml_fkCastTargets = copy.copy(ml_fkJoints)        
+            ml_fkCastTargets = copy.copy(ml_fkJoints)
 
         #Pivots ==================================================================================
         mPivotHolderHandle = ml_templateHandles[-1]
@@ -6403,7 +6406,7 @@ def rig_blendFrame(self):
     ml_fkAttachJoints = []
     for mObj in ml_fkJoints:
         mAttach = mObj.getMessageAsMeta('fkAttach')
-        ml_fkAttachJoints.append(mAttach or mObj)    
+        ml_fkAttachJoints.append(mAttach or mObj)
         
         
     ml_ikJoints = mRigNull.msgList_get('ikJoints')

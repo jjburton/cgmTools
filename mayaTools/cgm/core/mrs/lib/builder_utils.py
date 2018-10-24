@@ -1919,7 +1919,25 @@ def joints_flipChainForBehavior(self,ml_chain=None):
     for i,mJoint in enumerate(ml_chain):
         if d_children.get(mJoint):
             for mChild in d_children[mJoint]:
-                mChild.parent = mJoint                    
+                mChild.parent = mJoint
+                
+def joints_mirrorChainAndConnect(self,ml_chain=None):
+    _str_func = 'joints_mirrorChainAndConnect'
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    ml_fkAttachJoints = mBlock.UTILS.skeleton_buildDuplicateChain(mBlock, ml_chain,
+                                                                  'fkAttach',mRigNull,'fkAttachJoints',
+                                                                  blockNames=False,cgmType = 'frame')
+
+    joints_flipChainForBehavior(self, ml_chain)
+    for i,mJoint in enumerate(ml_fkAttachJoints):
+        log.info("|{0}| >> Mirror connect: {1} | {2} ...".format(_str_func,i,mJoint))        
+        ml_chain[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
+        #attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
+        cgmMeta.cgmAttr(ml_chain[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
+        mJoint.p_parent = ml_chain[i]
+        
+    return ml_fkAttachJoints
 
 
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
