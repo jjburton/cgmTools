@@ -1150,6 +1150,164 @@ def create_prerigLoftMesh(self, targets = None,
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def create_simpleTemplateLoftMesh(self, targets = None,
+                                  mNull = None,
+                                  uAttr = 'loftSplit',
+                                  degreeAttr = 'loftDegree',
+                                  polyType = 'mesh',
+                                  plug = None,
+                                  baseName = None):
+    try:
+        _str_func = 'create_prerigLoftMesh'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        _short = self.mNode
+        _side = 'center'
+        _rebuildNode = None
+        _loftNode = None
+        
+        _plug = plug or baseName+'TemplateLoft'
+        _cgmName = baseName or None
+        
+        if self.getMayaAttr('side'):
+            _side = self.getEnumValueString('side')  
+                
+        log.debug("|{0}| >> Creating: {1}".format(_str_func,polyType))
+        
+        if polyType == 'mesh':
+            _res_body = mc.loft(targets, o = True, d = 3, po = 1,autoReverse=False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+        
+            _tessellate = _inputs[0]
+            _loftNode = _inputs[1]
+        
+            log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'uNumber': 1 + len(targets)}
+        
+            for a,v in _d.iteritems():
+                ATTR.set(_tessellate,a,v)  
+                
+        elif polyType in ['bezier','noMult']:
+            _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
+            _loftNode = _res_body[1]
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+            _rebuildNode = _inputs[0]            
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            
+            if polyType == 'bezier':
+                mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+                
+            _d = {'keepCorners':False}#General}
+            
+            if polyType == 'noMult':
+                _d['rebuildType'] = 3
+        
+            for a,v in _d.iteritems():
+                ATTR.set(_rebuildNode,a,v)
+                
+        else:
+            _res_body = mc.loft(targets, o = True, d = 3, po = 0,autoReverse=False)
+            _loftNode = _res_body[1]
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
+            
+        
+        mLoftSurface.overrideEnabled = 1
+        mLoftSurface.overrideDisplayType = 2
+        
+        mLoftSurface.p_parent = mNull
+        mLoftSurface.resetAttrs()
+    
+        mLoftSurface.doStore('cgmName',_cgmName,attrType='string')
+        mLoftSurface.doStore('cgmType','shapeApprox')
+        mLoftSurface.doName()
+        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
+    
+        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+        #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
+    
+        #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
+    
+        #Color our stuff...
+        log.debug("|{0}| >> Color...".format(_str_func))        
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+    
+        mLoftSurface.inheritsTransform = 0
+        for s in mLoftSurface.getShapes(asMeta=True):
+            s.overrideDisplayType = 2    
+        
+        log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
+        if polyType in ['bezier','noMult']:
+            _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
+                                                                     self.getMayaAttrString('loftDegree','short'))
+            NODEFACTORY.argsToNodes(_arg).doBuild()            
+            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeU".format(_rebuildNode))
+            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
+            
+        _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
+                                                              self.getMayaAttrString('loftDegree','short'))
+
+        NODEFACTORY.argsToNodes(_arg).doBuild()            
+        ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
+        
+        toName = []
+        if polyType == 'mesh':
+            #...wire some controls
+            _arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
+                                                        self.getMayaAttrString(uAttr,'short'))
+        
+            NODEFACTORY.argsToNodes(_arg).doBuild()
+            #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+
+        
+            ATTR.connect("{0}.out_vSplitPre".format(targets[0]), "{0}.uNumber".format(_tessellate))
+            #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.vNumber".format(_tessellate)) 
+        
+            #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
+        
+            toName = [_tessellate,_loftNode]
+        elif polyType in ['bezier','noMult']:
+            #_arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
+            #                                         self.getMayaAttrString(uAttr,'short'))
+                    
+            #NODEFACTORY.argsToNodes(_arg).doBuild()
+            #ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.spansU".format(_rebuildNode))
+            ATTR.connect("{0}.{1}".format(self.mNode,uAttr), "{0}.spansU".format(_rebuildNode))            
+            #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.spansV".format(_rebuildNode))
+            
+            ATTR.connect("{0}.{1}".format(_short,uAttr), "{0}.sectionSpans".format(_loftNode))
+            
+            #_close = mc.closeSurface(mLoftSurface.mNode,d=1,p=0,rpo=True)
+            
+            toName = [_rebuildNode,_loftNode]
+        else:
+            ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
+            toName = [_loftNode]
+            
+        if _rebuildNode:
+            mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
+            if _loftNode:
+                mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
+
+        for n in toName:
+            mObj = cgmMeta.validateObjArg(n)
+            
+            if _cgmName:
+                mObj.addAttr('cgmName',_cgmName,'string')
+            else:
+                mObj.doStore('cgmName',self.mNode)
+                
+            mObj.doStore('cgmTypeModifier','prerigMesh')
+            mObj.doName()                        
+       
+        self.connectChildNode(mLoftSurface.mNode, _plug, 'block')
+        
+        return mLoftSurface
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def create_jointLoft(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseCount = 1, baseName = 'test',degree = 1,
                      simpleMode = False):
@@ -4731,7 +4889,8 @@ def rigDelete(self):
             
         if mModuleTarget.mClass ==  'cgmRigModule':
             self.template = False
-            self.noTransTemplateNull.template=True
+            try:self.noTransTemplateNull.template=True
+            except:pass
             mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
             """
             log.info("|{0}| >> Controls...".format(_str_func))
@@ -5857,6 +6016,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                 _useSize = _sizeSub
             
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
+            _tagOnly = _dtmp.get('tagOnly',False)
             
             
             #sphere
@@ -5896,6 +6056,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             md_handles[k] = mHandle
             ml_handles.append(mHandle)        
         
+            _trackTag = _dtmp.get('parentTag',False)
+            if _trackTag:
+                mParent = md_handles[_trackTag]
+            else:
+                mParent = mDefineNull            
             
             #Aim the handle.........................
             if k == 'end':
@@ -5905,90 +6070,94 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                                  worldUpType = 'none')"""
                         
             #Helper --------------------------------------------------------------------------------
+            if _dtmp.get('vectorLine') !=False:
+                _crv = CORERIG.create_at(create='curveLinear', 
+                                         l_pos=[[0,0,0],[0,0,_size / 2.0]], 
+                                         baseName='end')
+            
+                CORERIG.override_color(_crv, _dtmp['color'])
+                mAim = cgmMeta.validateObjArg(_crv)
+                mAim.p_parent = mParent
+                mAim.resetAttrs()
+            
+                mAim.doStore('mClass','cgmObject')            
+                mAim.doStore('cgmName',self.mNode)
+                mAim.doStore('cgmTypeModifier',str_name)
+                mAim.doStore('cgmType','aimLine')
+                mAim.doName()            
+            
+                mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,0,0], 
+                                 worldUpType = 'none')
+            
+                for mShape in mAim.getShapes(asMeta=1):
+                    mShape.overrideEnabled = 1
+                    mShape.overrideDisplayType = 2
+            
+                mAim.dagLock(True)
         
-            _crv = CORERIG.create_at(create='curveLinear', 
-                                     l_pos=[[0,0,0],[0,0,_size / 2.0]], 
-                                     baseName='end')
+                
+            if _dtmp.get('arrow') !=False:#Arrow ---------------------------------------------
+                _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                direction = 'z+', size = _sizeSub)
+                CORERIG.override_color(_arrow, _dtmp['color'])
+            
+                mArrow = cgmMeta.cgmObject(_arrow)
+                mArrow.p_parent = mParent
+                mArrow.resetAttrs()
+                mArrow.tz = _sizeSub * 3.0
+                
+                CORERIG.copy_pivot(mArrow.mNode,mParent.mNode)
+            
+                mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,0,0], 
+                                 worldUpType = 'none')
+            
+                mArrow.doStore('mClass','cgmObject')            
+                mArrow.doStore('cgmName',self.mNode)
+                mArrow.doStore('cgmTypeModifier',str_name)
+                mArrow.doStore('cgmType','vectorHelper')
+                mArrow.doName()
+            
+                mArrow.dagLock()
+            
+                md_vector[k] = mArrow
+                self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
         
-            CORERIG.override_color(_crv, _dtmp['color'])
-            mAim = cgmMeta.validateObjArg(_crv)
-            mAim.p_parent = mDefineNull
-            mAim.resetAttrs()
-        
-            mAim.doStore('mClass','cgmObject')            
-            mAim.doStore('cgmName',self.mNode)
-            mAim.doStore('cgmTypeModifier',str_name)
-            mAim.doStore('cgmType','aimLine')
-            mAim.doName()            
-        
-            mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,0,0], 
-                             worldUpType = 'none')
-        
-            for mShape in mAim.getShapes(asMeta=1):
-                mShape.overrideEnabled = 1
-                mShape.overrideDisplayType = 2
-        
-            mAim.dagLock(True)
-        
-        
-            #Arrow ---------------------------------------------
-            _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
-                                            direction = 'z+', size = _sizeSub)
-            CORERIG.override_color(_arrow, _dtmp['color'])
-        
-            mArrow = cgmMeta.cgmObject(_arrow)
-            mArrow.p_parent = mDefineNull
-            mArrow.resetAttrs()
-            mArrow.tz = _sizeSub * 3.0
-        
-            CORERIG.copy_pivot(mArrow.mNode,self.mNode)
-        
-            mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,0,0], 
-                             worldUpType = 'none')
-        
-            mArrow.doStore('mClass','cgmObject')            
-            mArrow.doStore('cgmName',self.mNode)
-            mArrow.doStore('cgmTypeModifier',str_name)
-            mArrow.doStore('cgmType','vectorHelper')
-            mArrow.doName()
-        
-            mArrow.dagLock()
-        
-            md_vector[k] = mArrow
-        
-            #Joint Label ---------------------------------------------------------------------------
-            mJointLabel = mHandleFactory.addJointLabel(mHandle,str_name)
-            md_jointLabels[k] = mJointLabel
-
-            """
-            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-            md_jointLabels[k] = mJointLabel
-            CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
-        
-            mJointLabel.p_parent = mHandle
-            mJointLabel.resetAttrs()
-        
-            mJointLabel.radius = 0
-            mJointLabel.side = 0
-            mJointLabel.type = 18
-            mJointLabel.drawLabel = 1
-            mJointLabel.otherType = k
-        
-            mJointLabel.doStore('cgmName',self.mNode)
-            mJointLabel.doStore('cgmTypeModifier',str_name)
-            mJointLabel.doStore('cgmType','jointLabel')
-            mJointLabel.doName()            
-        
-            mJointLabel.dagLock()
-        
-            mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2"""
+            if _dtmp.get('jointLabel') !=False:#Joint Label-----------------------------------------------------------------
+                if _tagOnly:
+                    labelName = k
+                else:
+                    labelName = str_name
+                mJointLabel = mHandleFactory.addJointLabel(mHandle,labelName)
+                md_jointLabels[k] = mJointLabel
+    
+                """
+                mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+                md_jointLabels[k] = mJointLabel
+                CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
+            
+                mJointLabel.p_parent = mHandle
+                mJointLabel.resetAttrs()
+            
+                mJointLabel.radius = 0
+                mJointLabel.side = 0
+                mJointLabel.type = 18
+                mJointLabel.drawLabel = 1
+                mJointLabel.otherType = k
+            
+                mJointLabel.doStore('cgmName',self.mNode)
+                mJointLabel.doStore('cgmTypeModifier',str_name)
+                mJointLabel.doStore('cgmType','jointLabel')
+                mJointLabel.doName()            
+            
+                mJointLabel.dagLock()
+            
+                mJointLabel.overrideEnabled = 1
+                mJointLabel.overrideDisplayType = 2"""
         
         
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
-            self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
         
         
         self.msgList_connect('defineHandles', ml_handles)

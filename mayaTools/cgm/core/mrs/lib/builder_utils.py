@@ -167,7 +167,6 @@ def eyeLook_verify(self):
         
         mDynParent = cgmRIGMETA.cgmDynParentGroup(dynChild=mCrv,dynMode=0)
         
-
         for o in ml_dynParents:
             mDynParent.addDynParent(o)
         mDynParent.rebuild()
@@ -180,20 +179,24 @@ def eyeLook_verify(self):
         if mBlockParent:
             log.debug("|{0}| >> Adding to blockParent...".format(_str_func))                    
             mBlockParent.moduleTarget.connectChildNode(mCrv,'eyeLook')
-            mBlockParentRigNull = mBlockParent.moduleTarget.rigNull
-            mBlockParentRigNull.msgList_append('controlsAll',mCrv)
-            mBlockParentRigNull.moduleSet.append(mCrv)
-        
-        
+            if mBlockParent.mClass == 'cgmRigModule':
+                mBlockParentRigNull = mBlockParent.moduleTarget.rigNull
+                mBlockParentRigNull.msgList_append('controlsAll',mCrv)
+                mBlockParentRigNull.moduleSet.append(mCrv)
+            else:
+                mModuleParent = mBlockParent.moduleTarget
+                mModuleParent.puppetSet.append(mCrv)
+                mModuleParent.msgList_append('controlsAll',mCrv)
+                
         #Connections... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Heirarchy... ".format(_str_func))        
+        log.debug("|{0}| >> Heirarchy... ".format(_str_func))
         mCrv.masterGroup.p_parent = self.mDeformNull
         
         for link in 'masterGroup','dynParentGroup':
             if mCrv.getMessage(link):
                 mCrv.getMessageAsMeta(link).dagLock(True)        
-        
         return mCrv
+    
     except Exception,error:
         cgmGEN.cgmException(Exception,error,msg=vars())
 

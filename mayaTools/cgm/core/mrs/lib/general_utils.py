@@ -162,73 +162,79 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         counter+=1
         
         for k in l_keys:
-            mBlock = k
-            #>>>Build strings
-            _short = mBlock.p_nameShort
-            #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
-    
-            _l_report = []
-    
-            _l_parents = mBlock.getBlockParents(False)
-            log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
+            try:
             
-            _len = len(_l_parents)
-            
-            if _len:
-                s_start = ' '*_len +' '
-            else:
-                s_start = ''
-                
-            if counter == 1:
-                s_start = s_start + " "            
-            else:
-                #s_start = s_start + '-[{0}] '.format(counter-1)
-                s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
-                
-            
-            if mBlock.getMayaAttr('position'):
-                _v = mBlock.getMayaAttr('position')
-                if _v.lower() not in ['','none']:
-                    _l_report.append( _d_scrollList_shorts.get(_v,_v) )
-                
-            if mBlock.getMayaAttr('side'):
-                _v = mBlock.getEnumValueString('side')
-                _l_report.append( _d_scrollList_shorts.get(_v,_v))
-    
-            if mBlock.hasAttr('cgmName'):
-                _l_report.append(mBlock.cgmName)
-            else:
-                _l_report.append( ATTR.get(_short,'blockType') )
-                
-            #_l_report.append(ATTR.get(_short,'blockState'))
-            _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
-            _l_report.append("[{0}]".format(_blockState.upper()))
-            
-            """
-            if mObj.hasAttr('baseName'):
-                _l_report.append(mObj.baseName)                
-            else:
-                _l_report.append(mObj.p_nameBase)"""                
+                mBlock = k
+                #>>>Build strings
+                _short = mBlock.p_nameShort
+                #log.debug("|{0}| >> scroll list update: {1}".format(_str_func, _short))  
         
-            if mBlock.isReferenced():
-                _l_report.append("Referenced")
-    
-            _str = s_start + " - ".join(_l_report)
-            log.debug(_str + "   >> " + mBlock.mNode)
-            #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
-            stringList.append(_str)        
-            blockList.append(mBlock)
-     
-            buffer = arg[k]
-            if buffer:
-                get_uiScollList_dat(buffer,k,counter,blockList,stringList)   
+                _l_report = []
+        
+                _l_parents = mBlock.getBlockParents(False)
+                log.debug("{0} : {1}".format(mBlock.mNode, _l_parents))
                 
-    
-        """if counter == 0:
-            print('> {0} '.format(mBlock.mNode))			                	            
-        else:
-            print('-'* counter + '> {0} '.format(mBlock.mNode) )"""	
+                _len = len(_l_parents)
+                
+                if _len:
+                    s_start = ' '*_len +' '
+                else:
+                    s_start = ''
+                    
+                if counter == 1:
+                    s_start = s_start + " "            
+                else:
+                    #s_start = s_start + '-[{0}] '.format(counter-1)
+                    s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
+                    
+                
+                if mBlock.getMayaAttr('position'):
+                    _v = mBlock.getMayaAttr('position')
+                    if _v.lower() not in ['','none']:
+                        _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                    
+                if mBlock.getMayaAttr('side'):
+                    _v = mBlock.getEnumValueString('side')
+                    _l_report.append( _d_scrollList_shorts.get(_v,_v))
+                    
+                _cgmName = mBlock.getMayaAttr('cgmName')
+                if _cgmName:
+                    _l_report.append(_cgmName)
+                else:
+                    _l_report.append( ATTR.get(_short,'blockType') )
+                    
+                #_l_report.append(ATTR.get(_short,'blockState'))
+                _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
+                _l_report.append("[{0}]".format(_blockState.upper()))
+                
+                """
+                if mObj.hasAttr('baseName'):
+                    _l_report.append(mObj.baseName)                
+                else:
+                    _l_report.append(mObj.p_nameBase)"""                
             
+                if mBlock.isReferenced():
+                    _l_report.append("Referenced")
+        
+                _str = s_start + " - ".join(_l_report)
+                log.debug(_str + "   >> " + mBlock.mNode)
+                #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
+                stringList.append(_str)        
+                blockList.append(mBlock)
+         
+                buffer = arg[k]
+                if buffer:
+                    get_uiScollList_dat(buffer,k,counter,blockList,stringList)   
+                    
+        
+                    """if counter == 0:
+                        print('> {0} '.format(mBlock.mNode))			                	            
+                    else:
+                        print('-'* counter + '> {0} '.format(mBlock.mNode) )"""	
+            except Exception,err:
+                log.error("Failed: {0} | {1}".format(k, err))
+                log.error("List: {0}".format(_l_report))
+                
     
         return blockList,stringList
     except Exception,err:
