@@ -92,7 +92,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper']}
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
 d_wiring_template = {'msgLinks':['templateNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
@@ -399,13 +399,13 @@ def template(self):
             
             for tag,l_pos in d_loftCurves.iteritems():
                 _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
-                mCrv = cgmMeta.asMeta(_crv,setClass=True)
+                mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
                 mCrv.p_parent = mTemplateNull
                 mHandleFactory.color(mCrv.mNode)
                 
                 mCrv.rename('{0}_loftCurve'.format(tag))
                 
-                self.connectChildNode(mCrv, tag+'loftCurve','block')
+                self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
                 md_loftCurves[tag]=mCrv
                 
             self.UTILS.create_simpleTemplateLoftMesh(self,
@@ -423,101 +423,10 @@ def template(self):
             
             log.info(self.uprLidTemplateLoft)
             log.info(self.lwrLidTemplateLoft)
+            log.info(self.uprLidLoftCurve)
+            log.info(self.lwrLidLoftCurve)
     
-        self.blockState = 'template'
-        return
         
-        
-        
-        #Get base dat =============================================================================    
-        _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
-        mBBHelper = self.bbHelper
-        _v_range = max(TRANS.bbSize_get(self.mNode)) *2
-        _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
-        _size_width = _bb_axisBox[0]#...x width
-        _pos_bbCenter = POS.get_bb_center(mBBHelper.mNode)
-        
-        log.debug("{0} >> axisBox size: {1}".format(_str_func,_bb_axisBox))
-        log.debug("{0} >> Center: {1}".format(_str_func,_pos_bbCenter))
-    
-        #for i,p in enumerate(_l_basePos):
-            #LOC.create(position=p,name="{0}_loc".format(i))
-        
-        
-        
-        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
-        
-        
-        #Create Pivot =====================================================================================
-        #loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
-        #TRANS.parent_set(loc,mTemplateNull)
-        
-        crv = CURVES.create_fromName('jack', size = _size_width * .25)
-        mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-        mHandleFactory.color(mHandleRoot.mNode)
-        
-        #_shortHandle = mHandleRoot.mNode
-    
-        #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-        mHandleRoot.doStore('cgmName','eyeRoot')    
-        mHandleRoot.doStore('cgmType','templateHandle')
-        mHandleRoot.doName()
-        
-        mHandleRoot.p_position = _pos_bbCenter
-        mHandleRoot.p_parent = mTemplateNull
-        mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
-        
-        self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
-        
-        #Orient helper =====================================================================================
-        _orientHelper = CURVES.create_fromName('arrowSingle', size = _size_width * .25)
-        mShape = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
-        
-    
-        mShape.doSnapTo(self.mNode)
-        mShape.p_parent = mHandleRoot
-        
-        mShape.tz = self.baseSizeZ / 2
-        mShape.rz = 90
-        
-        mOrientHelper = mHandleRoot.doCreateAt()
-        
-        CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
-        mOrientHelper.p_parent = mHandleRoot
-        
-        mOrientHelper.doStore('cgmName','eyeOrient')
-        mOrientHelper.doStore('cgmType','templateHandle')
-        mOrientHelper.doName()
-        
-        self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
-        mHandleFactory.color(mOrientHelper.mNode)
-        
-        
-        if self.hasEyeOrb:
-            pass
-            """
-            log.debug("|{0}| >> Eye orb setup...".format(_str_func))
-            
-            crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
-            mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-            mHandleFactory.color(mHandleOrb.mNode)
-            
-            #_shortHandle = mHandleRoot.mNode
-            mHandleOrb.doSnapTo(self.mNode)
-            mHandleOrb.p_parent = mTemplateNull
-        
-            #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-            mHandleOrb.doStore('cgmName','eyeOrb')    
-            mHandleOrb.doStore('cgmType','templateHandle')
-            mHandleOrb.doName()
-            
-            self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
-            
-        if self.setupLid:
-            log.debug("|{0}| >> EyeLid setup...".format(_str_func))
-            mHandleFactory.add_lidsHelper()
-            
-        return
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
@@ -529,91 +438,279 @@ def prerigDelete(self):
     except:pass
     
 def prerig(self):
-    _str_func = 'prerig'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    self.blockState = 'prerig'
-    _side = self.UTILS.get_side(self)
+    try:
+        _str_func = 'prerig'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        self.blockState = 'prerig'
+        _side = self.UTILS.get_side(self)
+        
+        self.atUtils('module_verify')
+        mStateNull = self.UTILS.stateNull_verify(self,'prerig')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
+        
+        #mRoot = self.getMessageAsMeta('rootHelper')
+        mHandleFactory = self.asHandleFactory()
+        
+        ml_handles = []
+        
+        #Get base dat =============================================================================    
+        _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
+        mBBHelper = self.bbHelper
+        _v_range = max(TRANS.bbSize_get(self.mNode)) *2
+        _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
+        _size_width = _bb_axisBox[0]#...x width
+        _size_base = _size_width * .25
+        _size_sub = _size_base * .5
+        
+        _pos_bbCenter = POS.get_bb_center(mBBHelper.mNode)
     
-    self.atUtils('module_verify')
-    mStateNull = self.UTILS.stateNull_verify(self,'prerig')
+        log.debug("{0} >> axisBox size: {1}".format(_str_func,_bb_axisBox))
+        log.debug("{0} >> Center: {1}".format(_str_func,_pos_bbCenter))
     
-    mRoot = self.getMessageAsMeta('rootHelper')
-    mHandleFactory = self.asHandleFactory()
+        #for i,p in enumerate(_l_basePos):
+            #LOC.create(position=p,name="{0}_loc".format(i))
     
-    ml_handles = []
-    #Settings shape --------------------
-    if self.ikSetup or self.hasEyeOrb:
-        log.debug("|{0}| >> Settings/Orb setup ... ".format(_str_func)) 
-        
-        _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
-        _size = MATH.average(_size_bb)
-        
-        mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size * .25,
-                                                                       'z+'),'cgmObject',setClass=True)
-        
-        mSettingsShape.doSnapTo(mRoot.mNode)
-        
-        d_directions = {'left':'x+','right':'x-','center':'z+'}
-        str_settingsDirections = d_directions.get(_side,'z+')
-        
-        mSettingsShape.p_position = self.getPositionByAxisDistance(str_settingsDirections,
-                                                                    _size_bb[1] * .7)
-        
-        mSettingsShape.p_parent = mStateNull
-        
-        mSettingsShape.doStore('cgmName','settingsShape')
-        mSettingsShape.doStore('cgmType','prerigHandle')
-        mSettingsShape.doName()
-        
-        self.connectChildNode(mSettingsShape.mNode,'settingsHelper','module')
-        mHandleFactory.color(mSettingsShape.mNode,controlType='sub')
-        
-        ml_handles.append(mSettingsShape)
-        """
-        d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
-        str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
-        mSettingsShape.p_position = _mTar.getPositionByAxisDistance(str_settingsDirections,
-                                                                    _settingsSize)
     
-        SNAP.aim_atPoint(mSettingsShape.mNode,
-                         _mTar.p_position,
-                         aimAxis=_jointOrientation[0]+'+',
-                         mode = 'vector',
-                         vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
     
-        mSettingsShape.parent = _mTar
-        mSettings = mSettingsShape
-        CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
     
-        ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
     
-        mSettings.doStore('cgmTypeModifier','settings')
-        mSettings.doName()
-        mHandleFactory.color(mSettings.mNode, controlType = 'sub')
+        #Create Pivot =====================================================================================
+        #loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
+        #TRANS.parent_set(loc,mTemplateNull)
     
-        mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect        
-        """
+        crv = CURVES.create_fromName('sphere', size = _size_base)
+        mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        mHandleFactory.color(mHandleRoot.mNode)
     
-    if self.setupLid:
-        _setupLid = self.getEnumValueString('setupLid')
-        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
+        #_shortHandle = mHandleRoot.mNode
+    
+        #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+        mHandleRoot.doStore('cgmName','eyeRoot')    
+        mHandleRoot.doStore('cgmType','templateHandle')
+        mHandleRoot.doName()
+    
+        mHandleRoot.p_position = _pos_bbCenter
+        mHandleRoot.p_parent = mStateNull
+        mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
+    
+        self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
+    
+        #Orient helper =====================================================================================
+        _orientHelper = CURVES.create_fromName('arrowSingle', size = _size_base)
+        mShape = cgmMeta.validateObjArg(_orientHelper)
+    
+    
+        mShape.doSnapTo(self.mNode)
+        mShape.p_parent = mHandleRoot
+    
+        mShape.tz = self.baseSizeZ
+        mShape.rz = 90
+    
+        _crvLinear = CORERIG.create_at(create='curveLinear',
+                                       l_pos=[mHandleRoot.p_position,mShape.p_position])
         
-        mModule_lids = self.atUtils('module_verify','eyelid','moduleEyelid')
         
-        if _setupLid == 'clam':
+        mOrientHelper = mHandleRoot.doCreateAt(setClass=True)
+        CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
+        CORERIG.shapeParent_in_place(mOrientHelper.mNode, _crvLinear,False)
+        
+        mOrientHelper.p_parent = mHandleRoot
+    
+        mOrientHelper.doStore('cgmName','eyeOrient')
+        mOrientHelper.doStore('cgmType','templateHandle')
+        mOrientHelper.doName()
+    
+        self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
+        mHandleFactory.color(mOrientHelper.mNode,controlType='sub')
+    
+    
+        if self.hasEyeOrb:
             pass
+            """
+                log.debug("|{0}| >> Eye orb setup...".format(_str_func))
+    
+                crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
+                mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+                mHandleFactory.color(mHandleOrb.mNode)
+    
+                #_shortHandle = mHandleRoot.mNode
+                mHandleOrb.doSnapTo(self.mNode)
+                mHandleOrb.p_parent = mStateNull
+    
+                #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+                mHandleOrb.doStore('cgmName','eyeOrb')    
+                mHandleOrb.doStore('cgmType','templateHandle')
+                mHandleOrb.doName()
+    
+                self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
+    
+    
         
-    
-    
-    self.msgList_connect('prerigHandles', ml_handles)
-    
-    #Close out ===============================================================================================
-    #mNoTransformNull.v = False
-    #cgmGEN.func_snapShot(vars())
-    self.blockState = 'prerig'
-    
-    return
-
+        #Settings shape --------------------
+        if self.ikSetup or self.hasEyeOrb:
+            log.debug("|{0}| >> Settings/Orb setup ... ".format(_str_func)) 
+            
+            _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
+            _size = MATH.average(_size_bb)
+            
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base,
+                                                                           'z+'),'cgmObject',setClass=True)
+            
+            mSettingsShape.doSnapTo(mHandleRoot.mNode)
+            
+            d_directions = {'left':'x+','right':'x-','center':'z+'}
+            str_settingsDirections = d_directions.get(_side,'z+')
+            
+            mSettingsShape.p_position = self.getPositionByAxisDistance(str_settingsDirections,
+                                                                        _size_bb[1] * .7)
+            
+            mSettingsShape.p_parent = mStateNull
+            
+            mSettingsShape.doStore('cgmName','settingsShape')
+            mSettingsShape.doStore('cgmType','prerigHandle')
+            mSettingsShape.doName()
+            
+            self.connectChildNode(mSettingsShape.mNode,'settingsHelper','block')
+            mHandleFactory.color(mSettingsShape.mNode,controlType='sub')
+            
+            ml_handles.append(mSettingsShape)
+        
+        if self.setupLid:
+            def create_lidHandle(self,tag,pos,mJointTrack=None,visualConnection=True):
+                mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = _size_sub), 
+                                                  'cgmObject',setClass=1)
+                mHandle.doSnapTo(self)
+                
+                mHandle.p_position = pos
+                
+                mHandle.p_parent = mStateNull
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType','templateHandle')
+                mHandle.doName()
+                
+                mHandleFactory.color(mHandle.mNode,controlType='sub')
+                
+                self.connectChildNode(mHandle.mNode,'{0}LidHandle'.format(tag),'block')
+                
+                
+                #joinHandle ------------------------------------------------
+                mJointHandle = cgmMeta.validateObjArg( CURVES.create_fromName('jack',
+                                                                              size = _size_sub*.75),
+                                                       'cgmObject',
+                                                       setClass=1)
+                
+                mJointHandle.doStore('cgmName',tag)    
+                mJointHandle.doStore('cgmType','jointHelper')
+                mJointHandle.doName()                
+                
+                mJointHandle.p_position = pos
+                mJointHandle.p_parent = mStateNull
+                
+                
+                mHandleFactory.color(mJointHandle.mNode,controlType='sub')
+                mHandleFactory.addJointLabel(mJointHandle,tag)
+                mHandle.connectChildNode(mJointHandle.mNode,'jointHelper','handle')
+                
+                
+                if mJointTrack:
+                    mLoc = mHandle.doLoc()
+                    mLoc.v=False
+                    mLoc.p_parent = mNoTransformNull
+                    mc.pointConstraint(mHandle.mNode,mLoc.mNode)
+                    
+                    mTrackGroup = mJointHandle.doGroup(True,True,
+                                                  asMeta=True,
+                                                  typeModifier = 'track',
+                                                  setClass='cgmObject')
+                    
+                    res = DIST.create_closest_point_node(mLoc.mNode,mJointTrack.mNode,True)
+                    #mLoc = cgmMeta.asMeta(res[0])
+                    mTrackLoc = cgmMeta.asMeta(res[0])
+                    mTrackLoc.p_parent = mNoTransformNull
+                    mTrackLoc.v=False
+                    mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
+                    
+                
+                if visualConnection:
+                    log.debug("|{0}| >> visualConnection ".format(_str_func, tag))
+                    trackcrv,clusters = CORERIG.create_at([mLidRoot.mNode,
+                                                           mJointHandle.mNode],#ml_handleJoints[1]],
+                                                          'linearTrack',
+                                                          baseName = '{0}_midTrack'.format(tag))
+                
+                    mTrackCrv = cgmMeta.asMeta(trackcrv)
+                    mTrackCrv.p_parent = mNoTransformNull
+                    mHandleFactory.color(mTrackCrv.mNode, controlType = 'sub')
+                
+                    for s in mTrackCrv.getShapes(asMeta=True):
+                        s.overrideEnabled = 1
+                        s.overrideDisplayType = 2
+                
+                return mHandle
+                
+            log.debug("|{0}| >> Lid setup...".format(_str_func)+ '-'*40)
+            _setupLid = self.getEnumValueString('setupLid')
+            mUprLid = self.getMessageAsMeta('uprLidLoftCurve')
+            mLwrLid = self.getMessageAsMeta('lwrLidLoftCurve')
+            
+            log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
+            
+            mModule_lids = self.atUtils('module_verify','eyelid','moduleEyelid')
+            
+            #Lid Root ---------------------------------------------------------
+            crv = CURVES.create_fromName('jack', size = _size_sub)
+            mLidRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+            mHandleFactory.color(mLidRoot.mNode)
+        
+            #_shortHandle = mHandleRoot.mNode
+        
+            #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+            mLidRoot.doStore('cgmName','lidRoot')    
+            mLidRoot.doStore('cgmType','templateHandle')
+            mLidRoot.doName()
+        
+            mLidRoot.p_position = _pos_bbCenter
+            mLidRoot.p_parent = mStateNull
+            mLidRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
+            
+            mHandleFactory.addJointLabel(mLidRoot,'lidRoot')
+            self.connectChildNode(mLidRoot.mNode,'lidRootHelper','block')
+            ml_handles.append(mLidRoot)
+            
+            md_lidHandles = {}
+            
+            #Lid Handles
+            if _setupLid == 'clam':
+                d_handles = {'upr':CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
+                             'lwr':CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5)}
+                
+                mUprHandle = create_lidHandle(self,'upr',
+                                              CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
+                                              mJointTrack = mUprLid)
+                
+                mLwrHandle = create_lidHandle(self,'lwr',
+                                              CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5),
+                                              mJointTrack = mLwrLid)                
+                
+                """
+                import cgm.core.lib.locator_utils as LOC
+                for tag,p in d_handles.iteritems():
+                    mHandle,mJointHandle = create_lidHandle(self,tag,p,jointTrack = )
+                    md_lidHandles[tag] = mHandle"""
+                    
+                ml_handles.extend([mLidRoot,mUprHandle,mLwrHandle])
+        
+        
+        self.msgList_connect('prerigHandles', ml_handles)
+        
+        #Close out ===============================================================================================
+        self.blockState = 'prerig'
+        
+        return
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 #=============================================================================================================
 #>> Skeleton
 #=============================================================================================================
@@ -625,7 +722,7 @@ def skeleton_build(self, forceNew = True):
     _str_func = '[{0}] > skeleton_build'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func)) 
     
-    _radius = self.atUtils('get_shapeOffset')# or 1
+    _radius = self.atUtils('get_shapeOffset') * .25# or 1
     ml_joints = []
     
     mModule = self.atUtils('module_verify')
@@ -698,43 +795,48 @@ def skeleton_build(self, forceNew = True):
         ml_joints.insert(0,mEyeOrbJoint)
         mPrerigNull.connectChildNode(mEyeOrbJoint.mNode,'eyeOrbJoint')
         mRoot = mEyeOrbJoint
-        
-    
-    
 
-            
-    mRigNull.msgList_connect('moduleJoints', ml_joints)
-    self.msgList_connect('moduleJoints', ml_joints)
-    self.atBlockUtils('skeleton_connectToParent')
-    
     if len(ml_joints) > 1:
         ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
         
     if self.setupLid:#=====================================================
         _setupLid = self.getEnumValueString('setupLid')
         log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
+        
+        #'lidRootHelper'
+        
         mLidsHelper = self.getMessageAsMeta('lidsHelper')
         _d_lids = copy.copy(_d_base)
         
         _d_lids['cgmNameModifier'] = 'lid'
         
         if _setupLid == 'clam':
+            
             for a in ['upr','lwr']:
                 log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
-                _a = 'lid{0}'.format(a.capitalize())
-                mHandle = mLidsHelper.getMessageAsMeta(_a)
-                mJoint = mHandle.doCreateAt('joint')
+                _a = '{0}LidHandle'.format(a)
+                mHandle = self.getMessageAsMeta(_a)
+                mJointHandle = mHandle.jointHelper
+                
+                mJoint = mJointHandle.doCreateAt('joint')
                 mJoint.parent = mRoot
                 
                 mJoint.doStore('cgmName',a)
                 name(mJoint,_d_lids)
                 
-                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
+                JOINT.freezeOrientation(mJoint.mNode)
                 
+                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
+                ml_joints.append(mJoint)
+                mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
 
         else:
             log.error("Don't have setup for eyelidType: {0}".format(_setupLid))
+            
     
+    mRigNull.msgList_connect('moduleJoints', ml_joints)
+    self.msgList_connect('moduleJoints', ml_joints)
+    self.atBlockUtils('skeleton_connectToParent')
 
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
