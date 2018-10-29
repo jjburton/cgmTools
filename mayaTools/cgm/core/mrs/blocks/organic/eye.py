@@ -85,6 +85,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
+                       'rig_lidSetup',
                        'rig_cleanUp']
 
 
@@ -776,7 +777,9 @@ def skeleton_build(self, forceNew = True):
     
     #...orient ----------------------------------------------------------------------------
     #cgmMeta.cgmObject().getAxisVector
-    CORERIG.match_orientation(mEyeJoint.mNode, mOrientHelper.mNode)
+    #CORERIG.match_orientation(mEyeJoint.mNode, mOrientHelper.mNode)
+    p_aim = mOrientHelper.getPositionByAxisDistance('z+',10.0)
+    SNAP.aim_atPoint(mEyeJoint.mNode,p_aim,'z+')
     JOINT.freezeOrientation(mEyeJoint.mNode)
     
     name(mEyeJoint,_d_base)
@@ -958,6 +961,11 @@ def rig_prechecks(self):
     
     mBlock = self.mBlock
     
+    str_lidSetup = mBlock.getEnumValueString('setupLid')
+    if str_lidSetup not in ['clam','none']:
+        self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidSetup))
+    
+    
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):
@@ -978,8 +986,17 @@ def rig_dataBuffer(self):
     self.mRootTemplateHandle = mEyeTemplateHandle
     ml_templateHandles = [mEyeTemplateHandle]
     
-    
     self.b_scaleSetup = mBlock.scaleSetup
+    
+    self.str_lidSetup = False
+    if mBlock.setupLid:
+        self.str_lidSetup  = mBlock.getEnumValueString('setupLid')
+        
+    #Logic checks ========================================================================
+    self.b_needEyeOrb = False
+    if not mBlock.hasEyeOrb and self.str_lidSetup:
+        self.b_needEyeOrb = True
+    
     #Offset ============================================================================    
     str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
     
@@ -992,13 +1009,9 @@ def rig_dataBuffer(self):
         
         l_sizes = []
         for mHandle in ml_templateHandles:
-            #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
-            #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
             _size_sub = POS.get_bb_size(mHandle,True)
             l_sizes.append( MATH.average(_size_sub) * .1 )            
         self.v_offset = MATH.average(l_sizes)
-        #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
-        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
     log.debug(cgmGEN._str_subLine)
     
@@ -1006,10 +1019,13 @@ def rig_dataBuffer(self):
     self.v_baseSize = [mBlock.blockScale * v for v in mBlock.baseSize]
     self.f_sizeAvg = MATH.average(self.v_baseSize)
     
-    log.debug("|{0}| >> size | self.v_baseSize: {1} | self.f_sizeAvg: {2}".format(_str_func,self.v_baseSize, self.f_sizeAvg ))
+    log.debug("|{0}| >> size | self.v_baseSize: {1} | self.f_sizeAvg: {2}".format(_str_func,
+                                                                                  self.v_baseSize,
+                                                                                  self.f_sizeAvg ))
     
     #DynParents =============================================================================
     self.UTILS.get_dynParentTargetsDat(self)
+    log.debug(cgmGEN._str_subLine)
     
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
@@ -1020,9 +1036,7 @@ def rig_dataBuffer(self):
     log.debug("|{0}| >> rotateOrder | self.ro_base: {1}".format(_str_func,self.ro_base))
     log.debug("|{0}| >> rotateOrder | self.ro_head: {1}".format(_str_func,self.ro_head))
     log.debug("|{0}| >> rotateOrder | self.ro_headLookAt: {1}".format(_str_func,self.ro_headLookAt))
-
     log.debug(cgmGEN._str_subLine)
-    
     
     #eyeLook =============================================================================
     self.mEyeLook = self.UTILS.eyeLook_get(self,True)#autobuild...
@@ -1047,41 +1061,47 @@ def rig_skeleton(self):
     ml_joints = mRigNull.msgList_get('moduleJoints')
     self.d_joints['ml_moduleJoints'] = ml_joints
     
-    log.info("|{0}| >> Eye...".format(_str_func))
     
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'])
                                      #d_rotateOrders, d_preferredAngles)
     
+    
+    #Eye =================================================================================
+    log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                            ml_joints, 'rig',
                                                            self.mRigNull,
                                                            'rigJoints',
                                                            'rig',
+                                                           cgmType = False,
                                                            blockNames=False)
     
     mEyeJoint = mPrerigNull.getMessageAsMeta('eyeJoint')
     mEyeRigJoint = mEyeJoint.getMessageAsMeta('rigJoint')
-    log.info(mEyeJoint)
-    log.info(mEyeRigJoint)
-    
+    log.debug(mEyeJoint)
+    log.debug(mEyeRigJoint)
     mRigNull.connectChildNode(mEyeRigJoint,'directEye')
     
     if mBlock.ikSetup:
-        log.info("|{0}| >> Eye IK...".format(_str_func))              
+        log.debug("|{0}| >> Eye IK...".format(_str_func))              
         mEyeFK = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mEyeJoint],
                                                          'fk', mRigNull,
                                                          'fkEye',
+                                                         cgmType = False,
                                                          singleMode = True)[0]
         
         mEyeIK = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mEyeJoint],
                                                          'ik', mRigNull,
                                                          'ikEye',
+                                                         cgmType = False,
                                                          singleMode = True)[0]
         
         mEyeBlend = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mEyeJoint],
                                                             'blend', mRigNull,
                                                             'blendEye',
-                                                            singleMode = True)[0]        
+                                                            cgmType = False,
+                                                            singleMode = True)[0]
+        
         for mJnt in mEyeFK,mEyeIK,mEyeBlend:
             mJnt.p_parent = mEyeRigJoint.p_parent
         
@@ -1089,14 +1109,63 @@ def rig_skeleton(self):
         
         ml_jointsToConnect.extend([mEyeIK])
         ml_jointsToHide.append(mEyeBlend)    
+    log.debug(cgmGEN._str_subLine)
     
+    #EyeLid =====================================================================================
+    log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
+    reload(BLOCKUTILS)
+    if self.str_lidSetup == 'clam':
+        self.d_lidData = {}
+        #Need to make our lid roots and orient
+        for tag in 'upr','lwr':
+            log.debug("|{0}| >> {1}...".format(_str_func,tag))
+            self.d_lidData[tag] = {}
+            _d = self.d_lidData[tag]
             
+            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(tag))
+            mLidRig = mLidSkin.getMessageAsMeta('rigJoint')
+            _d['mSkin'] = mLidSkin
+            _d['mRig'] = mLidRig
+            #Lid Blend
+            mLidBlend = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mLidRig],
+                                                              'ik', mRigNull,
+                                                              '{0}IKLid'.format(tag),
+                                                              singleMode = True,
+                                                              cgmType=False)[0]
+            _d['mBlend'] = mLidBlend
+            
+            #Lid Root
+            mLidRoot = mEyeJoint.doDuplicate(po=True)
+            mLidRoot.doStore('cgmName','{0}lid_rootJoint'.format(tag))
+            ATTR.delete(mLidRoot.mNode,'cgmType')
+            mLidRoot.p_parent = False
+            mLidRoot.doName()
+            
+            _d['mRoot'] = mLidRoot
+            
+            SNAP.aim(mLidRoot.mNode, mLidSkin.mNode, 'z+','y+','vector',
+                     mBlock.getAxisVector('y+'))
+            JOINT.freezeOrientation(mLidRoot.mNode)
+            
+            mLidBlend.p_parent = mLidRoot
+            
+            for mJnt in mLidBlend,mLidRoot:
+                try:mJnt.drawStyle =2
+                except:mJnt.radius = .00001
+            
+            #ml_jointsToHide.extend([mLidBlend])
+            #ml_jointsToConnect.extend([mLidRoot])
+            
+            mLidRig.p_parent = mLidBlend
+            
+    pprint.pprint(self.d_lidData)
+    log.debug(cgmGEN._str_subLine)
+    
+    
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
-        try:
-            mJnt.drawStyle =2
-        except:
-            mJnt.radius = .00001
+        try:mJnt.drawStyle =2
+        except:mJnt.radius = .00001
             
     #...connect... 
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
@@ -1116,10 +1185,11 @@ def rig_shapes(self):
         mHandleFactory = mBlock.asHandleFactory()
         mRigNull = self.mRigNull
         mPrerigNull = mBlock.prerigNull
+        mEyeDirect = mRigNull.getMessageAsMeta('directEye')
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
-        if mBlock.hasEyeOrb or mBlock.ikSetup:
+        if mBlock.hasEyeOrb or mBlock.ikSetup or self.b_needEyeOrb:
             log.debug("|{0}| >> Settings needed...".format(_str_func))
             mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
             if not mSettingsHelper:
@@ -1132,6 +1202,10 @@ def rig_shapes(self):
                 mEyeOrbRigJoint = mEyeOrbJoint.getMessageAsMeta('rigJoint')
                 CORERIG.shapeParent_in_place(mEyeOrbRigJoint.mNode,mSettingsHelper.mNode,False)
                 mSettings = mEyeOrbRigJoint
+            elif self.b_needEyeOrb:
+                mSettings = mEyeDirect.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,False)
+                
             else:
                 mSettings = mSettingsHelper.doCreateAt()
                 CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,True)
@@ -1141,7 +1215,8 @@ def rig_shapes(self):
             mSettings.doName()
                 
             mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
-            
+        
+        
         #Logic ====================================================================================
         mFKEye = mRigNull.getMessageAsMeta('fkEye')
         if mFKEye:
@@ -1185,7 +1260,8 @@ def rig_shapes(self):
             mIKControl.p_parent = self.mEyeLook
             
             mRigNull.connectChildNode(mIKControl,'controlIK','rigNull')#Connect
-            
+        
+        
         mDirectEye = mRigNull.getMessageAsMeta('directEye')
         if mDirectEye:#Direct Eye =======================================================================
             log.debug("|{0}| >> direct eye...".format(_str_func))  
@@ -1205,7 +1281,42 @@ def rig_shapes(self):
             #for s in mDirectEye.getShapes(asMeta=True):
                 #s.overrideEnabled = 1
                 #s.overrideDisplayType = 2
-            
+                
+        if self.str_lidSetup:#Lid setup =======================================================================
+            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidSetup))
+            if self.str_lidSetup == 'clam':
+                for k in 'upr','lwr':
+                    log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                    _key = '{0}LidHandle'.format(k)
+                    mShapeSource = mBlock.getMessageAsMeta(_key)
+                    mHandle = mShapeSource.doCreateAt('joint',setClass=True)
+                    
+                    try:mHandle.drawStyle =2
+                    except:mHandle.radius = .00001
+                    
+                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                    
+                    if self.mModule.hasAttr('cgmDirection'):
+                        mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                    
+                    self.d_lidData[k]['mHandle'] = mHandle
+                    mHandle.doName()
+                    mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                    
+                    log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                    mRig =  self.d_lidData[k]['mRig']
+                    
+                    _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                        sizeMode= 'fixed',
+                                                        size = mRig.radius)
+                    mHandleFactory.color(_shape, controlType = 'sub')
+                    
+                    CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+
+                    
+                    
+
             
         for mJnt in ml_rigJoints:
             try:
@@ -1292,7 +1403,7 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mControlIK, mBlendJoint)
         
         #>> Direct Controls ==================================================================================
-        log.debug("|{0}| >> Direct controls...".format(_str_func))
+        log.debug("|{0}| >> Direct Eye controls...".format(_str_func))
         
         #ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
         ml_controlsAll.extend([mDirect])
@@ -1313,7 +1424,42 @@ def rig_controls(self):
                 ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
         log.debug(cgmGEN._str_subLine)        
 
+        
+        if self.str_lidSetup:#Lid setup =======================================================================
+            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidSetup))
             
+            cgmMeta.cgmAttr(mSettings.mNode,
+                            'blink',attrType='float',
+                            minValue=0,maxValue=1,
+                            lock=False,keyable=True)
+            cgmMeta.cgmAttr(mSettings.mNode,
+                            'blinkHeight',attrType='float',
+                            minValue=0,maxValue=1,
+                            lock=False,keyable=True)            
+            
+            if self.str_lidSetup == 'clam':
+                for k in 'upr','lwr':
+                    log.debug("|{0}| >> lid | {1}...".format(_str_func,k))
+                    _key = '{0}LidHandle'.format(k)
+                    mHandle = self.d_lidData[k]['mHandle']
+                    mRig = self.d_lidData[k]['mRig']
+                    
+                    MODULECONTROL.register(mHandle,
+                                           mirrorSide= self.d_module['mirrorDirection'],
+                                           mirrorAxis="translateX,rotateY,rotateZ")
+                    
+                    d_buffer = MODULECONTROL.register(mRig,
+                                           typeModifier='direct',
+                                           mirrorSide= self.d_module['mirrorDirection'],
+                                           mirrorAxis="translateX,rotateY,rotateZ",
+                                           makeAimable = False)
+                    mObj = d_buffer['instance']
+                    ATTR.set_hidden(mObj.mNode,'radius',True)        
+                    if mObj.hasAttr('cgmIterator'):
+                        ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
+                        
+                    for mShape in mObj.getShapes(asMeta=True):
+                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                    
             
         #Close out...
         mHandleFactory = mBlock.asHandleFactory()
@@ -1466,59 +1612,244 @@ def rig_frame(self):
 
     
     return
-            
-    #Setup blend ----------------------------------------------------------------------------------
-    log.debug("|{0}| >> blend setup...".format(_str_func))                
+
+
     
-    if self.b_scaleSetup:
-        log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
-        RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
-                                    driver = mPlug_FKIK.p_combinedName,
-                                    l_constraints=['point','orient','scale'])
+
+def create_clamBlinkCurves(self):
+    _short = self.d_block['shortName']
+    _str_func = 'create_clamBlinkCurves'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mRootParent = self.mConstrainNull    
+    mSettings = mRigNull.settings
+    
+    
+    ml_curves = []
+    
+    log.info(mBlock.uprLidLoftCurve)
+    log.info(mBlock.lwrLidLoftCurve)
+    log.info(mSettings)
+    
+    mUprLidDriven = mBlock.uprLidLoftCurve.doDuplicate(po=False)
+    mLwrLidDriven = mBlock.lwrLidLoftCurve.doDuplicate(po=False)
+    
+    mUprLidDriven.addAttr('cgmName','uprLid',lock=True)
+    mLwrLidDriven.addAttr('cgmName','LwrLid',lock=True)
+    
+    md = {'upr':{'mDriven':mUprLidDriven},
+          'lwr':{'mDriven':mLwrLidDriven}}
+    
+    for mObj in mUprLidDriven,mLwrLidDriven:
+        mObj.p_parent = False
+        mObj.addAttr('cgmTypeModifier','driven',lock=True)
+        mObj.doName()
+        ml_curves.append(mObj)
+        
+    
+    for tag in ['upr','lwr']:
+        log.debug("|{0}| >> {1} curve create...".format(_str_func,tag))
+        
+        _d = md[tag]
+        
+        mBlink = _d['mDriven'].doDuplicate(po = False)
+        mBlink.addAttr('cgmTypeModifier','blink',lock=True)
+        mBlink.doName()
+        ml_curves.append(mBlink)
+        _d['mBlink'] = mBlink
+        
+        mDriver = _d['mDriven'].doDuplicate(po = False)
+        mDriver.addAttr('cgmTypeModifier','driver',lock=True)
+        mDriver.doName()
+        ml_curves.append(mDriver)
+        _d['mDriver'] = mDriver
+        
+    
+    #Smart Blink curve--------------------------------------------------------
+    log.debug("|{0}| >> smart blink curve create...".format(_str_func))
+    
+    mSmartBlink = mUprLidDriven.doDuplicate(po=False)
+    mSmartBlink.addAttr('cgmName','smartBlink',lock=True)    
+    mSmartBlink.doName()
+    ml_curves.append(mSmartBlink)
+    
+    md['mSmart'] = mSmartBlink
+    
+    #Wire--------------------------------------------------------
+    _uprDriver = md['upr']['mDriver'].mNode
+    _uprDriven = md['upr']['mDriven'].mNode
+    _lwrDriver = md['lwr']['mDriver'].mNode
+    _lwrDriven = md['lwr']['mDriven'].mNode
+        
+    log.debug("|{0}| >> wire deformers...".format(_str_func))    
+    _l_return = mc.wire(_uprDriven,
+                        w=_uprDriver, 
+                        gw = False, en = 1, ce = 0, li =0)
+    mUprWire = cgmMeta.cgmNode(_l_return[0])
+    mUprWire.doStore('cgmName',_uprDriven)
+    mUprWire.doName()
+    
+    _l_return = mc.wire(_lwrDriven,
+                        w = _lwrDriver, 
+                        gw = False, en = 1, ce = 0, li =0)
+    mLwrWire = cgmMeta.cgmNode(_l_return[0])
+    mLwrWire.doStore('cgmName',_lwrDriven)
+    mLwrWire.doName()
+    
+    
+    #mUprWire.parent = mRigNull
+    #mLwrWire.parent = mRigNull
+    #.dropoffDistance[0] Need to set dropoff distance
+    ATTR.set(mUprWire.mNode,'dropoffDistance[0]',50)
+    ATTR.set(mLwrWire.mNode,'dropoffDistance[0]',50)
+    
+    
+    #Skin our curves --------------------------------------------------------
+    log.debug("|{0}| >> skin curves...".format(_str_func))    
+    ml_uprSkinJoints = [self.d_lidData['upr']['mHandle']]#ml_uprLidHandles
+    ml_lwrSkinJoints = [self.d_lidData['lwr']['mHandle']]#[ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]
+    md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':md['upr']['mDriver']},
+                    'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':md['lwr']['mDriver']}}
+    
+    for k in md_skinSetup.keys():
+        d_crv = md_skinSetup[k]
+        str_crv = d_crv['mi_crv'].p_nameShort
+        l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
+        log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+        try:
+            mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
+                                                          d_crv['mi_crv'].mNode,
+                                                          tsb=True,
+                                                          maximumInfluences = 3,
+                                                          normalizeWeights = 1,dropoffRate=2.5)[0])
+        except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	    
+    
+    
+    
+    #blendshape smart blink--------------------------------------------------------
+    log.debug("|{0}| >> blendshape smart blink...".format(_str_func))
+    
+    _str_bsNode = mc.blendShape([_uprDriver,_lwrDriver],mSmartBlink.mNode)[0]
+    mBsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
+    mBsNode.doStore('cgmName',mSmartBlink.mNode)
+    mBsNode.doName()
+
+    mPlug_height = cgmMeta.cgmAttr(mSettings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
+    import cgm.lib.deformers as deformers
+    l_bsAttrs = deformers.returnBlendShapeAttributes(mBsNode.mNode)
+    log.info(l_bsAttrs)
+    d_return = NODEFACTORY.createSingleBlendNetwork([mSettings.mNode,'blinkHeight'],
+                                              [mSettings.mNode,'blinkHeight_upr'],
+                                              [mSettings.mNode,'blinkHeight_lwr'],
+                                              keyable=True)	
+    #Connect                                  
+    d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mBsNode.mNode,l_bsAttrs[0]))
+    d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mBsNode.mNode,l_bsAttrs[1]))
+    
+    #Build our blink match wire deformers--------------------------------------------------------
+    log.debug("|{0}| >> Build our blink match wire deformers...".format(_str_func))
+    
+    mPlug_height.value = 0	    
+    _l_return = mc.wire(md['lwr']['mBlink'].mNode, w = mSmartBlink.mNode, gw = False, en = 1, ce = 0, li =0)
+    mi_lwrBlinkWire = cgmMeta.cgmNode(_l_return[0])
+    mi_lwrBlinkWire.doStore('cgmName',_lwrDriven)
+    mi_lwrBlinkWire.addAttr('cgmTypeModifier','blink')	    
+    mi_lwrBlinkWire.doName()
+    mc.setAttr("%s.scale[0]"%mi_lwrBlinkWire.mNode,0)
+    mc.setAttr("%s.dropoffDistance[0]"%mi_lwrBlinkWire.mNode,50)
+
+    mPlug_height.value = 1
+    _l_return = mc.wire(md['upr']['mBlink'].mNode, w = mSmartBlink.mNode, gw = False, en = 1, ce = 0, li =0)
+    mi_uprBlinkWire = cgmMeta.cgmNode(_l_return[0])
+    mi_uprBlinkWire.doStore('cgmName',_uprDriven)
+    mi_uprBlinkWire.addAttr('cgmTypeModifier','blink')	    
+    mi_uprBlinkWire.doName()
+    mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
+    mc.setAttr("%s.dropoffDistance[0]"%mi_uprBlinkWire.mNode,50)
+
+    mPlug_height.value = .1#back to default
+
+    #mi_smartBlinkCrv.parent = mRigNull
+    
+    #blendshape upr/lwr --------------------------------------------------------------
+    log.debug("|{0}| >> blendshape upr/lwr...".format(_str_func))
+    
+    mPlug_blink = cgmMeta.cgmAttr(mSettings,'blink',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0)
+    d_blendshapeBlink = {'upr':{'mi_target':md['upr']['mBlink'],'mi_driven':md['upr']['mDriven']},
+                         'lwr':{'mi_target':md['lwr']['mBlink'],'mi_driven':md['lwr']['mDriven']}}
+    for k in d_blendshapeBlink.keys():
+        d_buffer = d_blendshapeBlink[k]
+        mi_target = d_buffer['mi_target']
+        mi_driven = d_buffer['mi_driven']
+        _str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
+        mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
+        mi_bsNode.doStore('cgmName',mi_driven.mNode)
+        mi_bsNode.doName()
+        l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
+        mPlug_blink.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))    
 
 
-        #Scale setup for ik joints                
-        ml_ikScaleTargets = [mHeadIK]
+    self.fnc_connect_toRigGutsVis( ml_curves )        
+    for mCrv in ml_curves:
+        p_parent = mRigNull
+        
+    self.md_blinkCurves = md
+    self.ml_blinkCurves = ml_curves    
+    return md,ml_curves
 
-        if mIKBaseControl:
-            mc.scaleConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-            ml_ikScaleTargets.append(mIKBaseControl)
-        else:
-            mc.scaleConstraint(mRoot.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-            ml_ikScaleTargets.append(mRoot)
 
-        mc.scaleConstraint(mHeadIK.mNode, ml_ikJoints[-1].mNode,maintainOffset=True)
+@cgmGEN.Timer
+def rig_lidSetup(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_lidSetup'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
 
-        _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+    if not self.str_lidSetup:
+        log.debug("|{0}| >> No lid setup...".format(_str_func))
+        return True
+    
+    _short = self.d_block['shortName']    
+    _lidSetup = self.str_lidSetup
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mRootParent = self.mConstrainNull
+    mModule = self.mModule
+    _jointOrientation = self.d_orientation['str']
+    _side = mBlock.atUtils('get_side')
 
-        #Scale setup for mid set IK
-        if mSegMidIK:
-            mMasterGroup = mSegMidIK.masterGroup
-            _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
-            _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-            CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
-            ml_ikScaleTargets.append(mSegMidIK)
-            _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
-
-        for mJnt in ml_ikJoints[1:-1]:
-            _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
-            _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
-            CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
-
-        for mJnt in ml_ikJoints[1:]:
-            mJnt.p_parent = mIKGroup
-            mJnt.segmentScaleCompensate = False
-
-        for mJnt in ml_blendJoints:
-            mJnt.segmentScaleCompensate = False
-            if mJnt == ml_blendJoints[0]:
-                continue
-            mJnt.p_parent = ml_blendJoints[0].p_parent
+    
+    if _lidSetup:
+        log.debug("|{0}| >>  Lid setup ... ".format(_str_func)+'-'*40)
+        
+        
+        if _lidSetup == 'clam':
+            log.debug("|{0}| >>  clam ... ".format(_str_func))
             
-    else:
-        RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
-                                    driver = mPlug_FKIK.p_combinedName,
-                                    l_constraints=['point','orient'])                
+            create_clamBlinkCurves(self)
+            
+            for k in 'upr','lwr':
+                _d = self.d_lidData[k]
+                mRoot = _d['mRoot']
+                mBlend = _d['mBlend']
+                mRig = _d['mRig']
+                mHandle = _d['mHandle']
+                
+                mTarget = mRig.doLoc()
+                RIGCONSTRAINT.attach_toShape(mTarget.mNode, self.md_blinkCurves[k]['mDriven'].mNode)
+                
+    
+                mc.aimConstraint(mTarget.mNode,
+                                 mRoot.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mHandle.mNode,
+                                 worldUpType = 'objectRotation' )
 
     
 def rig_cleanUp(self):

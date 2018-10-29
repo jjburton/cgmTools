@@ -2301,10 +2301,12 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
         if modifier is not None:
             #l_names[i]['cgmTypeModifier'] = modifier
             mJnt.addAttr('cgmTypeModifier', modifier,attrType='string',lock=True)
-        if cgmType is not None:
-            #l_names[i]['cgmType'] = cgmType            
-            mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
             
+        if cgmType is False:
+            ATTR.delete(mJnt.mNode,'cgmType')
+        elif cgmType:
+            mJnt.addAttr('cgmType', cgmType,attrType='string',lock=True)
+        
         #l_joints[i] = mJnt.mNode
         if connectToSource:
             mJnt.connectChildNode(ml_source[i].mNode,'sourceJoint',"{0}Joint".format(connectToSource))#Connect
