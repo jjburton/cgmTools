@@ -137,6 +137,8 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'hasEyeOrb':'bool',
                  'ikSetup':'bool',
+                 'paramMidUpr':'float',
+                 'paramMidLwr':'float',
                  'setupPupil':'none:joint:blendshape',
                  'setupIris':'none:joint:blendshape',
                  'setupLid':'none:clam:full',
@@ -152,6 +154,8 @@ d_defaultSettings = {'version':__version__,
                      'side':'right',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      'loftDegree':'cubic',
+                     'paramMidUpr':.5,
+                     'paramMidLwr':.5,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -579,7 +583,7 @@ def prerig(self):
             ml_handles.append(mSettingsShape)
         
         if self.setupLid:
-            def create_lidHandle(self,tag,pos,mJointTrack=None,visualConnection=True):
+            def create_lidHandle(self,tag,pos,mJointTrack=None,trackAttr=None,visualConnection=True):
                 mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = _size_sub), 
                                                   'cgmObject',setClass=1)
                 mHandle.doSnapTo(self)
@@ -614,17 +618,30 @@ def prerig(self):
                 mHandleFactory.addJointLabel(mJointHandle,tag)
                 mHandle.connectChildNode(mJointHandle.mNode,'jointHelper','handle')
                 
+                mTrackGroup = mJointHandle.doGroup(True,True,
+                                                   asMeta=True,
+                                                   typeModifier = 'track',
+                                                   setClass='cgmObject')
                 
-                if mJointTrack:
+                if trackAttr and mJointTrack:
+                    mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mJointTrack.mNode,turnOnPercentage=True))
+                    
+                    mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,trackAttr))
+                    
+                    mTrackLoc = mJointHandle.doLoc()
+                    
+                    mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+       
+                    mTrackLoc.p_parent = mNoTransformNull
+                    mTrackLoc.v=False
+                    mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)                    
+                    
+                    
+                elif mJointTrack:
                     mLoc = mHandle.doLoc()
                     mLoc.v=False
                     mLoc.p_parent = mNoTransformNull
                     mc.pointConstraint(mHandle.mNode,mLoc.mNode)
-                    
-                    mTrackGroup = mJointHandle.doGroup(True,True,
-                                                  asMeta=True,
-                                                  typeModifier = 'track',
-                                                  setClass='cgmObject')
                     
                     res = DIST.create_closest_point_node(mLoc.mNode,mJointTrack.mNode,True)
                     #mLoc = cgmMeta.asMeta(res[0])
@@ -703,11 +720,20 @@ def prerig(self):
                 
                 mUprHandle = create_lidHandle(self,'upr',
                                               CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
-                                              mJointTrack = mUprLid)
+                                              mJointTrack=mUprLid,
+                                              trackAttr = 'paramMidUpr',
+                                              )
                 
                 mLwrHandle = create_lidHandle(self,'lwr',
                                               CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5),
-                                              mJointTrack = mLwrLid)                
+                                              mJointTrack=mLwrLid,                                              
+                                              trackAttr = 'paramMidLwr',
+                                              )
+                
+                
+                
+                
+                
                 
                 """
                 import cgm.core.lib.locator_utils as LOC
@@ -1623,6 +1649,7 @@ def rig_frame(self):
                                     driver = mPlug_FKIK.p_combinedName,l_constraints=['point','orient'])
     
     
+    mBlendJoint.p_parent = mSettings
 
 
     
@@ -1645,12 +1672,12 @@ def create_clamBlinkCurves(self):
     
     ml_curves = []
     
-    log.info(mBlock.uprLidLoftCurve)
-    log.info(mBlock.lwrLidLoftCurve)
+    log.info(mRigNull.uprLidCurve)
+    log.info(mRigNull.lwrLidCurve)
     log.info(mSettings)
     
-    mUprLidDriven = mBlock.uprLidLoftCurve.doDuplicate(po=False)
-    mLwrLidDriven = mBlock.lwrLidLoftCurve.doDuplicate(po=False)
+    mUprLidDriven = mRigNull.uprLidCurve
+    mLwrLidDriven = mRigNull.lwrLidCurve
     
     mUprLidDriven.addAttr('cgmName','uprLid',lock=True)
     mLwrLidDriven.addAttr('cgmName','LwrLid',lock=True)
@@ -1990,6 +2017,23 @@ def rig_lidSetup(self):
         if _lidSetup == 'clam':
             log.debug("|{0}| >>  clam ... ".format(_str_func))
             
+            #First we need to make our new curves
+            for k in 'upr','lwr':
+                _d = self.d_lidData[k]                
+                l_tags = ['inner',k,'outer']
+                l_pos = []
+                for tag in l_tags:
+                    if tag == k:
+                        l_pos.append(_d['mRig'].p_position)
+                    else:
+                        mHandle = mBlock.getMessageAsMeta("define{0}Helper".format(tag.capitalize()))
+                        l_pos.append(mHandle.p_position)
+                
+                _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
+                mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+                mRigNull.connectChildNode(mCrv, k+'LidCurve','module')
+                
+            
             create_clamBlinkCurves(self)
             
             for k in 'upr','lwr':
@@ -2000,8 +2044,27 @@ def rig_lidSetup(self):
                 mHandle = _d['mHandle']
                 
                 mTarget = mRig.doLoc()
-                _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode, self.md_blinkCurves[k]['mDriven'].mNode)
+                _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
+                                                           self.md_blinkCurves[k]['mDriven'].mNode)
+                
+                
                 TRANS.parent_set(_res_attach[0], mRigNull.mNode)
+                _shape = self.md_blinkCurves[k]['mDriven'].getShapes()[0]
+                mPOCI = cgmMeta.asMeta(_res_attach[1])
+                _minU = ATTR.get(_shape,'minValue')
+                _maxU = ATTR.get(_shape,'maxValue')
+                _param = mPOCI.parameter
+                
+                pct = MATH.get_normalized_parameter(_minU,_maxU,_param)
+                log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                  _minU,
+                                                                                  _maxU,
+                                                                                  _param,
+                                                                                  pct))
+                mPOCI.turnOnPercentage = True
+                mPOCI.parameter = pct
+                
+                
                 
     
                 mc.aimConstraint(mTarget.mNode,
@@ -2251,7 +2314,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-    
+    mPrerigNull = mBlock.prerigNull
     directProxy = mBlock.proxyDirect
     
     _side = BLOCKUTILS.get_side(self.mBlock)
@@ -2285,9 +2348,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #>> Eye ===================================================================================
     log.debug("|{0}| >> Eye...".format(_str_func))
     
-    if directProxy:
-        log.debug("|{0}| >> directProxy... ".format(_str_func))
-        _settings = self.mRigNull.settings.mNode
+    #if directProxy:
+    #    log.debug("|{0}| >> directProxy... ".format(_str_func))
+    #    _settings = self.mRigNull.settings.mNode
         
     mDirect = mRigNull.getMessageAsMeta('directEye')
     
@@ -2299,6 +2362,85 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     mProxyEye.p_parent = mDirect
     
     ml_proxy = [mProxyEye]
+    
+    str_lidSetup = mBlock.getEnumValueString('setupLid')
+    #>>Lid setup ================================================
+    if str_lidSetup == 'clam':
+        #Need to make our lid roots and orient
+        for k in 'upr','lwr':
+            log.debug("|{0}| >> {1}...".format(_str_func,k))
+            _keyHandle = '{0}LidHandle'.format(k)
+            
+            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(k))
+            mRigJoint = mLidSkin.rigJoint
+            
+            mEndCurve = mBlock.getMessageAsMeta('{0}EndLidLoftCurve'.format(k)).doDuplicate(po=False)
+            mEndCurve.p_parent = False
+            mEndCurve.p_parent = self.mDeformNull
+            mEndCurve.v = False
+            
+            mStartCurve = mRigNull.getMessageAsMeta(k+'LidCurve')#.doDuplicate(po=False)
+            
+            """
+            mHandle = mRigNull.getMessageAsMeta(_keyHandle)
+            
+            ml_uprSkinJoints = [self.d_lidData['upr']['mHandle']]#ml_uprLidHandles
+            ml_lwrSkinJoints = [self.d_lidData['lwr']['mHandle']]#[ml_uprLidHandles[0]] + ml_lwrLidHandles + [ml_uprLidHandles[-1]]
+            md_skinSetup = {'upr':{'ml_joints':ml_uprSkinJoints,'mi_crv':md['upr']['mDriver']},
+                            'lwr':{'ml_joints':ml_lwrSkinJoints,'mi_crv':md['lwr']['mDriver']}}
+            
+            for k in md_skinSetup.keys():
+                d_crv = md_skinSetup[k]
+                str_crv = d_crv['mi_crv'].p_nameShort
+                l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
+                log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+                try:
+                    mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
+                                                                  d_crv['mi_crv'].mNode,
+                                                                  tsb=True,
+                                                                  maximumInfluences = 3,
+                                                                  normalizeWeights = 1,dropoffRate=2.5)[0])
+                except Exception,error:raise StandardError,"skinCluster : %s"%(error)  	                
+                """
+            
+            
+            #Loft ------------------------------------------------
+            _res_body = mc.loft([mStartCurve.mNode,mEndCurve.mNode], 
+                                o = True, d = 1, po = 3, c = False,autoReverse=False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            _loftNode = _res_body[1]
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+            _rebuildNode = _inputs[0]            
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+        
+            #if polyType == 'bezier':
+            mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+        
+            _d = {'keepCorners':False}#General}
+        
+
+        
+            mLoftSurface.overrideEnabled = 1
+            mLoftSurface.overrideDisplayType = 2
+        
+            mLoftSurface.p_parent = self.mModule
+            mLoftSurface.resetAttrs()
+        
+            mLoftSurface.doStore('cgmName',"{0}_{1}Lid".format(self.d_module['partName'],k),attrType='string')
+            mLoftSurface.doStore('cgmType','proxy')
+            mLoftSurface.doName()
+            log.info("|{0}| loft node: {1}".format(_str_func,_loftNode))             
+            
+            
+            
+            #mLoft = mBlock.getMessageAsMeta('{0}LidTemplateLoft'.format(tag))
+            #mMesh = mLoft.doDuplicate(po=False, ic=False)
+            #mDag = mRigJoint.doCreateAt(setClass='cgmObject')
+            #CORERIG.shapeParent_in_place(mDag.mNode, mMesh.mNode,False)
+            #mDag.p_parent = mRigJoint
+            ml_proxy.append(mLoftSurface)
+    
+    
 
     for mProxy in ml_proxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
@@ -2314,24 +2456,15 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
             
-    if directProxy:
-        for mObj in ml_rigJoints:
-            for mShape in mObj.getShapes(asMeta=True):
+    #if directProxy:
+    #    for mObj in ml_rigJoints:
+    #        for mShape in mObj.getShapes(asMeta=True):
                 #mShape.overrideEnabled = 0
-                mShape.overrideDisplayType = 0
-                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+    #            mShape.overrideDisplayType = 0
+    #            ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
         
-    #>>Lid setup ================================================
-    if self.str_lidSetup == 'clam':
-        #Need to make our lid roots and orient
-        for tag in 'upr','lwr':
-            log.debug("|{0}| >> {1}...".format(_str_func,tag))
-            self.d_lidData[tag] = {}
-            _d = self.d_lidData[tag]
-               
-            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(tag))    
-    
+
     
     mRigNull.msgList_connect('proxyMesh', ml_proxy)
 
