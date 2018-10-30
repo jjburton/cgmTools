@@ -1153,50 +1153,52 @@ def break_connection(*a):
     :returns
         broken connection or status
     """ 
-    _str_func = 'break_connection'
-    _d = validate_arg(*a) 
-    _combined = _d['combined']
-    _obj = _d['obj']
-    _attr = _d['attr']
-
-    _drivenAttr = _combined
-
-    family = {}
-    source = []
-
-    if get_type(_d) == 'message':
-        log.debug("|{0}| >> message...".format(_str_func))                        
-        _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
-        if _dest:
-            for c in _dest:
-                log.debug("|{0}| >> c: {1}".format(_str_func,c))                
-                disconnect(_drivenAttr,c)
-
-    if (mc.connectionInfo (_combined,isDestination=True)):             
-        sourceBuffer = mc.listConnections (_combined, scn = False, d = False, s = True, plugs = True)
-        if not sourceBuffer:
-            family = get_familyDict(_d)           
-            sourceBuffer = mc.connectionInfo (_combined,sourceFromDestination=True)
-        else:
-            sourceBuffer = sourceBuffer[0]
-
-        if not sourceBuffer:
-            return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,_obj,attr))
-        log.debug("|{0}| >> sourcebuffer: {1}".format(_str_func,sourceBuffer))
-        if family and family.get('parent'):
-            log.debug("|{0}| >> family: {1}".format(_str_func,family))
-            _drivenAttr = '{0}.{1}'.format(_obj,family.get('parent'))
-
-        log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
-
-        disconnect(sourceBuffer,_drivenAttr)
-
-        return sourceBuffer
+    try:
+        _str_func = 'break_connection'
+        _d = validate_arg(*a) 
+        _combined = _d['combined']
+        _obj = _d['obj']
+        _attr = _d['attr']
     
-
-
-    return False
-
+        _drivenAttr = _combined
+    
+        family = {}
+        source = []
+    
+        if get_type(_d) == 'message':
+            log.debug("|{0}| >> message...".format(_str_func))                        
+            _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
+            if _dest:
+                for c in _dest:
+                    log.debug("|{0}| >> c: {1}".format(_str_func,c))                
+                    disconnect(_drivenAttr,c)
+    
+        if (mc.connectionInfo(_combined,isDestination=True)):             
+            sourceBuffer = mc.listConnections (_combined, scn = False, d = False, s = True, plugs = True)
+            if not sourceBuffer:
+                family = get_familyDict(_d)           
+                sourceBuffer = mc.connectionInfo (_combined,sourceFromDestination=True)
+            else:
+                sourceBuffer = sourceBuffer[0]
+    
+            if not sourceBuffer:
+                return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,_obj,attr))
+            log.debug("|{0}| >> sourcebuffer: {1}".format(_str_func,sourceBuffer))
+            if family and family.get('parent'):
+                log.debug("|{0}| >> family: {1}".format(_str_func,family))
+                _drivenAttr = '{0}.{1}'.format(_obj,family.get('parent'))
+    
+            log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
+    
+            disconnect(sourceBuffer,_drivenAttr)
+    
+            return sourceBuffer
+        
+    
+    
+        return False
+    except Exception,err:
+        cgmGeneral.cgmException(Exception,err,msg=vars())
 def disconnect(fromAttr,toAttr):
     """   
     Disconnects attributes. Handles locks on source or end

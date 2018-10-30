@@ -524,7 +524,8 @@ def prerig(self):
     
         self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
         mHandleFactory.color(mOrientHelper.mNode,controlType='sub')
-    
+        
+        ml_handles.append(mOrientHelper)
     
         if self.hasEyeOrb:
             pass
@@ -631,6 +632,20 @@ def prerig(self):
                     mTrackLoc.p_parent = mNoTransformNull
                     mTrackLoc.v=False
                     mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
+                    
+                    
+                mAimGroup = mJointHandle.doGroup(True,True,
+                                                 asMeta=True,
+                                                 typeModifier = 'aim',
+                                                 setClass='cgmObject')
+                mc.aimConstraint(mLidRoot.mNode,
+                                 mAimGroup.mNode,
+                                 maintainOffset = False, weight = 1,
+                                 aimVector = [0,0,-1],
+                                 upVector = [0,1,0],
+                                 worldUpVector = [0,1,0],
+                                 worldUpObject = self.mNode,
+                                 worldUpType = 'objectRotation' )                          
                     
                 
                 if visualConnection:
@@ -1699,7 +1714,6 @@ def create_clamBlinkCurves(self):
     mLwrWire.doStore('cgmName',_lwrDriven)
     mLwrWire.doName()
     
-    
     #mUprWire.parent = mRigNull
     #mLwrWire.parent = mRigNull
     #.dropoffDistance[0] Need to set dropoff distance
@@ -1792,15 +1806,161 @@ def create_clamBlinkCurves(self):
         mPlug_blink.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))    
 
 
-    self.fnc_connect_toRigGutsVis( ml_curves )        
+    self.fnc_connect_toRigGutsVis( ml_curves )
+    
+    for mWire in mi_lwrBlinkWire,mi_uprBlinkWire,mLwrWire,mUprWire:
+        ml_curves.append( cgmMeta.asMeta( ATTR.get_driver(mWire.mNode,'baseWire[0]',True)))
+    
+    
     for mCrv in ml_curves:
-        p_parent = mRigNull
+        mCrv.p_parent = mRigNull
         
     self.md_blinkCurves = md
     self.ml_blinkCurves = ml_curves    
     return md,ml_curves
 
+@cgmGEN.Timer
+def create_lidFollow(self):
+    _short = self.d_block['shortName']
+    _str_func = 'create_lidFollow'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    _str_orientation = self.d_orientation['str']
+    
+    mRigNull = self.mRigNull
+    mEyeJoint = mRigNull.getMessageAsMeta('blendEye') or mRigNull.getMessageAsMeta('fkEye')
+    mSettings = mRigNull.settings
+    
+    mPlug_autoFollow = cgmMeta.cgmAttr(mSettings,"autoFollow",attrType = 'float', value = 1.0,
+                                       hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
+    self.mPlug_autoFollow = mPlug_autoFollow    
+    
+    mZeroLoc = mEyeJoint.doCreateAt()
+    mZeroLoc.addAttr('cgmName','zero')
+    mZeroLoc.doName()
+    
+    mZeroLoc.p_parent = mSettings
+    
+    md_dat = {}
+    
+    log.debug("|{0}| >> create nodes...".format(_str_func))    
+    for k in 'upr','lwr':
+        log.debug("|{0}| >> {1}...".format(_str_func,k))            
+        _d = self.d_lidData[k]
+        mRoot = _d['mRoot']
+        mHandle = _d['mHandle']
+        
+        mDriven = mZeroLoc.doDuplicate(po=False)
+        mDriven.cgmName = "{0}Driven".format(k)
+        mDriven.doName()
+        
+        md_dat[k] = {'mDriven':mDriven}
+        
+        mClamp = cgmMeta.cgmNode(nodeType='clamp')
+        mClamp.doStore('cgmName',self.d_module['partName'])
+        mClamp.addAttr('cgmTypeModifier',k)
+        mClamp.doName()
+        md_dat[k]['mClamp'] = mClamp
 
+        if k == 'lwr':
+            mRemap = cgmMeta.cgmNode(nodeType='remapValue')
+            mRemap.doStore('cgmName',self.d_module['partName'])
+            mRemap.addAttr('cgmTypeModifier','lwr')
+            mRemap.doName()
+            md_dat[k]['mRemap'] = mRemap
+            
+    #Upr wiring --------------------------------------------------------------   
+    log.debug("|{0}| >> upr wiring...".format(_str_func)+'-'*40)
+    _uprClamp = md_dat['upr']['mClamp'].mNode
+    _uprLoc = md_dat['upr']['mDriven'].mNode
+    
+    log.debug("|{0}| >> upr up...".format(_str_func))
+    mPlug_driverUp = cgmMeta.cgmAttr(mEyeJoint.mNode,"r{0}".format(_str_orientation[2]))
+    mPlug_uprUpLimit = cgmMeta.cgmAttr(mSettings,"uprUpLimit",attrType='float',
+                                       value=-60,keyable=False,hidden=False)
+    mPlug_uprDnLimit = cgmMeta.cgmAttr(mSettings,"uprDnLimit",attrType='float',
+                                       value=50,keyable=False,hidden=False)
+    mPlug_driverUp.doConnectOut("{0}.inputR".format(_uprClamp))
+    mPlug_uprDnLimit.doConnectOut("{0}.maxR".format(_uprClamp))
+    mPlug_uprUpLimit.doConnectOut("{0}.minR".format(_uprClamp))
+    mc.connectAttr("{0}.outputR".format(_uprClamp),
+                   "{0}.r{1}".format(_uprLoc,_str_orientation[2]))
+
+    self.mPlug_uprUpLimit = mPlug_uprUpLimit#store
+    self.mPlug_uprDnLimit = mPlug_uprDnLimit#store		        
+    
+    log.debug("|{0}| >> upr out...".format(_str_func))
+    
+    mPlug_driverSide = cgmMeta.cgmAttr(mEyeJoint.mNode,"r{0}".format(_str_orientation[1]))
+    mPlug_leftLimit = cgmMeta.cgmAttr(mSettings,"uprLeftLimit",value=20,defaultValue=20,attrType='float',keyable=False,hidden=False)
+    mPlug_rightLimit = cgmMeta.cgmAttr(mSettings,"uprRightLimit",value=-20,defaultValue=-20,attrType='float',keyable=False,hidden=False)
+
+    mPlug_driverSide.doConnectOut("{0}.inputG".format(_uprClamp))
+    mPlug_leftLimit.doConnectOut("{0}.maxG".format(_uprClamp))
+    mPlug_rightLimit.doConnectOut("{0}.minG".format(_uprClamp))
+    mc.connectAttr("{0}.outputG".format(_uprClamp),"{0}.r{1}".format(_uprLoc,_str_orientation[1]))
+
+    self.mPlug_leftLimit = mPlug_leftLimit
+    self.mPlug_rightLimit = mPlug_rightLimit#store
+    
+    #lwr wiring --------------------------------------------------------------   
+    log.debug("|{0}| >> lwr wiring...".format(_str_func))
+    _lwrClamp = md_dat['lwr']['mClamp'].mNode
+    _lwrLoc = md_dat['lwr']['mDriven'].mNode
+    _lwrRemap = md_dat['lwr']['mRemap'].mNode
+    
+    mPlug_lwrUpLimit = cgmMeta.cgmAttr(mSettings,"lwrUpLimit",attrType='float',
+                                       value=-26,keyable=False,hidden=False)
+    mPlug_lwrDnLimit = cgmMeta.cgmAttr(mSettings,"lwrDnLimit",attrType='float',
+                                       value=35,keyable=False,hidden=False)
+    mPlug_lwrDnStart = cgmMeta.cgmAttr(mSettings,"lwrDnStart",attrType='float',
+                                       value=5,keyable=False,hidden=False)    
+    mPlug_driverUp.doConnectOut("{0}.inputValue".format(_lwrRemap))
+    mPlug_lwrDnStart.doConnectOut("{0}.inputMin".format(_lwrRemap))
+
+    md_dat['lwr']['mRemap'].inputMax = 50
+    mPlug_lwrDnLimit.doConnectOut("{0}.outputLimit".format(_lwrRemap))
+    mPlug_lwrDnLimit.doConnectOut("{0}.inputMax".format(_lwrRemap))
+    mPlug_lwrDnLimit.doConnectOut("{0}.outputMax".format(_lwrRemap))
+
+    ATTR.connect("{0}.outValue".format(_lwrRemap),"{0}.inputR".format(_lwrClamp))
+
+    mPlug_lwrDnLimit.doConnectOut("{0}.maxR".format(_lwrClamp))
+    mPlug_lwrUpLimit.doConnectOut("{0}.minR".format(_lwrClamp))
+    ATTR.connect("{0}.outputR".format(_lwrClamp),
+                 "{0}.r{1}".format(_lwrLoc,_str_orientation[2]))
+    ATTR.connect("{0}.outputG".format(_lwrClamp),
+                 "{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
+
+    self.mPlug_lwrUpLimit = mPlug_lwrUpLimit#store
+    self.mPlug_lwrDnLimit = mPlug_lwrDnLimit#store
+    self.mPlug_lwrDnStart = mPlug_lwrDnStart#store
+    
+    #Contraints --------------------------------------------------------------   
+    log.debug("|{0}| >> Contraints...".format(_str_func))
+    d_autolidBlend = NODEFACTORY.createSingleBlendNetwork(mPlug_autoFollow,
+                                                          [mSettings.mNode,'resultAutoFollowOff'],
+                                                          [mSettings.mNode,'resultAutoFollowOn'],
+                                                          hidden = True,keyable=False)    
+    
+    for k in 'upr','lwr':
+        log.debug("|{0}| >> {1}...".format(_str_func,k))            
+        _d = self.d_lidData[k]
+        mRoot = _d['mRoot']
+        mHandle = _d['mHandle']
+        
+        _const = mc.parentConstraint([mZeroLoc.mNode,
+                                      md_dat[k]['mDriven'].mNode],
+                                     mHandle.masterGroup.mNode,
+                                     maintainOffset = True)[0]
+        
+        l_weightTargets = mc.parentConstraint(_const,q=True,weightAliasList = True)
+        d_autolidBlend['d_result1']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[1]))
+        d_autolidBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[0]))    
+    
+    
+    
 @cgmGEN.Timer
 def rig_lidSetup(self):
     _short = self.d_block['shortName']
@@ -1816,6 +1976,7 @@ def rig_lidSetup(self):
     _lidSetup = self.str_lidSetup
     mBlock = self.mBlock
     mRigNull = self.mRigNull
+    mSettings = mRigNull.settings
     mRootParent = self.mConstrainNull
     mModule = self.mModule
     _jointOrientation = self.d_orientation['str']
@@ -1839,7 +2000,8 @@ def rig_lidSetup(self):
                 mHandle = _d['mHandle']
                 
                 mTarget = mRig.doLoc()
-                RIGCONSTRAINT.attach_toShape(mTarget.mNode, self.md_blinkCurves[k]['mDriven'].mNode)
+                _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode, self.md_blinkCurves[k]['mDriven'].mNode)
+                TRANS.parent_set(_res_attach[0], mRigNull.mNode)
                 
     
                 mc.aimConstraint(mTarget.mNode,
@@ -1850,6 +2012,13 @@ def rig_lidSetup(self):
                                  worldUpVector = self.d_orientation['vectorUp'],
                                  worldUpObject = mHandle.mNode,
                                  worldUpType = 'objectRotation' )
+                
+                mRoot.p_parent = mSettings
+                mHandle.masterGroup.p_parent = mSettings
+        
+        
+        #Autofollow --------------------------------------------------------------------
+        create_lidFollow(self)
 
     
 def rig_cleanUp(self):
@@ -1910,7 +2079,6 @@ def rig_cleanUp(self):
         log.debug(cgmGEN._str_subLine)
 
 
-
     #Settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))
     mSettings.visDirect = 0
@@ -1942,6 +2110,33 @@ def rig_cleanUp(self):
         
         
     self.mDeformNull.dagLock(True)
+    
+    
+    #Lid Defaults ===============================================================
+    if self.str_lidSetup:
+        mPlug_autoFollow = self.mPlug_autoFollow
+        mPlug_leftLimit = self.mPlug_leftLimit#store
+        mPlug_rightLimit = self.mPlug_rightLimit#store
+        mPlug_uprUpLimit = self.mPlug_uprUpLimit#store
+        mPlug_uprDnLimit = self.mPlug_uprDnLimit#store	
+        mPlug_lwrUpLimit = self.mPlug_lwrUpLimit#store
+        mPlug_lwrDnLimit = self.mPlug_lwrDnLimit#store
+        mPlug_lwrDnStart = self.mPlug_lwrDnStart#store		
+    
+        _l_defaults = [{"plug":mPlug_autoFollow,'setting':1},
+                       {"plug":mPlug_uprUpLimit,'setting':-30},
+                       {"plug":mPlug_lwrDnLimit,'setting':15}]
+    
+        if self.d_module['mirrorDirection'] == 'Right':
+            _l_defaults.extend([{"plug":mPlug_rightLimit,'setting':-30},
+                                {"plug":mPlug_leftLimit,'setting':10}])
+        else:
+            _l_defaults.extend([{"plug":mPlug_rightLimit,'setting':-10},
+                                {"plug":mPlug_leftLimit,'setting':30}])
+        for d in _l_defaults:
+            _value = d['setting'] 
+            d['plug'].p_defaultValue = _value
+            d['plug'].value = _value
     
 
     
@@ -2126,6 +2321,18 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mShape.overrideDisplayType = 0
                 ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
+        
+    #>>Lid setup ================================================
+    if self.str_lidSetup == 'clam':
+        #Need to make our lid roots and orient
+        for tag in 'upr','lwr':
+            log.debug("|{0}| >> {1}...".format(_str_func,tag))
+            self.d_lidData[tag] = {}
+            _d = self.d_lidData[tag]
+               
+            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(tag))    
+    
+    
     mRigNull.msgList_connect('proxyMesh', ml_proxy)
 
 
