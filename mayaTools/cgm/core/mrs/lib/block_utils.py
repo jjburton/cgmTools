@@ -5991,7 +5991,7 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
         mCrv = getCurve(uValue,l_newCurves)
         
         
-def create_defineHandles(self,l_order,d_definitions,baseSize):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -6007,7 +6007,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         _sizeSub = _size / 4
         _offset = _size * 2
         
-        mDefineNull = self.atUtils('stateNull_verify','define')
+        if mParentNull == None:
+            mParentNull = self.atUtils('stateNull_verify','define')
         mHandleFactory = self.asHandleFactory()
         
         for k in l_order:
@@ -6028,8 +6029,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
             #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
             #                              direction = 'z+', size = _sizeSub)
-            mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-            mHandle.p_parent = mDefineNull
+            mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+            mHandle.p_parent = mParentNull
             CORERIG.override_color(_crv, _dtmp['color'])
         
             if k not in ['end']:
@@ -6062,7 +6063,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             if _trackTag:
                 mParent = md_handles[_trackTag]
             else:
-                mParent = mDefineNull            
+                mParent = mParentNull            
             
             #Aim the handle.........................
             if k == 'end':
@@ -6125,6 +6126,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
             
                 md_vector[k] = mArrow
                 self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                
+                for mShape in mArrow.getShapes(True):
+                    mShape.overrideEnabled = 1
+                    mShape.overrideDisplayType = 2
         
             if _dtmp.get('jointLabel') !=False:#Joint Label-----------------------------------------------------------------
                 if _tagOnly:
@@ -6215,7 +6220,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                                           direction = 'z+', size = 1.0)
         
             mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-            mBaseSizeHandle.p_parent = mDefineNull
+            mBaseSizeHandle.p_parent = mParentNull
             mBaseSizeHandle.resetAttrs()
             mBaseSizeHandle.v = False
         
@@ -6240,7 +6245,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
                                           direction = 'z+', size = 1.0)
         
             mEndSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
-            mEndSizeHandle.p_parent = mDefineNull
+            mEndSizeHandle.p_parent = mParentNull
             mEndSizeHandle.resetAttrs()
             mEndSizeHandle.v = False
         
@@ -6292,7 +6297,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
                 buffer =  RIGCREATE.distanceMeasure(mPos.mNode,mNeg.mNode,
                                                     baseName="{0}_{1}".format(self.p_nameBase,k))
-                buffer['mDag'].p_parent = mDefineNull
+                buffer['mDag'].p_parent = mParentNull
                 ATTR.copy_to(buffer['mShape'].mNode,'distance',md_handles['end'].mNode,k,driven='target')
                 ATTR.set_standardFlags(md_handles['end'].mNode,
                                        attrs=[k],visible=True,keyable=False,lock=True)
@@ -6310,7 +6315,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize):
         
             self.atUtils('create_defineLoftMesh',
                          targets,
-                         mDefineNull,
+                         mParentNull,
                          baseName = self.cgmName )
         
             

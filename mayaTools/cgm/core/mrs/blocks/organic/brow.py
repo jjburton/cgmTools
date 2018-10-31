@@ -27,6 +27,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+import Red9.core.Red9_AnimationUtils as r9Anim
 #r9Meta.cleanCache()#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -85,7 +86,6 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
-                       'rig_lidSetup',
                        'rig_cleanUp']
 
 
@@ -93,8 +93,8 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
-d_wiring_template = {'msgLinks':['templateNull'],
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','rootHelper','noTransPrerigNull']}
+d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
@@ -103,22 +103,10 @@ d_build_profiles = {}
 
 
 d_block_profiles = {'default':{},
-                    'eye':{'baseSize':[2.7,2.7,2.7],
-                           'eyeType':'sphere',
-                           'ikSetup':True,
-                           'setupLid':'none',
-                           },
-                    'eyeClamLid':{
-                        'baseSize':[2.7,2.7,2.7],
-                        'eyeType':'sphere',
-                        'ikSetup':True,
-                        'setupLid':'clam',
-                        'numLidUpr':1,
-                        'numLidLwr':1,
-                        'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0]},
-                           }}
-
-
+                    'full':{'baseSize':[17.6,7.2,8.4],
+                            'profileOptions':{},
+                            },
+                            }
 
 #>>>Attrs =================================================================================================
 l_attrsStandard = ['side',
@@ -127,35 +115,32 @@ l_attrsStandard = ['side',
                    'baseDat',
                    'attachPoint',
                    'nameList',
-                   'numSpacePivots',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
-                   'proxyDirect',
                    'moduleTarget',]
 
-d_attrsToMake = {'eyeType':'sphere:nonsphere',
-                 'hasEyeOrb':'bool',
-                 'ikSetup':'bool',
-                 'paramMidUpr':'float',
-                 'paramMidLwr':'float',
-                 'setupPupil':'none:joint:blendshape',
-                 'setupIris':'none:joint:blendshape',
-                 'setupLid':'none:clam:full',
-                 'numLidUpr':'int',
-                 'numLidLwr':'int',
-                 
-                 
+d_attrsToMake = {'browType':'full:side',
+                 'paramStart':'float',
+                 'paramMid':'float',
+                 'paramEnd':'float',
+                 'addBrowUpr':'bool',
+                 'addTemple':'bool',
+                 'addEyeSqueeze':'bool',
+                 'browSetup':'ribbon:undefined',
+                 'numHandlesBrow':'int',
+                 'numJointsBrow':'int',
+                 'profileOptions':'string',
 }
 
 d_defaultSettings = {'version':__version__,
-                     'proxyDirect':True,
                      'attachPoint':'end',
-                     'side':'right',
-                     'nameList':['eye','eyeOrb','pupil','iris','cornea'],
+                     'side':'none',
+                     'nameList':['brow','squeeze'],
                      'loftDegree':'cubic',
-                     'paramMidUpr':.5,
-                     'paramMidLwr':.5,
+                     'paramStart':.2,
+                     'paramMid':.5,
+                     'paramEnd':1.0,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -170,13 +155,14 @@ def define(self):
     
     _short = self.mNode
     
+    #Attributes =========================================================
     ATTR.set_alias(_short,'sy','blockScale')    
     self.setAttrFlags(attrs=['sx','sz','sz'])
-    self.doConnectOut('sy',['sx','sz'])    
-    
-    #ATTR.set_min(_short, 'loftSides', 3)
+    self.doConnectOut('sy',['sx','sz'])
+
     ATTR.set_min(_short, 'loftSplit', 1)
     
+    #Cleaning =========================================================        
     _shapes = self.getShapes()
     if _shapes:
         log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
@@ -186,6 +172,10 @@ def define(self):
             log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
             mc.delete(defineNull)
     
+    ml_handles = []
+    
+    #rigBlock Handle ===========================================================
+    log.debug("|{0}| >>  RigBlock Handle...".format(_str_func))            
     _size = MATH.average(self.baseSize[1:])
     _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
                                   direction = 'z+', size = _size/4)
@@ -196,18 +186,13 @@ def define(self):
     self.addAttr('cgmColorLock',True,lock=True, hidden=True)
     mDefineNull = self.atUtils('stateNull_verify','define')
     
-    #Rotate Group ==================================================================
-    mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
-                                          'cgmObject',setClass=True)
-    mRotateGroup.p_parent = mDefineNull
-    mRotateGroup.doConnectIn('rotate',"{0}.baseAim".format(_short))
-    mRotateGroup.setAttrFlags()
-    
     #Bounding sphere ==================================================================
-    _bb_shape = CURVES.create_controlCurve(self.mNode,'sphere', size = 1.0, sizeMode='fixed')
+    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
     mBBShape.p_parent = mDefineNull    
     mBBShape.tz = -.5
+    mBBShape.ty = .5
+    
     
     CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
     self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
@@ -219,66 +204,12 @@ def define(self):
     mBBShape.doName()    
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
-    _sideMult = 1
-    _axisOuter = 'x+'
-    _axisInner = 'x-'
     
-    if self.side == 1:
-        _sideMult = -1
-        _axisOuter = 'x-'
-        _axisInner = 'x+'
-        
-    if self.setupLid:
-        _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
-              'upr':{'color':'blueSky','tagOnly':True,'arrow':False,
-                     'vectorLine':False,'defaults':{'ty':1}},
-              'lwr':{'color':'blueSky','tagOnly':True,'arrow':False,
-                     'vectorLine':False,'defaults':{'ty':-1}},
-              'inner':{'color':'blueSky','tagOnly':True,'arrow':False,
-                       'vectorLine':False,'defaults':{'tx':1*_sideMult}},
-              'outer':{'color':'blueSky','tagOnly':True,'arrow':False,
-                       'vectorLine':False,'defaults':{'tx':-1*_sideMult}},
-              'uprEnd':{'color':'blue','tagOnly':True,'parentTag':'upr',
-                        'defaults':{'ty':1.5}},
-              'lwrEnd':{'color':'blue','tagOnly':True,'parentTag':'lwr',
-                        'defaults':{'ty':-1.5}},
-              'innerEnd':{'color':'blue','tagOnly':True,'parentTag':'inner',
-                          'defaults':{'tx':1.5*_sideMult}},
-              'outerEnd':{'color':'blue','tagOnly':True,'parentTag':'outer',
-                          'defaults':{'tx':-1.5*_sideMult}},              
-              }
-    
-        _l_order = ['upr','lwr','inner','outer',
-                    'uprEnd','lwrEnd','innerEnd','outerEnd']
-    
-    
-        md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5)
-        #self.UTILS.define_set_baseSize(self)
-        
-        md_handles = md_res['md_handles']
-        ml_handles = md_res['ml_handles']
-        
-        d_positions = {'inner':self.getPositionByAxisDistance(_axisOuter,_size*.5),
-                       'outer':self.getPositionByAxisDistance(_axisInner,_size*.5),
-                       'upr':self.getPositionByAxisDistance('y+',_size*.25),
-                       'lwr':self.getPositionByAxisDistance('y-',_size*.25),
-                       }
-        md_handles['inner'].p_position = d_positions['inner']
-        md_handles['outer'].p_position = d_positions['outer']
-        md_handles['upr'].p_position = d_positions['upr']
-        md_handles['lwr'].p_position = d_positions['lwr']
-        
-        """
-        _crvUpr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
-                                                            d_positions['upr'],
-                                                            d_positions['outer']])
-        
-        _crvLwr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
-                                                            d_positions['lwr'],
-                                                            d_positions['outer']])"""
+    return
+
         
     
-        self.msgList_connect('defineSubHandles',ml_handles)#Connect
+    self.msgList_connect('defineSubHandles',ml_handles)#Connect
     
     
  
@@ -287,6 +218,18 @@ def define(self):
 #=============================================================================================================
 #>> Template
 #=============================================================================================================
+def mirror_template(self,primeAxis = 'Left'):
+    _str_func = 'mirror_define'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    ml_mirrorHandles = self.msgList_get('templateHandles')
+    
+    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                             mode = '',primeAxis = primeAxis.capitalize() )
+    
+    
+
 def templateDelete(self):
     _str_func = 'templateDelete'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -294,26 +237,6 @@ def templateDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
-    """
-    for k in ['end','rp','up','aim']:
-        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
-        if mHandle:
-            l_const = mHandle.getConstraintsTo()
-            if l_const:
-                log.debug("currentConstraints...")
-                pos = mHandle.p_position
-                
-                for i,c in enumerate(l_const):
-                    log.info("    {0} : {1}".format(i,c))
-                mc.delete(l_const)
-                mHandle.p_position = pos
-                
-            mHandle.v = True
-            mHandle.template = False
-            
-        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
-        if mHandle:
-            mHandle.template=False"""
             
     try:self.defineLoftMesh.template = False
     except:pass
@@ -331,106 +254,216 @@ def template(self):
         
         #Initial checks ===============================================================================
         log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)    
-        _side = self.UTILS.get_side(self)
-        _eyeType = self.getEnumValueString('eyeType')
+        #_side = self.UTILS.get_side(self)
+        #_eyeType = self.getEnumValueString('eyeType')
                 
-        if _eyeType not in ['sphere']:
-            return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
+        #if _eyeType not in ['sphere']:
+        #    return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
+        
         
         #Create temple Null  ==================================================================================
-        mTemplateNull = BLOCKUTILS.templateNull_verify(self)    
+        mTemplateNull = BLOCKUTILS.templateNull_verify(self)
+        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        
         mHandleFactory = self.asHandleFactory()
         
-        #Meat ==============================================================================================
-        if self.setupLid:
-            log.debug("|{0}| >> Lid setup...".format(_str_func)+ '-'*40)
-            
-            ml_defSubHandles = self.msgList_get('defineSubHandles')
-            for mObj in ml_defSubHandles:
-                mObj.template = True
-                
-            l_tags = ['upr','lwr','inner','outer',
-                      'uprEnd','lwrEnd','innerEnd','outerEnd']
-            md_handles = {}
-            d_pos = {}
-            for tag in l_tags:
-                md_handles[tag] = self.getMessageAsMeta("define{0}Helper".format(tag.capitalize()))
-                d_pos[tag] = md_handles[tag].p_position
-                
-            
-            #Build our curves =======================================================================
-            #For this first pass we're just doing simple curve, will loop back when we do full lids
-            log.debug("|{0}| >> Lid cuves...".format(_str_func)+ '-'*40)
-            
-            md_loftCurves = {}
-            d_loftCurves = {'upr':[d_pos['inner'],
-                                   d_pos['upr'],
-                                   d_pos['outer']],
-                            'lwr':[d_pos['inner'],
-                                   d_pos['lwr'],
-                                   d_pos['outer']],
-                            'uprEnd':[d_pos['innerEnd'],
-                                      d_pos['uprEnd'],
-                                      d_pos['outerEnd']],
-                            'lwrEnd':[d_pos['innerEnd'],
-                                      d_pos['lwrEnd'],
-                                      d_pos['outerEnd']]}
-            
-            
+        self.bbHelper.v = False
+        _size = MATH.average(self.baseSize[1:])
+        
+        d_handleTags = {}
+        md_loftCurves = {}
+        md_curves = []
+        
+        #Brow Handles  ==================================================================================
+        log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)
+        
+        """
+        _sideMult = 1
+        _axisOuter = 'x+'
+        _axisInner = 'x-'
+        
+        if self.side == 1:
+            _sideMult = -1
+            _axisOuter = 'x-'
+            _axisInner = 'x+'
             """
-            _crvUpr = CORERIG.create_at(create='curve',l_pos = [d_pos['inner'],
-                                                                d_pos['upr'],
-                                                                d_pos['outer']])
-                    
-            _crvLwr = CORERIG.create_at(create='curve',l_pos = [d_pos['inner'],
-                                                                d_pos['lwr'],
-                                                                d_pos['outer']])
+        
+        if self.browType == 0:#Full brow
+            log.debug("|{0}| >>  Full Brow...".format(_str_func))            
+            _d_pairs = {'browLeft':'browRight',
+                        'browMidLeft':'browMidRight',
+                        'browMidLeftUp':'browMidRightUp',                        
+                        'browLeftUp':'browRightUp'}
             
-            _crvUprEnd = CORERIG.create_at(create='curve',l_pos = [d_pos['innerEnd'],
-                                                                   d_pos['uprEnd'],
-                                                                   d_pos['outerEnd']])
-                            
-            _crvLwrEnd = CORERIG.create_at(create='curve',l_pos = [d_pos['innerEnd'],
-                                                                   d_pos['lwrEnd'],
-                                                                   d_pos['outerEnd']])
-            
-            
-            mUpr = cgmMeta.asMeta(_crvUpr,setClass=True)
-            mLwr = cgmMeta.asMeta(_crvLwr,setClass=True)
-            mUprEnd = cgmMeta.asMeta(_crvUprEnd,setClass=True)
-            mLwrEnd = cgmMeta.asMeta(_crvLwrEnd,setClass=True)
-            """
+            _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
+                  'browCenter':{'color':'yellowBright','tagOnly':True,'arrow':False,
+                                'vectorLine':False,'defaults':{}},
+                  'browLeft':{'color':'blue','tagOnly':True,'arrow':False,'jointLabel':False,
+                              'vectorLine':False,'defaults':{'tx':2}},
+                  'browRight':{'color':'red','tagOnly':True,'arrow':False,'jointLabel':False,
+                               'vectorLine':False,'defaults':{'tx':-2}},
+                  'browMidLeft':{'color':'blueSky','tagOnly':True,'arrow':False,'jointLabel':False,
+                              'vectorLine':False,'defaults':{'tx':1}},
+                  'browMidRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':False,
+                               'vectorLine':False,'defaults':{'tx':-1}},
+                  'templeLeft':{'color':'blueSky','tagOnly':True,'arrow':False,
+                              'vectorLine':False,'defaults':{'tx':2,'tz':-1}},
+                  'templeRight':{'color':'redWhite','tagOnly':True,'arrow':False,
+                               'vectorLine':False,'defaults':{'tx':-2,'tz':-1}},
+                  'browCenterUp':{'color':'yellowBright','tagOnly':True,'parentTag':'browCenter',
+                                   'defaults':{'ty':2.0}},
+                  'browLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browLeft',
+                              'defaults':{'tx':2,'ty':2}},
+                  'browRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browRight',
+                              'defaults':{'tx':-2,'ty':2}},
+                  'browMidLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browMidLeft',
+                                'defaults':{'tx':1,'ty':2}},
+                  'browMidRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browMidRight',
+                                 'defaults':{'tx':-1,'ty':2}},                  
+                  'templeLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'templeLeft',
+                                 'defaults':{'tx':2,'ty':2,'tz':-1}},
+                  'templeRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'templeRight',
+                                    'defaults':{'tx':-2,'ty':2,'tz':-1}},              
+                  }        
 
+            _l_order = ['browCenter','browLeft','browRight','browMidLeft','browMidRight',
+                        'browCenterUp','browLeftUp','browRightUp','browMidLeftUp','browMidRightUp']
+                        
+            #if self.addTemple:
+            _l_order.extend(['templeLeft','templeRight','templeLeftUp','templeRightUp'])
+            _d_pairs['templeLeft']='templeRight'
+            _d_pairs['templeLeftUp']='templeRightUp'
             
-            for tag,l_pos in d_loftCurves.iteritems():
-                _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
-                mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-                mCrv.p_parent = mTemplateNull
-                mHandleFactory.color(mCrv.mNode)
-                
-                mCrv.rename('{0}_loftCurve'.format(tag))
-                
-                self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
-                md_loftCurves[tag]=mCrv
-                
-            self.UTILS.create_simpleTemplateLoftMesh(self,
-                                                     [md_loftCurves['upr'].mNode,
-                                                      md_loftCurves['uprEnd'].mNode],
-                                                     mTemplateNull,
-                                                     polyType = 'bezier',
-                                                     baseName = 'uprLid')
-            self.UTILS.create_simpleTemplateLoftMesh(self,
-                                                     [md_loftCurves['lwr'].mNode,
-                                                      md_loftCurves['lwrEnd'].mNode],
-                                                     mTemplateNull,
-                                                     polyType = 'bezier',
-                                                     baseName = 'lwrLid')    
+            md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5, mTemplateNull)
+        
+            md_handles = md_res['md_handles']
+            ml_handles = md_res['ml_handles']
             
-            log.info(self.uprLidTemplateLoft)
-            log.info(self.lwrLidTemplateLoft)
-            log.info(self.uprLidLoftCurve)
-            log.info(self.lwrLidLoftCurve)
+            idx_ctr = 0
+            idx_side = 0
+            
+            for mHandle in ml_handles:
+                mHandle._verifyMirrorable()
+                _str_handle = mHandle.p_nameBase
+                if 'Center' in _str_handle:
+                    mHandle.mirrorSide = 0
+                    mHandle.mirrorIndex = idx_ctr
+                    idx_ctr +=1
+                mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
     
+            #Self mirror wiring -------------------------------------------------------
+            for k,m in _d_pairs.iteritems():
+                md_handles[k].mirrorSide = 1
+                md_handles[m].mirrorSide = 2
+                md_handles[k].mirrorIndex = idx_side
+                md_handles[m].mirrorIndex = idx_side
+                md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
+                md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+                idx_side +=1
+            
+            
+            """
+            d_positions = {'inner':self.getPositionByAxisDistance(_axisOuter,_size*.5),
+                           'outer':self.getPositionByAxisDistance(_axisInner,_size*.5),
+                           'upr':self.getPositionByAxisDistance('y+',_size*.25),
+                           'lwr':self.getPositionByAxisDistance('y-',_size*.25),
+                           }
+            md_handles['inner'].p_position = d_positions['inner']
+            md_handles['outer'].p_position = d_positions['outer']
+            md_handles['upr'].p_position = d_positions['upr']
+            md_handles['lwr'].p_position = d_positions['lwr']
+            
+            
+            _crvUpr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
+                                                                d_positions['upr'],
+                                                                d_positions['outer']])
+            
+            _crvLwr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
+                                                                d_positions['lwr'],
+                                                                d_positions['outer']])"""        
+        
+            
+            #Get our curve handles -----------------------------------------------
+            d_handleTags = {}
+            d_handleTags['browLine'] = ['templeRight','browRight','browMidRight','browCenter',
+                                       'browMidLeft','browLeft','templeLeft']
+            
+            d_handleTags['browUpr'] = ['templeRightUp','browRightUp','browMidRightUp',
+                                       'browCenterUp','browMidLeftUp','browLeftUp',
+                                       'templeLeftUp']
+            
+            d_handleTags['browLeft'] = ['browCenter','browMidLeft','browLeft','templeLeft']
+            d_handleTags['browRight'] = ['browCenter','browMidRight','browRight','templeRight']
+        
+        self.msgList_connect('templateHandles',ml_handles)#Connect
+        
+        
+        #Track curve --------------------------------------------------------------------------
+        log.debug("|{0}| >> TrackCrvs...".format(_str_func)+'-'*40) 
+        
+        for tag,l_tags in d_handleTags.iteritems():
+            log.debug("|{0}| >>  curve: {1}...".format(_str_func,tag))            
+            
+            l_pos = []
+            for k in l_tags:
+                l_pos.append(md_handles[k].p_position)
+            
+            _crv = mc.curve(d=1,p=l_pos)
+            #CORERIG.create_at(create='curve',l_pos = l_pos)
+            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+            mCrv.p_parent = mNoTransformNull
+            mHandleFactory.color(mCrv.mNode)
+            mCrv.rename('{0}_loftCurve'.format(tag))            
+            mCrv.v=False
+            md_loftCurves[tag] = mCrv
+            
+            self.connectChildNode(mCrv, tag+'loftCurve','block')
+            
+            
+            l_clusters = []
+            for i,cv in enumerate(mCrv.getComponents('cv')):
+                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(md_handles[l_tags[i]].p_nameBase,i))
+                TRANS.parent_set( _res[1], md_handles[l_tags[i]].mNode)
+                l_clusters.append(_res)
+                ATTR.set(_res[1],'visibility',False)
+        
+            #pprint.pprint(l_clusters)
+            #mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+            
+        #Build our brow loft --------------------------------------------------------------------------
+        log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
+        self.UTILS.create_simpleTemplateLoftMesh(self,
+                                                 [md_loftCurves['browLine'].mNode,
+                                                  md_loftCurves['browUpr'].mNode],
+                                                 mTemplateNull,
+                                                 polyType = 'bezier',
+                                                 baseName = 'brow')
+        
+        #Build our brow loft --------------------------------------------------------------------------
+        log.debug("|{0}| >> Visualize brow...".format(_str_func)+'-'*40) 
+        for tag in ['browLeft','browRight']:
+            mCrv = md_loftCurves[tag]
+            for k in ['start','mid','end']:
+                mLoc = cgmMeta.asMeta(self.doCreateAt())
+                mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
+                
+                self.connectChildNode(mLoc, tag+k.capitalize()+'Helper','block')
+                
+                #mLoc.rename("{0}_{1}_loc".format(tag,k))
+                
+                mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
+                                                                             turnOnPercentage=True))
+                
+                mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,"param{0}".format(k.capitalize())))
+            
+            
+                mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
+            
+                mLoc.p_parent = mNoTransformNull
+                #mLoc.v=False
+                #mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)                
+        
+
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
