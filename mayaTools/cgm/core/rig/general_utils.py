@@ -551,6 +551,12 @@ def check_nameMatches(self,mlControls,justReport = False):
         raise ValueError,"Fix this name match"
     return True
 
+def store_and_name(mObj,d):
+    _str_func = 'store_and_name'
+    for t,v in d.iteritems():
+        log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
+        mObj.doStore(t,v)
+    mObj.doName()
 
 def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'multiply'):
     """

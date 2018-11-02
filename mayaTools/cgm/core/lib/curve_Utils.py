@@ -1027,8 +1027,8 @@ def getUSplitList(curve=None, points=3, markPoints=False,
             if len(_shapeUse)==1:
                 _shapeUse=_shapeUse[0]
             else:
-                return log.error("|{0}| >> too many shapes({1}). Specify. | {2}".format(_str_func,len(
-                                                                                                     _shapeUse),shape))
+                _shapeUse = SHAPES.get_nonintermediate(_shapeUse[0])
+                #return log.error("|{0}| >> too many shapes({1}). Specify. | {2}".format(_str_func,len(_shapeUse),shape))
 
                     
         log.debug("|{0}| >> rebuild: {1} | useCurve: {2} | useShape: {3}".format(_str_func,rebuild,useCurve,_shapeUse))

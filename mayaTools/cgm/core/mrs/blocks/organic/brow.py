@@ -52,6 +52,7 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
+import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.rayCaster as RAYS
@@ -64,7 +65,7 @@ import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 
-for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
+for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
     
 # From cgm ==============================================================
@@ -93,7 +94,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','rootHelper','noTransPrerigNull']}
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull']}
 d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
@@ -219,7 +220,7 @@ def define(self):
 #>> Template
 #=============================================================================================================
 def mirror_template(self,primeAxis = 'Left'):
-    _str_func = 'mirror_define'    
+    _str_func = 'mirror_template'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
@@ -228,7 +229,15 @@ def mirror_template(self,primeAxis = 'Left'):
     r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                              mode = '',primeAxis = primeAxis.capitalize() )
     
+def mirror_prerig(self,primeAxis = 'Left'):
+    _str_func = 'mirror_template'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
+    ml_mirrorHandles = self.msgList_get('prerigHandles')
+    
+    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                             mode = '',primeAxis = primeAxis.capitalize() )    
 
 def templateDelete(self):
     _str_func = 'templateDelete'
@@ -306,23 +315,24 @@ def template(self):
                               'vectorLine':False,'defaults':{'tx':1}},
                   'browMidRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':False,
                                'vectorLine':False,'defaults':{'tx':-1}},
-                  'templeLeft':{'color':'blueSky','tagOnly':True,'arrow':False,
+                  'templeLeft':{'color':'blueSky','tagOnly':True,'arrow':False,'jointLabel':False,
                               'vectorLine':False,'defaults':{'tx':2,'tz':-1}},
-                  'templeRight':{'color':'redWhite','tagOnly':True,'arrow':False,
+                  'templeRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':False,
                                'vectorLine':False,'defaults':{'tx':-2,'tz':-1}},
                   'browCenterUp':{'color':'yellowBright','tagOnly':True,'parentTag':'browCenter',
+                                  'jointLabel':False,
                                    'defaults':{'ty':2.0}},
-                  'browLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browLeft',
+                  'browLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browLeft','jointLabel':False,
                               'defaults':{'tx':2,'ty':2}},
-                  'browRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browRight',
+                  'browRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browRight','jointLabel':False,
                               'defaults':{'tx':-2,'ty':2}},
-                  'browMidLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browMidLeft',
+                  'browMidLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browMidLeft','jointLabel':False,
                                 'defaults':{'tx':1,'ty':2}},
-                  'browMidRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browMidRight',
+                  'browMidRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browMidRight','jointLabel':False,
                                  'defaults':{'tx':-1,'ty':2}},                  
-                  'templeLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'templeLeft',
+                  'templeLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'templeLeft','jointLabel':False,
                                  'defaults':{'tx':2,'ty':2,'tz':-1}},
-                  'templeRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'templeRight',
+                  'templeRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'templeRight','jointLabel':False,
                                     'defaults':{'tx':-2,'ty':2,'tz':-1}},              
                   }        
 
@@ -428,7 +438,8 @@ def template(self):
                 ATTR.set(_res[1],'visibility',False)
         
             #pprint.pprint(l_clusters)
-            #mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+            mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,s=8,
+                            n="{0}_reparamRebuild".format(md_handles[l_tags[i]].p_nameBase))
             
         #Build our brow loft --------------------------------------------------------------------------
         log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
@@ -440,16 +451,18 @@ def template(self):
                                                  baseName = 'brow')
         
         #Build our brow loft --------------------------------------------------------------------------
-        log.debug("|{0}| >> Visualize brow...".format(_str_func)+'-'*40) 
+        log.debug("|{0}| >> Visualize brow...".format(_str_func)+'-'*40)
+        md_directCurves = {}
         for tag in ['browLeft','browRight']:
             mCrv = md_loftCurves[tag]
+            ml_temp = []
             for k in ['start','mid','end']:
                 mLoc = cgmMeta.asMeta(self.doCreateAt())
                 mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
                 
-                self.connectChildNode(mLoc, tag+k.capitalize()+'Helper','block')
+                self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
                 
-                #mLoc.rename("{0}_{1}_loc".format(tag,k))
+                mLoc.rename("{0}_{1}_templateHelper".format(tag,k))
                 
                 mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                              turnOnPercentage=True))
@@ -460,8 +473,33 @@ def template(self):
                 mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
             
                 mLoc.p_parent = mNoTransformNull
+                ml_temp.append(mLoc)
                 #mLoc.v=False
-                #mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)                
+                #mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
+                
+            #Joint curves......
+            _crv = mc.curve(d=1,p=[mObj.p_position for mObj in ml_temp])
+            
+            #CORERIG.create_at(create='curve',l_pos = l_pos)
+            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+            mCrv.p_parent = mNoTransformNull
+            mHandleFactory.color(mCrv.mNode)
+            mCrv.rename('{0}_jointCurve'.format(tag))            
+            mCrv.v=False
+            md_loftCurves[tag] = mCrv
+        
+            self.connectChildNode(mCrv, tag+'JointCurve','block')
+        
+            l_clusters = []
+            for i,cv in enumerate(mCrv.getComponents('cv')):
+                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_temp[i].p_nameBase,i))
+                TRANS.parent_set( _res[1], ml_temp[i].mNode)
+                l_clusters.append(_res)
+                ATTR.set(_res[1],'visibility',False)
+                
+            mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,s=8,
+                            n="reparamRebuild")
+        
         
 
         
@@ -475,6 +513,110 @@ def prerigDelete(self):
     try:self.moduleEyelid.delete()
     except:pass
     
+    self.noTransTemplateNull.v=True
+    
+def create_handle(self,tag,pos,mJointTrack=None,
+                  trackAttr=None,visualConnection=True,
+                  nameEnd = 'BrowHandle'):
+    mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = _size_sub), 
+                                      'cgmObject',setClass=1)
+    mHandle.doSnapTo(self)
+
+    mHandle.p_position = pos
+
+    mHandle.p_parent = mStateNull
+    mHandle.doStore('cgmName',tag)
+    mHandle.doStore('cgmType','templateHandle')
+    mHandle.doName()
+
+    mHandleFactory.color(mHandle.mNode,controlType='sub')
+
+    self.connectChildNode(mHandle.mNode,'{0}nameEnd'.format(tag),'block')
+
+    return mHandle
+
+    #joinHandle ------------------------------------------------
+    mJointHandle = cgmMeta.validateObjArg( CURVES.create_fromName('jack',
+                                                                  size = _size_sub*.75),
+                                           'cgmObject',
+                                           setClass=1)
+
+    mJointHandle.doStore('cgmName',tag)    
+    mJointHandle.doStore('cgmType','jointHelper')
+    mJointHandle.doName()                
+
+    mJointHandle.p_position = pos
+    mJointHandle.p_parent = mStateNull
+
+
+    mHandleFactory.color(mJointHandle.mNode,controlType='sub')
+    mHandleFactory.addJointLabel(mJointHandle,tag)
+    mHandle.connectChildNode(mJointHandle.mNode,'jointHelper','handle')
+
+    mTrackGroup = mJointHandle.doGroup(True,True,
+                                       asMeta=True,
+                                       typeModifier = 'track',
+                                       setClass='cgmObject')
+
+    if trackAttr and mJointTrack:
+        mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mJointTrack.mNode,turnOnPercentage=True))
+
+        mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,trackAttr))
+
+        mTrackLoc = mJointHandle.doLoc()
+
+        mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+
+        mTrackLoc.p_parent = mNoTransformNull
+        mTrackLoc.v=False
+        mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)                    
+
+
+    elif mJointTrack:
+        mLoc = mHandle.doLoc()
+        mLoc.v=False
+        mLoc.p_parent = mNoTransformNull
+        mc.pointConstraint(mHandle.mNode,mLoc.mNode)
+
+        res = DIST.create_closest_point_node(mLoc.mNode,mJointTrack.mNode,True)
+        #mLoc = cgmMeta.asMeta(res[0])
+        mTrackLoc = cgmMeta.asMeta(res[0])
+        mTrackLoc.p_parent = mNoTransformNull
+        mTrackLoc.v=False
+        mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
+
+
+    mAimGroup = mJointHandle.doGroup(True,True,
+                                     asMeta=True,
+                                     typeModifier = 'aim',
+                                     setClass='cgmObject')
+    mc.aimConstraint(mLidRoot.mNode,
+                     mAimGroup.mNode,
+                     maintainOffset = False, weight = 1,
+                     aimVector = [0,0,-1],
+                     upVector = [0,1,0],
+                     worldUpVector = [0,1,0],
+                     worldUpObject = self.mNode,
+                     worldUpType = 'objectRotation' )                          
+
+
+    if visualConnection:
+        log.debug("|{0}| >> visualConnection ".format(_str_func, tag))
+        trackcrv,clusters = CORERIG.create_at([mLidRoot.mNode,
+                                               mJointHandle.mNode],#ml_handleJoints[1]],
+                                              'linearTrack',
+                                              baseName = '{0}_midTrack'.format(tag))
+
+        mTrackCrv = cgmMeta.asMeta(trackcrv)
+        mTrackCrv.p_parent = mNoTransformNull
+        mHandleFactory.color(mTrackCrv.mNode, controlType = 'sub')
+
+        for s in mTrackCrv.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+
+    return mHandle
+
 def prerig(self):
     try:
         _str_func = 'prerig'
@@ -485,15 +627,342 @@ def prerig(self):
         self.atUtils('module_verify')
         mStateNull = self.UTILS.stateNull_verify(self,'prerig')
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
+        self.noTransTemplateNull.v=False
         
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
         
         ml_handles = []
+        md_handles = {'brow':{'center':[],
+                              'left':[],
+                              'right':[]}}
+        md_jointHandles = {'brow':{'center':[],
+                              'left':[],
+                              'right':[]}}
+        #Get base dat =============================================================================    
+        mBBHelper = self.bbHelper
+        mBrowLoft = self.getMessageAsMeta('browTemplateLoft')
         
+        _size = MATH.average(self.baseSize[1:])
+        _size_base = _size * .25
+        _size_sub = _size_base * .5
+        
+        idx_ctr = 0
+        idx_side = 0
+        
+        def create_handle(mHelper, mSurface, tag, k, side, controlType = 'main', aimGroup = 1,nameDict = None):
+            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('squareRounded', size = _size_sub), 
+                                              'cgmControl',setClass=1)
+            mHandle._verifyMirrorable()
+            
+            mHandle.doSnapTo(self)
+            mHandle.p_parent = mStateNull
+            
+            if nameDict:
+                RIGGEN.store_and_name(mHandle,nameDict)
+            else:
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType','prerigHandle')
+                mHandle.doName()
+                
+                
+            _key = tag
+            if k:
+                _key = _key+k.capitalize()
+            mMasterGroup = mHandle.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')
+        
+            mc.pointConstraint(mHelper.mNode,mMasterGroup.mNode,maintainOffset=False)
+        
+            mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
+            mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
+        
+            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0])
+        
+            if aimGroup:
+                mHandle.doGroup(True,True,
+                                asMeta=True,
+                                typeModifier = 'aim',
+                                setClass='cgmObject')
+        
+        
+            mHandle.tz = _size_sub
+            
+            return mHandle
+        
+        def create_jointHelper(mPos, mSurface, tag, k, side, nameDict=None, aimGroup = 1):
+            
+            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d', size = _size_sub * .5), 
+                                              'cgmControl',setClass=1)
+            mHandle._verifyMirrorable()
+            
+            mHandle.doSnapTo(self)
+            mHandle.p_parent = mStateNull
+            if nameDict:
+                RIGGEN.store_and_name(mHandle,nameDict)
+                _dCopy = copy.copy(nameDict)
+                _dCopy.pop('cgmType')
+                mJointLabel = mHandleFactory.addJointLabel(mHandle,NAMETOOLS.returnCombinedNameFromDict(_dCopy))
+                
+            else:
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType','jointHelper')
+                mHandle.doName()
+            
+            _key = tag
+            if k:
+                _key = "{0}_{1}".format(tag,k)
+            
+            
+            
+            mMasterGroup = mHandle.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')
+    
+            mc.pointConstraint(mPos.mNode,mMasterGroup.mNode,maintainOffset=False)
+    
+            #mHandleFactory.color(mHandle.mNode,side = side, controlType='sub')
+            mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
+    
+            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0])
+    
+            if aimGroup:
+                mHandle.doGroup(True,True,
+                                asMeta=True,
+                                typeModifier = 'aim',
+                                setClass='cgmObject')
+    
+
+            return mHandle        
+        
+        #Handles =====================================================================================
+        log.debug("|{0}| >> Brow Handles..".format(_str_func)+'-'*40)
+        
+        _d = {'cgmName':'browCenter',
+              'cgmType':'handleHelper'}
+        
+        mBrowCenterDefine = self.defineBrowcenterHelper
+        md_handles['browCenter'] = [create_handle(mBrowCenterDefine,mBrowLoft,'browCenter',None,'center',nameDict = _d)]
+        md_handles['brow']['center'].append(md_handles['browCenter'])
+        md_handles['browCenter'][0].mirrorIndex = idx_ctr
+        idx_ctr +=1
+        mStateNull.msgList_connect('browCenterPrerigHandles',md_handles['browCenter'])
+        
+        _d_nameHandleSwap = {'start':'inner',
+                             'end':'outer'}
+        for tag in ['browLeft','browRight']:
+            _d['cgmName'] = tag
+        
+            for k in ['start','mid','end']:
+                _d['cgmNameModifier'] = _d_nameHandleSwap.get(k,k)
+                
+                if 'Left' in tag:
+                    _side = 'left'
+                elif 'Right' in tag:
+                    _side = 'right'
+                else:
+                    _side = 'center'
+                
+                if _side in ['left','right']:
+                    _d['cgmDirection'] = _side
+                    
+                if k == 'mid':
+                    _control = 'sub'
+                else:
+                    _control = 'main'
+                    
+                mTemplateHelper = self.getMessageAsMeta(tag+k.capitalize()+'templateHelper')
+                
+                mHandle = create_handle(mTemplateHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
+                md_handles['brow'][_side].append(mHandle)
+                ml_handles.append(mHandle)                
+                
+
+        #Joint helpers ------------------------
+        log.debug("|{0}| >> Joint helpers..".format(_str_func)+'-'*40)
+        _d = {'cgmName':'brow',
+              'cgmType':'jointHelper'}        
+        
+        mFullCurve = self.getMessageAsMeta('browLineloftCurve')
+        md_jointHandles['browCenter'] = [create_jointHelper(mBrowCenterDefine,mBrowLoft,'center',None,
+                                                            'center',nameDict=_d)]
+        md_jointHandles['brow']['center'].append(md_jointHandles['browCenter'])
+        md_jointHandles['browCenter'][0].mirrorIndex = idx_ctr
+        idx_ctr +=1
+        mStateNull.msgList_connect('browCenterJointHandles',md_jointHandles['browCenter'])
+        
+
+        for tag in ['browLeft','browRight']:
+            mCrv = self.getMessageAsMeta("{0}JointCurve".format(tag))
+            if 'Left' in tag:
+                _side = 'left'
+            elif 'Right' in tag:
+                _side = 'right'
+            else:
+                _side = 'center'            
+            
+            if _side in ['left','right']:
+                _d['cgmDirection'] = _side
+                
+            _factor = 100/(self.numJointsBrow-1)
+            
+            for i in range(self.numJointsBrow):
+                log.debug("|{0}| >>  Joint Handle: {1}|{2}...".format(_str_func,tag,i))            
+                _d['cgmIterator'] = i
+                
+                mLoc = cgmMeta.asMeta(self.doCreateAt())
+                mLoc.rename("{0}_{1}_jointTrackHelper".format(tag,i))
+            
+                #self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
+                mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
+                                                                             turnOnPercentage=True))
+            
+                mPointOnCurve.parameter = (_factor * i)/100.0
+                mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
+            
+                mLoc.p_parent = mNoTransformNull
+                
+            
+                res = DIST.create_closest_point_node(mLoc.mNode,mFullCurve.mNode,True)
+                #mLoc = cgmMeta.asMeta(res[0])
+                mTrackLoc = cgmMeta.asMeta(res[0])
+                mTrackLoc.p_parent = mNoTransformNull
+                mTrackLoc.v=False
+                
+                mHandle = create_jointHelper(mTrackLoc,mBrowLoft,tag,i,_side,nameDict=_d)
+                md_jointHandles['brow'][_side].append(mHandle)
+                ml_handles.append(mHandle)
+                
+            
+        
+        #Aim pass ------------------------------------------------------------------------
+        for side in ['left','right']:
+            #Handles -------
+            ml = md_handles['brow'][side]
+            for i,mObj in enumerate(ml):
+                mObj.mirrorIndex = idx_side + i
+                mObj.mirrorAxis = "translateX,rotateY,rotateZ"
+                
+                if side == 'left':
+                    _aim = [-1,0,0]
+                    mObj.mirrorSide = 1                    
+                else:
+                    _aim = [1,0,0]
+                    mObj.mirrorSide = 2
+                    
+                _up = [0,0,1]
+                _worldUp = [0,0,1]
+                
+                if i == 0:
+                    mAimGroup = mObj.aimGroup
+                    mc.aimConstraint(md_handles['browCenter'][0].masterGroup.mNode,
+                                     mAimGroup.mNode,
+                                     maintainOffset = False, weight = 1,
+                                     aimVector = _aim,
+                                     upVector = _up,
+                                     worldUpVector = _worldUp,
+                                     worldUpObject = mObj.masterGroup.mNode,
+                                     worldUpType = 'objectRotation' )                                
+                else:
+
+                    mAimGroup = mObj.aimGroup
+                    mc.aimConstraint(ml[i-1].masterGroup.mNode,
+                                     mAimGroup.mNode,
+                                     maintainOffset = False, weight = 1,
+                                     aimVector = _aim,
+                                     upVector = _up,
+                                     worldUpVector = _worldUp,
+                                     worldUpObject = mObj.masterGroup.mNode,
+                                     worldUpType = 'objectRotation' )
+                    
+            mStateNull.msgList_connect('brow{0}PrerigHandles'.format(side.capitalize()), ml)
+            
+        idx_side = idx_side + i + 1
+        log.info(idx_side)
+        
+        for side in ['left','right']:
+            #Joint Helpers ----------------
+            ml = md_jointHandles['brow'][side]
+            for i,mObj in enumerate(ml):
+                if side == 'left':
+                    _aim = [1,0,0]
+                    mObj.mirrorSide = 1
+                else:
+                    _aim = [-1,0,0]
+                    mObj.mirrorSide = 2
+                    
+                mObj.mirrorIndex = idx_side + i
+                mObj.mirrorAxis = "translateX,rotateY,rotateZ"
+                _up = [0,0,1]
+                _worldUp = [0,0,1]
+                if mObj == ml[-1]:
+                    _vAim = [_aim[0]*-1,_aim[1],_aim[2]]
+                    mAimGroup = mObj.aimGroup
+                    mc.aimConstraint(ml[i-1].masterGroup.mNode,
+                                     mAimGroup.mNode,
+                                     maintainOffset = False, weight = 1,
+                                     aimVector = _vAim,
+                                     upVector = _up,
+                                     worldUpVector = _worldUp,
+                                     worldUpObject = mObj.masterGroup.mNode,
+                                     worldUpType = 'objectRotation' )                    
+                else:
+                    mAimGroup = mObj.aimGroup
+                    mc.aimConstraint(ml[i+1].masterGroup.mNode,
+                                     mAimGroup.mNode,
+                                     maintainOffset = False, weight = 1,
+                                     aimVector = _aim,
+                                     upVector = _up,
+                                     worldUpVector = _worldUp,
+                                     worldUpObject = mObj.masterGroup.mNode,
+                                     worldUpType = 'objectRotation' )
+                    
+            mStateNull.msgList_connect('brow{0}JointHandles'.format(side.capitalize()), ml)
+        
+        #Mirror setup --------------------------------
+        """
+        for mHandle in ml_handles:
+            mHandle._verifyMirrorable()
+            _str_handle = mHandle.p_nameBase
+            if 'Center' in _str_handle:
+                mHandle.mirrorSide = 0
+                mHandle.mirrorIndex = idx_ctr
+                idx_ctr +=1
+            mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+    
+        #Self mirror wiring -------------------------------------------------------
+        for k,m in _d_pairs.iteritems():
+            md_handles[k].mirrorSide = 1
+            md_handles[m].mirrorSide = 2
+            md_handles[k].mirrorIndex = idx_side
+            md_handles[m].mirrorIndex = idx_side
+            md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
+            md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+            idx_side +=1        """
+        
+        #Close out ======================================================================================
+        self.msgList_connect('prerigHandles', ml_handles)
+        
+        self.blockState = 'prerig'
+        return
+    
+    
+    
         #Get base dat =============================================================================    
         _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
         mBBHelper = self.bbHelper
+        
         _v_range = max(TRANS.bbSize_get(self.mNode)) *2
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
         _size_width = _bb_axisBox[0]#...x width
@@ -505,12 +974,6 @@ def prerig(self):
         log.debug("{0} >> axisBox size: {1}".format(_str_func,_bb_axisBox))
         log.debug("{0} >> Center: {1}".format(_str_func,_pos_bbCenter))
     
-        #for i,p in enumerate(_l_basePos):
-            #LOC.create(position=p,name="{0}_loc".format(i))
-    
-    
-    
-        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
     
     
         #Create Pivot =====================================================================================
@@ -564,25 +1027,6 @@ def prerig(self):
         
         ml_handles.append(mOrientHelper)
     
-        if self.hasEyeOrb:
-            pass
-            """
-                log.debug("|{0}| >> Eye orb setup...".format(_str_func))
-    
-                crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
-                mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-                mHandleFactory.color(mHandleOrb.mNode)
-    
-                #_shortHandle = mHandleRoot.mNode
-                mHandleOrb.doSnapTo(self.mNode)
-                mHandleOrb.p_parent = mStateNull
-    
-                #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-                mHandleOrb.doStore('cgmName','eyeOrb')    
-                mHandleOrb.doStore('cgmType','templateHandle')
-                mHandleOrb.doName()
-    
-                self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
     
     
         
