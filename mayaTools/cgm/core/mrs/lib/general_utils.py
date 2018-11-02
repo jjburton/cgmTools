@@ -197,11 +197,13 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     _v = mBlock.getEnumValueString('side')
                     _l_report.append( _d_scrollList_shorts.get(_v,_v))
                     
+                l_name = []
                 _cgmName = mBlock.getMayaAttr('cgmName')
                 if _cgmName:
-                    _l_report.append(_cgmName)
-                else:
-                    _l_report.append( ATTR.get(_short,'blockType') )
+                    l_name.append(_cgmName)
+                l_name.append( ATTR.get(_short,'blockType').capitalize() )
+                
+                _l_report.append(''.join(l_name))
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
                 _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)

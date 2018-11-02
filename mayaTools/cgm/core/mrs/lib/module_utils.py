@@ -66,7 +66,12 @@ def get_partName(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:#Quick select sets ================================================================
-        _str= NAMETOOLS.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+        _d = NAMETOOLS.get_objNameDict(self.mNode)
+        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+        log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+        
+        _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+        log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
         return STRINGS.stripInvalidChars(_str)
 
     except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -149,7 +154,6 @@ def moduleChildren_get(self,excludeSelf = True):
 def doName(self):
     _str_func = ' doName'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    reload(NAMETOOLS)
     try:
         _d = NAMETOOLS.get_objNameDict(self.mNode)
         

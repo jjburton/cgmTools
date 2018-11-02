@@ -628,15 +628,14 @@ class cgmNode(r9Meta.MetaClass):
         targetCGM = nameTools.returnObjectGeneratedNameDict(target,ignore = ignore)
         #cgmGEN.log_info_dict(targetCGM)
         didSomething = False
+        
+        
+        for tag,v in targetCGM.iteritems():
+            if tag in ignore:continue
+            if ATTR.has_attr(target,tag):
+                ATTR.copy_to(target,tag,self.mNode,inConnection=True)
+                didSomething = True
 
-        for tag in targetCGM.keys():
-            #log.debug("..."+tag)
-            if tag not in ignore and targetCGM[tag] not in [None,False]:
-                if ATTR.has_attr(target,tag):
-                    ATTR.copy_to(target,tag,self.mNode,inConnection=True)
-                    #ATTR.copy_to(target,tag,
-                                          #self.mNode,connectTargetToSource=False)
-                    didSomething = True
         #self.update()
         return didSomething
 

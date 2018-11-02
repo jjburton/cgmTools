@@ -801,10 +801,11 @@ def msgDat_delete(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
         if self.msgList_exists(l):
             dat = self.msgList_get(l,asMeta=False)
             if dat:
-                log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, dat))                
-                try:mc.delete(dat)
-                except Exception,err:
-                    log.error("|{0}| >>  Failed to delete msgList: {1} | {2}".format(_str_func,l,err))                
+                log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, 0))
+                for o in dat:
+                    try:mc.delete(o)
+                    except Exception,err:
+                        log.error("|{0}| >>  Failed to delete msgList: {1} | {2}".format(_str_func,l,err))                
                 #self.msgList_purge(l)
     return True
 
@@ -2403,6 +2404,56 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
     return ml_joints
+
+def skeleton_getAttachJoint(self):
+    _str_func = 'skeleton_connectToParent'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    if self.blockType == 'master':
+        log.debug("|{0}| >> Master block type. No connection possible".format(_str_func))                   
+        return False
+    
+    mModule = self.moduleTarget
+    
+    ml_moduleJoints = mModule.rigNull.msgList_get('moduleJoints',asMeta = True)
+    
+    ml_parentBlocks = self.getBlockParents()
+    
+    if ml_parentBlocks:
+        log.debug("|{0}| >> ml_parentBlocks: {1}".format(_str_func,ml_parentBlocks))           
+        
+        if ml_parentBlocks[0].getMessage('moduleTarget'):
+            mParentModule = ml_parentBlocks[0].moduleTarget
+        else:
+            log.debug("|{0}| >> No module target found.".format(_str_func))           
+            return False
+        
+        if ml_parentBlocks[0].blockType == 'master':
+            log.info("|{0}| >> Master block...".format(_str_func))           
+            if mParentModule.getMessage('rootJoint'):
+                log.debug("|{0}| >> Root joint on master found".format(_str_func))
+                return mParentModule.getMessage('rootJoint')[0]
+                return True
+            else:
+                log.debug("|{0}| >> No root joint".format(_str_func))
+                return False
+        else:
+            ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
+            if not ml_targetJoints:
+                raise ValueError,"mParentModule has no module joints."
+            _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
+            if _attachPoint == 'end':
+                mTargetJoint = ml_targetJoints[-1]
+            elif _attachPoint == 'base':
+                mTargetJoint = ml_targetJoints[0]
+            elif _attachPoint == 'closest':
+                jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+                mTargetJoint = cgmMeta.asMeta(jnt)
+            else:
+                raise ValueError,"Not done with {0}".format(_attachPoint)
+            return mTargetJoint
+
+    return False
 
 def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
@@ -4786,7 +4837,6 @@ def skeleton_delete(self):
     def closeOut():
         d_links = get_stateLinks(self, 'skeleton')
         msgDat_delete(self,d_links)
-        
         self.blockState = 'prerig'#...yes now in this state
         
     #>>>Meat ------------------------------------------------------------------------------------
@@ -4894,26 +4944,12 @@ def rigDelete(self):
             try:self.noTransTemplateNull.template=True
             except:pass
             mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
-            """
-            log.info("|{0}| >> Controls...".format(_str_func))
-            ml_controls = mRigNull.msgList_get('controlsAll')
-            for mCtrl in ml_controls:
-                log.info("|{0}| >> Processing: {1}".format(_str_func,mCtrl))
-                mDynGroup = mCtrl.getMessageAsMeta('dynParentGroup')
-                if mDynGroup:
-                    mDynGroup.doPurge()
-
-                    ml_spacePivots = mCtrl.msgList_get('spacePivots')
-                    if ml_spacePivots:
-                        for mObj in ml_spacePivots:
-                            log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj)) 
             
-            log.info("|{0}| >> Groups...".format(_str_func))            
-            for link in ['constraintGroup','constrainGroup','masterGroup']:
-                mGroup = mObj.getMessageAsMeta(link)
-                if mGroup:
-                    mGroup.delete()
-                    break"""
+            _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+            if _bfr:
+                log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+                mc.delete([mObj.mNode for mObj in _bfr])
+
                 
             #Rig nodes....
             ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')

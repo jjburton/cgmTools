@@ -892,6 +892,7 @@ def ribbon(jointList = None,
            #reorient = False,
            skipAim = True,
            influences = None,
+           tightenWeights=True,
            extraKeyable = True,
            ribbonJoints = None,
            attachEndsToInfluences = False,
@@ -2296,12 +2297,13 @@ def ribbon(jointList = None,
             mSkinCluster.doStore('cgmName', mArcLenCurve.mNode)
             mSkinCluster.doName()    
         
-
-            RIGSKIN.curve_tightenEnds(mArcLenCurve.mNode,
-                                       hardLength = _hardLength,
-                                       blendLength=blendLength,
-                                       mode=mode_tighten)
             
+            if tightenWeights:
+                RIGSKIN.curve_tightenEnds(mArcLenCurve.mNode,
+                                           hardLength = _hardLength,
+                                           blendLength=blendLength,
+                                           mode=mode_tighten)
+                
             
         for mSurf in ml_surfaces:
             log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mSurf))
@@ -2317,12 +2319,12 @@ def ribbon(jointList = None,
             mSkinCluster.doName()    
         
             #Tighten the weights...
-                        
-            RIGSKIN.surface_tightenEnds(mSurf.mNode,
-                                        hardLength = _hardLength,
-                                        blendLength=blendLength,
-                                        mode=mode_tighten)
-    
+            if tightenWeights:
+                RIGSKIN.surface_tightenEnds(mSurf.mNode,
+                                            hardLength = _hardLength,
+                                            blendLength=blendLength,
+                                            mode=mode_tighten)
+        
     
     if mModule:#if we have a module, connect vis
         mRigNull = mModule.rigNull
