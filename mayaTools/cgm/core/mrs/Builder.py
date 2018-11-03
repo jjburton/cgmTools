@@ -1614,7 +1614,22 @@ class ui(cgmUI.cgmGUI):
                                       'atUtils','blockMirror_go',
                                       **{'mode':'pull'}),
                   ann = 'pull setup to the mirror')
+        mUI.MelSpacer(_row,w=5)
         
+        mc.button(parent=_row,
+                  l = 'Self[L]',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','mirror_self',
+                                      **{'primeAxis':'left'}),
+                  ann = 'Mirror self - Left Prime Axis')
+        mc.button(parent=_row,
+                  l = 'Self[R]',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','mirror_self',
+                                      **{'primeAxis':'right'}),
+                  ann = 'Mirror self - Righ Prime Axis')        
         mUI.MelSpacer(_row,w=1)
         _row.layout()
         

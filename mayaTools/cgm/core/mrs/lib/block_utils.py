@@ -3153,7 +3153,19 @@ def blockMirror_settings2():
             log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
             pprint.pprint(_udFail)    
     
+def mirror_self(self,primeAxis = 'left'):
+    _str_func = 'mirror_self'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
     
+
+    mBlockModule = self.p_blockModule
+
+    if 'mirror_self' in mBlockModule.__dict__.keys():
+        log.debug("|{0}| >> BlockModule prerig call found...".format(_str_func))
+        reload(mBlockModule)
+        mBlockModule.mirror_self(self,primeAxis)
+        return True
+    return log.error("No mirror self call found: {0}".format(self))
     
 def mirror_blockDat(self = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
     try:

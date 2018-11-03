@@ -223,6 +223,22 @@ def define(self):
 #=============================================================================================================
 #>> Template
 #=============================================================================================================
+def mirror_self(self,primeAxis = 'Left'):
+    _str_func = 'mirror_self'
+    _idx_state = self.getState(False)
+
+    if _idx_state > 0:
+        log.debug("|{0}| >> template...".format(_str_func)+ '-'*80)
+        ml_mirrorHandles = self.msgList_get('templateHandles')
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                                     mode = '',primeAxis = primeAxis.capitalize() )
+    if _idx_state > 1:
+        log.debug("|{0}| >> prerig...".format(_str_func)+ '-'*80)        
+        ml_mirrorHandles = self.msgList_get('prerigHandles')
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                                 mode = '',primeAxis = primeAxis.capitalize() )        
+    
+
 def mirror_template(self,primeAxis = 'Left'):
     _str_func = 'mirror_template'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -1526,6 +1542,7 @@ def rig_controls(self):
         mBlock = self.mBlock
         ml_controlsAll = []#we'll append to this list and connect them all at the end
         mRootParent = self.mDeformNull
+        ml_segmentHandles = []
         
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visDirect = cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
@@ -1544,8 +1561,7 @@ def rig_controls(self):
                                     makeAimable = True)
         
         ml_controlsAll.append(_d['mObj'])        
-
-
+        ml_segmentHandles.append(_d['mObj'])
         #Handles ================================================================================
         log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
         for k,d in self.md_handles.iteritems():
@@ -1555,11 +1571,12 @@ def rig_controls(self):
                 for i,mHandle in enumerate(ml):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                     _d = MODULECONTROL.register(mHandle,
-                                                mirrorSide= self.d_module['mirrorDirection'],
+                                                mirrorSide= side,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
                                                 makeAimable = True)
                     
                     ml_controlsAll.append(_d['mObj'])
+                    ml_segmentHandles.append(_d['mObj'])
                     
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
@@ -1571,7 +1588,7 @@ def rig_controls(self):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                     _d = MODULECONTROL.register(mHandle,
                                                 typeModifier='direct',
-                                                mirrorSide= self.d_module['mirrorDirection'],
+                                                mirrorSide= side,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
                                                 makeAimable = False)
                     
@@ -1610,6 +1627,7 @@ def rig_controls(self):
             ATTR.set(mHeadLookAt.mNode,'rotateOrder',self.ro_headLookAt)
             """
         
+        mRigNull.msgList_connect('handleJoints',ml_segmentHandles,'rigNull')        
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
         
