@@ -114,7 +114,7 @@ def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
             raise ValueError,_msg
         return mTarget
 
-def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True):
+def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True, extraAttrs = None):
     """
     Verify the attributes of a given block type
     
@@ -142,13 +142,16 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         try:_l_msgLinks = mBlockModule._l_controlLinks
         except:_l_msgLinks = []
     
-        _d = copy.copy(BLOCKSHARE.d_defaultAttrs)     
+        _d = copy.copy(BLOCKSHARE.d_defaultAttrs)
     
         _l_standard = mBlockModule.__dict__.get('l_attrsStandard',[])
         log.debug("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
         for k in _l_standard:
             if k in BLOCKSHARE._d_attrsTo_make.keys():
                 _d[k] = BLOCKSHARE._d_attrsTo_make[k]
+                
+        if extraAttrs is not None:
+            _d.update(extraAttrs)
     
         for k,v in d_attrsFromModule.iteritems():
             if k in _d.keys():
@@ -3161,7 +3164,7 @@ def mirror_self(self,primeAxis = 'left'):
     mBlockModule = self.p_blockModule
 
     if 'mirror_self' in mBlockModule.__dict__.keys():
-        log.debug("|{0}| >> BlockModule prerig call found...".format(_str_func))
+        log.debug("|{0}| >> BlockModule mirror_self call found...".format(_str_func))
         reload(mBlockModule)
         mBlockModule.mirror_self(self,primeAxis)
         return True
@@ -6038,8 +6041,68 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
     for uValue in l_uIsos:
         mCrv = getCurve(uValue,l_newCurves)
         
+
+def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'create_defineCurve'
+        log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
+        log.debug(self)
         
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None):
+        md_defineCurves = {}
+        ml_defineCurves =[]
+        
+        if mParentNull == None:
+            mParentNull = self.atUtils('stateNull_verify','define')
+        mHandleFactory = self.asHandleFactory()
+        
+        for k in d_definitions.keys():
+            log.debug("|{0}| >>  curve: {1}...".format(_str_func,k))            
+            _dtmp = d_definitions[k]
+            
+            str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
+            _tagOnly = _dtmp.get('tagOnly',False)
+            _handleKeys = _dtmp.get('keys')
+            
+            ml_handles = [md_handles[k2] for k2 in _handleKeys]
+        
+            l_pos = []
+            for mHandle in ml_handles:
+                l_pos.append(mHandle.p_position)
+        
+            _crv = mc.curve(d=1,p=l_pos)
+            #CORERIG.create_at(create='curve',l_pos = l_pos)
+            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+            mCrv.p_parent = mParentNull
+            mHandleFactory.color(mCrv.mNode)
+            mCrv.rename('{0}_defineCurve'.format(k))
+            mCrv.doStore('handleTag',k,attrType='string')
+            #mCrv.v=False
+            #md_loftCurves[tag] = mCrv
+        
+            self.connectChildNode(mCrv, k+'DefineCurve','block')
+            ml_defineCurves.append(mCrv)
+            md_defineCurves[k] = mCrv
+        
+            l_clusters = []
+            for i,cv in enumerate(mCrv.getComponents('cv')):
+                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_handles[i].p_nameBase,i))
+                TRANS.parent_set( _res[1], ml_handles[i].mNode)
+                l_clusters.append(_res)
+                ATTR.set(_res[1],'visibility',False)
+                
+            
+            if _dtmp.get('rebuild'):
+                _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
+                                        ch=1,s=len(ml_handles),
+                                        n="{0}_reparamRebuild".format(mCrv.p_nameBase))
+                mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
+                        
+        return {'md_curves':md_defineCurves,
+                'ml_curves':ml_defineCurves}
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -6060,6 +6123,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None)
         mHandleFactory = self.asHandleFactory()
         
         for k in l_order:
+            log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
+            
             _dtmp = d_definitions[k]
             if k == 'end':
                 _useSize = 1.0
@@ -6068,7 +6133,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None)
             
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
             _tagOnly = _dtmp.get('tagOnly',False)
-            
+            _pos = _dtmp.get('pos',False)
             
             #sphere
             _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
@@ -6088,6 +6153,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None)
             mHandle.doStore('cgmTypeModifier',str_name)
             mHandle.doStore('cgmType','defineHandle')
             mHandle.doName()
+            mHandle.doStore('handleTag',k,attrType='string')
         
             mHandle.resetAttrs()
         
@@ -6099,10 +6165,24 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None)
                                      worldUpObject = self.mNode,
                                      worldUpType = 'object', 
                                      worldUpVector = [0,1,0])"""
-        
-            mHandle.resetAttrs('translate')
-            for a,v in _dtmp['defaults'].iteritems():
-                ATTR.set(mHandle.mNode,a, _offset * v)
+            
+            if mScaleSpace and _dtmp['scaleSpace']:
+                mLoc = mHandle.doLoc()
+                mLoc.p_parent = mScaleSpace
+                
+                mLoc.translate = [v*.5 for v in _dtmp['scaleSpace']]
+                mHandle.p_position = mLoc.p_position
+                mLoc.delete()
+            elif _pos:
+                mHandle.p_position = _pos
+            else:
+                mHandle.resetAttrs('translate')
+                
+            for a,v in _dtmp.get('defaults',{}).iteritems():
+                if issubclass(type(v),list):
+                    ATTR.set(mHandle.mNode, a, v)
+                else:
+                    ATTR.set(mHandle.mNode, a, _offset * v)
         
             md_handles[k] = mHandle
             ml_handles.append(mHandle)        

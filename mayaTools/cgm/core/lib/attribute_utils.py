@@ -548,7 +548,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
     #CONNECTED!!!
     if not is_keyed(_d):
         if break_connection(_d):
-            log.warning("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+            log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
             
     _current = get(_combined)
     if _current == value:
