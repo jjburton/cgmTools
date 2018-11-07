@@ -1558,7 +1558,7 @@ def rig_controls(self):
         _d = MODULECONTROL.register(mBrowMain,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = False)
         
         ml_controlsAll.append(_d['mObj'])        
         ml_segmentHandles.append(_d['mObj'])
@@ -1573,7 +1573,7 @@ def rig_controls(self):
                     _d = MODULECONTROL.register(mHandle,
                                                 mirrorSide= side,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
-                                                makeAimable = True)
+                                                makeAimable = False)
                     
                     ml_controlsAll.append(_d['mObj'])
                     ml_segmentHandles.append(_d['mObj'])
