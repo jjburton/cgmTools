@@ -903,6 +903,103 @@ def create_handle(self,tag,pos,mJointTrack=None,
     return mHandle
 
 def prerig(self):
+    def create_handle(mHelper, mSurface, tag, k, side, controlType = 'main', aimGroup = 1,nameDict = None):
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('squareRounded', size = _size_sub), 
+                                          'cgmControl',setClass=1)
+        mHandle._verifyMirrorable()
+    
+        mHandle.doSnapTo(self)
+        mHandle.p_parent = mStateNull
+    
+        if nameDict:
+            RIGGEN.store_and_name(mHandle,nameDict)
+        else:
+            mHandle.doStore('cgmName',tag)
+            mHandle.doStore('cgmType','prerigHandle')
+            mHandle.doName()
+    
+    
+        _key = tag
+        if k:
+            _key = _key+k.capitalize()
+        mMasterGroup = mHandle.doGroup(True,True,
+                                       asMeta=True,
+                                       typeModifier = 'master',
+                                       setClass='cgmObject')
+    
+        mc.pointConstraint(mHelper.mNode,mMasterGroup.mNode,maintainOffset=False)
+    
+        mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
+        mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
+    
+        mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                            aimVector = [0,0,1], upVector = [0,1,0],
+                            worldUpObject = self.mNode,
+                            worldUpType = 'objectrotation', 
+                            worldUpVector = [0,1,0])
+    
+        if aimGroup:
+            mHandle.doGroup(True,True,
+                            asMeta=True,
+                            typeModifier = 'aim',
+                            setClass='cgmObject')
+    
+    
+        mHandle.tz = _size_sub
+    
+        return mHandle
+    
+    def create_jointHelper(mPos, mSurface, tag, k, side, nameDict=None, aimGroup = 1,sizeMult=1.0):
+
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d', size = (_size_sub * .5)*sizeMult), 
+                                          'cgmControl',setClass=1)
+        mHandle._verifyMirrorable()
+
+        mHandle.doSnapTo(self)
+        mHandle.p_parent = mStateNull
+        if nameDict:
+            RIGGEN.store_and_name(mHandle,nameDict)
+            _dCopy = copy.copy(nameDict)
+            _dCopy.pop('cgmType')
+            mJointLabel = mHandleFactory.addJointLabel(mHandle,NAMETOOLS.returnCombinedNameFromDict(_dCopy))
+
+        else:
+            mHandle.doStore('cgmName',tag)
+            mHandle.doStore('cgmType','jointHelper')
+            mHandle.doName()
+
+        _key = tag
+        if k:
+            _key = "{0}_{1}".format(tag,k)
+
+
+
+        mMasterGroup = mHandle.doGroup(True,True,
+                                       asMeta=True,
+                                       typeModifier = 'master',
+                                       setClass='cgmObject')
+
+        if mPos:
+            mc.pointConstraint(mPos.mNode,mMasterGroup.mNode,maintainOffset=False)
+
+        #mHandleFactory.color(mHandle.mNode,side = side, controlType='sub')
+        mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
+
+        if mSurface:
+            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0])
+
+        if aimGroup:
+            mHandle.doGroup(True,True,
+                            asMeta=True,
+                            typeModifier = 'aim',
+                            setClass='cgmObject')
+
+
+        return mHandle            
     try:
         _str_func = 'prerig'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -914,15 +1011,21 @@ def prerig(self):
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
         self.noTransTemplateNull.v=False
         
+        _offset = self.atUtils('get_shapeOffset')/2.0
+        _size = MATH.average(self.baseSize[1:])
+        _size_base = _size * .25
+        _size_sub = _size_base * .5
+        
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
         
         #---------------------------------------------------------------
         log.debug("|{0}| >> Gather define/template handles/curves in a useful format...".format(_str_func)) 
         
+        ml_handles = []
         md_dHandles = {}
         md_dCurves = {}
-
+        md_jointHandles = {}
         #ml_defineHandles = self.msgList_get('defineSubHandles')
         for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('templateHandles'):
             md_dHandles[mObj.handleTag] = mObj
@@ -935,9 +1038,66 @@ def prerig(self):
         if self.jawSetup:
             log.debug("|{0}| >>  Jaw setup...".format(_str_func)+ '-'*40)
             
+            _d_name = {'cgmName':'jaw',
+                       'cgmPosition':'lower',
+                       'cgmType':'jointHelper'}            
+            md_jointHandles['jawLower'] = create_jointHelper(None,None,'jawLower',None,
+                                                             'center',nameDict=_d_name,sizeMult = 2.0,aimGroup=0)
+            md_jointHandles['jawLower'].p_position = DIST.get_average_position([md_dHandles['jawEdgeRightMid'].p_position,
+                                                                                md_dHandles['jawEdgeLeftMid'].p_position])
+            
+            
+            l_jaw = ['jawEdgeRightMid', 'jawRight','jawLineRightMid','chinRight','chin',
+                     'chinLeft','jawLineLeftMid', 'jawLeft', 'jawEdgeLeftMid']
+            _crv = CORERIG.create_at(create='curveLinear',l_pos=[md_dHandles[k].p_position for k in l_jaw])
+            #md_dCurves['jawLine'].mNode
+            _shape = mc.offsetCurve(_crv,rn=0,cb=1,st=1,cl=1,cr=0,ch=0,
+                                    d=1,tol=.0001,sd=1,ugn=0,
+                                    distance =-_offset)
+            mc.delete(_crv)
+            
+            mShape = cgmMeta.asMeta(_shape)[0]
+            mShape.p_parent = mStateNull
+            
+            _d_name['cgmType'] = 'shapeHelper'
+            RIGGEN.store_and_name(mShape,_d_name)
+            mHandleFactory.color(mShape.mNode,side = _side, controlType='main')
+            md_jointHandles['jawLower'].doStore('shapeHelper',mShape.mNode)
+            mShape.doStore('dagHelper', md_jointHandles['jawLower'].mNode)
+            
+            mStateNull.connectChildNode(md_jointHandles['jawLower'], 'jaw'+'JointHelper','block')
+            mStateNull.connectChildNode(mShape, 'jaw'+'ShapeHelper','block')
+            
+            ml_handles.append(mShape)
+            
+            
+        if self.muzzleSetup:
+            log.debug("|{0}| >>  Muzzle setup...".format(_str_func)+ '-'*40)
+            
+            _d_name = {'cgmName':'muzzle',
+                       'cgmType':'jointHelper'}
+            md_jointHandles['muzzle'] = create_jointHelper(None,None,'muzzle',None,
+                                                           'center',nameDict=_d_name,sizeMult = 2.0,aimGroup=0)
+            md_jointHandles['muzzle'].p_position = self.getPositionByAxisDistance('z-',_offset * 2)
+            mStateNull.connectChildNode(md_jointHandles['muzzle'], 'muzzle'+'JointHelper','block')
+            
+            mShape = mHandleFactory.buildBaseShape('pyramid',baseSize = _offset, shapeDirection = 'z+')
+            TRANS.scale_to_boundingBox(mShape.mNode, [_offset,_offset,_offset/2.0])
+            mShape.p_parent = mStateNull
+            mShape.p_position = self.getPositionByAxisDistance('z+',_offset * 2)
+            
+            _d_name['cgmType'] = 'shapeHelper'
+            RIGGEN.store_and_name(mShape,_d_name)
+            mHandleFactory.color(mShape.mNode,side = _side, controlType='main')
+            md_jointHandles['muzzle'].doStore('shapeHelper',mShape.mNode)
+            mShape.doStore('dagHelper',md_jointHandles['muzzle'].mNode)            
             
             
             
+            pass
+
+            
+        self.msgList_connect('prerigHandles', ml_handles)
         
         pprint.pprint(vars())
         return
@@ -962,101 +1122,7 @@ def prerig(self):
         idx_ctr = 0
         idx_side = 0
         
-        def create_handle(mHelper, mSurface, tag, k, side, controlType = 'main', aimGroup = 1,nameDict = None):
-            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('squareRounded', size = _size_sub), 
-                                              'cgmControl',setClass=1)
-            mHandle._verifyMirrorable()
-            
-            mHandle.doSnapTo(self)
-            mHandle.p_parent = mStateNull
-            
-            if nameDict:
-                RIGGEN.store_and_name(mHandle,nameDict)
-            else:
-                mHandle.doStore('cgmName',tag)
-                mHandle.doStore('cgmType','prerigHandle')
-                mHandle.doName()
-                
-                
-            _key = tag
-            if k:
-                _key = _key+k.capitalize()
-            mMasterGroup = mHandle.doGroup(True,True,
-                                           asMeta=True,
-                                           typeModifier = 'master',
-                                           setClass='cgmObject')
         
-            mc.pointConstraint(mHelper.mNode,mMasterGroup.mNode,maintainOffset=False)
-        
-            mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
-            mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
-        
-            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
-                                aimVector = [0,0,1], upVector = [0,1,0],
-                                worldUpObject = self.mNode,
-                                worldUpType = 'objectrotation', 
-                                worldUpVector = [0,1,0])
-        
-            if aimGroup:
-                mHandle.doGroup(True,True,
-                                asMeta=True,
-                                typeModifier = 'aim',
-                                setClass='cgmObject')
-        
-        
-            mHandle.tz = _size_sub
-            
-            return mHandle
-        
-        def create_jointHelper(mPos, mSurface, tag, k, side, nameDict=None, aimGroup = 1):
-            
-            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d', size = _size_sub * .5), 
-                                              'cgmControl',setClass=1)
-            mHandle._verifyMirrorable()
-            
-            mHandle.doSnapTo(self)
-            mHandle.p_parent = mStateNull
-            if nameDict:
-                RIGGEN.store_and_name(mHandle,nameDict)
-                _dCopy = copy.copy(nameDict)
-                _dCopy.pop('cgmType')
-                mJointLabel = mHandleFactory.addJointLabel(mHandle,NAMETOOLS.returnCombinedNameFromDict(_dCopy))
-                
-            else:
-                mHandle.doStore('cgmName',tag)
-                mHandle.doStore('cgmType','jointHelper')
-                mHandle.doName()
-            
-            _key = tag
-            if k:
-                _key = "{0}_{1}".format(tag,k)
-            
-            
-            
-            mMasterGroup = mHandle.doGroup(True,True,
-                                           asMeta=True,
-                                           typeModifier = 'master',
-                                           setClass='cgmObject')
-    
-            mc.pointConstraint(mPos.mNode,mMasterGroup.mNode,maintainOffset=False)
-    
-            #mHandleFactory.color(mHandle.mNode,side = side, controlType='sub')
-            mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
-    
-            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
-                                aimVector = [0,0,1], upVector = [0,1,0],
-                                worldUpObject = self.mNode,
-                                worldUpType = 'objectrotation', 
-                                worldUpVector = [0,1,0])
-    
-            if aimGroup:
-                mHandle.doGroup(True,True,
-                                asMeta=True,
-                                typeModifier = 'aim',
-                                setClass='cgmObject')
-    
-
-            return mHandle        
         
         #Handles =====================================================================================
         log.debug("|{0}| >> Brow Handles..".format(_str_func)+'-'*40)
