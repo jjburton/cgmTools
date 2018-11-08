@@ -151,6 +151,8 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  #Nose...
                  'nostrilSetup':'none:default',
                  'bridgeSetup':'none:default',
+                 'numJointsNostril':'int',
+                 'numJointsNoseTip':'int',
                  #Lips...
                  'lipSealSetup':'none:default',
                  'numJointsLipUpr':'int',
@@ -168,6 +170,8 @@ d_defaultSettings = {'version':__version__,
                      'loftDegree':'cubic',
                      'numJointsLipUpr':3,
                      'numJointsLipLwr':3,
+                     'numJointsNoseTip':1,
+                     'numJointsNostril':1,
                      'paramUprStart':.15,
                      'paramLwrStart':.15,
                      'numJointsTongue':3,
@@ -191,10 +195,10 @@ def mirror_self(self,primeAxis = 'Left'):
         ml_mirrorHandles = self.msgList_get('templateHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                                      mode = '',primeAxis = primeAxis.capitalize() )
-    return
+    
     if _idx_state > 1:
         log.debug("|{0}| >> prerig...".format(_str_func)+ '-'*80)        
-        ml_mirrorHandles = self.msgList_get('prerigHandles')
+        ml_mirrorHandles = self.msgList_get('prerigHandles') + self.msgList_get('jointHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                                  mode = '',primeAxis = primeAxis.capitalize() )       
 
@@ -644,9 +648,22 @@ def template(self):
         
             d_creation.update(_d)
             d_pairs.update(_d_pairs)
+            
+            _d_curveCreation = {'jawTemplate1':{'keys':['jawTopRight','jawEdgeRightMid','jawRight','neckBase',
+                                                        'jawLeft','jawEdgeLeftMid','jawTopLeft'],
+                                                'rebuild':True},
+                                'jawTemplate2':{'keys':['cheekLineRightMid','cheekRight','jawLineRightMid',
+                                                        'jawUnder',
+                                                        'jawLineLeftMid','cheekLeft','cheekLineLeftMid'],
+                                                'rebuild':True},
+                                'jawTemplate3':{'keys':['cheekBoneRight','smileRight','chinRight','chin',
+                                                        'chinLeft','smileLeft','cheekBoneLeft'],
+                                                'rebuild':True},
+                                }
+            
 
             
-            _d_curveCreation = {'jawTemplate1':{'keys':['jawTopLeft','jawEdgeLeftMid','jawLeft','neckBase',
+            """_d_curveCreation = {'jawTemplate1':{'keys':['jawTopLeft','jawEdgeLeftMid','jawLeft','neckBase',
                                                         'jawRight','jawEdgeRightMid','jawTopRight'],
                                                     'rebuild':True},
                                 'jawTemplate2':{'keys':['cheekLineLeftMid','cheekLeft','jawLineLeftMid',
@@ -657,7 +674,7 @@ def template(self):
                                                         'chinRight','smileRight','cheekBoneRight'],
                                                     'rebuild':True},
                                 }
-            
+            """
             """
             _d_curveCreation = {'jawTemplateLeft1':{'keys':['jawTopLeft','cheekLineLeftMid','cheekBoneLeft'],
                                                     'rebuild':0},
@@ -702,10 +719,11 @@ def template(self):
             for k in ['edgeOrbTop','smileUpr',
                       'bridgePlane','bridgeBase',
                       'sneerLow','bridgeStartBase','bridgeStartPlane',
-                      'nostrilTop','bulbTopBase','bulbTopPlane',
+                      'nostrilBase','nostrilTop','bulbTopBase','bulbTopPlane',
+                      'nostrilFront',
                       'bulbBase','bulbPlane',
                       'bulbUnder',
-                      'nostrilUnderEdge','nostrilUnderInner',
+                      'nostrilUnderEdge','nostrilUnderInner','nostrilUnderFront',
                       ]:
                 _d_pairs[k+'Left'] = k+'Right'
                 
@@ -720,7 +738,7 @@ def template(self):
                         'bridgeStartBaseRight':'bridgeStartBaseLeft',
                         'bridgeStartPlaneRight':'bridgeStartPlaneLeft',
                         
-                        'nostrilTopRight':'nostrilTopLeft',
+                        'nostrilBaseRight':'nostrilBaseLeft',
                         'bulbTopBaseRight':'bulbTopBaseLeft',
                         'bulbTopPlaneRight':'bulbTopPlaneLeft',
                         
@@ -756,8 +774,8 @@ def template(self):
                       'sneerLowLeft':CRVPCT(md_dCurves['noseLeft'].mNode,.5),
                       
                       
-                      'nostrilTopRight':CRVPCT(md_dCurves['noseRight'].mNode,.8),
-                      'nostrilTopLeft':CRVPCT(md_dCurves['noseLeft'].mNode,.8),
+                      'nostrilBaseRight':CRVPCT(md_dCurves['noseRight'].mNode,.8),
+                      'nostrilBaseLeft':CRVPCT(md_dCurves['noseLeft'].mNode,.8),
                       
                       'bulbTopCenter':CRVPCT(md_dCurves['noseProfile'].mNode,.35),
                       'bridgeStartCenter':CRVPCT(md_dCurves['noseProfile'].mNode,.2),
@@ -788,28 +806,34 @@ def template(self):
                                                  'bridgeStartPlaneRight':.35,
                                                  'bridgeStartPlaneLeft':.65,
                                                  'bridgeStartBaseLeft':.85}},
-                        'noseBulbTop':{'l_pos':[_d_pos['nostrilTopRight'],
+                        'noseBulbTop':{'l_pos':[_d_pos['nostrilBaseRight'],
                                                _d_pos['bulbTopCenter'],
-                                               _d_pos['nostrilTopLeft'],
+                                               _d_pos['nostrilBaseLeft'],
                                                ],
-                                      'handles':{'bulbTopBaseRight':.15,
+                                      'handles':{'nostrilTopRight':.1,
+                                                 'bulbTopBaseRight':.2,
                                                  'bulbTopPlaneRight':.35,
                                                  'bulbTopPlaneLeft':.65,
-                                                 'bulbTopBaseLeft':.85}},
+                                                 'bulbTopBaseLeft':.8,
+                                                 'nostrilTopLeft':.9,}},
                         'bulb':{'l_pos':[d_pos['noseRight'],
                                          d_pos['noseTip'],
                                          d_pos['noseLeft'],
                                                 ],
-                                'handles':{'bulbBaseRight':.15,
+                                'handles':{'nostrilFrontRight':.1,
+                                           'bulbBaseRight':.2,
                                            'bulbPlaneRight':.35,
                                            'bulbPlaneLeft':.65,
-                                           'bulbBaseLeft':.85}},
+                                           'bulbBaseLeft':.8,
+                                           'nostrilFrontLeft':.9}},
                         'bulbUnder':{'l_pos':[_d_pos['nostrilUnderEdgeRight'],
                                               _d_pos['bulbUnderCenter'],
                                               _d_pos['nostrilUnderEdgeLeft'],
                                               ],
-                                'handles':{'bulbUnderRight':.25,
-                                           'bulbUnderLeft':.75}}                        
+                                'handles':{'nostrilUnderFrontRight':.15,
+                                           'bulbUnderRight':.3,
+                                           'bulbUnderLeft':.7,
+                                           'nostrilUnderFrontLeft':.85,}}
                         }
             
             for k,dTmp in _d_split.iteritems():
@@ -853,27 +877,33 @@ def template(self):
                                                           'bridgeStartBaseLeft',
                                                           'sneerLowLeft'],
                                                   'rebuild':1}
-            d_curveCreation['bulbTop'] = {'keys':['nostrilTopRight',
+            d_curveCreation['bulbTop'] = {'keys':['nostrilBaseRight',
+                                                  'nostrilTopRight',
                                                   'bulbTopBaseRight',
                                                   'bulbTopPlaneRight',
                                                   'bulbTopCenter',
                                                   'bulbTopPlaneLeft',
                                                   'bulbTopBaseLeft',
-                                                  'nostrilTopLeft'],
+                                                  'nostrilTopLeft',
+                                                  'nostrilBaseLeft'],
                                           'rebuild':1}
             d_curveCreation['bulb'] = {'keys':['noseRight',
+                                               'nostrilFrontRight',
                                                'bulbBaseRight',
                                                'bulbPlaneRight',
                                                'noseTip',
                                                'bulbPlaneLeft',
                                                'bulbBaseLeft',
+                                               'nostrilFrontLeft',
                                                'noseLeft'],
                                           'rebuild':1}
             
             d_curveCreation['bulbUnder'] = {'keys':['nostrilUnderEdgeRight',
+                                                    'nostrilUnderFrontRight',
                                                     'bulbUnderRight',
                                                     'bulbUnderCenter',
                                                     'bulbUnderLeft',
+                                                    'nostrilUnderFrontLeft',
                                                     'nostrilUnderEdgeLeft'],
                                             'rebuild':1}            
             d_curveCreation['noseUnderTrace'] = {'keys':['noseRight',
@@ -889,14 +919,16 @@ def template(self):
                                                               'nostrilUnderInnerLeft'],
                                                  'rebuild':1}            
             
-            d_curveCreation['noseSideRight'] = {'keys':['sneerRight', 'sneerLowRight', 'nostrilTopRight'],
-                                                'rebuild':0}
+            d_curveCreation['noseSideRight'] = {'keys':['sneerRight', 'sneerLowRight',
+                                                        'nostrilBaseRight','noseRight'],
+                                                'rebuild':1}
             d_curveCreation['eyeOrbRight'] = {'keys':['edgeOrbTopRight', 'smileUprRight'],
                                                 'rebuild':1}
             d_curveCreation['eyeCheekMeetRight'] = {'keys':['cheekBoneRight', 'smileRight'],
                                                'rebuild':1}
-            d_curveCreation['noseSideLeft'] = {'keys':['sneerLeft', 'sneerLowLeft', 'nostrilTopLeft'],
-                                                'rebuild':0}
+            d_curveCreation['noseSideLeft'] = {'keys':['sneerLeft', 'sneerLowLeft',
+                                                       'nostrilBaseLeft','noseLeft'],
+                                                'rebuild':1}
             d_curveCreation['eyeOrbLeft'] = {'keys':['edgeOrbTopLeft', 'smileUprLeft'],
                                               'rebuild':1}
             d_curveCreation['eyeCheekMeetLeft'] = {'keys':['cheekBoneLeft', 'smileLeft'],
@@ -904,10 +936,10 @@ def template(self):
             
             
             #LoftDeclarations....
-            md_loftCreation['nose'] = ['bridgeTop','bridgeStart','bulbTop','bulb','bulbUnder','noseUnderSmallTrace']
+            md_loftCreation['nose'] = ['bridgeTop','bridgeStart','bulbTop','bulb','bulbUnder','noseUnderTrace']
             md_loftCreation['noseToCheekRight'] = ['noseSideRight','eyeOrbRight','eyeCheekMeetRight']
             md_loftCreation['noseToCheekLeft'] = ['noseSideLeft','eyeOrbLeft','eyeCheekMeetLeft']
-            
+            md_loftCreation['nose'].reverse()
             
             """
             _d_curveCreation = {'jawTemplate1':{'keys':['jawTopLeft','jawEdgeLeftMid','jawLeft','neckBase',
@@ -1062,9 +1094,12 @@ def template(self):
 #>> Prerig
 #=============================================================================================================
 def prerigDelete(self):
-    try:self.moduleEyelid.delete()
-    except:pass
     self.noTransTemplateNull.v=True
+    
+    for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('templateHandles'):
+        mLabel = mObj.getMessageAsMeta('jointLabel')
+        if mLabel:
+            mLabel.v=1
     
 def create_handle(self,tag,pos,mJointTrack=None,
                   trackAttr=None,visualConnection=True,
@@ -1169,8 +1204,9 @@ def create_handle(self,tag,pos,mJointTrack=None,
     return mHandle
 
 def prerig(self):
-    def create_handle(mHelper, mSurface, tag, k, side, controlType = 'main', aimGroup = 1,nameDict = None):
-        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('squareRounded', size = _size_sub), 
+    def create_handle(mHelper, mSurface, tag, k, side, controlType = 'main', controlShape = 'squareRounded',
+                      aimGroup = 1,nameDict = None,surfaceOffset =1,mode='track',size = 1.0):
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName(controlShape, size = size), 
                                           'cgmControl',setClass=1)
         mHandle._verifyMirrorable()
     
@@ -1193,16 +1229,23 @@ def prerig(self):
                                        typeModifier = 'master',
                                        setClass='cgmObject')
     
-        mc.pointConstraint(mHelper.mNode,mMasterGroup.mNode,maintainOffset=False)
+        if mode == 'track':
+            if mHelper:
+                mc.pointConstraint(mHelper.mNode,mMasterGroup.mNode,maintainOffset=False)
+        else:
+            d_res = DIST.get_closest_point_data(mSurface.mNode,mHelper.mNode)
+            mMasterGroup.p_position = d_res['position']    
     
         mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
         mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
     
-        mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
-                            aimVector = [0,0,1], upVector = [0,1,0],
-                            worldUpObject = self.mNode,
-                            worldUpType = 'objectrotation', 
-                            worldUpVector = [0,1,0])
+        _const = mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                                     aimVector = [0,0,1], upVector = [0,1,0],
+                                     worldUpObject = self.mNode,
+                                     worldUpType = 'objectrotation', 
+                                     worldUpVector = [0,1,0])
+        mc.delete(_const)
+        
     
         if aimGroup:
             mHandle.doGroup(True,True,
@@ -1211,13 +1254,13 @@ def prerig(self):
                             setClass='cgmObject')
     
     
-        mHandle.tz = _size_sub
+        mHandle.tz = surfaceOffset
     
         return mHandle
     
-    def create_jointHelper(mPos, mSurface, tag, k, side, nameDict=None, aimGroup = 1,sizeMult=1.0):
+    def create_jointHelper(mPos, mSurface, tag, k, side, nameDict=None, aimGroup = 1,size = 1.0, sizeMult=1.0, mode = 'track',surfaceOffset = 1):
 
-        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d', size = (_size_sub * .5)*sizeMult), 
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d', size = (size)*sizeMult), 
                                           'cgmControl',setClass=1)
         mHandle._verifyMirrorable()
 
@@ -1244,19 +1287,26 @@ def prerig(self):
                                        asMeta=True,
                                        typeModifier = 'master',
                                        setClass='cgmObject')
-
-        if mPos:
-            mc.pointConstraint(mPos.mNode,mMasterGroup.mNode,maintainOffset=False)
+        
+        if mode == 'track':
+            if mPos:
+                mc.pointConstraint(mPos.mNode,mMasterGroup.mNode,maintainOffset=False)
+        else:
+            d_res = DIST.get_closest_point_data(mSurface.mNode,mPos.mNode)
+            mMasterGroup.p_position = d_res['position']
 
         #mHandleFactory.color(mHandle.mNode,side = side, controlType='sub')
         mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
 
         if mSurface:
-            mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
-                                aimVector = [0,0,1], upVector = [0,1,0],
-                                worldUpObject = self.mNode,
-                                worldUpType = 'objectrotation', 
-                                worldUpVector = [0,1,0])
+            _const = mc.normalConstraint(mSurface.mNode, mMasterGroup.mNode,
+                                         aimVector = [0,0,1], upVector = [0,1,0],
+                                         worldUpObject = self.mNode,
+                                         worldUpType = 'objectrotation', 
+                                         worldUpVector = [0,1,0])
+            mc.delete(_const)
+            mHandle.tz = -surfaceOffset
+            
 
         if aimGroup:
             mHandle.doGroup(True,True,
@@ -1277,7 +1327,7 @@ def prerig(self):
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
         self.noTransTemplateNull.v=False
         
-        _offset = self.atUtils('get_shapeOffset')/2.0
+        _offset = self.atUtils('get_shapeOffset')/4.0
         _size = MATH.average(self.baseSize[1:])
         _size_base = _size * .25
         _size_sub = _size_base * .5
@@ -1287,27 +1337,183 @@ def prerig(self):
         
         #---------------------------------------------------------------
         log.debug("|{0}| >> Gather define/template handles/curves in a useful format...".format(_str_func)) 
-        
+        d_pairs = {}
         ml_handles = []
+        md_handles = {}
         md_dHandles = {}
         md_dCurves = {}
         md_jointHandles = {}
-        #ml_defineHandles = self.msgList_get('defineSubHandles')
+        ml_jointHandles = []
+        ml_defineHandles = []
         for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('templateHandles'):
             md_dHandles[mObj.handleTag] = mObj
+            mLabel = mObj.getMessageAsMeta('jointLabel')
+            if mLabel:
+                mLabel.v=0
+            ml_defineHandles.append(mObj)
 
         for mObj in self.msgList_get('defineCurves') + self.msgList_get('templateCurves') :
             md_dCurves[mObj.handleTag] = mObj
             mObj.template=1        
         
         #Main setup -----------------------------------------------------
+        if self.noseSetup:
+            log.debug("|{0}| >>  noseSetup".format(_str_func)+ '-'*40)
+            str_noseSetup = self.getEnumValueString('noseSetup')
+        
+            if str_noseSetup == 'simple':
+                log.debug("|{0}| >>  noseSetup: {1}".format(_str_func,str_noseSetup))
+        
+                mSurf =  self.noseTemplateLoft
+        
+                _d_name = {'cgmName':'nose',
+                           'cgmType':'handleHelper'}
+                
+                
+                #NoseBase ----------------------------------------------------------------------
+                log.debug("|{0}| >>  {1}...".format(_str_func,'noseTip'))
+                _tag = 'noseBase'
+                mDefHandle = md_dHandles['noseTip']
+                _dTmp = copy.copy(_d_name)
+                _dTmp['cgmName'] = 'noseBase'
+                #_dTmp['cgmDirection'] = side
+                mHandle = create_handle(mDefHandle,mSurf,_tag,None,None,controlShape = 'loftWideDown',
+                                        size= _size_sub*2.0,
+                                        controlType = 'main',
+                                        nameDict = _d_name,
+                                        surfaceOffset=-_offset/2.0, mode = 'closestPoint')
+                ml_handles.append(mHandle)
+            
+                mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                md_handles[_tag] = mHandle
+               
+            
+                #Joint handle
+                _dTmp['cgmType'] = 'jointHandle'
+                mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,None,nameDict=_dTmp,mode='closestPoint',surfaceOffset=0)
+                mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                
+                mJointHelper.masterGroup.p_position = DIST.get_average_position([md_dHandles['nostrilBaseLeft'].p_position,
+                                                                            md_dHandles['nostrilBaseRight'].p_position])                
+                mHandle.masterGroup.p_position = DIST.get_average_position([md_dHandles['bulbBaseLeft'].p_position,
+                                                                                 md_dHandles['bulbBaseRight'].p_position])                 
+                md_handles[_tag+'Joint'] = mJointHelper
+                ml_jointHandles.append(mJointHelper)
+                
+                #NoseTip ----------------------------------------------------------------------
+                if self.numJointsNoseTip:
+                    log.debug("|{0}| >>  {1}...".format(_str_func,'noseTip'))
+                    _tag = 'noseTip'
+                    mDefHandle = md_dHandles['noseTip']
+                    _dTmp = copy.copy(_d_name)
+                    _dTmp['cgmName'] = 'noseTip'
+                    #_dTmp['cgmDirection'] = side
+                    mHandle = create_handle(mDefHandle,mSurf,_tag,None,None,controlShape = 'semiSphere',
+                                            size= _size_sub,
+                                            controlType = 'sub',
+                                            nameDict = _d_name,
+                                            surfaceOffset=_offset/2.0, mode = 'closestPoint')
+                    ml_handles.append(mHandle)
+                
+                    mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                
+                    #Joint handle
+                    _dTmp['cgmType'] = 'jointHandle'
+                    mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,None,nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset*2.0)
+                    mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                    
+                    md_handles[_tag] = mHandle
+                    md_handles[_tag+'Joint'] = mJointHelper
+                    ml_jointHandles.append(mJointHelper)
+                    
+                
+                
+                #Nostrils -------------------------------------------------------------------
+                if self.numJointsNostril:
+                    d_pairs['nostrilLeft'] = 'nostrilRight'
+                    d_pairs['nostrilLeftJoint'] = 'nostrilRightJoint'
+                    for side in ['left','right']:
+                        #Get our position
+                        _tag = 'nostril'+side.capitalize()
+                        log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+            
+                        mDefHandle = md_dHandles['nostrilFront'+side.capitalize()]
+                        _dTmp = copy.copy(_d_name)
+                        _dTmp['cgmName'] = 'nostril'
+                        _dTmp['cgmDirection'] = side
+                        mHandle = create_handle(mDefHandle,mSurf,_tag,None,side,controlShape = 'semiSphere',
+                                                size= _size_sub/2.0,
+                                                controlType = 'sub',
+                                                nameDict = _d_name,
+                                                surfaceOffset=_offset/2.0, mode = 'closestPoint')
+                        ml_handles.append(mHandle)
+            
+                        mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+            
+                        #Joint handle
+                        _dTmp['cgmType'] = 'jointHandle'
+                        mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,side,nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset)
+                        mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                        ml_jointHandles.append(mJointHelper)
+                        
+                        md_handles[_tag] = mHandle
+                        md_handles[_tag+'Joint'] = mJointHelper                        
+            else:
+                raise ValueError,"Invalid noseSetup: {0}".format(str_noseSetup)
+        
+        if self.cheekSetup:
+            log.debug("|{0}| >>  Cheeksetup".format(_str_func)+ '-'*40)
+            str_cheekSetup = self.getEnumValueString('cheekSetup')
+            
+            if str_cheekSetup == 'single':
+                log.debug("|{0}| >>  cheekSetup: {1}".format(_str_func,str_cheekSetup))
+                
+                mSurf =  self.jawTemplateLoft
+                
+                _d_name = {'cgmName':'cheek',
+                           'cgmType':'handleHelper'}
+                
+                d_pairs['cheekLeft'] = 'cheekRight'
+                d_pairs['cheekLeftJoint'] = 'cheekRightJoint'                
+                
+                for side in ['left','right']:
+                    #Get our position
+                    _tag = 'cheek'+side.capitalize()
+                    log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+                    
+                    mDefHandle = md_dHandles[_tag]
+                    _dTmp = copy.copy(_d_name)
+                    _dTmp['cgmDirection'] = side
+                    mHandle = create_handle(mDefHandle,mSurf,_tag,None,side,controlShape = 'semiSphere',
+                                            size= _size_sub,
+                                            controlType = 'sub',nameDict = _d_name,surfaceOffset=_offset, mode = 'closestPoint')
+                    ml_handles.append(mHandle)
+                    
+                    mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                    
+                    #Joint handle
+                    _dTmp['cgmType'] = 'jointHandle'
+                    mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,
+                                                      side,
+                                                      size= _size_sub,
+                                                      nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset)
+                    mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                    md_handles[_tag] = mHandle
+                    md_handles[_tag+'Joint'] = mJointHelper
+                    ml_jointHandles.append(mJointHelper)
+                    
+            else:
+                raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)
+        
         if self.jawSetup:
             log.debug("|{0}| >>  Jaw setup...".format(_str_func)+ '-'*40)
             
             _d_name = {'cgmName':'jaw',
                        'cgmType':'jointHelper'}            
             md_jointHandles['jawLower'] = create_jointHelper(None,None,'jawLower',None,
-                                                             'center',nameDict=_d_name,sizeMult = 2.0,aimGroup=0)
+                                                             'center',nameDict=_d_name,
+                                                             size= _size_sub,
+                                                             sizeMult = 2.0,aimGroup=0)
             md_jointHandles['jawLower'].p_position = DIST.get_average_position([md_dHandles['jawEdgeRightMid'].p_position,
                                                                                 md_dHandles['jawEdgeLeftMid'].p_position])
             
@@ -1321,7 +1527,7 @@ def prerig(self):
                                     distance =-_offset)
             mc.delete(_crv)
             
-            mShape = cgmMeta.asMeta(_shape)[0]
+            mShape = cgmMeta.validateObjArg(_shape[0],'cgmControl',setClass=1)
             mShape.p_parent = mStateNull
             
             _d_name['cgmType'] = 'shapeHelper'
@@ -1332,9 +1538,11 @@ def prerig(self):
             
             mStateNull.connectChildNode(md_jointHandles['jawLower'], 'jaw'+'JointHelper','block')
             mStateNull.connectChildNode(mShape, 'jaw'+'ShapeHelper','block')
-            
+            ml_jointHandles.append(md_jointHandles['jawLower'])            
             ml_handles.append(mShape)
             
+            md_handles['jaw'] = mShape
+            md_handles['jawJoint'] = md_jointHandles['jawLower']            
             
         if self.muzzleSetup:
             log.debug("|{0}| >>  Muzzle setup...".format(_str_func)+ '-'*40)
@@ -1342,7 +1550,9 @@ def prerig(self):
             _d_name = {'cgmName':'muzzle',
                        'cgmType':'jointHelper'}
             md_jointHandles['muzzle'] = create_jointHelper(None,None,'muzzle',None,
-                                                           'center',nameDict=_d_name,sizeMult = 2.0,aimGroup=0)
+                                                           'center',
+                                                           size= _size_sub,
+                                                           nameDict=_d_name,sizeMult = 2.0,aimGroup=0)
             md_jointHandles['muzzle'].p_position = self.getPositionByAxisDistance('z-',_offset * 2)
             mStateNull.connectChildNode(md_jointHandles['muzzle'], 'muzzle'+'JointHelper','block')
             
@@ -1359,10 +1569,59 @@ def prerig(self):
             
             ml_handles.append(mShape)
             
+            md_handles['muzzle'] = mShape
+            md_handles['muzzleJoint'] = md_jointHandles['muzzle']              
+            ml_jointHandles.append(md_jointHandles['muzzle'])            
+            
             pass
 
             
+        
+        #Mirror indexing -------------------------------------
+        log.debug("|{0}| >> Mirror Indexing...".format(_str_func)+'-'*40) 
+    
+        idx_ctr = 0
+        idx_side = 0
+        d = {}
+    
+        for tag,mHandle in md_handles.iteritems():
+            if mHandle in ml_defineHandles:
+                continue
+            try:mHandle._verifyMirrorable()
+            except:
+                mHandle = cgmMeta.validateObjArg(mHandle,'cgmControl',setClass=1)
+                mHandle._verifyMirrorable()
+            _center = True
+            for p1,p2 in d_pairs.iteritems():
+                if p1 == tag or p2 == tag:
+                    _center = False
+                    break
+            if _center:
+                log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+                mHandle.mirrorSide = 0
+                mHandle.mirrorIndex = idx_ctr
+                idx_ctr +=1
+            mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+    
+        #Self mirror wiring -------------------------------------------------------
+        for k,m in d_pairs.iteritems():
+            try:
+                md_handles[k].mirrorSide = 1
+                md_handles[m].mirrorSide = 2
+                md_handles[k].mirrorIndex = idx_side
+                md_handles[m].mirrorIndex = idx_side
+                md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
+                md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+                idx_side +=1        
+            except Exception,err:
+                log.error('Mirror error: {0}'.format(err))        
+        
+        
+        
+        
+        
         self.msgList_connect('prerigHandles', ml_handles)
+        self.msgList_connect('jointHandles', ml_jointHandles)
         
         pprint.pprint(vars())
         return
@@ -1645,50 +1904,77 @@ def skeleton_build(self, forceNew = True):
         
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
+    
+    def create_jointFromHandle(mHandle=None,mParent = False):
+        mJnt = mHandle.doCreateAt('joint')
+        mJnt.doCopyNameTagsFromObject(mHandle.mNode,ignore = ['cgmType'])
+        mJnt.doStore('cgmType','skinJoint')
+        mJnt.doName()
+        JOINT.freezeOrientation(mJnt.mNode)
+
+        mJnt.p_parent = mParent
+        ml_joints.append(mJnt)
+        return mJnt
 
     if self.jawSetup:
         #'jaw'+'JointHelper'
         mObj = mPrerigNull.getMessageAsMeta('jaw'+'JointHelper')
-        mJnt = mObj.doCreateAt('joint')
-        mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-        mJnt.doStore('cgmType','skinJoint')
-        mJnt.doName()
-        #ml_new.append(mJnt)
-        ml_joints.append(mJnt)
-        JOINT.freezeOrientation(mJnt.mNode)
-    
-        mJnt.p_parent = mRoot
-    
-        mPrerigNull.doStore('jawJoint',mJnt.mNode)
-    """
-    if self.browType == 0:#Full brow
-        log.debug("|{0}| >>  Full Brow...".format(_str_func))
+        mJaw = create_jointFromHandle(mObj,mRoot)
+        mPrerigNull.doStore('jawJoint',mJaw.mNode)
         
-        #ml_left = mPrerigNull.msgList_get('browLeftJointHandles')
-        #ml_right = mPrerigNull.msgList_get('browRightJointHandles')
-        #ml_center = mPrerigNull.msgList_get('browCenterJointHandles')
-        
-        for tag in 'left','right','center':
-            ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(tag.capitalize()))
-            ml_new = []
-            for mObj in ml_base:
-                mJnt = mObj.doCreateAt('joint')
-                mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-                mJnt.doStore('cgmType','skinJoint')
-                mJnt.doName()
-                ml_new.append(mJnt)
-                ml_joints.append(mJnt)
-                JOINT.freezeOrientation(mJnt.mNode)
-                
-                mJnt.p_parent = mRoot
-                
-            mPrerigNull.msgList_connect('brow{0}Joints'.format(tag.capitalize()), ml_new)"""
+    
+    if self.noseSetup:
+        log.debug("|{0}| >>  noseSetup".format(_str_func)+ '-'*40)
+        str_noseSetup = self.getEnumValueString('noseSetup')
+    
+        if str_noseSetup == 'simple':
+            log.debug("|{0}| >>  noseSetup: {1}".format(_str_func,str_noseSetup))
             
+            _tag = 'noseBase'
+            mNoseBase = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
+                                               mRoot)
+            mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseBase.mNode)
+            
+            #NoseTip ----------------------------------------------------------------------
+            if self.numJointsNoseTip:
+                log.debug("|{0}| >>  {1}...".format(_str_func,'noseTip'))
+                _tag = 'noseTip'
+                mNoseTip = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
+                                                  mNoseBase)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseTip.mNode)
+
+            #Nostrils -------------------------------------------------------------------
+            if self.numJointsNostril:
+                for side in ['left','right']:
+                    _tag = 'nostril'+side.capitalize()
+                    log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+                    mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
+                                                  mNoseBase)
+                    mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)
+                    
+        else:
+            raise ValueError,"Invalid noseSetup: {0}".format(str_noseSetup)
+        
+    if self.cheekSetup:
+        log.debug("|{0}| >>  Cheeksetup".format(_str_func)+ '-'*40)
+        str_cheekSetup = self.getEnumValueString('cheekSetup')
+        if str_cheekSetup == 'single':
+            log.debug("|{0}| >>  cheekSetup: {1}".format(_str_func,str_cheekSetup))
+            
+            for side in ['left','right']:
+                _tag = 'cheek'+side.capitalize()
+                log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+                mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
+                                              mJaw)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)               
+        else:
+            raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)
                 
     #>> ===========================================================================
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
-    #self.atBlockUtils('skeleton_connectToParent')
+    
+    pprint.pprint(ml_joints)
 
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
@@ -1696,77 +1982,7 @@ def skeleton_build(self, forceNew = True):
         
     return ml_joints    
     
-    #...orient ----------------------------------------------------------------------------
-    p_aim = mOrientHelper.getPositionByAxisDistance('z+',10.0)
-    SNAP.aim_atPoint(mEyeJoint.mNode,p_aim,'z+')
-    JOINT.freezeOrientation(mEyeJoint.mNode)
-    
-    name(mEyeJoint,_d_base)
-    ml_joints.append(mEyeJoint)
-    
-    mPrerigNull.connectChildNode(mEyeJoint.mNode,'eyeJoint')
-    
-    mRoot = mEyeJoint
-    #>> Eye =================================================================================== 
-    if self.hasEyeOrb:
-        mEyeOrbJoint = mEyeJoint.doDuplicate()
-        self.copyAttrTo(_baseNameAttrs[1],mEyeOrbJoint.mNode,'cgmName',driven='target')
-        name(mEyeOrbJoint,_d_base)
-        
-        mEyeJoint.p_parent = mEyeOrbJoint
-        ml_joints.insert(0,mEyeOrbJoint)
-        mPrerigNull.connectChildNode(mEyeOrbJoint.mNode,'eyeOrbJoint')
-        mRoot = mEyeOrbJoint
-
-    if len(ml_joints) > 1:
-        ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
-        
-    if self.setupLid:#=====================================================
-        _setupLid = self.getEnumValueString('setupLid')
-        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_setupLid))
-        
-        #'lidRootHelper'
-        
-        mLidsHelper = self.getMessageAsMeta('lidsHelper')
-        _d_lids = copy.copy(_d_base)
-        
-        _d_lids['cgmNameModifier'] = 'lid'
-        
-        if _setupLid == 'clam':
-            
-            for a in ['upr','lwr']:
-                log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
-                _a = '{0}LidHandle'.format(a)
-                mHandle = self.getMessageAsMeta(_a)
-                mJointHandle = mHandle.jointHelper
-                
-                mJoint = mJointHandle.doCreateAt('joint')
-                mJoint.parent = mRoot
-                
-                mJoint.doStore('cgmName',a)
-                name(mJoint,_d_lids)
-                
-                JOINT.freezeOrientation(mJoint.mNode)
-                
-                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
-                ml_joints.append(mJoint)
-                mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
-
-        else:
-            log.error("Don't have setup for eyelidType: {0}".format(_setupLid))
-            
-    
-    mRigNull.msgList_connect('moduleJoints', ml_joints)
-    self.msgList_connect('moduleJoints', ml_joints)
-    self.atBlockUtils('skeleton_connectToParent')
-
-    for mJnt in ml_joints:
-        mJnt.displayLocalAxis = 1
-        mJnt.radius = _radius
-        
-    return ml_joints    
-
-    return
+   
     
 
     
@@ -1891,6 +2107,18 @@ def rig_prechecks(self):
     str_muzzleSetup = mBlock.getEnumValueString('muzzleSetup')
     if str_muzzleSetup not in ['none','simple']:
         self.l_precheckErrors.append("Muzzle setup not completed: {0}".format(str_muzzleSetup))
+        
+    str_noseSetup = mBlock.getEnumValueString('noseSetup')
+    if str_noseSetup not in ['none','simple']:
+        self.l_precheckErrors.append("Nose setup not completed: {0}".format(str_noseSetup))
+        
+    str_nostrilSetup = mBlock.getEnumValueString('nostrilSetup')
+    if str_nostrilSetup not in ['none','default']:
+        self.l_precheckErrors.append("Nostril setup not completed: {0}".format(str_nostrilSetup))
+        
+    str_cheekSetup = mBlock.getEnumValueString('cheekSetup')
+    if str_cheekSetup not in ['none','single']:
+        self.l_precheckErrors.append("Cheek setup not completed: {0}".format(str_cheekSetup))    
                 
     if mBlock.scaleSetup:
         self.l_precheckErrors.append("Scale setup not complete")
@@ -1913,13 +2141,15 @@ def rig_dataBuffer(self):
     
     self.b_scaleSetup = mBlock.scaleSetup
     
-    self.str_jawSetup = False
-    if mBlock.jawSetup:
-        self.str_jawSetup = mBlock.getEnumValueString('jawSetup')
-    self.str_muzzleSetup = False
-    if mBlock.muzzleSetup:
-        self.str_muzzleSetup = mBlock.getEnumValueString('muzzleSetup')    
-
+    
+    for k in ['jaw','muzzle','nose','nostril','cheek','bridge','chin',
+              'lip','lipSeal','teeth','tongue','uprJaw']:
+        _tag = "{0}Setup".format(k)
+        self.__dict__['str_{0}'.format(_tag)] = False
+        _v = mBlock.getEnumValueString(_tag)
+        if _v != 'none':
+            self.__dict__['str_{0}'.format(_tag)] = _v
+        log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,_v))    
     
     #Offset ============================================================================ 
     self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
