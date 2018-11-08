@@ -1204,7 +1204,8 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             if polyType == 'bezier':
                 mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
                 
-            _d = {'keepCorners':False}#General}
+            _d = {'keepCorners':False,
+                  'keepControlPoints':True}#General}
             
             if polyType == 'noMult':
                 _d['rebuildType'] = 3
@@ -6123,9 +6124,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         mHandleFactory = self.asHandleFactory()
         
         for k in l_order:
-            log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
             
-            _dtmp = d_definitions[k]
+            _dtmp = d_definitions.get(k,False)
+            if _dtmp is False:
+                log.error("|{0}| >> handle: {1} has no dict. Bailing".format(_str_func,k))
+                continue
+            
+            log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
             if k == 'end':
                 _useSize = 1.0
             else:
@@ -6148,9 +6153,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             if k not in ['end']:
                 mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
-        
-            mHandle.doStore('cgmName',self.mNode)
-            mHandle.doStore('cgmTypeModifier',str_name)
+                
+            if _tagOnly:
+                mHandle.doStore('cgmName',k)
+            else:
+                mHandle.doStore('cgmName',self.mNode)
+                mHandle.doStore('cgmTypeModifier',str_name)
             mHandle.doStore('cgmType','defineHandle')
             mHandle.doName()
             mHandle.doStore('handleTag',k,attrType='string')
