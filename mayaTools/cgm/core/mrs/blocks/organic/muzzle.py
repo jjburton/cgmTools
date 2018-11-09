@@ -115,7 +115,7 @@ d_block_profiles = {'default':{},
                                'cheekSetup':'none',
                                'tongueSetup':'none',
                                'uprJaw':False,
-                               'chinSetup':'none',
+                               'chinSetup':'single',
                                },
                     }
 """
@@ -148,7 +148,7 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'tongueSetup':'none:single:ribbon',
                  #Jaw...
                  'uprJawSetup':'none:default',
-                 'chinSetup':'none:default',
+                 'chinSetup':'none:single',
                  #Nose...
                  'nostrilSetup':'none:default',
                  'bridgeSetup':'none:default',
@@ -265,7 +265,7 @@ def define(self):
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
     mBBShape.p_parent = mDefineNull    
     mBBShape.tz = -.5
-    mBBShape.ty = -.5
+    mBBShape.ty = .5
     
     
     CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
@@ -286,7 +286,7 @@ def define(self):
     l_order = []
     d_curves = {}
     d_curveCreation = {}
-    
+    d_toParent = {}
     
     #Jaw ---------------------------------------------------------------------
     if self.jawSetup:
@@ -301,25 +301,25 @@ def define(self):
         d_pairs.update(_d_pairs)
     
         _d = {'jawLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                            'vectorLine':False,'scaleSpace':[.75,-.5,-1]},
+                            'vectorLine':False,'scaleSpace':[.85,-.3,-1]},
               'jawRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                             'vectorLine':False,'scaleSpace':[-.75,-.5,-1]},
+                             'vectorLine':False,'scaleSpace':[-.85,-.3,-1]},
               'jawTopLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':False,
                             #'defaults':{'tx':-1},
-                             'vectorLine':False,'scaleSpace':[1,.9,-1]},
+                             'vectorLine':False,'scaleSpace':[1,.5,-1]},
               'jawTopRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':0,
                              #'defaults':{'tx':1},                             
-                              'vectorLine':False,'scaleSpace':[-1,.9,-1]},              
-              'chinLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                          'scaleSpace':[.25,-1,1]},
-              'chinRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                          'scaleSpace':[-.25,-1,1]},
+                              'vectorLine':False,'scaleSpace':[-1,.5,-1]},              
+              'chinLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':0,'vectorLine':0,
+                          'scaleSpace':[.25,-1,.6]},
+              'chinRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':0,'vectorLine':0,
+                          'scaleSpace':[-.25,-1,.6]},
               #'chin':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':1,
               #              'vectorLine':False,'scaleSpace':[0,-1,1]},
               'cheekBoneLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                               'vectorLine':False,'scaleSpace':[.7,.4,.5]},
+                               'vectorLine':False,'scaleSpace':[.7,.4,.3]},
               'cheekBoneRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                                'vectorLine':False,'scaleSpace':[-.7,.4,.5]},
+                                'vectorLine':False,'scaleSpace':[-.7,.4,.3]},
               }
         
         d_creation.update(_d)
@@ -345,30 +345,195 @@ def define(self):
             
         d_curveCreation.update(_d_curveCreation)
         
+    if self.chinSetup:
+        log.debug("|{0}| >>  Chin setup...".format(_str_func))
+        _str_jawSetup = self.getEnumValueString('chinSetup')
+        """
+        _d_pairs = {'jawLeft':'jawRight',
+                    'jawTopLeft':'jawTopRight',
+                    'chinLeft':'chinRight',
+                    'cheekBoneLeft':'cheekBoneRight',
+                    }
+        d_pairs.update(_d_pairs)"""
+    
+        _d = {'chin':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                      'vectorLine':False,'scaleSpace':[0,-.8,.8],}}
+
+    
+        d_creation.update(_d)
+        l_order.extend(['chin'])
+        _d_curveCreation = {'chinLeft':{'keys':['chin','chinLeft'],
+                                       'rebuild':False},
+                            'chinRight':{'keys':['chin','chinRight'],
+                                        'rebuild':False},
+                            }
+   
+        d_curveCreation.update(_d_curveCreation)
+        
     #lip ---------------------------------------------------------------------
     if self.lipSetup:
         log.debug("|{0}| >>  lip setup...".format(_str_func))
         _str_jawSetup = self.getEnumValueString('lipSetup')
         
-        _d_pairs = {'mouthLeft':'mouthRight',
+        _d_pairs = {'cornerBagLeft':'cornerBagRight',
+                    'cornerBackLeft':'cornerBackRight',
+                    'cornerFrontLeft':'cornerFrontRight',
+                    'cornerPeakLeft':'cornerPeakRight',
+                    #'mouthLeft':'mouthRight',
+                    #'lipUprLeft':'lipUprRight',
+                    #'lipLwrLeft':'lipLwrRight',
                     }
         d_pairs.update(_d_pairs)
-    
-        _d = {'mouthLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                            'vectorLine':False,'scaleSpace':[.4,-.2,1],
-                            'defaults':{'tz':.5}},
-              'mouthCenter':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-                             'vectorLine':False,'scaleSpace':[0,-.2,1],
-                             'defaults':{'tz':1}},
-              'mouthRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                             'vectorLine':False,'scaleSpace':[-.4,-.2,1],
-                             'defaults':{'tz':.5}},
+        """
+        'mouthRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                            'vectorLine':1,'scaleSpace':[-.3,-.2,.75],'parentTag':'uprFront',
+                            },        
+        """
+        d_toParent['lwrPeak'] = 'lwrFront'
+        d_toParent['lwrBack'] = 'lwrFront'
+        d_toParent['lwrGum'] = 'lwrFront'
+        d_toParent['uprPeak'] = 'uprFront'
+        d_toParent['uprBack'] = 'uprFront'
+        d_toParent['uprGum'] = 'uprFront'
+        
+        d_toParent['cornerBagLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerBackLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerPeakLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerBagRight'] = 'cornerFrontRight'
+        d_toParent['cornerBackRight'] = 'cornerFrontRight'
+        d_toParent['cornerPeakRight'] = 'cornerFrontRight'
+        
+        _d = {'cornerFrontLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                                 'vectorLine':0,'scaleSpace':[.3,-.2,.5],
+                                 },
+              'cornerBackLeft':{'color':'blueWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                                 'vectorLine':0,'scaleSpace':[.28,-.2,.4],
+                                 },
+              'cornerBagLeft':{'color':'blueWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                                'vectorLine':0,'scaleSpace':[.3,-.2,.35],
+                                },
+              'cornerPeakLeft':{'color':'blueWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                               'vectorLine':0,'scaleSpace':[.4,-.2,.5],
+                               },
+              
+              'cornerFrontRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                                 'vectorLine':0,'scaleSpace':[-.3,-.2,.5],
+                                 },
+              'cornerBackRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                                'vectorLine':0,'scaleSpace':[-.28,-.2,.4],
+                                },
+              'cornerBagRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                               'vectorLine':0,'scaleSpace':[-.3,-.2,.35],
+                               },
+              'cornerPeakRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                                'vectorLine':0,'scaleSpace':[-.4,-.2,.5],
+                                },
+              
+              
+              'uprFront':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                        'vectorLine':False,'scaleSpace':[0,-.2,.65],
+                        },
+              'uprPeak':{'color':'yellowWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                        'vectorLine':False,'scaleSpace':[0,-.1,.7],
+                        },
+              'uprBack':{'color':'yellowWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                            'vectorLine':False,'scaleSpace':[0,-.2,.5],
+                            },
+              'uprGum':{'color':'yellowWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                        'vectorLine':False,'scaleSpace':[0,0,.5],
+                        },              
+              
+              'lwrFront':{'color':'greenBright','tagOnly':True,'arrow':False,'jointLabel':True,
+                              'vectorLine':False,'scaleSpace':[0,-.3,.65],
+                              },
+              'lwrPeak':{'color':'greenWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                          'vectorLine':False,'scaleSpace':[0,-.4,.67],
+                          },              
+              'lwrBack':{'color':'greenWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                          'vectorLine':False,'scaleSpace':[0,-.3,.5],
+                          },
+              'lwrGum':{'color':'greenWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                         'vectorLine':False,'scaleSpace':[0,-.4,.5],
+                         },
+              
+              
               }
         d_creation.update(_d)
-        l_order.extend(['mouthLeft','mouthRight','mouthCenter'])
         
-        _d_curveCreation = {'lip':{'keys':['mouthLeft','mouthCenter','mouthRight'],
-                                   'rebuild':True}}
+        
+            
+        l_order.extend(['uprFront','uprPeak','uprBack',
+                        'lwrFront','lwrPeak','lwrBack',
+                        'uprGum','lwrGum',
+                        'cornerFrontLeft','cornerPeakLeft','cornerBackLeft','cornerBagLeft',
+                        'cornerFrontRight','cornerPeakRight','cornerBackRight','cornerBagRight',
+                        #'lipUprLeft','lipUprRight',
+                        #'lipLwrLeft','lipLwrRight',
+                        ])
+        
+        """
+        'lipUpr':{'keys':['mouthLeft','lipUpr','mouthRight'],
+                                      'rebuild':0},
+                            'lipLwr':{'keys':['mouthLeft','lipLwr','mouthRight'],
+                                      'rebuild':0},
+        """
+        
+        
+        _d_curveCreation = {'peakUpr':{'keys':['cornerPeakRight','uprPeak','cornerPeakLeft'],
+                                       'rebuild':0},
+                            'peakLwr':{'keys':['cornerPeakRight','lwrPeak','cornerPeakLeft'],
+                                       'color':'greenWhite',                                       
+                                       'rebuild':0},
+                            'lipUpr':{'keys':['cornerFrontRight','uprFront','cornerFrontLeft'],
+                                       'rebuild':0},
+                            'lipLwr':{'keys':['cornerFrontRight','lwrFront','cornerFrontLeft'],
+                                       'color':'greenWhite',                                       
+                                       'rebuild':0},
+                            
+                            'lipBackUpr':{'keys':['cornerBackRight','uprBack','cornerBackLeft'],
+                                       'rebuild':0},
+                            'lipBackLwr':{'keys':['cornerBackRight','lwrBack','cornerBackLeft'],
+                                          'color':'greenWhite',                                       
+                                          'rebuild':0},                            
+                            'lipCrossUpr':{'keys':['uprGum','uprBack','uprFront','uprPeak'],
+                                           'rebuild':1},
+                            'lipCrossLwr':{'keys':['lwrGum','lwrBack','lwrFront','lwrPeak'],
+                                           'color':'greenBright',                                           
+                                           'rebuild':1},
+                            
+                            'lipCornerLeft':{'keys':['cornerBagLeft','cornerBackLeft',
+                                                     'cornerFrontLeft','cornerPeakLeft'],
+                                           'color':'blueWhite',                                           
+                                           'rebuild':0},
+                            'lipCornerRight':{'keys':['cornerBagRight','cornerBackRight',
+                                                     'cornerFrontRight','cornerPeakRight'],
+                                             'color':'redWhite',                                           
+                                             'rebuild':0},
+                            
+                            'lipToChinRight':{'keys':['cornerPeakRight','chinRight'],
+                                              'color':'yellowWhite',
+                                              'rebuild':0},
+                            'lipToChinLeft':{'keys':['cornerPeakLeft','chinLeft'],
+                                             'color':'yellowWhite',                                             
+                                              'rebuild':0},
+
+                            }
+        
+        if self.chinSetup:
+            _d_curveCreation['lipToChin'] = {'keys':['chin','lwrPeak'],
+                                             'color':'yellowWhite',                                             
+                                             'rebuild':False}
+        if self.noseSetup:
+            _d_curveCreation['lipToNoseLeft'] = {'keys':['cornerPeakLeft','noseLeft'],
+                                                 'color':'yellowWhite',
+                                                 'rebuild':False}
+            _d_curveCreation['lipToNoseRight'] = {'keys':['cornerPeakRight','noseRight'],
+                                                  'color':'yellowWhite',
+                                                 'rebuild':False}
+            _d_curveCreation['lipToNoseCenter'] = {'keys':['uprPeak','noseBase'],
+                                                  'color':'yellowWhite',
+                                                  'rebuild':False}            
+        
         d_curveCreation.update(_d_curveCreation)
         
     #Cheek ---------------------------------------------------------------------
@@ -401,28 +566,23 @@ def define(self):
         d_pairs.update(_d_pairs)
     
         _d = {'noseTip':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-                         'vectorLine':False,'scaleSpace':[0,.5,1],
-                         'defaults':{'tz':2}},
+                         'vectorLine':False,'scaleSpace':[0,.45,1],},
               'noseBase':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-                         'vectorLine':False,'scaleSpace':[0,.2,1],
-                         'defaults':{'tz':1}},
+                         'vectorLine':False,'scaleSpace':[0,.15,.8],},
               #'bridgeHelp':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
               #            'vectorLine':False,'scaleSpace':[0,.7,1],
               #            'defaults':{'tz':1}},
               'bridge':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                         'vectorLine':False,'scaleSpace':[0,.9,1],
-                         'defaults':{'tz':.25}},              
+                         'vectorLine':False,'scaleSpace':[0,1,.5],},              
               'noseLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                            'vectorLine':False,'scaleSpace':[.4,.3,1],
-                            'defaults':{'tz':.1}},
+                            'vectorLine':False,'scaleSpace':[.3,.3,.5],},
               'noseRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                             'vectorLine':False,'scaleSpace':[-.4,.3,1],
-                             'defaults':{'tz':.1}},
+                             'vectorLine':False,'scaleSpace':[-.3,.3,.5],},
               'sneerLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                          'vectorLine':False,'scaleSpace':[.2,.8,.75],
+                          'vectorLine':False,'scaleSpace':[.2,.6,.3],
                           },
               'sneerRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                           'vectorLine':False,'scaleSpace':[-.2,.8,.75],
+                           'vectorLine':False,'scaleSpace':[-.2,.6,.3],
                            },              
               }
         d_creation.update(_d)
@@ -453,6 +613,10 @@ def define(self):
 
     md_handles = md_res['md_handles']
     ml_handles = md_res['ml_handles']
+    
+    
+    for k,p in d_toParent.iteritems():
+        md_handles[k].p_parent = md_handles[p]
 
     idx_ctr = 0
     idx_side = 0

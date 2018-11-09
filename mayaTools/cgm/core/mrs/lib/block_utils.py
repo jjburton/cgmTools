@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -6075,7 +6075,13 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
             #CORERIG.create_at(create='curve',l_pos = l_pos)
             mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
             mCrv.p_parent = mParentNull
-            mHandleFactory.color(mCrv.mNode)
+            
+            _color = _dtmp.get('color')
+            if _color:
+                CORERIG.override_color(mCrv.mNode, _color)
+            else:
+                mHandleFactory.color(mCrv.mNode)
+                
             mCrv.rename('{0}_defineCurve'.format(k))
             mCrv.doStore('handleTag',k,attrType='string')
             #mCrv.v=False
@@ -6098,7 +6104,8 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                                         ch=1,s=len(ml_handles),
                                         n="{0}_reparamRebuild".format(mCrv.p_nameBase))
                 mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
-                        
+                
+            mCrv.dagLock()
         return {'md_curves':md_defineCurves,
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())

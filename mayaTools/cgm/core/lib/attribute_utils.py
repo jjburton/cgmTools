@@ -3190,7 +3190,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         
         if not validate_attrTypeMatch(_d_sourceFlags['type'],_d_targetFlags['type']):
             if _d_targetFlags['dynamic'] and convertToMatch:
-                log.warning("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
+                log.debug("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
                 #_relockSource
                 convert_type(_d_targetAttr,_d_sourceFlags['type'])
             else:
