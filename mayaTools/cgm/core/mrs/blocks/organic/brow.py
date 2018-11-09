@@ -807,7 +807,7 @@ def prerig(self):
                 
                 mHandle = create_handle(mTemplateHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
                 md_handles['brow'][_side].append(mHandle)
-                ml_handles.append(mHandle)                
+                ml_handles.append(mHandle)
             mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),md_handles['brow'][_side])
 
 

@@ -64,6 +64,7 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
+import cgm.core.cgmPy.validateArgs as VALID
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
@@ -2149,7 +2150,7 @@ def rig_dataBuffer(self):
         _v = mBlock.getEnumValueString(_tag)
         if _v != 'none':
             self.__dict__['str_{0}'.format(_tag)] = _v
-        log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,_v))    
+        log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,self.__dict__['str_{0}'.format(_tag)]))    
     
     #Offset ============================================================================ 
     self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
@@ -2226,7 +2227,17 @@ def rig_skeleton(self):
                                                            'rig',
                                                            cgmType = False,
                                                            blockNames=False)
+    ml_driverJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                              ml_joints,
+                                                              None,
+                                                              self.mRigNull,
+                                                              'driverJoints',
+                                                              'driver',
+                                                              cgmType = False,
+                                                              blockNames=False)    
     
+    for i,mJnt in enumerate(ml_rigJoints):
+        mJnt.p_parent = ml_driverJoints[i]
     """
     ml_segmentJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None,
                                                                mRigNull,'segmentJoints','seg',
@@ -2243,37 +2254,80 @@ def rig_skeleton(self):
     md_skinJoints = {}
     md_rigJoints = {}
     md_segJoints = {}
-    md_fkJoints = {}
+    md_driverJoints = {}
     md_handles = {}
     md_handleShapes = {}
     
-    #Jaw ---------------
+    def doSingleJoint(tag,mParent = None):
+        log.debug("|{0}| >> gathering {1}...".format(_str_func,tag))            
+        mJntSkin = mPrerigNull.getMessageAsMeta('{0}Joint'.format(tag))
+    
+        mJntRig = mJntSkin.getMessageAsMeta('rigJoint')
+        mJntDriver = mJntSkin.getMessageAsMeta('driverJoint')
+    
+        if mParent is not None:
+            mJntDriver.p_parent = mParent
+    
+        md_skinJoints[t] = mJntSkin
+        md_rigJoints[t] = mJntRig
+        md_driverJoints[t] = mJntDriver
+        md_handleShapes[t] = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(t))
+        
+    #Jaw ---------------------------------------------------------------
     if self.str_jawSetup:
         log.debug("|{0}| >> jaw...".format(_str_func))
         mJntSkin = mPrerigNull.getMessageAsMeta('jawJoint')
         mJntRig = mJntSkin.getMessageAsMeta('rigJoint')
-        mJntSeg = mJntSkin.getMessageAsMeta('segJoint')
+        mJntDriver = mJntSkin.getMessageAsMeta('driverJoint')
         
-        md_skinJoints['jaw'] ={'center':[mJntSkin]}
-        md_rigJoints['jaw'] = {'center':[mJntRig]}
-        if mJntSeg:
-            md_segJoints['jaw'] = {'center':[mJntSeg]}
+        md_skinJoints['jaw'] = mJntSkin
+        md_rigJoints['jaw'] = mJntRig
+        md_driverJoints['jaw'] = mJntDriver
+
+        #mJntFK = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mJntSkin],
+        #                                                'fk', mRigNull,
+        #                                                'fkJaw',
+        #                                                cgmType = False,
+        #                                                 singleMode = True)[0]
+        #md_driverJoints['jaw'] = mJntFK
+        #mJntRig.p_parent = mJntFK
+        
+    
+    if self.str_noseSetup:
+        log.debug("|{0}| >> nose...".format(_str_func)+'-'*40)
+        
+        for t in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
+            mParent = None
+            if t == 'noseBase':
+                mParent = False
+            doSingleJoint(t,mParent)
             
-        mJntFK = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mJntSkin],
-                                                         'fk', mRigNull,
-                                                         'fkJaw',
-                                                         cgmType = False,
-                                                         singleMode = True)[0]
-        md_fkJoints['jaw'] = mJntFK
-        mJntRig.p_parent = mJntFK
+            """
+            log.debug("|{0}| >> gathering {1}...".format(_str_func,t))            
+            mJntSkin = mPrerigNull.getMessageAsMeta('{0}Joint'.format(t))
+
+            mJntRig = mJntSkin.getMessageAsMeta('rigJoint')
+            mJntDriver = mJntSkin.getMessageAsMeta('driverJoint')
+            
+            if t in ['noseBase']:
+                mJntDriver.p_parent = False
+                
+            md_skinJoints[t] = mJntSkin
+            md_rigJoints[t] = mJntRig
+            md_driverJoints[t] = mJntDriver
+                
+            md_handleShapes[t] = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(t))"""
+    
+    if self.str_cheekSetup:
+        log.debug("|{0}| >> cheek...".format(_str_func))
+        for t in ['cheekLeft','cheekRight']:
+            doSingleJoint(t,False)
+            
 
     
     #Processing  Handles ================================================================================
     log.debug("|{0}| >> Processing Handles...".format(_str_func)+ '-'*40)
-    
-        
-    
-    
+
     """
     for k in ['center','left','right']:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
@@ -2330,7 +2384,7 @@ def rig_skeleton(self):
     self.md_segJoints = md_segJoints
     self.md_handles = md_handles
     self.md_handleShapes = md_handleShapes
-    self.md_fkJoints = md_fkJoints
+    self.md_driverJoints = md_driverJoints
     
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
@@ -2361,14 +2415,14 @@ def rig_shapes(self):
         
         
         if self.md_rigJoints.get('jaw'):
-            log.debug("|{0}| >> Jaw setup...".format(_str_func)+ '-'*80)
-            mJaw_fk = self.md_fkJoints.get('jaw')
+            log.debug("|{0}| >> Jaw setup...".format(_str_func)+ '-'*40)
+            mJaw_fk = self.md_driverJoints.get('jaw')
             CORERIG.shapeParent_in_place(mJaw_fk.mNode, mPrerigNull.getMessageAsMeta('jawShapeHelper').mNode)
             
             mRigNull.doStore('controlJaw',mJaw_fk.mNode)
             
         if self.str_muzzleSetup:
-            log.debug("|{0}| >> Muzzle setup...".format(_str_func)+ '-'*80)
+            log.debug("|{0}| >> Muzzle setup...".format(_str_func)+ '-'*40)
             mMuzzleDagHelper = mPrerigNull.getMessageAsMeta('muzzleJointHelper')
             mMuzzleDag = mMuzzleDagHelper.doCreateAt()
             mMuzzleDag.doCopyNameTagsFromObject(mMuzzleDagHelper.mNode,'cgmType')
@@ -2380,6 +2434,25 @@ def rig_shapes(self):
             mRigNull.doStore('controlMuzzle',mMuzzleDag.mNode)
             
         
+        if self.str_cheekSetup:
+            log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
+            for k in ['cheekLeft','cheekRight']:
+                mDriver = self.md_driverJoints.get(k)
+                CORERIG.shapeParent_in_place(mDriver.mNode, self.md_handleShapes[k].mNode)
+                
+        
+        if self.str_noseSetup:
+            log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
+            
+            for k in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
+                mDriver = self.md_driverJoints.get(k)
+                if mDriver:
+                    log.debug("|{0}| >> found: {1}".format(_str_func,k))
+                    CORERIG.shapeParent_in_place(mDriver.mNode, self.md_handleShapes[k].mNode)
+                    
+                    
+            
+            
         
         """
         #Brow center ================================================================================
@@ -2414,17 +2487,40 @@ def rig_shapes(self):
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
         for k,d in self.md_rigJoints.iteritems():
             log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
-            for side,ml in d.iteritems():
-                log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
-                for i,mHandle in enumerate(ml):
+            
+            if VALID.isListArg(d):
+                for i,mHandle in enumerate(d):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                    side = mHandle.getMayaAttr('cgmDirection') or False
                     crv = CURVES.create_fromName(name='cube',
                                                  direction = 'z+',
                                                  size = mHandle.radius*2)
                     SNAP.go(crv,mHandle.mNode)
                     mHandleFactory.color(crv,side=side,controlType='sub')
                     CORERIG.shapeParent_in_place(mHandle.mNode,
-                                                 crv,keepSource=False)
+                                                 crv,keepSource=False)                
+            elif issubclass(type(d),dict):
+                for side,ml in d.iteritems():
+                    log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    for i,mHandle in enumerate(ml):
+                        log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                        crv = CURVES.create_fromName(name='cube',
+                                                     direction = 'z+',
+                                                     size = mHandle.radius*2)
+                        SNAP.go(crv,mHandle.mNode)
+                        mHandleFactory.color(crv,side=side,controlType='sub')
+                        CORERIG.shapeParent_in_place(mHandle.mNode,
+                                                     crv,keepSource=False)
+            else:
+                log.debug("|{0}| >> {1}...".format(_str_func,d))
+                side = d.getMayaAttr('cgmDirection') or 'center'                
+                crv = CURVES.create_fromName(name='cube',
+                                             direction = 'z+',
+                                             size = d.radius*2)
+                SNAP.go(crv,d.mNode)
+                mHandleFactory.color(crv,side=side,controlType='sub')
+                CORERIG.shapeParent_in_place(d.mNode,
+                                             crv,keepSource=False)                
                     
                     
         for mJnt in ml_rigJoints:
@@ -2450,6 +2546,7 @@ def rig_controls(self):
         ml_controlsAll = []#we'll append to this list and connect them all at the end
         mRootParent = self.mDeformNull
         ml_segmentHandles = []
+        ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visDirect = cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
@@ -2460,7 +2557,13 @@ def rig_controls(self):
         
         
         
-        
+        def simpleRegister(mObj):
+            _d = MODULECONTROL.register(mObj,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = False)
+            ml_controlsAll.append(_d['mObj'])            
+            return _d['mObj']
         
         for link in ['controlJaw','controlMuzzle']:
             mLink = mRigNull.getMessageAsMeta(link)
@@ -2473,9 +2576,22 @@ def rig_controls(self):
                                             makeAimable = False)
                 
                 ml_controlsAll.append(_d['mObj'])        
-                ml_segmentHandles.append(_d['mObj'])
+                #ml_segmentHandles.append(_d['mObj'])
+                
+        if self.str_cheekSetup:
+            log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
+            for k in ['cheekLeft','cheekRight']:
+                log.debug("|{0}| >> {1}...".format(_str_func,k))
+                simpleRegister(self.md_driverJoints.get(k))
+
+
+        if self.str_noseSetup:
+            log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
             
-        
+            for k in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
+                log.debug("|{0}| >> {1}...".format(_str_func,k))
+                simpleRegister(self.md_driverJoints.get(k))
+
         """
         #Handles ================================================================================
         log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
@@ -2495,6 +2611,28 @@ def rig_controls(self):
                     
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
+        for mHandle in ml_rigJoints:
+            log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+            side = mHandle.getMayaAttr('cgmDirection') or 'center'
+            
+            _d = MODULECONTROL.register(mHandle,
+                                        typeModifier='direct',
+                                        mirrorSide= side,
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = False)
+        
+            mObj = _d['mObj']
+        
+            ml_controlsAll.append(_d['mObj'])
+        
+            if mObj.hasAttr('cgmIterator'):
+                ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
+        
+            for mShape in mObj.getShapes(asMeta=True):
+                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))            
+            
+        
+        """
         for k,d in self.md_rigJoints.iteritems():
             log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
             for side,ml in d.iteritems():
@@ -2516,7 +2654,7 @@ def rig_controls(self):
                         ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
                 
                     for mShape in mObj.getShapes(asMeta=True):
-                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                    
+                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))"""                    
 
 
         #Close out...
@@ -2526,6 +2664,7 @@ def rig_controls(self):
             
             if mCtrl.hasAttr('radius'):
                 ATTR.set(mCtrl.mNode,'radius',0)        
+                ATTR.set_hidden(mCtrl.mNode,'radius',True)        
             
             ml_pivots = mCtrl.msgList_get('spacePivots')
             if ml_pivots:
@@ -2559,9 +2698,11 @@ def rig_frame(self):
     mRigNull = self.mRigNull
     mRootParent = self.mDeformNull
     mModule = self.mModule
-    
+    mDeformNull = self.mDeformNull
     mFollowParent = self.mDeformNull
+    mFollowBase = self.mDeformNull
     
+    mdD = self.md_driverJoints
     #Process our main controls ==============================================================
     mMuzzle = mRigNull.getMessageAsMeta('controlMuzzle')
     mJaw = mRigNull.getMessageAsMeta('controlJaw')
@@ -2569,14 +2710,44 @@ def rig_frame(self):
     if mMuzzle:
         log.debug("|{0}| >> Muzzle setup...".format(_str_func))
         mFollowParent = mMuzzle
+        mFollowBase = mMuzzle.doCreateAt('null',setClass=True)
+        mFollowBase.rename('{0}_followBase'.format(self.d_module['partName']))
+        mFollowBase.p_parent = self.mDeformNull
         
     if mJaw:
         log.debug("|{0}| >> Jaw setup...".format(_str_func))
         mJaw.masterGroup.p_parent = mFollowParent
-        mFollowParent = mJaw
+        if not mMuzzle:
+            mFollowParent = mJaw
         
         
+    if self.str_cheekSetup:
+        log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
+        for k in ['cheekLeft','cheekRight']:
+            log.debug("|{0}| >> {1}...".format(_str_func,k))
+            mdD[k].masterGroup.p_parent = self.mDeformNull
+            mc.parentConstraint([mFollowBase.mNode, mJaw.mNode],
+                                mdD[k].masterGroup.mNode,maintainOffset=True)
+            
     
+    
+    if self.str_noseSetup:
+        log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
+        mdD['noseBase'].masterGroup.p_parent = mDeformNull
+        
+        mTrack = mdD['noseBase'].masterGroup.doLoc()
+        mTrack.p_parent = mFollowParent
+        mc.pointConstraint([mFollowBase.mNode, mTrack.mNode],
+                            mdD['noseBase'].masterGroup.mNode,maintainOffset=True)
+        
+        mc.aimConstraint(mFollowBase.mNode, mdD['noseBase'].masterGroup.mNode, maintainOffset = True,
+                         aimVector = [0,1,0], upVector = [0,0,1], 
+                         worldUpObject = mFollowBase.mNode,
+                         worldUpType = 'objectrotation', 
+                         worldUpVector = [0,0,1])
+
+        for k in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
+            pass
     
     
     
@@ -2870,6 +3041,19 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         ml_proxy.append(mDag)
         #mLoftSurface.p_parent = False
         mDag.p_parent = mJaw
+        
+    
+    ml_drivers = mRigNull.msgList_get('driverJoints')
+    for mObj in ml_drivers:
+        if mObj.getMayaAttr('cgmName')=='noseBase':
+            log.debug("|{0}| >> noseBase...".format(_str_func))
+            mLoftSurface =  mBlock.noseTemplateLoft.doDuplicate(po=False,ic=False)
+            _surf = mc.nurbsToPoly(mLoftSurface.mNode, mnd=1, f=1, pt = 1,ch=0, pc=200, chr = .9, ft=.01, mel = .001, d = .1, ut=1, un = 3, vt=1, vn=3, uch = 0, cht = .01, ntr = 0, mrt = 0, uss = 1 )
+            mDag = mObj.doCreateAt()
+            CORERIG.shapeParent_in_place(mDag.mNode,_surf,False) 
+            ml_proxy.append(mDag)
+            #mLoftSurface.p_parent = False
+            mDag.p_parent = mObj            
         
 
 
