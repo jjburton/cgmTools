@@ -1160,7 +1160,9 @@ def create_simpleTemplateLoftMesh(self, targets = None,
                                   degreeAttr = 'loftDegree',
                                   polyType = 'mesh',
                                   plug = None,
-                                  baseName = None):
+                                  baseName = None,
+                                  d_rebuild = {},
+                                  ):
     try:
         _str_func = 'create_prerigLoftMesh'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
@@ -1192,7 +1194,6 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         
             for a,v in _d.iteritems():
                 ATTR.set(_tessellate,a,v)  
-                
         elif polyType in ['bezier','noMult']:
             _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=False)
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
@@ -1212,6 +1213,29 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         
             for a,v in _d.iteritems():
                 ATTR.set(_rebuildNode,a,v)
+        elif polyType == 'faceLoft':
+            _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
+            _loftNode = _res_body[1]
+            _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+            _rebuildNode = _inputs[0]            
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            
+            mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+            _len = len(targets)*2
+            _d = {'keepCorners':False,
+                  'rebuildType':0,
+                  'degreeU':1,
+                  'degreeV':3,
+                  'keepControlPoints':False,
+                  'spansU':_len,
+                  'spansV':_len}#General}
+            _d.update(d_rebuild)
+            
+            for a,v in _d.iteritems():
+                ATTR.set(_rebuildNode,a,v)
+                
+            toName = [_loftNode]
                 
         else:
             _res_body = mc.loft(targets, o = True, d = 3, po = 0,autoReverse=False)
@@ -1243,53 +1267,54 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
         
-        log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
-        if polyType in ['bezier','noMult']:
-            _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
-                                                                     self.getMayaAttrString('loftDegree','short'))
+        if polyType not in ['faceLoft']:
+            log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
+            if polyType in ['bezier','noMult']:
+                _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
+                                                                         self.getMayaAttrString('loftDegree','short'))
+                NODEFACTORY.argsToNodes(_arg).doBuild()            
+                ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeU".format(_rebuildNode))
+                ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
+                
+            _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
+                                                                  self.getMayaAttrString('loftDegree','short'))
+    
             NODEFACTORY.argsToNodes(_arg).doBuild()            
-            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeU".format(_rebuildNode))
-            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
+            ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
             
-        _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
-                                                              self.getMayaAttrString('loftDegree','short'))
-
-        NODEFACTORY.argsToNodes(_arg).doBuild()            
-        ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
-        
-        toName = []
-        if polyType == 'mesh':
-            #...wire some controls
-            _arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
-                                                        self.getMayaAttrString(uAttr,'short'))
-        
-            NODEFACTORY.argsToNodes(_arg).doBuild()
-            #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
-
-        
-            ATTR.connect("{0}.out_vSplitPre".format(targets[0]), "{0}.uNumber".format(_tessellate))
-            #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.vNumber".format(_tessellate)) 
-        
-            #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
-        
-            toName = [_tessellate,_loftNode]
-        elif polyType in ['bezier','noMult']:
-            #_arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
-            #                                         self.getMayaAttrString(uAttr,'short'))
-                    
-            #NODEFACTORY.argsToNodes(_arg).doBuild()
-            #ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.spansU".format(_rebuildNode))
-            ATTR.connect("{0}.{1}".format(self.mNode,uAttr), "{0}.spansU".format(_rebuildNode))            
-            #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.spansV".format(_rebuildNode))
+            toName = []
+            if polyType == 'mesh':
+                #...wire some controls
+                _arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
+                                                            self.getMayaAttrString(uAttr,'short'))
             
-            ATTR.connect("{0}.{1}".format(_short,uAttr), "{0}.sectionSpans".format(_loftNode))
+                NODEFACTORY.argsToNodes(_arg).doBuild()
+                #rg = "%s.condResult = if %s.ty == 3:5 else 1"%(str_obj,str_obj)
+    
             
-            #_close = mc.closeSurface(mLoftSurface.mNode,d=1,p=0,rpo=True)
+                ATTR.connect("{0}.out_vSplitPre".format(targets[0]), "{0}.uNumber".format(_tessellate))
+                #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.vNumber".format(_tessellate)) 
             
-            toName = [_rebuildNode,_loftNode]
-        else:
-            ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
-            toName = [_loftNode]
+                #ATTR.copy_to(_loftNode,'degree',self.mNode,'loftDegree',driven = 'source')
+            
+                toName = [_tessellate,_loftNode]
+            elif polyType in ['bezier','noMult']:
+                #_arg = "{0}.out_vSplitPre = {1} + 1".format(targets[0],
+                #                                         self.getMayaAttrString(uAttr,'short'))
+                        
+                #NODEFACTORY.argsToNodes(_arg).doBuild()
+                #ATTR.connect("{0}.out_vSplit".format(targets[0]), "{0}.spansU".format(_rebuildNode))
+                ATTR.connect("{0}.{1}".format(self.mNode,uAttr), "{0}.spansU".format(_rebuildNode))            
+                #ATTR.connect("{0}.{1}".format(self.mNode,vAttr), "{0}.spansV".format(_rebuildNode))
+                
+                ATTR.connect("{0}.{1}".format(_short,uAttr), "{0}.sectionSpans".format(_loftNode))
+                
+                #_close = mc.closeSurface(mLoftSurface.mNode,d=1,p=0,rpo=True)
+                
+                toName = [_rebuildNode,_loftNode]
+            else:
+                ATTR.connect("{0}.loftSplit".format(_short), "{0}.sectionSpans".format(_loftNode))
+                toName = [_loftNode]
             
         if _rebuildNode:
             mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
