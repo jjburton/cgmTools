@@ -1162,6 +1162,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
                                   plug = None,
                                   baseName = None,
                                   d_rebuild = {},
+                                  **kws
                                   ):
     try:
         _str_func = 'create_prerigLoftMesh'
@@ -1221,7 +1222,8 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             
-            mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+            if kws.get('noRebuild') is not True:
+                mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
             _len = len(targets)*2
             _d = {'keepCorners':False,
                   'rebuildType':0,
