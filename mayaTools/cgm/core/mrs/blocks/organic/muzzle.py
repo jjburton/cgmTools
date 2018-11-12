@@ -1839,15 +1839,90 @@ def prerig(self):
             md_dCurves[mObj.handleTag] = mObj
             mObj.template=1        
         
+        
 
+        
+        
         #Main setup -----------------------------------------------------
         if self.lipSetup:
+            #Let's make our handle curves
+            #fron curves, split
+            #Split by handle count
+            #normal constraint to get offset direction
+            #offset
+            #make            
             #Handles =====================================================================================
             log.debug("|{0}| >>  lip setup...".format(_str_func)+ '-'*40)
-        
-            _d = {'cgmName':'browCenter',
+            d_pos={}
+            #Get our corners
+            for side in 'left','right':
+                _side = side.capitalize()
+                _l_pos = []
+                for h in ['cornerBag','cornerBack','cornerFront','cornerPeak']:
+                    _l_pos.append(md_dHandles[h+_side].p_position)
+                d_pos['corner'+_side] = DIST.get_average_position(_l_pos)
+            
+            _d = {'cgmName':'lip',
+                  'cgmNameModifier':'lip',
                   'cgmType':'handleHelper'}
+            
+            _d_dat = {'upper':{'centerH':'uprFront',
+                               'mSurf':self.uprLipTemplateLoft,
+                               'vec':[0,1,0],
+                               'mCrv':md_dCurves['uprFront']},
+                      'lower':{'centerH':'lwrFront',
+                               'mSurf':self.lwrLipTemplateLoft,
+                               'vec':[0,-1,-.5],
+                               'mCrv':md_dCurves['lwrFront']},                      
+                               }
+
+            for d in 'upper','lower':
+                log.debug("|{0}| >>  lip {1}...".format(_str_func,d)+ '-'*20)
+                d_dir = copy.copy(_d)
+                d_dir['cgmPosition'] = 'upper'
+                d_use = _d_dat.get(d)
+                mCrv = d_use['mCrv']
+                vec = d_use['vec']
+                
+                mDup = mCrv.doDuplicate(po=False)
+                mDup.dagLock(False)
+                mDup.p_parent = False
+                mDup.v=True
+                
+                DIST.offsetShape_byVector(mDup.mNode,_offset,component='ep',vector=vec,mode='vector')
+                l_pos = CURVES.getUSplitList(mDup.mNode,5,markPoints=False)
+                l_pos[0] = d_pos['cornerRight']
+                l_pos[-1] = d_pos['cornerLeft']
+                
+                #Make our new curve...
+                _crvNew = CORERIG.create_at(create='curve',l_pos=l_pos)
+                mCrv = cgmMeta.asMeta(_crvNew)
+                
+                mCrvPos = mCrv.doDuplicate(po=False)
+                mCrvNeg = mCrv.doDuplicate(po=False)
+                
+                DIST.offsetShape_byVector(mCrvPos.mNode,_offset,component='ep',vector=vec,mode='vector')
+                DIST.offsetShape_byVector(mCrvNeg.mNode,_offset,component='ep',vector=[v * -1 for v in vec],mode='vector')
+                
+                
+
+                for i,v in enumerate(['corner','right','center','left','corner']):
+                    LOC.create(position=l_pos[i])
+                    if d == 'lower' and v == 'corner':
+                        continue
+                    continue
+                    d_dir['cgmName'] = v
+                    if v == 'center':
+                        md_handles['browCenter'] = [create_handle(md_dHandles[d_use['centerH']],
+                                                                  #d_use['mSurf'],
+                                                                  'lipCenter',None,'center',
+                                                                  nameDict = d_dir)]                        
+                    
+
+                
         
+            
+            return
             mBrowCenterDefine = self.defineBrowcenterHelper
             md_handles['browCenter'] = [create_handle(mBrowCenterDefine,mBrowLoft,
                                                       'browCenter',None,'center',nameDict = _d)]
@@ -1886,7 +1961,7 @@ def prerig(self):
                     ml_handles.append(mHandle)                
                 mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),md_handles['brow'][_side])
         
-        
+            
             #Joint helpers ------------------------
             log.debug("|{0}| >> Joint helpers..".format(_str_func)+'-'*40)
             _d = {'cgmName':'brow',
@@ -1991,7 +2066,7 @@ def prerig(self):
         
         
         
-        
+        return
         
         if self.muzzleSetup:
             log.debug("|{0}| >>  Muzzle setup...".format(_str_func)+ '-'*40)

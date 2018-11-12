@@ -369,7 +369,7 @@ def get_vectorOffset(obj = None, origin = None, distance = 0, asEuclid = False):
         return MATHUTILS.Vector3(newPos[0],newPos[1],newPos[2])
     return newPos
 
-def set_vectorOffset(obj = None, origin = None, distance = 0, asEuclid = False):
+def set_vectorOffset(obj = None, origin = None, distance = 0, vector = None, mode = 'origin', asEuclid = False):
     """
     Set the vector offset of a given object with a distance. Designed as a replacment
     for maya's curve offset as it's finicky coupled with
@@ -383,11 +383,14 @@ def set_vectorOffset(obj = None, origin = None, distance = 0, asEuclid = False):
     :returns
         pos(list/Vector3)
     """   
-    newPos = get_vectorOffset(obj,origin,distance)
+    if mode == 'origin':
+        newPos = get_vectorOffset(obj,origin,distance)
+    else:
+        newPos = get_pos_by_vec_dist(POS.get(obj),vector,distance)
     POS.set(obj,newPos)
     return newPos
 
-def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'):
+def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv', vector = None, mode = 'origin'):
     """
     Attempt for more consistency 
     
@@ -427,7 +430,8 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         
         for ii,c in enumerate(_l_source):
             log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
-            set_vectorOffset(c,_origin,distance)
+            set_vectorOffset(c,_origin,distance,vector,mode=mode)
+
         
     return True
 
