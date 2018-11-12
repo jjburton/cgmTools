@@ -1161,6 +1161,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
                                   polyType = 'mesh',
                                   plug = None,
                                   baseName = None,
+                                  noReverse = False,
                                   d_rebuild = {},
                                   **kws
                                   ):
@@ -1171,7 +1172,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         _side = 'center'
         _rebuildNode = None
         _loftNode = None
-        
+        _b_noReverse = VALID.boolArg(noReverse)
         _plug = plug or baseName+'TemplateLoft'
         _cgmName = baseName or None
         
@@ -1203,7 +1204,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             
-            if polyType == 'bezier':
+            if polyType == 'bezier' and _b_noReverse is not True:
                 mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
                 
             _d = {'keepCorners':False,
@@ -1222,7 +1223,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             _rebuildNode = _inputs[0]            
             mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
             
-            if kws.get('noRebuild') is not True:
+            if kws.get('noRebuild') is not True and _b_noReverse is not True:
                 mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
             _len = len(targets)*2
             _d = {'keepCorners':False,
