@@ -3043,13 +3043,14 @@ def rig_dataBuffer(self):
     #Settings =============================================================================
     mModuleParent =  self.d_module['mModuleParent']
     if mModuleParent:
-        mSettings = mModuleParent.rigNull.settings
+        log.debug("|{0}| >>  using parent settings...".format(_str_func))        
+        mParentSettings = mModuleParent.rigNull.settings
     else:
-        log.debug("|{0}| >>  using puppet...".format(_str_func))
-        mSettings = self.d_module['mMasterControl'].controlVis
+        #log.debug("|{0}| >>  using puppet...".format(_str_func))
+        mParentSettings = None #self.d_module['mMasterControl'].controlVis
 
-    log.debug("|{0}| >> mSettings | self.mSettings: {1}".format(_str_func,mSettings))
-    self.mSettings = mSettings
+    log.debug("|{0}| >> Settings | self.mParentSettings: {1}".format(_str_func,mParentSettings))
+    self.mParentSettings = mParentSettings
     
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
@@ -3181,7 +3182,6 @@ def rig_skeleton(self):
             doSingleJoint(t,False)
             
 
-    
     #Processing  Handles ================================================================================
     log.debug("|{0}| >> Processing...".format(_str_func)+ '-'*40)
     if self.str_lipSetup:
@@ -3219,10 +3219,20 @@ def rig_skeleton(self):
                 mHelpers = mPrerigNull.msgList_get('{0}PrerigHandles'.format(key))
                 
                 ml = []
-                for mHandle in mHandles:
+                for ii,mHandle in enumerate(mHandles):
                     mJnt = create_jointFromHandle(mHandle,False,'handle')
                     ml.append(mJnt)
                     
+                    if d == 'upper' and side in ['right','left'] and ii == 0:
+                        log.debug("|{0}| >>  influenceJoints for {1}...".format(_str_func,mHandle))
+                        for k in 'upper','lower':
+                            mSub = create_jointFromHandle(mHandle,False,'{0}Influence'.format(k))
+                            mSub.doStore('mClass','cgmObject')
+                            mSub.p_parent = mJnt
+                            mJnt.doStore('{0}Influence'.format(k),mSub.mNode)
+                            ml_jointsToConnect.append(mSub)
+                            ml_jointsToHide.append(mSub)
+                
                 ml_jointsToHide.extend(ml)
                 md_handles[_k][side] = ml
                 md_handleShapes[_k][side] = mHelpers
@@ -3270,6 +3280,12 @@ def rig_shapes(self):
             CORERIG.shapeParent_in_place(mJaw_fk.mNode, mPrerigNull.getMessageAsMeta('jawShapeHelper').mNode)
             
             mRigNull.doStore('controlJaw',mJaw_fk.mNode)
+            
+            if not self.mParentSettings:
+                log.debug("|{0}| >> Jaw settings!...".format(_str_func))                
+                mRigNull.doStore('settings',mJaw_fk.mNode)
+            else:
+                mRigNull.doStore('settings',self.mParentSettings)
             log.debug(cgmGEN._str_subLine)
             
         if self.md_rigJoints.get('chin'):
@@ -3405,9 +3421,13 @@ def rig_controls(self):
         mRootParent = self.mDeformNull
         ml_segmentHandles = []
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
+        mSettings = self.mParentSettings or mRigNull.getMessageAsMeta('settings')
+        
+        if not mSettings:
+            raise ValueError,"Should have settings"
         
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visDirect = cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
+        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect_{0}'.format(self.d_module['partName']),
                                           value = True,
                                           attrType='bool',
                                           defaultValue = False,
@@ -3539,8 +3559,8 @@ def rig_controls(self):
             ATTR.set(mHeadLookAt.mNode,'rotateOrder',self.ro_headLookAt)
             """
         
-        mRigNull.msgList_connect('handleJoints',ml_segmentHandles,'rigNull')        
-        mRigNull.msgList_connect('controlsAll',ml_controlsAll)
+        mRigNull.msgList_connect('handleJoints',ml_segmentHandles)
+        mRigNull.msgList_connect('controlsAll',ml_controlsAll,'rigNull')
         mRigNull.moduleSet.extend(ml_controlsAll)
         
     except Exception,error:
@@ -3643,10 +3663,10 @@ def rig_frame(self):
         
         #side handles ---------------------------
         d_lipSetup = {'upper':{'ml_chain':[mRightCorner] + ml_uprChain + [mLeftCorner],
-                               'mInfluences':[mRightCorner,mUprCenter,mLeftCorner],
+                               'mInfluences':[mRightCorner.upperInfluence,mUprCenter,mLeftCorner.upperInfluence],
                                'mHandles':ml_uprLip},
                       'lower':{'ml_chain':[mRightCorner] + ml_lwrChain + [mLeftCorner],
-                               'mInfluences':[mRightCorner,mLwrCenter,mLeftCorner],
+                               'mInfluences':[mRightCorner.lowerInfluence,mLwrCenter,mLeftCorner.lowerInfluence],
                                'mHandles':ml_lwrLip}}
         
         for k,d in d_lipSetup.iteritems():
@@ -3713,8 +3733,27 @@ def rig_frame(self):
                 mObj.overrideEnabled = 1
                 cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
                 cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
-                mObj.parent = mRigNull                
-        
+                mObj.parent = mRigNull
+                
+        #Lip handles ------------------------------------------------------
+        log.debug("|{0}| >> lip corner influences...".format(_str_func)+ '-'*20)
+        for i,mHandle in enumerate([mRightCorner,mLeftCorner]):
+            mPlug_upper = cgmMeta.cgmAttr(mHandle,'twistUpper',value = 0,
+                                          attrType='float',defaultValue = 0.0,keyable = True,hidden = False)
+            mPlug_lower = cgmMeta.cgmAttr(mHandle,'twistLower',value = 0,
+                                          attrType='float',defaultValue = 0.0,keyable = True,hidden = False)
+            
+            if not i:# ['right']:# and k not in ['inner','outer']:
+                mPlug_upper.doConnectOut("{0}.rz".format(mHandle.upperInfluence.mNode))                 
+                mPlug_lower.doConnectOut("{0}.rz".format(mHandle.lowerInfluence.mNode))                 
+            else:  
+                str_arg1 = "{0}.rz = -{1}".format(mHandle.upperInfluence.mNode,
+                                                  mPlug_upper.p_combinedShortName)                
+                str_arg2 = "{0}.rz = -{1}".format(mHandle.lowerInfluence.mNode,
+                                                 mPlug_lower.p_combinedShortName)
+                for a in str_arg1,str_arg2:
+                    NODEFACTORY.argsToNodes(a).doBuild()
+                
 
     if self.str_cheekSetup:
         log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
@@ -3727,6 +3766,50 @@ def rig_frame(self):
             
             mOffsetGroup = mdD[k].doGroup(True,asMeta=True,typeModifier = 'offset')
             
+            #Offset sdks ------------------------
+            inTangent='linear'
+            outTangent='linear'
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.rx".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 0,value = 0.0)
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.rz".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 0,value = 0.0)            
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.ty".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 0,value = 0.0)
+            
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.tx".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 0,value = 0.0)            
+            
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.rx".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 30,value = -1)
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.ty".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = -4,value = -1)
+            mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                 currentDriver = "{0}.ty".format(mJaw.mNode),
+                                 itt=inTangent,ott=outTangent,
+                                 driverValue = 3,value = 1)
+            
+            if k == 'cheekLeft':
+                mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                     currentDriver = "{0}.rz".format(mJaw.mNode),
+                                     itt=inTangent,ott=outTangent,
+                                     driverValue = 20,value = 1)
+            else:
+                mc.setDrivenKeyframe("{0}.tz".format(mOffsetGroup.mNode),
+                                     currentDriver = "{0}.rz".format(mJaw.mNode),
+                                     itt=inTangent,ott=outTangent,
+                                     driverValue = -20,value = 1)                
     
     if self.str_noseSetup:
         log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
@@ -3791,8 +3874,8 @@ def rig_lipSegments(self):
     mRightCorner = self.md_handles['lipUpper']['right'][0]
     mUprCenter = self.md_handles['lipUpper']['center'][0]
     mLwrCenter = self.md_handles['lipLower']['center'][0]        
-    ml_uprLipInfluences = [mRightCorner] + self.md_handles['lipUpper']['right'][1:] + self.md_handles['lipUpper']['center']+ self.md_handles['lipUpper']['left'][1:] + [mLeftCorner]
-    ml_lwrLipInfluences = [mRightCorner] + self.md_handles['lipLower']['right'] + self.md_handles['lipLower']['center']+ self.md_handles['lipLower']['left'] + [mLeftCorner]
+    ml_uprLipInfluences = [mRightCorner.upperInfluence] + self.md_handles['lipUpper']['right'][1:] + self.md_handles['lipUpper']['center']+ self.md_handles['lipUpper']['left'][1:] + [mLeftCorner.upperInfluence]
+    ml_lwrLipInfluences = [mRightCorner.lowerInfluence] + self.md_handles['lipLower']['right'] + self.md_handles['lipLower']['center']+ self.md_handles['lipLower']['left'] + [mLeftCorner.lowerInfluence]
     
     log.debug("|{0}| >> sort driven".format(_str_func))
     dUpr =  self.md_rigJoints['lipUpper']
