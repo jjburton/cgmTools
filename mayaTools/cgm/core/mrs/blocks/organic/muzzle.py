@@ -66,6 +66,8 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.lib.list_utils as LISTS
+import cgm.core.rig.ik_utils as IK
+import cgm.core.rig.skin_utils as RIGSKIN
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
@@ -89,6 +91,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
+                       'rig_lipSegments',
                        'rig_cleanUp']
 
 
@@ -3204,7 +3207,7 @@ def rig_skeleton(self):
                     mDriver = mJnt.getMessageAsMeta('driverJoint')
                     ml_driver.append(mDriver)
                     mDriver.p_parent = False
-                
+                    mRigJoint.doStore('driverJoint',mDriver.mNode)
                     mRigJoint.p_parent = mDriver
                 
                 md_rigJoints[_k][side] = ml_rig
@@ -3269,6 +3272,14 @@ def rig_shapes(self):
             mRigNull.doStore('controlJaw',mJaw_fk.mNode)
             log.debug(cgmGEN._str_subLine)
             
+        if self.md_rigJoints.get('chin'):
+            log.debug("|{0}| >> chin setup...".format(_str_func)+ '-'*40)
+            mChin = self.md_driverJoints.get('chin')
+            CORERIG.shapeParent_in_place(mChin.mNode, mPrerigNull.getMessageAsMeta('chinShapeHelper').mNode)
+            
+            mRigNull.doStore('controlChin',mChin.mNode)
+            log.debug(cgmGEN._str_subLine)
+                
         if self.str_muzzleSetup:
             log.debug("|{0}| >> Muzzle setup...".format(_str_func)+ '-'*40)
             mMuzzleDagHelper = mPrerigNull.getMessageAsMeta('muzzleJointHelper')
@@ -3412,7 +3423,7 @@ def rig_controls(self):
             ml_controlsAll.append(_d['mObj'])            
             return _d['mObj']
         
-        for link in ['controlJaw','controlMuzzle','controlMouth']:
+        for link in ['controlJaw','controlMuzzle','controlMouth','controlChin']:
             mLink = mRigNull.getMessageAsMeta(link)
             if mLink:
                 log.debug("|{0}| >> {1}...".format(_str_func,link))
@@ -3600,6 +3611,301 @@ def rig_frame(self):
         mUprCenter = self.md_handles['lipUpper']['center'][0]
         mLwrCenter = self.md_handles['lipLower']['center'][0]        
         ml_uprLip = self.md_handles['lipUpper']['right'][1:] + self.md_handles['lipUpper']['left'][1:]
+        
+        ml_lwrLip = self.md_handles['lipLower']['right'] + self.md_handles['lipLower']['left']
+        
+        ml_uprChain = self.md_handles['lipUpper']['right'][1:] + [mUprCenter] +self.md_handles['lipUpper']['left'][1:]
+        ml_lwrChain = self.md_handles['lipLower']['right'] + [mLwrCenter] + self.md_handles['lipLower']['left']
+
+        for mHandle in mLeftCorner,mRightCorner:
+            log.debug("|{0}| >> lip handles | {1}".format(_str_func,mHandle))
+            
+            mHandle.masterGroup.p_parent = mFollowBase
+            
+            mMainTrack = mHandle.doCreateAt(setClass=1)
+            mMainTrack.doStore('cgmName',mHandle.mNode)
+            mMainTrack.doStore('cgmType','mainTrack')
+            mMainTrack.doName()
+            mMainTrack.p_parent = mFollowParent
+            
+            mJawTrack = mHandle.doCreateAt(setClass=1)
+            mJawTrack.doStore('cgmName',mHandle.mNode)
+            mJawTrack.doStore('cgmType','jawTrack')
+            mJawTrack.doName()
+            mJawTrack.p_parent = mJawSpaceMouth
+            
+            mc.parentConstraint([mMainTrack.mNode,mJawTrack.mNode],
+                                mHandle.masterGroup.mNode,
+                                maintainOffset=True)
+            
+        mUprCenter.masterGroup.p_parent = mMouth
+        mLwrCenter.masterGroup.p_parent = mJawSpaceMouth
+        
+        #side handles ---------------------------
+        d_lipSetup = {'upper':{'ml_chain':[mRightCorner] + ml_uprChain + [mLeftCorner],
+                               'mInfluences':[mRightCorner,mUprCenter,mLeftCorner],
+                               'mHandles':ml_uprLip},
+                      'lower':{'ml_chain':[mRightCorner] + ml_lwrChain + [mLeftCorner],
+                               'mInfluences':[mRightCorner,mLwrCenter,mLeftCorner],
+                               'mHandles':ml_lwrLip}}
+        
+        for k,d in d_lipSetup.iteritems():
+            #need our handle chain to make a ribbon
+            ml_chain = d['ml_chain']
+            mInfluences = d['mInfluences']
+            l_surfaceReturn = IK.ribbon_createSurface([mJnt.mNode for mJnt in ml_chain],
+                                            'z+')
+            mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
+            mControlSurface.addAttr('cgmName',"{0}HandlesFollow_lip".format(k),attrType='string',lock=True)    
+            mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
+            mControlSurface.doName()
+            mControlSurface.p_parent = _str_rigNull
+            
+            
+            log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mControlSurface))
+            mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in mInfluences],
+                                                                  mControlSurface.mNode,
+                                                                  tsb=True,nurbsSamples=4,
+                                                                  maximumInfluences = 3,
+                                                                  normalizeWeights = 1,dropoffRate=10.0),
+                                                  'cgmNode',
+                                                  setClass=True)
+        
+            mSkinCluster.doStore('cgmName', mControlSurface.mNode)
+            mSkinCluster.doName()
+            
+            """
+            #Skin
+            max_influences = 2
+            mode_tighten = None
+            blendLength = len(mInfluences)
+            blendMin = 2
+            _hardLength = 2
+            
+            #if extendEnds:
+                #blendMin = 4
+                #_hardLength = 4
+                #mode_tighten = None
+        
+        
+            if len(mInfluences) > 2:
+                mode_tighten = None
+                #blendLength = int(int_lenInfluences/2)
+                max_influences = MATH.Clamp( blendLength, 2, 4)
+                blendLength = MATH.Clamp( int(len(mInfluences)/2), 2, 6)
+        
+            #if len(mInfluences) == dat['int_driven']:
+                #_hardLength = 3            
+            
+            RIGSKIN.surface_tightenEnds(mControlSurface.mNode,
+                                        hardLength = 2,
+                                        blendLength=2,
+                                        mode=None)"""             
+            
+            for mHandle in d['mHandles']:
+                mHandle.masterGroup.p_parent = mFollowParent
+                _resAttach = RIGCONSTRAINT.attach_toShape(mHandle.masterGroup.mNode,
+                                                          mControlSurface.mNode,
+                                                          'conParent')
+                TRANS.parent_set(_resAttach[0],_str_rigNull)
+            
+            for mObj in [mControlSurface]:
+                mObj.overrideEnabled = 1
+                cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+                cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+                mObj.parent = mRigNull                
+        
+
+    if self.str_cheekSetup:
+        log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
+        for k in ['cheekLeft','cheekRight']:
+            log.debug("|{0}| >> {1}...".format(_str_func,k))
+            mdD[k].masterGroup.p_parent = self.mDeformNull
+            
+            mc.parentConstraint([mFollowParent.mNode, mJaw.mNode],
+                                mdD[k].masterGroup.mNode,maintainOffset=True)
+            
+            mOffsetGroup = mdD[k].doGroup(True,asMeta=True,typeModifier = 'offset')
+            
+    
+    if self.str_noseSetup:
+        log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
+        mdD['noseBase'].masterGroup.p_parent = mDeformNull
+        
+        mTrack = mdD['noseBase'].masterGroup.doCreateAt(setClass=1)
+        mTrack.p_parent = mFollowParent
+        _c = mc.parentConstraint([mFollowBase.mNode, mTrack.mNode],
+                            mdD['noseBase'].masterGroup.mNode,maintainOffset=True)[0]
+        
+        targetWeights = mc.parentConstraint(_c,q=True,
+                                            weightAliasList=True,
+                                            maintainOffset=True)
+        ATTR.set(_c,targetWeights[0],.25)
+        ATTR.set(_c,targetWeights[1],.75)
+        
+        """
+        mc.pointConstraint([mFollowBase.mNode, mTrack.mNode],
+                            mdD['noseBase'].masterGroup.mNode,maintainOffset=True)
+        
+        mc.aimConstraint(mFollowBase.mNode, mdD['noseBase'].masterGroup.mNode, maintainOffset = True,
+                         aimVector = [0,1,0], upVector = [0,0,1], 
+                         worldUpObject = mFollowBase.mNode,
+                         worldUpType = 'objectrotation', 
+                         worldUpVector = [0,0,1])"""
+
+        for k in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
+            pass
+
+    return
+
+
+
+@cgmGEN.Timer
+def rig_lipSegments(self):
+    _short = self.d_block['shortName']
+    _str_func = ' rig_lipSegments'
+    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mRootParent = self.mDeformNull
+    mModule = self.mModule
+    mDeformNull = self.mDeformNull
+    mFollowParent = self.mDeformNull
+    mFollowBase = self.mDeformNull
+    mMouth = mRigNull.getMessageAsMeta('controlMouth')
+    log.debug("|{0}| >> mMouth: {1}".format(_str_func,mMouth))
+    
+    mdD = self.md_driverJoints
+    
+    
+    if not self.str_lipSetup:
+        log.debug("|{0}| >> No lip setup...".format(_str_func))
+        return False
+    
+    
+    log.debug("|{0}| >> sort influences".format(_str_func))
+    mLeftCorner = self.md_handles['lipUpper']['left'][0]
+    mRightCorner = self.md_handles['lipUpper']['right'][0]
+    mUprCenter = self.md_handles['lipUpper']['center'][0]
+    mLwrCenter = self.md_handles['lipLower']['center'][0]        
+    ml_uprLipInfluences = [mRightCorner] + self.md_handles['lipUpper']['right'][1:] + self.md_handles['lipUpper']['center']+ self.md_handles['lipUpper']['left'][1:] + [mLeftCorner]
+    ml_lwrLipInfluences = [mRightCorner] + self.md_handles['lipLower']['right'] + self.md_handles['lipLower']['center']+ self.md_handles['lipLower']['left'] + [mLeftCorner]
+    
+    log.debug("|{0}| >> sort driven".format(_str_func))
+    dUpr =  self.md_rigJoints['lipUpper']
+    dLwr =  self.md_rigJoints['lipLower']
+    _revUprLeft = copy.copy(dUpr['left'])
+    _revLwrLeft = copy.copy(dLwr['left'])
+    for l in _revLwrLeft,_revUprLeft:
+        l.reverse()
+    ml_uprRig = dUpr['right'] + dUpr['center']+ _revUprLeft
+    ml_lwrRig = dLwr['right'] + dLwr['center']+ _revLwrLeft
+
+    mMidDag = cgmMeta.cgmObject(name='midSealMarker')
+    mMidDag.p_position = DIST.get_average_position([mUprCenter.p_position,
+                                                    mLwrCenter.p_position])
+    mMidDag.p_parent = mDeformNull
+    
+    d_lips = {'driven1':ml_uprRig,
+              'driven2':ml_lwrRig,
+              'influences1':ml_uprLipInfluences,
+              'influences2':ml_lwrLipInfluences,
+              'baseName':'lipRibbons',
+              'settingsControl':mMouth,
+              'baseName1' :"uprLip",
+              'baseName2':"lwrLip",
+              'extendEnds':False,
+              'sealDriver1':mLeftCorner,
+              'sealDriver2':mRightCorner,
+              'sealDriverMid':mMidDag,#mUprCenter
+              'sealSplit':True,
+              'specialMode':'endsToInfluences',
+              'moduleInstance':mModule,
+              'msgDriver':'driverJoint'}    
+    
+    #pprint.pprint(d_test)
+    IK.ribbon_seal(**d_lips)
+    
+    
+    for mObj in ml_uprRig + ml_lwrRig:
+        mObj.driverJoint.p_parent = mDeformNull
+    
+    return 
+    """
+    driven1 = [u'L_lip_corner_rig',u'L_lip_upr_rig',u'CTR_lip_upr_rig',u'R_lip_upr_rig',u'R_lip_corner_rig']
+    driven2 = [u'L_lip_corner_rig',u'L_lip_lwr_rig',u'CTR_lip_lwr_rig',u'R_lip_lwr_rig',u'R_lip_corner_rig']
+    
+    influences1 =[u'L_lip_corner_anim',u'L_lip_upr_anim',u'CTR_lip_upr_anim',u'R_lip_upr_anim',u'R_lip_corner_anim']
+    influences2 =[u'L_lip_corner_anim',u'L_lip_lwr_anim',u'CTR_lip_lwr_anim',u'R_lip_lwr_anim',u'R_lip_corner_anim']
+    
+    d_test = {'driven1':driven1,
+              'driven2':driven2,
+              'influences1':influences1,
+              'influences2':influences2,
+              'baseName':'lipRibbons',
+              'baseName1' :"uprLip",
+              'baseName2':"lwrLip",
+              'extendEnds':True,
+              'msgDriver':'driverGroup'}
+    reload(MORPHYUTILS)
+    MORPHYUTILS.ribbon_seal(**d_test)    """
+
+
+
+
+
+
+    
+    #Process our main controls ==============================================================
+    mMuzzle = mRigNull.getMessageAsMeta('controlMuzzle')
+    mJaw = mRigNull.getMessageAsMeta('controlJaw')
+    _str_rigNull = mRigNull.mNode
+    if mMuzzle:
+        log.debug("|{0}| >> Muzzle setup...".format(_str_func))
+        mMuzzle.masterGroup.p_parent = self.mDeformNull
+        mFollowParent = mMuzzle
+        mFollowBase = mMuzzle.doCreateAt('null',setClass=True)
+        mFollowBase.rename('{0}_followBase'.format(self.d_module['partName']))
+        mFollowBase.p_parent = self.mDeformNull
+        
+    if mJaw:
+        log.debug("|{0}| >> Jaw setup...".format(_str_func))
+        mJaw.masterGroup.p_parent = mFollowParent
+        if not mMuzzle:
+            mFollowParent = mJaw
+        
+    if self.str_lipSetup:
+        log.debug("|{0}| >> lip setup...".format(_str_func)+ '-'*40)
+        
+        log.debug("|{0}| >> mouth move...".format(_str_func))        
+        mMouth = mRigNull.getMessageAsMeta('controlMouth')
+        log.debug("|{0}| >> mMouth: {1}".format(_str_func,mMouth))
+        mMouth.masterGroup.p_parent = mFollowParent
+        
+        mJawSpaceMouth = mMouth.doCreateAt(setClass=1)
+        mJawSpaceMouth.p_parent = mJaw 
+        mJawSpaceMouth.rename('{0}_mouthJawSpace'.format(self.d_module['partName']))
+        mJawSpaceMouth.doGroup(True,asMeta=True,typeModifier = 'zero')
+        _str_mouth = mMouth.mNode
+        _str_mouthJawSpace = mJawSpaceMouth.mNode
+        
+        #Wire our jaw space mouth move
+        for a in 'translate','rotate','scale':
+            ATTR.connect("{0}.{1}".format(_str_mouth,a), "{0}.{1}".format(_str_mouthJawSpace,a))
+            #mMouth.doConnectOut(a,mJawSpaceMouth.mNode)
+        
+        #Lip handles ------------------------------------------------------
+        log.debug("|{0}| >> lip handles...".format(_str_func)+ '-'*20)
+        
+        log.debug("|{0}| >> sort handles".format(_str_func)+ '-'*20)
+        mLeftCorner = self.md_handles['lipUpper']['left'][0]
+        mRightCorner = self.md_handles['lipUpper']['right'][0]
+        mUprCenter = self.md_handles['lipUpper']['center'][0]
+        mLwrCenter = self.md_handles['lipLower']['center'][0]        
+        ml_uprLip = self.md_handles['lipUpper']['right'][1:] + self.md_handles['lipUpper']['left'][1:]
         ml_lwrLip = self.md_handles['lipLower']['right'] + self.md_handles['lipLower']['left']
         
         
@@ -3674,38 +3980,6 @@ def rig_frame(self):
                 mObj.parent = mRigNull                
         
 
-    if self.str_cheekSetup:
-        log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
-        for k in ['cheekLeft','cheekRight']:
-            log.debug("|{0}| >> {1}...".format(_str_func,k))
-            mdD[k].masterGroup.p_parent = self.mDeformNull
-            
-            mc.parentConstraint([mFollowBase.mNode, mJaw.mNode],
-                                mdD[k].masterGroup.mNode,maintainOffset=True)
-            
-            mOffsetGroup = mdD[k].doGroup(True,asMeta=True,typeModifier = 'offset')
-            
-    
-    if self.str_noseSetup:
-        log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
-        mdD['noseBase'].masterGroup.p_parent = mDeformNull
-        
-        mTrack = mdD['noseBase'].masterGroup.doCreateAt(setClass=1)
-        mTrack.p_parent = mFollowParent
-        mc.pointConstraint([mFollowBase.mNode, mTrack.mNode],
-                            mdD['noseBase'].masterGroup.mNode,maintainOffset=True)
-        
-        mc.aimConstraint(mFollowBase.mNode, mdD['noseBase'].masterGroup.mNode, maintainOffset = True,
-                         aimVector = [0,1,0], upVector = [0,0,1], 
-                         worldUpObject = mFollowBase.mNode,
-                         worldUpType = 'objectrotation', 
-                         worldUpVector = [0,0,1])
-
-        for k in ['noseBase','noseTip','nostrilLeft','nostrilRight']:
-            pass
-
-    return
-
 
 @cgmGEN.Timer
 def rig_cleanUp(self):
@@ -3739,7 +4013,7 @@ def rig_cleanUp(self):
         if mCtrl.hasAttr('radius'):
             ATTR.set_hidden(mCtrl.mNode,'radius',True)
         
-        for link in 'masterGroup','dynParentGroup','aimGroup','contraintGroup':
+        for link in 'masterGroup','dynParentGroup','aimGroup','contraintGroup','offsetGroup':
             if mCtrl.getMessage(link):
                 mCtrl.getMessageAsMeta(link).dagLock(True)
     
@@ -3851,8 +4125,159 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
     if mBlock.neckBuild:#...Neck =====================================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
-
 def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+    """
+    Build our proxyMesh
+    """
+    _short = self.d_block['shortName']
+    _str_func = 'build_proxyMesh'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+     
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mPuppetSettings = self.d_module['mMasterControl'].controlSettings
+    mPrerigNull = mBlock.prerigNull
+    
+    _side = BLOCKUTILS.get_side(self.mBlock)
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
+    if not ml_rigJoints:
+        raise ValueError,"No rigJoints connected"
+    self.v_baseSize = [mBlock.blockScale * v for v in mBlock.baseSize]
+    
+    #>> If proxyMesh there, delete --------------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+    else:
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
+        
+    ml_proxy = []
+    ml_curves = []
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ml_new = []
+    #Let's gather our proxy mesh
+    for lnk in ['jaw','nose','uprLip','lwrLip','noseToCheekLeft','noseToCheekRight']:
+        mBase = mBlock.getMessageAsMeta(lnk+'TemplateLoft')
+        if mBase:
+            log.debug("|{0}| >> On: {1}".format(_str_func,lnk)+'-'*40)
+            
+            mLoftSurface =  mBase.doDuplicate(po=False,ic=False)
+            _surf = mc.nurbsToPoly(mLoftSurface.mNode, mnd=1, f=0,
+                                   pt = 1,ch=0, pc=200, chr = .9,
+                                   ft=.01, mel = .001, d = .1, ut=1, un = 3,
+                                   vt=1, vn=3, uch = 0, cht = .01, ntr = 0, mrt = 0, uss = 1 )
+            #mLoftSurface.p_parent=False
+            mLoftSurface.delete()
+            
+            mNew = cgmMeta.asMeta(_surf[0])
+            
+            ml_new.append(mNew)
+            mNew.p_parent = False
+            mNew.doStore('cgmName',lnk)
+            mNew.doName()            
+            ml_use = copy.copy(ml_rigJoints)
+            ml_remove = []
+            if lnk in 'uprLip':
+                for mObj in ml_use:
+                    #if 'LWR_lip' in mObj.mNode:
+                    if mObj.getMayaAttr('cgmPosition') == 'lower' and mObj.cgmName == 'lip':
+                        log.debug("|{0}| >> removing: {1}".format(_str_func,mObj))
+                        ml_remove.append(mObj)
+            if lnk in 'lwrLip':
+                for mObj in ml_use:
+                    #if 'UPR_lip' in mObj.mNode:                    
+                    if mObj.getMayaAttr('cgmPosition') == 'upper' and mObj.cgmName == 'lip':
+                        ml_remove.append(mObj)
+                        log.debug("|{0}| >> removing: {1}".format(_str_func,mObj))
+                        
+            for mObj in ml_remove:
+                ml_use.remove(mObj)
+            log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mNew))
+            mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in ml_use],
+                                                                  mNew.mNode,
+                                                                  tsb=True,
+                                                                  maximumInfluences = 3,
+                                                                  heatmapFalloff = 1.0,
+                                                                  bindMethod = 0,
+                                                                  normalizeWeights = 1,dropoffRate=10.0),
+                                                  'cgmNode',
+                                                  setClass=True)
+        
+            mSkinCluster.doStore('cgmName', mNew.mNode)
+            mSkinCluster.doName()
+            
+            ml_proxy.append(mNew)
+            
+            
+    """
+    if ml_new:
+        _mesh = mc.polyUnite([mObj.mNode for mObj in ml_new],ch=False)
+        _mesh = mc.rename(_mesh,'{0}_proxy_geo'.format(self.d_module['partName']))        
+        mNew = cgmMeta.asMeta(_mesh)
+        
+        ml_proxy.append(mNew)
+        
+        log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mNew))
+        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in ml_rigJoints],
+                                                              mNew.mNode,
+                                                              tsb=True,
+                                                              maximumInfluences = 4,
+                                                              heatmapFalloff = 1.0,
+                                                              bindMethod = 2,
+                                                              normalizeWeights = 1,dropoffRate=10.0),
+                                              'cgmNode',
+                                              setClass=True)
+    
+        mSkinCluster.doStore('cgmName', mNew.mNode)
+        mSkinCluster.doName()"""
+        
+    
+
+
+    for mProxy in ml_proxy:
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
+        #mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+
+        #Vis connect -----------------------------------------------------------------------
+        mProxy.overrideEnabled = 1
+        ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
+        for mShape in mProxy.getShapes(asMeta=1):
+            str_shape = mShape.mNode
+            mShape.overrideEnabled = 0
+            #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
+            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+            
+    #if directProxy:
+    #    for mObj in ml_rigJoints:
+    #        for mShape in mObj.getShapes(asMeta=True):
+                #mShape.overrideEnabled = 0
+    #            mShape.overrideDisplayType = 0
+    #            ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+        
+    
+    mRigNull.msgList_connect('proxyMesh', ml_proxy + ml_curves)
+
+
+
+def build_proxyMeshBAK(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
@@ -3925,9 +4350,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             ml_proxy.append(mDag)
             #mLoftSurface.p_parent = False
             mDag.p_parent = mObj            
-        
-
-
 
     for mProxy in ml_proxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
@@ -3950,8 +4372,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #            mShape.overrideDisplayType = 0
     #            ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
-        
-
     
     mRigNull.msgList_connect('proxyMesh', ml_proxy + ml_curves)
 
