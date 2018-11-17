@@ -189,6 +189,44 @@ def verify_objectSet(self):
                 mi_modulePuppet.verify_objectSet()
             self.modulePuppet.puppetSet.addObj(mSet.mNode)
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def verify_faceObjectSet(self):
+    _str_func = ' verify_faceObjectSet'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    try:#Quick select sets ================================================================
+        mPuppetSet = False
+        mRigNull = self.rigNull
+        
+        if self.modulePuppet:
+            mModulePuppet = self.modulePuppet
+            mPuppetSet = mModulePuppet.getMessageAsMeta('puppetSet') or mModulePuppet.verify_objectSet()
+                
+        mParentModule = self.getMessageAsMeta('moduleParent')
+        if not mParentModule:
+            mParentModule = mModulePuppet
+        
+        mFaceSet = mParentModule.rigNull.getMessageAsMeta('faceSet')
+        #mParentSet = mParentModule.rigNull.getMessageAsMeta('moduleSet')
+        
+        _created = False
+        
+        if mFaceSet:
+            log.debug("|{0}| >>  faceSet exists from moduleParent: {1}".format(_str_func,mFaceSet))            
+        else:
+            _created = True
+            mFaceSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+            mParentModule.rigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
+        
+        mRigNull.connectChildNode(mFaceSet.mNode,'faceSet')        
+        mFaceSet.doStore('cgmName',"{0}_face".format(get_partName(mParentModule)))
+        mFaceSet.doName()
+        
+        if mPuppetSet:
+            mPuppetSet.addObj(mFaceSet.mNode)
+        return mFaceSet
+            
+    except Exception,err:cgmGEN.cgmException(Exception,err)
 
 #=============================================================================================================
 #>> Skeleton
@@ -552,7 +590,15 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        for plug in ['blendJoints','fkJoints','moduleJoints']:
+        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        _direct = False
+        if mParentModule.moduleType in ['head'] and mode == 'end':
+            l_msgLinks = ['rigJoints']
+            _direct = True
+            
+        for plug in l_msgLinks:#'handleJoints',        
+        
+
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))                
@@ -599,7 +645,13 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
-        for plug in ['blendJoints','fkJoints','moduleJoints']:#'handleJoints',
+        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        _direct = False
+        if mParentModule.moduleType in ['head'] and mode == 'end':
+            l_msgLinks = ['rigJoints']
+            _direct = True
+            
+        for plug in l_msgLinks:#'handleJoints',
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))
@@ -622,7 +674,7 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
                 return log.error(_msg)
             raise ValueError,_msg
         
-        if _plugUsed not in ['handleJoints']:
+        if _plugUsed not in ['handleJoints'] and _direct != True:
             if mTarget.getMessage('masterGroup'):
                 log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
                 return mTarget.masterGroup

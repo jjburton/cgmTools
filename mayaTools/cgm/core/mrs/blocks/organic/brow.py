@@ -77,6 +77,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.10.31.2018'
 __autoTemplate__ = False
 __menuVisible__ = True
+__faceBlock__ = True
 
 #These are our base dimensions. In this case it is for human
 __dimensions_by_type = {'box':[22,22,22],
@@ -1306,7 +1307,6 @@ def rig_dataBuffer(self):
     #Size =======================================================================================
     self.v_baseSize = [mBlock.blockScale * v for v in mBlock.baseSize]
     self.f_sizeAvg = MATH.average(self.v_baseSize)
-    
     log.debug("|{0}| >> size | self.v_baseSize: {1} | self.f_sizeAvg: {2}".format(_str_func,
                                                                                   self.v_baseSize,
                                                                                   self.f_sizeAvg ))
@@ -1321,6 +1321,11 @@ def rig_dataBuffer(self):
 
     log.debug("|{0}| >> mSettings | self.mSettings: {1}".format(_str_func,mSettings))
     self.mSettings = mSettings
+    
+    log.debug("|{0}| >> self.mPlug_visSub_moduleParent: {1}".format(_str_func,
+                                                                    self.mPlug_visSub_moduleParent))
+    log.debug("|{0}| >> self.mPlug_visDirect_moduleParent: {1}".format(_str_func,
+                                                                       self.mPlug_visDirect_moduleParent))
     
     #DynParents =============================================================================
     #self.UTILS.get_dynParentTargetsDat(self)
@@ -1545,11 +1550,15 @@ def rig_controls(self):
         ml_segmentHandles = []
         
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visDirect = cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
+        mPlug_visDirect = self.mPlug_visDirect_moduleParent
+        mPlug_visSub = self.mPlug_visSub_moduleParent
+        
+        """
+        cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
                                           value = True,
                                           attrType='bool',
                                           defaultValue = False,
-                                          keyable = False,hidden = False)        
+                                          keyable = False,hidden = False)"""        
         
         
         
@@ -1559,9 +1568,9 @@ def rig_controls(self):
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
                                     makeAimable = False)
-        
-        ml_controlsAll.append(_d['mObj'])        
+        ml_controlsAll.append(_d['mObj'])
         ml_segmentHandles.append(_d['mObj'])
+        
         #Handles ================================================================================
         log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
         for k,d in self.md_handles.iteritems():
@@ -1630,6 +1639,7 @@ def rig_controls(self):
         mRigNull.msgList_connect('handleJoints',ml_segmentHandles,'rigNull')        
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
+        mRigNull.faceSet.extend(ml_controlsAll)
         
     except Exception,error:
         cgmGEN.cgmException(Exception,error,msg=vars())
@@ -1927,9 +1937,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #Brow -------------
     mUprCurve = mBlock.getMessageAsMeta('browUprloftCurve')
     mUprUse = mUprCurve.doDuplicate(po=False)
-    mUprUse.p_parent = mRigNull
+    mUprUse.p_parent = mRigNull.constrainNull
     mUprCurve.v=False
-    ml_curves.append(mUprCurve)
+    ml_curves.append(mUprUse)
     md_rigJoints = {'brow':{}}
     for k in ['center','left','right']:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        

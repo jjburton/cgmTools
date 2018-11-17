@@ -75,6 +75,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.10.31.2018'
 __autoTemplate__ = False
 __menuVisible__ = True
+__faceBlock__ = True
 
 #These are our base dimensions. In this case it is for human
 __dimensions_by_type = {'box':[22,22,22],
@@ -1524,6 +1525,7 @@ def rig_controls(self):
         
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
+        mRigNull.faceSet.extend(ml_controlsAll)
         
     except Exception,error:
         cgmGEN.cgmException(Exception,error,msg=vars())

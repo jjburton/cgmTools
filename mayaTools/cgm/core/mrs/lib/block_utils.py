@@ -4994,11 +4994,12 @@ def rigDelete(self):
                 log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
                 mc.delete([mObj.mNode for mObj in _bfr])
 
-                
+            mFaceSet = mRigNull.getMessageAsMeta('faceSet')
+            
             #Rig nodes....
             ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
             for mNode in ml_rigNodes:
-                if mNode in [mModuleTarget,mRigNull]:
+                if mNode in [mModuleTarget,mRigNull,mFaceSet]:
                     continue
                 if mNode in ml_blockControls:
                     log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))

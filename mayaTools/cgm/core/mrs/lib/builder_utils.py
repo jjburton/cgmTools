@@ -162,6 +162,8 @@ def eyeLook_verify(self):
         #Dynparent... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
         ml_dynParents = copy.copy(self.ml_dynParentsAbove)
+        if mBlock.attachPoint == 'end':
+            ml_dynParents.reverse()
         ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
         ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
         
@@ -177,16 +179,18 @@ def eyeLook_verify(self):
         mPuppet.msgList_append('eyeLook',mCrv,'puppet')
         
         if mBlockParent:
-            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))                    
-            mBlockParent.moduleTarget.connectChildNode(mCrv,'eyeLook')
-            if mBlockParent.mClass == 'cgmRigModule':
-                mBlockParentRigNull = mBlockParent.moduleTarget.rigNull
+            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))
+            mModuleParent = mBlockParent.moduleTarget
+            mModuleParent.connectChildNode(mCrv,'eyeLook')
+            if mModuleParent.mClass == 'cgmRigModule':
+                mBlockParentRigNull = mModuleParent.rigNull
                 mBlockParentRigNull.msgList_append('controlsAll',mCrv)
                 mBlockParentRigNull.moduleSet.append(mCrv)
+                mRigNull.faceSet.append(mCrv)
             else:
-                mModuleParent = mBlockParent.moduleTarget
                 mModuleParent.puppetSet.append(mCrv)
                 mModuleParent.msgList_append('controlsAll',mCrv)
+                mModuleParent.faceSet.append(mCrv)
                 
         #Connections... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Heirarchy... ".format(_str_func))

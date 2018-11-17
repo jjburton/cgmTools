@@ -81,6 +81,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.10.31.2018'
 __autoTemplate__ = False
 __menuVisible__ = True
+__faceBlock__ = True
 
 #These are our base dimensions. In this case it is for human
 __dimensions_by_type = {'box':[22,22,22],
@@ -2757,7 +2758,8 @@ def skeleton_build(self, forceNew = True):
         mObj = mPrerigNull.getMessageAsMeta('jaw'+'JointHelper')
         mJaw = create_jointFromHandle(mObj,mRoot)
         mPrerigNull.doStore('jawJoint',mJaw.mNode)
-    
+        ml_joints.append(mJaw)
+        
     if self.lipSetup:
         str_lipSetup = self.getEnumValueString('lipSetup')
         log.debug("|{0}| >>  lipSetup...".format(_str_func)+ '-'*40)
@@ -2779,6 +2781,7 @@ def skeleton_build(self, forceNew = True):
                     ml.append(mJnt)
                     
                 mPrerigNull.msgList_connect('{0}Joints'.format(key),ml)
+                ml_joints.extend(ml)
         
     
     if self.chinSetup:
@@ -2787,6 +2790,7 @@ def skeleton_build(self, forceNew = True):
         mJnt = create_jointFromHandle(mObj,mRoot)
         mPrerigNull.doStore('chinJoint',mJnt.mNode)
         mJnt.p_parent = mJaw
+        ml_joints.append(mJnt)
         
 
         
@@ -2802,6 +2806,7 @@ def skeleton_build(self, forceNew = True):
             mNoseBase = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                mRoot)
             mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseBase.mNode)
+            ml_joints.append(mNoseBase)
             
             #NoseTip ----------------------------------------------------------------------
             if self.numJointsNoseTip:
@@ -2810,6 +2815,7 @@ def skeleton_build(self, forceNew = True):
                 mNoseTip = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                   mNoseBase)
                 mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseTip.mNode)
+                ml_joints.append(mNoseTip)
 
             #Nostrils -------------------------------------------------------------------
             if self.numJointsNostril:
@@ -2819,6 +2825,7 @@ def skeleton_build(self, forceNew = True):
                     mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                   mNoseBase)
                     mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)
+                    ml_joints.append(mJnt)
                     
         else:
             raise ValueError,"Invalid noseSetup: {0}".format(str_noseSetup)
@@ -2834,7 +2841,9 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
                 mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                               mJaw)
-                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)               
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)
+                ml_joints.append(mJnt)
+                
         else:
             raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)
                 
@@ -3043,15 +3052,19 @@ def rig_dataBuffer(self):
     #Settings =============================================================================
     mModuleParent =  self.d_module['mModuleParent']
     if mModuleParent:
-        log.debug("|{0}| >>  using parent settings...".format(_str_func))        
-        mParentSettings = mModuleParent.rigNull.settings
+        mSettings = mModuleParent.rigNull.settings
     else:
-        #log.debug("|{0}| >>  using puppet...".format(_str_func))
-        mParentSettings = None #self.d_module['mMasterControl'].controlVis
+        log.debug("|{0}| >>  using puppet...".format(_str_func))
+        mSettings = self.d_module['mMasterControl'].controlVis
 
-    log.debug("|{0}| >> Settings | self.mParentSettings: {1}".format(_str_func,mParentSettings))
-    self.mParentSettings = mParentSettings
+    log.debug("|{0}| >> mSettings | self.mSettings: {1}".format(_str_func,mSettings))
+    self.mSettings = mSettings
     
+    log.debug("|{0}| >> self.mPlug_visSub_moduleParent: {1}".format(_str_func,
+                                                                    self.mPlug_visSub_moduleParent))
+    log.debug("|{0}| >> self.mPlug_visDirect_moduleParent: {1}".format(_str_func,
+                                                                       self.mPlug_visDirect_moduleParent))
+
     #rotateOrder =============================================================================
     _str_orientation = self.d_orientation['str']
     _l_orient = [_str_orientation[0],_str_orientation[1],_str_orientation[2]]
@@ -3281,11 +3294,11 @@ def rig_shapes(self):
             
             mRigNull.doStore('controlJaw',mJaw_fk.mNode)
             
-            if not self.mParentSettings:
-                log.debug("|{0}| >> Jaw settings!...".format(_str_func))                
-                mRigNull.doStore('settings',mJaw_fk.mNode)
-            else:
-                mRigNull.doStore('settings',self.mParentSettings)
+            #if not self.mParentSettings:
+            #    log.debug("|{0}| >> Jaw settings!...".format(_str_func))                
+            mRigNull.doStore('settings',mJaw_fk.mNode)
+            #else:
+            #    mRigNull.doStore('settings',self.mParentSettings)
             log.debug(cgmGEN._str_subLine)
             
         if self.md_rigJoints.get('chin'):
@@ -3421,17 +3434,14 @@ def rig_controls(self):
         mRootParent = self.mDeformNull
         ml_segmentHandles = []
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        mSettings = self.mParentSettings or mRigNull.getMessageAsMeta('settings')
+        mSettings = mRigNull.getMessageAsMeta('settings')
         
         if not mSettings:
             raise ValueError,"Should have settings"
         
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect_{0}'.format(self.d_module['partName']),
-                                          value = True,
-                                          attrType='bool',
-                                          defaultValue = False,
-                                          keyable = False,hidden = False)
+        mPlug_visDirect = self.mPlug_visDirect_moduleParent
+        mPlug_visSub = self.mPlug_visSub_moduleParent
         
         
         
@@ -3562,6 +3572,7 @@ def rig_controls(self):
         mRigNull.msgList_connect('handleJoints',ml_segmentHandles)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll,'rigNull')
         mRigNull.moduleSet.extend(ml_controlsAll)
+        mRigNull.faceSet.extend(ml_controlsAll)
         
     except Exception,error:
         cgmGEN.cgmException(Exception,error,msg=vars())

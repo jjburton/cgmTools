@@ -4487,8 +4487,8 @@ class rigFactory(object):
             return False
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
-
         _d['blockParents'] = mBlock.getBlockParents()
+        _d['b_faceBlock'] = _buildModule.__dict__.get('__faceBlock__',False)
 
         #Build order --------------------------------------------------------------------------------
         _d['buildOrder'] = valid_blockModule_rigBuildOrder(_buildModule)
@@ -4617,6 +4617,23 @@ class rigFactory(object):
 
         #>>> Object Set -----------------------------------------------------------------------------------
         self.mModule.verify_objectSet()
+        
+        if self.d_block['b_faceBlock']:
+            mFaceSet = self.mModule.atUtils('verify_faceObjectSet')
+            self.mFaceSet = mFaceSet
+            
+            #Settings =============================================================================
+            mModuleParent =  self.d_module['mModuleParent']
+            if mModuleParent:
+                mSettings = mModuleParent.rigNull.settings
+            else:
+                log.debug("|{0}| >>  using puppet...".format(_str_func))
+                mSettings = self.d_module['mMasterControl'].controlVis
+                
+            log.debug("|{0}| >> mModuleParent mSettings: {1}".format(_str_func,mSettings))
+            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub')
+            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect')
+
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
@@ -4788,7 +4805,7 @@ class rigFactory(object):
             if _mModule:
                 _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
                 if not _d['ml_moduleJoints']:
-                    log.warning("|{0}| >> No module joints found".format(_str_func))
+                    self.l_precheckErrors.append("No module joints found")
                     _d['ml_skinJoints'] = False
                 else:
                     _d['l_moduleJoints'] = []
@@ -4851,45 +4868,31 @@ class rigFactory(object):
         _mMasterSettings = self.d_module['mMasterSettings']
         _mi_moduleParent = self.d_module['mModuleParent']
         _ml_skinJoints = self.d_joints['ml_skinJoints']
+        
+        _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
+        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )        
 
         if not self.mModule.getMessage('deformNull'):
-            if _str_partType in ['eyebrow', 'mouthnose']:
-                raise ValueError,"not implemented"
-                """
-                #Make it and link it ------------------------------------------------------
-                buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-                mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                mGrp.addAttr('cgmName',self.partName,lock=True)
-                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                mGrp.doName()
-                mGrp.parent = self.i_faceDeformNull	
-                self.mModule.connectChildNode(mGrp,'deformNull','module')
+            if self.d_block['b_faceBlock']:
+                log.debug("|{0}| >> Face deformNull".format(_str_func))
+                mGrp = self.attachPoint.doCreateAt(setClass=True)
                 self.mModule.connectChildNode(mGrp,'constrainNull','module')
-                self.i_deformNull = mGrp#link"""
+                mGrp.parent = self.attachPoint
             else:
                 #Make it and link it
-                if _str_partType in ['eyelids']:
-                    buffer =  CORERIG.group_me(_mi_moduleParent.deformNull.mNode,False)
-                else:
-                    buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
-
+                buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
                 mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                mGrp.addAttr('cgmName',_str_partName,lock=True)
-                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                mGrp.doName()
                 mGrp.parent = self.d_module['mMasterDeformGroup'].mNode
-                self.mModule.connectChildNode(mGrp,'deformNull','module')
-                if _str_partType in ['eyeball']:
-                    self.mModule.connectChildNode(mGrp,'constrainNull','module')
-                    mGrp.parent = self.i_faceDeformNull
+                
+            mGrp.addAttr('cgmName',_str_partName,lock=True)
+            mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
+            mGrp.doName()
+            self.mModule.connectChildNode(mGrp,'deformNull','module')
                     
         self.mDeformNull = self.mModule.deformNull
-        _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
-        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )
+
         
-        if not self.mModule.getMessage('constrainNull'):
-            #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
-                #Make it and link it
+        if not self.mModule.getMessage('constrainNull') and self.d_block['b_faceBlock'] is not True:
             buffer =  CORERIG.group_me(self.mDeformNull.mNode,False)
             mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
             mGrp.addAttr('cgmName',_str_partName,lock=True)
@@ -4949,8 +4952,6 @@ class rigFactory(object):
                                 maintainOffset = True, weight = 1)
             #mc.scaleConstraint([mAttach.mNode], self.mConstrainNull.mNode, maintainOffset = True, weight = 1)
             """
-        
-        
 
         #>> Roll joint check...
         self.b_noRollMode = False
