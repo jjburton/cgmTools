@@ -3220,7 +3220,17 @@ def uiCB_contextualAction(self, **kws):
             log.debug(cgmGEN._str_subLine)
             mBaseModule = self.d_puppetData['mModulesBase'][0]
             log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
-            _primeAxis = 'Left'
+            
+            try:
+                _primeAxis = self._ml_sel[0].getEnumValueString('mirrorSide')
+                log.info("Prime axis from control: {0}".format(_primeAxis))
+                
+            except:
+                if mBaseModule.hasAttr('cgmDirection'):
+                    _primeAxis = mBaseModule.cgmDirection.capitalize()
+                else:
+                    _primeAxis = 'Centre'
+                log.info("Prime axis from module: {0}".format(_primeAxis))
             
             if _mode == 'mirrorSelect':
                 mc.select(_l_controls)
@@ -3247,17 +3257,23 @@ def uiCB_contextualAction(self, **kws):
                 r9Anim.MirrorHierarchy().mirrorData(_l_controls,mode = '')
                 return endCall(self)            
             elif _mode == 'mirrorPull':
-                mMirror = mBaseModule.atUtils('mirror_get')
-                if mMirror and mMirror.hasAttr('cgmDirection'):
-                    _primeAxis = mMirror.cgmDirection.capitalize()
-                else:
-                    _primeAxis = 'Centre'
+                _dFlip = {'Left':'Right',
+                          'Right':'Left'}
+                
+                _primeAxis = _dFlip.get(_primeAxis,_primeAxis)
+                #mMirror = mBaseModule.atUtils('mirror_get')
+                #if mMirror and mMirror.hasAttr('cgmDirection'):
+                #    _primeAxis = mMirror.cgmDirection.capitalize()
+                #else:
+                #    _primeAxis = 'Centre'
                     
             elif _mode == 'mirrorPush':
+                pass #...trying to just use first selected
+                """
                 if mBaseModule.hasAttr('cgmDirection'):
                     _primeAxis = mBaseModule.cgmDirection.capitalize()
                 else:
-                    _primeAxis = 'Centre'
+                    _primeAxis = 'Centre'"""
             elif _mode == 'symLeft':
                 _primeAxis = 'Left'
             else:

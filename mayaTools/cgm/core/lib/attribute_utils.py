@@ -1423,14 +1423,12 @@ def has_attr(*a):
     _str_func = 'has_attr'
     _d = validate_arg(*a) 
 
-    try:
-        if mc.objExists(_d['combined']):
-            return True
-        return False   
-    except Exception,err:
-        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
-        return False
-    return False
+    #try:
+    return mc.attributeQuery(_d['attr'],node=_d['node'],exists=True)
+    #except Exception,err:
+    #    log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+    #    return False
+    #return False
 
 
 def get_default(*a):

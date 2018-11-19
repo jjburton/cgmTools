@@ -692,11 +692,12 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
 reload(BLOCKSHARE)
 l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
-                  'fk':['fkJoints','leverFK'],
+                  'fk':['fkJoints','leverFK','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
                   'ik':['controlIK','controlIKEnd',
-                        'controlIKBase',
+                        'controlIKBase','controlsFK',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
+                  'face':['controlsFace'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
@@ -736,6 +737,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         l_useKeys = l_controlOrder
     
     if ignore:
+        log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
         for k in ignore:
             if k in l_useKeys:
                 l_useKeys.remove(k)
@@ -756,6 +758,24 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 for mObj in _msgList:
                     addMObj(mObj,_ml)
         ml_controls.extend(_ml)
+
+    if ml_objs:
+        ml_dup = copy.copy(ml_objs)
+        log.debug("|{0}| >> Second pass {1}... ".format(_str_func,len(ml_objs))+'-'*20)
+        for mObj in ml_dup:
+            log.debug("|{0}| >> {1} ".format(_str_func,mObj))            
+            if mObj.hasAttr('cgmControlDat'):
+                _tags = mObj.cgmControlDat.get('tags',[])
+                log.debug("|{0}| >> tags: {1} ".format(_str_func,_tags))            
+                for t in _tags:
+                    _t = str(t)
+                    #if keys is not None and _t not in l_useKeys:
+                    #    continue
+                    if not md_controls.get(_t):
+                        md_controls[_t] = []
+                    _ml = md_controls[_t] 
+                    ml_controls.append(mObj)                    
+                    addMObj(mObj,_ml)
     
     if not keys and 'spacePivots' not in ignore:
         md_controls['spacePivots'] = []
@@ -773,10 +793,11 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         log.info("|{0}| >> List... ".format(_str_func))
         pprint.pprint( ml_controls)
     
-    if ml_objs and keys is None and not ignore:
+    if ml_objs and keys is None and not ignore:        
         log.debug("|{0}| >> remaining... ".format(_str_func))
-        pprint.pprint( ml_objs)    
-        return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+        pprint.pprint( ml_objs)
+        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if report:
         return

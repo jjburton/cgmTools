@@ -198,7 +198,11 @@ def eyeLook_verify(self):
         
         for link in 'masterGroup','dynParentGroup':
             if mCrv.getMessage(link):
-                mCrv.getMessageAsMeta(link).dagLock(True)        
+                mCrv.getMessageAsMeta(link).dagLock(True)
+                
+        mCrv.addAttr('cgmControlDat','','string')
+        mCrv.cgmControlDat = {'tags':['ik']}                
+        
         return mCrv
     
     except Exception,error:
@@ -2142,7 +2146,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     try:
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
-                        vec = [-v for v in vecRaw]
+                        vec = vecRaw#[-v for v in vecRaw]
                         p1 = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,position=True)#l_pos[i]                    
                     except Exception,err:
                         vec = [1,1,1]

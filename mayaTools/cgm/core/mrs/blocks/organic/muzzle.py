@@ -3570,6 +3570,7 @@ def rig_controls(self):
             """
         
         mRigNull.msgList_connect('handleJoints',ml_segmentHandles)
+        mRigNull.msgList_connect('controlsFace',ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll,'rigNull')
         mRigNull.moduleSet.extend(ml_controlsAll)
         mRigNull.faceSet.extend(ml_controlsAll)

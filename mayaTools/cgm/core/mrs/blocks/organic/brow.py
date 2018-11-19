@@ -1635,7 +1635,7 @@ def rig_controls(self):
         if mHeadLookAt:
             ATTR.set(mHeadLookAt.mNode,'rotateOrder',self.ro_headLookAt)
             """
-        
+        mRigNull.msgList_connect('controlsFace',ml_controlsAll)
         mRigNull.msgList_connect('handleJoints',ml_segmentHandles,'rigNull')        
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)

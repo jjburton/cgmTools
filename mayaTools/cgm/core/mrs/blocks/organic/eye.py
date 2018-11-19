@@ -1271,6 +1271,7 @@ def rig_shapes(self):
             CORERIG.shapeParent_in_place(mFKEye.mNode,_shape_fk,False)
             
             #mShape = mBlock.getMessageAsMeta('bbHelper').doDuplicate()
+            mRigNull.connectChildNode(mFKEye.mNode,'controlFK','rigNull')#Connect
             
         
         mIKEye = mRigNull.getMessageAsMeta('ikEye')
@@ -1356,10 +1357,7 @@ def rig_shapes(self):
                     
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
 
-                    
-                    
-
-            
+ 
         for mJnt in ml_rigJoints:
             try:
                 mJnt.drawStyle =2
@@ -1380,7 +1378,7 @@ def rig_controls(self):
       
         mRigNull = self.mRigNull
         mBlock = self.mBlock
-        ml_controlsAll = []#we'll append to this list and connect them all at the end
+        ml_controlsAll = [self.mEyeLook]#we'll append to this list and connect them all at the end
         mRootParent = self.mDeformNull
         
         d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')
@@ -1424,7 +1422,11 @@ def rig_controls(self):
                                     mirrorAxis="translateX,rotateY,rotateZ",
                                     makeAimable = True)
         
+        
         mControlFK = _d['mObj']
+        mControlFK.addAttr('cgmControlDat','','string')
+        mControlFK.cgmControlDat = {'tags':['fk']}
+        
         ml_controlsAll.append(mControlFK)
         if mBlendJoint:
             self.atUtils('get_switchTarget', mControlFK, mBlendJoint)
@@ -1480,6 +1482,7 @@ def rig_controls(self):
                             lock=False,keyable=True)            
             
             if self.str_lidSetup == 'clam':
+                ml_handles = []
                 for k in 'upr','lwr':
                     log.debug("|{0}| >> lid | {1}...".format(_str_func,k))
                     _key = '{0}LidHandle'.format(k)
@@ -1501,7 +1504,13 @@ def rig_controls(self):
                         ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
                         
                     for mShape in mObj.getShapes(asMeta=True):
-                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                    
+                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                        
+                    ml_controlsAll.extend([mHandle,mRig])
+                    mHandle.addAttr('cgmControlDat','','string')
+                    mHandle.cgmControlDat = {'tags':['ik']}
+                    ml_handles.append(mHandle)
+            mRigNull.msgList_connect('handleJoints',ml_handles)
             
         #Close out...
         mHandleFactory = mBlock.asHandleFactory()
@@ -1510,6 +1519,7 @@ def rig_controls(self):
             
             if mCtrl.hasAttr('radius'):
                 ATTR.set(mCtrl.mNode,'radius',0)        
+                ATTR.set_hidden(mCtrl.mNode,'radius',True)        
             
             ml_pivots = mCtrl.msgList_get('spacePivots')
             if ml_pivots:
@@ -1523,6 +1533,7 @@ def rig_controls(self):
             ATTR.set(mHeadLookAt.mNode,'rotateOrder',self.ro_headLookAt)
             """
         
+        mRigNull.msgList_connect('controlsFace',ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
         mRigNull.faceSet.extend(ml_controlsAll)
