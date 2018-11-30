@@ -162,12 +162,13 @@ def eyeLook_verify(self):
         #Dynparent... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
         ml_dynParents = copy.copy(self.ml_dynParentsAbove)
+        if mBlock.attachPoint == 'end':
+            ml_dynParents.reverse()
         ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
         ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
         
         mDynParent = cgmRIGMETA.cgmDynParentGroup(dynChild=mCrv,dynMode=0)
         
-
         for o in ml_dynParents:
             mDynParent.addDynParent(o)
         mDynParent.rebuild()
@@ -178,22 +179,32 @@ def eyeLook_verify(self):
         mPuppet.msgList_append('eyeLook',mCrv,'puppet')
         
         if mBlockParent:
-            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))                    
-            mBlockParent.moduleTarget.connectChildNode(mCrv,'eyeLook')
-            mBlockParentRigNull = mBlockParent.moduleTarget.rigNull
-            mBlockParentRigNull.msgList_append('controlsAll',mCrv)
-            mBlockParentRigNull.moduleSet.append(mCrv)
-        
-        
+            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))
+            mModuleParent = mBlockParent.moduleTarget
+            mModuleParent.connectChildNode(mCrv,'eyeLook')
+            if mModuleParent.mClass == 'cgmRigModule':
+                mBlockParentRigNull = mModuleParent.rigNull
+                mBlockParentRigNull.msgList_append('controlsAll',mCrv)
+                mBlockParentRigNull.moduleSet.append(mCrv)
+                mRigNull.faceSet.append(mCrv)
+            else:
+                mModuleParent.puppetSet.append(mCrv)
+                mModuleParent.msgList_append('controlsAll',mCrv)
+                mModuleParent.faceSet.append(mCrv)
+                
         #Connections... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Heirarchy... ".format(_str_func))        
+        log.debug("|{0}| >> Heirarchy... ".format(_str_func))
         mCrv.masterGroup.p_parent = self.mDeformNull
         
         for link in 'masterGroup','dynParentGroup':
             if mCrv.getMessage(link):
-                mCrv.getMessageAsMeta(link).dagLock(True)        
+                mCrv.getMessageAsMeta(link).dagLock(True)
+                
+        mCrv.addAttr('cgmControlDat','','string')
+        mCrv.cgmControlDat = {'tags':['ik']}                
         
         return mCrv
+    
     except Exception,error:
         cgmGEN.cgmException(Exception,error,msg=vars())
 
@@ -2135,7 +2146,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     try:
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
-                        vec = [-v for v in vecRaw]
+                        vec = vecRaw#[-v for v in vecRaw]
                         p1 = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,position=True)#l_pos[i]                    
                     except Exception,err:
                         vec = [1,1,1]

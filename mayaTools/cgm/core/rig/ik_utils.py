@@ -33,7 +33,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 #from cgm.core.classes import SnapFactory as Snap
 from cgm.core.lib import nameTools
 from cgm.core.rigger.lib import rig_Utils
-from cgm.core.classes import NodeFactory as NodeF
+from cgm.core.classes import NodeFactory as NODEFAC
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
@@ -49,7 +49,7 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.position_utils as POS
 
-for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NodeF:
+for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NODEFAC:
     reload(m)
 
 def spline(jointList = None,
@@ -312,7 +312,7 @@ def spline(jointList = None,
                                                            "{0}.masterScale".format(mSegmentCurve.mNode)))			
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NodeF.argsToNodes(arg).doBuild()
+                    NODEFAC.argsToNodes(arg).doBuild()
                     
                 #Still not liking the way this works with translate scale. looks fine till you add squash and stretch
                 try:
@@ -497,7 +497,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
                                         mPlug_mid.p_combinedName)
         
         for a in arg1,arg2,arg3:
-            NodeF.argsToNodes(a).doBuild()
+            NODEFAC.argsToNodes(a).doBuild()
         
         d_return['mPlug_mid'] = mPlug_mid
         d_return['mPlug_midResult'] = mPlug_midResult
@@ -521,7 +521,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
                                         mPlug_end.p_combinedName,
                                         mPlug_midSum.p_combinedName)
         for a in arg1,arg2:
-            NodeF.argsToNodes(a).doBuild()
+            NODEFAC.argsToNodes(a).doBuild()
         
         """arg1 = "{0}.twist = if {1} > {2}: {3} else {4}".format(mMidHandle.p_nameShort,
                                                                mPlug_start.p_combinedName,
@@ -545,7 +545,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         arg1 = "{0} = {1} - {2}".format(mPlug_twist.p_combinedName,
                                         mPlug_end.p_combinedName,
                                         mPlug_start.p_combinedName)
-        NodeF.argsToNodes(arg1).doBuild()
+        NODEFAC.argsToNodes(arg1).doBuild()
         
         
     
@@ -612,7 +612,7 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
     #ikHandle1.twist = (ikHandle1.roll *-.77) + curve4.twistEnd # to implement
     arg1 = "%s = %s - %s"%(mPlug_twist.p_combinedName,mPlug_end.p_combinedName,mPlug_start.p_combinedName)
     log.debug("arg1: '%s'"%arg1)    
-    log.debug( NodeF.argsToNodes(arg1).doBuild() )       
+    log.debug( NODEFAC.argsToNodes(arg1).doBuild() )       
 
     if advancedTwistSetup:
         mc.select(mi_ramp.mNode)
@@ -752,7 +752,7 @@ def buildFKIK(fkJoints = None,
         for i,mJoint in enumerate(ml_fkAttachJoints):
             mc.pointConstraint(ml_fkJoints[i].mNode,mJoint.mNode,maintainOffset = False)
             #Connect inversed aim and up
-            NodeF.connectNegativeAttrs(ml_fkJoints[i].mNode, mJoint.mNode,
+            NODEFAC.connectNegativeAttrs(ml_fkJoints[i].mNode, mJoint.mNode,
                                        ["r%s"%orientation[0],"r%s"%orientation[1]]).go()
             cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"r%s"%orientation[2]).doConnectOut("%s.r%s"%(mJoint.mNode,orientation[2]))
     else:
@@ -769,7 +769,7 @@ def buildFKIK(fkJoints = None,
     mPlug_FKon = cgmMeta.cgmAttr(mi_settings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
     mPlug_IKon = cgmMeta.cgmAttr(mi_settings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
 
-    NodeF.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
+    NODEFAC.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
                                    mPlug_IKon.p_combinedName,
                                    mPlug_FKon.p_combinedName)
 
@@ -892,6 +892,7 @@ def ribbon(jointList = None,
            #reorient = False,
            skipAim = True,
            influences = None,
+           tightenWeights=True,
            extraKeyable = True,
            ribbonJoints = None,
            attachEndsToInfluences = False,
@@ -1195,7 +1196,7 @@ def ribbon(jointList = None,
         
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
             
     #Settings ... ----------------------------------------------------------------------------------------
     if settingsControl:
@@ -1332,7 +1333,7 @@ def ribbon(jointList = None,
 
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
             
             
     if b_squashStretch and masterScalePlug is not None:
@@ -1366,7 +1367,7 @@ def ribbon(jointList = None,
                                                        "{0}.baseDist".format(mInfoNode.mNode)))
             for arg in l_argBuild:
                 log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                NodeF.argsToNodes(arg).doBuild()                
+                NODEFAC.argsToNodes(arg).doBuild()                
     
         else:
             if issubclass(type(masterScalePlug),cgmMeta.cgmAttr):
@@ -1685,7 +1686,7 @@ def ribbon(jointList = None,
             arg = "{0} = {1} * {2}".format(mPlug_inverseNormalized.p_combinedName,
                                            mPlug_inverseScale.p_combinedName,
                                            mPlug_masterScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
             
         
         log.debug("|{0}| >> Making our base dist stuff".format(_str_func))
@@ -1934,7 +1935,7 @@ def ribbon(jointList = None,
                 reload(NodeF)
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NodeF.argsToNodes(arg).doBuild()
+                    NODEFAC.argsToNodes(arg).doBuild()
                 
                 if not skipAim:
                     mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
@@ -2035,7 +2036,7 @@ def ribbon(jointList = None,
                 
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NodeF.argsToNodes(arg).doBuild()
+                    NODEFAC.argsToNodes(arg).doBuild()
                 
                 if not skipAim:
                     mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
@@ -2103,7 +2104,7 @@ def ribbon(jointList = None,
                         
                         for arg in l_argBuild:
                             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                            NodeF.argsToNodes(arg).doBuild()
+                            NODEFAC.argsToNodes(arg).doBuild()
                             
                             
                         #out scale ---------------------------------------------------------------
@@ -2159,7 +2160,7 @@ def ribbon(jointList = None,
                         
                         for arg in l_argBuild:
                             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                            NodeF.argsToNodes(arg).doBuild()
+                            NODEFAC.argsToNodes(arg).doBuild()
                             
                             
                         #up scale ---------------------------------------------------------------
@@ -2236,7 +2237,7 @@ def ribbon(jointList = None,
         
             for arg in l_argBuild:
                 log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                NodeF.argsToNodes(arg).doBuild()
+                NODEFAC.argsToNodes(arg).doBuild()
                 
                 
             if not skipAim:
@@ -2296,12 +2297,13 @@ def ribbon(jointList = None,
             mSkinCluster.doStore('cgmName', mArcLenCurve.mNode)
             mSkinCluster.doName()    
         
-
-            RIGSKIN.curve_tightenEnds(mArcLenCurve.mNode,
-                                       hardLength = _hardLength,
-                                       blendLength=blendLength,
-                                       mode=mode_tighten)
             
+            if tightenWeights:
+                RIGSKIN.curve_tightenEnds(mArcLenCurve.mNode,
+                                           hardLength = _hardLength,
+                                           blendLength=blendLength,
+                                           mode=mode_tighten)
+                
             
         for mSurf in ml_surfaces:
             log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mSurf))
@@ -2317,12 +2319,12 @@ def ribbon(jointList = None,
             mSkinCluster.doName()    
         
             #Tighten the weights...
-                        
-            RIGSKIN.surface_tightenEnds(mSurf.mNode,
-                                        hardLength = _hardLength,
-                                        blendLength=blendLength,
-                                        mode=mode_tighten)
-    
+            if tightenWeights:
+                RIGSKIN.surface_tightenEnds(mSurf.mNode,
+                                            hardLength = _hardLength,
+                                            blendLength=blendLength,
+                                            mode=mode_tighten)
+        
     
     if mModule:#if we have a module, connect vis
         mRigNull = mModule.rigNull
@@ -2578,45 +2580,45 @@ def handle(startJoint,
             arg = "{0} = {1} * {2}".format(d_baseAttrs['distIKNormal'].p_combinedName,
                                            md_baseDistReturn['mShape'].distance,
                                            mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()    
+            NODEFAC.argsToNodes(arg).doBuild()    
             
             #ik stretch normal ----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['stretchMultiplier'].p_combinedName,
                                              mPlug_rawDistance.mNode,
                                              d_baseAttrs['distIKNormal'].p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            """
+            NODEFAC.argsToNodes(_arg).doBuild()            """
             
             #Normal base -----------------------------------------------------------------------
             _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedName,
                                             mPlug_rawDistance.value,
                                             mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()
+            NODEFAC.argsToNodes(_arg).doBuild()
             
             #Normal active -----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['distActiveNormal'].p_combinedName,
                                           mPlug_rawDistance.p_combinedName,
                                           mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            
+            NODEFAC.argsToNodes(_arg).doBuild()            
             
 
             #dist fullLenth normal -----------------------------------------------------------------            
             _arg = "{0} = {1} * {2}".format(d_baseAttrs['distFullLengthNormal'].p_combinedName,
                                             f_baseDist,
                                             mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            
+            NODEFAC.argsToNodes(_arg).doBuild()            
             
             #scaleFactorRaw  -----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRaw'].p_combinedName,
                                             mPlug_rawDistance.p_combinedName,
                                             d_baseAttrs['distFullLengthNormal'].p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()
+            NODEFAC.argsToNodes(_arg).doBuild()
             
             """
             #scaleFactorRawMid  -----------------------------------------------------------------------
             _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedName,
                                             d_baseAttrs['distActiveNormal'].p_combinedName,
                                             d_baseAttrs['distBaseNormal'].p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            
+            NODEFAC.argsToNodes(_arg).doBuild()            
             
             """
             
@@ -2625,7 +2627,7 @@ def handle(startJoint,
                                                             mPlug_rawDistance.p_combinedName,
                                                             d_baseAttrs['distFullLengthNormal'].p_combinedName,
                                                             d_baseAttrs['scaleFactorRaw'].p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            
+            NODEFAC.argsToNodes(_arg).doBuild()            
             
 
 
@@ -2675,12 +2677,12 @@ def handle(startJoint,
                 _arg = "{0} = {1} * {2}".format(md_jntAttrs['distNormal'].p_combinedName,
                                                 md_jntAttrs['distBase'].p_combinedName,
                                                 mPlug_globalScale.p_combinedName)
-                NodeF.argsToNodes(_arg).doBuild()
+                NODEFAC.argsToNodes(_arg).doBuild()
                 
                 _arg = "{0} = {1} * {2}.output".format(md_jntAttrs['stretchReg'].p_combinedName,
                                                        md_jntAttrs['distBase'].p_combinedName,
                                                        mStretchBlend.mNode)
-                NodeF.argsToNodes(_arg).doBuild()
+                NODEFAC.argsToNodes(_arg).doBuild()
                 
                 
                 if lockMid:
@@ -2691,13 +2693,13 @@ def handle(startJoint,
                     arg = "%s = %s * %s"%(md_jntAttrs['distMidBaseNormal'].p_combinedName,
                                           md_jntAttrs['distBase'].p_combinedName,
                                           mPlug_globalScale.p_combinedName)
-                    NodeF.argsToNodes(arg).doBuild()
+                    NODEFAC.argsToNodes(arg).doBuild()
                 
                     #Normal distance
                     arg = "%s = %s / %s"%(md_jntAttrs['distMidNormal'].p_combinedName,
                                           md_jntAttrs['distMidRaw'].p_combinedName,
                                           mPlug_globalScale.p_combinedName)
-                    NodeF.argsToNodes(arg).doBuild()
+                    NODEFAC.argsToNodes(arg).doBuild()
 
                 
                 #Blend --------------------------------------------------------------
@@ -2963,7 +2965,7 @@ def handleBAK(startJoint,
             _arg = "{0} = {1} * {2}".format(mPlug_lengthFullNormal.p_combinedName,
                                             f_baseDist,
                                             mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()
+            NODEFAC.argsToNodes(_arg).doBuild()
             #--------------------------------------------------------------------------------------
             
             
@@ -3034,19 +3036,19 @@ def handleBAK(startJoint,
             arg = "%s = %s * %s"%(mPlug_baseDistNormal.p_combinedName,
                                   mPlug_baseDist.p_combinedName,
                                   mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
     
             #Normal Length-------------------------------------------------------------------
             arg = "%s = %s / %s"%(mPlug_ikDistNormal.p_combinedName,
                                   mPlug_baseDistRaw.p_combinedName,
                                   mPlug_globalScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()	
+            NODEFAC.argsToNodes(arg).doBuild()	
     
             #ik scale raw---------------------------------------------------
             arg = "%s = %s / %s"%(mPlug_ikScaleRaw.p_combinedName,
                                   mPlug_baseDistRaw.p_combinedName,
                                   mPlug_baseDistNormal.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()	
+            NODEFAC.argsToNodes(arg).doBuild()	
             
             
             #ik scale real ----------------------------------------
@@ -3054,7 +3056,7 @@ def handleBAK(startJoint,
                                                             mPlug_baseDistNormal.p_combinedName,
                                                             mPlug_lengthFullNormal.p_combinedName,
                                                             mPlug_ikScaleRaw.p_combinedName)
-            NodeF.argsToNodes(_arg).doBuild()            
+            NODEFAC.argsToNodes(_arg).doBuild()            
             
 
             #ik max clamp-------------------------------------------------------------
@@ -3062,13 +3064,13 @@ def handleBAK(startJoint,
             arg = "%s = if %s >= 1: %s else 1"%(mPlug_ikClampMax.p_combinedName,
                                                 mPlug_ikScale.p_combinedName,
                                                 mPlug_ikScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
     
             #ik clamp scale-----------------------------------------------
             arg = "%s = clamp(1,%s,%s)"%(mPlug_ikClampScale.p_combinedName,
                                          mPlug_ikClampMax.p_combinedName,
                                          mPlug_ikScale.p_combinedName)
-            NodeF.argsToNodes(arg).doBuild()	
+            NODEFAC.argsToNodes(arg).doBuild()	
     
             #Create our blend to stretch or not - blend normal base and stretch base
             mi_stretchBlend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
@@ -3096,7 +3098,7 @@ def handleBAK(startJoint,
                                            mPlug_distSumRaw.p_combinedName,
                                            mPlug_globalScale.p_combinedName)
             
-            NodeF.argsToNodes(arg).doBuild()
+            NODEFAC.argsToNodes(arg).doBuild()
             
             argSum = ' + '.join(["{0}.distance".format(mShape.mNode) for mShape in ml_distanceShapes])
             arg = "{0} = {1}".format(mPlug_distSumRaw.p_combinedName,
@@ -3121,31 +3123,31 @@ def handleBAK(startJoint,
                 arg = "%s = %s * %s"%(mPlug_normalBaseDist.p_combinedName,
                                       mPlug_baseDist.p_combinedName,
                                       mPlug_globalScale.p_combinedName)
-                NodeF.argsToNodes(arg).doBuild()
+                NODEFAC.argsToNodes(arg).doBuild()
     
                 #Normal distance
                 arg = "%s = %s / %s"%(mPlug_normalDist.p_combinedName,
                                       mPlug_rawDist.p_combinedName,
                                       mPlug_globalScale.p_combinedName)
-                NodeF.argsToNodes(arg).doBuild()
+                NODEFAC.argsToNodes(arg).doBuild()
     
                 #Stretch Distance
                 arg = "%s = %s * %s.output"%(mPlug_stretchDist.p_combinedName,
                                              mPlug_normalBaseDist.p_combinedName,
                                              mi_stretchBlend.getShortName())
-                NodeF.argsToNodes(arg).doBuild()
+                NODEFAC.argsToNodes(arg).doBuild()
     
                 #Then pull the global out of the stretchdistance 
                 arg = "%s = %s / %s"%(mPlug_stretchNormalDist.p_combinedName,
                                       mPlug_stretchDist.p_combinedName,
                                       mPlug_globalScale.p_combinedName)
-                NodeF.argsToNodes(arg).doBuild()	    
+                NODEFAC.argsToNodes(arg).doBuild()	    
     
                 #Segment scale
                 arg = "%s = %s / %s"%(mPlug_resultSegmentScale.p_combinedName,
                                       mPlug_normalDist.p_combinedName,
                                       mPlug_baseDist.p_combinedName)
-                NodeF.argsToNodes(arg).doBuild()
+                NODEFAC.argsToNodes(arg).doBuild()
     
                 #Create our blend to stretch or not - blend normal base and stretch base
                 mi_blend = cgmMeta.cgmNode(nodeType= 'blendTwoAttr')
@@ -3370,3 +3372,511 @@ def get_midIK_basePos(ml_handles = [], baseAxis = 'y+', markPos = False, forceMi
         LOC.create(position=pos_use2,name='pos2')
     
     return pos_use
+
+def ribbon_seal(driven1 = None,
+                driven2 = None,
+
+                influences1 = None,
+                influences2 = None,
+
+                msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
+
+
+                extendEnds = False,
+
+
+                loftAxis = 'z',
+
+                orientation = 'zyx',
+                secondaryAxis = 'y+',
+
+                baseName = None,
+                baseName1=None,
+                baseName2=None,
+
+                connectBy = 'constraint',
+
+                sectionSpans = 1, 
+                settingsControl = None,
+                specialMode = None,
+
+                sealSplit = False,
+                sealDriver1 = None,
+                sealDriver2 = None,
+                sealDriverMid = None,
+                sealName1 = 'left',
+                sealName2 = 'right',
+                sealNameMid = 'center',
+
+                maxValue = 10.0,
+                extend2LoftTo1Ends = True,
+
+                moduleInstance = None,
+                parentGutsTo = None):
+    """
+    Dual ribbon setup with seal
+    """
+    try:
+        _str_func = 'ribbon_seal'
+
+        ml_rigObjectsToConnect = []
+        md_drivers = {}
+        md_base = {}
+        md_seal = {}
+        md_blend = {}
+        md_follicles = {}
+        md_follicleShapes ={}
+        str_baseName = baseName
+        ml_toParent = []
+        d_dat = {1:{},
+                 2:{}}
+
+        if msgDriver:
+            ml_missingDrivers = []
+
+        def check_msgDriver(mObj):
+            mDriver = mObj.getMessageAsMeta(msgDriver)
+            if mDriver:
+                md_drivers[mObj] = mDriver
+            else:
+                log.error("|{0}| >> Missing driver: {1}".format(_str_func,mObj))
+                ml_missingDrivers.append(mObj)
+                return False
+
+        #>>> Verify ===================================================================================
+        log.debug("|{0}| >> driven1 [Check]...".format(_str_func))        
+        d_dat[1]['driven'] = cgmMeta.validateObjListArg(driven1,
+                                                        mType = 'cgmObject',
+                                                        mayaType=['joint'], noneValid = False)
+        log.debug("|{0}| >> driven2 [Check]...".format(_str_func))                
+        d_dat[2]['driven'] = cgmMeta.validateObjListArg(driven2,
+                                                        mType = 'cgmObject',
+                                                        mayaType=['joint'], noneValid = False)
+        
+        
+        d_dat[1]['LoftTargets']=d_dat[1]['driven']
+        d_dat[2]['LoftTargets'] = d_dat[2]['driven']
+        
+        if extend2LoftTo1Ends:
+            d_dat[2]['LoftTargets'] = [d_dat[1]['driven'][0]] + d_dat[2]['driven'] + [d_dat[1]['driven'][-1]]
+
+
+        #Check our msgDrivers -----------------------------------------------------------
+        if msgDriver:
+            log.debug("|{0}| >> msgDriver [Check]...".format(_str_func))
+            for mObj in d_dat[1]['driven'] + d_dat[2]['driven']:
+                if mObj not in ml_missingDrivers:
+                    check_msgDriver(mObj)
+            if ml_missingDrivers:
+                raise ValueError,"Missing drivers. See errors."
+            log.debug("|{0}| >> msgDriver [Pass]...".format(_str_func))
+
+
+        d_dat[1]['int_driven']  = len(d_dat[1]['driven'])
+        d_dat[2]['int_driven']  = len(d_dat[2]['driven'])
+
+        log.debug("|{0}| >> Driven lengths   {1} | {2}".format(_str_func,d_dat[1]['int_driven'] ,d_dat[2]['int_driven'] ))                
+
+
+        log.debug("|{0}| >> influences1 [Check]...".format(_str_func))                
+        d_dat[1]['mInfluences']  = cgmMeta.validateObjListArg(influences1,
+                                                              mType = 'cgmObject',
+                                                              mayaType=['joint'], noneValid = False)
+
+        log.debug("|{0}| >> influences2 [Check]...".format(_str_func))                    
+        d_dat[2]['mInfluences']  = cgmMeta.validateObjListArg(influences2,
+                                                              mType = 'cgmObject',
+                                                              mayaType=['joint'], noneValid = False)        
+
+
+        d_dat[1]['int_influences'] = len(d_dat[1]['mInfluences'] )
+        d_dat[2]['int_influences'] = len(d_dat[2]['mInfluences'] )
+
+        log.debug("|{0}| >> Influence lengths   {1} | {2}".format(_str_func,
+                                                                  d_dat[1]['int_influences'],
+                                                                  d_dat[2]['mInfluences']))                        
+
+
+        mi_mayaOrientation = VALID.simpleOrientation(orientation)
+        str_orientation = mi_mayaOrientation.p_string
+        str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)        
+
+        if specialMode and specialMode not in ['noStartEnd','endsToInfluences']:
+            raise ValueError,"Unknown special mode: {0}".format(specialMode)
+
+
+        #module -----------------------------------------------------------------------------------------------
+        mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
+        #try:mModule.isModule()
+        #except:mModule = False
+
+        mi_rigNull = False	
+        if mModule:
+            log.debug("|{0}| >> mModule [Check]...".format(_str_func))            
+            mi_rigNull = mModule.rigNull	
+            if str_baseName is None:
+                str_baseName = mModule.getPartNameBase()#Get part base name	    
+        if not baseName:baseName = 'testRibbonSeal' 
+        if not baseName1:baseName1 = 'ribbon1'
+        if not baseName2:baseName2 = 'ribbon2'
+
+        d_check = {'driven1':d_dat[1]['int_driven'] ,
+                   'driven2':d_dat[2]['int_driven'] }
+
+        for k,i in d_check.iteritems():
+            if i<3:
+                raise ValueError,"needs at least three driven. Found : {0} | {1}".format(k,i)
+
+        log.debug("|{0}| >> Group [Check]...".format(_str_func))                    
+        if parentGutsTo is None:
+            mGroup = cgmMeta.cgmObject(name = 'newgroup')
+            mGroup.addAttr('cgmName', str(baseName), lock=True)
+            mGroup.addAttr('cgmTypeModifier','segmentStuff', lock=True)
+            mGroup.doName()
+        else:
+            mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+
+        if mModule:
+            mGroup.parent = mModule.rigNull
+
+        #Good way to verify an instance list? #validate orientation             
+        #> axis -------------------------------------------------------------
+        """
+        axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
+        axis_aimNeg = axis_aim.inverse
+        axis_up = VALID.simpleAxis("{0}+".format(str_orientation [1]))
+        axis_out = VALID.simpleAxis("{0}+".format(str_orientation [2]))
+
+        v_aim = axis_aim.p_vector#aimVector
+        v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
+        v_up = axis_up.p_vector   #upVector
+        v_out = axis_out.p_vector
+
+        str_up = axis_up.p_string
+
+        loftAxis2 = False
+        #Figure out our loft axis stuff
+        if loftAxis not in  orientation:
+            _lower_loftAxis = loftAxis.lower()
+            if _lower_loftAxis in ['out','up']:
+                if _lower_loftAxis == 'out':
+                    loftAxis = str_orientation[2]
+                else:
+                    loftAxis = str_orientation[1]
+            else:
+                raise ValueError,"Not sure what to do with loftAxis: {0}".format(loftAxis)
+        """
+
+        outChannel = str_orientation[2]#outChannel
+        upChannel = str_orientation[1]
+        #upChannel = '{0}up'.format(str_orientation[1])#upChannel
+
+
+
+        #>>> Ribbon Surface ============================================================================        
+        log.debug("|{0}| >> Ribbons generating...".format(_str_func))
+
+        l_surfaceReturn1 = ribbon_createSurface(d_dat[1]['LoftTargets'],loftAxis,sectionSpans,extendEnds)
+
+        d_dat[1]['mSurf'] = cgmMeta.validateObjArg( l_surfaceReturn1[0],'cgmObject',setClass = True )
+        d_dat[1]['mSurf'].addAttr('cgmName',str(baseName1),attrType='string',lock=True)    
+        d_dat[1]['mSurf'].addAttr('cgmType','controlSurface',attrType='string',lock=True)
+        d_dat[1]['mSurf'].doName()
+
+        l_surfaceReturn2 = ribbon_createSurface(d_dat[2]['LoftTargets'],loftAxis,sectionSpans,extendEnds)        
+        d_dat[2]['mSurf'] = cgmMeta.validateObjArg( l_surfaceReturn1[0],'cgmObject',setClass = True )
+        d_dat[2]['mSurf'].addAttr('cgmName',str(baseName2),attrType='string',lock=True)    
+        d_dat[2]['mSurf'].addAttr('cgmType','controlSurface',attrType='string',lock=True)
+        d_dat[2]['mSurf'].doName()        
+
+
+        log.debug("d_dat[1]['mSurf']: {0}".format(d_dat[1]['mSurf']))
+        log.debug("d_dat[2]['mSurf']: {0}".format(d_dat[2]['mSurf']))
+
+
+
+        ml_toConnect = []
+        ml_toConnect.extend([d_dat[1]['mSurf'],d_dat[2]['mSurf']])
+        
+        #Special Mode =================================================================================
+        if specialMode in ['noStartEnd','endsToInfluences']:
+            log.debug("|{0}| >> Special Mode: {1}".format(_str_func,specialMode)+cgmGEN._str_subLine)
+
+            if specialMode == 'endsToInfluences':
+                d_special = {'1start':{'mObj':d_dat[1]['driven'][0],
+                                       'mDriver':d_dat[1]['mInfluences'][0]},
+                             '1end':{'mObj':d_dat[1]['driven'][-1],
+                                     'mDriver':d_dat[1]['mInfluences'][-1]},}
+                """
+                             '2start':{'mObj':d_dat[2]['driven'][0],
+                                       'mDriver':d_dat[2]['mInfluences'][0]},
+                             '2end':{'mObj':d_dat[2]['driven'][-1],
+                                     'mDriver':d_dat[2]['mInfluences'][-1]}}"""
+
+                for n,dat in d_special.iteritems():
+                    mObj = dat['mObj']
+                    mDriven = md_drivers[mObj]
+                    mDriver = dat['mDriver']
+                    log.debug("|{0}| >> {1} | Driver: {2}".format(_str_func,i,mDriven))
+
+                    _const = mc.parentConstraint([mDriver.mNode],mDriven.mNode,maintainOffset=True)[0]
+                    ATTR.set(_const,'interpType',2)
+
+            d_dat[1]['driven'] = d_dat[1]['driven'][1:-1]
+            #d_dat[2]['driven'] = d_dat[2]['driven'][1:-1]            
+            driven1 = driven1[1:-1]
+            #driven2 = driven2[1:-1]
+
+        #>>> Setup our Attributes ================================================================
+        log.debug("|{0}| >> Settings...".format(_str_func))        
+        if settingsControl:
+            mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
+        else:
+            mSettings = d_dat[1]['mSurf']
+
+
+
+
+        mPlug_sealHeight = cgmMeta.cgmAttr(mSettings.mNode,
+                                           'sealHeight',
+                                           attrType='float',
+                                           lock=False,
+                                           keyable=True)
+        mPlug_sealHeight.doDefault(.5)
+        mPlug_sealHeight.value = .5
+
+
+        #>>> Setup blend results --------------------------------------------------------------------
+        if sealSplit:
+            d_split = RIGGEN.split_blends(driven1,#d_dat[1]['driven'],
+                                          driven2,#d_dat[2]['driven'],
+                                          sealDriver1,
+                                          sealDriver2,
+                                          sealDriverMid,
+                                          nameSeal1=sealName1,
+                                          nameSeal2=sealName2,
+                                          nameSealMid=sealNameMid,
+                                          settingsControl = mSettings,
+                                          maxValue=maxValue)
+            for k,d in d_split.iteritems():
+                d_dat[k]['mPlugs'] = d['mPlugs']
+
+        else:
+            mPlug_seal = cgmMeta.cgmAttr(mSettings.mNode,
+                                         'seal',
+                                         attrType='float',
+                                         lock=False,
+                                         keyable=True)
+
+            mPlug_sealOn = cgmMeta.cgmAttr(mSettings,'result_sealOn',attrType='float',
+                                           defaultValue = 0,keyable = False,lock=True,
+                                           hidden=False)
+
+            mPlug_sealOff= cgmMeta.cgmAttr(mSettings,'result_sealOff',attrType='float',
+                                           defaultValue = 0,keyable = False,lock=True,
+                                           hidden=False)
+
+            NODEFAC.createSingleBlendNetwork(mPlug_seal.p_combinedName,
+                                                 mPlug_sealOn.p_combinedName,
+                                                 mPlug_sealOff.p_combinedName)
+
+            d_dat[1]['mPlug_sealOn'] = mPlug_sealOn
+            d_dat[1]['mPlug_sealOff'] = mPlug_sealOff
+            d_dat[2]['mPlug_sealOn'] = mPlug_sealOn
+            d_dat[2]['mPlug_sealOff'] = mPlug_sealOff                    
+
+        mPlug_FavorOneMe = cgmMeta.cgmAttr(mSettings,'result_sealOneMe',attrType='float',
+                                           defaultValue = 0,keyable = False,lock=True,
+                                           hidden=False)
+        mPlug_FavorOneThee = cgmMeta.cgmAttr(mSettings,'result_sealOneThee',attrType='float',
+                                             defaultValue = 0,keyable = False,lock=True,
+                                             hidden=False)
+        mPlug_FavorTwoMe = cgmMeta.cgmAttr(mSettings,'result_sealTwoMe',attrType='float',
+                                           defaultValue = 0,keyable = False,lock=True,
+                                           hidden=False)
+        mPlug_FavorTwoThee = cgmMeta.cgmAttr(mSettings,'result_sealTwoThee',attrType='float',
+                                             defaultValue = 0,keyable = False,lock=True,
+                                             hidden=False)    
+
+        NODEFAC.createSingleBlendNetwork(mPlug_sealHeight.p_combinedName,
+                                             mPlug_FavorOneThee.p_combinedName,
+                                             mPlug_FavorOneMe.p_combinedName)
+        NODEFAC.createSingleBlendNetwork(mPlug_sealHeight.p_combinedName,
+                                             mPlug_FavorTwoThee.p_combinedName,
+                                             mPlug_FavorTwoMe.p_combinedName)        
+
+
+        d_dat[1]['mPlug_me'] = mPlug_FavorOneMe
+        d_dat[1]['mPlug_thee'] = mPlug_FavorOneThee
+        d_dat[2]['mPlug_me'] = mPlug_FavorTwoMe
+        d_dat[2]['mPlug_thee'] = mPlug_FavorTwoThee
+
+
+        """
+        b_attachToInfluences = False
+        if attachEndsToInfluences:
+            log.debug("|{0}| >> attachEndsToInfluences flag. Checking...".format(_str_func))
+            if influences and len(influences) > 1:
+                b_attachToInfluences = True
+            log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
+            """
+
+
+        #>>> Skinning ============================================================================
+        log.debug("|{0}| >> Skinning Ribbons...".format(_str_func))
+
+        for idx,dat in d_dat.iteritems():
+            max_influences = 2
+            mode_tighten = 'twoBlend'
+            blendLength = int(dat['int_driven']/2)
+            blendMin = 2
+            _hardLength = 2
+
+            if extendEnds:
+                blendMin = 4
+                _hardLength = 4
+
+
+            if dat['int_influences'] > 2:
+                mode_tighten = None
+                #blendLength = int(int_lenInfluences/2)
+                max_influences = MATH.Clamp( blendLength, 2, 4)
+                blendLength = MATH.Clamp( int(dat['int_influences']/2), 2, 6)
+
+            if dat['int_influences'] == dat['int_driven']:
+                _hardLength = 3
+            #Tighten the weights...
+
+
+            mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in dat['mInfluences']],
+                                                                  dat['mSurf'].mNode,
+                                                                  tsb=True,nurbsSamples=4,
+                                                                  maximumInfluences = 3,#max_influences,
+                                                                  normalizeWeights = 1,dropoffRate=5.0),
+                                                  'cgmNode',
+                                                  setClass=True)
+
+            mSkinCluster.doStore('cgmName', dat['mSurf'].mNode)
+            mSkinCluster.doName()    
+
+            #Tighten the weights...
+            """
+            RIGSKIN.surface_tightenEnds(dat['mSurf'].mNode,
+                                        hardLength = _hardLength,
+                                        blendLength=blendLength,
+                                        mode=mode_tighten)"""        
+
+        #>>> Meat ============================================================================
+        ml_processed = []
+        for idx,dat in d_dat.iteritems():
+            idx_seal = 1
+            if idx == 1:
+                idx_seal = 2
+            dat_seal = d_dat[idx_seal]
+            log.debug("|{0}| >> Building [{1}] | seal idx: {2} |".format(_str_func,
+                                                                         idx,
+                                                                         idx_seal)+cgmGEN._str_subLine)
+
+            mSurfBase = dat['mSurf']
+            mSurfSeal = dat_seal['mSurf']
+
+            for i,mObj in enumerate(dat['driven']):
+                if mObj in ml_processed:
+                    log.debug("|{0}| >> Already completed: {1}".format(_str_func,mObj))                    
+                    continue
+                ml_processed.append(mObj)
+                log.debug("|{0}| >> {1} | Driven: {2}".format(_str_func,i,mObj))
+                mDriven = md_drivers[mObj]
+                log.debug("|{0}| >> {1} | Driver: {2}".format(_str_func,i,mDriven))
+
+                log.debug("|{0}| >> Create track drivers...".format(_str_func))                
+                mTrackBase = mDriven.doCreateAt(setClass=True)
+                mTrackBase.doStore('cgmName',mObj.mNode)
+                mTrackSeal = mTrackBase.doDuplicate()
+                mTrackBlend = mTrackBase.doDuplicate()
+
+                mTrackSeal.doStore('cgmType','trackSeal')
+                mTrackBase.doStore('cgmType','trackBase')
+                mTrackBlend.doStore('cgmType','trackBlend')
+                ml_toParent.append(mTrackBlend)
+                for mTrack in mTrackBase,mTrackSeal,mTrackBlend:
+                    mTrack.doName()
+
+                log.debug("|{0}| >> Attach drivers...".format(_str_func))
+
+                d_tmp = {'base':{'mSurf':mSurfBase,
+                                 'mTrack':mTrackBase},
+                         'seal':{'mSurf':mSurfSeal,
+                                 'mTrack':mTrackSeal},
+                         }
+
+                for n,d in d_tmp.iteritems():
+                    mTrack = d['mTrack']
+                    mSurf = d['mSurf']
+
+                    follicle,shape = RIGCONSTRAINTS.attach_toShape(mTrack.mNode, mSurf.mNode, 'parent')
+                    mFollicle = cgmMeta.asMeta(follicle)
+                    mFollShape = cgmMeta.asMeta(shape)
+
+                    md_follicleShapes[mObj] = mFollShape
+                    md_follicles[mObj] = mFollicle
+
+                    mFollicle.parent = mGroup.mNode
+
+                    if mModule:#if we have a module, connect vis
+                        mFollicle.overrideEnabled = 1
+                        cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideVisibility'))
+                        cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mFollicle.mNode,'overrideDisplayType'))
+
+                #Blend point --------------------------------------------------------------------
+                _const = mc.parentConstraint([mTrackBase.mNode,mTrackSeal.mNode],mTrackBlend.mNode)[0]
+                ATTR.set(_const,'interpType',2)
+
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+
+                #Connect                                  
+                if idx==1:
+                    dat['mPlug_thee'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlug_me'].doConnectOut('%s.%s' % (_const,targetWeights[1]))
+                else:
+                    dat['mPlug_me'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlug_thee'].doConnectOut('%s.%s' % (_const,targetWeights[1]))                
+
+                #seal --------------------------------------------------------------------
+                _const = mc.parentConstraint([mTrackBase.mNode,mTrackBlend.mNode],mDriven.mNode)[0]
+                ATTR.set(_const,'interpType',2)                
+
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+
+                if sealSplit:
+                    dat['mPlugs']['off'][i].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlugs']['on'][i].doConnectOut('%s.%s' % (_const,targetWeights[1]))                    
+                else:
+                    dat['mPlug_sealOff'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    dat['mPlug_sealOn'].doConnectOut('%s.%s' % (_const,targetWeights[1]))
+
+            log.debug("|{0}| >> Blend drivers...".format(_str_func))
+
+
+        
+        if mModule:#if we have a module, connect vis
+            mRigNull = mModule.rigNull
+            _str_rigNull = mRigNull.mNode
+            for mObj in ml_toConnect:
+                mObj.overrideEnabled = 1
+                cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+                cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+                mObj.p_parent = mRigNull    
+        
+        for mObj in ml_toParent:
+            mObj.p_parent = mGroup.mNode
+            
+
+        #pprint.pprint(d_dat)
+        return
+
+
+
+
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())

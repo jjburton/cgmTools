@@ -24,6 +24,7 @@ __version__ = "02.06.2016"
 # From Python =============================================================
 import copy
 import os
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -66,7 +67,6 @@ class data(object):
                        'general':'d_general',
                        'skin':'d_sourceSkin',
                        'influences':'d_sourceInfluences'} 
-    
     _geoToComponent = {'mesh':'vtx'}
     
     def __init__(self, sourceMesh = None, targetMesh = None, filepath = None, **kws):
@@ -82,7 +82,7 @@ class data(object):
         self.d_general = cgmGeneral.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
-        if sourceMesh is not None and targetMesh is not None:
+        if sourceMesh is not None:
             self.validateSourceMesh(sourceMesh)
         if targetMesh is not None:
             self.validateTargetMesh(targetMesh)
@@ -246,14 +246,14 @@ class data(object):
                 for k1 in l_keys:
                     _bfr = _d_bfr[k1]
                     if isinstance(_bfr,dict):
-                        log.info(">" + "Nested Dict: {0}".format(k1) + cgmGeneral._str_subLine)
+                        print(">" + "Nested Dict: {0}".format(k1) + cgmGeneral._str_subLine)
                         l_bufferKeys = _bfr.keys()
                         l_bufferKeys.sort()
                         for k2 in l_bufferKeys:
-                            log.info("-"*3 +'>' + " {0} : {1} ".format(k2,_bfr[k2]))			
+                            print("-"*3 +'>' + " {0} : {1} ".format(k2,_bfr[k2]))			
                     else:
-                        log.info(">" + " {0} : {1} ".format(k1,_d_bfr[k1]))                	    
-
+                        print(">" + " {0} : {1} ".format(k1,_d_bfr[k1]))                	    
+                print(cgmGeneral._str_subLine)
         
 #>>> Utilities
 #===================================================================
@@ -539,7 +539,6 @@ def applySkin(*args,**kws):
                 
                 for i,n in enumerate(_l_configInfluenceList):
                     _idx_base = _l_jointsToUseBaseNames.index(n)
-                    
                     #self.log_error("Rewire. Name:{0} | config idx:{1} ===> currentIdx: {2}".format(n,_idx_config,i))
                     _d_rewire[i] = _idx_base
                     
@@ -685,7 +684,9 @@ def applySkin(*args,**kws):
                 if self._l_missingInfluences:
                     self.log_info("Adding influences...")                    
                     for infl in self._l_missingInfluences:
-                        mc.skinCluster(_targetSkin, edit = True, ai = infl)
+                        try:mc.skinCluster(_targetSkin, edit = True, ai = infl)
+                        except Exception,err:
+                            log.error(err)
                 #try:mc.delete(_targetSkin)
                 #except:pass
             else:

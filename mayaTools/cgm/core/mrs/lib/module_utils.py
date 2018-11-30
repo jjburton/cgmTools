@@ -66,7 +66,12 @@ def get_partName(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:#Quick select sets ================================================================
-        _str= NAMETOOLS.returnRawGeneratedName(self.mNode, ignore = ['cgmType'])
+        _d = NAMETOOLS.get_objNameDict(self.mNode)
+        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+        log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+        
+        _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+        log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
         return STRINGS.stripInvalidChars(_str)
 
     except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -149,7 +154,6 @@ def moduleChildren_get(self,excludeSelf = True):
 def doName(self):
     _str_func = ' doName'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
-    reload(NAMETOOLS)
     try:
         _d = NAMETOOLS.get_objNameDict(self.mNode)
         
@@ -184,6 +188,44 @@ def verify_objectSet(self):
             if not mi_modulePuppet.getMessage('puppetSet'):
                 mi_modulePuppet.verify_objectSet()
             self.modulePuppet.puppetSet.addObj(mSet.mNode)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+def verify_faceObjectSet(self):
+    _str_func = ' verify_faceObjectSet'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    try:#Quick select sets ================================================================
+        mPuppetSet = False
+        mRigNull = self.rigNull
+        
+        if self.modulePuppet:
+            mModulePuppet = self.modulePuppet
+            mPuppetSet = mModulePuppet.getMessageAsMeta('puppetSet') or mModulePuppet.verify_objectSet()
+                
+        mParentModule = self.getMessageAsMeta('moduleParent')
+        if not mParentModule:
+            mParentModule = mModulePuppet
+        
+        mFaceSet = mParentModule.rigNull.getMessageAsMeta('faceSet')
+        #mParentSet = mParentModule.rigNull.getMessageAsMeta('moduleSet')
+        
+        _created = False
+        
+        if mFaceSet:
+            log.debug("|{0}| >>  faceSet exists from moduleParent: {1}".format(_str_func,mFaceSet))            
+        else:
+            _created = True
+            mFaceSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
+            mParentModule.rigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
+        
+        mRigNull.connectChildNode(mFaceSet.mNode,'faceSet')        
+        mFaceSet.doStore('cgmName',"{0}_face".format(get_partName(mParentModule)))
+        mFaceSet.doName()
+        
+        if mPuppetSet:
+            mPuppetSet.addObj(mFaceSet.mNode)
+        return mFaceSet
+            
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 #=============================================================================================================
@@ -548,7 +590,15 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        for plug in ['blendJoints','fkJoints','moduleJoints']:
+        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        _direct = False
+        if mParentModule.moduleType in ['head'] and mode == 'end':
+            l_msgLinks = ['rigJoints']
+            _direct = True
+            
+        for plug in l_msgLinks:#'handleJoints',        
+        
+
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))                
@@ -595,7 +645,13 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
-        for plug in ['blendJoints','fkJoints','moduleJoints']:#'handleJoints',
+        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        _direct = False
+        if mParentModule.moduleType in ['head'] and mode == 'end':
+            l_msgLinks = ['rigJoints']
+            _direct = True
+            
+        for plug in l_msgLinks:#'handleJoints',
             if mParentRigNull.msgList_get(plug):
                 ml_targetJoints = mParentRigNull.msgList_get(plug,asMeta = True, cull = True)
                 log.debug("|{0}| >> Found parentJoints: {1}".format(_str_func,plug))
@@ -618,7 +674,7 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
                 return log.error(_msg)
             raise ValueError,_msg
         
-        if _plugUsed not in ['handleJoints']:
+        if _plugUsed not in ['handleJoints'] and _direct != True:
             if mTarget.getMessage('masterGroup'):
                 log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
                 return mTarget.masterGroup
@@ -636,11 +692,12 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
 reload(BLOCKSHARE)
 l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
-                  'fk':['fkJoints','leverFK'],
+                  'fk':['fkJoints','leverFK','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
                   'ik':['controlIK','controlIKEnd',
-                        'controlIKBase',
+                        'controlIKBase','controlsFK',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
+                  'face':['controlsFace'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
@@ -680,6 +737,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         l_useKeys = l_controlOrder
     
     if ignore:
+        log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
         for k in ignore:
             if k in l_useKeys:
                 l_useKeys.remove(k)
@@ -700,6 +758,24 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 for mObj in _msgList:
                     addMObj(mObj,_ml)
         ml_controls.extend(_ml)
+
+    if ml_objs:
+        ml_dup = copy.copy(ml_objs)
+        log.debug("|{0}| >> Second pass {1}... ".format(_str_func,len(ml_objs))+'-'*20)
+        for mObj in ml_dup:
+            log.debug("|{0}| >> {1} ".format(_str_func,mObj))            
+            if mObj.hasAttr('cgmControlDat'):
+                _tags = mObj.cgmControlDat.get('tags',[])
+                log.debug("|{0}| >> tags: {1} ".format(_str_func,_tags))            
+                for t in _tags:
+                    _t = str(t)
+                    #if keys is not None and _t not in l_useKeys:
+                    #    continue
+                    if not md_controls.get(_t):
+                        md_controls[_t] = []
+                    _ml = md_controls[_t] 
+                    ml_controls.append(mObj)                    
+                    addMObj(mObj,_ml)
     
     if not keys and 'spacePivots' not in ignore:
         md_controls['spacePivots'] = []
@@ -717,10 +793,11 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         log.info("|{0}| >> List... ".format(_str_func))
         pprint.pprint( ml_controls)
     
-    if ml_objs and keys is None and not ignore:
+    if ml_objs and keys is None and not ignore:        
         log.debug("|{0}| >> remaining... ".format(_str_func))
-        pprint.pprint( ml_objs)    
-        return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+        pprint.pprint( ml_objs)
+        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if report:
         return

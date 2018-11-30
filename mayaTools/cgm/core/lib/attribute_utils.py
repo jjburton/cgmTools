@@ -548,7 +548,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
     #CONNECTED!!!
     if not is_keyed(_d):
         if break_connection(_d):
-            log.warning("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+            log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
             
     _current = get(_combined)
     if _current == value:
@@ -1153,50 +1153,52 @@ def break_connection(*a):
     :returns
         broken connection or status
     """ 
-    _str_func = 'break_connection'
-    _d = validate_arg(*a) 
-    _combined = _d['combined']
-    _obj = _d['obj']
-    _attr = _d['attr']
-
-    _drivenAttr = _combined
-
-    family = {}
-    source = []
-
-    if get_type(_d) == 'message':
-        log.debug("|{0}| >> message...".format(_str_func))                        
-        _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
-        if _dest:
-            for c in _dest:
-                log.debug("|{0}| >> c: {1}".format(_str_func,c))                
-                disconnect(_drivenAttr,c)
-
-    if (mc.connectionInfo (_combined,isDestination=True)):             
-        sourceBuffer = mc.listConnections (_combined, scn = False, d = False, s = True, plugs = True)
-        if not sourceBuffer:
-            family = get_familyDict(_d)           
-            sourceBuffer = mc.connectionInfo (_combined,sourceFromDestination=True)
-        else:
-            sourceBuffer = sourceBuffer[0]
-
-        if not sourceBuffer:
-            return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,_obj,attr))
-        log.debug("|{0}| >> sourcebuffer: {1}".format(_str_func,sourceBuffer))
-        if family and family.get('parent'):
-            log.debug("|{0}| >> family: {1}".format(_str_func,family))
-            _drivenAttr = '{0}.{1}'.format(_obj,family.get('parent'))
-
-        log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
-
-        disconnect(sourceBuffer,_drivenAttr)
-
-        return sourceBuffer
+    try:
+        _str_func = 'break_connection'
+        _d = validate_arg(*a) 
+        _combined = _d['combined']
+        _obj = _d['obj']
+        _attr = _d['attr']
     
-
-
-    return False
-
+        _drivenAttr = _combined
+    
+        family = {}
+        source = []
+    
+        if get_type(_d) == 'message':
+            log.debug("|{0}| >> message...".format(_str_func))                        
+            _dest = mc.listConnections (_combined, scn = False, d = True, s = False, plugs = True)
+            if _dest:
+                for c in _dest:
+                    log.debug("|{0}| >> c: {1}".format(_str_func,c))                
+                    disconnect(_drivenAttr,c)
+    
+        if (mc.connectionInfo(_combined,isDestination=True)):             
+            sourceBuffer = mc.listConnections (_combined, scn = False, d = False, s = True, plugs = True)
+            if not sourceBuffer:
+                family = get_familyDict(_d)           
+                sourceBuffer = mc.connectionInfo (_combined,sourceFromDestination=True)
+            else:
+                sourceBuffer = sourceBuffer[0]
+    
+            if not sourceBuffer:
+                return log.warning("|{0}| >>No source for '{1}.{2}' found!".format(_str_func,_obj,attr))
+            log.debug("|{0}| >> sourcebuffer: {1}".format(_str_func,sourceBuffer))
+            if family and family.get('parent'):
+                log.debug("|{0}| >> family: {1}".format(_str_func,family))
+                _drivenAttr = '{0}.{1}'.format(_obj,family.get('parent'))
+    
+            log.debug("|{0}| >> breaking: {1} >>> to >>> {2}".format(_str_func,sourceBuffer,_drivenAttr))
+    
+            disconnect(sourceBuffer,_drivenAttr)
+    
+            return sourceBuffer
+        
+    
+    
+        return False
+    except Exception,err:
+        cgmGeneral.cgmException(Exception,err,msg=vars())
 def disconnect(fromAttr,toAttr):
     """   
     Disconnects attributes. Handles locks on source or end
@@ -1421,14 +1423,12 @@ def has_attr(*a):
     _str_func = 'has_attr'
     _d = validate_arg(*a) 
 
-    try:
-        if mc.objExists(_d['combined']):
-            return True
-        return False   
-    except Exception,err:
-        log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
-        return False
-    return False
+    #try:
+    return mc.attributeQuery(_d['attr'],node=_d['node'],exists=True)
+    #except Exception,err:
+    #    log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
+    #    return False
+    #return False
 
 
 def get_default(*a):
@@ -3188,7 +3188,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         
         if not validate_attrTypeMatch(_d_sourceFlags['type'],_d_targetFlags['type']):
             if _d_targetFlags['dynamic'] and convertToMatch:
-                log.warning("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
+                log.debug("|{0}| >> {1} Not the correct type, conversion necessary...".format(_str_func,_d_targetAttr['combined']))
                 #_relockSource
                 convert_type(_d_targetAttr,_d_sourceFlags['type'])
             else:

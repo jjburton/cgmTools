@@ -38,6 +38,8 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
+import cgm.core.lib.position_utils as POS
+from cgm.core.classes import NodeFactory as NODEFAC
 
 def reset_channels_fromMode(mode = 0,selectedChannels=None):
     """
@@ -551,6 +553,12 @@ def check_nameMatches(self,mlControls,justReport = False):
         raise ValueError,"Fix this name match"
     return True
 
+def store_and_name(mObj,d):
+    _str_func = 'store_and_name'
+    for t,v in d.iteritems():
+        log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
+        mObj.doStore(t,v)
+    mObj.doName()
 
 def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'multiply'):
     """
@@ -614,3 +622,234 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
         #pprint.pprint(vars())
         cgmGEN.cgmException(Exception,err,msg=vars())
         raise Exception,err
+    
+def split_blends(driven1 = None,
+                 driven2 = None,
+                 sealDriver1 = None,
+                 sealDriver2 = None,
+                 sealDriverMid = None,
+                 nameSeal1 = 'left',
+                 nameSeal2 = 'right',
+                 nameSealMid = 'center',
+                 maxValue = 10.0,
+                 inTangent = 'auto',
+                 outTangent = 'auto',
+                 settingsControl = None,
+                 buildNetwork = True):
+    """
+    Split for blend data
+    """
+    try:
+        _str_func = 'split_blends'
+        d_dat = {1:{'dist1':[],
+                    'dist2':[],
+                    'distMid':[]},
+                 2:{'dist1':[],
+                    'dist2':[],
+                    'distMid':[]}}
+        _lock=False
+        _hidden=False
+        #>>> Verify ===================================================================================
+        log.debug("|{0}| >> driven1 [Check]...".format(_str_func))        
+        d_dat[1]['driven'] = cgmMeta.validateObjListArg(driven1,
+                                                        mType = 'cgmObject',
+                                                        mayaType=['joint'], noneValid = False)
+        log.debug("|{0}| >> driven2 [Check]...".format(_str_func))                
+        d_dat[2]['driven'] = cgmMeta.validateObjListArg(driven2,
+                                                        mType = 'cgmObject',
+                                                        mayaType=['joint'], noneValid = False)
+
+        mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
+        pprint.pprint(d_dat[1]['driven'])
+        pprint.pprint(d_dat[2]['driven'])
+
+        if buildNetwork:
+            log.debug("|{0}| >> buildNetwork | building driver attrs...".format(_str_func))                            
+            mPlug_sealMid = cgmMeta.cgmAttr(mSettings.mNode,
+                                            'seal_{0}'.format(nameSealMid),
+                                            attrType='float',
+                                            minValue=0.0,
+                                            maxValue = maxValue,
+                                            lock=False,
+                                            keyable=True)
+            mPlug_seal1 = cgmMeta.cgmAttr(mSettings.mNode,
+                                          'seal_{0}'.format(nameSeal1),
+                                          attrType='float',
+                                          minValue=0.0,
+                                          maxValue = maxValue,
+                                          lock=False,
+                                          keyable=True)
+            mPlug_seal2 = cgmMeta.cgmAttr(mSettings.mNode,
+                                          'seal_{0}'.format(nameSeal2),
+                                          attrType='float',
+                                          minValue=0.0,
+                                          maxValue = maxValue,
+                                          lock=False,
+                                          keyable=True)            
+
+        pos1 = POS.get(sealDriver1)
+        pos2 = POS.get(sealDriver2)
+        posMid = POS.get(sealDriverMid)
+
+        normMin = maxValue * .1
+        normMax = maxValue - normMin
+
+        for idx,dat in d_dat.iteritems():
+            mDriven = dat['driven']
+
+            d_tmp = {'dist1':{'pos':pos1,
+                              'res':dat['dist1']},
+                     'dist2':{'pos':pos2,
+                              'res':dat['dist2']},
+                     'distMid':{'pos':posMid,
+                                'res':dat['distMid']},
+                     }
+
+            for mObj in mDriven:
+                for n,d in d_tmp.iteritems():
+                    dTmp = DIST.get_distance_between_points(d['pos'],mObj.p_position)
+                    if MATH.is_float_equivalent(dTmp,0.0):
+                        dTmp = 0.0
+                    d['res'].append(dTmp)
+
+            dat['dist1Norm'] = MATH.normalizeList(dat['dist1'],normMax)
+            dat['dist2Norm'] = MATH.normalizeList(dat['dist2'],normMax)
+            dat['distMidNorm'] = MATH.normalizeList(dat['distMid'],normMax)
+
+            dat['dist1On'] = [v + normMin for v in dat['dist1Norm']]
+            dat['dist2On'] = [v + normMin for v in dat['dist2Norm']]
+            dat['distMidOn'] = [v + normMin for v in dat['distMidNorm']]
+            
+            if buildNetwork:
+                log.debug("|{0}| >> buildNetwork | building driver attrs...".format(_str_func))
+                dat['mPlugs'] = {'1':{},
+                                 '2':{},
+                                 'mid':{},
+                                 'on':{},
+                                 'off':{},
+                                 'sum':{}}
+                for i,mObj in enumerate(mDriven):
+                    log.debug("|{0}| >> buildNetwork | On: {1}".format(_str_func,mObj) + cgmGEN._str_subLine)
+                    dat['mPlugs']['1'][i] = cgmMeta.cgmAttr(mSettings,
+                                                            'set{0}_idx{1}_blend{2}'.format(idx,i,'1'),
+                                                            attrType='float',
+                                                            keyable = False,lock=_lock,hidden=_hidden)
+                    dat['mPlugs']['2'][i] = cgmMeta.cgmAttr(mSettings,
+                                                            'set{0}_idx{1}_blend{2}'.format(idx,i,'2'),
+                                                            attrType='float',
+                                                            keyable = False,lock=_lock,hidden=_hidden)
+                    dat['mPlugs']['mid'][i] = cgmMeta.cgmAttr(mSettings,
+                                                              'set{0}_idx{1}_blend{2}'.format(idx,i,'mid'),
+                                                              attrType='float',
+                                                              keyable = False,lock=_lock,hidden=_hidden)                    
+                    dat['mPlugs']['on'][i] = cgmMeta.cgmAttr(mSettings,
+                                                             'set{0}_idx{1}_on'.format(idx,i),
+                                                             attrType='float',
+                                                             keyable = False,lock=_lock,hidden=_hidden)
+                    dat['mPlugs']['off'][i] = cgmMeta.cgmAttr(mSettings,
+                                                              'set{0}_idx{1}_off'.format(idx,i),
+                                                              attrType='float',
+                                                              keyable = False,lock=_lock,hidden=_hidden)
+
+                    dat['mPlugs']['sum'][i] = cgmMeta.cgmAttr(mSettings,
+                                                              'set{0}_idx{1}_sum'.format(idx,i),
+                                                              attrType='float',
+                                                              keyable = False,lock=_lock,hidden=_hidden)
+
+                    args = []
+                    args.append("{0} = {1} + {2} + {3}".format(dat['mPlugs']['sum'][i].p_combinedShortName,
+                                                               dat['mPlugs']['1'][i].p_combinedShortName,
+                                                               dat['mPlugs']['2'][i].p_combinedShortName,
+                                                               dat['mPlugs']['mid'][i].p_combinedShortName))
+                    args.append("{0} = clamp(0 , 1.0, {1}".format(dat['mPlugs']['on'][i].p_combinedShortName,
+                                                                  dat['mPlugs']['sum'][i].p_combinedShortName,))
+                    args.append("{0} = 1.0 - {1}".format(dat['mPlugs']['off'][i].p_combinedShortName,
+                                                         dat['mPlugs']['on'][i].p_combinedShortName,))                    
+                    for a in args:
+                        NODEFAC.argsToNodes(a).doBuild()
+
+                    zeroMid = 0
+                    zero1 = 0
+                    zero2 = 0
+                    
+                    """
+                    1
+                    'dist1Norm': [9.0, 7.202468187218439, 4.077128668939619],
+                    'dist1On': [10.0, 8.20246818721844, 5.077128668939619],
+                    'dist2': [2.055457665682541, 3.632951746156667, 4.537290944991008],
+                    'dist2Norm': [4.077128668939596, 7.206186711809993, 9.0],
+                    'dist2On': [5.077128668939596, 8.206186711809993, 10.0],
+                    
+                    2
+                    'dist1On': [10.0, 7.77630635569009, 4.3748619466292595],
+                    'dist2': [1.6982080013368184, 3.4097921203066526, 4.528739916989064],
+                    'dist2Norm': [3.3748619466301477, 6.7763063556899725, 9.0],
+                    'dist2On': [4.374861946630148, 7.7763063556899725, 10.0],
+                    
+                    """
+                    
+
+                    try:zero1 = dat['dist1On'][i+1]
+                    except:zero1 = 0
+                    
+                    if i:
+                        try:zero2 = dat['dist2On'][i-1]
+                        except:zero2 = 0
+                        
+                    #try:zeroMid = dat['distMidOn'][i-1]
+                    #except:zeroMid= 0
+                        
+                   #if i:
+                   #     zero1 = dat['dist1On'][i-1]
+
+                    #try:zero2 = dat['dist2On'][i+1]
+                    #except:zero2 = 0
+                        #zero1 = MATH.Clamp(dat['dist1On'][i-1],normMin,maxValue)
+                        #zero2 = MATH.Clamp(dat['dist2On'][i-1],normMin,maxValue)
+
+                    mc.setDrivenKeyframe(dat['mPlugs']['1'][i].p_combinedShortName,
+                                         currentDriver = mPlug_seal1.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,
+                                         driverValue = zero1,value = 0.0)
+
+                    mc.setDrivenKeyframe(dat['mPlugs']['1'][i].p_combinedShortName,
+                                         currentDriver = mPlug_seal1.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,                                         
+                                         driverValue = dat['dist1On'][i],value = 1.0)
+
+
+                    mc.setDrivenKeyframe(dat['mPlugs']['2'][i].p_combinedShortName,
+                                         currentDriver = mPlug_seal2.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,                                         
+                                         driverValue = zero2,value = 0.0)                    
+                    mc.setDrivenKeyframe(dat['mPlugs']['2'][i].p_combinedShortName,
+                                         currentDriver = mPlug_seal2.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,                                         
+                                         driverValue = dat['dist2On'][i],value = 1.0)
+
+                    last1 = dat['dist1On'][i]
+                    last2 = dat['dist2On'][i]
+
+
+                    mc.setDrivenKeyframe(dat['mPlugs']['mid'][i].p_combinedShortName,
+                                         currentDriver = mPlug_sealMid.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,                                         
+                                         driverValue = zeroMid,value = 0.0)                    
+                    mc.setDrivenKeyframe(dat['mPlugs']['mid'][i].p_combinedShortName,
+                                         currentDriver = mPlug_sealMid.p_combinedShortName,
+                                         itt=inTangent,ott=outTangent,                                         
+                                         driverValue = dat['distMidOn'][i],value = 1.0)
+
+        pprint.pprint(d_dat)
+        #return d_dat
+
+        for idx,dat in d_dat.iteritems():
+            for plugSet,mSet in dat['mPlugs'].iteritems():
+                for n,mPlug in mSet.iteritems():
+                    mPlug.p_lock=True
+                    mPlug.p_hidden = True
+
+        return d_dat
+
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())    

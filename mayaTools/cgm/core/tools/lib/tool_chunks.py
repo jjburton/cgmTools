@@ -46,7 +46,7 @@ reload(SDK)
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
 reload(TOOLCALLS)
 import cgm.core.classes.GuiFactory as cgmUI
-
+import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
 reload(ATTRTOOLS)
 
@@ -751,7 +751,16 @@ def uiSection_dev(parent):
                 l='OLD - limb',
                 ann = "WARNING - Opens new file...Unit test cgm.core",
                 c=lambda *a: ut_limbOLD()) 
-
+    
+    #Capture ------------------------------------------
+    _screenGrab = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                             l='Screen grab Mode')
+    mc.menuItem(parent = _screenGrab,
+                l='Off',
+                c=lambda *a: CGMPROJECTS.setup_forCapture(0))    
+    mc.menuItem(parent = _screenGrab,
+                l='On',
+                c=lambda *a: CGMPROJECTS.setup_forCapture(1))
     
 def ut_cgmTestCall(*args,**kws):
     import cgm.core.tests.cgmTests as cgmTests

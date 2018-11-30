@@ -125,7 +125,7 @@ def returnCGMSetting(setting):
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
-def returnRawGeneratedName(obj,ignore=[False]):
+def returnRawGeneratedName(obj,ignore=[False],removeDups=True):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -150,12 +150,15 @@ def returnRawGeneratedName(obj,ignore=[False]):
         for item in order:
             buffer = rawNamesDict.get(item)
             if buffer > 0 and item not in ignore:
+                if removeDups:
+                    if str(buffer) in nameBuilder:
+                        continue
                 nameBuilder.append(str(buffer))
         return divider.join(nameBuilder)
     except Exception,err:cgmGEN.cgmException(Exception,err)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
-def returnCombinedNameFromDict(nameDict, stripInvalid = True):
+def returnCombinedNameFromDict(nameDict, stripInvalid = True, removeDups=True):
     """  
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -183,6 +186,9 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True):
         buffer = nameDict.get(item)
         buffer = str(SEARCH.get_tagInfoShort(buffer,item))
         if buffer.lower() not in ['false','none','ignore',]:
+            if removeDups:
+                if buffer in nameBuilder:
+                    continue
             nameBuilder.append(buffer)
         log.debug("|{0}| >>  buffer: {1}".format(_str_func,nameBuilder))
         

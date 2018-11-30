@@ -208,12 +208,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _baseSize = kws.get('baseSize')
         _sizeMode = None
         _postState = None#...for sizeMode call
-        
+        _doVerify = kws.get('doVerify',False)
+        _justCreated = False
         
         if node is None:
             _sel = mc.ls(sl=1)            
             _callSize = get_callSize(_size,blockProfile=kws.get('blockProfile'),blockType=blockType)
-
+            _doVerify = True
+            _justCreated = True
             if  _sel:
                 pos_target = TRANS.position_get(_sel[0])
                 log.debug("|{0}| >> pos_target: {1}".format(_str_func,pos_target))                                
@@ -237,11 +239,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #if a not in self.UNMANAGED:
                 #self.UNMANAGED.append(a) 	
 
-
+        
         #====================================================================================
         #Keywords - need to set after the super call
         #=====================================================================================         
-        _doVerify = kws.get('doVerify',False) or False
         #self._factory = factory(self.mNode)
         self._callKWS = kws
         self._blockModule = None
@@ -249,10 +250,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
         #>>> Initialization Procedure ================== 
         try:
-            if self.__justCreatedState__ or _doVerify:
+            if _doVerify:
                 if blockType:
                     _blockModule =  get_blockModule(blockType)
                     reload(_blockModule)
+                    self.doStore('blockType',blockType,attrType='string')
                 else:
                     _blockModule = False
                 
@@ -271,16 +273,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     self.addAttr('cgmName',attrType='string')
                     if kw_name:
                         self.cgmName = kw_name
-
+    
                 log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
                 if self.isReferenced():
                     log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
                     return
                 elif not self.verify(blockType,side= _side):
                     raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-
+    
                 #Name -----------------------------------------------
-
+    
                 #On call attrs -------------------------------------------------------------------------
                 for a,v in kws.iteritems():
                     if self.hasAttr(a):
@@ -309,7 +311,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #if _sizeMode:
                     #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                     #self.atUtils('doSize', _sizeMode)
-
+    
                 #Snap with selection mode --------------------------------------
                 if _size in ['selection']:
                     log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
@@ -324,7 +326,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
                 self._blockModule = _blockModule
                 
-                if self.__justCreatedState__:
+                if _justCreated:
                     if _baseSize:
                         log.info("|{0}| >> on call base size: {1}".format(_str_func,_baseSize))
                         self.baseSize = _baseSize
@@ -339,7 +341,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         _postState = 'template'
             
                     else:
-                        self.p_blockState = 'template'                
+                        self.p_blockState = 'template'
+            else:log.debug("|{0}| >> No verify...".format(_str_func))
+                
             if blockParent is not None:
                 try:
                     self.p_blockParent = blockParent
@@ -347,13 +351,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
                     for arg in err.args:
                         log.error(arg)
-                        
-            #if _sizeMode:
-                #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
-                #self.atUtils('doSize', _sizeMode, postState = _postState )                
+                            
+                #if _sizeMode:
+                    #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+                    #self.atUtils('doSize', _sizeMode, postState = _postState )                
             
         except Exception,err:
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            pprint.pprint(vars())
+            log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
+            
+            #cgmGEN.cgmException(Exception,err,msg=vars())
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
@@ -363,7 +370,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         try:
             reload(BLOCKSHARE)#...to make sure we get changes
-            reload(self.p_blockModule)
+            try:reload(self.p_blockModule)
+            except:pass
+            
             _str_func = '[{0}] verify'.format(self.p_nameShort)
     
             _start = time.clock()
@@ -417,21 +426,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
             try:self.baseSize = self._callSize
             except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
     
-            #try:self.atBlockModule('define')
-            #except:pass
-            #_mBlockModule = self.p_blockModule
-            #if 'define' in _mBlockModule.__dict__.keys():
-            #    log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-            #    _mBlockModule.define(self)      
-            #self._blockModule = _mBlockModule
-    
             self.doName()
             log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
             
             if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
                 ATTR.convert_type(self.mNode,'blockProfile','string')
-                #_v = self.getEnumValueString('blockProfile')
-                #self.doStore('blockProfile',_v,attrType='string')
             
             return True
         except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
@@ -4488,8 +4487,8 @@ class rigFactory(object):
             return False
         _d['buildModule'] =  _buildModule   #if not is_buildable
         _d['buildVersion'] = _buildModule.__version__
-
         _d['blockParents'] = mBlock.getBlockParents()
+        _d['b_faceBlock'] = _buildModule.__dict__.get('__faceBlock__',False)
 
         #Build order --------------------------------------------------------------------------------
         _d['buildOrder'] = valid_blockModule_rigBuildOrder(_buildModule)
@@ -4618,6 +4617,23 @@ class rigFactory(object):
 
         #>>> Object Set -----------------------------------------------------------------------------------
         self.mModule.verify_objectSet()
+        
+        if self.d_block['b_faceBlock']:
+            mFaceSet = self.mModule.atUtils('verify_faceObjectSet')
+            self.mFaceSet = mFaceSet
+            
+            #Settings =============================================================================
+            mModuleParent =  self.d_module['mModuleParent']
+            if mModuleParent:
+                mSettings = mModuleParent.rigNull.settings
+            else:
+                log.debug("|{0}| >>  using puppet...".format(_str_func))
+                mSettings = self.d_module['mMasterControl'].controlVis
+                
+            log.debug("|{0}| >> mModuleParent mSettings: {1}".format(_str_func,mSettings))
+            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub')
+            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect')
+
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
         return _res
@@ -4789,7 +4805,7 @@ class rigFactory(object):
             if _mModule:
                 _d['ml_moduleJoints'] = _mRigNull.msgList_get('moduleJoints',cull=True)
                 if not _d['ml_moduleJoints']:
-                    log.warning("|{0}| >> No module joints found".format(_str_func))
+                    self.l_precheckErrors.append("No module joints found")
                     _d['ml_skinJoints'] = False
                 else:
                     _d['l_moduleJoints'] = []
@@ -4852,45 +4868,31 @@ class rigFactory(object):
         _mMasterSettings = self.d_module['mMasterSettings']
         _mi_moduleParent = self.d_module['mModuleParent']
         _ml_skinJoints = self.d_joints['ml_skinJoints']
+        
+        _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
+        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )        
 
         if not self.mModule.getMessage('deformNull'):
-            if _str_partType in ['eyebrow', 'mouthnose']:
-                raise ValueError,"not implemented"
-                """
-                #Make it and link it ------------------------------------------------------
-                buffer = rigging.groupMeObject(self.str_faceAttachJoint,False)
-                mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                mGrp.addAttr('cgmName',self.partName,lock=True)
-                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                mGrp.doName()
-                mGrp.parent = self.i_faceDeformNull	
-                self.mModule.connectChildNode(mGrp,'deformNull','module')
+            if self.d_block['b_faceBlock']:
+                log.debug("|{0}| >> Face deformNull".format(_str_func))
+                mGrp = self.attachPoint.doCreateAt(setClass=True)
                 self.mModule.connectChildNode(mGrp,'constrainNull','module')
-                self.i_deformNull = mGrp#link"""
+                mGrp.parent = self.attachPoint
             else:
                 #Make it and link it
-                if _str_partType in ['eyelids']:
-                    buffer =  CORERIG.group_me(_mi_moduleParent.deformNull.mNode,False)
-                else:
-                    buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
-
+                buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
                 mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
-                mGrp.addAttr('cgmName',_str_partName,lock=True)
-                mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
-                mGrp.doName()
                 mGrp.parent = self.d_module['mMasterDeformGroup'].mNode
-                self.mModule.connectChildNode(mGrp,'deformNull','module')
-                if _str_partType in ['eyeball']:
-                    self.mModule.connectChildNode(mGrp,'constrainNull','module')
-                    mGrp.parent = self.i_faceDeformNull
+                
+            mGrp.addAttr('cgmName',_str_partName,lock=True)
+            mGrp.addAttr('cgmTypeModifier','deform',lock=True)	 
+            mGrp.doName()
+            self.mModule.connectChildNode(mGrp,'deformNull','module')
                     
         self.mDeformNull = self.mModule.deformNull
-        _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
-        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )
+
         
-        if not self.mModule.getMessage('constrainNull'):
-            #if _str_partType not in __l_faceModules__ or _str_partType in ['eyelids']:
-                #Make it and link it
+        if not self.mModule.getMessage('constrainNull') and self.d_block['b_faceBlock'] is not True:
             buffer =  CORERIG.group_me(self.mDeformNull.mNode,False)
             mGrp = cgmMeta.asMeta(buffer,'cgmObject',setClass=True)
             mGrp.addAttr('cgmName',_str_partName,lock=True)
@@ -4950,8 +4952,6 @@ class rigFactory(object):
                                 maintainOffset = True, weight = 1)
             #mc.scaleConstraint([mAttach.mNode], self.mConstrainNull.mNode, maintainOffset = True, weight = 1)
             """
-        
-        
 
         #>> Roll joint check...
         self.b_noRollMode = False

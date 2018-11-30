@@ -136,6 +136,21 @@ def get_average_pos(posList = []):
         posZ.append(posBuffer[2])
     return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]    
 
+def get_normalized_parameter(minV,maxV,value,asEuclid=False):
+    """
+    """         
+    _str_func = 'get_normalized_parameter'
+    
+
+    _range = (float(maxV) - float(minV)) 
+    _diff = value - minV
+    return _diff / _range
+    
+    if asEuclid:
+        return Vector3(_new.x,_new.y,_new.z)
+    return _new.x,_new.y,_new.z    
+
+
 def get_vector_of_two_points(point1,point2,asEuclid=False):
     """
     Get a vector between two points

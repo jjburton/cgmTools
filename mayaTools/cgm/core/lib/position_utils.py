@@ -621,7 +621,7 @@ def get_positionPlug(obj):
     d_plugTypes= {'worldPosition':'worldPosition[0]','position':'position'}
     _res = False
     for attr in l_elibiblePlugs:
-        if ATTR.has_attr(obj,attr):
+        if mc.objExists("{0}.{1}".format(obj,attr)):#ATTR.has_attr(obj,attr):
             _res = "{0}.{1}".format(obj,d_plugTypes.get(attr))
     return _res
 

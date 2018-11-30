@@ -117,6 +117,24 @@ def create_infoNode(crvShape):
     
     return _infoNode
     
+def create_pointOnInfoNode(crvShape,parameter= None,turnOnPercentage=None):
+    _str_func = 'create_pointOnInfoNode'
+    if type(crvShape) in [list,tuple]:crvShape = crvShape[0]
+    if cgmValid.get_mayaType(crvShape) != 'nurbsCurve':
+        log.warning("|{0}| >> not a nurbsCurve. Skipping {1}({2})...".format(_str_func,crvShape,cgmValid.get_mayaType(crvShape)))
+        return False
+    
+    _transform = SEARCH.get_transform(crvShape)
+    _infoNode = mc.createNode('pointOnCurveInfo')
+    mc.connectAttr((_transform+'.worldSpace'),(_infoNode+'.inputCurve'))
+    
+    if turnOnPercentage is not None:
+        ATTR.set(_infoNode,'turnOnPercentage',turnOnPercentage)
+        
+    if parameter is not None:
+        ATTR.set(_infoNode,'parameter',parameter)
+    
+    return _infoNode
 
 def get_shape_info(crvShape):
     """
@@ -1009,8 +1027,8 @@ def getUSplitList(curve=None, points=3, markPoints=False,
             if len(_shapeUse)==1:
                 _shapeUse=_shapeUse[0]
             else:
-                return log.error("|{0}| >> too many shapes({1}). Specify. | {2}".format(_str_func,len(
-                                                                                                     _shapeUse),shape))
+                _shapeUse = SHAPES.get_nonintermediate(_shapeUse[0])
+                #return log.error("|{0}| >> too many shapes({1}). Specify. | {2}".format(_str_func,len(_shapeUse),shape))
 
                     
         log.debug("|{0}| >> rebuild: {1} | useCurve: {2} | useShape: {3}".format(_str_func,rebuild,useCurve,_shapeUse))
