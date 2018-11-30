@@ -105,10 +105,13 @@ class ui(cgmUI.cgmGUI):
 
         self.create_guiOptionVar('mocap_allow_multiple_targets',defaultValue = 0)
         self.create_guiOptionVar('mocap_set_connection_at_bake',defaultValue = 1)
+
+        self.uiPopUpMenu_target = None
+        self.uiPopUpMenu_source = None
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
-        self.uiMenu_tools = mUI.MelMenu( l='Tools', pmc = cgmGEN.Callback(self.buildMenu_help))
+        self.uiMenu_tools = mUI.MelMenu( l='Tools', pmc = cgmGEN.Callback(self.buildMenu_tools))
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
 
     def buildMenu_help( self, *args):
@@ -160,6 +163,30 @@ class ui(cgmUI.cgmGUI):
         
         self.parent_source_scroll = _parent_source[1]
         self.parent_target_scroll = _parent_target[1]
+
+
+        self.uiPopUpMenu_source = mUI.MelPopupMenu(self.parent_source_scroll,button = 3)
+
+        mUI.MelMenuItem(self.uiPopUpMenu_source,
+            ann = 'Select',
+            c = cgmGEN.Callback( self.uiFunc_select_from_ui, 0),
+            label = "Select")
+        mUI.MelMenuItem(self.uiPopUpMenu_source,
+            ann = 'Select Link',
+            c = cgmGEN.Callback( self.uiFunc_select_from_ui, 2),
+            label = "Select Link")
+
+        self.uiPopUpMenu_target = mUI.MelPopupMenu(self.parent_target_scroll,button = 3)
+
+        mUI.MelMenuItem(self.uiPopUpMenu_target,
+            ann = 'Select',
+            c = cgmGEN.Callback( self.uiFunc_select_from_ui, 1),
+            label = "Select")
+        mUI.MelMenuItem(self.uiPopUpMenu_target,
+            ann = 'Select Link',
+            c = cgmGEN.Callback( self.uiFunc_select_from_ui, 3),
+            label = "Select Link")
+
 
         self.parent_target_scroll(e=True, allowMultiSelection=self.var_mocap_allow_multiple_targets.value)
 
@@ -458,6 +485,32 @@ class ui(cgmUI.cgmGUI):
                 if link[1] == idx:
                     self.parent_source_scroll.selectByIdx(link[0])
 
+    def uiFunc_select_from_ui(self, mode):
+      mc.select(cl=True)
+
+      if mode == 0:
+        idxs = self.parent_source_scroll.getSelectedIdxs()
+        for idx in idxs:
+          mc.select(self.parent_source_items[idx].item, add=True)
+      if mode == 1:
+        idxs = self.parent_target_scroll.getSelectedIdxs()
+        for idx in idxs:
+          mc.select(self.parent_target_items[idx].item, add=True)
+      if mode == 2:
+        idxs = self.parent_source_scroll.getSelectedIdxs()
+        for idx in idxs:
+          mc.select(self.parent_source_items[idx].item, add=True)
+          for link in self.parent_links:
+            if link[0] == idx:
+              mc.select(self.parent_target_items[link[1]].item, add=True)      
+      if mode == 3:
+        idxs = self.parent_target_scroll.getSelectedIdxs()
+        for idx in idxs:
+          mc.select(self.parent_target_items[idx].item, add=True)
+          for link in self.parent_links:
+            if link[1] == idx:
+              mc.select(self.parent_source_items[link[0]].item, add=True)
+
     def uiFunc_link_by_name(self, *args):
         self.parent_links = []
 
@@ -602,28 +655,36 @@ class ui(cgmUI.cgmGUI):
         self.parent_source_scroll.setItems( [x.alias for x in self.parent_source_items] )
         self.parent_target_scroll.setItems( [x.alias for x in self.parent_target_items] )
 
+    def parse_alias(self, name):
+      split_name = name.split('|')
+      for i, new_name in enumerate(split_name):
+        if ':' in new_name:
+          split_name[i] = '(' + new_name.replace(':', ')')
+
+      return '/'.join(split_name)
+
     def refresh_aliases(self, *args):
         # refresh parent aliases
         for i, item in enumerate(self.parent_source_items):
             link_items = []
             for link in self.parent_links:
                 if link[0] == i:
-                    link_items.append( self.parent_target_items[link[1]].item )
+                  link_items.append( self.parse_alias(self.parent_target_items[link[1]].item) )
             
             if link_items:
-                self.parent_source_items[i].alias = "%s -> %s" % (self.parent_source_items[i].item, ','.join(link_items))
+                self.parent_source_items[i].alias = "%s -> %s" % ( self.parse_alias(self.parent_source_items[i].item), ','.join(link_items))
             else:
-                self.parent_source_items[i].alias = self.parent_source_items[i].item
-            self.parent_source_items[i].alias = self.parent_source_items[i].alias.replace('|', '/')
+                self.parent_source_items[i].alias = self.parse_alias(self.parent_source_items[i].item)
+            self.parent_source_items[i].alias = self.parent_source_items[i].alias
         for i, item in enumerate(self.parent_target_items):
-            self.parent_target_items[i].alias = self.parent_target_items[i].item
+            self.parent_target_items[i].alias = self.parse_alias(self.parent_target_items[i].item)
 
             for link in self.parent_links:
                 if link[1] == i:
-                    self.parent_target_items[i].alias += " <- %s  [%s]" % (self.parent_source_items[link[0]].item, self.parent_target_items[link[1]].data["constraintType"])
+                    self.parent_target_items[i].alias += " <- %s  [%s]" % (self.parse_alias(self.parent_source_items[link[0]].item), self.parent_target_items[link[1]].data["constraintType"])
                     break
 
-            self.parent_target_items[i].alias = self.parent_target_items[i].alias.replace('|', '/')
+            #self.parent_target_items[i].alias = self.parent_target_items[i].alias.replace('|', '/')
 
         self.refresh_parent_scrolls()
 
