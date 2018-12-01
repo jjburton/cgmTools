@@ -1898,7 +1898,7 @@ class handleFactory(object):
                     
                     ATTR.set(_loftNode,'degree',1)    
                 
-                    mLoftSurface.doStore('cgmName',self.mBlock.mNode)
+                    mLoftSurface.doStore('cgmName',self.mBlock)
                     mLoftSurface.doStore('cgmType','footApprox')
                     mLoftSurface.doName()
                 
@@ -2438,7 +2438,7 @@ class handleFactory(object):
         mJointLabel.drawLabel = 1
         mJointLabel.otherType = label
     
-        mJointLabel.doStore('cgmName',mHandle.mNode)
+        mJointLabel.doStore('cgmName',mHandle)
         mJointLabel.doStore('cgmType','jointLabel')
         mJointLabel.doName()
     
@@ -2492,7 +2492,7 @@ class handleFactory(object):
 
             if loftHelper:#...loft curve -------------------------------------------------------------------------------------
                 mLoft = self.buildBaseShape('square',_size*.5,'z+')
-                mLoft.doStore('cgmName',mJointCurve.mNode)
+                mLoft.doStore('cgmName',mJointCurve)
                 mLoft.doStore('cgmType','loftCurve')
                 mLoft.doName()
                 mLoft.p_parent = mJointCurve
@@ -2539,7 +2539,7 @@ class handleFactory(object):
 
             #>>>make our loft curve
             mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-            mCrv.doStore('cgmName',self._mTransform.mNode)
+            mCrv.doStore('cgmName',self._mTransform)
             mCrv.doStore('cgmType','loftCurve')
             mCrv.doName()
             mCrv.p_parent = self._mTransform
@@ -2586,7 +2586,7 @@ class handleFactory(object):
 
             #>>>make our loft curve
             mCrv = mBaseCrv
-            mCrv.doStore('cgmName',self._mTransform.mNode)
+            mCrv.doStore('cgmName',self._mTransform)
             mCrv.doStore('cgmType','loftCurve')
             mCrv.doName()
             mCrv.p_parent = self._mTransform
@@ -2743,7 +2743,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
 
         #>>>make our loft curve
         mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-        mCrv.doStore('cgmName',self.mNode)
+        mCrv.doStore('cgmName',self)
         mCrv.doStore('cgmType','loftCurve')
         mCrv.doName()
         mCrv.p_parent = self

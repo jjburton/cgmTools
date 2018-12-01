@@ -499,7 +499,7 @@ def build_deformation(*args, **kws):
 		mi_go.connect_toRigGutsVis( mi_loc )
 
 		mNode_decomposeMatrix = cgmMeta.cgmNode(nodeType='decomposeMatrix')
-		mNode_decomposeMatrix.doStore('cgmName',mi_go._mi_module.mNode)
+		mNode_decomposeMatrix.doStore('cgmName',mi_go._mi_module)
 		mNode_decomposeMatrix.addAttr('cgmType','headTwistEnd',attrType='string',lock=True)
 		mNode_decomposeMatrix.doName()
 
@@ -655,7 +655,7 @@ def build_deformation2(self):
         self.connect_toRigGutsVis( mi_loc )
 
         mNode_decomposeMatrix = cgmMeta.cgmNode(nodeType='decomposeMatrix')
-        mNode_decomposeMatrix.doStore('cgmName',self._mi_module.mNode)
+        mNode_decomposeMatrix.doStore('cgmName',self._mi_module)
         mNode_decomposeMatrix.addAttr('cgmType','headTwistEnd',attrType='string',lock=True)
         mNode_decomposeMatrix.doName()
 

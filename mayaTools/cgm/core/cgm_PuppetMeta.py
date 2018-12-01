@@ -2154,7 +2154,7 @@ class cgmModule(cgmMeta.cgmObject):
                 i_selectSet.connectParentNode(self.rigNull.mNode,'rigNull','moduleSet')
 
             i_selectSet = self.rigNull.moduleSet
-            i_selectSet.doStore('cgmName',self.mNode)
+            i_selectSet.doStore('cgmName',self)
             i_selectSet.doName()
 
             if self.getMessage('modulePuppet'):

@@ -813,8 +813,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
             mSet.doStore('cgmName','export')
         mSet.doName()
         mSet.purge()
-
-        log.debug("|{0}| >> exportSEt: {1}".format(_str_func,mSet))
+        log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
         
         for mObj in get_joints(self,'bind') + get_rigGeo(self):
             mSet.addObj(mObj.mNode)    

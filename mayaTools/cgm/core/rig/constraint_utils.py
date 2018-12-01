@@ -84,7 +84,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
 
             #> Name...
-            i_follicleTrans.doStore('cgmName',mObj.mNode)
+            i_follicleTrans.doStore('cgmName',mObj)
             i_follicleTrans.doStore('cgmTypeModifier','surfaceTrack')            
             i_follicleTrans.doName()
             _trackTransform = i_follicleTrans.mNode
@@ -106,14 +106,14 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             mPOCI.parameter = d_closest['parameter']
 
             mTrack = mObj.doCreateAt()
-            mTrack.doStore('cgmName',mObj.mNode)
+            mTrack.doStore('cgmName',mObj)
             mTrack.doStore('cgmType','surfaceTrack')
             mTrack.doName()
 
             _trackTransform = mTrack.mNode
 
             mc.connectAttr("%s.position"%mPOCI.mNode,"%s.t"%_trackTransform)
-            mPOCI.doStore('cgmName',mObj.mNode)            
+            mPOCI.doStore('cgmName',mObj)            
             mPOCI.doName()            
             _res = [mTrack.mNode, mPOCI.mNode]
 
@@ -424,7 +424,7 @@ def build_aimSequence(l_driven = None,
             mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
             mUpDecomp.rename("{0}_aimMatrix".format(ml_parents[i].p_nameBase))
 
-            #mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
+            #mUpDecomp.doStore('cgmName',ml_parents[i])                
             #mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
             #mUpDecomp.doName()
 
@@ -530,7 +530,7 @@ def build_aimSequence(l_driven = None,
                 mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
                 mUpDecomp.rename("{0}_aimMatrix".format(ml_parents[i].p_nameBase))
 
-                #mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
+                #mUpDecomp.doStore('cgmName',ml_parents[i])                
                 #mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                 #mUpDecomp.doName()
 
@@ -579,7 +579,7 @@ def build_aimSequence(l_driven = None,
             #Decompose matrix for parent...
             """
             mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-            mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
+            mUpDecomp.doStore('cgmName',ml_parents[i])                
             mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
             mUpDecomp.doName()
 
@@ -693,7 +693,7 @@ def build_aimSequence(l_driven = None,
 
         #Decompose matrix for parent...
         mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-        mUpDecomp.doStore('cgmName',ml_parents[i].mNode)                
+        mUpDecomp.doStore('cgmName',ml_parents[i])                
         mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
         mUpDecomp.doName()
 

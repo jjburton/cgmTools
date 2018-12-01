@@ -57,6 +57,7 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 
@@ -187,6 +188,9 @@ def eyeLook_verify(self):
                 mBlockParentRigNull.msgList_append('controlsAll',mCrv)
                 mBlockParentRigNull.moduleSet.append(mCrv)
                 mRigNull.faceSet.append(mCrv)
+                
+                mCrv.connectParentNode(mBlockParentRigNull,'rigNull')
+                
             else:
                 mModuleParent.puppetSet.append(mCrv)
                 mModuleParent.msgList_append('controlsAll',mCrv)
@@ -1054,7 +1058,7 @@ def get_switchTarget(self,mControl,parentTo=False):
         mSwitchTarget.setAttrFlags(lock=False)
     else:
         mSwitchTarget = mControl.doCreateAt(setClass=True)
-        mControl.doStore('switchTarget',mSwitchTarget.mNode)
+        mControl.doStore('switchTarget',mSwitchTarget)
         mSwitchTarget.rename("{0}_switchTarget".format(mControl.p_nameBase))
         
     log.debug("|{0}| >> Controlsnap target : {1} | from: {2}".format(_str_func, mSwitchTarget, mControl))
@@ -1125,7 +1129,7 @@ def rigNodes_store(self):
 
 
 @cgmGEN.Timer
-def get_dynParentTargetsDat(self):
+def get_dynParentTargetsDat(self,allParents=True):
     """
     :parameters:
 
@@ -1156,26 +1160,50 @@ def get_dynParentTargetsDat(self):
     #
     self.md_dynTargetsParent['attachDriver'] = mModule.rigNull.getMessageAsMeta('attachDriver')
     
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('rigRoot'):
-            mParentRoot = mi_parentRigNull.rigRoot
-            self.md_dynTargetsParent['root'] = mParentRoot
-            #self.ml_dynEndParents.insert(0,mParentRoot)
-            self.ml_dynParentsAbove.append(mParentRoot)
-        else:
-            self.md_dynTargetsParent['root'] = False
+    _mBase = mModule.atUtils('get_driverPoint','base')
+    _mEnd = mModule.atUtils('get_driverPoint','end')
+    
+    if _mBase:
+        self.md_dynTargetsParent['base'] = _mBase
+        self.ml_dynParentsAbove.append(_mBase)
+    if _mEnd:
+        self.md_dynTargetsParent['end'] = _mEnd
+        self.ml_dynParentsAbove.append(_mEnd)    
+    
+    
+    if allParents:ml_moduleParents = mModule.atUtils('parentModules_get')
+    else: ml_moduleParents = [mModuleParent]
+    if ml_moduleParents:
+        log.debug("|{0}| >> mParents: {1}".format(_str_func,len(ml_moduleParents)))        
+        for mModuleParent in ml_moduleParents:
+            mi_parentRigNull = mModuleParent.rigNull
+            if not self.md_dynTargetsParent.get('root'):
+                if mi_parentRigNull.getMessage('rigRoot'):
+                    mParentRoot = mi_parentRigNull.rigRoot
+                    self.md_dynTargetsParent['root'] = mParentRoot
+                    #self.ml_dynEndParents.insert(0,mParentRoot)
+                    self.ml_dynParentsAbove.append(mParentRoot)
+                else:
+                    self.md_dynTargetsParent['root'] = False            
             
-        _mBase = mModule.atUtils('get_driverPoint','base')
-        _mEnd = mModule.atUtils('get_driverPoint','end')
-        
-        if _mBase:
-            self.md_dynTargetsParent['base'] = _mBase
-            self.ml_dynParentsAbove.append(_mBase)
-        if _mEnd:
-            self.md_dynTargetsParent['end'] = _mEnd
-            self.ml_dynParentsAbove.append(_mEnd)
             
+            _mBase = mModuleParent.atUtils('get_driverPoint','base')
+            _mEnd = mModuleParent.atUtils('get_driverPoint','end')
+            
+            if _mBase:
+                self.md_dynTargetsParent['base'] = _mBase
+                self.ml_dynParentsAbove.append(_mBase)
+            if _mEnd:
+                self.md_dynTargetsParent['end'] = _mEnd
+                self.ml_dynParentsAbove.append(_mEnd)            
+            
+    self.ml_dynEndParents=LISTS.get_noDuplicates(self.ml_dynEndParents)
+    self.ml_dynParentsAbove=LISTS.get_noDuplicates(self.ml_dynParentsAbove)
+    
+    mMasterAnim = self.d_module['mMasterControl']
+    if mMasterAnim in self.ml_dynParentsAbove:
+        self.ml_dynParentsAbove.remove(mMasterAnim)
+    
     log.debug(cgmGEN._str_subLine)
     log.debug("dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
     pprint.pprint(self.md_dynTargetsParent)

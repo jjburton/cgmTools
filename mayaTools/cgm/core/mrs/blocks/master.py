@@ -177,7 +177,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         #mHandleFactory.color(mBBShape.mNode,controlType='sub')
         mBBShape.setAttrFlags()
         
-        mBBShape.doStore('cgmName', self.mNode)
+        mBBShape.doStore('cgmName', self)
         mBBShape.doStore('cgmType','bbVisualize')
         mBBShape.doName()
         mBBShape.template = True
@@ -208,7 +208,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         NODEFACTORY.argsToNodes(_arg).doBuild()
         #self.doConnectOut('controlOffset',"{0}.distance".format(l_return[1]))
         
-        mOffsetShape.doStore('cgmName', self.mNode)
+        mOffsetShape.doStore('cgmName', self)
         mOffsetShape.doStore('cgmType','offsetVisualize')
         mOffsetShape.doName()        
         
@@ -240,7 +240,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         NODEFACTORY.argsToNodes(_arg).doBuild()
         #self.doConnectOut('controlOffset',"{0}.distance".format(l_return[1]))
         
-        mOffsetShape.doStore('cgmName', self.mNode)
+        mOffsetShape.doStore('cgmName', self)
         mOffsetShape.doStore('cgmType','offsetVisualize')
         mOffsetShape.doName()        
         
@@ -285,7 +285,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         mHandleFactory.color(mBBShape.mNode,controlType='sub')
         mBBShape.setAttrFlags()
         
-        mBBShape.doStore('cgmName', self.mNode)
+        mBBShape.doStore('cgmName', self)
         mBBShape.doStore('cgmType','bbVisualize')
         mBBShape.doName()    
         

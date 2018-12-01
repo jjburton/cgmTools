@@ -239,7 +239,7 @@ def spline(jointList = None,
             ATTR.connect(str_shape+'.worldSpace',mi_closestPointNode.mNode+'.inputCurve')	
     
             #> Name
-            mi_closestPointNode.doStore('cgmName',mJnt.mNode)
+            mi_closestPointNode.doStore('cgmName',mJnt)
             mi_closestPointNode.doName()
             #>Set follicle value
             mi_closestPointNode.parameter = param
@@ -253,7 +253,7 @@ def spline(jointList = None,
             #>> Distance nodes
             mDistanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
             mDistanceDag = mDistanceShape.getTransform(asMeta=True) 
-            mDistanceDag.doStore('cgmName',mJnt.mNode)
+            mDistanceDag.doStore('cgmName',mJnt)
             mDistanceDag.addAttr('cgmType','measureNode',lock=True)
             mDistanceDag.doName(nameShapes = True)
             mDistanceDag.parent = mGroup.mNode#parent it
@@ -325,7 +325,7 @@ def spline(jointList = None,
             else:
                 mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                 mi_mdNormalBaseDist.operation = 1
-                mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
+                mi_mdNormalBaseDist.doStore('cgmName',mJnt)
                 mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
                 mi_mdNormalBaseDist.doName()
 
@@ -338,7 +338,7 @@ def spline(jointList = None,
                 #Create the normalized distance
                 mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                 mi_mdNormalDist.operation = 1
-                mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
+                mi_mdNormalDist.doStore('cgmName',mJnt)
                 mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
                 mi_mdNormalDist.doName()
 
@@ -350,7 +350,7 @@ def spline(jointList = None,
                 #Create the mdNode
                 mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
                 mi_mdSegmentScale.operation = 2
-                mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
+                mi_mdSegmentScale.doStore('cgmName',mJnt)
                 mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
                 mi_mdSegmentScale.doName()
                 mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
@@ -454,7 +454,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         mPlug_twist = cgmMeta.cgmAttr(mIKHandle.mNode,'twist',attrType='float',keyable=True, hidden=False)
     else:
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
-        mi_ramp.doStore('cgmName',mIKHandle.mNode)
+        mi_ramp.doStore('cgmName',mIKHandle)
         mi_ramp.doName()     
         mlPlugs_twist = []
         
@@ -600,7 +600,7 @@ def addSplineTwistOLD(ikHandle, midHandle = None, advancedTwistSetup = False):
         mIKHandle.dWorldUpType = 7
         mPlug_twist = cgmMeta.cgmAttr(mIKHandle,'dTwistRampMult')
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
-        mi_ramp.doStore('cgmName',mIKHandle.mNode)
+        mi_ramp.doStore('cgmName',mIKHandle)
         mi_ramp.doName()
 
         #Fix Ramp
@@ -1283,7 +1283,7 @@ def ribbon(jointList = None,
             mc.connectAttr("%s.position" % srfNode, "%s.translate" % mLoc.mNode, f=True) 
             md_floatParameters[i] = mPlug_normalized            
             mClosestPoint =  cgmMeta.validateObjArg(srfNode,setClass=True)
-            mClosestPoint.doStore('cgmName',mObj.mNode)
+            mClosestPoint.doStore('cgmName',mObj)
             mClosestPoint.doName()
             md_floatTrackNodes[i] = mClosestPoint
             srfNode = mClosestPoint.mNode
@@ -1635,7 +1635,7 @@ def ribbon(jointList = None,
             mUpLoc = mJnt.doLoc()#Make up Loc
             mLocRotateGroup = mJnt.doCreateAt()#group in place
             mLocRotateGroup.parent = i_follicleTrans.mNode
-            mLocRotateGroup.doStore('cgmName',mJnt.mNode)	    
+            mLocRotateGroup.doStore('cgmName',mJnt)	    
             mLocRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             mLocRotateGroup.doName()
         
@@ -1742,7 +1742,7 @@ def ribbon(jointList = None,
         def createDist(mJnt, typeModifier = None):
             mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
             mObject = mShape.getTransform(asMeta=True) 
-            mObject.doStore('cgmName',mJnt.mNode)
+            mObject.doStore('cgmName',mJnt)
             if typeModifier:
                 mObject.addAttr('cgmTypeModifier',typeModifier,lock=True)                
             mObject.addAttr('cgmType','measureNode',lock=True)
@@ -2294,7 +2294,7 @@ def ribbon(jointList = None,
                                                   'cgmNode',
                                                   setClass=True)
         
-            mSkinCluster.doStore('cgmName', mArcLenCurve.mNode)
+            mSkinCluster.doStore('cgmName', mArcLenCurve)
             mSkinCluster.doName()    
         
             
@@ -2315,7 +2315,7 @@ def ribbon(jointList = None,
                                                   'cgmNode',
                                                   setClass=True)
         
-            mSkinCluster.doStore('cgmName', mSurf.mNode)
+            mSkinCluster.doStore('cgmName', mSurf)
             mSkinCluster.doName()    
         
             #Tighten the weights...
@@ -3756,7 +3756,7 @@ def ribbon_seal(driven1 = None,
                                                   'cgmNode',
                                                   setClass=True)
 
-            mSkinCluster.doStore('cgmName', dat['mSurf'].mNode)
+            mSkinCluster.doStore('cgmName', dat['mSurf'])
             mSkinCluster.doName()    
 
             #Tighten the weights...
@@ -3791,7 +3791,7 @@ def ribbon_seal(driven1 = None,
 
                 log.debug("|{0}| >> Create track drivers...".format(_str_func))                
                 mTrackBase = mDriven.doCreateAt(setClass=True)
-                mTrackBase.doStore('cgmName',mObj.mNode)
+                mTrackBase.doStore('cgmName',mObj)
                 mTrackSeal = mTrackBase.doDuplicate()
                 mTrackBlend = mTrackBase.doDuplicate()
 

@@ -410,7 +410,7 @@ def create_segment_curve(*args,**kws):
                     mc.connectAttr ((str_shape+'.worldSpace'),(mi_closestPointNode.mNode+'.inputCurve'))	
 
                     #> Name
-                    mi_closestPointNode.doStore('cgmName',mJnt.mNode)
+                    mi_closestPointNode.doStore('cgmName',mJnt)
                     mi_closestPointNode.doName()
                     #>Set follicle value
                     mi_closestPointNode.parameter = l_closestInfo['parameter']
@@ -420,7 +420,7 @@ def create_segment_curve(*args,**kws):
                     mi_upLoc = mJnt.doLoc()#Make up Loc
                     mi_locRotateGroup = mJnt.duplicateTransform(False)#group in place
                     mi_locRotateGroup.parent = ml_driverJoints[i].mNode
-                    mi_locRotateGroup.doStore('cgmName',mJnt.mNode)	    
+                    mi_locRotateGroup.doStore('cgmName',mJnt)	    
                     mi_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
                     mi_locRotateGroup.doName()
 
@@ -493,12 +493,12 @@ def create_segment_curve(*args,**kws):
                         #Handle
                         mi_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
                         mi_IK_Handle.parent = ml_driverJoints[i+1].mNode
-                        mi_IK_Handle.doStore('cgmName',mJnt.mNode)    
+                        mi_IK_Handle.doStore('cgmName',mJnt)    
                         mi_IK_Handle.doName()
 
                         #Effector
                         mi_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-                        mi_IK_Effector.doStore('cgmName',mJnt.mNode)    
+                        mi_IK_Effector.doStore('cgmName',mJnt)    
                         mi_IK_Effector.doName()
 
                         ml_IKhandles.append(mi_IK_Handle)
@@ -512,7 +512,7 @@ def create_segment_curve(*args,**kws):
                         #>> Distance nodes
                         mi_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
                         mi_distanceObject = cgmMeta.cgmObject( mi_distanceShape.getTransform() )
-                        mi_distanceObject.doStore('cgmName',mJnt.mNode)
+                        mi_distanceObject.doStore('cgmName',mJnt)
                         mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
                         mi_distanceObject.doName(nameShapes = True)
                         mi_distanceObject.parent = mi_grp.mNode#parent it
@@ -608,7 +608,7 @@ def create_segment_curve(*args,**kws):
                     else:
                         mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdNormalBaseDist.operation = 1
-                        mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
+                        mi_mdNormalBaseDist.doStore('cgmName',mJnt)
                         mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
                         mi_mdNormalBaseDist.doName()
 
@@ -621,7 +621,7 @@ def create_segment_curve(*args,**kws):
                         #Create the normalized distance
                         mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdNormalDist.operation = 1
-                        mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
+                        mi_mdNormalDist.doStore('cgmName',mJnt)
                         mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
                         mi_mdNormalDist.doName()
 
@@ -633,7 +633,7 @@ def create_segment_curve(*args,**kws):
                         #Create the mdNode
                         mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdSegmentScale.operation = 2
-                        mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
+                        mi_mdSegmentScale.doStore('cgmName',mJnt)
                         mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
                         mi_mdSegmentScale.doName()
                         mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	

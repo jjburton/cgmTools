@@ -791,7 +791,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             mc.connectAttr ((splineShape+'.worldSpace'),(i_closestSplinePointNode.mNode+'.inputCurve'))	
 
             #> Name
-            i_closestSplinePointNode.doStore('cgmName',i_obj.mNode)
+            i_closestSplinePointNode.doStore('cgmName',i_obj)
             i_closestSplinePointNode.addAttr('cgmTypeModifier','spline',attrType='string',lock=True)	    
             i_closestSplinePointNode.doName()
             #>Set attachpoint value
@@ -805,7 +805,7 @@ def addCGMSegmentSubControl(joints=None,segmentCurve = None,baseParent = None, e
             mc.connectAttr ((linearShape+'.worldSpace'),(i_closestLinearPointNode.mNode+'.inputCurve'))	
 
             #> Name
-            i_closestLinearPointNode.doStore('cgmName',i_obj.mNode)
+            i_closestLinearPointNode.doStore('cgmName',i_obj)
             i_closestLinearPointNode.addAttr('cgmTypeModifier','linear',attrType='string',lock=True)	    	    
             i_closestLinearPointNode.doName()
             #>Set attachpoint value
@@ -1276,7 +1276,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
             mc.connectAttr ((splineShape+'.worldSpace'),(i_closestSplinePointNode.mNode+'.inputCurve'))	
 
             #> Name
-            i_closestSplinePointNode.doStore('cgmName',i_obj.mNode)
+            i_closestSplinePointNode.doStore('cgmName',i_obj)
             i_closestSplinePointNode.addAttr('cgmTypeModifier','spline',attrType='string',lock=True)	    
             i_closestSplinePointNode.doName()
             #>Set attachpoint value
@@ -1290,7 +1290,7 @@ def addCGMSegmentSubControlOLD(joints=None,segmentCurve = None,baseParent = None
             mc.connectAttr ((linearShape+'.worldSpace'),(i_closestLinearPointNode.mNode+'.inputCurve'))	
 
             #> Name
-            i_closestLinearPointNode.doStore('cgmName',i_obj.mNode)
+            i_closestLinearPointNode.doStore('cgmName',i_obj)
             i_closestLinearPointNode.addAttr('cgmTypeModifier','linear',attrType='string',lock=True)	    	    
             i_closestLinearPointNode.doName()
             #>Set attachpoint value
@@ -2477,7 +2477,7 @@ def createSegmentCurve(*args,**kws):
                     mc.connectAttr ((str_shape+'.worldSpace'),(mi_closestPointNode.mNode+'.inputCurve'))	
 
                     #> Name
-                    mi_closestPointNode.doStore('cgmName',mJnt.mNode)
+                    mi_closestPointNode.doStore('cgmName',mJnt)
                     mi_closestPointNode.doName()
                     #>Set follicle value
                     mi_closestPointNode.parameter = l_closestInfo['parameter']
@@ -2487,7 +2487,7 @@ def createSegmentCurve(*args,**kws):
                     mi_upLoc = mJnt.doLoc(fastMode = True)#Make up Loc
                     mi_locRotateGroup = mJnt.doCreateAt()#group in place  THIS MAY NOTE BE RIGHT, WAS (FALSE)
                     mi_locRotateGroup.parent = ml_driverJoints[i].mNode
-                    mi_locRotateGroup.doStore('cgmName',mJnt.mNode)	    
+                    mi_locRotateGroup.doStore('cgmName',mJnt)	    
                     mi_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
                     mi_locRotateGroup.doName()
 
@@ -2556,12 +2556,12 @@ def createSegmentCurve(*args,**kws):
                         #Handle
                         mi_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
                         mi_IK_Handle.parent = ml_driverJoints[i+1].mNode
-                        mi_IK_Handle.doStore('cgmName',mJnt.mNode)    
+                        mi_IK_Handle.doStore('cgmName',mJnt)    
                         mi_IK_Handle.doName()
 
                         #Effector
                         mi_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-                        mi_IK_Effector.doStore('cgmName',mJnt.mNode)    
+                        mi_IK_Effector.doStore('cgmName',mJnt)    
                         mi_IK_Effector.doName()
 
                         ml_IKhandles.append(mi_IK_Handle)
@@ -2575,7 +2575,7 @@ def createSegmentCurve(*args,**kws):
                         #>> Distance nodes
                         mi_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
                         mi_distanceObject = cgmMeta.cgmObject( mi_distanceShape.getTransform() )
-                        mi_distanceObject.doStore('cgmName',mJnt.mNode)
+                        mi_distanceObject.doStore('cgmName',mJnt)
                         mi_distanceObject.addAttr('cgmType','measureNode',lock=True)
                         mi_distanceObject.doName(nameShapes = True)
                         mi_distanceObject.parent = mi_grp.mNode#parent it
@@ -2671,7 +2671,7 @@ def createSegmentCurve(*args,**kws):
                     else:
                         mi_mdNormalBaseDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdNormalBaseDist.operation = 1
-                        mi_mdNormalBaseDist.doStore('cgmName',mJnt.mNode)
+                        mi_mdNormalBaseDist.doStore('cgmName',mJnt)
                         mi_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
                         mi_mdNormalBaseDist.doName()
 
@@ -2684,7 +2684,7 @@ def createSegmentCurve(*args,**kws):
                         #Create the normalized distance
                         mi_mdNormalDist = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdNormalDist.operation = 1
-                        mi_mdNormalDist.doStore('cgmName',mJnt.mNode)
+                        mi_mdNormalDist.doStore('cgmName',mJnt)
                         mi_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
                         mi_mdNormalDist.doName()
 
@@ -2696,7 +2696,7 @@ def createSegmentCurve(*args,**kws):
                         #Create the mdNode
                         mi_mdSegmentScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
                         mi_mdSegmentScale.operation = 2
-                        mi_mdSegmentScale.doStore('cgmName',mJnt.mNode)
+                        mi_mdSegmentScale.doStore('cgmName',mJnt)
                         mi_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
                         mi_mdSegmentScale.doName()
                         mPlug_attrDist.doConnectOut('%s.%s'%(mi_mdSegmentScale.mNode,'input1X'))	
@@ -3024,7 +3024,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve'))	
 
             #> Name
-            i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+            i_closestPointNode.doStore('cgmName',i_jnt)
             i_closestPointNode.doName()
             #>Set follicle value
             i_closestPointNode.parameter = l_closestInfo['parameter']
@@ -3038,7 +3038,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             i_upLoc = i_jnt.doLoc()#Make up Loc
             i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_driverJoints[i].mNode
-            i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+            i_locRotateGroup.doStore('cgmName',i_jnt)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             i_locRotateGroup.doName()
 
@@ -3088,12 +3088,12 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #Handle
             i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
             i_IK_Handle.parent = ml_driverJoints[i+1].mNode
-            i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+            i_IK_Handle.doStore('cgmName',i_jnt)    
             i_IK_Handle.doName()
 
             #Effector
             i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-            #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+            #i_IK_Effector.doStore('cgmName',i_jnt)    
             i_IK_Effector.doName()
 
             l_iIK_handles.append(i_IK_Handle)
@@ -3107,7 +3107,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #>> Distance nodes
             i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
             i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-            i_distanceObject.doStore('cgmName',i_jnt.mNode)
+            i_distanceObject.doStore('cgmName',i_jnt)
             i_distanceObject.addAttr('cgmType','measureNode',lock=True)
             i_distanceObject.doName(nameShapes = True)
             i_distanceObject.parent = i_grp.mNode#parent it
@@ -3177,7 +3177,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #Create the normalized base distance
             i_mdNormalBaseDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
             i_mdNormalBaseDist.operation = 1
-            i_mdNormalBaseDist.doStore('cgmName',i_jnt.mNode)
+            i_mdNormalBaseDist.doStore('cgmName',i_jnt)
             i_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
             i_mdNormalBaseDist.doName()
 
@@ -3191,7 +3191,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #Create the normalized distance
             i_mdNormalDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
             i_mdNormalDist.operation = 1
-            i_mdNormalDist.doStore('cgmName',i_jnt.mNode)
+            i_mdNormalDist.doStore('cgmName',i_jnt)
             i_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
             i_mdNormalDist.doName()
 
@@ -3209,7 +3209,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             #Create the mdNode
             i_mdSegmentScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
             i_mdSegmentScale.operation = 2
-            i_mdSegmentScale.doStore('cgmName',i_jnt.mNode)
+            i_mdSegmentScale.doStore('cgmName',i_jnt)
             i_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
             i_mdSegmentScale.doName()
             i_attrDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input1X'))	
@@ -3221,7 +3221,7 @@ def createSegmentCurve2(jointList,orientation = 'zyx', secondaryAxis = None,
             """
             i_mdTransScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
             i_mdTransScale.operation = 1
-            i_mdTransScale.doStore('cgmName',i_jnt.mNode)
+            i_mdTransScale.doStore('cgmName',i_jnt)
             i_mdTransScale.addAttr('cgmTypeModifier','transScale')
             i_mdTransScale.doName()
             attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
@@ -3401,7 +3401,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve'))	
 
         #> Name
-        i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+        i_closestPointNode.doStore('cgmName',i_jnt)
         i_closestPointNode.doName()
         #>Set follicle value
         i_closestPointNode.parameter = l_closestInfo['parameter']
@@ -3415,7 +3415,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
             i_upLoc = i_jnt.doLoc()#Make up Loc
             i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_driverJoints[i].mNode
-            i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+            i_locRotateGroup.doStore('cgmName',i_jnt)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             i_locRotateGroup.doName()
 
@@ -3457,12 +3457,12 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #Handle
         i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_driverJoints[i+1].mNode
-        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doStore('cgmName',i_jnt)    
         i_IK_Handle.doName()
 
         #Effector
         i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        #i_IK_Effector.doStore('cgmName',i_jnt)    
         i_IK_Effector.doName()
 
         l_iIK_handles.append(i_IK_Handle)
@@ -3477,7 +3477,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
         i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.doStore('cgmName',i_jnt)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
         i_distanceObject.parent = i_grp.mNode#parent it
@@ -3550,7 +3550,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #Create the normalized base distance
         i_mdNormalBaseDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_mdNormalBaseDist.operation = 1
-        i_mdNormalBaseDist.doStore('cgmName',i_jnt.mNode)
+        i_mdNormalBaseDist.doStore('cgmName',i_jnt)
         i_mdNormalBaseDist.addAttr('cgmTypeModifier','normalizedBaseDist')
         i_mdNormalBaseDist.doName()
 
@@ -3565,7 +3565,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #Create the normalized distance
         i_mdNormalDist = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_mdNormalDist.operation = 1
-        i_mdNormalDist.doStore('cgmName',i_jnt.mNode)
+        i_mdNormalDist.doStore('cgmName',i_jnt)
         i_mdNormalDist.addAttr('cgmTypeModifier','normalizedDist')
         i_mdNormalDist.doName()
 
@@ -3585,7 +3585,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         #Create the mdNode
         i_mdSegmentScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_mdSegmentScale.operation = 2
-        i_mdSegmentScale.doStore('cgmName',i_jnt.mNode)
+        i_mdSegmentScale.doStore('cgmName',i_jnt)
         i_mdSegmentScale.addAttr('cgmTypeModifier','segmentScale')
         i_mdSegmentScale.doName()
         i_attrDist.doConnectOut('%s.%s'%(i_mdSegmentScale.mNode,'input1X'))	
@@ -3596,7 +3596,7 @@ def createSegmentCurve3(jointList,orientation = 'zyx',secondaryAxis = None,
         """
 	i_mdTransScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	i_mdTransScale.operation = 1
-	i_mdTransScale.doStore('cgmName',i_jnt.mNode)
+	i_mdTransScale.doStore('cgmName',i_jnt)
 	i_mdTransScale.addAttr('cgmTypeModifier','transScale')
 	i_mdTransScale.doName()
 	attributes.doConnectAttr('%s.%s'%(i_jntScaleBufferNode.mNode,i_jntScaleBufferNode.d_indexToAttr[i]),#>>
@@ -3733,7 +3733,7 @@ def create_spaceLocatorForObject(obj,parentTo = False):
         #====================================================
         cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
         i_control = cgmMeta.validateObjArg(i_control,'cgmControl',setClass = True)
-        i_control.doStore('cgmName',i_obj.mNode)
+        i_control.doStore('cgmName',i_obj)
         i_control.addAttr('cgmType','controlAnim',lock=True)    
         i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
         i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
@@ -3796,7 +3796,7 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
     ml_locs = []
     for i,i_obj in enumerate([i_control,i_target]):#Connect each of our handles ot the cv's of the curve we just made
         i_loc = i_obj.doLoc(fastMode = True)
-        i_loc.doStore('cgmName',i_obj.mNode) #Add name tag
+        i_loc.doStore('cgmName',i_obj) #Add name tag
         i_loc.addAttr('cgmTypeModifier',value = 'traceCurve', attrType = 'string', lock=True) #Add Type
         i_loc.v = False # Turn off visibility
         i_loc.doName()	
@@ -3810,7 +3810,7 @@ def create_traceCurve(control,targetObject,parentTo = False, lock = True):
     #>>>Name
     #====================================================  
     i_crv = cgmMeta.validateObjArg(i_crv,'cgmObject',setClass = True)
-    i_crv.doStore('cgmName',i_target.mNode)
+    i_crv.doStore('cgmName',i_target)
     i_crv.addAttr('cgmTypeModifier',value = 'trace', attrType = 'string', lock=True)
     i_crv.doName()
 
@@ -4081,7 +4081,7 @@ def IKHandle_addSplineIKTwist(ikHandle,advancedTwistSetup = False):
         mi_ikHandle.dWorldUpType = 7
         mPlug_twist = cgmMeta.cgmAttr(mi_ikHandle,'dTwistRampMult')
         mi_ramp = cgmMeta.cgmNode(nodeType= 'ramp')
-        mi_ramp.doStore('cgmName',mi_ikHandle.mNode)
+        mi_ramp.doStore('cgmName',mi_ikHandle)
         mi_ramp.doName()
 
         #Fix Ramp
@@ -4866,7 +4866,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
         i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
         #> Name
-        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doStore('cgmName',i_jnt)
         i_follicleTrans.doName()
         #>Set follicle value
         i_follicleShape.parameterU = l_closestInfo['normalizedU']
@@ -4891,7 +4891,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
             i_upLoc = i_jnt.doLoc()#Make up Loc
             i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = i_follicleTrans.mNode
-            i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+            i_locRotateGroup.doStore('cgmName',i_jnt)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             i_locRotateGroup.doName()
 
@@ -4936,12 +4936,12 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         #Handle
         i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0])
         i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
-        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doStore('cgmName',i_jnt)    
         i_IK_Handle.doName()
 
         #Effector
         i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        #i_IK_Effector.doStore('cgmName',i_jnt)    
         i_IK_Effector.doName()
 
         l_iIK_handles.append(i_IK_Handle)
@@ -4955,7 +4955,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
         i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.doStore('cgmName',i_jnt)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
         i_distanceObject.parent = i_grp.mNode#parent it
@@ -5027,7 +5027,7 @@ def createControlSurfaceSegment(jointList,orientation = 'zyx',secondaryAxis = No
         #Create the mdNode
         i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_md.operation = 2
-        i_md.doStore('cgmName',i_jnt.mNode)
+        i_md.doStore('cgmName',i_jnt)
         i_md.addAttr('cgmTypeModifier','masterScale')
         i_md.doName()
         attributes.doConnectAttr('%s.%s'%(ml_distanceShapes[i].mNode,'distance'),#>>
@@ -5113,7 +5113,7 @@ def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx
         i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1])
         i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
         #> Name
-        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doStore('cgmName',i_jnt)
         i_follicleTrans.doName()
         #>Set follicle value
         i_follicleShape.parameterU = l_closestInfo['normalizedU']
@@ -5126,7 +5126,7 @@ def createConstraintSurfaceSegmentTranslatePosition(jointList,orientation = 'zyx
 
         #>> Surface Anchor ===================================================
         i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
-        i_grpPos.doStore('cgmName',i_jnt.mNode)        
+        i_grpPos.doStore('cgmName',i_jnt)        
         i_grpOrient = cgmMeta.cgmObject( mc.duplicate(i_grpPos.mNode,returnRootsOnly=True,ic=True)[0] )
         i_grpPos.addAttr('cgmType','surfaceAnchor',attrType='string',lock=True)
         i_grpOrient.addAttr('cgmType','surfaceOrient',attrType='string',lock=True)
@@ -5209,7 +5209,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         i_follicleTrans = cgmMeta.asMeta(l_follicleInfo[1],'cgmObject',setClass=True)
         i_follicleShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
         #> Name
-        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doStore('cgmName',i_jnt)
         i_follicleTrans.doName()
         #>Set follicle value
         i_follicleShape.parameterU = l_closestInfo['normalizedU']
@@ -5228,7 +5228,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
             i_upLoc = i_jnt.doLoc()#Make up Loc
             i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = i_follicleTrans.mNode
-            i_locRotateGroup.doStore('cgmName',i_jnt.mNode)	    
+            i_locRotateGroup.doStore('cgmName',i_jnt)	    
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             i_locRotateGroup.doName()
 
@@ -5252,7 +5252,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         #>> Surface Anchor ===================================================
         """
         i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
-        i_grpPos.doStore('cgmName',i_jnt.mNode)        
+        i_grpPos.doStore('cgmName',i_jnt)        
         i_grpOrient = cgmMeta.cgmObject( mc.duplicate(i_grpPos.mNode,returnRootsOnly=True)[0] )
         i_grpPos.addAttr('cgmType','surfaceAnchor',attrType='string',lock=True)
         i_grpOrient.addAttr('cgmType','surfaceOrient',attrType='string',lock=True)
@@ -5281,7 +5281,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         #Handle
         i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
-        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doStore('cgmName',i_jnt)    
         i_IK_Handle.doName()
 
         #Effector
@@ -5294,7 +5294,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
         i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.doStore('cgmName',i_jnt)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
         i_distanceObject.parent = i_grp.mNode#parent it
@@ -5355,7 +5355,7 @@ def createControlSurfaceSegment2(jointList,orientation = 'zyx',baseName ='test',
         #Create the mdNode
         i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_md.operation = 2
-        i_md.doStore('cgmName',i_jnt.mNode)
+        i_md.doStore('cgmName',i_jnt)
         i_md.addAttr('cgmTypeModifier','masterScale')
         i_md.doName()
         attributes.doConnectAttr('%s.%s'%(ml_distanceShapes[i].mNode,'distance'),#>>
@@ -5434,7 +5434,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
         i_follicleTrans = cgmMeta.cgmObject(l_follicleInfo[1])
         i_follicleShape = cgmMeta.cgmNode(l_follicleInfo[0])
         #> Name
-        i_follicleTrans.doStore('cgmName',i_jnt.mNode)
+        i_follicleTrans.doStore('cgmName',i_jnt)
         i_follicleTrans.doName()
         #>Set follicle value
         i_follicleShape.parameterU = l_closestInfo['normalizedU']
@@ -5456,7 +5456,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
         #>> Surface Anchor ===================================================
         """
         i_grpPos = cgmMeta.cgmObject( rigging.groupMeObject(i_jnt.mNode,False) )
-        i_grpPos.doStore('cgmName',i_jnt.mNode)        
+        i_grpPos.doStore('cgmName',i_jnt)        
         i_grpOrient = cgmMeta.cgmObject( mc.duplicate(i_grpPos.mNode,returnRootsOnly=True)[0] )
         i_grpPos.addAttr('cgmType','surfaceAnchor',attrType='string',lock=True)
         i_grpOrient.addAttr('cgmType','surfaceOrient',attrType='string',lock=True)
@@ -5490,12 +5490,12 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
         #Handle
         i_IK_Handle = cgmMeta.cgmObject(ik_buffer[0])
         i_IK_Handle.parent = ml_follicleTransforms[i+1].mNode
-        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doStore('cgmName',i_jnt)    
         i_IK_Handle.doName()
 
         #Effector
         i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        #i_IK_Effector.doStore('cgmName',i_jnt)    
         i_IK_Effector.doName()
 
         l_iIK_handles.append(i_IK_Handle)
@@ -5510,7 +5510,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
         i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.doStore('cgmName',i_jnt)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
         i_distanceObject.parent = i_grp.mNode#parent it
@@ -5548,7 +5548,7 @@ def createControlSurfaceSegmentBAK2(jointList,orientation = 'zyx',baseName ='tes
         #Create the mdNode
         i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_md.operation = 2
-        i_md.doStore('cgmName',i_jnt.mNode)
+        i_md.doStore('cgmName',i_jnt)
         i_md.addAttr('cgmTypeModifier','masterScale')
         i_md.doName()
         attributes.doConnectAttr('%s.%s'%(ml_distanceShapes[i].mNode,'distance'),#>>
@@ -5697,7 +5697,7 @@ def addRibbonTwistToControlSetupOld(jointList,
         i_pma.operation = 3
         nameBuffer = "%s_to_%s"%(mc.ls(driver1[0],sn = True)[0],mc.ls(driver2[0],sn = True)[0])
         i_pma.addAttr('cgmName',nameBuffer,lock=True)	
-        #i_pma.doStore('cgmName',i_jnt.mNode)
+        #i_pma.doStore('cgmName',i_jnt)
         i_pma.addAttr('cgmTypeModifier','twist')
         i_pma.doName()
 
@@ -5959,7 +5959,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
         #Create the multScale
         i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_mdScale.operation = 2
-        i_mdScale.doStore('cgmName',i_jnt.mNode)
+        i_mdScale.doStore('cgmName',i_jnt)
         i_mdScale.addAttr('cgmTypeModifier','multScale')
         i_mdScale.doName()
         for channel in [aimChannel,outChannel,upChannel]:
@@ -5973,7 +5973,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
         #Create the sqrtNode
         i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_sqrtScale.operation = 3#set to power
-        i_sqrtScale.doStore('cgmName',i_jnt.mNode)
+        i_sqrtScale.doStore('cgmName',i_jnt)
         i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
         i_sqrtScale.doName()
         for channel in [aimChannel,outChannel,upChannel]:
@@ -5984,7 +5984,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
         #Create the invScale
         i_invScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_invScale.operation = 2
-        i_invScale.doStore('cgmName',i_jnt.mNode)
+        i_invScale.doStore('cgmName',i_jnt)
         i_invScale.addAttr('cgmTypeModifier','invScale')
         i_invScale.doName()
         for channel in [aimChannel,outChannel,upChannel]:
@@ -5995,7 +5995,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
         #Create the powScale
         i_powScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_powScale.operation = 3
-        i_powScale.doStore('cgmName',i_jnt.mNode)
+        i_powScale.doStore('cgmName',i_jnt)
         i_powScale.addAttr('cgmTypeModifier','powScale')
         i_powScale.doName()
         for channel in [aimChannel,outChannel,upChannel]:
@@ -6007,7 +6007,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
         #Create the worldScale multiplier node
         i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_worldScale.operation = 1
-        i_worldScale.doStore('cgmName',i_jnt.mNode)
+        i_worldScale.doStore('cgmName',i_jnt)
         i_worldScale.addAttr('cgmTypeModifier','worldScale')
         i_worldScale.doName()
 
@@ -6037,7 +6037,7 @@ def addSquashAndStretchToControlSurfaceSetupSCALETRANSLATE(attributeHolder,joint
 	    log.debug(aimTransScalePlug)
 	    i_aimScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	    i_aimScale.operation = 2
-	    i_aimScale.doStore('cgmName',i_jnt.mNode)
+	    i_aimScale.doStore('cgmName',i_jnt)
 	    i_aimScale.addAttr('cgmTypeModifier','aimScale')
 	    i_aimScale.doName()
 	    """attributes.doConnectAttr('%s.scaleResult_%s'%(i_holder.mNode,i-1),#>>
@@ -6130,7 +6130,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         #Create the sqrtNode
         i_sqrtScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_sqrtScale.operation = 3#set to power
-        i_sqrtScale.doStore('cgmName',i_jnt.mNode)
+        i_sqrtScale.doStore('cgmName',i_jnt)
         i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
         i_sqrtScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6141,7 +6141,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         #Create the invScale
         i_invScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_invScale.operation = 2
-        i_invScale.doStore('cgmName',i_jnt.mNode)
+        i_invScale.doStore('cgmName',i_jnt)
         i_invScale.addAttr('cgmTypeModifier','invScale')
         i_invScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6152,7 +6152,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         #Create the powScale
         i_powScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_powScale.operation = 3
-        i_powScale.doStore('cgmName',i_jnt.mNode)
+        i_powScale.doStore('cgmName',i_jnt)
         i_powScale.addAttr('cgmTypeModifier','powScale')
         i_powScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6165,7 +6165,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
         '''
         i_mdSegmentScaleMult = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         i_mdSegmentScaleMult.operation = 1
-        i_mdSegmentScaleMult.doStore('cgmName',i_jnt.mNode)
+        i_mdSegmentScaleMult.doStore('cgmName',i_jnt)
         i_mdSegmentScaleMult.addAttr('cgmTypeModifier','segmentScaleMult')
         i_mdSegmentScaleMult.doName()            
         for channel in [outChannel,upChannel]:
@@ -6178,7 +6178,7 @@ def addSquashAndStretchToSegmentCurveSetup(attributeHolder,jointList,connectBy =
 	#Create the worldScale multiplier node
 	i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
 	i_worldScale.operation = 1
-	i_worldScale.doStore('cgmName',i_jnt.mNode)
+	i_worldScale.doStore('cgmName',i_jnt)
 	i_worldScale.addAttr('cgmTypeModifier','worldScale')
 	i_worldScale.doName()
 	for channel in [outChannel,upChannel]:
@@ -6413,7 +6413,7 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
         #Create the multScale
         i_mdScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_mdScale.operation = 2
-        i_mdScale.doStore('cgmName',i_jnt.mNode)
+        i_mdScale.doStore('cgmName',i_jnt)
         i_mdScale.addAttr('cgmTypeModifier','multScale')
         i_mdScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6426,7 +6426,7 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
         #Create the sqrtNode
         i_sqrtScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_sqrtScale.operation = 3#set to power
-        i_sqrtScale.doStore('cgmName',i_jnt.mNode)
+        i_sqrtScale.doStore('cgmName',i_jnt)
         i_sqrtScale.addAttr('cgmTypeModifier','sqrtScale')
         i_sqrtScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6437,7 +6437,7 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
         #Create the invScale
         i_invScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_invScale.operation = 2
-        i_invScale.doStore('cgmName',i_jnt.mNode)
+        i_invScale.doStore('cgmName',i_jnt)
         i_invScale.addAttr('cgmTypeModifier','invScale')
         i_invScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6448,7 +6448,7 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
         #Create the powScale
         i_powScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_powScale.operation = 3
-        i_powScale.doStore('cgmName',i_jnt.mNode)
+        i_powScale.doStore('cgmName',i_jnt)
         i_powScale.addAttr('cgmTypeModifier','powScale')
         i_powScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6460,7 +6460,7 @@ def addSquashAndStretchToControlSurfaceSetup(attributeHolder,jointList,connectBy
         #Create the worldScale multiplier node
         i_worldScale = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_worldScale.operation = 1
-        i_worldScale.doStore('cgmName',i_jnt.mNode)
+        i_worldScale.doStore('cgmName',i_jnt)
         i_worldScale.addAttr('cgmTypeModifier','worldScale')
         i_worldScale.doName()
         for channel in [outChannel,upChannel]:
@@ -6645,7 +6645,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         mc.connectAttr ((shape+'.worldSpace'),(i_closestPointNode.mNode+'.inputCurve')) 
 
         #> Name
-        i_closestPointNode.doStore('cgmName',i_jnt.mNode)
+        i_closestPointNode.doStore('cgmName',i_jnt)
         i_closestPointNode.doName()
         #>Set follicle value
         i_closestPointNode.parameter = l_closestInfo['parameter']
@@ -6663,7 +6663,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
             i_upLoc = i_jnt.doLoc()#Make up Loc
             i_locRotateGroup = i_jnt.doCreateAt()#group in place
             i_locRotateGroup.parent = ml_splineIKJoints[i].mNode
-            i_locRotateGroup.doStore('cgmName',i_jnt.mNode)         
+            i_locRotateGroup.doStore('cgmName',i_jnt)         
             i_locRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
             i_locRotateGroup.doName()
 
@@ -6704,12 +6704,12 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         #Handle
         i_IK_Handle = cgmMeta.asMeta(ik_buffer[0],'cgmObject',setClass=True)
         i_IK_Handle.parent = ml_splineIKJoints[i+1].mNode
-        i_IK_Handle.doStore('cgmName',i_jnt.mNode)    
+        i_IK_Handle.doStore('cgmName',i_jnt)    
         i_IK_Handle.doName()
 
         #Effector
         i_IK_Effector = cgmMeta.cgmObject(ik_buffer[1])        
-        #i_IK_Effector.doStore('cgmName',i_jnt.mNode)    
+        #i_IK_Effector.doStore('cgmName',i_jnt)    
         i_IK_Effector.doName()
 
         l_iIK_handles.append(i_IK_Handle)
@@ -6723,7 +6723,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         #>> Distance nodes
         i_distanceShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
         i_distanceObject = cgmMeta.cgmObject( i_distanceShape.getTransform() )
-        i_distanceObject.doStore('cgmName',i_jnt.mNode)
+        i_distanceObject.doStore('cgmName',i_jnt)
         i_distanceObject.addAttr('cgmType','measureNode',lock=True)
         i_distanceObject.doName(nameShapes = True)
         i_distanceObject.parent = i_grp.mNode#parent it
@@ -6784,7 +6784,7 @@ def createSegmentCurveOLDOUTSIDEMAINTRANSFORM(jointList,orientation = 'zyx',seco
         #Create the mdNode
         i_md = cgmMeta.cgmNode(mc.createNode('multiplyDivide'))
         i_md.operation = 2
-        i_md.doStore('cgmName',i_jnt.mNode)
+        i_md.doStore('cgmName',i_jnt)
         i_md.addAttr('cgmTypeModifier','masterScale')
         i_md.doName()
         attributes.doConnectAttr('%s.%s'%(ml_distanceShapes[i].mNode,'distance'),#>>

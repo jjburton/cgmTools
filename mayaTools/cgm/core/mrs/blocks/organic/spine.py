@@ -134,7 +134,7 @@ def template(self):
         str_templateNull = CORERIG.create_at(self.mNode)
         templateNull = cgmMeta.validateObjArg(str_templateNull, mType = 'cgmObject',setClass = True)
         templateNull.connectParentNode(self, 'rigBlock','templateNull') 
-        templateNull.doStore('cgmName', self.mNode)
+        templateNull.doStore('cgmName', self)
         templateNull.doStore('cgmType','templateNull')
         templateNull.doName()
         templateNull.p_parent = self
@@ -157,7 +157,6 @@ def template(self):
     mOrientCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
     
     #self.copyAttrTo(_baseNameAttrs[-1],mTopCurve.mNode,'cgmName')
-    #mOrientCurve.doStore(self.mNode,'cgmName')
     self.copyAttrTo(_baseNameAttrs[1],mOrientCurve.mNode,'cgmName',driven='target')
     mOrientCurve.doStore('cgmType','orientHandle')
     mOrientCurve.doName()    
@@ -225,7 +224,7 @@ def template(self):
     mLoft.p_parent = templateNull
     mLoft.resetAttrs()
     
-    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmName',self)
     mLoft.doStore('cgmType','controlsApprox')
     mLoft.doName()
     
@@ -356,7 +355,7 @@ def prerig(self):
         str_prerigNull = CORERIG.create_at(self.mNode)
         mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
         mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
-        mPrerigNull.doStore('cgmName', self.mNode)
+        mPrerigNull.doStore('cgmName', self)
         mPrerigNull.doStore('cgmType','prerigNull')
         mPrerigNull.doName()
         mPrerigNull.p_parent = self
@@ -460,7 +459,7 @@ def prerig(self):
     mLoft.p_parent = mPrerigNull
     mLoft.resetAttrs()
     
-    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmName',self)
     mLoft.doStore('cgmType','shapeApprox')
     mLoft.doName()
     
@@ -514,7 +513,7 @@ def prerig(self):
     mLoft.p_parent = mPrerigNull
     mLoft.resetAttrs()
     
-    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmName',self)
     mLoft.doStore('cgmType','jointApprox')
     mLoft.doName()
     

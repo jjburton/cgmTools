@@ -261,7 +261,7 @@ def ut_cgmMeta(*args, **kws):
             self.MetaObject.doCopyNameTagsFromObject(self.MetaNode.mNode)
             assert self.MetaObject.cgmName == self.MetaNode.cgmName,"CGM Name copying failed"
 
-            self.MetaNode.doStore('stored',self.nCube.mNode)
+            self.MetaNode.doStore('stored',self.nCube)
             assert self.MetaNode.stored[0] == self.nCube.mNode,"'%s' is stored"%self.MetaNode.stored
 
             self.MetaNode.doRemove('stored')

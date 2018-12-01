@@ -145,7 +145,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
         else:#add it
             index =  ATTR.get_nextAvailableSequentialAttrIndex(self.mNode,"dynStoredAttr")
             log.debug("|{0}| >> Attr to register: {1} ".format(_str_func,mPlug_attr.p_combinedShortName))
-            self.doStore('dynStoredAttr_%s'%index,mPlug_attr.p_combinedName)	
+            self.doStore('dynStoredAttr_%s'%index,mPlug_attr.p_combinedName,attrType = 'msg')	
             l_attrs.append(mPlug_attr.p_combinedName)
 
             index_attr = l_attrs.index(mPlug_attr.p_combinedName)
@@ -165,7 +165,7 @@ class cgmDynamicSwitch(cgmMeta.cgmObject):
 
         log.debug("%s.setDynOwner>> Adding dynObject: '%s'"%(self.getShortName(),i_object.getShortName()))
         self.connectChildNode(i_object,'dynOwner',self._str_dynSwitchDriverPlug)#Connect the nodes
-        self.doStore('cgmName',i_object.mNode)
+        self.doStore('cgmName',i_object)
         self.doName()
 
         if not self.parent:#If we're not parented, parent to dynObject, otherwise, it doen't really matter where this is
@@ -588,7 +588,7 @@ class cgmDynamicMatch(cgmMeta.cgmObject):
 
         log.debug("cgmDynamicMatch.addDynObject>> Adding dynObject: '%s'"%i_object.getShortName())
         self.connectChildNode(i_object,'dynObject',self._str_dynMatchDriverPlug)#Connect the nodes
-        self.doStore('cgmName',i_object.mNode)
+        self.doStore('cgmName',i_object)
 
         if not self.parent:#If we're not parented, parent to dynObject, otherwise, it doen't really matter where this is
             self.parent = i_object.mNode
@@ -1376,7 +1376,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         #Check our attrs
         if self._mi_dynChild:
             self.addDynChild(self._mi_dynChild)
-            #self.doStore('cgmName',self._mi_dynChild.mNode)
+            #self.doStore('cgmName',self._mi_dynChild)
         self.addAttr('mClass','cgmDynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
         self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 
@@ -1518,7 +1518,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         log.debug("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
         self.connectChildNode(i_child,'dynChild','dynParentGroup')#Connect the nodes
-        self.doStore('cgmName',i_child.mNode)
+        self.doStore('cgmName',i_child)
         #Must be a descendant
         #Add attrs per mode
         #setup per mode
@@ -1650,7 +1650,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         log.debug("|{0}| >> Name and store...".format(_str_func)+cgmGEN._str_subLine)        
         for i_const in [mDynParentConst,mDynPointConst,mDynOrientConst]:
             if i_const:
-                i_const.doStore('cgmName',mDynChild.mNode) 
+                i_const.doStore('cgmName',mDynChild) 
                 i_const.addAttr('cgmTypeModifier','dynDriver')
                 #i_const.addAttr('mClass','cgmNode')	
                 i_const.doName()
@@ -1674,7 +1674,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 mc.setAttr("%s.colorIfFalseR"%i_followCondNode.mNode,0)
                 mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(i_dynFollowConst.mNode,i))
 
-                i_followCondNode.doStore('cgmName',i_p.mNode) 
+                i_followCondNode.doStore('cgmName',i_p) 
                 i_followCondNode.addAttr('cgmTypeModifier','dynFollow')
                 #i_followCondNode.addAttr('mClass','cgmNode')	
                 i_followCondNode.doName()
@@ -1769,7 +1769,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             i_followDriver = i_dynChild.doCreateAt()
 
         i_followDriver = cgmMeta.validateObjArg(i_followDriver,'cgmObject',setClass = True)
-        i_followDriver.doStore('cgmName',i_dynChild.mNode) 
+        i_followDriver.doStore('cgmName',i_dynChild) 
         i_followDriver.addAttr('cgmType','dynFollow')
         i_followDriver.doName()
 

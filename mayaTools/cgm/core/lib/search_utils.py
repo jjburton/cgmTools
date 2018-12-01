@@ -124,7 +124,7 @@ def get_tagUp(node,tag):
     Success - info(list) - [info,parentItCameFrom]
     Failure - False
     """
-    parents = parents_get(node)
+    parents = parents_get(node) or []
     tagInfo = []
     
     for p in parents:

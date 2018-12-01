@@ -408,7 +408,7 @@ def define(self):
     mJointLabel.drawLabel = 1
     mJointLabel.otherType = self.blockProfile
 
-    mJointLabel.doStore('cgmName',self.mNode)
+    mJointLabel.doStore('cgmName',self)
     mJointLabel.doStore('cgmTypeModifier',self.blockProfile)
     mJointLabel.doStore('cgmType','jointLabel')
     mJointLabel.doName()            
@@ -865,14 +865,14 @@ def template(self):
             else:
                 mAimForward = mLoft.doCreateAt()
                 mAimForward.p_parent = mLoft.p_parent
-                mAimForward.doStore('cgmName',mHandle.mNode)                
+                mAimForward.doStore('cgmName',mHandle)                
                 mAimForward.doStore('cgmTypeModifier','forward')
                 mAimForward.doStore('cgmType','aimer')
                 mAimForward.doName()
                 
                 mAimBack = mLoft.doCreateAt()
                 mAimBack.p_parent = mLoft.p_parent
-                mAimBack.doStore('cgmName',mHandle.mNode)                                
+                mAimBack.doStore('cgmName',mHandle)                                
                 mAimBack.doStore('cgmTypeModifier','back')
                 mAimBack.doStore('cgmType','aimer')
                 mAimBack.doName()
@@ -1075,7 +1075,7 @@ def template(self):
                     #Convert to loft curve setup ----------------------------------------------------
                     mHandleFactory = self.asHandleFactory(mHandle.mNode)
                     #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
-                    mHandle.doStore('loftCurve',mHandle.mNode)
+                    mHandle.doStore('loftCurve',mHandle)
             
             
                     CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -1710,7 +1710,7 @@ def prerig(self):
                                               'cgmNode',
                                               setClass=True)
         
-        mTrackCluster.doStore('cgmName', mTrackCurve.mNode)
+        mTrackCluster.doStore('cgmName', mTrackCurve)
         mTrackCluster.doName()    
             
             """
@@ -1808,7 +1808,7 @@ def prerig(self):
             mJointLabel.drawLabel = 1
             mJointLabel.otherType = mHandle.cgmName
         
-            mJointLabel.doStore('cgmName',mHandle.mNode)
+            mJointLabel.doStore('cgmName',mHandle)
             mJointLabel.doStore('cgmType','jointLabel')
             mJointLabel.doName()            
         
@@ -2855,7 +2855,7 @@ def rig_controls(self):
         """
         mSnapTarget = mControlIK.doCreateAt(setClass=True)
         mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
-        mControlIK.doStore('switchTarget',mSnapTarget.mNode)
+        mControlIK.doStore('switchTarget',mSnapTarget)
         mSnapTarget.rename("{0}_switchTarget".format(mControlIK.p_nameBase))
         log.debug("|{0}| >> IK handle snap target : {1}".format(_str_func, mSnapTarget))
         mSnapTarget.setAttrFlags()"""
@@ -2881,7 +2881,7 @@ def rig_controls(self):
         self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
         """
         mSnapTarget = mControlBaseIK.doCreateAt(setClass=True)
-        mControlBaseIK.doStore('switchTarget',mSnapTarget.mNode)
+        mControlBaseIK.doStore('switchTarget',mSnapTarget)
         mSnapTarget.rename("{0}_switchTarget".format(mControlBaseIK.p_nameBase))
         log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
         mSnapTarget.p_parent = ml_blend[0]        
@@ -3076,7 +3076,7 @@ def rig_segments(self):
                                               'cgmNode',
                                               setClass=True)
     
-        mSkinCluster.doStore('cgmName', mSurf.mNode)
+        mSkinCluster.doStore('cgmName', mSurf)
         mSkinCluster.doName()    
         
         reload(CORESKIN)
@@ -3203,7 +3203,7 @@ def rig_frame(self):
                     
                         #Decompose matrix for parent...
                         mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                        mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                        mUpDecomp.doStore('cgmName',ml_handleParents[i])                
                         mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                         mUpDecomp.doName()
                     
@@ -3296,7 +3296,7 @@ def rig_frame(self):
                             
                         #Decompose matrix for parent...
                         mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                        mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                        mUpDecomp.doStore('cgmName',ml_handleParents[i])                
                         mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                         mUpDecomp.doName()
                         
@@ -3571,7 +3571,7 @@ def rig_frame(self):
                                                       'cgmNode',
                                                       setClass=True)
             
-                mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+                mSkinCluster.doStore('cgmName', mSplineCurve)
                 mSkinCluster.doName()    
                 cgmGEN.func_snapShot(vars())
                 
@@ -3682,7 +3682,7 @@ def rig_frame(self):
                                                       'cgmNode',
                                                       setClass=True)
             
-                mSkinCluster.doStore('cgmName', mSurf.mNode)
+                mSkinCluster.doStore('cgmName', mSurf)
                 mSkinCluster.doName()    
                 
                 #Tighten the weights...

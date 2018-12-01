@@ -1194,7 +1194,7 @@ def create_influenceJoints(self,d_build):
 
 				try:#Create offsetgroup for the mid
 				    mi_offsetGroup = cgmMeta.asMeta( mi_influenceJoint.doGroup(True),'cgmObject',setClass=True)	 
-				    mi_offsetGroup.doStore('cgmName',mi_influenceJoint.mNode)
+				    mi_offsetGroup.doStore('cgmName',mi_influenceJoint)
 				    mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
 				    mi_offsetGroup.doName()
 				    mi_influenceJoint.connectChildNode(mi_offsetGroup,'masterGroup','groupChild')
@@ -1490,7 +1490,7 @@ def aim_fromDict(self,d_build):
 					    mi_offsetTarget = mObj
 
 				mi_aimOffsetGroup = cgmMeta.asMeta(mi_offsetTarget.doGroup(True),'cgmObject',setClass=True)
-				mi_aimOffsetGroup.doStore('cgmName',mObj.mNode)
+				mi_aimOffsetGroup.doStore('cgmName',mObj)
 				mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
 				mi_aimOffsetGroup.doName()
 				mObj.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")					    
@@ -1751,7 +1751,7 @@ def skin_fromDict(self,d_build):
 		try:#Cluster
 		    ret_cluster = mc.skinCluster([mObj.mNode for mObj in [__target] + __bindJoints], tsb = True, normalizeWeights = True, mi = __mi, dr = __dr)
 		    i_cluster = cgmMeta.asMeta(ret_cluster[0],'cgmNode',setClass=True)
-		    i_cluster.doStore('cgmName',__target.mNode)
+		    i_cluster.doStore('cgmName',__target)
 		    i_cluster.doName()		
 		except Exception,error:raise Exception,"[Cluster |error: {0}]".format(error)
 

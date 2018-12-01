@@ -567,12 +567,12 @@ def puppet_updateGeoFromAsset(*args,**kws):
                     self.log_warning("Creating unified geo...THIS NEEDS TO BE A BETTER METHOD AT SOME POINT USING REAL UNIFED GEO CALL")
                     newMesh = mc.duplicate(self.l_baseBodyGeo[0])
                     mMesh = cgmMeta.cgmObject(newMesh[0])
-                    mMesh.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode))
+                    mMesh.doStore('cgmName',"{0}.cgmName".format(mi_puppet.mNode),attrType = 'msg')
                     attributes.doSetLockHideKeyableAttr(mMesh.mNode,False,True,True)
                     #mMesh.addAttr('cgmName','DONOTTOUCH_RESET',attrType='string',lock=True)
                     mMesh.parent = self._mi_puppetGeoGroup.unifiedGeoGroup#...parent it		    
                     mMesh.doName()		
-                    self._mi_puppet.doStore('unifiedGeo',mMesh.mNode)
+                    self._mi_puppet.doStore('unifiedGeo',mMesh)
 
                     mMesh.setDrawingOverrideSettings(pushToShapes=False)
 

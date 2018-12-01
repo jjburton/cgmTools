@@ -627,7 +627,7 @@ def attachToCurve(joints = None,
         ATTR.connect(str_shape+'.worldSpace',mi_closestPointNode.mNode+'.inputCurve')	
 
         #> Name
-        mi_closestPointNode.doStore('cgmName',mJnt.mNode)
+        mi_closestPointNode.doStore('cgmName',mJnt)
         mi_closestPointNode.doName()
         #>Set follicle value
         mi_closestPointNode.parameter = param
@@ -661,7 +661,7 @@ def setupDirectOrbs(joints=None):
         _trans = RIG.create_at(mJnt.mNode)
         mTrans = cgmMeta.validateObjArg(_trans,'cgmObject')
         #ATTR.set_message(mJnt.mNode, 'cgmSource',mTrans.mNode)
-        mJnt.doStore('cgmSource',mTrans.mNode)
+        mJnt.doStore('cgmSource',mTrans)
         mTrans.rename("{0}_anim".format(mJnt.p_nameBase))
 
         mTrans.doGroup(True)

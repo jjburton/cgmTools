@@ -215,7 +215,7 @@ def define(self):
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
     
-    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmName', self)
     mBBShape.doStore('cgmType','bbVisualize')
     mBBShape.doName()    
     
@@ -1751,7 +1751,7 @@ def create_clamBlinkCurves(self):
                         w = _lwrDriver, 
                         gw = False, en = 1, ce = 0, li =0)
     mLwrWire = cgmMeta.cgmNode(_l_return[0])
-    mLwrWire.doStore('cgmName',_lwrDriven)
+    mLwrWire.doStore('cgmName',_lwrDriven,attrType = 'msg')
     mLwrWire.doName()
     
     #mUprWire.parent = mRigNull
@@ -1788,7 +1788,7 @@ def create_clamBlinkCurves(self):
     
     _str_bsNode = mc.blendShape([_uprDriver,_lwrDriver],mSmartBlink.mNode)[0]
     mBsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
-    mBsNode.doStore('cgmName',mSmartBlink.mNode)
+    mBsNode.doStore('cgmName',mSmartBlink)
     mBsNode.doName()
 
     mPlug_height = cgmMeta.cgmAttr(mSettings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
@@ -1809,7 +1809,7 @@ def create_clamBlinkCurves(self):
     mPlug_height.value = 0	    
     _l_return = mc.wire(md['lwr']['mBlink'].mNode, w = mSmartBlink.mNode, gw = False, en = 1, ce = 0, li =0)
     mi_lwrBlinkWire = cgmMeta.cgmNode(_l_return[0])
-    mi_lwrBlinkWire.doStore('cgmName',_lwrDriven)
+    mi_lwrBlinkWire.doStore('cgmName',_lwrDriven,attrType = 'msg')
     mi_lwrBlinkWire.addAttr('cgmTypeModifier','blink')	    
     mi_lwrBlinkWire.doName()
     mc.setAttr("%s.scale[0]"%mi_lwrBlinkWire.mNode,0)
@@ -1818,7 +1818,7 @@ def create_clamBlinkCurves(self):
     mPlug_height.value = 1
     _l_return = mc.wire(md['upr']['mBlink'].mNode, w = mSmartBlink.mNode, gw = False, en = 1, ce = 0, li =0)
     mi_uprBlinkWire = cgmMeta.cgmNode(_l_return[0])
-    mi_uprBlinkWire.doStore('cgmName',_uprDriven)
+    mi_uprBlinkWire.doStore('cgmName',_uprDriven,attrType = 'msg')
     mi_uprBlinkWire.addAttr('cgmTypeModifier','blink')	    
     mi_uprBlinkWire.doName()
     mc.setAttr("%s.scale[0]"%mi_uprBlinkWire.mNode,0)
@@ -1840,7 +1840,7 @@ def create_clamBlinkCurves(self):
         mi_driven = d_buffer['mi_driven']
         _str_bsNode = mc.blendShape(mi_target.mNode,mi_driven.mNode)[0]
         mi_bsNode = cgmMeta.asMeta(_str_bsNode,'cgmNode',setClass=True)
-        mi_bsNode.doStore('cgmName',mi_driven.mNode)
+        mi_bsNode.doStore('cgmName',mi_driven)
         mi_bsNode.doName()
         l_bsAttrs = deformers.returnBlendShapeAttributes(mi_bsNode.mNode)
         mPlug_blink.doConnectOut('%s.%s' % (mi_bsNode.mNode,l_bsAttrs[0]))    

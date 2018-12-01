@@ -391,7 +391,7 @@ def attachObjToSurface(*args,**kws):
                     mi_follicleAttachShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')	    
 
                     #> Name ----------------------------------------------------------------------------------
-                    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj.mNode)
+                    mi_follicleAttachTrans.doStore('cgmName',self.mi_obj)
                     mi_follicleAttachTrans.addAttr('cgmTypeModifier','attach',lock=True)
                     mi_follicleAttachTrans.doName()
 
@@ -409,7 +409,7 @@ def attachObjToSurface(*args,**kws):
             if not self.b_createControlLoc:#If we don't have a control loc setup, we're just attaching to the surface
                 try:#Groups =======================================================================================
                     mi_followGroup = self.mi_obj.doDuplicateTransform(True)
-                    mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+                    mi_followGroup.doStore('cgmName',self.mi_obj)
                     mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
                     mi_followGroup.doName()	    
                     mi_followGroup.parent = mi_follicleAttachTrans
@@ -421,7 +421,7 @@ def attachObjToSurface(*args,**kws):
                     else:
                         #Driver loc -----------------------------------------------------------------------
                         mi_driverLoc = self.mi_obj.doLoc()
-                        mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
+                        mi_driverLoc.doStore('cgmName',self.mi_obj)
                         mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
                         mi_driverLoc.doName()
                         self.mi_driverLoc = mi_driverLoc
@@ -447,7 +447,7 @@ def attachObjToSurface(*args,**kws):
                     mi_follicleFollowShape = cgmMeta.asMeta(l_follicleInfo[0],'cgmNode')
 
                     #> Name ----------------------------------------------------------------------------------
-                    mi_follicleFollowTrans.doStore('cgmName',self.mi_obj.mNode)
+                    mi_follicleFollowTrans.doStore('cgmName',self.mi_obj)
                     mi_follicleFollowTrans.addAttr('cgmTypeModifier','follow',lock=True)
                     mi_follicleFollowTrans.doName()
 
@@ -464,7 +464,7 @@ def attachObjToSurface(*args,**kws):
 
                     #Groups =======================================================================================
                     mi_followGroup = mi_follicleFollowTrans.duplicateTransform()
-                    mi_followGroup.doStore('cgmName',self.mi_obj.mNode)
+                    mi_followGroup.doStore('cgmName',self.mi_obj)
                     mi_followGroup.addAttr('cgmTypeModifier','follow',lock=True)
                     mi_followGroup.doName()
                     self.mi_followGroup = mi_followGroup
@@ -474,7 +474,7 @@ def attachObjToSurface(*args,**kws):
                 except Exception,error:raise StandardError,"!Follicle - attach Loc setup! | %s"%(error)
 
                 mi_offsetGroup = self.mi_obj.duplicateTransform()
-                mi_offsetGroup.doStore('cgmName',self.mi_obj.mNode)
+                mi_offsetGroup.doStore('cgmName',self.mi_obj)
                 mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                 mi_offsetGroup.doName()
                 mi_offsetGroup.parent = mi_followGroup
@@ -484,7 +484,7 @@ def attachObjToSurface(*args,**kws):
                 if self.b_attachControlLoc:mi_follicleFollowTrans.connectChildNode(mi_offsetGroup,"followOffsetGroup","follicle")
 
                 mi_zeroGroup = cgmMeta.asMeta( mi_offsetGroup.doGroup(True),'cgmObject',setClass=True)	 
-                mi_zeroGroup.doStore('cgmName',self.mi_obj.mNode)
+                mi_zeroGroup.doStore('cgmName',self.mi_obj)
                 mi_zeroGroup.addAttr('cgmTypeModifier','zero',lock=True)
                 mi_zeroGroup.doName()	    
                 mi_zeroGroup.parent = mi_followGroup
@@ -493,7 +493,7 @@ def attachObjToSurface(*args,**kws):
 
                 #Driver loc -----------------------------------------------------------------------
                 mi_driverLoc = self.mi_obj.doLoc()
-                mi_driverLoc.doStore('cgmName',self.mi_obj.mNode)
+                mi_driverLoc.doStore('cgmName',self.mi_obj)
                 mi_driverLoc.addAttr('cgmTypeModifier','driver',lock=True)
                 mi_driverLoc.doName()
                 self.mi_driverLoc = mi_driverLoc
@@ -504,7 +504,7 @@ def attachObjToSurface(*args,**kws):
 
                 #Closest setup =====================================================================
                 mi_controlLoc = self.mi_obj.doLoc()
-                mi_controlLoc.doStore('cgmName',self.mi_obj.mNode)
+                mi_controlLoc.doStore('cgmName',self.mi_obj)
                 mi_controlLoc.addAttr('cgmTypeModifier','control',lock=True)
                 mi_controlLoc.doName()
                 self.mi_controlLoc = mi_controlLoc
@@ -516,7 +516,7 @@ def attachObjToSurface(*args,**kws):
 
                 #Create decompose node --------------------------------------------------------------
                 mi_worldTranslate = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                mi_worldTranslate.doStore('cgmName',self.mi_obj.mNode)
+                mi_worldTranslate.doStore('cgmName',self.mi_obj)
                 mi_worldTranslate.doName()
                 self.mi_worldTranslate = mi_worldTranslate
 
@@ -545,7 +545,7 @@ def attachObjToSurface(*args,**kws):
 
                 if self.b_createUpLoc:#Make our up loc =============================================================
                     mi_upLoc = mi_zeroGroup.doLoc()
-                    mi_upLoc.doStore('cgmName',self.mi_obj.mNode)
+                    mi_upLoc.doStore('cgmName',self.mi_obj)
                     mi_upLoc.addAttr('cgmTypeModifier','up',lock=True)
                     mi_upLoc.doName()
                     mi_upLoc.parent = mi_zeroGroup

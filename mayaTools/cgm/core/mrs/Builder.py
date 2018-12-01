@@ -216,13 +216,22 @@ class ui(cgmUI.cgmGUI):
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
                                            'qss_verify',**{'puppetSet':False,
                                                            'bakeSet':True,
-                                                           'deleteSet':False}),)
+                                                           'deleteSet':False,
+                                                           'exportSet':False}),)
         mUI.MelMenuItem(_menu, l="Qss - Delete set",
                         ann = "Add delete set",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
                                            'qss_verify',**{'puppetSet':False,
                                                            'bakeSet':False,
-                                                           'deleteSet':True}),)
+                                                           'deleteSet':True,
+                                                           'exportSet':False}),)
+        mUI.MelMenuItem(_menu, l="Qss - Export set",
+                                ann = "Add export set - visible geo and joints",
+                                c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
+                                                   'qss_verify',**{'puppetSet':0,
+                                                                   'bakeSet':0,
+                                                                   'deleteSet':0,
+                                                                   'exportSet':1}),)        
         #>>Mesh ---------------------------------------------------------------------
         mUI.MelMenuItemDiv(_menu)        
         _mMesh = mUI.MelMenuItem(_menu, l="Puppet Mesh",
