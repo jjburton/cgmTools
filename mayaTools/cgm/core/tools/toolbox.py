@@ -1706,7 +1706,7 @@ def buildRow_skin(self,parent):
               l='ngSkinTools',
               ut = 'cgmUITemplate',
               ann = "Read the docs. Give it a chance. Be amazed.",                                                                                                                       
-              c=lambda *a: loadNGSKIN())           
+              c=lambda *a: LOADTOOL.ngskin())           
 
     mUI.MelSpacer(_row,w=5)                      
     _row.layout()   

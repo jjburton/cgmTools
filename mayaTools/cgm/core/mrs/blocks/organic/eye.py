@@ -1200,7 +1200,7 @@ def rig_skeleton(self):
             
             mLidRig.p_parent = mLidBlend
             
-    pprint.pprint(self.d_lidData)
+        pprint.pprint(self.d_lidData)
     log.debug(cgmGEN._str_subLine)
     
     

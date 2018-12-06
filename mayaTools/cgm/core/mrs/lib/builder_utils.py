@@ -163,8 +163,8 @@ def eyeLook_verify(self):
         #Dynparent... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
         ml_dynParents = copy.copy(self.ml_dynParentsAbove)
-        if mBlock.attachPoint == 'end':
-            ml_dynParents.reverse()
+        #if mBlock.attachPoint == 'end':
+            #ml_dynParents.reverse()
         ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
         ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
         
@@ -2169,7 +2169,6 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 
                 
                 if ballMode == 'loft':
-                
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
@@ -2182,12 +2181,10 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         log.debug("|{0}| >> surf fail. Using last vector: {1}".format(_str_func,vec))                
                         
                         
-                    
                     p2 = l_pos[i-1]
                     pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     dClose = DIST.get_distance_between_points(p1,pClose)
                     d2 = DIST.get_distance_between_points(p1,p2)
-                    
                     
                     #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
                     #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
@@ -2221,13 +2218,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     #DIST.offsetShape_byVector(end,-_offset)
                     
     
-                        
                     TRANS.position_set(mid1,pSet1)
                     TRANS.position_set(mid2,pSet2)
                     TRANS.position_set(end,pSet3)
                     
                     #now loft new mesh...
-                    _meshEnd = create_loftMesh([end,mid2,mid1,root], name="{0}_{1}".format('test',i), degree=1,divisions=1)
+                    _loftTargets = [end,mid2,mid1,root]
+                    if cgmGEN.__mayaVersion__ in [2018]:
+                        _loftTargets.reverse()
+                    _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
+                                               degree=1,divisions=1)
                     
                     _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
                     mc.delete([end,mid1,mid2,root])

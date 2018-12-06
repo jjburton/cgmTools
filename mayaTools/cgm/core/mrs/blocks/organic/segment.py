@@ -1943,13 +1943,14 @@ def skeleton_build(self, forceNew = True):
     ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
     
         
-    _l_names = self.atUtils('skeleton_getNameDicts',True)
+    _l_names = self.atUtils('skeleton_getNameDicts',False)
 
-   
     for i,mJoint in enumerate(ml_joints):
-        mJoint.rename(_l_names[i])
+        for t,tag in _l_names[i].iteritems():
+            mJoint.doStore(t,tag)
+        mJoint.doName()
+        #mJoint.rename(_l_names[i])
         
-
     ml_joints[0].parent = False
     
     _radius = self.atUtils('get_shapeOffset')

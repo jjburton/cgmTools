@@ -4067,6 +4067,9 @@ def rig_shapes(self):
                 str_meshShape = mMesh_tmp.getShapes()[0]        
                 pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)                
                 
+                if not pos:
+                    log.debug("|{0}| >> Cast pos for setting fail.Using alternate".format(_str_func,_settingsPlace))
+                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_settingsSize + (_offset * 2))                    
                 mSettingsShape.p_position = pos
                 
                 mMesh_tmp.delete()

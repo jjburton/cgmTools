@@ -3334,8 +3334,10 @@ def baseSize_get(self):
 
 
 def defineSize_get(self):
+    _str_func = 'defineSize_get'            
     _baseSize = self.baseSize
     if _baseSize:
+        log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
         return MATH.average(_baseSize[:-2])/2.0
     return self.atUtils('get_shapeOffset') or 1.0# * 2.0    
 
