@@ -28,8 +28,8 @@ mi_catchMeObj = cgmMeta.cgmObject(name = 'catchMe')
 mi_catcherObj = cgmMeta.cgmObject(name = 'msgCather')
 
 #One of our calls to store info is doStore
-mi_catcherObj.doStore('objNoMessage',mi_catchMeObj.mNode,overideMessageCheck = True)#It's gonna just store a string, no message....
-mi_catcherObj.doStore('objNoMessage',mi_catchMeObj.mNode,overideMessageCheck = False)#Now it's a message...woot!
+mi_catcherObj.doStore('objNoMessage',mi_catchMeObj,overideMessageCheck = True)#It's gonna just store a string, no message....
+mi_catcherObj.doStore('objNoMessage',mi_catchMeObj,overideMessageCheck = False)#Now it's a message...woot!
 #So maya can do that, what if you wanted to do something neater like say, store an attribute
 mi_catcherObj.doStore('objTX',"%s.tx"%mi_catchMeObj.mNode)#It's gonna just store a string, no message....
 mi_catchMeObj.tx = 4#our attribute changed. That's because, this storage method stores on a compatible attribute format

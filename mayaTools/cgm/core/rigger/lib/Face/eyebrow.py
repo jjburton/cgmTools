@@ -270,7 +270,7 @@ def build_rigSkeleton(*args, **kws):
 			for mJnt in ml_influenceJoints:
 			    try:#Create offsetgroup for the mid
 				mi_offsetGroup = cgmMeta.asMeta( mJnt.doGroup(True),'cgmObject',setClass=True)	 
-				mi_offsetGroup.doStore('cgmName',mJnt.mNode)
+				mi_offsetGroup.doStore('cgmName',mJnt)
 				mi_offsetGroup.addAttr('cgmTypeModifier','master',lock=True)
 				mi_offsetGroup.doName()
 				mJnt.connectChildNode(mi_offsetGroup,'masterGroup','groupChild')
@@ -950,7 +950,7 @@ def build_rig(*args, **kws):
 		try:#Setup the offset group which will take half the left/right handles
 		    #Create offsetgroup for the mid
 		    mi_offsetGroup = cgmMeta.asMeta( mi_centerHandle.doGroup(True),'cgmObject',setClass=True)	 
-		    mi_offsetGroup.doStore('cgmName',mi_centerHandle.mNode)
+		    mi_offsetGroup.doStore('cgmName',mi_centerHandle)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mi_centerHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
@@ -993,7 +993,7 @@ def build_rig(*args, **kws):
 		
 				if ii == 1:#Create offsetgroup for the mid
 				    mi_offsetGroup = cgmMeta.asMeta( mHandle.doGroup(True),'cgmObject',setClass=True)	 
-				    mi_offsetGroup.doStore('cgmName',mHandle.mNode)
+				    mi_offsetGroup.doStore('cgmName',mHandle)
 				    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 				    mi_offsetGroup.doName()
 				    mHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')
@@ -1044,7 +1044,7 @@ def build_rig(*args, **kws):
 				if ii > 0:
 				    #Create aim offsetgroup for the mid
 				    mi_aimGroup = cgmMeta.cgmObject( mHandle.doGroup(True),setClass=True)	 
-				    mi_aimGroup.doStore('cgmName',mHandle.mNode)
+				    mi_aimGroup.doStore('cgmName',mHandle)
 				    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
 				    mHandle.connectChildNode(mi_aimGroup,'aimGroup','groupChild')		    
 				    mi_aimGroup.doName()
@@ -1138,7 +1138,7 @@ def build_rig(*args, **kws):
 		try:#Setup the offset group which will take half the left/right handles
 		    #Create offsetgroup for the mid
 		    mi_offsetGroup = cgmMeta.asMeta( mi_centerHandle.doGroup(True),'cgmObject',setClass=True)	 
-		    mi_offsetGroup.doStore('cgmName',mi_centerHandle.mNode)
+		    mi_offsetGroup.doStore('cgmName',mi_centerHandle)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mi_centerHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')		    
@@ -1210,7 +1210,7 @@ def build_rig(*args, **kws):
 			    '''
 			    try:#Aim Offset group ----------------------------------------------------------------------
 				mi_aimOffsetGroup = cgmMeta.cgmObject(mObj.doGroup(True),setClass=True)
-				mi_aimOffsetGroup.doStore('cgmName',mObj.mNode)
+				mi_aimOffsetGroup.doStore('cgmName',mObj)
 				mi_aimOffsetGroup.addAttr('cgmTypeModifier','AimOffset',lock=True)
 				mi_aimOffsetGroup.doName()
 				mObj.connectChildNode(mi_aimOffsetGroup,"aimOffsetGroup","childObject")					    
@@ -1290,7 +1290,7 @@ def build_rig(*args, **kws):
 
 		    #Create offsetgroup for the mid
 		    mi_offsetGroup = cgmMeta.asMeta( mi_midHandle.doGroup(True),'cgmObject',setClass=True)	 
-		    mi_offsetGroup.doStore('cgmName',mi_midHandle.mNode)
+		    mi_offsetGroup.doStore('cgmName',mi_midHandle)
 		    mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 		    mi_offsetGroup.doName()
 		    mi_midHandle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')
@@ -1342,7 +1342,7 @@ def build_rig(*args, **kws):
 		    #Create aim offsetgroup for the mid
 		    
 		    mi_aimGroup = cgmMeta.asMeta( mi_midHandle.doGroup(True),'cgmObject',setClass=True)	 
-		    mi_aimGroup.doStore('cgmName',mi_midHandle.mNode)
+		    mi_aimGroup.doStore('cgmName',mi_midHandle)
 		    mi_aimGroup.addAttr('cgmTypeModifier','aim',lock=True)
 		    mi_midHandle.connectChildNode(mi_aimGroup,'aimGroup','groupChild')		    
 		    mi_aimGroup.doName()
@@ -1415,7 +1415,7 @@ def build_rig(*args, **kws):
 				d_return = self.md_attachReturns[mi_influenceJnt]
 				mi_offsetGroup = d_return['offsetGroup']
 				#mi_offsetGroup = cgmMeta.cgmObject( mi_handle.doGroup(True),setClass=True)	 
-				#mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
+				#mi_offsetGroup.doStore('cgmName',mi_handle)
 				#mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
 				#mi_offsetGroup.doName()
 				#mi_handle.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	
@@ -1517,7 +1517,7 @@ def build_rig(*args, **kws):
 			
 			try:# Offset ----------------------------------------------------------------------------------
 			    mi_offsetGroup = cgmMeta.asMeta( mi_follicleOffsetGroup.doGroup(True),'cgmObject',setClass=True)	 
-			    mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
+			    mi_offsetGroup.doStore('cgmName',mi_handle)
 			    mi_offsetGroup.addAttr('cgmTypeModifier','pushOffset',lock=True)
 			    mi_offsetGroup.doName()
 			    mi_midHandleInfluence.connectChildNode(mi_offsetGroup,'pushOffsetGroup','groupChild')	
@@ -1554,7 +1554,7 @@ def build_rig(*args, **kws):
 			
 			try:# Offset ----------------------------------------------------------------------------------
 			    mi_offsetGroup = cgmMeta.cgmObject( mi_follicleOffsetGroup.doGroup(True),setClass=True)	 
-			    mi_offsetGroup.doStore('cgmName',mi_handle.mNode)
+			    mi_offsetGroup.doStore('cgmName',mi_handle)
 			    mi_offsetGroup.addAttr('cgmTypeModifier','pushOffset',lock=True)
 			    mi_offsetGroup.doName()
 			    mi_midHandleInfluence.connectChildNode(mi_offsetGroup,'pushOffsetGroup','groupChild')	

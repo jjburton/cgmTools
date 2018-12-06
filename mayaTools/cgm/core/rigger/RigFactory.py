@@ -509,7 +509,7 @@ def go(*args, **kws):
                     return mi_buffer
                 else:
                     mi_offsetGroup = cgmMeta.asMeta( mObj.doGroup(True),'cgmObject',setClass=True)	 
-                    mi_offsetGroup.doStore('cgmName',mObj.mNode)
+                    mi_offsetGroup.doStore('cgmName',mObj)
                     mi_offsetGroup.addAttr('cgmTypeModifier','offset',lock=True)
                     mi_offsetGroup.doName()
                     mObj.connectChildNode(mi_offsetGroup,'offsetGroup','groupChild')	                

@@ -344,7 +344,7 @@ def doTagChildren(self):
     try:
         mi_templateNull = self.templateNull
         for mObj in mi_templateNull.getAllChildren(asMeta = True):
-            mObj.doStore('templateOwner',mi_templateNull.mNode)
+            mObj.doStore('templateOwner',mi_templateNull)
     except StandardError,error:
         raise StandardError,"doTagChildren | {0}".format(error)
 

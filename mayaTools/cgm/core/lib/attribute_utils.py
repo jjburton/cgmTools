@@ -3296,18 +3296,27 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
     
         
         if attrType is None:
-            if mc.objExists(_data[0]) and _data[0] not in ['front','top','side','perp']:
+            #if mc.objExists(_data[0]) and _data[0] not in ['front','top','side','perp']:
+            #    attrType = 'message'
+            _mNode = False
+            try:
+                _data = [o.mNode for o in _data]
+                _mNode=True
                 attrType = 'message'
-            elif len(_data)==3:
-                attrType = 'double3'
-            elif len(_data)>3:
-                attrType = 'doubleArray'
+                log.debug("|{0}| >> mNode no arg passed...".format(_str_func))            
+                
+            except:pass
+            if not _mNode:
+                if len(_data)==3:
+                    attrType = 'double3'
+                elif len(_data)>3:
+                    attrType = 'doubleArray'
                 
         log.debug("|{0}| >> node: {1} | attr: {2} | data: {3} | attrType: {4}".format(_str_func,node,attr,_data,attrType))
         
         #>> Store our data #-------------------------------------------------------------------------
         
-        if attrType == 'message':
+        if attrType in ['message','msg','messageSimple']:
             log.debug("|{0}| >> message...".format(_str_func))            
             set_message(node,attr,_data)
         elif attrType in ['double3']:

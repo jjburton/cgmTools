@@ -78,7 +78,7 @@ def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, *
 
             #>> Create node ============================================================================
             mi_cpos = cgmMeta.cgmNode(nodeType='closestPointOnSurface')
-            mi_cpos.doStore('cgmName',self.mi_obj.mNode)
+            mi_cpos.doStore('cgmName',self.mi_obj)
             mi_cpos.addAttr('cgmTypeModifier','cgmModified',lock=True)	    
             mi_cpos.doName()
 
@@ -193,7 +193,7 @@ class connectNegativeAttrs(cgmGeneral.cgmFuncCls):
             mPlug_target = self.d_targetPlugs[a]	    
             try:mi_revNode = cgmMeta.cgmNode(nodeType='multiplyDivide')
             except:raise StandardError,"Failed to create reverse node for: %s"%a
-            mi_revNode.doStore('cgmName',mi_source.p_nameShort)
+            mi_revNode.doStore('cgmName',mi_source)
             mi_revNode.addAttr('cgmTypeModifier',value = a,lock = True)	    
             mi_revNode.doName()
             l_nodes.append(mi_revNode.p_nameShort)

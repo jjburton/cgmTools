@@ -145,7 +145,7 @@ def create(obj,parentTo = False):
     #====================================================
     cgmMeta.cgmAttr(i_control,'visibility',lock=True,hidden=True)   
     i_control = cgmMeta.validateObjArg(i_control,'cgmControl',setClass = True)
-    i_control.doStore('cgmName',i_obj.mNode)
+    i_control.doStore('cgmName',i_obj)
     i_control.addAttr('cgmType','controlAnim',lock=True)    
     i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
     i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)

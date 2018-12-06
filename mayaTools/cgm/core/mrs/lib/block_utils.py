@@ -556,7 +556,7 @@ def templateNull_verify(self):
         str_templateNull = CORERIG.create_at(self.mNode)
         templateNull = cgmMeta.validateObjArg(str_templateNull, mType = 'cgmObject',setClass = True)
         templateNull.connectParentNode(self, 'rigBlock','templateNull') 
-        templateNull.doStore('cgmName', self.mNode)
+        templateNull.doStore('cgmName', self)
         templateNull.doStore('cgmType','templateNull')
         templateNull.doName()
         templateNull.p_parent = self
@@ -580,7 +580,7 @@ def stateNull_verify(self,state='define'):
         str_null = CORERIG.create_at(self.mNode)
         mNull = cgmMeta.validateObjArg(str_null, mType = 'cgmObject',setClass = True)
         mNull.connectParentNode(self, 'rigBlock',_strPlug) 
-        mNull.doStore('cgmName', self.mNode)
+        mNull.doStore('cgmName', self)
         mNull.doStore('cgmType',_strPlug)
         mNull.doName()
         #mNull.rename(_strPlug)
@@ -642,13 +642,13 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         mLoft.p_parent = mTemplateNull
         mLoft.resetAttrs()
     
-        mLoft.doStore('cgmName',self.mNode)
+        mLoft.doStore('cgmName',self)
         mLoft.doStore('cgmType','controlsApprox')
         mLoft.doName()
     
         for n in _tessellate,_loftNode:
             mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmName',self)
             mObj.doStore('cgmTypeModifier','controlsApprox')
             mObj.doName()            
     
@@ -681,7 +681,7 @@ def noTransformNull_verify(self,mode='template'):
             str_prerigNull = mc.group(em=True)
             mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
             mNoTransformNull.connectParentNode(self, 'rigBlock',_plug) 
-            mNoTransformNull.doStore('cgmName', self.mNode)
+            mNoTransformNull.doStore('cgmName', self)
             mNoTransformNull.doStore('cgmType',_plug)
             mNoTransformNull.doName()
     
@@ -703,7 +703,7 @@ def prerigNull_verify(self):
             str_prerigNull = CORERIG.create_at(self.mNode)
             mPrerigNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
             mPrerigNull.connectParentNode(self, 'rigBlock','prerigNull') 
-            mPrerigNull.doStore('cgmName', self.mNode)
+            mPrerigNull.doStore('cgmName', self)
             mPrerigNull.doStore('cgmType','prerigNull')
             mPrerigNull.doName()
             mPrerigNull.p_parent = self
@@ -965,7 +965,7 @@ def create_defineLoftMesh(self, targets = None,
         mLoftSurface.p_parent = mNull
         mLoftSurface.resetAttrs()
     
-        mLoftSurface.doStore('cgmName',self.mNode)
+        mLoftSurface.doStore('cgmName',self)
         mLoftSurface.doStore('cgmType','shapeApprox')
         mLoftSurface.doName()
         log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
@@ -993,7 +993,7 @@ def create_defineLoftMesh(self, targets = None,
 
         for n in toName:
             mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmName',self)
             mObj.doStore('cgmTypeModifier','prerigMesh')
             mObj.doName()                        
        
@@ -1071,7 +1071,7 @@ def create_prerigLoftMesh(self, targets = None,
         mLoftSurface.p_parent = mPrerigNull
         mLoftSurface.resetAttrs()
     
-        mLoftSurface.doStore('cgmName',self.mNode)
+        mLoftSurface.doStore('cgmName',self)
         mLoftSurface.doStore('cgmType','shapeApprox')
         mLoftSurface.doName()
         log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
@@ -1144,7 +1144,7 @@ def create_prerigLoftMesh(self, targets = None,
 
         for n in toName:
             mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self.mNode)
+            mObj.doStore('cgmName',self)
             mObj.doStore('cgmTypeModifier','prerigMesh')
             mObj.doName()                        
        
@@ -1330,7 +1330,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             if _cgmName:
                 mObj.addAttr('cgmName',_cgmName,'string')
             else:
-                mObj.doStore('cgmName',self.mNode)
+                mObj.doStore('cgmName',self)
                 
             mObj.doStore('cgmTypeModifier','prerigMesh')
             mObj.doName()                        
@@ -1382,7 +1382,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mLoft.p_parent = mPrerigNull
     mLoft.resetAttrs()
 
-    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmName',self)
     mLoft.doStore('cgmType','jointApprox')
     mLoft.doName()
 
@@ -1408,7 +1408,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
 
     for n in _tessellate,_loftNode:
         mObj = cgmMeta.validateObjArg(n)
-        mObj.doStore('cgmName',self.mNode)
+        mObj.doStore('cgmName',self)
         mObj.doStore('cgmTypeModifier','jointApprox')
         mObj.doName()            
 
@@ -1441,7 +1441,7 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
     mLoft.p_parent = mPrerigNull
     mLoft.resetAttrs()
 
-    mLoft.doStore('cgmName',self.mNode)
+    mLoft.doStore('cgmName',self)
     mLoft.doStore('cgmType','jointApprox')
     mLoft.doName()
 
@@ -1465,7 +1465,7 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
 
     for n in _tessellate,_loftNode:
         mObj = cgmMeta.validateObjArg(n)
-        mObj.doStore('cgmName',self.mNode)
+        mObj.doStore('cgmName',self)
         mObj.doStore('cgmTypeModifier','jointApprox')
         mObj.doName()            
 
@@ -2579,49 +2579,51 @@ def skeleton_buildRigChain(self):
 
 def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
                           d_rotateOrders = {}, d_preferredAngles = {}, d_limits = {}):
-    
-    _str_func = '[{0}] > '.format('skeleton_pushSettings')
-    
-    _preferredAxis = {}
-    _l_axisAlias = ['aim','up','out']
-    for k in _l_axisAlias:
-        if d_preferredAngles.get(k) is not None:
-            _v = d_preferredAngles.get(k)
-            log.info("|{0}| >> found default preferred {1}:{2}".format(_str_func,k,_v))  
-            _preferredAxis[k] = _v
-    
-    for mJnt in ml_chain:
-        _key = mJnt.getMayaAttr('cgmName',False)
+    try:
+        _str_func = '[{0}] > '.format('skeleton_pushSettings')
         
-        _rotateOrderBuffer = d_rotateOrders.get(_key,d_rotateOrders.get('default',False))
-        _limitBuffer = d_limits.get(_key,d_limits.get('default',False))
-        _preferredAngles = d_preferredAngles.get(_key,d_preferredAngles.get('default',False))
+        _preferredAxis = {}
+        _l_axisAlias = ['aim','up','out']
+        for k in _l_axisAlias:
+            if d_preferredAngles.get(k) is not None:
+                _v = d_preferredAngles.get(k)
+                log.info("|{0}| >> found default preferred {1}:{2}".format(_str_func,k,_v))  
+                _preferredAxis[k] = _v
         
-        
-        if _rotateOrderBuffer:
-            log.info("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
-            TRANS.rotateOrder_set(mJnt.mNode, _rotateOrderBuffer, True)
+        for mJnt in ml_chain:
+            _key = mJnt.getMayaAttr('cgmName',False)
+            _key = VALID.stringArg(_key)
             
-        if _preferredAngles:
-            log.info("|{0}| >> found preferred angle data on {1}:{2}".format(_str_func,_key,_preferredAngles))              
-            #log.info("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
-            for i,v in enumerate(_preferredAngles):	
-                #if side.lower() == 'right':#negative value
-                #    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
-                #else:
-                mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),v)
-        elif _preferredAxis:
-            for k,v in _preferredAxis.iteritems():
-                _idx = _l_axisAlias.index(k)
-                #if side.lower() == 'right':#negative value
-                    #mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),-v)				
-                #else:
-                mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
+            _rotateOrderBuffer = d_rotateOrders.get(_key,d_rotateOrders.get('default',False))
+            _limitBuffer = d_limits.get(_key,d_limits.get('default',False))
+            _preferredAngles = d_preferredAngles.get(_key,d_preferredAngles.get('default',False))
             
-        if _limitBuffer:
-            log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
-            raise Exception,"Limit Buffer not implemented"
-   
+            
+            if _rotateOrderBuffer:
+                log.info("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
+                TRANS.rotateOrder_set(mJnt.mNode, _rotateOrderBuffer, True)
+                
+            if _preferredAngles:
+                log.info("|{0}| >> found preferred angle data on {1}:{2}".format(_str_func,_key,_preferredAngles))              
+                #log.info("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
+                for i,v in enumerate(_preferredAngles):	
+                    #if side.lower() == 'right':#negative value
+                    #    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
+                    #else:
+                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),v)
+            elif _preferredAxis:
+                for k,v in _preferredAxis.iteritems():
+                    _idx = _l_axisAlias.index(k)
+                    #if side.lower() == 'right':#negative value
+                        #mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),-v)				
+                    #else:
+                    mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
+                
+            if _limitBuffer:
+                log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
+                raise Exception,"Limit Buffer not implemented"
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
 
 def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOrientHelper = None):
     """
@@ -3332,8 +3334,10 @@ def baseSize_get(self):
 
 
 def defineSize_get(self):
+    _str_func = 'defineSize_get'            
     _baseSize = self.baseSize
     if _baseSize:
+        log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
         return MATH.average(_baseSize[:-2])/2.0
     return self.atUtils('get_shapeOffset') or 1.0# * 2.0    
 
@@ -6193,7 +6197,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             if _tagOnly:
                 mHandle.doStore('cgmName',k)
             else:
-                mHandle.doStore('cgmName',self.mNode)
+                mHandle.doStore('cgmName',self)
                 mHandle.doStore('cgmTypeModifier',str_name)
             mHandle.doStore('cgmType','defineHandle')
             mHandle.doName()
@@ -6256,7 +6260,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mAim.resetAttrs()
             
                 mAim.doStore('mClass','cgmObject')            
-                mAim.doStore('cgmName',self.mNode)
+                mAim.doStore('cgmName',self)
                 mAim.doStore('cgmTypeModifier',str_name)
                 mAim.doStore('cgmType','aimLine')
                 mAim.doName()            
@@ -6289,7 +6293,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                  worldUpType = 'none')
             
                 mArrow.doStore('mClass','cgmObject')            
-                mArrow.doStore('cgmName',self.mNode)
+                mArrow.doStore('cgmName',self)
                 mArrow.doStore('cgmTypeModifier',str_name)
                 mArrow.doStore('cgmType','vectorHelper')
                 mArrow.doName()
@@ -6325,7 +6329,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mJointLabel.drawLabel = 1
                 mJointLabel.otherType = k
             
-                mJointLabel.doStore('cgmName',self.mNode)
+                mJointLabel.doStore('cgmName',self)
                 mJointLabel.doStore('cgmTypeModifier',str_name)
                 mJointLabel.doStore('cgmType','jointLabel')
                 mJointLabel.doName()            
@@ -6405,7 +6409,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mBaseSizeHandle.mNode))
             md_handles['end'].doConnectOut('scaleZ', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
         
-            mBaseSizeHandle.doStore('cgmName',self.mNode)
+            mBaseSizeHandle.doStore('cgmName',self)
             mBaseSizeHandle.doStore('cgmTypeModifier',k)
             mBaseSizeHandle.doStore('cgmType','baseSizeBase')
             mBaseSizeHandle.doName()                    
@@ -6431,7 +6435,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                              worldUpType = 'object', 
                              worldUpVector = [0,1,0])
         
-            mEndSizeHandle.doStore('cgmName',self.mNode)
+            mEndSizeHandle.doStore('cgmName',self)
             mEndSizeHandle.doStore('cgmTypeModifier',k)
             mEndSizeHandle.doStore('cgmType','endSizeBase')
             mEndSizeHandle.doName()                    

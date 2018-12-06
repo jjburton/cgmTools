@@ -2913,6 +2913,12 @@ def get_context(self, addMirrors = False,**kws):
                     self.d_puppetData['mPuppets'].append(mPuppet)
                     if context == 'puppet':
                         res.append(mPuppet)
+        elif mObj.getMessage('puppet'):
+            mPuppet = mObj.puppet
+            if mPuppet not in self.d_puppetData['mPuppets']:
+                self.d_puppetData['mPuppets'].append(mPuppet)
+                if context == 'puppet':
+                    res.append(mPuppet)            
 
     #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
     self.d_puppetData['mModulesBase'] = copy.copy(self.d_puppetData['mModules'])
@@ -3374,8 +3380,8 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
         if not self.d_puppetData['mModules']:
             return log.error("No modules found in context")
         for mModule in self.d_puppetData['mModules']:
-            ATTR.set(mModule.rigNull.settings.mNode, attr, value)
-            
+            try:ATTR.set(mModule.rigNull.settings.mNode, attr, value)
+            except Exception,err:log.warning("Failed to set: {0} | value: {1} | mModule: {2} | {3}".format(attr,value,mModule,err))
     elif mode == 'puppetSettings':
         for mPuppet in self.d_puppetData['mPuppets']:
             ATTR.set(mPuppet.masterControl.controlSettings.mNode, attr, value)

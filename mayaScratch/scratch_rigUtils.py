@@ -290,7 +290,7 @@ def doMid(jnt='driverMid',curve = 'testSegment_splineIKCurve',influenceJnts = ['
         mc.connectAttr ((splineShape+'.worldSpace'),(i_closestSplinePointNode.mNode+'.inputCurve'))	
 	
         #> Name
-        i_closestSplinePointNode.doStore('cgmName',i_obj.mNode)
+        i_closestSplinePointNode.doStore('cgmName',i_obj)
         i_closestSplinePointNode.doName()
         #>Set attachpoint value
         i_closestSplinePointNode.parameter = l_closestInfo['parameter']

@@ -205,7 +205,7 @@ def define(self):
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
     
-    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmName', self)
     mBBShape.doStore('cgmType','bbVisualize')
     mBBShape.doName()    
     
@@ -388,8 +388,8 @@ def template(self):
                 md_handles[m].mirrorSide = 2
                 md_handles[k].mirrorIndex = idx_side
                 md_handles[m].mirrorIndex = idx_side
-                md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
-                md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+                md_handles[k].doStore('mirrorHandle',md_handles[m])
+                md_handles[m].doStore('mirrorHandle',md_handles[k])
                 idx_side +=1
             
             
@@ -971,8 +971,8 @@ def prerig(self):
             md_handles[m].mirrorSide = 2
             md_handles[k].mirrorIndex = idx_side
             md_handles[m].mirrorIndex = idx_side
-            md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
-            md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+            md_handles[k].doStore('mirrorHandle',md_handles[m])
+            md_handles[m].doStore('mirrorHandle',md_handles[k])
             idx_side +=1        """
         
         #Close out ======================================================================================

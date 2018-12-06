@@ -394,8 +394,8 @@ def setupDirectOrbs(joints=None):
     for mJnt in ml_joints:
         mTrans = mJnt.createAt()
         #ATTR.set_message(mJnt.mNode, 'cgmSource',mTrans.mNode)
-        mJnt.doStore('cgmSource',mTrans.mNode)
-        mTrans.doStore('cgmName',mJnt.mNode)
+        mJnt.doStore('cgmSource',mTrans)
+        mTrans.doStore('cgmName',mJnt)
         mTrans.doStore('cgmType','anim')
         mTrans.doName()
         

@@ -49,6 +49,7 @@ from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.lib.list_utils as LISTS
 
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
@@ -740,7 +741,7 @@ def rig_isConnected(self):
 
     
     
-def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
+def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = False):
     """
     First pass on qss verification
     """
@@ -799,6 +800,23 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False):
         
         for mObj in get_deleteSetDat(self):
             mSet.addObj(mObj.mNode)
+    
+    if exportSet:
+        log.debug("|{0}| >> exportSet...".format(_str_func)+'-'*40)        
+        
+        mSet = self.getMessageAsMeta('exportSet')
+        if not mSet:
+            mSet = cgmMeta.cgmObjectSet(setType='tdSet',qssState=True)
+            mSet.connectParentNode(self.mNode,'puppet','exportSet')
+            #ATTR.copy_to(self.mNode,'cgmName',mSet.mNode,'cgmName',driven = 'target')
+            #mSet.doStore('cgmTypeModifier','bake')
+            mSet.doStore('cgmName','export')
+        mSet.doName()
+        mSet.purge()
+        log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
+        
+        for mObj in get_joints(self,'bind') + get_rigGeo(self):
+            mSet.addObj(mObj.mNode)    
         
 def groups_verify(self):
     try:
@@ -899,10 +917,52 @@ def get_deleteSetDat(self):
     for mChild in mMasterNull.getChildren(asMeta=True):
         if mChild not in l_compare:
             _res.append(mChild)
-    
-    
+
     return _res
     
+def get_rigGeo(self):
+    """
+    First pass on qss verification
+    """
+    _str_func = 'get_rigGeo'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    mMasterNull = self.masterNull
+    
+    _res = []
+    _l_base = [o for o in mc.ls(type='mesh',visible = True, long=True)]
+    _l_dags = [VALID.getTransform(o) for o in _l_base]
+    _l_dags = LISTS.get_noDuplicates(_l_dags)
+    
+    for o in _l_dags:
+        mObj = cgmMeta.asMeta(o)
+        if mObj.getMayaAttr('mClass') == 'cgmControl':
+            log.debug("|{0}| >> Invalid obj: {1}".format(_str_func,o))
+            continue
+        _res.append(mObj)
+    
+    log.debug("|{0}| >> Visible shapes: {1} | dags: {2} | res: {3} ".format(_str_func,
+                                                                            len(_l_base),
+                                                                            len(_l_dags),
+                                                                            len(_res)))
+    
 
+    return _res
+
+def get_exportSetDat(self):
+    """
+    First pass on qss verification
+    """
+    _str_func = 'get_deleteSetDat'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    mMasterNull = self.masterNull
+    l_compare = [mMasterNull.geoGroup,mMasterNull.skeletonGroup]
+    _joints = get_joints(self,'bind')
+    _geo = get_rigGeo(self)
+    
+    log.debug("|{0}| >> Joints: {1} | Geo: {2} ".format(_str_func,len(_joints),len(_geo)))
+        
+    return _joints + _geo
     
     

@@ -202,7 +202,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
        
         #First our master group:
         i_masterGroup = (cgmMeta.asMeta(mi_control.doGroup(True), 'cgmObject', setClass=True))
-        i_masterGroup.doStore('cgmName',mi_control.mNode)
+        i_masterGroup.doStore('cgmName',mi_control)
         i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
         i_masterGroup.doName()
         mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')

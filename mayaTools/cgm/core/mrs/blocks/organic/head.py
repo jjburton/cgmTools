@@ -300,7 +300,7 @@ def define(self):
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
     
-    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmName', self)
     mBBShape.doStore('cgmType','bbVisualize')
     mBBShape.doName()    
     
@@ -879,14 +879,14 @@ def template(self):
                 else:
                     mAimForward = mLoft.doCreateAt()
                     mAimForward.p_parent = mLoft.p_parent
-                    mAimForward.doStore('cgmName',mHandle.mNode)                
+                    mAimForward.doStore('cgmName',mHandle)                
                     mAimForward.doStore('cgmTypeModifier','forward')
                     mAimForward.doStore('cgmType','aimer')
                     mAimForward.doName()
         
                     mAimBack = mLoft.doCreateAt()
                     mAimBack.p_parent = mLoft.p_parent
-                    mAimBack.doStore('cgmName',mHandle.mNode)                                
+                    mAimBack.doStore('cgmName',mHandle)                                
                     mAimBack.doStore('cgmTypeModifier','back')
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
@@ -1089,7 +1089,7 @@ def template(self):
                         #Convert to loft curve setup ----------------------------------------------------
                         mHandleFactory = self.asHandleFactory(mHandle.mNode)
                         #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
-                        mHandle.doStore('loftCurve',mHandle.mNode)
+                        mHandle.doStore('loftCurve',mHandle)
         
         
                         CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -2486,9 +2486,9 @@ def rig_controls(self):
         ml_controlsAll.append(mHeadLookAt)
         
         if mHeadIK:
-            mHeadLookAt.doStore('controlIK', mHeadIK.mNode)
+            mHeadLookAt.doStore('controlIK', mHeadIK)
         if mHeadFK:
-            mHeadLookAt.doStore('controlFK', mHeadFK.mNode)
+            mHeadLookAt.doStore('controlFK', mHeadFK)
             
         #int_mid = MATH.get_midIndex(len(ml_blend))
 
@@ -2696,7 +2696,7 @@ def rig_segments(self):
                                           'cgmNode',
                                           setClass=True)
 
-    mSkinCluster.doStore('cgmName', mSurf.mNode)
+    mSkinCluster.doStore('cgmName', mSurf)
     mSkinCluster.doName()    
 
     cgmGEN.func_snapShot(vars())
@@ -2783,13 +2783,13 @@ def rig_frame(self):
         if ml_segBlendTargets:
             ml_segBlendTargets[-1] = mTopDriver#...insert into here our new twist driver
         
-        mHeadLookAt.doStore('drivenBlend', mHeadBlendJoint.mNode)
-        mHeadLookAt.doStore('drivenAim', mHeadAimJoint.mNode)
+        mHeadLookAt.doStore('drivenBlend', mHeadBlendJoint)
+        mHeadLookAt.doStore('drivenAim', mHeadAimJoint)
         
         self.atUtils('get_switchTarget', mHeadLookAt, mHeadBlendJoint)
         
-        mHeadLookAt.doStore('fkMatch', mTopDriver.mNode)
-        mHeadLookAt.doStore('ikMatch', mHeadBlendJoint.mNode)
+        mHeadLookAt.doStore('fkMatch', mTopDriver)
+        mHeadLookAt.doStore('ikMatch', mHeadBlendJoint)
         
         if mBlock.scaleSetup:
             for mJnt in mHeadFKJoint,mHeadAimJoint,mHeadBlendJoint:
@@ -3002,7 +3002,7 @@ def rig_frame(self):
             
                     #Decompose matrix for parent...
                     mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                    mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                    mUpDecomp.doStore('cgmName',ml_handleParents[i])                
                     mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                     mUpDecomp.doName()
             
@@ -3229,7 +3229,7 @@ def rig_frame(self):
                                                           'cgmNode',
                                                           setClass=True)
         
-                    mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+                    mSkinCluster.doStore('cgmName', mSplineCurve)
                     mSkinCluster.doName()    
                     cgmGEN.func_snapShot(vars())
         
@@ -3337,7 +3337,7 @@ def rig_frame(self):
                                                               'cgmNode',
                                                               setClass=True)
         
-                        mSkinCluster.doStore('cgmName', mSurf.mNode)
+                        mSkinCluster.doStore('cgmName', mSurf)
                         mSkinCluster.doName()    
         
                         #Tighten the weights...

@@ -734,7 +734,7 @@ def ribbon_seal(driven1 = None,
                                                   'cgmNode',
                                                   setClass=True)
 
-            mSkinCluster.doStore('cgmName', dat['mSurf'].mNode)
+            mSkinCluster.doStore('cgmName', dat['mSurf'])
             mSkinCluster.doName()    
 
             #Tighten the weights...
@@ -768,7 +768,7 @@ def ribbon_seal(driven1 = None,
 
                 log.debug("|{0}| >> Create track drivers...".format(_str_func))                
                 mTrackBase = mDriven.doCreateAt(setClass=True)
-                mTrackBase.doStore('cgmName',mObj.mNode)
+                mTrackBase.doStore('cgmName',mObj)
                 mTrackSeal = mTrackBase.doDuplicate()
                 mTrackBlend = mTrackBase.doDuplicate()
                 

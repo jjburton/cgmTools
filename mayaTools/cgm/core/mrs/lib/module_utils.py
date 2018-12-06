@@ -180,7 +180,7 @@ def verify_objectSet(self):
             mSet.connectParentNode(mRigNull.mNode,'rigNull','moduleSet')
 
         mSet = mRigNull.moduleSet
-        mSet.doStore('cgmName',self.mNode)
+        mSet.doStore('cgmName',self)
         mSet.doName()
 
         if self.getMessage('modulePuppet'):
@@ -526,9 +526,37 @@ def parentModule_get(self):
     log.debug("|{0}| >> Failed to find a modulePuppet".format(_str_func))
     
     return False
-    #except Exception,err:cgmGEN.cgmException(Exception,err)
     
+def parentModules_get(self):
+    _str_func = ' parentModules_get'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
     
+    #try:
+    mModuleParent  = self.getMessageAsMeta('moduleParent')
+    ml_moduleParents = []
+    
+    if mModuleParent:
+        _parentFound = True
+        ml_moduleParents.append(mModuleParent)
+        while _parentFound:
+            mBuffer = ml_moduleParents[-1].getMessageAsMeta('moduleParent')
+            if mBuffer:
+                ml_moduleParents.append(mBuffer)
+                log.debug("|{0}| >>  Found mParent: {1} ".format(_str_func,mBuffer))
+            else:
+                _parentFound = False
+                
+        return ml_moduleParents
+    log.debug("|{0}| >> Failed to get a moduleParent".format(_str_func))
+    return []
+    mModulePuppet = self.getMessageAsMeta('modulePuppet')
+    if mModulePuppet:
+        return [mModulePuppet]
+    log.debug("|{0}| >> Failed to find a modulePuppet".format(_str_func))
+    
+    return False
+
     
 def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
@@ -1022,7 +1050,7 @@ def mirror_get(self,recheck=False):
     elif not ml_match:
         return False
     
-    self.doStore('moduleMirror',ml_match[0].mNode)
+    self.doStore('moduleMirror',ml_match[0])
     return ml_match[0]
 
 def mirror_reportSetup(self):
@@ -1266,8 +1294,8 @@ def mirror_verifySetup(self, d_Indices = {},
                     if _match:
                         log.info("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
                         
-                        mObj.doStore('mirrorControl',mCandidate.mNode)
-                        mCandidate.doStore('mirrorControl',mObj.mNode)                        
+                        mObj.doStore('mirrorControl',mCandidate)
+                        mCandidate.doStore('mirrorControl',mObj)                        
                         
                         mCandidate.mirrorIndex = _v
                         

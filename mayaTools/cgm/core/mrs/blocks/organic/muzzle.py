@@ -279,7 +279,7 @@ def define(self):
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
     
-    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmName', self)
     mBBShape.doStore('cgmType','bbVisualize')
     mBBShape.doName()    
     
@@ -649,8 +649,8 @@ def define(self):
         md_handles[m].mirrorSide = 2
         md_handles[k].mirrorIndex = idx_side
         md_handles[m].mirrorIndex = idx_side
-        md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
-        md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+        md_handles[k].doStore('mirrorHandle',md_handles[m])
+        md_handles[m].doStore('mirrorHandle',md_handles[k])
         idx_side +=1
 
     #Curves -------------------------------------------------------------------------
@@ -1501,8 +1501,8 @@ def template(self):
                 md_handles[m].mirrorSide = 2
                 md_handles[k].mirrorIndex = idx_side
                 md_handles[m].mirrorIndex = idx_side
-                md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
-                md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+                md_handles[k].doStore('mirrorHandle',md_handles[m])
+                md_handles[m].doStore('mirrorHandle',md_handles[k])
                 idx_side +=1        
             except Exception,err:
                 log.error('Mirror error: {0}'.format(err))
@@ -1902,8 +1902,8 @@ def prerig(self):
             mHandleFactory.color(mDag.mNode)
             RIGGEN.store_and_name(mDag,_d)
             
-            mDag.doStore('shapeHelper',mShape.mNode)
-            mShape.doStore('dagHelper',mDag.mNode)
+            mDag.doStore('shapeHelper',mShape)
+            mShape.doStore('dagHelper',mDag)
             mDag.p_parent = mStateNull
             
             mStateNull.connectChildNode(mDag, 'mouthMove'+'Dag','block')
@@ -2167,8 +2167,8 @@ def prerig(self):
             _d_name['cgmType'] = 'shapeHelper'
             RIGGEN.store_and_name(mShape,_d_name)
             mHandleFactory.color(mShape.mNode,side = 'center', controlType='main')
-            mHandle.doStore('shapeHelper',mShape.mNode)
-            mShape.doStore('dagHelper',mHandle.mNode)            
+            mHandle.doStore('shapeHelper',mShape)
+            mShape.doStore('dagHelper',mHandle)            
             
             ml_handles.append(mShape)
             
@@ -2209,8 +2209,8 @@ def prerig(self):
             _d_name['cgmType'] = 'shapeHelper'
             RIGGEN.store_and_name(mShape,_d_name)
             mHandleFactory.color(mShape.mNode,side = 'center', controlType='main')
-            md_jointHandles['jawLower'].doStore('shapeHelper',mShape.mNode)
-            mShape.doStore('dagHelper', md_jointHandles['jawLower'].mNode)
+            md_jointHandles['jawLower'].doStore('shapeHelper',mShape)
+            mShape.doStore('dagHelper', md_jointHandles['jawLower'])
         
             mStateNull.connectChildNode(md_jointHandles['jawLower'], 'jaw'+'JointHelper','block')
             mStateNull.connectChildNode(mShape, 'jaw'+'ShapeHelper','block')
@@ -2248,14 +2248,14 @@ def prerig(self):
                                         surfaceOffset=-_offset/2.0, mode = 'closestPoint')
                 ml_handles.append(mHandle)
             
-                mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                mStateNull.doStore(_tag+'ShapeHelper',mHandle)
                 md_handles[_tag] = mHandle
                
             
                 #Joint handle
                 _dTmp['cgmType'] = 'jointHandle'
                 mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,None,nameDict=_dTmp,mode='closestPoint',surfaceOffset=0)
-                mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                mStateNull.doStore(_tag+'JointHelper',mJointHelper)
                 
                 mJointHelper.masterGroup.p_position = DIST.get_average_position([md_dHandles['nostrilBaseLeft'].p_position,
                                                                             md_dHandles['nostrilBaseRight'].p_position])                
@@ -2281,12 +2281,12 @@ def prerig(self):
                                             surfaceOffset=_offset/2.0, mode = 'closestPoint')
                     ml_handles.append(mHandle)
                 
-                    mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                    mStateNull.doStore(_tag+'ShapeHelper',mHandle)
                 
                     #Joint handle
                     _dTmp['cgmType'] = 'jointHandle'
                     mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,None,nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset*2.0)
-                    mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                    mStateNull.doStore(_tag+'JointHelper',mJointHelper)
                     
                     md_handles[_tag] = mHandle
                     md_handles[_tag+'Joint'] = mJointHelper
@@ -2313,12 +2313,12 @@ def prerig(self):
                                                 surfaceOffset=_offset/2.0, mode = 'closestPoint')
                         ml_handles.append(mHandle)
             
-                        mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                        mStateNull.doStore(_tag+'ShapeHelper',mHandle)
             
                         #Joint handle
                         _dTmp['cgmType'] = 'jointHandle'
                         mJointHelper = create_jointHelper(mHandle,mSurf,_tag,None,side,nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset)
-                        mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                        mStateNull.doStore(_tag+'JointHelper',mJointHelper)
                         ml_jointHandles.append(mJointHelper)
                         
                         md_handles[_tag] = mHandle
@@ -2355,7 +2355,7 @@ def prerig(self):
                                             controlType = 'sub',nameDict = _d_name,surfaceOffset=_offset, mode = 'closestPoint')
                     ml_handles.append(mHandle)
                     
-                    mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                    mStateNull.doStore(_tag+'ShapeHelper',mHandle)
                     
                     #Joint handle
                     _dTmp['cgmType'] = 'jointHandle'
@@ -2363,7 +2363,7 @@ def prerig(self):
                                                       side,
                                                       size= _size_sub,
                                                       nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset)
-                    mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                    mStateNull.doStore(_tag+'JointHelper',mJointHelper)
                     md_handles[_tag] = mHandle
                     md_handles[_tag+'Joint'] = mJointHelper
                     ml_jointHandles.append(mJointHelper)
@@ -2395,7 +2395,7 @@ def prerig(self):
                                         controlType = 'sub',nameDict = _d_name,surfaceOffset=_offset, mode = 'closestPoint')
                 ml_handles.append(mHandle)
             
-                mStateNull.doStore(_tag+'ShapeHelper',mHandle.mNode)
+                mStateNull.doStore(_tag+'ShapeHelper',mHandle)
             
                 #Joint handle
                 _dTmp['cgmType'] = 'jointHandle'
@@ -2403,7 +2403,7 @@ def prerig(self):
                                                   side,
                                                   size= _size_sub,
                                                   nameDict=_dTmp,mode='closestPoint',surfaceOffset=_offset)
-                mStateNull.doStore(_tag+'JointHelper',mJointHelper.mNode)
+                mStateNull.doStore(_tag+'JointHelper',mJointHelper)
                 md_handles[_tag] = mHandle
                 md_handles[_tag+'Joint'] = mJointHelper
                 ml_jointHandles.append(mJointHelper)                
@@ -2449,8 +2449,8 @@ def prerig(self):
                 md_handles[m].mirrorSide = 2
                 md_handles[k].mirrorIndex = idx_side
                 md_handles[m].mirrorIndex = idx_side
-                md_handles[k].doStore('mirrorHandle',md_handles[m].mNode)
-                md_handles[m].doStore('mirrorHandle',md_handles[k].mNode)
+                md_handles[k].doStore('mirrorHandle',md_handles[m])
+                md_handles[m].doStore('mirrorHandle',md_handles[k])
                 idx_side +=1        
             except Exception,err:
                 log.error('Mirror error: {0}'.format(err))        
@@ -2757,7 +2757,7 @@ def skeleton_build(self, forceNew = True):
     if self.jawSetup:
         mObj = mPrerigNull.getMessageAsMeta('jaw'+'JointHelper')
         mJaw = create_jointFromHandle(mObj,mRoot)
-        mPrerigNull.doStore('jawJoint',mJaw.mNode)
+        mPrerigNull.doStore('jawJoint',mJaw)
         ml_joints.append(mJaw)
         
     if self.lipSetup:
@@ -2788,7 +2788,7 @@ def skeleton_build(self, forceNew = True):
         log.debug("|{0}| >>  chinSetup...".format(_str_func)+ '-'*40)
         mObj = mPrerigNull.getMessageAsMeta('chin'+'JointHelper')
         mJnt = create_jointFromHandle(mObj,mRoot)
-        mPrerigNull.doStore('chinJoint',mJnt.mNode)
+        mPrerigNull.doStore('chinJoint',mJnt)
         mJnt.p_parent = mJaw
         ml_joints.append(mJnt)
         
@@ -2805,7 +2805,7 @@ def skeleton_build(self, forceNew = True):
             _tag = 'noseBase'
             mNoseBase = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                mRoot)
-            mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseBase.mNode)
+            mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseBase)
             ml_joints.append(mNoseBase)
             
             #NoseTip ----------------------------------------------------------------------
@@ -2814,7 +2814,7 @@ def skeleton_build(self, forceNew = True):
                 _tag = 'noseTip'
                 mNoseTip = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                   mNoseBase)
-                mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseTip.mNode)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mNoseTip)
                 ml_joints.append(mNoseTip)
 
             #Nostrils -------------------------------------------------------------------
@@ -2824,7 +2824,7 @@ def skeleton_build(self, forceNew = True):
                     log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
                     mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                                   mNoseBase)
-                    mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)
+                    mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt)
                     ml_joints.append(mJnt)
                     
         else:
@@ -2841,7 +2841,7 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
                 mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
                                               mJaw)
-                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt.mNode)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt)
                 ml_joints.append(mJnt)
                 
         else:
@@ -3220,7 +3220,7 @@ def rig_skeleton(self):
                     mDriver = mJnt.getMessageAsMeta('driverJoint')
                     ml_driver.append(mDriver)
                     mDriver.p_parent = False
-                    mRigJoint.doStore('driverJoint',mDriver.mNode)
+                    mRigJoint.doStore('driverJoint',mDriver)
                     mRigJoint.p_parent = mDriver
                 
                 md_rigJoints[_k][side] = ml_rig
@@ -3242,7 +3242,7 @@ def rig_skeleton(self):
                             mSub = create_jointFromHandle(mHandle,False,'{0}Influence'.format(k))
                             mSub.doStore('mClass','cgmObject')
                             mSub.p_parent = mJnt
-                            mJnt.doStore('{0}Influence'.format(k),mSub.mNode)
+                            mJnt.doStore('{0}Influence'.format(k),mSub)
                             ml_jointsToConnect.append(mSub)
                             ml_jointsToHide.append(mSub)
                 
@@ -3292,11 +3292,11 @@ def rig_shapes(self):
             mJaw_fk = self.md_driverJoints.get('jaw')
             CORERIG.shapeParent_in_place(mJaw_fk.mNode, mPrerigNull.getMessageAsMeta('jawShapeHelper').mNode)
             
-            mRigNull.doStore('controlJaw',mJaw_fk.mNode)
+            mRigNull.doStore('controlJaw',mJaw_fk)
             
             #if not self.mParentSettings:
             #    log.debug("|{0}| >> Jaw settings!...".format(_str_func))                
-            mRigNull.doStore('settings',mJaw_fk.mNode)
+            mRigNull.doStore('settings',mJaw_fk)
             #else:
             #    mRigNull.doStore('settings',self.mParentSettings)
             log.debug(cgmGEN._str_subLine)
@@ -3306,7 +3306,7 @@ def rig_shapes(self):
             mChin = self.md_driverJoints.get('chin')
             CORERIG.shapeParent_in_place(mChin.mNode, mPrerigNull.getMessageAsMeta('chinShapeHelper').mNode)
             
-            mRigNull.doStore('controlChin',mChin.mNode)
+            mRigNull.doStore('controlChin',mChin)
             log.debug(cgmGEN._str_subLine)
                 
         if self.str_muzzleSetup:
@@ -3319,7 +3319,7 @@ def rig_shapes(self):
             CORERIG.shapeParent_in_place(mMuzzleDag.mNode,
                                          mMuzzleDagHelper.getMessageAsMeta('shapeHelper').mNode)
             
-            mRigNull.doStore('controlMuzzle',mMuzzleDag.mNode)
+            mRigNull.doStore('controlMuzzle',mMuzzleDag)
             log.debug(cgmGEN._str_subLine)
             
         if self.str_cheekSetup:
@@ -3351,7 +3351,7 @@ def rig_shapes(self):
             CORERIG.shapeParent_in_place(mMouthMove.mNode,
                                          mDagHelper.getMessageAsMeta('shapeHelper').mNode)
         
-            mRigNull.doStore('controlMouth',mMouthMove.mNode)            
+            mRigNull.doStore('controlMouth',mMouthMove)            
             
             #Handles ================================================================================
             log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
@@ -3434,7 +3434,7 @@ def rig_controls(self):
         mRootParent = self.mDeformNull
         ml_segmentHandles = []
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        mSettings = mRigNull.getMessageAsMeta('settings')
+        mSettings = self.mSettings
         
         if not mSettings:
             raise ValueError,"Should have settings"
@@ -3655,13 +3655,13 @@ def rig_frame(self):
             mHandle.masterGroup.p_parent = mFollowBase
             
             mMainTrack = mHandle.doCreateAt(setClass=1)
-            mMainTrack.doStore('cgmName',mHandle.mNode)
+            mMainTrack.doStore('cgmName',mHandle)
             mMainTrack.doStore('cgmType','mainTrack')
             mMainTrack.doName()
             mMainTrack.p_parent = mFollowParent
             
             mJawTrack = mHandle.doCreateAt(setClass=1)
-            mJawTrack.doStore('cgmName',mHandle.mNode)
+            mJawTrack.doStore('cgmName',mHandle)
             mJawTrack.doStore('cgmType','jawTrack')
             mJawTrack.doName()
             mJawTrack.p_parent = mJawSpaceMouth
@@ -3703,7 +3703,7 @@ def rig_frame(self):
                                                   'cgmNode',
                                                   setClass=True)
         
-            mSkinCluster.doStore('cgmName', mControlSurface.mNode)
+            mSkinCluster.doStore('cgmName', mControlSurface)
             mSkinCluster.doName()
             
             """
@@ -4010,13 +4010,13 @@ def rig_lipSegments(self):
             mHandle.masterGroup.p_parent = mFollowBase
             
             mMainTrack = mHandle.doCreateAt(setClass=1)
-            mMainTrack.doStore('cgmName',mHandle.mNode)
+            mMainTrack.doStore('cgmName',mHandle)
             mMainTrack.doStore('cgmType','mainTrack')
             mMainTrack.doName()
             mMainTrack.p_parent = mFollowBase
             
             mJawTrack = mHandle.doCreateAt(setClass=1)
-            mJawTrack.doStore('cgmName',mHandle.mNode)
+            mJawTrack.doStore('cgmName',mHandle)
             mJawTrack.doStore('cgmType','jawTrack')
             mJawTrack.doName()
             mJawTrack.p_parent = mJawSpaceMouth
@@ -4058,7 +4058,7 @@ def rig_lipSegments(self):
                                                   'cgmNode',
                                                   setClass=True)
         
-            mSkinCluster.doStore('cgmName', mControlSurface.mNode)
+            mSkinCluster.doStore('cgmName', mControlSurface)
             mSkinCluster.doName()
             
             for mHandle in d['mHandles']:
@@ -4315,7 +4315,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                   'cgmNode',
                                                   setClass=True)
         
-            mSkinCluster.doStore('cgmName', mNew.mNode)
+            mSkinCluster.doStore('cgmName', mNew)
             mSkinCluster.doName()
             
             ml_proxy.append(mNew)
@@ -4340,7 +4340,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                               'cgmNode',
                                               setClass=True)
     
-        mSkinCluster.doStore('cgmName', mNew.mNode)
+        mSkinCluster.doStore('cgmName', mNew)
         mSkinCluster.doName()"""
         
     

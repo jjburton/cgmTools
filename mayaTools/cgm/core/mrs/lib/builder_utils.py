@@ -57,6 +57,7 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 
@@ -162,8 +163,8 @@ def eyeLook_verify(self):
         #Dynparent... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
         ml_dynParents = copy.copy(self.ml_dynParentsAbove)
-        if mBlock.attachPoint == 'end':
-            ml_dynParents.reverse()
+        #if mBlock.attachPoint == 'end':
+            #ml_dynParents.reverse()
         ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
         ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
         
@@ -187,6 +188,9 @@ def eyeLook_verify(self):
                 mBlockParentRigNull.msgList_append('controlsAll',mCrv)
                 mBlockParentRigNull.moduleSet.append(mCrv)
                 mRigNull.faceSet.append(mCrv)
+                
+                mCrv.connectParentNode(mBlockParentRigNull,'rigNull')
+                
             else:
                 mModuleParent.puppetSet.append(mCrv)
                 mModuleParent.msgList_append('controlsAll',mCrv)
@@ -1054,7 +1058,7 @@ def get_switchTarget(self,mControl,parentTo=False):
         mSwitchTarget.setAttrFlags(lock=False)
     else:
         mSwitchTarget = mControl.doCreateAt(setClass=True)
-        mControl.doStore('switchTarget',mSwitchTarget.mNode)
+        mControl.doStore('switchTarget',mSwitchTarget)
         mSwitchTarget.rename("{0}_switchTarget".format(mControl.p_nameBase))
         
     log.debug("|{0}| >> Controlsnap target : {1} | from: {2}".format(_str_func, mSwitchTarget, mControl))
@@ -1125,7 +1129,7 @@ def rigNodes_store(self):
 
 
 @cgmGEN.Timer
-def get_dynParentTargetsDat(self):
+def get_dynParentTargetsDat(self,allParents=True):
     """
     :parameters:
 
@@ -1156,26 +1160,50 @@ def get_dynParentTargetsDat(self):
     #
     self.md_dynTargetsParent['attachDriver'] = mModule.rigNull.getMessageAsMeta('attachDriver')
     
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('rigRoot'):
-            mParentRoot = mi_parentRigNull.rigRoot
-            self.md_dynTargetsParent['root'] = mParentRoot
-            #self.ml_dynEndParents.insert(0,mParentRoot)
-            self.ml_dynParentsAbove.append(mParentRoot)
-        else:
-            self.md_dynTargetsParent['root'] = False
+    _mBase = mModule.atUtils('get_driverPoint','base')
+    _mEnd = mModule.atUtils('get_driverPoint','end')
+    
+    if _mBase:
+        self.md_dynTargetsParent['base'] = _mBase
+        self.ml_dynParentsAbove.append(_mBase)
+    if _mEnd:
+        self.md_dynTargetsParent['end'] = _mEnd
+        self.ml_dynParentsAbove.append(_mEnd)    
+    
+    
+    if allParents:ml_moduleParents = mModule.atUtils('parentModules_get')
+    else: ml_moduleParents = [mModuleParent]
+    if ml_moduleParents:
+        log.debug("|{0}| >> mParents: {1}".format(_str_func,len(ml_moduleParents)))        
+        for mModuleParent in ml_moduleParents:
+            mi_parentRigNull = mModuleParent.rigNull
+            if not self.md_dynTargetsParent.get('root'):
+                if mi_parentRigNull.getMessage('rigRoot'):
+                    mParentRoot = mi_parentRigNull.rigRoot
+                    self.md_dynTargetsParent['root'] = mParentRoot
+                    #self.ml_dynEndParents.insert(0,mParentRoot)
+                    self.ml_dynParentsAbove.append(mParentRoot)
+                else:
+                    self.md_dynTargetsParent['root'] = False            
             
-        _mBase = mModule.atUtils('get_driverPoint','base')
-        _mEnd = mModule.atUtils('get_driverPoint','end')
-        
-        if _mBase:
-            self.md_dynTargetsParent['base'] = _mBase
-            self.ml_dynParentsAbove.append(_mBase)
-        if _mEnd:
-            self.md_dynTargetsParent['end'] = _mEnd
-            self.ml_dynParentsAbove.append(_mEnd)
             
+            _mBase = mModuleParent.atUtils('get_driverPoint','base')
+            _mEnd = mModuleParent.atUtils('get_driverPoint','end')
+            
+            if _mBase:
+                self.md_dynTargetsParent['base'] = _mBase
+                self.ml_dynParentsAbove.append(_mBase)
+            if _mEnd:
+                self.md_dynTargetsParent['end'] = _mEnd
+                self.ml_dynParentsAbove.append(_mEnd)            
+            
+    self.ml_dynEndParents=LISTS.get_noDuplicates(self.ml_dynEndParents)
+    self.ml_dynParentsAbove=LISTS.get_noDuplicates(self.ml_dynParentsAbove)
+    
+    mMasterAnim = self.d_module['mMasterControl']
+    if mMasterAnim in self.ml_dynParentsAbove:
+        self.ml_dynParentsAbove.remove(mMasterAnim)
+    
     log.debug(cgmGEN._str_subLine)
     log.debug("dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
     pprint.pprint(self.md_dynTargetsParent)
@@ -2141,7 +2169,6 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 
                 
                 if ballMode == 'loft':
-                
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
@@ -2154,12 +2181,10 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         log.debug("|{0}| >> surf fail. Using last vector: {1}".format(_str_func,vec))                
                         
                         
-                    
                     p2 = l_pos[i-1]
                     pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     dClose = DIST.get_distance_between_points(p1,pClose)
                     d2 = DIST.get_distance_between_points(p1,p2)
-                    
                     
                     #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
                     #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
@@ -2193,13 +2218,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     #DIST.offsetShape_byVector(end,-_offset)
                     
     
-                        
                     TRANS.position_set(mid1,pSet1)
                     TRANS.position_set(mid2,pSet2)
                     TRANS.position_set(end,pSet3)
                     
                     #now loft new mesh...
-                    _meshEnd = create_loftMesh([end,mid2,mid1,root], name="{0}_{1}".format('test',i), degree=1,divisions=1)
+                    _loftTargets = [end,mid2,mid1,root]
+                    if cgmGEN.__mayaVersion__ in [2018]:
+                        _loftTargets.reverse()
+                    _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
+                                               degree=1,divisions=1)
                     
                     _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
                     mc.delete([end,mid1,mid2,root])

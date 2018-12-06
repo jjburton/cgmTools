@@ -563,7 +563,7 @@ def define(self):
 
     mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
 
-    mPlane.doStore('cgmName', self.mNode)
+    mPlane.doStore('cgmName', self)
     mPlane.doStore('cgmType','planeVisualize')
     mPlane.doName() 
     
@@ -601,7 +601,7 @@ def define(self):
     mHandleFactory.color(mBBShape.mNode,controlType='sub')
     mBBShape.setAttrFlags()
     
-    mBBShape.doStore('cgmName', self.mNode)
+    mBBShape.doStore('cgmName', self)
     mBBShape.doStore('cgmType','bbVisualize')
     mBBShape.doName()    
     
@@ -620,7 +620,7 @@ def define(self):
     mArrow.resetAttrs()
     mHandleFactory.color(mArrow.mNode,controlType='sub')
     
-    mArrow.doStore('cgmName', self.mNode)
+    mArrow.doStore('cgmName', self)
     mArrow.doStore('cgmType','upVector')
     mArrow.doName()
     mArrow.setAttrFlags()
@@ -663,7 +663,7 @@ def define(self):
 
     mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
 
-    mPlane.doStore('cgmName', self.mNode)
+    mPlane.doStore('cgmName', self)
     mPlane.doStore('cgmType','planeVisualize')
     mPlane.doName() 
     
@@ -1154,14 +1154,14 @@ def template(self):
             else:
                 mAimForward = mLoft.doCreateAt()
                 mAimForward.p_parent = mLoft.p_parent
-                mAimForward.doStore('cgmName',mHandle.mNode)                
+                mAimForward.doStore('cgmName',mHandle)                
                 mAimForward.doStore('cgmTypeModifier','forward')
                 mAimForward.doStore('cgmType','aimer')
                 mAimForward.doName()
                 
                 mAimBack = mLoft.doCreateAt()
                 mAimBack.p_parent = mLoft.p_parent
-                mAimBack.doStore('cgmName',mHandle.mNode)                                
+                mAimBack.doStore('cgmName',mHandle)                                
                 mAimBack.doStore('cgmTypeModifier','back')
                 mAimBack.doStore('cgmType','aimer')
                 mAimBack.doName()
@@ -1365,7 +1365,7 @@ def template(self):
                     #Convert to loft curve setup ----------------------------------------------------
                     mHandleFactory = self.asHandleFactory(mHandle.mNode)
                     #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
-                    mHandle.doStore('loftCurve',mHandle.mNode)
+                    mHandle.doStore('loftCurve',mHandle)
             
             
                     CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -1695,7 +1695,7 @@ def prerig(self):
         mJointLabel.drawLabel = 1
         mJointLabel.otherType = mHandle.cgmName
     
-        mJointLabel.doStore('cgmName',mHandle.mNode)
+        mJointLabel.doStore('cgmName',mHandle)
         mJointLabel.doStore('cgmType','jointLabel')
         mJointLabel.doName()            
     
@@ -4067,6 +4067,9 @@ def rig_shapes(self):
                 str_meshShape = mMesh_tmp.getShapes()[0]        
                 pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)                
                 
+                if not pos:
+                    log.debug("|{0}| >> Cast pos for setting fail.Using alternate".format(_str_func,_settingsPlace))
+                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_settingsSize + (_offset * 2))                    
                 mSettingsShape.p_position = pos
                 
                 mMesh_tmp.delete()
@@ -4797,7 +4800,7 @@ def rig_segments(self):
                         mStableUp.p_parent = mLimbRoot
                     else:
                         mStableUp.p_parent = mRoot
-                    mStableUp.doStore('cgmName',mSegHandle.mNode)                
+                    mStableUp.doStore('cgmName',mSegHandle)                
                     mStableUp.doStore('cgmTypeModifier','stable')
                     mStableUp.doStore('cgmType','upObj')
                     mStableUp.doName()
@@ -4810,14 +4813,14 @@ def rig_segments(self):
                     
                     mAimStable = mSegHandle.doCreateAt()
                     mAimStable.p_parent = mBlendParent
-                    mAimStable.doStore('cgmName',mSegHandle.mNode)                
+                    mAimStable.doStore('cgmName',mSegHandle)                
                     mAimStable.doStore('cgmTypeModifier','stableStart')
                     mAimStable.doStore('cgmType','aimer')
                     mAimStable.doName()
                     
                     mAimFollow = mSegHandle.doCreateAt()
                     mAimFollow.p_parent = mBlendParent
-                    mAimFollow.doStore('cgmName',mSegHandle.mNode)                
+                    mAimFollow.doStore('cgmName',mSegHandle)                
                     mAimFollow.doStore('cgmTypeModifier','follow')
                     mAimFollow.doStore('cgmType','aimer')
                     mAimFollow.doName()                    
@@ -4872,14 +4875,14 @@ def rig_segments(self):
                     
                     mFollow = mSegHandle.doCreateAt()
                     mFollow.p_parent = mBlendParent
-                    mFollow.doStore('cgmName',mSegHandle.mNode)                
+                    mFollow.doStore('cgmName',mSegHandle)                
                     mFollow.doStore('cgmTypeModifier','follow')
                     mFollow.doStore('cgmType','driver')
                     mFollow.doName()
                 
                     mAimBack = mSegHandle.doCreateAt()
                     mAimBack.p_parent = mBlendParent
-                    mAimBack.doStore('cgmName',mSegHandle.mNode)                                
+                    mAimBack.doStore('cgmName',mSegHandle)                                
                     mAimBack.doStore('cgmTypeModifier','back')
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
@@ -4887,7 +4890,7 @@ def rig_segments(self):
                     log.debug("|{0}| >> Stable up...".format(_str_func))
                     mStableUp = mBlendParent.doCreateAt()
                     mStableUp.p_parent = mBlendParent.mNode
-                    mStableUp.doStore('cgmName',mSegHandle.mNode)                
+                    mStableUp.doStore('cgmName',mSegHandle)                
                     mStableUp.doStore('cgmTypeModifier','stableEnd')
                     mStableUp.doStore('cgmType','upObj')
                     mStableUp.rotateOrder = 0#...thing we have to have this to xyz to work right
@@ -4947,14 +4950,14 @@ def rig_segments(self):
                     
                     mAimForward = mSegHandle.doCreateAt()
                     mAimForward.p_parent = mSegHandle.p_parent
-                    mAimForward.doStore('cgmName',mSegHandle.mNode)                
+                    mAimForward.doStore('cgmName',mSegHandle)                
                     mAimForward.doStore('cgmTypeModifier','forward')
                     mAimForward.doStore('cgmType','aimer')
                     mAimForward.doName()
                 
                     mAimBack = mSegHandle.doCreateAt()
                     mAimBack.p_parent = mSegHandle.p_parent
-                    mAimBack.doStore('cgmName',mSegHandle.mNode)                                
+                    mAimBack.doStore('cgmName',mSegHandle)                                
                     mAimBack.doStore('cgmTypeModifier','back')
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
@@ -5129,7 +5132,7 @@ def rig_segments(self):
                                                   'cgmNode',
                                                   setClass=True)
             
-            mSkinCluster.doStore('cgmName', mSurf.mNode)
+            mSkinCluster.doStore('cgmName', mSurf)
             mSkinCluster.doName()    
             """
             #cgmGEN.func_snapShot(vars())
@@ -5228,7 +5231,7 @@ def rig_segments(self):
                                           'cgmNode',
                                           setClass=True)
 
-    mSkinCluster.doStore('cgmName', mSurf.mNode)
+    mSkinCluster.doStore('cgmName', mSurf)
     mSkinCluster.doName()    
     
     cgmGEN.func_snapShot(vars())
@@ -5400,7 +5403,7 @@ def rig_frame(self):
                         
                     #Decompose matrix for parent...
                     mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                    mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                    mUpDecomp.doStore('cgmName',ml_handleParents[i])                
                     mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                     mUpDecomp.doName()
                     
@@ -5883,7 +5886,7 @@ def rig_frame(self):
                                                       'cgmNode',
                                                       setClass=True)
             
-                mSkinCluster.doStore('cgmName', mSplineCurve.mNode)
+                mSkinCluster.doStore('cgmName', mSplineCurve)
                 mSkinCluster.doName()    
                 cgmGEN.func_snapShot(vars())
                 
@@ -5950,7 +5953,7 @@ def rig_frame(self):
                                                       'cgmNode',
                                                       setClass=True)
             
-                mSkinCluster.doStore('cgmName', mSurf.mNode)
+                mSkinCluster.doStore('cgmName', mSurf)
                 mSkinCluster.doName()    
                 cgmGEN.func_snapShot(vars())
                 
@@ -6132,7 +6135,7 @@ def rig_frameSingle(self):
                         
                     #Decompose matrix for parent...
                     mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                    mUpDecomp.doStore('cgmName',ml_handleParents[i].mNode)                
+                    mUpDecomp.doStore('cgmName',ml_handleParents[i])                
                     mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
                     mUpDecomp.doName()
                     

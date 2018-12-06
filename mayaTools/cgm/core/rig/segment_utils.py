@@ -845,7 +845,7 @@ def addSquashAndStretch_toCurve(jointList,#attrHolder,#Should be an ikHandle nor
         #Create the sqrtNode
         mSqrtScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         mSqrtScale.operation = 3#set to power
-        mSqrtScale.doStore('cgmName',_short)
+        mSqrtScale.doStore('cgmName',_short,attrType = 'msg')
         mSqrtScale.addAttr('cgmTypeModifier','sqrtScale')
         mSqrtScale.doName()
         for channel in [outChannel,upChannel]:
@@ -856,7 +856,7 @@ def addSquashAndStretch_toCurve(jointList,#attrHolder,#Should be an ikHandle nor
         #Create the invScale
         mInvScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         mInvScale.operation = 2
-        mInvScale.doStore('cgmName',_short)
+        mInvScale.doStore('cgmName',_short,attrType = 'msg')
         mInvScale.addAttr('cgmTypeModifier','invScale')
         mInvScale.doName()
         for channel in [outChannel,upChannel]:
@@ -867,7 +867,7 @@ def addSquashAndStretch_toCurve(jointList,#attrHolder,#Should be an ikHandle nor
         #Create the powScale
         mPowScale = cgmMeta.cgmNode(nodeType= 'multiplyDivide')
         mPowScale.operation = 3
-        mPowScale.doStore('cgmName',_short)
+        mPowScale.doStore('cgmName',_short,attrType = 'msg')
         mPowScale.addAttr('cgmTypeModifier','powScale')
         mPowScale.doName()
         for channel in [outChannel,upChannel]:
@@ -1243,7 +1243,7 @@ def add_subControl_toCurve(joints=None, segmentCurve = None, baseParent = None, 
         mc.connectAttr ((splineShape+'.worldSpace'),(mClosestSplinePointNode.mNode+'.inputCurve'))	
 
         #> Name
-        mClosestSplinePointNode.doStore('cgmName',mJnt.mNode)
+        mClosestSplinePointNode.doStore('cgmName',mJnt)
         mClosestSplinePointNode.addAttr('cgmTypeModifier','spline',attrType='string',lock=True)	    
         mClosestSplinePointNode.doName()
         #>Set attachpoint value
@@ -1258,7 +1258,7 @@ def add_subControl_toCurve(joints=None, segmentCurve = None, baseParent = None, 
         mc.connectAttr ((linearShape+'.worldSpace'),(mClosestLinearPointNode.mNode+'.inputCurve'))	
 
         #> Name
-        mClosestLinearPointNode.doStore('cgmName',mJnt.mNode)
+        mClosestLinearPointNode.doStore('cgmName',mJnt)
         mClosestLinearPointNode.addAttr('cgmTypeModifier','linear',attrType='string',lock=True)	    	    
         mClosestLinearPointNode.doName()
         #>Set attachpoint value
