@@ -2392,13 +2392,25 @@ def rig_shapes(self):
             mCog = mCogHelper.doCreateAt(setClass=True)
             CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
             
+            #Cast a simple curve
+            #Cv's 4,2 | 
+            
+            ml_shapes = self.atBuilderUtils('shapes_fromCast',
+                                            targets = mCogHelper.shapeHelper,
+                                            offset = _offset * 2.0,
+                                            mode = 'singleCast')#'segmentHan            
+            CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
+            
+            #mHandleFactory.color(mCog.mNode, controlType = 'main')
+            CORERIG.override_color(mCog.mNode,'white')
+            
             mCog.doStore('cgmName','cog')
-            mCog.doStore('cgmAlias','cog')            
+            mCog.doStore('cgmAlias','cog')
             mCog.doName()
             
             mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect
-            mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect        
-            
+            mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect
+                        
         
         else:#Root =============================================================================
             log.debug("|{0}| >> Root...".format(_str_func))

@@ -1896,7 +1896,7 @@ def rig_skeleton(self):
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
                 
                 
-            if mBlock.neckIK > 1 and mBlock.neckControls:#...ribbon/spline
+            if mBlock.neckIK and mBlock.neckControls > 1 :#...ribbon/spline
                 log.debug("|{0}| >> IK Drivers...".format(_str_func))            
                 ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
                 for i,mJnt in enumerate(ml_ribbonIKDrivers):

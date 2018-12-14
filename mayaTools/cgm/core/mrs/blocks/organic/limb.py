@@ -3798,7 +3798,7 @@ def rig_shapes(self):
                 
                     self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        
                     """
-            elif ml_templateHandles[-1].getMessage('proxyHelper'):
+            elif ml_templateHandles[-1].getMessage('proxyHelper') and str_profile not in ['arm']:
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
                 mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
                 bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,mode='maxFill')#mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
@@ -4077,7 +4077,11 @@ def rig_shapes(self):
                 
                 if not pos:
                     log.debug("|{0}| >> Cast pos for setting fail.Using alternate".format(_str_func,_settingsPlace))
-                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_settingsSize + (_offset * 2))                    
+                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_settingsSize + (_offset * 2))
+                else:
+                    _vec = MATH.get_vector_of_two_points(_mTar.p_position,pos)
+                    pos = DIST.get_pos_by_vec_dist(pos,_vec,_offset*2)
+                    
                 mSettingsShape.p_position = pos
                 
                 mMesh_tmp.delete()

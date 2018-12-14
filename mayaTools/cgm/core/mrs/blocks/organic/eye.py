@@ -1064,7 +1064,6 @@ def rig_dataBuffer(self):
     log.debug("|{0}| >> size | self.v_baseSize: {1} | self.f_sizeAvg: {2}".format(_str_func,
                                                                                   self.v_baseSize,
                                                                                   self.f_sizeAvg ))
-    
     #DynParents =============================================================================
     self.UTILS.get_dynParentTargetsDat(self)
     log.debug(cgmGEN._str_subLine)
