@@ -56,8 +56,9 @@ from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 
-for m in BLOCKGEN,BLOCKSHARE,SHARED:
+for m in BLOCKGEN,BLOCKSHARE,SHARED,CONTEXT:
     reload(m)
 _d_blockTypes = {}
 
@@ -72,10 +73,12 @@ __version__ = '1.10242018'
 _sidePadding = 25
 
 def check_cgm():
-    try:cgmMeta.cgmNode(nodeType='decomposeMatrix').delete()
+    try:
+        cgmMeta.cgmNode(nodeType='decomposeMatrix').delete()
     except:
         import cgm
         cgm.core._reload()
+        
         
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -231,7 +234,17 @@ class ui(cgmUI.cgmGUI):
                                                    'qss_verify',**{'puppetSet':0,
                                                                    'bakeSet':0,
                                                                    'deleteSet':0,
-                                                                   'exportSet':1}),)        
+                                                                   'exportSet':1}),)
+        
+        _mHistorical = mUI.MelMenuItem(_menu, l="Is Historically Interesing",
+                                         subMenu = True)
+        mUI.MelMenuItem(_mHistorical, l="Off",
+                        ann = "Turn off every node's isHistoricallyInteresting option",
+                        c = cgmGEN.Callback(CONTEXT.set_attrs,None,'ihi',0,'scene',None,'reselect'))
+        mUI.MelMenuItem(_mHistorical, l="On",
+                        ann = "Turn on every node's isHistoricallyInteresting option",
+                        c = cgmGEN.Callback(CONTEXT.set_attrs,None,'ihi',1,'scene',None,'reselect'))
+        
         #>>Mesh ---------------------------------------------------------------------
         mUI.MelMenuItemDiv(_menu)        
         _mMesh = mUI.MelMenuItem(_menu, l="Puppet Mesh",

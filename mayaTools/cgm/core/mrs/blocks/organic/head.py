@@ -3711,7 +3711,7 @@ def rig_cleanUp(self):
         mJnt.dagLock(True)
         
     ml_controls = mRigNull.msgList_get('controlsAll')
-    BUILDERUTILS.controls_lockDown(ml_controls)
+    self.UTILS.controls_lockDown(ml_controls)
         
 
     

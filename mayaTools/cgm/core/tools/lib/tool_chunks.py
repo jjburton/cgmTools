@@ -631,7 +631,7 @@ import cgm.core.tests.cgmTests as CGMTEST
 reload(CGMTEST)
 
 def loadLocalPython():
-    mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as VALID")')
+    mel.eval('python("import cgm.core;cgm.core._reload();import cgm.core.cgm_Meta as cgmMeta;import cgm.core.cgm_Deformers as cgmDeformers;import cgm.core.cgm_General as cgmGen;import cgm.core.cgm_PuppetMeta as cgmPM;import cgm.core.cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as VALID")')
 
 def load_MorpheusMaker( *a ):
     try:

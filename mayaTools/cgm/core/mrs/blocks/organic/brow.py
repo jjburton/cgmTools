@@ -1770,14 +1770,7 @@ def rig_cleanUp(self):
         
     #Lock and hide =================================================================================
     ml_controls = mRigNull.msgList_get('controlsAll')
-    
-    for mCtrl in ml_controls:
-        if mCtrl.hasAttr('radius'):
-            ATTR.set_hidden(mCtrl.mNode,'radius',True)
-        
-        for link in 'masterGroup','dynParentGroup','aimGroup','contraintGroup':
-            if mCtrl.getMessage(link):
-                mCtrl.getMessageAsMeta(link).dagLock(True)
+    self.UTILS.controls_lockDown(ml_controls)
     
     if not mBlock.scaleSetup:
         log.debug("|{0}| >> No scale".format(_str_func))

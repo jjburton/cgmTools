@@ -1539,7 +1539,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 mLoc.delete()
                 
             for mObj in mRigNull.msgList_get('handleJoints'):
-                mObj.resetAttrs()
+                mObj.resetAttrs(transformsOnly = True)
                 
         elif _mode in ['iksnap','iksnapall']:
             if not mRigNull.getMessage('controlIK'):
@@ -1580,7 +1580,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             #We need to store the blendjoint target for the ik control or loc it
             for i,mCtrl in enumerate(ml_controls):
                 if mCtrl.getMessage('switchTarget'):
-                    mCtrl.resetAttrs()
+                    mCtrl.resetAttrs(transformsOnly = True)
                     md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
                     md_controls[i] = mCtrl
                 else:

@@ -68,7 +68,8 @@ def get_list(context = 'selection', mType = None, getTransform = False):
         if mType is not None:
             _l_context = mc.ls(type=mType, shortNames = False)
         else:
-            raise Exception,"Really shouldn't use this without a specific object type..."
+            _l_context = mc.ls(shortNames = False)            
+            #raise Exception,"Really shouldn't use this without a specific object type..."
         
     elif _context == 'children':
         log.debug("|{0}| >> children mode...".format(_str_func)) 
@@ -147,18 +148,22 @@ def set_attrs(self, attr = None, value = None, context = 'selection', mType = No
     """   
     _str_func = "set_attr"
     _context = context.lower()
-    _l_context = get_list(_context, mType)
+    _sl = mc.ls(sl=True)
     
+    _l_context = get_list(_context, mType)
     log.debug("|{0}| >> attr: {1} | value: {2} | mType: {3} | context: {4}".format(_str_func,attr,value,mType,_context))             
         
     for o in _l_context:
         try:
+            #log.debug("|{0}| >>  obj:{1} | attr:{2} | value:{3} ".format(_str_func,o,attr,value))
             ATTR.set(o,attr,value)
             #cgmMeta.cgmNode(o).__setattr__(attr,value)
         except Exception,err:
             log.error("|{0}| >> set fail. obj:{1} | attr:{2} | value:{3} | error: {4} | {5}".format(_str_func,NAMES.get_short(o),attr,value,err,Exception))
     
-    if select:    
+    if select == 'reselect':
+        mc.select(_sl)
+    else:
         mc.select(_l_context)
     return True
 

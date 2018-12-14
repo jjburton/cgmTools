@@ -618,12 +618,19 @@ def controls_lockDown(ml_controls):
     log.debug("|{0}| >> ...".format(_str_func))
     
     for mCtrl in ml_controls:
+        _str = mCtrl.mNode
         if mCtrl.hasAttr('radius'):
-            ATTR.set_hidden(mCtrl.mNode,'radius',True)
+            ATTR.set_hidden(_str,'radius',True)
         
         for link in 'masterGroup','dynParentGroup','aimGroup','worldOrientGroup':
             if mCtrl.getMessage(link):
-                mCtrl.getMessageAsMeta(link).dagLock(True)    
+                mCtrl.getMessageAsMeta(link).dagLock(True)
+                
+        ATTR.set_hidden(_str,'visibility',True)
+        ATTR.set_keyable(_str,'visibility',False)
+        
+        
+        
 
 def control_convertToWorldIK(mCtrl=None):
     """

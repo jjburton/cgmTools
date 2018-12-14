@@ -1679,6 +1679,7 @@ def prerig(self):
                          worldUpObject = mObj.masterGroup.mNode,
                          worldUpType = 'objectRotation' )          
     targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
+    jointHelpers = [mObj.jointHelper.mNode for mObj in ml_handles]
     
     #Name Handles...
     for mHandle in ml_handles:
@@ -1704,7 +1705,7 @@ def prerig(self):
         mJointLabel.overrideEnabled = 1
         mJointLabel.overrideDisplayType = 2    
     
-    self.msgList_connect('jointHelpers',targets)
+    self.msgList_connect('jointHelpers',jointHelpers)
     
     self.atUtils('create_jointLoft',
                  targets,
@@ -1840,6 +1841,7 @@ def skeleton_build(self, forceNew = True):
                                             worldUpAxis= mOrientHelper.getAxisVector('y+'), orient= False)
         
         if _b_lever:
+            log.debug("|{0}| >> lever...".format(_str_func))            
             ml_handleJoints[1].p_parent = False
             #Lever...
             mLever = ml_handleJoints[0]
@@ -1848,8 +1850,13 @@ def skeleton_build(self, forceNew = True):
             #                          worldUpType = 'Vector', 
             #                          worldUpVector = self.baseUp)
             #mc.delete()
+            log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_jointHelpers[0]))                        
+            _vec =  ml_jointHelpers[0].getAxisVector('y+')
+            log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
+            
             SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
-                     ml_jointHelpers[0].getAxisVector('y+'))#self.rootUpHelper.getAxisVector('y+'))
+                     _vec)
+            
             JOINT.freezeOrientation(mLever.mNode)
             
             #Rest...
@@ -1926,9 +1933,7 @@ def skeleton_build(self, forceNew = True):
                 mJnt.radius = _radius / 2
         self.atBlockUtils('skeleton_connectToParent')
         
-    
-            
-        
+
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_templateHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -1936,11 +1941,14 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> No extra ball/toe joints detected...".format(_str_func))
                 
             elif not self.hasQuadSetup:
-                log.debug("|{0}| >> Quad setup finding end...".format(_str_func))
+                log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
+                _idx = (int(self.hasLeverJoint) + self.numControls) - 1
+                log.debug("|{0}| >> non quad end: {1}".format(_str_func,_idx))
                 try:mEnd = ml_handleJoints[(int(self.hasLeverJoint) + self.numControls) - 1]
                 except:mEnd=False
                 
                 if mEnd:
+                    log.debug("|{0}| >> non quad end: {1}".format(_str_func,mEnd))                    
                     ml_children = mEnd.getChildren(asMeta=True)
                     for mChild in ml_children:
                         mChild.parent = False
@@ -7780,7 +7788,7 @@ def switchMode(self,mode = 'fkOn'):
     #We need to store the blendjoint target for the ik control or loc it
     for i,mCtrl in enumerate(ml_controls):
         if mCtrl.getMessage('switchTarget'):
-            mCtrl.resetAttrs()
+            mCtrl.resetAttrs(transformsOnly = True)
             md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
             md_controls[i] = mCtrl
         else:

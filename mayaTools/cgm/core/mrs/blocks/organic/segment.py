@@ -4133,7 +4133,7 @@ def rig_cleanUp(self):
     
     
     ml_controls = mRigNull.msgList_get('controlsAll')
-    BUILDUTILS.controls_lockDown(ml_controls)
+    self.UTILS.controls_lockDown(ml_controls)
 
     
     if not mBlock.scaleSetup:

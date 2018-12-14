@@ -319,7 +319,7 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     reparent(progressBar)
     #try:cgmUI.progressBar_end(progressBar)
     #except:pass
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     return
  
             
