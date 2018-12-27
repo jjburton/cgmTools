@@ -118,10 +118,12 @@ d_build_profiles = {
     'unityLow':{'default':{'numJoints':3,
                            'numControls':3},
                    },
-    'unityMed':{'default':{'numJoints':4,
+    'unityMed':{'default':{'numJoints':6,
                           'numControls':4},
-               'spine':{'numJoints':4,
-                       'numControls':4},
+               'spineUp':{'numJoints':4,
+                          'numControls':4},
+               'spineFwd':{'numJoints':4,
+                          'numControls':4},               
                'earUp':{'numJoints':4,
                         'numControls':4}},
     'unityHigh':{'default':{'numJoints':4,
@@ -133,8 +135,35 @@ d_build_profiles = {
                           'numControls':5}}}
 
 d_block_profiles = {
+    'simple':{'numShapers':2,
+              'numSubShapers':3,
+              'addCog':False,
+              'loftSetup':'default',
+              'loftShape':'square',
+              'ikSetup':'ribbon',
+              'ikBase':'cube',
+              'ikEnd':'tipEnd',
+              'cgmName':'simple',
+              'nameIter':'seg',
+              'numControls':4,
+              'numJoints':6,
+              'nameList':['start','end'],
+              'squash':'both',
+              'squashExtraControl':True,
+              'squashMeasure':'pointDist',
+              'squashFactorMax':1.0,
+              'squashFactorMin':0,
+              'ribbonAim':'stable',
+              #'templateAim':'toEnd',
+              'settingsPlace':'end',
+              'baseAim':[0,1,0],
+              #'baseUp':[0,0,-1],
+              'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'lever':[0,-1,0]},
+              'baseSize':[30,15,76]},
+    
     'earUp':{'attachPoint':'end',
-             'numShapers':5,
+             'numShapers':2,
+             'numSubShapers':3,
              'addCog':False,
              'side':'right',
              'cgmName':'ear',
@@ -220,7 +249,33 @@ d_block_profiles = {
             'baseUp':[0,1,0],
             'baseSize':[18,15,30]},
     
-    'spine':{'numShapers':5,
+    'spineFwd':{'numShapers':4,
+             'numSubShapers':2,
+             'addCog':True,
+             'loftSetup':'default',
+             'loftShape':'circle',
+             'ikSetup':'ribbon',
+             'ikBase':'hips',
+             'ikEnd':'tipMid',             
+             'cgmName':'spine',
+             'nameIter':'spine',
+             'nameList':['pelvis','chest'],
+             
+             'squash':'both',
+             'squashExtraControl':True,
+             'squashMeasure':'pointDist',
+             'squashFactorMax':1.0,
+             'squashFactorMin':0,
+             'ribbonAim':'stable',
+             'templateAim':'toEnd',
+             'settingsPlace':'cog',
+             'baseAim':[0,0,1],
+             #'baseUp':[0,0,-1],
+             'baseDat':{'rp':[0,0,-1],'up':[0,1,0],'lever':[0,0,-1]},
+             'baseSize':[30,15,76]},
+    
+    'spineUp':{'numShapers':4,
+             'numSubShapers':2,
              'addCog':True,
              'loftSetup':'default',
              'loftShape':'circle',
@@ -241,8 +296,9 @@ d_block_profiles = {
              'settingsPlace':'cog',
              'baseAim':[0,1,0],
              #'baseUp':[0,0,-1],
-             'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'lever':[0,0,1]},             
+             'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'lever':[0,-1,0]},
              'baseSize':[30,15,76]}}
+
 
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
@@ -431,7 +487,6 @@ def define(self):
     _l_order = ['end','up']
 
     self.UTILS.create_defineHandles(self, _l_order, _d, _size)
-    
     self.UTILS.define_set_baseSize(self)
     
     return

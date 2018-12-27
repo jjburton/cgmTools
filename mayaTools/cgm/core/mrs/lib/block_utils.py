@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -6563,6 +6563,7 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     
     if d_baseDat:
         log.debug("|{0}| >>  baseDat...".format(_str_func)+ '-'*40)
+        pprint.pprint(d_baseDat)
         for k,vec in d_baseDat.iteritems():
             mHandle = self.getMessageAsMeta('define{0}Helper'.format(k.capitalize()))
             if mHandle:

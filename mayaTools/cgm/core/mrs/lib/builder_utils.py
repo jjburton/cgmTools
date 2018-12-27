@@ -2056,7 +2056,7 @@ def joints_mirrorChainAndConnect(self,ml_chain=None):
 
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
-                     ballMode = 'loft',
+                     ballMode = 'asdf',
                      ballPosition = 'joint',
                      extendToStart = True,method = 'u'):
     try:
@@ -2248,7 +2248,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     try:
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
-                        vec = vecRaw#[-v for v in vecRaw]
+                        vec = [-v for v in vecRaw]
                         p1 = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,position=True)#l_pos[i]                    
                     except Exception,err:
                         vec = [1,1,1]
@@ -2299,10 +2299,12 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     
                     #now loft new mesh...
                     _loftTargets = [end,mid2,mid1,root]
-                    if cgmGEN.__mayaVersion__ in [2018]:
-                        _loftTargets.reverse()
+                    #if cgmGEN.__mayaVersion__ in [2018]:
+                        #_loftTargets.reverse()
+                        
                     _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
                                                degree=1,divisions=1)
+                    
                     
                     _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
                     mc.delete([end,mid1,mid2,root])
@@ -2345,6 +2347,9 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         SNAP.go(_sphere[0],_loftCurves[0],pivot='bb')
                         TRANS.scale_to_boundingBox(_sphere[0], _size)
                         SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
+                    
+                    _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
+                    
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
                 

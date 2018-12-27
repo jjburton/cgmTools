@@ -602,6 +602,10 @@ def uiSection_mrs(parent):
                 l='mrsBuilder',
                 ann = "WIP",
                 c=lambda *a:TOOLCALLS.mrsUI())
+    mc.menuItem(parent = parent,
+                l='MRS Documentation',
+                ann = "Access to MRS Docmenation || Subscription required.",
+                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/documentation/"))      
 
     
 def uiSection_hotkeys(parent):

@@ -106,6 +106,9 @@ def reset_channels(selectedChannels=False, transformsOnly=False, excludeChannels
             if mObj.hasAttr(plug):
                 d_defaults = getattr(mObj,plug)
 
+        if not attrs:
+            log.warning("{0} resetAttrs | no attributes offered!".format(obj))            
+            continue
         for a in attrs:
             try:
                 if transformsOnly is not None and transformsOnly:

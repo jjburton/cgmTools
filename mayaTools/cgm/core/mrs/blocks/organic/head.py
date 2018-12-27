@@ -2988,6 +2988,7 @@ def rig_frame(self):
                             s_targetForward = ml_handleParents[-1].mNode
                         else:
                             s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
+                            
                         s_rootTarget = mRoot.mNode
                         b_first = True
             
@@ -3241,9 +3242,26 @@ def rig_frame(self):
                         raise ValueError,"No ribbon IKDriversFound"
                     ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
                     max_influences = 2
+                    
+                    #Aim our ribbon handle -----------------------------------------
+                    if mIKBaseControl:
+                        mEndRibbonTarget =  mIKBaseControl
+                    else:
+                        mEndRibbonTarget = mRoot
+                        
+                    mc.aimConstraint(mEndRibbonTarget.mNode,
+                                     ml_ribbonIkHandles[-1].mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAimNeg'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorOut'],
+                                     worldUpObject = mIKControl.mNode,
+                                     worldUpType = 'objectRotation' )
+                    #....
         
 
                     mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+                    
         
         
                     if mSegMidIK:
@@ -3936,6 +3954,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         for mJnt in ml_rigJoints:
             for shape in mJnt.getShapes():
                 mc.delete(shape)
+    
     mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
     
     l_headGeo = mGroup.getChildren(asMeta=False)

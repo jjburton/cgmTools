@@ -155,6 +155,7 @@ d_block_profiles = {
             },
     'quadFront':{'numShapers':2,
                 'addCog':False,
+                'attachPoint':'end',
                 'cgmName':'leg',
                 'loftShape':'circle',
                 'loftSetup':'default',
@@ -7487,7 +7488,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     _extendToStart = True
     if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
         _extendToStart = False
-    _ballMode = 'loft'
+    _ballMode = 'sdf'#loft
     _ballBase = True
     if mBlock.blockProfile in ['wingBase']:
         _ballBase = False

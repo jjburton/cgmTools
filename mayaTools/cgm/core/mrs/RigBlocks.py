@@ -5397,6 +5397,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
             
             self.UTILS.groups_verify(self)
+            self.UTILS.layer_verify(self)
+            
             #self.verify_groups()#...make sure everythign is there
             
             # Size...
@@ -5625,7 +5627,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             #Connect and Lock the scale stuff------------------------------------
             self.setAttrFlags(attrs=['sx','sz'])
             self.doConnectOut('sy',['sx','sz'])
-            ATTR.set_alias(_short,'sy','blockScale')            
+            ATTR.set_alias(_short,'sy','rigScale')
             
             
             #=====================================================================

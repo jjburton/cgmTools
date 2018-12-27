@@ -583,11 +583,12 @@ def rigDelete(self):
         mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:
-            mRootMotion.dynParentGroup.doPurge()
+            if mRootMotion.getMessage('dynParentGroup'):mRootMotion.dynParentGroup.doPurge()
             mRootMotion.masterGroup.delete()
         
         
-        self.moduleTarget.masterControl.dynParentGroup.doPurge()
+        if self.moduleTarget.masterControl.getMessage('dynParentGroup'):
+            self.moduleTarget.masterControl.dynParentGroup.doPurge()
         
         ml_spacePivots = self.moduleTarget.masterControl.msgList_get('spacePivots')
         if ml_spacePivots:
@@ -599,7 +600,8 @@ def rigDelete(self):
                         mGroup.delete()
                         break
                 
-        self.moduleTarget.masterControl.masterGroup.delete()
+        if self.moduleTarget.masterControl.getMessage('masterGroup'):
+            self.moduleTarget.masterControl.masterGroup.delete()
         
         log.debug("|{0}| >> rigNodes...".format(_str_func,)+'-'*40)                             
         ml_rigNodes = mPuppet.getMessageAsMeta('rigNodes')
