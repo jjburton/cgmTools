@@ -113,11 +113,6 @@ def get_install_path(confirm = False,branch=_defaultBranch):
     return _path
     
 
-        
-    
-
-    
-    return _path
 
 _l_to_clean = ['cgm','cgmToolbox.mel','cgmToolbox.py','Red9',]#...'cgmUpdate.py'
 def clean_install_path(path = None):
