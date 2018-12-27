@@ -466,7 +466,16 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     log.debug("|{0}| >> path: {1}".format(_str_func,_path))
     
     get_dat(branch,5,update=True)
-    _zip = get_build(branch,idx)
+    try:_zip = get_build(branch,idx)
+    except Exception,err:
+        log.error(err)
+        log.error("|{0}| >> Failed to acquire zip. Check branch name: {1}".format(_str_func,branch))
+        return
+    
+    if not _zip:
+        log.error("|{0}| >> Failed to acquire zip. Most likely invalid branch string: {1}".format(_str_func,branch))
+        return        
+    
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
     unzip(_zip,True,cleanFirst, targetPath=_path)

@@ -36,7 +36,7 @@ import cgmUpdate
 reload(cgmUpdate)
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 0.08272018 - 1'
+__version__ = 'Alpha - 0.12272018 - 1'
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
 
