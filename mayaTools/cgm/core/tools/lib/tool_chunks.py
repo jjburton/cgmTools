@@ -1124,11 +1124,11 @@ def uiSection_snap(parent, selection = None ):
                           ann = "Ordered layout of selected items")    
     mc.menuItem(parent=_arrange,
                 l = 'Along line(Even)',
-                c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+                c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','noSelect':False}),                                               
                 ann = "Layout on line from first to last item")
     mc.menuItem(parent=_arrange,
                 l = 'Along line(Spaced)',
-                c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
+                c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced','noSelect':False}),                                               
                 ann = "Layout on line from first to last item closest as possible to original position")   
     
     #cgmUI.mUI.MelSeparator(parent)

@@ -31,6 +31,7 @@ from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgm_General as cgmGEN
 import cgm.core.lib.list_utils as LISTS
+
 def get_list(context = 'selection', mType = None, getTransform = False):
     """
     Get contextual data for updating a transform
@@ -58,11 +59,11 @@ def get_list(context = 'selection', mType = None, getTransform = False):
         log.debug("|{0}| >> selection mode...".format(_str_func))
         if mType:
             if mType == 'shape':
-                _bfr = mc.ls(sl=True, shortNames = False)
+                _bfr = mc.ls(os=True, shortNames = False)
                 for o in _bfr:
                     _l_context.extend(TRANS.shapes_get(o,True))
-            else:_l_context = mc.ls(sl=True, type=mType, shortNames = False,flatten=True)
-        else:_l_context = mc.ls(sl=True, shortNames = False,flatten=True)
+            else:_l_context = mc.ls(os=True, type=mType, shortNames = False,flatten=True)
+        else:_l_context = mc.ls(os=True, shortNames = False,flatten=True)
     elif _context == 'scene':
         log.debug("|{0}| >> scene mode...".format(_str_func))        
         if mType is not None:
@@ -74,7 +75,7 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     elif _context == 'children':
         log.debug("|{0}| >> children mode...".format(_str_func)) 
         
-        _sel = mc.ls(sl=True, shortNames = False)
+        _sel = mc.ls(os, shortNames = False)
         for o in _sel:
             if mType:
                 if mc.ls(o,type=mType, shortNames = False):
@@ -397,7 +398,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
         
         if not noSelect:
             try:mc.select(objects)
-            except:pass
+            except Exception,err:log.error("|{0}.{1}| Select fail: {2}".format(__name__,_str_func,err))
     except Exception,err:
         cgmGEN.cgmException(Exception,err,msg=vars())
         
