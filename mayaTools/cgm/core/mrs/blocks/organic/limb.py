@@ -1022,7 +1022,7 @@ def template(self):
                 mHandle.p_position = pos_lever
                 
                 mHandleFactory.setHandle(mHandle.mNode)
-                mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget('loftWideDown',#_loftShape,
+                mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget('loftSquareRoundUp',#_loftShape,
                                                                      _size_width,
                                                                      shapeDirection = 'z+',rebuildHandle = False)
                 #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
@@ -1032,19 +1032,19 @@ def template(self):
             
                 CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
                 
-                SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorLeverUp)
+                SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorLeverUp,mode='vector')
                 
                 
-                mc.pointConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
+                mc.parentConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
                 self.connectChildNode(mHandle.mNode,'templateLeverHandle')      
                 
                 """
-                mc.aimConstraint(md_handles['start'].mNode, mHandle.mNode, maintainOffset = False,
+                mc.aimConstraint(md_handles['start'].mNode, mGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
-                                 worldUpObject = mRootUpHelper.mNode,
+                                 worldUpObject = mDefineLeverObj.mNode,
                                  worldUpType = 'objectrotation', 
                                  worldUpVector = [0,1,0])"""
-                
+            
             #AimEndHandle ============================================================================
             #mAimGroup = md_handles['end'].doGroup(True, asMeta=True,typeModifier = 'aim')
             #...not doing this now...

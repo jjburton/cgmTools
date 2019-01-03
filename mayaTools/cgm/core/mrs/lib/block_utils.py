@@ -3628,6 +3628,7 @@ def blockDat_load(self, blockDat = None,
     if settingsOnly:
         return
     
+    
     #>>State ====================================================================================
     log.debug("|{0}| >> State".format(_str_func) + '-'*80)
     _stateArgs = BLOCKGEN.validate_stateArg(blockDat.get('blockState'))
@@ -3637,13 +3638,17 @@ def blockDat_load(self, blockDat = None,
     _current_state = self.getState()
     _onlyState = False
     _current_state_idx = self.getState(False)
-    if _target_state != _current_state:
+    
+    if currentOnly:
+        log.debug("|{0}| >> Current only mode: {1}".format(_str_func,_current_state)) 
+        _target_state = _current_state
+        _onlyState = _current_state
+        
+    elif _target_state != _current_state:
         log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
         #self.p_blockState = _state
-    elif currentOnly:
-        _onlyState = _target_state
         
-    
+
     #>>Controls ====================================================================================
     def setAttr(node,attr,value):
         try:ATTR.set(node,attr,value)
@@ -3673,13 +3678,11 @@ def blockDat_load(self, blockDat = None,
     
     if redefine:
         changeState(self,'define')
-    
     if mMirror == 'cat':
         log.info("|{0}| >> mMirror define pull...".format(_str_func))            
         controls_mirror(mMirror,self,define=True)
-    
     else:
-        if not currentOnly or _onlyState == 'define':
+        if not _onlyState or _onlyState == 'define':
             _d_define = blockDat.get('define',False)
             if not _d_define:
                 log.error("|{0}| >> No define data found in blockDat".format(_str_func)) 
@@ -3750,18 +3753,16 @@ def blockDat_load(self, blockDat = None,
                                     ATTR.set(mObj.mNode,'r',_r[ii])
                                     ATTR.set(mObj.mNode,'s',_s[ii])    
     
+    
     #>>Template Controls ====================================================================================
     if _target_state_idx >= 1:
         log.info("|{0}| >> template dat....".format(_str_func))
-        if _current_state_idx < 1:
-            if not autoPush:
-                log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
-                return True
-            log.info("|{0}| >> Pushing to template....".format(_str_func))
-            self.p_blockState = 1
+        if autoPush and currentOnly != True:
+            if _current_state_idx < 1:
+                log.info("|{0}| >> Pushing to template....".format(_str_func))
+                self.p_blockState = 1
         
-        if not currentOnly or _onlyState == 'template':
-        
+        if not _onlyState or _onlyState == 'template':
             if mMirror:
                 log.info("|{0}| >> mMirror template pull...".format(_str_func))            
                 self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
@@ -3826,7 +3827,7 @@ def blockDat_load(self, blockDat = None,
                                                 ATTR.set(mLoftCurve.mNode,'scale',_s)
                                             if _t:
                                                 ATTR.set(mLoftCurve.mNode,'translate',_t)
-                                            if _p:
+                                            elif _p:
                                                 mLoftCurve.p_position = _p
                                             
                                 for i,d_sub in _subShapers.iteritems():
@@ -3840,10 +3841,10 @@ def blockDat_load(self, blockDat = None,
                                     _p = d_sub.get('p')
                                     
                                     for ii,mObj in enumerate(ml_subs):
-                                        mObj.p_position = _p[0]                                    
-                                        #ATTR.set(mObj.mNode,'t',_t[ii])
-                                        ATTR.set(mObj.mNode,'r',_r[0])
-                                        ATTR.set(mObj.mNode,'s',_s[0])
+                                        #mObj.p_position = _p[0]                                    
+                                        ATTR.set(mObj.mNode,'t',_t[ii])
+                                        ATTR.set(mObj.mNode,'r',_r[ii])
+                                        ATTR.set(mObj.mNode,'s',_s[ii])
                                     
                                     
                                 
@@ -3854,7 +3855,8 @@ def blockDat_load(self, blockDat = None,
                         #else:
                             #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
         #pprint.pprint(vars())
-        
+    
+    #Prerig ==============================================================================================
     if _target_state_idx >= 2:
         log.info("|{0}| >> prerig dat....".format(_str_func))
         if _current_state_idx < 2:
@@ -3865,7 +3867,7 @@ def blockDat_load(self, blockDat = None,
             log.info("|{0}| >> Pushing to prerig....".format(_str_func))
             self.p_blockState = 2
         
-        if not currentOnly or _onlyState == 'prerig':
+        if not _onlyState or _onlyState == 'prerig':
         
             if mMirror:
                 log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
@@ -4236,7 +4238,7 @@ def controls_get(self,define = False, template = False, prerig= False):
                 log.debug("|{0}| >> ... has orient helper".format(_str_func))
                 addMObj(mObj.orientHelper)
             if mObj.getMessage('jointHelper'):
-                log.debug("|{0}| >> has joint helper...".format(_str_func))                                                    
+                log.debug("|{0}| >> has joint helper...".format(_str_func))
                 addMObj(mObj.jointHelper)
         
         def addPivotHelper(mPivotHelper):
@@ -6189,6 +6191,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             #                              direction = 'z+', size = _sizeSub)
             mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
             mHandle.p_parent = mParentNull
+            mHandle.doSnapTo(self.mNode)
             CORERIG.override_color(_crv, _dtmp['color'])
         
             if k not in ['end']:
@@ -6248,6 +6251,19 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                  aimVector = [0,0,-1], upVector = [0,0,0], 
                                  worldUpType = 'none')"""
                         
+                        
+            if k == 'lever':#Arrow ---------------------------------------------
+                _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                direction = 'y+', size = _sizeSub)
+                CORERIG.override_color(_arrow, _dtmp['color'])
+            
+                mArrow = cgmMeta.cgmObject(_arrow)
+                mArrow.p_parent = mHandle
+                mArrow.resetAttrs()
+                mArrow.ty = _sizeSub * 3.0
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)
+ 
             #Helper --------------------------------------------------------------------------------
             if _dtmp.get('vectorLine') !=False:
                 _crv = CORERIG.create_at(create='curveLinear', 
@@ -6496,6 +6512,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             
             for tag,mHandle in md_handles.iteritems():
+                if tag in ['lever']:
+                    continue
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
 
@@ -6538,6 +6556,9 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
             
     log.debug("|{0}| >>  baseAim: {1}".format(_str_func,baseAim))
     
+    #vBaseAim = MATH.Vector3(baseAim[0],baseAim[1],baseAim[2]) 
+    #vBaseAim = MATH.transform_direction(self.mNode,vBaseAim)
+    #log.debug("|{0}| >>  baseAim transformed: {1}".format(_str_func,vBaseAim))
     
     try:mDefineEndObj = self.defineEndHelper
     except:
@@ -6550,7 +6571,7 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     #Meat ==================================================
     log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*40)
     pos_self = self.p_position
-    pos = DIST.get_pos_by_vec_dist(pos_self, baseAim, baseSize[2])
+    pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,baseAim), baseSize[2])
     
     mDefineEndObj.p_position = pos
     
@@ -6568,7 +6589,7 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
             mHandle = self.getMessageAsMeta('define{0}Helper'.format(k.capitalize()))
             if mHandle:
                 log.debug("|{0}| >>  mHandle: {1}".format(_str_func,mHandle))
-                mHandle.p_position = DIST.get_pos_by_vec_dist(pos_self, vec, baseSize[1])
+                mHandle.p_position = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec), baseSize[1])
             else:
                 log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
     

@@ -61,6 +61,8 @@ from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 reload(UISNAPCALLS)
 import cgm.core.lib.arrange_utils as ARRANGE
+import cgm.core.tools.lightStudio as LIGHTSTUDIO
+reload(LIGHTSTUDIO)
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
