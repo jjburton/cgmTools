@@ -322,12 +322,14 @@ l_attrsStandard = ['side',
                    'numJoints',
                    'ikOrientToWorld',
                    #'buildProfile',
-                   'numSpacePivots',
+                   'numSpacePivots',                   
                    'scaleSetup',
                    'offsetMode',
                    'ribbonParam',
                    'proxyDirect',
+                   'proxyGeoRoot',                   
                    #'settingsPlace',
+                   'spaceSwitch_direct',                   
                    'settingsDirection',
                    'moduleTarget']
 
@@ -349,7 +351,6 @@ d_attrsToMake = {'visMeasure':'bool',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
-                 'spaceSwitch_direct':'bool',
                  'templateAim':'toEnd:chain',
                  #'nameIter':'string',
                  #'numControls':'int',
@@ -380,7 +381,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numSpacePivots':2,
-                     
+                     'proxyGeoRoot':1,                     
                      'ikBase':'cube',
                      'ikEnd':'cube',
                      'ikOrientToWorld':True,
@@ -4115,18 +4116,15 @@ def rig_cleanUp(self):
             if not mParent.hasAttr('cgmAlias'):
                 mParent.addAttr('cgmAlias','{0}_rig{1}_base'.format(mObj.cgmName,i))
             ml_targetDynParents.insert(0,mParent)
-            
             ml_targetDynParents.extend(ml_endDynParents)
             
-            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode)
-            mDynGroup.dynMode = 2
-            
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode,dynMode=0)
+            #mDynGroup.dynMode = 2
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
-            
             mDynGroup.rebuild()
             
-            mDynGroup.dynFollow.p_parent = mRoot
+            #mDynGroup.dynFollow.p_parent = mRoot
     
     #...fk controls ====================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func)+'-'*80)                
@@ -4283,7 +4281,31 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
                 return _bfr
         
     # Create ---------------------------------------------------------------------------
-    ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
+    #ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
+    
+    # Create ---------------------------------------------------------------------------
+    _extendToStart = True
+    _ballBase = False
+    _ballMode = False
+    if mBlock.proxyGeoRoot:
+        _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+        _ballBase=True
+        
+    """
+    _ballMode = 'sdf'#loft
+    _ballBase = True
+    if _blockProfile in ['finger','thumb']:
+        _ballMode = 'loft'
+    if _blockProfile in ['wingBase']:
+        _ballBase = False"""
+        
+    ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
+                                                                 ml_rigJoints,
+                                                                 firstToStart=True,
+                                                                 ballBase = _ballBase,
+                                                                 ballMode = _ballMode,
+                                                                 extendToStart=_extendToStart),
+                                             'cgmObject')    
     
     
     if directProxy:

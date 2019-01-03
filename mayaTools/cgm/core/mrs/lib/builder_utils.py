@@ -2282,17 +2282,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .8)
                     pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
                     
-                    DIST.offsetShape_byVector(root,-_offset)
+                    #DIST.offsetShape_byVector(root,-_offset)
                     mid1 = mc.duplicate(root)[0]
-                    ATTR.set(mid1,'scale',.9)
+                    ATTR.set(mid1,'scale',.8)
                     mid2 = mc.duplicate(root)[0]
-                    ATTR.set(mid2,'scale',.65)                
+                    ATTR.set(mid2,'scale',.7)                
                     end = mc.duplicate(root)[0]
                     ATTR.set(end,'scale',.1)
                     
                     #DIST.offsetShape_byVector(end,-_offset)
                     
-    
                     TRANS.position_set(mid1,pSet1)
                     TRANS.position_set(mid2,pSet2)
                     TRANS.position_set(end,pSet3)

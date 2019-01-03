@@ -763,6 +763,8 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
         cgmGEN.cgmException(Exception,err)
 
 def delete(self):
+    _d_delete = {4:rigDelete,
+                 3:skeleton_delete}
     _str_func = 'delete'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     _int_state,_state = BLOCKGEN.validate_stateArg(self.blockState)
@@ -772,6 +774,10 @@ def delete(self):
     for i in _range:
         try:
             int_state,state = BLOCKGEN.validate_stateArg(i)
+            _subCall = _d_delete.get(int_state)
+            if _subCall:
+                log.info("|{0}| >> Found subcall: {1}".format(_str_func,state))                  
+                _subCall(self)
             d_links = get_stateLinks(self, state)
             log.info("|{0}| >> links {1} | {2}".format(_str_func,i,d_links))  
             msgDat_delete(self,d_links)
@@ -4999,7 +5005,6 @@ def rigDelete(self):
             if _bfr:
                 log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
                 mc.delete([mObj.mNode for mObj in _bfr])
-
             mFaceSet = mRigNull.getMessageAsMeta('faceSet')
             
             #Rig nodes....
@@ -5011,7 +5016,7 @@ def rigDelete(self):
                     log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))
                     continue
                 try:
-                    #log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
+                    log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
                     mNode.delete()
                 except:pass
                     #log.debug("|{0}| >> failed...".format(_str_func,mNode)) 

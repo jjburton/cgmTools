@@ -98,7 +98,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'nameIter':'string',
                    'numControls':'int',
                    'numJoints':'int',
-                   'numRoll':'int',                   
+                   'numRoll':'int',
                    'numShapers':'int',
                    'numSpacePivots':'int',
                    'hasLeverJoint':'bool',
@@ -125,12 +125,12 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'ribbonParam': 'fixed:floating:blend',
                    'segmentMidIKControl':'bool',
-                   
-                   
+                   'spaceSwitch_direct':'bool',
                    'scaleSetup':'bool',
                    'settingsPlace':'start:end',
                    'settingsDirection':'up:down:out:in',
                    'proxyDirect':'bool',
+                   'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh'}
 
 _l_pivotOrder = ['center','back','front','left','right']

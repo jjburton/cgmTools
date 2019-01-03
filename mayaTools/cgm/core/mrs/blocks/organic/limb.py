@@ -398,7 +398,8 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'segmentMidIKControl',
-
+                   'spaceSwitch_direct',
+                   'proxyGeoRoot',
                    'proxyDirect',
                    'numShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
@@ -454,7 +455,7 @@ d_defaultSettings = {'version':__version__,
                      'nameList':['',''],
                      'blockProfile':'leg',
                      'attachPoint':'base',
-                     
+                     'proxyGeoRoot':1,
                      'buildSpacePivots':True,
                      
                      'squashMeasure':'arcLength',
@@ -7220,31 +7221,30 @@ def rig_cleanUp(self):
      
             pass
     
-    """
+    
     #...rigjoints =================================================================================================
-    log.debug("|{0}| >>  Direct...".format(_str_func))                
-    for i,mObj in enumerate(mRigNull.msgList_get('rigJoints')):
-        log.debug("|{0}| >>  Direct: {1}".format(_str_func,mObj))                        
-        ml_targetDynParents = copy.copy(ml_baseDynParents)
-        ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta=True) or [])
-        
-        mParent = mObj.masterGroup.getParent(asMeta=True)
-        if not mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias','{0}_rig{1}_base'.format(mObj.cgmName,i))
-        ml_targetDynParents.insert(0,mParent)
-        
-        ml_targetDynParents.extend(ml_endDynParents)
-        
-        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode)
-        mDynGroup.dynMode = 2
-        
-        for mTar in ml_targetDynParents:
-            mDynGroup.addDynParent(mTar)
-        
-        mDynGroup.rebuild()
-        
-        mDynGroup.dynFollow.p_parent = mRoot
-    """
+    if mBlock.spaceSwitch_direct:
+        log.debug("|{0}| >>  Direct...".format(_str_func))                
+        for i,mObj in enumerate(mRigNull.msgList_get('rigJoints')):
+            log.debug("|{0}| >>  Direct: {1}".format(_str_func,mObj))                        
+            ml_targetDynParents = copy.copy(ml_baseDynParents)
+            ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta=True) or [])
+            
+            mParent = mObj.masterGroup.getParent(asMeta=True)
+            if not mParent.hasAttr('cgmAlias'):
+                mParent.addAttr('cgmAlias','{0}_rig{1}_base'.format(mObj.cgmName,i))
+            ml_targetDynParents.insert(0,mParent)
+            ml_targetDynParents.extend(ml_endDynParents)
+            
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode,dynMode=0)
+            
+            for mTar in ml_targetDynParents:
+                mDynGroup.addDynParent(mTar)
+            
+            mDynGroup.rebuild()
+            
+            #mDynGroup.dynFollow.p_parent = mRoot
+    
     
     #...fk controls =================================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func))                
@@ -7486,18 +7486,30 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
     # Create ---------------------------------------------------------------------------
     _extendToStart = True
+    _blockProfile = mBlock.blockProfile
+    _ballBase = False
+    _ballMode = False
+    if mBlock.proxyGeoRoot:
+        _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+        _ballBase=True
+        
     if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
         _extendToStart = False
+        
+    """
     _ballMode = 'sdf'#loft
     _ballBase = True
-    if mBlock.blockProfile in ['wingBase']:
-        _ballBase = False
+    if _blockProfile in ['finger','thumb']:
+        _ballMode = 'loft'
+    if _blockProfile in ['wingBase']:
+        _ballBase = False"""
+        
     ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
                                                                  ml_rigJoints,
                                                                  ballBase = _ballBase,
                                                                  ballMode = _ballMode,
                                                                  extendToStart=_extendToStart),
-                                             'cgmObject')    
+                                             'cgmObject')
     
     
     #Proxyhelper-----------------------------------------------------------------------------------

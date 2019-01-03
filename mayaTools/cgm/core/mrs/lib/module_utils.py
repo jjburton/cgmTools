@@ -55,6 +55,7 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
+import cgm.core.rig.general_utils as RIGGEN
 
 l_faceModules = ['eyebrow','eyelids','eyeball','mouthNose','simpleFace']
 
@@ -477,7 +478,11 @@ def rig_reset(self,):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:
-        self.rigNull.moduleSet.reset()
+        _sel = mc.ls(os=True) or []
+        self.rigNull.moduleSet.select()
+        RIGGEN.reset_channels_fromMode(self.var_resetMode.value)
+        if _sel:
+            mc.select(_sel)
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
     

@@ -175,6 +175,8 @@ l_attrsStandard = ['side',
                    'scaleSetup',
                    #'offsetMode',
                    'proxyDirect',
+                   'proxyGeoRoot',
+                   'spaceSwitch_direct',                   
                    'settingsDirection',
                    'moduleTarget',]
 
@@ -223,13 +225,14 @@ d_defaultSettings = {'version':__version__,
                      'squash':'simple',
                      'squashFactorMax':1.0,
                      'squashFactorMin':1.0,
-                 
+                     
                      'segmentMidIKControl':True,
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stable',
                      'ikOrientToWorld':True,
                      'proxyShape':'cube',
+                     'proxyGeoRoot':1,
                      'nameList':['neck','head'],#...our datList values
                      'proxyType':'geo'}
 
@@ -3647,7 +3650,7 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         
     #...rigJoints =================================================================================
-    """
+    
     if mBlock.spaceSwitch_direct:
         log.debug("|{0}| >>  Direct...".format(_str_func))                
         for i,mObj in enumerate(mRigNull.msgList_get('rigJoints')):
@@ -3662,15 +3665,15 @@ def rig_cleanUp(self):
     
             ml_targetDynParents.extend(ml_endDynParents)
     
-            mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mObj.mNode)
-            mDynGroup.dynMode = 2
+            mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mObj.mNode,dynMode=0)
+            #mDynGroup.dynMode = 2
     
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
     
             mDynGroup.rebuild()
     
-            mDynGroup.dynFollow.p_parent = mRoot """
+            #mDynGroup.dynFollow.p_parent = mRoot
             
     #...fk controls ============================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func)+'-'*80)                
@@ -3979,7 +3982,22 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
                 
             else:
-                ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_moduleJoints),'cgmObject')
+                # Create ---------------------------------------------------------------------------
+                _extendToStart = True
+                _ballBase = False
+                _ballMode = False
+                if mBlock.proxyGeoRoot:
+                    _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+                    _ballBase=True
+
+                ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
+                                                                             ml_rigJoints,
+                                                                             ballBase = _ballBase,
+                                                                             ballMode = _ballMode,
+                                                                             extendToStart=_extendToStart),
+                                                         'cgmObject')                
+                
+                
                 log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
                 
                 for i,mGeo in enumerate(ml_neckProxy):

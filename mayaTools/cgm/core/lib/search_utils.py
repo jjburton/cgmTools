@@ -691,6 +691,7 @@ def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=F
 
 def get_nodeSnapShot():
     _str_func = 'get_nodeSnapShot'
+    return mc.ls(l=True,dag=True)    
     return mc.ls(l=True)
     
 def get_nodeSnapShotDifferential(l):
