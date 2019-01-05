@@ -1119,7 +1119,7 @@ def uiSection_snap(parent, selection = None ):
                 ann = "Update the buffer (if exists)")    
     
     #>>Arrange ----------------------------------------------------------------------------------------
-    _arrange= mc.menuItem(parent=parent,subMenu = True,
+    _arrange= mc.menuItem(parent=parent,subMenu = True,tearOff=True,
                           l = 'Arrange',
                           ann = "Ordered layout of selected items")    
     mc.menuItem(parent=_arrange,

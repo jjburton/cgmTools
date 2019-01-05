@@ -685,7 +685,7 @@ def noTransformNull_verify(self,mode='template'):
             mNoTransformNull.doStore('cgmType',_plug)
             mNoTransformNull.doName()
     
-    
+            mNoTransformNull.dagLock()
             #mNoTransformNull.p_parent = self.prerigNull
             #mNoTransformNull.resetAttrs()
             #mNoTransformNull.setAttrFlags()

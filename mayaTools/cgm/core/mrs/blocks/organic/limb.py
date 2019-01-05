@@ -497,9 +497,13 @@ def define(self):
             log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
             mc.delete(_shapes)
             defineNull = self.getMessage('defineNull')
+            #noTransform = self.getMessage('noTransDefineNull')
             if defineNull:
                 log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
                 mc.delete(defineNull)
+            #if noTransform:
+            #    log.debug("|{0}| >>  Removing old defineNoTransformNull...".format(_str_func))
+            #    mc.delete(noTransform)
                 
         _size = self.atUtils('defineSize_get')
             
@@ -514,6 +518,7 @@ def define(self):
         mHandleFactory = self.asHandleFactory()
         self.addAttr('cgmColorLock',True,lock=True,visible=False)
         mDefineNull = self.atUtils('stateNull_verify','define')
+        #mNoTransformNull = self.atUtils('noTransformNull_verify','define')
         
         
         """
@@ -542,8 +547,98 @@ def define(self):
         if self.hasLeverJoint or self.buildLeverBase:
             _l_order.append('lever')
         
-        self.UTILS.create_defineHandles(self, _l_order, _d, _size)
+        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size)
         self.UTILS.define_set_baseSize(self)
+        md_vector = _resDefine['md_vector']
+        md_handles = _resDefine['md_handles']
+        #Rotate Plane ======================================================================
+        """
+        {'md_handles':md_handles,
+        'ml_handles':ml_handles,
+        'md_vector':md_vector,
+        'md_jointLabels':md_jointLabels}
+        """
+        #Make our curves...
+        vector_pos = md_vector['rp'].getAxisVector('y+',asEuclid = 0)
+        vector_neg = md_vector['rp'].getAxisVector('y-',asEuclid = 0)        
+        
+            
+        mStart = self
+        mEnd = md_handles['end']
+
+    
+        #Setup Loft curves and plane ----------------------------------------------------------------
+        log.debug("|{0}| >> Setup curves...".format(_str_func))                     
+
+        l_crvs = []
+        ml_crvs = []
+        
+        
+        for i,mObj in enumerate([mStart,mEnd]):
+            crv =   mc.curve (d=1, ep = [DIST.get_pos_by_vec_dist([0,0,0], [1,0,0], .5),
+                                         DIST.get_pos_by_vec_dist([0,0,0], [-1,0,0], .5)],
+                                   os=True)
+            log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            
+            mCrv = cgmMeta.validateObjArg(crv,setClass=True)#mObj.doCreateAt()
+            #CORERIG.shapeParent_in_place(mCrv.mNode,crv,False)
+            ml_crvs.append(mCrv)
+            
+            
+            if mObj == mStart:
+                mTarget = mEnd
+                _aim = [0,0,1]
+                _tag = 'start'
+            else:
+                mTarget = mStart
+                _aim = [0,0,-1]
+                _tag = 'end'
+                
+            mc.pointConstraint(mObj.mNode, mCrv.mNode,maintainOffset = False)
+            mc.aimConstraint(mTarget.mNode, mCrv.mNode, maintainOffset = False,
+                                 aimVector = _aim, upVector = [1,0,0], 
+                                 worldUpObject = md_vector['rp'].mNode,
+                                 worldUpType = 'objectRotation', 
+                                 worldUpVector = [0,0,1])
+            
+            mCrv.addAttr('cgmName',_tag)
+            mCrv.addAttr('cgmType','rpLoft')
+            mCrv.doName()
+            
+            mCrv.p_parent = mDefineNull
+            
+            mEnd.doConnectOut('height', "{0}.scaleX".format(mCrv.mNode))
+            mEnd.doConnectOut('height', "{0}.scaleY".format(mCrv.mNode))
+            
+            mCrv.v=False
+            
+        _res_body = mc.loft([mCrv.mNode for mCrv in ml_crvs], o = True, d = 1, po = 1 )
+        _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+        _tessellate = _inputs[0]
+        
+        _d = {'format':2,#General
+              'polygonType':1,#'quads'
+              }
+              
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)
+        
+        mPlane = cgmMeta.validateObjArg(_res_body[0])
+        mPlane.doStore('cgmName', self)
+        mPlane.doStore('cgmType','rotatePlaneVisualize')
+        mPlane.doName()
+        
+        mPlane.p_parent = mDefineNull
+        mPlane.resetAttrs()
+        
+        mPlane.inheritsTransform = 0
+        for s in mPlane.getShapes(asMeta=True):
+            s.overrideDisplayType = 2            
+        
+        mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
+        mPlane.dagLock()
+        #Aim them...
+        #Make our loft...
         
         return
     except Exception,err:
@@ -581,8 +676,6 @@ def define(self):
                      worldUpType = 'object', 
                      worldUpVector = [0,1,0])    
 
-    
-    
     
     #Lock downs...
     mRotateGroup.setAttrFlags()
