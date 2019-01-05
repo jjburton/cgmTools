@@ -206,9 +206,13 @@ def getMClassDataFromNode(node, checkInstance=True):
     except:
         # Node has no mClass attr BUT in certain circumstances we can register
         # default node Types to Meta (HIK for example) so we need to check
-        if 'Meta%s' % cmds.nodeType(node) in RED9_META_REGISTERY.keys():
-            return 'Meta%s' % cmds.nodeType(node)
-
+        _nodetype = cmds.nodeType(node)
+        if 'Meta%s' % _nodetype in RED9_META_REGISTERY.keys():
+            return 'Meta%s' % _nodetype
+        else:
+            for key in RED9_META_REGISTERY.keys():
+                if key.lower() == _nodetype.lower():
+                    return key
 
 # def getMClassDataFromNode(node):
 #    '''
@@ -254,7 +258,7 @@ def registerMClassNodeMapping(nodeTypes=[]):
         plugin but that plugin isn't currently loaded, this now stops that type being
         generically added by any custom boot sequence.
     '''
-    baseTypes = ['network', 'objectSet', 'HIKCharacterNode', 'HIKControlSetNode']
+    baseTypes = ['network', 'objectSet', 'HIKCharacterNode', 'HIKControlSetNode', 'imagePlane']
 
     global RED9_META_NODETYPE_REGISTERY
     if nodeTypes and RED9_META_NODETYPE_REGISTERY:
@@ -1639,39 +1643,46 @@ class MetaClass(object):
         object.__setattr__(self, '_MObjectHandle', '')
         object.__setattr__(self, '_MDagPath', '')
         object.__setattr__(self, '_lastDagPath', '')  # ...NEW...stored on mNode get
-        object.__setattr__(self, '_lastUUID', '')  # . ..NEW...stored on cacheing of node
+        object.__setattr__(self, '_lastUUID', '')  # . ..NEW...stored on caching of node
         object.__setattr__(self, '_lockState', False)  # by default all mNode's are unlocked, manage this in any subclass if needed
-        object.__setattr__(self, '_forceAsMeta', False)  # force all getAttr calls to return mClass objects even for starndard Maya nodes
+        object.__setattr__(self, '_forceAsMeta', False)  # force all getAttr calls to return mClass objects even for standard Maya nodes
 
         if not node:
-            if not name:
-                name = self.__class__.__name__
             # no MayaNode passed in so make a fresh network node (default)
             if not nodeType == 'network' and nodeType not in RED9_META_NODETYPE_REGISTERY:
-                raise IOError('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeMapping(nodeTypes=["%s"]) to do so before making this node' % (nodeType, nodeType))
+                # raise IOError('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeMapping(nodeTypes=["%s"]) to do so before making this node' % (nodeType, nodeType))
+                log.debug('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeMapping(nodeTypes=["%s"]) to do so before making this node' % (nodeType, nodeType))
+                if not name: name = nodeType
+            elif not name:
+                name = self.__class__.__name__
 
-            node = cmds.createNode(nodeType, name=name)
+            # node = cmds.createNode(nodeType, name=name)
+            # self.mNode = node
+            self.mNode, _full_management = self.__createnode__(nodeType, name=name)
 
-            self.mNode = node
-            # ! MAIN ATTR !: used to know what class to instantiate.
-            self.addAttr('mClass', value=str(self.__class__.__name__), attrType='string')
-            # ! MAIN NODE ID !: used by pose systems to ID the node.
-            self.mNodeID = name
-            # ! CLASS GRP  : this is used mainly by MetaRig and other complex systems
-            # to denote a classes intended system base
-            self.addAttr('mClassGrp', value='MetaClass', attrType='string', hidden=True)
-            # ! SYSTEM ROOT : indicates that this node is the root of a system and
-            # therefore halts the 'getConnectedMetaSystemRoot' call
-            self.addAttr('mSystemRoot', value=False, attrType='bool', hidden=True)
+            if _full_management:
+                # ! MAIN ATTR !: used to know what class to instantiate.
+                self.addAttr('mClass', value=str(self.__class__.__name__), attrType='string')
 
-            if r9Setup.mayaVersion() < 2016:
-                self.addAttr('UUID', value='')  # ! Cache UUID attr which the Cache itself is in control of
+                # ! MAIN NODE ID !: used by pose systems to ID the node.
+                self.mNodeID = name
+
+                # ! CLASS GRP  : this is used mainly by MetaRig and other complex systems
+                # to denote a classes intended system base
+                self.addAttr('mClassGrp', value='MetaClass', attrType='string', hidden=True)
+                # ! SYSTEM ROOT : indicates that this node is the root of a system and
+                # therefore halts the 'getConnectedMetaSystemRoot' call
+                self.addAttr('mSystemRoot', value=False, attrType='bool', hidden=True)
+
+                if r9Setup.mayaVersion() < 2016:
+                    self.addAttr('UUID', value='')  # ! Cache UUID attr which the Cache itself is in control of
+
+                cmds.setAttr('%s.%s' % (self.mNode, 'mClass'), e=True, l=True)  # lock it
+                cmds.setAttr('%s.%s' % (self.mNode, 'mNodeID'), e=True, l=True)  # lock it
 
             log.debug('New Meta Node %s Created' % name)
             registerMClassNodeCache(self)
 
-            cmds.setAttr('%s.%s' % (self.mNode, 'mClass'), e=True, l=True)  # lock it
-            cmds.setAttr('%s.%s' % (self.mNode, 'mNodeID'), e=True, l=True)  # lock it
         else:
             self.mNode = node
 
@@ -1695,6 +1706,19 @@ class MetaClass(object):
         if autofill == 'all' or autofill == 'messageOnly':
             self.__fillAttrCache__(autofill)
 
+    def __createnode__(self, nodeType, name):
+        '''
+        overloaded method to modify the base createNode call for specific types,
+        added initially for the imagePlane support for ProPack
+
+        :return [node, management]: where node is the name of the node created and management
+            is a bool which controls the binding of the base attrs, if False we DON'T bind up the mNodeID, mClass attrs,
+            instead we rely on the nodeType.lower() being a key in the Registery as a class (ie, ImagePlane in ProPack )
+
+        :param nodeType: type of node to create
+        :param name: name of the new node
+        '''
+        return cmds.createNode(nodeType, name=name), True
 
     def __bindData__(self, *args, **kws):
         '''
@@ -3488,7 +3512,7 @@ class MetaRig(MetaClass):
 
         return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs, asMeta=asMeta, asMap=asMap, plugsOnly=plugsOnly, **kws)
 
-    def selectChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[]):
+    def selectChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], add=False):
         '''
         light wrap over the getChildren so we can more carefully manage it in some of the pro proc bindings
 
@@ -3496,13 +3520,14 @@ class MetaRig(MetaClass):
         :param mAttrs: only search connected mNodes that pass the given attribute filter (attr is at the metaSystems level)
         :param cAttrs: only pass connected children whos connection to the mNode matches the given attr (accepts wildcards)
         :param nAttrs: search returned MayaNodes for given set of attrs and only return matched nodes
+        :param add: if True add to the current selection (also works with the "shift" modifier
 
         .. note::
             the wrapper also accepts the 'Shift' modifier key, if pressed when this is called then we set the selection to 'add'
             else it's a fresh selection thats made
         '''
         nodes = self.getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs, asMeta=False, asMap=False)
-        if r9General.getModifier() == 'Shift':
+        if r9General.getModifier() == 'Shift' or add:
             cmds.select(nodes, add=True)
         else:
             cmds.select(nodes)
@@ -4180,6 +4205,14 @@ class MetaRig(MetaClass):
             * self.animCache.infoDict = gatherInfo / general secondary data block on the file and pose.
             * self.animCache.poseDict = the animation and pose data dict.
             * self.animCache.skeletonDict = the pose data dict purely for the skeleton, used in compare functions.
+
+        :param manageImagePlanes: if we're dealing with a sub-class of the Pro_MetaRig_FacialUI the restore the ImagePlane data,
+            this is a simple bool. This creates the imageplane, binds it to the facial UI, offsets it, loads the imagedata, sets the
+            width/height and frameoffset.
+
+        .. note::
+            because imagePlanes in Maya are so heavily bound to AETemplate callbacks you need to flick over to the attribute editor
+            to correctly initialize any image sequence
 
         .. note::
             **kws are passed directly into BOTH the AnimMap class and the animMap_postprocess
