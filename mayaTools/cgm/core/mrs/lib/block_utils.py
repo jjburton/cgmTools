@@ -2947,12 +2947,20 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         blockDat['baseName'] = _v
         blockDat['ud']['cgmName'] = _v
         
+        if _d['blockType'] in ['finger','thumb']:
+            log.debug("|{0}| >> Clearing nameList".format(_str_func))
+            for a in blockDat['ud'].iteritems():
+                if 'nameList' in a:
+                    blockDat['ud'].remove(a)
+            blockDat['ud']['nameList_0'] = _v            
+            
+        """
         if blockDat['ud'].get('rigSetup') in ['finger']:
             log.debug("|{0}| >> Clearing nameList".format(_str_func))
             for a in blockDat['ud'].iteritems():
                 if 'nameList' in a:
                     blockDat['ud'].remove(a)
-            blockDat['nameList_0'] = _v
+            blockDat['nameList_0'] = _v"""
             
         #changeState(mDup,'define',forceNew=True)#redefine to catch any optional created items from settings
         mDup.blockDat = blockDat

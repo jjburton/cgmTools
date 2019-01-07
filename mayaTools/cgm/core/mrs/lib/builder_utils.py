@@ -265,7 +265,7 @@ def gather_rigBlocks():
     
     mGroup = get_blockGroup()
     
-    for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock'):
+    for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network']):
         log.debug("|{0}| >> Checking: {1}".format(_str_func,mObj))
         
         if not mObj.parent:
@@ -291,7 +291,7 @@ def get_scene_blocks():
     """
     _str_func = 'get_scene_blocks'
     
-    _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
+    _l_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network'])
     
     return _l_rigBlocks
 

@@ -84,7 +84,7 @@ def get_from_scene():
     """
     _str_func = 'get_from_scene'
     
-    _ml_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
+    _ml_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network'])
     
     return _ml_rigBlocks
 
@@ -92,7 +92,7 @@ def get_scene_block_heirarchy(asMeta = True):
     _str_func = 'get_scene_block_heirarchy'
 
     _md_heirachy = {}
-    _ml_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock')
+    _ml_rigBlocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network'])
     
     for mBlock in _ml_rigBlocks:#...find our roots
         if not mBlock.p_blockParent:

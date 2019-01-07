@@ -1592,7 +1592,7 @@ def prerig(self):
     if len(_l_baseNames) < len(ml_templateHandles):
         log.debug("|{0}| >>  Not enough nameList attrs, need to generate".format(_str_func))
         #b_iterNames = True
-        baseName = _l_baseNames[0]
+        baseName = self.cgmName#_l_baseNames[0]
         _l_baseNamesNEW = []
         for i in range(len(ml_templateHandles)):
             _l_baseNamesNEW.append("{0}_{1}".format(baseName,i))
@@ -1970,9 +1970,10 @@ def skeleton_build(self, forceNew = True):
         for i,mJnt in enumerate(ml_handleJoints):
             d=copy.copy(_d_base)
             d['cgmName'] = _l_names[i]
-            mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
+            #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
             for t,v in d.iteritems():
                 mJnt.doStore(t,v)
+            mJnt.doName()
             ml_joints.append(mJnt)
             if mJnt != ml_handleJoints[-1]:
                 if _d_rollCounts.get(i):
