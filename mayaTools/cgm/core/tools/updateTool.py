@@ -351,7 +351,7 @@ def buildRow_branches(self,parent):
     mUI.MelLabel(_row,l='Choose which branch you want to use:')
     
     #>>>Settings -------------------------------------------------------------------------------------
-    _l_branches = ['stable','master','MRS','MRSWORKSHOP']
+    _l_branches = ['stable','master','MRS','MRSWORKSHOP','MRSWORKSHOPDEV']
     
 
     #cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i)

@@ -42,7 +42,7 @@ CGM_BUILDS_DAT = {}
 
 import maya.cmds as mc
 import maya.mel as mel
-_test = 'asf'
+
 def get_install_path(confirm = False,branch=_defaultBranch):
     """
     Install to this location...
