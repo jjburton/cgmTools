@@ -429,6 +429,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
     """
     
     """
+    raise DeprecationWarning,"Change to BLOCKUTILS.prerig_get_rpBasePos"
     try:
         _str_func = 'get_midIK_basePosOrient'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)

@@ -1678,7 +1678,25 @@ class ui(cgmUI.cgmGUI):
         _row.layout()
         
 
+        #Visualize ======================================================
+        log.debug("|{0}| >> Visualize ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
         
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=1)        
+        mUI.MelLabel(_row,l="Visualize: ")
+        _row.setStretchWidget( mUI.MelSeparator(_row) )        
+            
+        mc.button(parent=_row,
+                         l = 'RP Pos',
+                         ut = 'cgmUITemplate',                                    
+                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                             'atUtils', 'prerig_get_rpBasePos',
+                                             **{'markPos':1}),
+                         ann = "Create locator at the where the system thinks your rp handle will be")    
+
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()
         
         #Prerig ======================================================
         log.debug("|{0}| >> prerig ...".format(_str_func)+ '-'*40)
@@ -1709,7 +1727,7 @@ class ui(cgmUI.cgmGUI):
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
                                       **{}),
-                  ann = "Snap handles to rp plane")        
+                  ann = "Snap handles to rp plane")
         mUI.MelSpacer(_row,w=1)
         _row.layout()
         

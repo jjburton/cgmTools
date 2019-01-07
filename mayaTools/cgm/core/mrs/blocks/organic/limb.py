@@ -3247,9 +3247,10 @@ def rig_digitShapes(self):
             mKnee.doSnapTo(ml_ikJoints[1].mNode)
     
             #Get our point for knee...
-            mKnee.p_position = self.UTILS.get_midIK_basePosOrient(self,
-                                                                  self.ml_handleTargetsCulled,False)
+            #mKnee.p_position = self.UTILS.get_midIK_basePosOrient(self,
+            #                                                      self.ml_handleTargetsCulled,False)
     
+            mKnee.p_position = self.mBlock.atUtils('prerig_get_rpBasePos',self.ml_handleTargetsCulled,False)
             
             CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)
             #mc.makeIdentity(mKnee.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
@@ -4018,7 +4019,8 @@ def rig_shapes(self):
                 
                 mKnee = cgmMeta.validateObjArg(crv,setClass=True)
                 #Get our point for knee...
-                mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargetsCulled,False)
+                #mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargetsCulled,False)
+                mKnee.p_position = self.mBlock.atUtils('prerig_get_rpBasePos',self.ml_handleTargetsCulled,False)
                 mHandleFactory.color(mKnee.mNode, controlType = 'main')
         
                 mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
@@ -8021,7 +8023,9 @@ def get_handleIndices(self):
     
     if str_ikEnd in ['foot']:
         if self.hasBallJoint:
-            idx_end -=2
+            idx_end -=1
+        if self.hasEndJoint:
+            idx_end -=1
     elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
         log.debug("|{0}| >> tip setup...".format(_str_func))        
         if str_ikEnd == 'tipEnd':

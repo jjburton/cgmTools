@@ -55,6 +55,7 @@ import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.lib.locator_utils as LOC
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
@@ -6705,3 +6706,123 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
         mc.delete(_res_body + l_crvs)
         
 
+def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle=False):
+    """
+    
+    """
+    try:
+        _str_func = 'get_midIK_basePosOrient'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        
+        if ml_handles:
+            ml_use = ml_handles
+        else:
+            ml_handles = self.msgList_get('prerigHandles')
+            if not ml_handles:
+                ml_handles = self.msgList_get('templateHandles')
+            
+            #int_count = self.numControls
+            #ml_use = ml_handles[:int_count]
+            
+            
+            try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+            except:idx_start,idx_end = 0,len(ml_handles)-1
+                
+            mStart = ml_handles[idx_start]
+            mEnd = ml_handles[idx_end]
+            
+            if not idx_end == -1:
+                ml_use = ml_handles[idx_start:idx_end+1]        
+            else:
+                ml_use = ml_handles[idx_start:]        
+            
+            
+        log.debug("|{0}| >> Using: {1} : {2} | {3}".format(_str_func,idx_start,idx_end,[mObj.p_nameBase for mObj in ml_use]))
+        
+        #Mid dat... ----------------------------------------------------------------------
+        _len_handles = len(ml_use)
+        if _len_handles == 1:
+            mid=0
+            mMidHandle = ml_use[0]
+        else:
+            
+            mid = int(_len_handles)/2
+            mMidHandle = ml_use[mid]
+            
+        log.debug("|{0}| >> mid: {1}".format(_str_func,mid))
+        
+        b_absMid = False
+        if MATH.is_even(_len_handles) and not forceMidToHandle:
+            log.debug("|{0}| >> absolute mid mode...".format(_str_func,mid))
+            b_absMid = True
+            
+        #...Main vector -----------------------------------------------------------------------
+        try:mOrientHelper = self.vectorRpHelper#orientHelper
+        except Exception,err:
+            return log.warning("|{0}| >> No rp helper found: {1}".format(_str_func,self))
+        #vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
+        vec_base = MATH.get_obj_vector(mOrientHelper, 'z+')        
+        log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
+        
+        #...Get vector -----------------------------------------------------------------------
+        if b_absMid:
+            crvCubic = CORERIG.create_at(ml_use, create= 'curve')
+            pos_mid = CURVES.getMidPoint(crvCubic)
+            mc.delete(crvCubic)
+        else:
+            pos_mid = mMidHandle.p_position
+            
+        crv = CORERIG.create_at([ml_use[0].mNode,ml_use[-1].mNode], create= 'curveLinear')
+        pos_close = DIST.get_closest_point(pos_mid, crv)[0]
+        #log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))
+        vec_use = vec_base
+        if MATH.is_vector_equivalent(pos_mid,pos_close,3):
+            log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
+            vec_use = vec_base
+        else:
+            vec_use = MATH.get_vector_of_two_points(pos_close,pos_mid)
+        mc.delete(crv)
+        
+        #...Get length -----------------------------------------------------------------------
+        #dist_helper = 0
+        #if ml_use[-1].getMessage('pivotHelper'):
+            #log.debug("|{0}| >> pivotHelper found!".format(_str_func))
+            #dist_helper = max(POS.get_bb_size(ml_use[-1].getMessage('pivotHelper')))
+            
+        dist_min = DIST.get_distance_between_points(ml_use[0].p_position, pos_mid)/2.0
+        dist_base = DIST.get_distance_between_points(pos_mid, pos_close)
+        
+        #...get new pos
+        dist_use = MATH.Clamp(dist_base, dist_min, None)
+        log.debug("|{0}| >> Dist min: {1} | dist base: {2} | use: {3}".format(_str_func,
+                                                                              dist_min,
+                                                                              dist_base,
+                                                                              dist_use))
+        
+        pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
+        pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
+        
+        if markPos:
+            LOC.create(position=pos_use,name='{0}_RPPos'.format(self.p_nameBase))
+            #LOC.create(position=pos_use2,name='pos2')
+        
+        return pos_use
+        
+        pos_mid = ml_templateHandles[mid].p_position
+    
+    
+        #Get our point for knee...
+        vec_mid = MATH.get_obj_vector(ml_blendJoints[1], 'y+')
+        pos_mid = mKnee.p_position
+        pos_knee = DIST.get_pos_by_vec_dist(pos_knee,
+                                            vec_knee,
+                                            DIST.get_distance_between_points(ml_blendJoints[0].p_position, pos_knee)/2)
+    
+        mKnee.p_position = pos_knee
+    
+        CORERIG.match_orientation(mKnee.mNode, mIKCrv.mNode)    
+    
+    
+        return True
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
