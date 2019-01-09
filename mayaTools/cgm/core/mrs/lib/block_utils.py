@@ -6737,7 +6737,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
                 ml_use = ml_handles[idx_start:]        
             
             
-        log.debug("|{0}| >> Using: {1} : {2} | {3}".format(_str_func,idx_start,idx_end,[mObj.p_nameBase for mObj in ml_use]))
+            log.debug("|{0}| >> Using: {1} : {2} | {3}".format(_str_func,idx_start,idx_end,[mObj.p_nameBase for mObj in ml_use]))
         
         #Mid dat... ----------------------------------------------------------------------
         _len_handles = len(ml_use)
@@ -6803,7 +6803,10 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
         
         if markPos:
-            LOC.create(position=pos_use,name='{0}_RPPos'.format(self.p_nameBase))
+            crv = CORERIG.create_at(create='curve',l_pos= [pos_mid,pos_use])
+            crv=mc.rename(crv,'{0}_RPPos'.format(self.p_nameBase))
+            TRANS.rotatePivot_set(crv,pos_use)
+            #LOC.create(position=pos_use,name='{0}_RPPos'.format(self.p_nameBase))
             #LOC.create(position=pos_use2,name='pos2')
         
         return pos_use

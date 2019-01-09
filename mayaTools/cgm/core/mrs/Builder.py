@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.12282018'
+__version__ = '1.01082019'
 _sidePadding = 25
 
 def check_cgm():
@@ -819,14 +819,17 @@ class ui(cgmUI.cgmGUI):
                         continue
                     RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
                     
+                #if _updateUI:
+                    #self.uiUpdate_scrollList_blocks()
+                    
                 if _updateUI:
                     self.uiUpdate_scrollList_blocks()
                     
                 if args[0] not in ['delete']:
                     ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
+                    self.uiScrollList_blocks.selectByIdx(_indices[0])                
                     
-                    if _updateUI:
-                        self.uiScrollList_blocks.selectByIdx(_indices[0])
+
 
             return ml_blocks
                 
@@ -937,7 +940,6 @@ class ui(cgmUI.cgmGUI):
             
             _blockState = _mBlock.p_blockState
             _short = _mBlock.p_nameShort
-            
             if _mBlock.mNode == None:
                 log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
                 self.uiUpdate_scrollList_blocks()
@@ -960,10 +962,13 @@ class ui(cgmUI.cgmGUI):
             #>>>Special menu ---------------------------------------------------------------------------------------
             
             mBlockModule = _mBlock.p_blockModule
-            try:
+            reload(mBlockModule)
+            
+            if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
                 mBlockModule.uiBuilderMenu(_mBlock,_popUp)
                 #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
-            except:pass
+                mUI.MelMenuItemDiv(_popUp)
+                
             
             
             mUI.MelMenuItem(_popUp,
@@ -1414,14 +1419,14 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                                    
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'select',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = 'Select blocks')
         mc.button(parent=_row,
                   l = 'Verify',
                   ut = 'cgmUITemplate',                                    
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = 'Verify conextual blocks')
         
         mc.button(parent=_row,
@@ -1429,7 +1434,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','color',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = 'Recolor conextual blocks')
         
         mc.button(parent=_row,
@@ -1537,7 +1542,7 @@ class ui(cgmUI.cgmGUI):
         _row.layout()        
         
         
-        #Naming ======================================================
+        #BlcokDat ======================================================
         log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
@@ -1552,7 +1557,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'saveBlockDat',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('save blockDat'))
         mc.button(parent=_row,
                   l = 'Load',
@@ -1575,7 +1580,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'getBlockDat',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('get blockDat'))
         
         mc.button(parent=_row,
@@ -1591,7 +1596,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockDat_reset',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = self._d_ui_annotations.get('reset blockDat'))        
         
         mUI.MelSpacer(_row,w=1)
@@ -1627,14 +1632,14 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_go',
-                                      **{'mode':'push'}),
+                                      **{'mode':'push','updateUI':0}),
                   ann = 'Push setup to the mirror')
         mc.button(parent=_row,
                   l = 'Pull',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockMirror_go',
-                                      **{'mode':'pull'}),
+                                      **{'mode':'pull','updateUI':0}),
                   ann = 'pull setup to the mirror')
         mUI.MelSpacer(_row,w=5)
         
@@ -1643,14 +1648,14 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','mirror_self',
-                                      **{'primeAxis':'left'}),
+                                      **{'primeAxis':'left','updateUI':0}),
                   ann = 'Mirror self - Left Prime Axis')
         mc.button(parent=_row,
                   l = 'Self[R]',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','mirror_self',
-                                      **{'primeAxis':'right'}),
+                                      **{'primeAxis':'right','updateUI':0}),
                   ann = 'Mirror self - Righ Prime Axis')        
         mUI.MelSpacer(_row,w=1)
         _row.layout()
@@ -1671,7 +1676,7 @@ class ui(cgmUI.cgmGUI):
                   ut = 'cgmUITemplate',                                    
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils', 'define_set_baseSize',
-                                      **{}),
+                                      **{'updateUI':0}),
                   
                   ann = "Reset define dat to base")
         mUI.MelSpacer(_row,w=1)
@@ -1692,7 +1697,7 @@ class ui(cgmUI.cgmGUI):
                          ut = 'cgmUITemplate',                                    
                          c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                              'atUtils', 'prerig_get_rpBasePos',
-                                             **{'markPos':1}),
+                                             **{'markPos':1,'updateUI':0}),
                          ann = "Create locator at the where the system thinks your rp handle will be")    
 
         mUI.MelSpacer(_row,w=1)
@@ -1712,21 +1717,21 @@ class ui(cgmUI.cgmGUI):
                          ut = 'cgmUITemplate',                                    
                          c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                              'atUtils', 'prerig_snapRPtoOrientHelper',
-                                             **{}),
+                                             **{'updateUI':0}),
                          ann = "Snap rp hanlde to orient vector")    
         mc.button(parent=_row,
                   l = 'Query Indices',
                   ut = 'cgmUITemplate',                                    
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atBlockModule', 'get_handleIndices',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = "Snap handles to rp plane")
         mc.button(parent=_row,
                   l = 'Snap to RP',
                   ut = 'cgmUITemplate',                                    
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
-                                      **{}),
+                                      **{'updateUI':0}),
                   ann = "Snap handles to rp plane")
         mUI.MelSpacer(_row,w=1)
         _row.layout()

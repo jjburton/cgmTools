@@ -246,6 +246,100 @@ d_skeletonSetup = {'mode':'curveCast',
 d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 d_rotationOrders = {'head':'yxz'}
 
+
+#=============================================================================================================
+#>> UI
+#=============================================================================================================
+def headGeo_getGroup(self):
+    _str_func = 'get_headGeoGroup'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)    
+    mGroup = self.getMessageAsMeta('headGeoGroup')
+    log.info(mGroup)
+    return mGroup
+
+def headGeo_selectable(self,arg=True):
+    _str_func = 'headGeo_selectable'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))    
+    mGroup = headGeo_getGroup(self)
+    if mGroup:
+        mGroup.overrideEnabled = not arg
+
+def headGeo_add(self,arg = None):
+    _str_func = 'get_headGeoGroup'
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
+    mProxyGeoGrp = headGeo_getGroup(self)
+    ml_proxies = []
+    _side = self.UTILS.get_side(self)
+    
+    for mObj in ml_stuff:
+        mProxy = mObj.doDuplicate(po=False)
+        mProxy = cgmMeta.validateObjArg(mProxy,'cgmObject',setClass=True)
+        ml_proxies.append(mProxy)
+        #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
+        mProxy.p_parent = mProxyGeoGrp
+        self.msgList_append('headMeshProxy',mProxy,'block')
+        
+        mProxy.rename("{0}_proxyGeo".format(mProxy.p_nameBase))
+        
+        
+def headGeo_replace(self,arg = None):
+    _str_func = 'get_headGeoGroup'
+    
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
+    
+    mProxyGeoGrp = headGeo_getGroup(self)    
+    #Clean
+    ml_current = self.msgList_get('headMeshProxy')
+    for mObj in ml_current:
+        mObj.delete()
+    self.msgList_purge('headMeshProxy')
+    
+    headGeo_add(self,ml_stuff)
+    
+
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,
+                label = "Head Geo")    
+    mc.menuItem(ann = '[{0}] Report Head geo group'.format(_short),
+                c = cgmGEN.Callback(headGeo_getGroup,self),
+                label = "Report Group")
+    mc.menuItem(ann = '[{0}] Add selected to head geo proxy group'.format(_short),
+                c = cgmGEN.Callback(headGeo_add,self),
+                label = "Add selected")
+    mc.menuItem(ann = '[{0}] REPLACE existing geo with selected'.format(_short),
+                c = cgmGEN.Callback(headGeo_replace,self),
+                label = "Replace with selected")
+    
+    uiMenu_geoSelect = mc.menuItem(l='Geo Lock:', subMenu=True)
+    mc.menuItem(ann = '[{0}] Head Geo Selectable: True'.format(_short),
+                c = cgmGEN.Callback(headGeo_selectable,self,True),
+                label = "False")
+    mc.menuItem(ann = '[{0}] Head Geo Selectable: False'.format(_short),
+                c = cgmGEN.Callback(headGeo_selectable,self,False),
+                label = "True")
+    
+ 
+
+    
+    """
+    mc.menuItem(uiMenu,
+                ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),                                                    
+                c = cgmGEN.Callback(resize_masterShape,self),
+                label = "Resize")"""
+
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -502,6 +596,7 @@ def template(self):
         #_bb = DIST.get_bb_size(self.mNode,True)
         
         ATTR.connect(self.mNode + '.headRotate', mGeoProxies.mNode + '.rotate')
+        mGeoProxies.connectParentNode(self, 'rigBlock','headGeoGroup') 
         
         for i,o in enumerate(_res):
             mProxy = cgmMeta.validateObjArg(o,'cgmObject',setClass=True)
@@ -513,13 +608,15 @@ def template(self):
             mProxy.parent = mGeoProxies
             mProxy.rename('head_{0}'.format(i))
             
-            for mShape in mProxy.getShapes(asMeta=1):
-                mShape.overrideEnabled = 1
-                mShape.overrideDisplayType = 2                  
+            #for mShape in mProxy.getShapes(asMeta=1):
+                #mShape.overrideEnabled = 1
+                #mShape.overrideDisplayType = 2                  
             
         NODEFACTORY.build_conditionNetworkFromGroup(mGeoProxies.mNode,'headGeo',self.mNode)
         ATTR.set_keyable(self.mNode,'headGeo',False)
         mGeoProxies.scale = self.baseSize
+        mGeoProxies.overrideEnabled = 1
+        mGeoProxies.overrideDisplayType = 2         
         #self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
         #mc.parentConstraint([mHeadHandle.mNode],mGeoProxies.mNode,maintainOffset = True)
         

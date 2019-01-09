@@ -2250,12 +2250,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
                         vec = [-v for v in vecRaw]
+                        log.debug("|{0}| >> vector: {1}".format(_str_func,vec))                                        
                         p1 = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,position=True)#l_pos[i]                    
                     except Exception,err:
-                        vec = [1,1,1]
+                        log.debug(err)
+                        try:
+                            vec
+                            log.debug("|{0}| >> surf fail. Using last vector: {1}".format(_str_func,vec))
+                        except:
+                            if i:
+                                vec = MATH.get_vector_of_two_points(l_pos[i],l_pos[i-1])
+                            else:
+                                vec =MATH.get_vector_of_two_points(l_pos[i+1],l_pos[i])
+                                
+                            log.debug("|{0}| >> Using last vector: {1}".format(_str_func,vec))
                         p1 = l_pos[i]                    
-                        log.debug("|{0}| >> surf fail. Using last vector: {1}".format(_str_func,vec))                
-                        
                         
                     p2 = l_pos[i-1]
                     pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
@@ -2276,18 +2285,20 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
                         
                     #dMax = min([dClose,_offset*10])
-                    dMax = (mc.arclen(root)/3.14)/2
+                    dMax = (mc.arclen(root)/3.14)/3
                     
                     #dMax = dClose * .5#_offset *10
                     pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
-                    pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .8)
+                    pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .85)
                     pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
                     
+                    
                     #DIST.offsetShape_byVector(root,-_offset)
+                    ATTR.set(root,'scale',.9)                                        
                     mid1 = mc.duplicate(root)[0]
-                    ATTR.set(mid1,'scale',.8)
+                    ATTR.set(mid1,'scale',.7)
                     mid2 = mc.duplicate(root)[0]
-                    ATTR.set(mid2,'scale',.7)                
+                    ATTR.set(mid2,'scale',.5)                
                     end = mc.duplicate(root)[0]
                     ATTR.set(end,'scale',.1)
                     

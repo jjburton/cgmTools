@@ -434,7 +434,9 @@ def get(*a, **kws):
         else:
             return mc.getAttr(_combined, **kws)
     except Exception,err:
-        cgmGeneral.cgmException(Exception,err)
+        if has_attr(*a):
+            cgmGeneral.cgmException(Exception,err)
+        return False
 def set_keyframe(node, attr = None, value = None, time = None):
     """   
     Replacement for simple setKeyframe call. Necessary because Maya's doesn't allow multi attrs like translate,scale,rotate...
