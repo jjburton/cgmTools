@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.10162017'
+__version__ = '0.1.01092019'
 
 import webbrowser
 
@@ -984,6 +984,7 @@ def buildSection_rigging(self,parent):
     buildRow_attachBy(self,_inside)
     buildRow_skinDat(self,_inside)
     buildRow_SDK(self,_inside)
+    buildRow_cleanNodes(self,_inside)
     
     
 def buildSection_color(self,parent):
@@ -1747,6 +1748,23 @@ def buildRow_SDK(self,parent):
               ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
               c=lambda *a: mel.eval('seShapeTaper'),)   
 
+    mUI.MelSpacer(_row,w=5)                      
+    _row.layout()   
+    
+def buildRow_cleanNodes(self,parent):
+    #>>>Match mode -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)                      
+    mUI.MelLabel(_row,l='Clean Nodes:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    mc.button(parent = _row,
+              ut = 'cgmUITemplate',                                                                                                
+              l='Mental Ray',
+              ann = "Clean Mental Ray nodes",                                                        
+              c=lambda *a:NODES.renderer_clean('Mayatomr',True))
+ 
     mUI.MelSpacer(_row,w=5)                      
     _row.layout()   
 

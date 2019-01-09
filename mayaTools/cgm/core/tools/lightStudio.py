@@ -38,7 +38,7 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
-d_profiles = {'default':{'back': {'dag': {'orient': [-144.58960250011384,
+d_profiles = {'modeling1':{'back': {'dag': {'orient': [-144.58960250011384,
                                                       2.2004948103566293,
                                                       -5.614774127338882],
                                            'position': [1.2204236414501435,

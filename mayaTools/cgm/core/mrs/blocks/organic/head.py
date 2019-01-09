@@ -257,13 +257,15 @@ def headGeo_getGroup(self):
     log.info(mGroup)
     return mGroup
 
-def headGeo_selectable(self,arg=True):
+def headGeo_lock(self,arg=None):
     _str_func = 'headGeo_selectable'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))    
     mGroup = headGeo_getGroup(self)
     if mGroup:
-        mGroup.overrideEnabled = not arg
+        if arg is None:
+            arg = not mGroup.overrideEnabled
+        mGroup.overrideEnabled = arg
 
 def headGeo_add(self,arg = None):
     _str_func = 'get_headGeoGroup'
@@ -323,13 +325,11 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(headGeo_replace,self),
                 label = "Replace with selected")
     
-    uiMenu_geoSelect = mc.menuItem(l='Geo Lock:', subMenu=True)
-    mc.menuItem(ann = '[{0}] Head Geo Selectable: True'.format(_short),
-                c = cgmGEN.Callback(headGeo_selectable,self,True),
-                label = "False")
-    mc.menuItem(ann = '[{0}] Head Geo Selectable: False'.format(_short),
-                c = cgmGEN.Callback(headGeo_selectable,self,False),
-                label = "True")
+    mc.menuItem(ann = '[{0}] Head Geo Lock'.format(_short),
+                c = cgmGEN.Callback(headGeo_lock,self,None),
+                label = "Toggle Lock")
+    
+
     
  
 
