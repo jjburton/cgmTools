@@ -6824,11 +6824,11 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         pos_close = DIST.get_closest_point(pos_mid, crv)[0]
         #log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))
         vec_use = vec_base
-        if MATH.is_vector_equivalent(pos_mid,pos_close,3):
-            log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
-            vec_use = vec_base
-        else:
-            vec_use = MATH.get_vector_of_two_points(pos_close,pos_mid)
+        #if MATH.is_vector_equivalent(pos_mid,pos_close,3):
+        #    log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
+        #    vec_use = vec_base
+        #else:
+        #    vec_use = MATH.get_vector_of_two_points(pos_close,pos_mid)
         mc.delete(crv)
         
         #...Get length -----------------------------------------------------------------------
@@ -6854,6 +6854,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
             crv = CORERIG.create_at(create='curve',l_pos= [pos_mid,pos_use])
             crv=mc.rename(crv,'{0}_RPPos'.format(self.p_nameBase))
             TRANS.rotatePivot_set(crv,pos_use)
+            CORERIG.override_color(crv,'white')
             #LOC.create(position=pos_use,name='{0}_RPPos'.format(self.p_nameBase))
             #LOC.create(position=pos_use2,name='pos2')
         
