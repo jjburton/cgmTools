@@ -1506,6 +1506,26 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=1)
         _row.layout()
         
+        #Side ======================================================
+        log.debug("|{0}| >> side ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="Set Side: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        for i,side in enumerate(['none','left','right','center']):
+            mc.button(parent=_row,
+                              l = side,
+                              ut = 'cgmUITemplate',
+                              c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                  'atUtils','set_side',side,
+                                                  **{}))
+
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()                
+        
         #Naming ======================================================
         log.debug("|{0}| >> naming ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -1530,8 +1550,29 @@ class ui(cgmUI.cgmGUI):
                                       'atUtils','set_position',
                                       **{'ui':True}),
                   ann = 'Set the position tag of the block and rename dags')
+        
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()        
+        
+        #NameList ======================================================
+        log.debug("|{0}| >> NameList ...".format(_str_func)+ '-'*40)
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="Name List: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        
         mc.button(parent=_row,
-                  l = 'NameList',
+                  l = 'Reset to Profile',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','nameList_resetToProfile',
+                                      **{}),
+                  ann = 'Reset the name list to the profile')
+        mc.button(parent=_row,
+                  l = 'Iter from base name',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','set_nameListFromName',
@@ -1539,8 +1580,7 @@ class ui(cgmUI.cgmGUI):
                   ann = 'Set nameList values from name attribute')        
         
         mUI.MelSpacer(_row,w=1)
-        _row.layout()        
-        
+        _row.layout()                
         
         #BlcokDat ======================================================
         log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)

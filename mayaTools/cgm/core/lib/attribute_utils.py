@@ -2958,6 +2958,7 @@ def msgList_append(node = None, attr = None, data = None, connectBack = None,dat
         set_message(_data, connectBack, node, dataAttr)
     return _res
 
+
 def datList_append(node = None, attr = None, data = None, mode = None, dataAttr = None):
     """   
     Append datList.
@@ -2994,6 +2995,49 @@ def datList_append(node = None, attr = None, data = None, mode = None, dataAttr 
     
     return _idx
 
+def datList_setByIndex(node = None, attr = None, data = None, mode = None, dataAttr=None, indices=None):
+    """   
+    Set datList value by index.
+    
+    :parameters:
+        node(str) -- 
+        attr(str) -- base name for the datList. becomes attr_0,attr_1,etc...
+        indices(ints) -- indexes you want removed
+    :returns
+        status(bool)
+    """
+    _str_func = 'datList_setByIndex'    
+    _indices = VALID.listArg(indices)
+    d_attrs = get_sequentialAttrDict(node,attr)
+    
+    if dataAttr is None:
+        dataAttr = "{0}_datdict".format(attr)
+
+    
+    log.debug("|{0}| >> node: {1} | attr: {2} | indices: {3}".format(_str_func,node,attr,_indices))
+    
+    for i in d_attrs.keys():
+        if i in _indices:
+            log.warning("|{0}| >> Setting... | idx: {1} | attr: {2}".format(_str_func,i,d_attrs[i]))
+            
+            if mode == 'message':
+                set_message(node,d_attrs[i],data,dataAttr=dataAttr)
+
+                
+            else:
+                _plug = get_driven(node,d_attrs[i]) or False
+                store_info(node, d_attrs[i], data, mode)
+                if _plug:
+                    for p in _plug:
+                        try:
+                            connect("{0}.{1}".format(node,d_attrs[i]), p)
+                        except Exception,err:
+                            log.warning("|{0}| >> Failed to reconnect {1} | driven: {2} | err: {3}".format(_str_func, str_attr,p,err ))
+            
+    
+    return True
+msgList_removeByIndex = datList_removeByIndex
+
 def datList_removeByIndex(node = None, attr = None, indices = None):
     """   
     Append datList.
@@ -3017,7 +3061,7 @@ def datList_removeByIndex(node = None, attr = None, indices = None):
             delete(node,d_attrs[i])
     
     return True
-msgList_removeByIndex = datList_removeByIndex   
+msgList_removeByIndex = datList_removeByIndex
   
 def msgList_remove(node = None, attr = None, data = None, dataAttr = None):
     return datList_remove(node,attr,VALID.mNodeString(data),'message',dataAttr)

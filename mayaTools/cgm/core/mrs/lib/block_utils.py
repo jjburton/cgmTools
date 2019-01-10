@@ -60,6 +60,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.classes.DraggerContextFactory as DRAGFACTORY
 
+reload(ATTR)
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -379,7 +380,7 @@ def set_side(self,side=None):
         _str_func = 'set_side'
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        if side is None:
+        if str(side).lower() in ['none']:
             side = 0
         try:
             ATTR.set(_short,'side',side)
@@ -5477,6 +5478,53 @@ def getState(self, asString = True, fastCheck=True):
     
     
 #Profile stuff ==============================================================================================
+def nameList_resetToProfile(self,arg = None):
+    try:
+        _str_func = 'nameList_resetToProfile'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        if arg is None:
+            arg = self.getMayaAttr('blockProfile')
+        log.debug("|{0}| >>  arg: {1}".format(_str_func,arg))
+        
+        mBlockModule = self.p_blockModule
+        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        reload(mBlockModule)
+        l_nameList_current = self.datList_get('nameList')
+        log.debug("|{0}| >>  current: {1}".format(_str_func,l_nameList_current))
+        l_nameList = []
+        try:
+            l_nameList =  mBlockModule.d_block_profiles[arg]['nameList']
+            log.debug("|{0}| >>  Found on profile: {1}".format(_str_func,l_nameList))
+        except Exception,err:
+            try:
+                l_nameList =  mBlockModule.d_defaultSettings['nameList']
+                log.debug("|{0}| >>  Found on module: {1}".format(_str_func,l_nameList))
+            except Exception,err:
+                pass
+        
+        if not l_nameList:
+            return log.error("|{0}| >>  No nameList dat found: {1}".format(_str_func,arg))
+        
+        if l_nameList == l_nameList_current:
+            log.debug("|{0}| >>  Lists already match".format(_str_func,l_nameList))
+            return True
+            
+        if len(l_nameList) == len(l_nameList_current):
+            log.debug("|{0}| >>  Lists lengths match".format(_str_func,l_nameList))
+            for i,n in enumerate(l_nameList):
+                if n != l_nameList_current[i]:
+                    ATTR.datList_setByIndex(self.mNode, 'nameList', n, 'string',indices=i)
+        else:
+            if getState(self,False)>1:
+                return log.error("|{0}| >>  nameLists don't match and higher than template state. Please go to template state before resetting".format(_str_func,self.p_nameShort))
+            else:
+                self.datList_connect('nameList', l_nameList, mode='string')
+        log.debug("|{0}| >>  New: {1}".format(_str_func,self.datList_get('nameList')))
+        return l_nameList
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+
 def blockProfile_getOptions(self):
     try:
         _str_func = 'blockProfile_getOptions'
