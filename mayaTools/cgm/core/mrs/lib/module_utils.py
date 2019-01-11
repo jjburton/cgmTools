@@ -1162,7 +1162,8 @@ def get_mirrorDat(self):
 
 def mirror_verifySetup(self, d_Indices = {},
                        l_processed = None,
-                       md_data = None):
+                       md_data = None,
+                       progressBar = None,progressEnd=True):
     _str_func = ' mirror_verifySetup'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -1226,6 +1227,9 @@ def mirror_verifySetup(self, d_Indices = {},
     d_mirror = {}
     if d_self.get('mMirror'):
         d_mirror = get_mirrorDat(d_self.get('mMirror'))
+        
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)    
     
     if not d_mirror:
         log.debug("|{0}| >> No mirror found...".format(_str_func))
@@ -1234,8 +1238,14 @@ def mirror_verifySetup(self, d_Indices = {},
         validate_controls(d_self['ml_controls'])
         log.info(cgmGEN._str_subLine)
         _v = None
-        
+        int_len = len(d_self['ml_controls'])
         for i,mObj in enumerate(d_self['ml_controls']):
+            if progressBar:
+                cgmUI.progressBar_set(progressBar,
+                                      minValue = 0,
+                                      maxValue=int_len,
+                                      step=i, vis=True)
+                
             _side = mObj.getEnumValueString('mirrorSide')
             i_start = d_Indices[_side]
             _v = i_start+1
@@ -1246,6 +1256,9 @@ def mirror_verifySetup(self, d_Indices = {},
             
         if l_processed is not None:l_processed.append(self)
         d_Indices[d_self['str_side']] = _v
+        
+        if progressBar and progressEnd:cgmUI.progressBar_end(progressBar)
+            
         return md_indicesToControls
     
     else:
@@ -1276,6 +1289,12 @@ def mirror_verifySetup(self, d_Indices = {},
             ml_cull = copy.copy(ml_secondControls)
             
             for i,mObj in enumerate(ml_primeControls):
+                if progressBar:
+                    cgmUI.progressBar_set(progressBar,
+                                          minValue = 0,
+                                          maxValue=len(ml_primeControls),
+                                          step=i, vis=True)
+                    
                 _side = mObj.getEnumValueString('mirrorSide')                
                 i_start = d_Indices[_side]
                 _v = i_start+1
@@ -1322,7 +1341,7 @@ def mirror_verifySetup(self, d_Indices = {},
                 d_Indices[_side] = _v#...push it back                
                 md_indicesToControls[_side][_v] = mObj
                 
-                    
+                
             
             
             """
@@ -1349,6 +1368,8 @@ def mirror_verifySetup(self, d_Indices = {},
             #d_Indices[d_self['str_side']] = i_running
             #d_Indices[d_mirror['str_side']] = i_running
             
+        if progressBar and progressEnd:cgmUI.progressBar_end(progressBar)
+        
         if l_processed is not None:l_processed.extend([self,mMirror])
         return md_indicesToControls
         

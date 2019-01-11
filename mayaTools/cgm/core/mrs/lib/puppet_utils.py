@@ -50,7 +50,8 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
-
+from cgm.core.classes import GuiFactory as cgmUI
+reload(cgmUI)
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
@@ -191,7 +192,7 @@ def is_upToDate(self,report = True):
 #>> Mirror
 #=============================================================================================================
 @cgmGEN.Timer
-def mirror_verify(self):
+def mirror_verify(self,progressBar = None,progressEnd=True):
     """
     Verify the mirror setup of the puppet modules
     """
@@ -209,11 +210,24 @@ def mirror_verify(self):
     ml_modules = modules_get(self)
     int_lenModules = len(ml_modules)
     
-    for i,mModule in enumerate(ml_modules):
-        try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes, ml_processed)
-        except Exception,err:
-            log.error(err)
     
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+        
+    for i,mModule in enumerate(ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=int_lenModules+1,
+                                  step=i, vis=True)
+        try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes,
+                                             ml_processed,
+                                             progressBar = progressBar,progressEnd=False)
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
     
     return
     
@@ -859,7 +873,7 @@ def groups_verify(self):
                 
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
-def collect_worldSpaceObjects(self):
+def collect_worldSpaceObjects(self,progressBar = None):
     _str_func = 'collect_worldSpaceObjects'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)    
@@ -868,15 +882,41 @@ def collect_worldSpaceObjects(self):
     mWorldSpaceObjectsGroup = mMasterNull.worldSpaceObjectsGroup
     mPuppetSpaceObjectsGroup = mMasterNull.puppetSpaceObjectsGroup
     
-    for mObj in self.masterControl.getChildren(asMeta = 1):
+
+        
+    ml_children = self.masterControl.getChildren(asMeta = 1) or []
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+        len_children = len(ml_children)
+    for i,mObj in enumerate(ml_children):
+        if progressBar:
+            #mc.progressBar(progressBar,edit = True,
+            #               minValue = 0,
+            #               maxValue=len_children,step=i, vis=True)
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=len_children+1,
+                                  step=i, vis=True)
+            time.sleep(.01)
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
             mObj.parent = mPuppetSpaceObjectsGroup
             ml_objs.append(mObj)
-    for mObj in mMasterNull.getChildren(asMeta = 1):
+            
+    ml_children = mObj in mMasterNull.getChildren(asMeta = 1) or []
+    if progressBar:
+        len_children = len(ml_children)
+    for i,mObj in enumerate(ml_children):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=len_children+1,
+                                  step=i,vis=True)
+            time.sleep(.01)
+            
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
             mObj.parent = mWorldSpaceObjectsGroup     
             ml_objs.append(mObj)
-            
+    if progressBar:cgmUI.progressBar_end(progressBar)
     return ml_objs
 
 def get_joints(self,mode='bind'):

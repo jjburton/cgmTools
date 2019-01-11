@@ -62,7 +62,6 @@ for m in BLOCKGEN,BLOCKSHARE,SHARED,CONTEXT:
     reload(m)
 _d_blockTypes = {}
 
-
 # Factory 
 #=====================================================================================================
 import cgm.core.classes.GuiFactory as cgmUI
@@ -73,11 +72,236 @@ __version__ = '1.01082019'
 _sidePadding = 25
 
 def check_cgm():
+    return
     try:
         cgmMeta.cgmNode(nodeType='decomposeMatrix').delete()
     except:
         import cgm
         cgm.core._reload()
+        
+        
+class ui_post(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmBuilderPost'    
+    WINDOW_TITLE = 'cgmBuilder | Post | - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,200
+    
+    _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
+    def __init__(self,mPuppet = None, *a,**kws):
+        self.mPuppet = cgmMeta.validateObjArg(mPuppet,'cgmRigPuppet',True)
+        super(ui_post, self).__init__(*a,**kws)
+        
+    def insert_init(self,*args,**kws):
+        _str_func = 'post_win.insert_init'
+        #kws = self.kws
+        #args = self.args
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        #log.debug(self.__call__(q=True, title=True))
+        
+        self.__version__ = __version__
+        self.__toolName__ = 'Builder'		
+        self.WINDOW_TITLE = post_win.WINDOW_TITLE
+        self.DEFAULT_SIZE = post_win.DEFAULT_SIZE
+
+        #self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0)
+        #self.create_guiOptionVar('blockSharedFrameCollapse',defaultValue = 0)
+        #self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
+        #self.create_guiOptionVar('blockMasterFrameCollapse',defaultValue = 0) 
+        #self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0) 
+        
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                    defaultValue = 'unityMed')
+                
+        
+    def build_menus(self):pass
+    
+    def uiFunc_process(self):
+        _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug("|{0}| >>...".format(_str_func))
+        try:
+            if not self.mPuppet:
+                return log.warning("|Post| >> No Puppet loaded")
+                
+            self.uiStatus(edit=True,vis=True,label = 'Hi...')
+            
+            l_toDo = []
+            l_order = ['Mirror Verify','Gather Space Drivers',
+                       'bakeQSS','deleteQSS','exportQSS',
+                       'isHistoricallyInteresting','proxyMesh',
+                       'connectRig',]
+            d_keyToFunction = {'Mirror Verify':'mirror_verify',
+                               'Gather Space Drivers':'collect_worldSpaceObjects',
+                               'bakeQSS':False,'deleteQSS':False,'exportQSS':False,
+                               'isHistoricallyInteresting':False,'proxyMesh':False,
+                               'connectRig':False}
+            for k in l_order:
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                
+                if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                    l_toDo.append(k)
+                    
+                    
+            if not l_toDo:
+                return log.warning("|Post| >> No options selected")
+            
+            lenDo = len(l_toDo)
+            for i,k in enumerate(l_toDo):
+                log.debug("|{0}| >> Processing: {1}...".format(_str_func,k)+'-'*30)
+                self.uiStatus(edit=True,vis = True, label=" {0} | {1}/{2}".format(k,i+1,lenDo))
+                
+                if k in ['Gather Space Drivers','Mirror Verify']:
+                    self.mPuppet.atUtils(d_keyToFunction.get(k),self.uiPB_test)
+                elif 'QSS' in k:
+                    d_qss = {'bakeQSS':{'puppetSet':0,'bakeSet':1,'deleteSet':0,'exportSet':0},
+                             'deleteQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':1,'exportSet':0},
+                             'exportQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':0,'exportSet':1}}
+                    self.mPuppet.atUtils('qss_verify',d_qss.get(k))
+                    cgmUI.progressBar_test(self.uiPB_test,100)
+                    
+                else:
+                    log.warning("Finish {0}".format(k))
+                    cgmUI.progressBar_test(self.uiPB_test,100)
+                
+        finally:
+            self.uiStatus(edit=True,vis=False)
+            cgmUI.progressBar_end(self.uiPB_test)
+        
+    
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,self.mPuppet))
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelColumnLayout(_MainForm)
+        if self.mPuppet:
+            _strPuppet = self.mPuppet.cgmName
+        else:
+            _strPuppet = self.mPuppet
+            
+        SetHeader = cgmUI.add_Header('Puppet: {0}'.format(_strPuppet))
+        self.uiStatus = mUI.MelLabel(_inside,
+                                     vis=False,
+                                     bgc = SHARED._d_gui_state_colors.get('warning'),
+                                     label = '...',
+                                     h=20)        
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+        
+        """
+        mc.button(parent=_inside,
+                  l = 'Progress bar',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(cgmUI.progressBar_test,self.uiPB_test,10000),
+                  ann = 'Test progress bar')    """
+    
+        #add_Button(MainForm,'Reset', lambda *a: resetUI(self))
+        #add_Button(MainForm,'Reload', lambda *a: reloadUI(self))
+        #add_Button(MainForm,'module Reload', lambda *a: reloadUI(self))
+    
+        #SingleChecks======================================================================
+        _l_order = ['Mirror Verify','Gather Space Drivers','connectRig','proxyMesh','isHistoricallyInteresting']
+        _d = {'Gather Space Drivers':'gatherSpaceDrivers',
+              'Mirror Verify':'mirrorVerify',
+              'isHistoricallyInteresting':'ihi'}
+        self._dCB_reg = {}
+        for k in _l_order:
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+            mUI.MelSpacer(_row,w=10)    
+            
+            mUI.MelLabel(_row, label = '{0}:'.format(k))
+            _row.setStretchWidget(mUI.MelSeparator(_row))
+
+            _plug = 'cgmVar_mrsPostProcess_' + _d.get(k,k)
+            try:self.__dict__[_plug]
+            except:
+                log.debug("{0}:{1}".format(_plug,1))
+                self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
+    
+            l = k
+            _buffer = _d.get(k)
+            if _buffer:l = _buffer
+            _cb = mUI.MelCheckBox(_row,
+                                  #annotation = 'Create qss set: {0}'.format(k),
+                                  value = self.__dict__[_plug].value,
+                                  onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                  offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+            self._dCB_reg[k] = _cb
+            mUI.MelSpacer(_row,w=10)    
+            
+            _row.layout()
+        
+        #Qss======================================================================
+        mc.setParent(_inside)
+        cgmUI.add_Header('qss')        
+        _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        
+        _d = {'bake':False,
+              'rotation':'rot',
+              'rotateAxis':'ra',
+              'rotateOrder':'ro',
+              'scalePivot':'sp',
+              'rotatePivot':'rp'}
+        _d_defaults = {'position':1}
+        _l_order = ['bake','delete','export']
+        for k in _l_order:
+            _plug = 'cgmVar_mrsPostProcess_QSS' + k
+            try:self.__dict__[_plug]
+            except:
+                _default = _d_defaults.get(k,1)
+                log.debug("{0}:{1}".format(_plug,_default))
+                self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+    
+            l = k
+            _buffer = _d.get(k)
+            if _buffer:l = _buffer
+            _cb = mUI.MelCheckBox(_row,label=l,
+                                  annotation = 'Create qss set: {0}'.format(k),
+                                  value = self.__dict__[_plug].value,
+                                  onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                  offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+            self._dCB_reg[k+"QSS"] = _cb
+        _row.layout()
+        
+        
+        _button = mc.button(parent=_MainForm,
+                            l = 'Process',
+                            ut = 'cgmUITemplate',
+                            #c = cgmGEN.Callback(cgmUI.progressBar_test,self.uiPB_test,10000),
+                            c = cgmGEN.Callback(self.uiFunc_process),
+                            ann = 'Test progress bar')        
+        #_row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        mc.setParent(_MainForm)
+        
+        #_rowProgressBar = mUI.MelRow(_MainForm)
+
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (_button,"left",0),
+                        (_button,"right",0),
+                        #(self.uiPB_test,"left",0),
+                        #(self.uiPB_test,"right",0),                        
+                        #(_row_cgm,"left",0),
+                        #(_row_cgm,"right",0),
+                        (_button,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,_button),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_button,"top")])
+        
+        
+
         
         
 class ui(cgmUI.cgmGUI):
@@ -192,6 +416,9 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( _menu, l="Gather Blocks",
                          c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
         mUI.MelMenuItemDiv(_menu)
+        mUI.MelMenuItem( _menu, l="Post UI",
+                         #c = cgmGEN.Callback(ui)
+                         c=cgmGEN.Callback(self.uiFunc_contextPuppetCall,'postUI'))        
         
         mUI.MelMenuItem(_menu, l="Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -898,7 +1125,10 @@ class ui(cgmUI.cgmGUI):
             
         mPuppet = mBlock.atUtils('get_puppet')
         if not mPuppet:
-            return log.error("|{0}| >> No puppet found.".format(_str_func,_index))                                                        
+            return log.error("|{0}| >> No puppet found.".format(_str_func,_index))
+        
+        if args[0] == 'postUI':
+            return ui_post(mPuppet)
         return mPuppet.atUtils(*args,**kws)
         
         return
@@ -2249,7 +2479,8 @@ class ui(cgmUI.cgmGUI):
         #self.buildTab_create(uiTab_create)
         #self.buildTab_update(uiTab_update)
     
-        _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
+        _row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        
         _MainForm(edit = True,
                   af = [(ui_tabs,"top",0),
                         (ui_tabs,"left",0),

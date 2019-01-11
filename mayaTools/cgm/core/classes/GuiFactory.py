@@ -235,7 +235,7 @@ class cgmGUI(mUI.BaseMelWindow):
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
     l_allowedDockAreas = ['right', 'left']
     
-    def __init__( self,*args,**kws):
+    def __init__( self,*a,**kw):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
                 
         log.info("|{0}| >>...".format(_str_func))        
@@ -243,6 +243,7 @@ class cgmGUI(mUI.BaseMelWindow):
         #Check our tool option var for debug mode to set logger level if so
         if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
             log.setLevel(logging.DEBUG)	
+            
         
         #killChildren(self)
         #>>> Standard cgm variables
@@ -255,7 +256,7 @@ class cgmGUI(mUI.BaseMelWindow):
         self.setup_baseVariables()	
         
         #>>> Insert our init, overloaded for other tools
-        self.insert_init(self,*args,**kws)
+        self.insert_init(self,*a,**kw)
             
         #>>> Menu
         self.build_menus()
@@ -1398,13 +1399,14 @@ def doEndMayaProgressBar(mayaMainProgressBar = None):
         mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar')
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
     
-def progressBar_test(progressBar=None, cnt = 1000):
+def progressBar_test(progressBar=None, cnt = 1000,sleep=.001):
     if not progressBar:
-        progressBar = doStartMayaProgressBar(stepMaxValue=cnt)
+        progressBar = doStartMayaProgressBar(stepMaxValue=cnt+1)
     
     mc.progressBar(progressBar,edit=True, vis=True)
     for i in range(cnt):
         progressBar_iter(progressBar,status='Cnt: {0}'.format(i))
+        time.sleep(sleep)
         
     mc.progressBar(progressBar,edit=True, vis=False)
     progressBar_end(progressBar)
