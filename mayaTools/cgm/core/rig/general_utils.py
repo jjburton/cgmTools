@@ -541,6 +541,22 @@ def get_metaNodeSnapShot():
     #_res= [r9Meta.MetaClass(n) for n in SEARCH.get_nodeSnapShot()]
     #return cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
     _res =  SEARCH.get_nodeSnapShot()
+    
+def get_nodeSnapShot(asMeta = 1):
+    _str_func = 'get_nodeSnapShot'
+    #return mc.ls(l=True,dag=True)    
+    _res = mc.ls(l=True)
+    if asMeta:
+        return cgmMeta.asMeta(_res)
+    return _res
+    
+def get_nodeSnapShotDifferential(l,asMeta=1):
+    l2 = get_nodeSnapShot(asMeta)
+    _res = []
+    for o in l2:
+        if o not in l:
+            _res.append(o)
+    return _res
 
 def check_nameMatches(self,mlControls,justReport = False):
     _str_func = 'check_nameMatches'

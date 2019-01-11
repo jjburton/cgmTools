@@ -121,6 +121,7 @@ class ui_post(cgmUI.cgmGUI):
         
     def build_menus(self):pass
     
+    @cgmGEN.Timer
     def uiFunc_process(self):
         _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
         log.debug("|{0}| >>...".format(_str_func))
@@ -138,8 +139,8 @@ class ui_post(cgmUI.cgmGUI):
             d_keyToFunction = {'Mirror Verify':'mirror_verify',
                                'Gather Space Drivers':'collect_worldSpaceObjects',
                                'bakeQSS':False,'deleteQSS':False,'exportQSS':False,
-                               'isHistoricallyInteresting':False,'proxyMesh':False,
-                               'connectRig':False}
+                               'isHistoricallyInteresting':False,'proxyMesh':'proxyMesh_verify',
+                               'connectRig':'rig_connectAll'}
             for k in l_order:
                 log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
                 
@@ -155,15 +156,16 @@ class ui_post(cgmUI.cgmGUI):
                 log.debug("|{0}| >> Processing: {1}...".format(_str_func,k)+'-'*30)
                 self.uiStatus(edit=True,vis = True, label=" {0} | {1}/{2}".format(k,i+1,lenDo))
                 
-                if k in ['Gather Space Drivers','Mirror Verify']:
-                    self.mPuppet.atUtils(d_keyToFunction.get(k),self.uiPB_test)
+                if k in ['Gather Space Drivers','Mirror Verify','connectRig','proxyMesh']:
+                    self.mPuppet.atUtils(d_keyToFunction.get(k),progressBar=self.uiPB_test)
                 elif 'QSS' in k:
                     d_qss = {'bakeQSS':{'puppetSet':0,'bakeSet':1,'deleteSet':0,'exportSet':0},
                              'deleteQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':1,'exportSet':0},
                              'exportQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':0,'exportSet':1}}
                     self.mPuppet.atUtils('qss_verify',d_qss.get(k))
                     cgmUI.progressBar_test(self.uiPB_test,100)
-                    
+                elif k == 'isHistoricallyInteresting':
+                    self.mPuppet.atUtils('rigNodes_setAttr','ihi',0,self.uiPB_test)
                 else:
                     log.warning("Finish {0}".format(k))
                     cgmUI.progressBar_test(self.uiPB_test,100)

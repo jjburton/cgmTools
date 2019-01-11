@@ -2765,19 +2765,30 @@ def rigNodes_get(self,report = False):
     if report:
         _len = len(_res)
         log.info(cgmGEN._str_subLine)
-        ml = [cgmMeta.cgmNode(o) for o in _res]
+        ml = []
+        l_fails = []
+        """
+        for o in _res:
+            try:
+                ml.append(cgmMeta.asMeta(o))
+            except Exception,err:
+                l_fails.append("{0} | {1}".format(o,err))
+                log.warning("|{0}| >> node failed to initialize: {1} | {2}".format(_str_func,o,err))"""
+                
+        #ml = [cgmMeta.asMeta(o) for o in _res]
         md = {}
         d_counts = {}
         
-        for mObj in ml:
-            _type = mObj.getMayaType()
+        for o in _res:
+            _type = SEARCH.get_mayaType(o)#mObj.getMayaType()
             if not md.get(_type):
                 md[_type] = []
-            md[_type].append(mObj)
+            md[_type].append(o)
+
             
         for k,l in md.iteritems():
             _len_type = len(l)
-            print("|{0}| >>  Type: {1} ...".format(_str_func,k))
+            print("|{0}| >>  Type: {1} ...".format(_str_func,k)+'-'*60)
             d_counts[k] = _len_type
             for i,mNode in enumerate(l):
                 print("{0} | {1}".format(i,mNode))
@@ -2786,7 +2797,10 @@ def rigNodes_get(self,report = False):
         _sort = d_counts.keys()
         _sort.sort()
         for k in _sort:
-            print("|{0}| >>  {1} : {2}".format(_str_func,k,d_counts[k]))  
+            print("|{0}| >>  {1} : {2}".format(_str_func,k,d_counts[k]))
+        #print("|{0}| >>  Fails to initialize : {1}".format(_str_func,len(l_fails)))
+        #for i,n in enumerate(l_fails):
+        #    print("{0} | {1}".format(i,n))            
         print("|{0}| >>  Total: {1} | {2}".format(_str_func,_len,self))
         log.info(cgmGEN._str_hardLine)
     return _res

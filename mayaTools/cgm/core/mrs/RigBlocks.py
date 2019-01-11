@@ -4445,9 +4445,9 @@ class rigFactory(object):
 
     @cgmGEN.Timer
     def fnc_get_nodeSnapShot(self):
-        #self.ml_preNodesBuffer = RIGGEN.get_metaNodeSnapShot()#cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
-        self.l_preNodesBuffer = SEARCH.get_nodeSnapShot()
-        
+        #self.ml_preNodesBuffer = RIGGEN.get_nodeSnapShot(1)#cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
+        self.l_preNodesBuffer,self.l_preNodesUUIDs = SEARCH.get_nodeSnapShot(uuid=True)
+        #self.l_preNodesUUIDs = SEARCH.get_nodeSnapShot(uuid=True)
     def fnc_check_rigBlock(self):
         """
         Check the rig block data 

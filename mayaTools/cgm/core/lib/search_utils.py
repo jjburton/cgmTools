@@ -23,7 +23,7 @@ import maya.mel as mel
 # From Red9 =============================================================
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 reload(VALID)
 from cgm.core.lib import shared_data as CORESHARE
@@ -689,17 +689,56 @@ def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=F
             timeOut +=1
     return endNode
 
-def get_nodeSnapShot():
+def get_nodeSnapShot(report = False,uuid=False):
     _str_func = 'get_nodeSnapShot'
-    return mc.ls(l=True,dag=True)    
-    return mc.ls(l=True)
+    _res = mc.ls(l=True)
+    #mc.ls(l=True,dag=True)
+    if report:
+        _len = len(_res)
+        log.info(cgmGEN._str_subLine)
+        ml = []
+        md = {}
+        d_counts = {}
     
-def get_nodeSnapShotDifferential(l):
-    l2 = get_nodeSnapShot()
+        for o in _res:
+            _type = get_mayaType(o)
+            if not md.get(_type):
+                md[_type] = []
+            md[_type].append(o)
+    
+        for k,l in md.iteritems():
+            _len_type = len(l)
+            print("|{0}| >>  Type: {1} ...".format(_str_func,k)+'-'*100)
+            d_counts[k] = _len_type
+            for i,mNode in enumerate(l):
+                print("{0} | {1}".format(i,mNode))
+    
+        log.info(cgmGEN._str_subLine)
+        _sort = d_counts.keys()
+        _sort.sort()
+        for k in _sort:
+            print("|{0}| >>  {1} : {2}".format(_str_func,k,d_counts[k]))
+        print("|{0}| >>  Total: {1} ".format(_str_func,_len))
+        log.info(cgmGEN._str_hardLine)
+        
+    if uuid:
+        _resUUID=[]
+        for o in _res:
+            try:_resUUID.append( mc.ls(o, uuid=True)[0] )
+            except Exception,err:
+                log.warning("{0} failed to query UUID | {1}".format(o,err))
+        return _res,_resUUID
+    return _res
+    #return mc.ls(l=True)
+    
+def get_nodeSnapShotDifferential(l,uuid=False):
+    l2 = get_nodeSnapShot(uuid=uuid)
     _res = []
     for o in l2:
         if o not in l:
             _res.append(o)
+    if uuid:
+        return [mc.ls(uuid, uuid=True)[0] for uuid in _res]
     return _res
     
     

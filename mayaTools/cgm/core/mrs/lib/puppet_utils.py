@@ -219,7 +219,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
             cgmUI.progressBar_set(progressBar,
                                   minValue = 0,
                                   maxValue=int_lenModules+1,
-                                  step=i, vis=True)
+                                  progress=i, vis=True)
         try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes,
                                              ml_processed,
                                              progressBar = progressBar,progressEnd=False)
@@ -896,7 +896,7 @@ def collect_worldSpaceObjects(self,progressBar = None):
             cgmUI.progressBar_set(progressBar,
                                   minValue = 0,
                                   maxValue=len_children+1,
-                                  step=i, vis=True)
+                                  progress=i, vis=True)
             time.sleep(.01)
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
             mObj.parent = mPuppetSpaceObjectsGroup
@@ -910,7 +910,7 @@ def collect_worldSpaceObjects(self,progressBar = None):
             cgmUI.progressBar_set(progressBar,
                                   minValue = 0,
                                   maxValue=len_children+1,
-                                  step=i,vis=True)
+                                  progress=i,vis=True)
             time.sleep(.01)
             
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
@@ -993,7 +993,7 @@ def get_exportSetDat(self):
     """
     First pass on qss verification
     """
-    _str_func = 'get_deleteSetDat'
+    _str_func = 'get_exportSetDat'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     mMasterNull = self.masterNull
@@ -1005,4 +1005,134 @@ def get_exportSetDat(self):
         
     return _joints + _geo
     
+    
+@cgmGEN.Timer
+def rigNodes_setAttr(self,attr=None,value=None,progressBar = None,progressEnd=True):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' rigNodes_setAttr'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    md_data = {}
+    ml_modules = modules_get(self)
+    
+    ml_processed = []
+    
+    ml_modules = modules_get(self)
+    if progressBar:
+        int_lenModules = len(ml_modules)
+        cgmUI.progressBar_start(progressBar,int_lenModules+1)
+        
+        
+    l_dat = self.getMessage('rigNodes')
+    
+    for i,mModule in enumerate(ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  progress=i, vis=True)
+        try:l_dat.extend(mModule.rigNull.getMessage('rigNodes'))
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+            
+    if attr and value is not None:
+        int_lenNodes = len(l_dat)
+        if progressBar:
+            cgmUI.progressBar_start(progressBar,int_lenNodes+1)
+        for i,node in enumerate(l_dat):
+            if progressBar:
+                cgmUI.progressBar_set(progressBar,
+                                      status=node,
+                                      progress=i, vis=True)
+            try:
+                _shapes = TRANS.shapes_get(node)
+                if _shapes:
+                    for s in _shapes:
+                        ATTR.set(node,attr,value)
+                ATTR.set(node,attr,value)
+            except Exception,err:
+                log.error("{0} | {1}".format(node,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+    
+    return l_dat
+
+@cgmGEN.Timer
+def rig_connectAll(self, mode = 'connect', progressBar = None,progressEnd=True):
+    """
+    Connect/disconnect the whole puppet
+    """
+    _str_func = ' rig_connectAll'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    ml_modules = modules_get(self)
+    
+    
+    ml_modules = modules_get(self)
+    if progressBar:
+        int_lenModules = len(ml_modules)
+        cgmUI.progressBar_start(progressBar,int_lenModules+2)
+        
+        
+    _d_modeToCall = {'connect':'rig_connect',
+                     'disconnect':'rig_disconnect'}
+    if not _d_modeToCall.get(mode):
+        raise ValueError,"Unknown mode: {0}".format(mode)
+    for i,mModule in enumerate([self] + ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  status = mModule.p_nameShort,
+                                  progress=i, vis=True)
+            
+        try:
+            mModule.atUtils(_d_modeToCall.get(mode))
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+    
+@cgmGEN.Timer
+def proxyMesh_verify(self, mode = 'connect', forceNew = True, puppetMeshMode = False,progressBar = None,progressEnd=True):
+    """
+    Connect/disconnect the whole puppet
+    """
+    _str_func = ' rig_connectAll'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    ml_modules = modules_get(self)
+    
+    
+    ml_modules = modules_get(self)
+
+        
+        
+    _d_modeToCall = {'connect':'rig_connect',
+                     'disconnect':'rig_disconnect'}
+    if not _d_modeToCall.get(mode):
+        raise ValueError,"Unknown mode: {0}".format(mode)
+    ml_rigBLocks = []
+    
+    for i,mModule in enumerate([self] + ml_modules):  
+        try:
+            ml_rigBLocks.append(mModule.rigBlock)
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+            
+    if progressBar:
+        int_len = len(ml_rigBLocks)
+        cgmUI.progressBar_start(progressBar,int_len+1)    
+    for i,mRigBlock in enumerate(ml_rigBLocks):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  status = mRigBlock.p_nameShort,
+                                  progress=i, vis=True)
+            try:
+                mRigBlock.verify_proxyMesh(forceNew,puppetMeshMode)
+            except Exception,err:
+                log.error("{0} | {1}".format(mRigBlock,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
     

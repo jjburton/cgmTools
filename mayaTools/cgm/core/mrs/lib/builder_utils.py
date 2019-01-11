@@ -1140,14 +1140,22 @@ def rigNodes_store(self):
     l_postNodes = SEARCH.get_nodeSnapShot()
     _res = []
     for o in l_postNodes:
+        try:
+            if mc.ls(o, uuid=True)[0] in self.l_preNodesUUIDs:
+                log.debug("|{0}| >>  pre uuid match: {1}".format(_str_func,o))
+                continue
+        except:
+            pass
         if o not in self.l_preNodesBuffer:
             _res.append(o)
             
-
     if self.__dict__.get('mRigNull'):
-        self.mRigNull.connectChildrenNodes(_res,'rigNodes','rigBlock')
+        _str_owner = self.mRigNull.module.mNode
+        self.mRigNull.connectChildrenNodes(_res,'rigNodes')
+        for o in _res:
+            ATTR.set_message(o,'cgmOwner',_str_owner,simple=True)
     else:
-        self.mPuppet.connectChildrenNodes(_res,'rigNodes','rigBlock')
+        self.mPuppet.connectChildrenNodes(_res,'rigNodes','cgmOwner')
         
     print _res
 

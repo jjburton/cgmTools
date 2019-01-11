@@ -1244,7 +1244,7 @@ def mirror_verifySetup(self, d_Indices = {},
                 cgmUI.progressBar_set(progressBar,
                                       minValue = 0,
                                       maxValue=int_len,
-                                      step=i, vis=True)
+                                      progress=i, vis=True)
                 
             _side = mObj.getEnumValueString('mirrorSide')
             i_start = d_Indices[_side]
@@ -1293,7 +1293,7 @@ def mirror_verifySetup(self, d_Indices = {},
                     cgmUI.progressBar_set(progressBar,
                                           minValue = 0,
                                           maxValue=len(ml_primeControls),
-                                          step=i, vis=True)
+                                          progress=i, vis=True)
                     
                 _side = mObj.getEnumValueString('mirrorSide')                
                 i_start = d_Indices[_side]

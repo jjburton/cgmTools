@@ -1405,7 +1405,7 @@ def progressBar_test(progressBar=None, cnt = 1000,sleep=.001):
     
     mc.progressBar(progressBar,edit=True, vis=True)
     for i in range(cnt):
-        progressBar_iter(progressBar,status='Cnt: {0}'.format(i))
+        progressBar_set(progressBar,status='Cnt: {0}'.format(i),progress=i)
         time.sleep(sleep)
         
     mc.progressBar(progressBar,edit=True, vis=False)
