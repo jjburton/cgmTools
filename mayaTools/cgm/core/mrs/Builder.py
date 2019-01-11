@@ -23,7 +23,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.01082019'
+__version__ = '1.01112019'
 _sidePadding = 25
 
 def check_cgm():
@@ -94,6 +94,9 @@ class ui_post(cgmUI.cgmGUI):
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
     def __init__(self,mPuppet = None, *a,**kws):
         self.mPuppet = cgmMeta.validateObjArg(mPuppet,'cgmRigPuppet',True)
+        self.puppet = None
+        if mPuppet:
+            self.puppet = self.mPuppet.mNode
         super(ui_post, self).__init__(*a,**kws)
         
     def insert_init(self,*args,**kws):
@@ -109,12 +112,6 @@ class ui_post(cgmUI.cgmGUI):
         self.WINDOW_TITLE = post_win.WINDOW_TITLE
         self.DEFAULT_SIZE = post_win.DEFAULT_SIZE
 
-        #self.create_guiOptionVar('blockAttrsFrameCollapse',defaultValue = 0)
-        #self.create_guiOptionVar('blockSharedFrameCollapse',defaultValue = 0)
-        #self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('blockMasterFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0) 
-        
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
                 
@@ -127,9 +124,15 @@ class ui_post(cgmUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         try:
             if not self.mPuppet:
+                if self.puppet:
+                    self.mPuppet = cgmMeta.validateObjArg(self.puppet,'cgmRigPuppet',True)
+                    
+            if not self.mPuppet:
                 return log.warning("|Post| >> No Puppet loaded")
                 
-            self.uiStatus(edit=True,vis=True,label = 'Hi...')
+                
+            self.uiStatus(edit=True,vis=True,label = 'Processing...')
+            
             
             l_toDo = []
             l_order = ['Mirror Verify','Gather Space Drivers',
@@ -138,8 +141,7 @@ class ui_post(cgmUI.cgmGUI):
                        'connectRig',]
             d_keyToFunction = {'Mirror Verify':'mirror_verify',
                                'Gather Space Drivers':'collect_worldSpaceObjects',
-                               'bakeQSS':False,'deleteQSS':False,'exportQSS':False,
-                               'isHistoricallyInteresting':False,'proxyMesh':'proxyMesh_verify',
+                               'proxyMesh':'proxyMesh_verify',
                                'connectRig':'rig_connectAll'}
             for k in l_order:
                 log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
@@ -150,6 +152,11 @@ class ui_post(cgmUI.cgmGUI):
                     
             if not l_toDo:
                 return log.warning("|Post| >> No options selected")
+            
+            for v in ['proxyMesh','connectRig']:
+                if v in l_toDo:
+                    self.mPuppet.atUtils('anim_reset')
+                    break
             
             lenDo = len(l_toDo)
             for i,k in enumerate(l_toDo):
@@ -162,7 +169,7 @@ class ui_post(cgmUI.cgmGUI):
                     d_qss = {'bakeQSS':{'puppetSet':0,'bakeSet':1,'deleteSet':0,'exportSet':0},
                              'deleteQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':1,'exportSet':0},
                              'exportQSS':{'puppetSet':0,'bakeSet':0,'deleteSet':0,'exportSet':1}}
-                    self.mPuppet.atUtils('qss_verify',d_qss.get(k))
+                    self.mPuppet.atUtils('qss_verify',**d_qss.get(k))
                     cgmUI.progressBar_test(self.uiPB_test,100)
                 elif k == 'isHistoricallyInteresting':
                     self.mPuppet.atUtils('rigNodes_setAttr','ihi',0,self.uiPB_test)
@@ -415,22 +422,26 @@ class ui(cgmUI.cgmGUI):
         _menu = self.uiMenu_post
         
         #_mPuppet = mUI.MelMenuItem(self.uiMenu_post, l="Puppet",subMenu=True)
+        mUI.MelMenuItem( _menu, l="Rig Prep",
+                         #c = cgmGEN.Callback(ui)
+                         c=cgmGEN.Callback(self.uiFunc_contextPuppetCall,'postUI'))
+        mUI.MelMenuItemDiv(_menu)
+        
         mUI.MelMenuItem( _menu, l="Gather Blocks",
                          c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
-        mUI.MelMenuItemDiv(_menu)
-        mUI.MelMenuItem( _menu, l="Post UI",
-                         #c = cgmGEN.Callback(ui)
-                         c=cgmGEN.Callback(self.uiFunc_contextPuppetCall,'postUI'))        
-        
-        mUI.MelMenuItem(_menu, l="Mirror verify",
-                        ann = "Please don't mess with this if you don't know what you're doing ",
-                        c = cgmGEN.Callback(self.uiFunc_contextPuppetCall,'mirror_verify'),
-                        )
+
         mUI.MelMenuItem(_menu, l="Up to date?",
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'is_upToDate'),
+                        )        
+        _subCalls = mUI.MelMenuItem( _menu, l="Calls",subMenu=True,tearOff=True)
+        
+        mUI.MelMenuItem(_subCalls, l="Mirror verify",
+                        ann = "Please don't mess with this if you don't know what you're doing ",
+                        c = cgmGEN.Callback(self.uiFunc_contextPuppetCall,'mirror_verify'),
                         )
-        mUI.MelMenuItem(_menu, l="Gather space drivers",
+
+        mUI.MelMenuItem(_subCalls, l="Gather space drivers",
                                 ann = "Gather world and puppet space drivers ",
                                 c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'collect_worldSpaceObjects'),
                                 )
@@ -443,21 +454,21 @@ class ui(cgmUI.cgmGUI):
                         ann = "Remove puppet armature ",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'armature_remove'),
                         )"""
-        mUI.MelMenuItem(_menu, l="Qss - Bake set",
+        mUI.MelMenuItem(_subCalls, l="Qss - Bake set",
                         ann = "Add bake set",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
                                            'qss_verify',**{'puppetSet':False,
                                                            'bakeSet':True,
                                                            'deleteSet':False,
                                                            'exportSet':False}),)
-        mUI.MelMenuItem(_menu, l="Qss - Delete set",
+        mUI.MelMenuItem(_subCalls, l="Qss - Delete set",
                         ann = "Add delete set",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
                                            'qss_verify',**{'puppetSet':False,
                                                            'bakeSet':False,
                                                            'deleteSet':True,
                                                            'exportSet':False}),)
-        mUI.MelMenuItem(_menu, l="Qss - Export set",
+        mUI.MelMenuItem(_subCalls, l="Qss - Export set",
                                 ann = "Add export set - visible geo and joints",
                                 c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,
                                                    'qss_verify',**{'puppetSet':0,
@@ -465,7 +476,7 @@ class ui(cgmUI.cgmGUI):
                                                                    'deleteSet':0,
                                                                    'exportSet':1}),)
         
-        _mHistorical = mUI.MelMenuItem(_menu, l="Is Historically Interesing",
+        _mHistorical = mUI.MelMenuItem(_subCalls, l="Is Historically Interesing",
                                          subMenu = True)
         mUI.MelMenuItem(_mHistorical, l="Off",
                         ann = "Turn off every node's isHistoricallyInteresting option",
@@ -2111,7 +2122,7 @@ class ui(cgmUI.cgmGUI):
                     'prerigNull':{}}
         
         l_settings = ['visibility']
-        l_locks = ['templateNull','prerigNull']
+        l_locks = ['rigBlock','templateNull','prerigNull']
         l_enums = []
     
         for n in l_locks:
@@ -2126,19 +2137,28 @@ class ui(cgmUI.cgmGUI):
             elif n in l_locks:
                 l_options = ['unlock','lock']
                 _mode = 'moduleSettings'
-                _plug = d_shared[n].get('plug',n)
+                if n != 'rigBlock':
+                    _plug = d_shared[n].get('plug',n)
             else:
                 l_options = ['off','lock','on']
                 _mode = 'puppetSettings'
                 
             for v,o in enumerate(l_options):
-                mc.button(parent = _row,
-                          ut = 'cgmUITemplate',
-                          l=o,
-                          c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                            'atUtils', 'messageConnection_setAttr',
-                                            _plug,**{'template':v}),
-                          )
+                if n == 'rigBlock':
+                    mc.button(parent = _row,
+                              ut = 'cgmUITemplate',
+                              l=o,
+                              c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'atUtils','templateAttrLock',v),
+                              )                    
+                else:
+                    mc.button(parent = _row,
+                              ut = 'cgmUITemplate',
+                              l=o,
+                              c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'atUtils', 'messageConnection_setAttr',
+                                                _plug,**{'template':v}),
+                              )
             mUI.MelSpacer(_row,w=2)
             _row.layout()
             

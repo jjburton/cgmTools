@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -979,6 +979,13 @@ def get_rigGeo(self):
         if mObj.getMayaAttr('mClass') == 'cgmControl':
             log.debug("|{0}| >> Invalid obj: {1}".format(_str_func,o))
             continue
+        if mObj.getMayaAttr('cgmType') in ['jointApprox','rotatePlaneVisualize']:
+            log.debug("|{0}| >> Invalid obj: {1}".format(_str_func,o))
+            continue
+        if 'proxy_geo' in o:
+            continue
+        if 'proxyGeo' in o:
+                continue        
         _res.append(mObj)
     
     log.debug("|{0}| >> Visible shapes: {1} | dags: {2} | res: {3} ".format(_str_func,

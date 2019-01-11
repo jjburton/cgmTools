@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -4777,6 +4777,9 @@ def templateDelete(self):
     self.blockState = 'define'#...yes now in this state
     return True
 
+def templateAttrLock(self,v=1):
+    self.template = v
+    
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)

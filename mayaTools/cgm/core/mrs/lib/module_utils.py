@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -46,6 +46,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import list_utils as LISTS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.cgmPy.str_Utils as STRINGS
+from cgm.core.classes import GuiFactory as cgmUI
 
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID

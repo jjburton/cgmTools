@@ -59,6 +59,9 @@ import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
 import cgm.core.mrs.lib.module_utils as MODULEUTILS
 import cgm.core.rig.general_utils as RIGGEN
 
+for m in MODULEUTILS,PUPPETUTILS,BLOCKUTILS,BLOCKGEN:
+    reload(m)
+
 #reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
 #reload(BLOCKSHARE)
@@ -4226,14 +4229,14 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
             _short = mBlock.getShortName()            
             log.debug("|{0}| >> On: {1}".format(_str_func,_short))            
             res = getattr(mBlock,func)(*args,**kws) or None
-            print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(a for a in args),
+            print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(str(a) for a in args),
                                                            _kwString,))
             if res not in [True,None,False]:print(res)
             _res.append(res)
         except Exception,err:
             log.error(cgmGEN._str_hardLine)
             log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
-            log.error("block: {0} | func: {1}".format(_short,func))            
+            log.error("block: {0} | func: {1} | context: {2}".format(_short,func,context))            
             if args:
                 log.error("Args...")
                 for a in args:
@@ -4298,7 +4301,7 @@ def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName
             log.debug("|{0}| >> On: {1}".format(_str_func,_short))
             mModule = mBlock.UTILS.get_module(mBlock)
             res = getattr(mModule,func)(*args,**kws) or None
-            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(a for a in args),_kwString, res))                        
+            print("|{0}| >> {1}.{2}({3},{4}) = {5}".format(_str_func,_short,func,','.join(str(a) for a in args),_kwString, res))                        
             _res.append(res)
         except Exception,err:
             log.error(cgmGEN._str_hardLine)
