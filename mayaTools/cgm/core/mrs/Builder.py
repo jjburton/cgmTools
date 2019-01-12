@@ -379,6 +379,7 @@ class ui(cgmUI.cgmGUI):
     def build_menus(self):
         self.uiMenu_profile = mUI.MelMenu( l='Profile', pmc=self.buildMenu_profile)                
         #self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
+        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block,pmo=0)        
         self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True)
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True)
@@ -514,8 +515,117 @@ class ui(cgmUI.cgmGUI):
                         ann = "Remove skinned or wired puppet mesh",
                         c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_delete'))
             
+    def buildMenu_block(self,*args,**kws):
+        self.uiMenu_block.clear()   
+        _menu = self.uiMenu_block
+        """
+        'label':{'ann':'asfasdf',
+                  'call':None},
+                  """    
         
-    def buildMenu_block( self, *args, **kws):
+        d_s = {'Set Side':{},
+               'Rig':{'Verify Proxy':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'verify_proxyMesh',
+                                      **{'updateUI':0})},
+                      'Reset Controls':{'ann':self._d_ui_annotations.get('reset rig controls'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,
+                                      'rig_reset',
+                                      **{'updateUI':0})},
+                      'Query Nodes':{'ann':self._d_ui_annotations.get('query rig nodes'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','rigNodes_get',
+                                      **{'updateUI':0,'report':True})},},
+               'Parent':{'To Active':{'ann':'Set parent block to active block',
+                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                         'atUtils','blockParent_set',
+                                                         **{'mode':'setParentToActive'})},
+                         'Clear':{'ann':'Clear blockParent',
+                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                  'atUtils','blockParent_set',
+                                                                  **{'parent':False})},},
+               'Define':{'Load base size dat':{'ann':'Reset define dat to base',
+                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                   'atUtils', 'define_set_baseSize',
+                                                                   **{'updateUI':0})}},
+               'Prerig':{'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
+                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils', 'prerig_get_rpBasePos',
+                                      **{'markPos':1,'updateUI':0})},
+                         'Snap RP to Orient':{'ann':'Snap rp hanlde to orient vector',
+                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                         'atUtils', 'prerig_snapRPtoOrientHelper',
+                                         **{'updateUI':0})},
+                         'Query Indices':{'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                 'atBlockModule', 'get_handleIndices',
+                                                                 **{'updateUI':0})},
+                         'Snap to RP':{'ann':'Snap handles to rp plane',
+                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
+                                       **{'updateUI':0})},
+                         },
+                   'Queries':{'Visualize':{'ann':'Visualize the block tree in the script editor',
+                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                   'VISUALIZEHEIRARCHY',
+                                                                   **{'updateUI':0})},
+                              'Buildable?':{'ann':'Check if the block is buildable (DEV)',
+                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                   'getModuleStatus',
+                                                                   **{'updateUI':0})}},
+                   'Names':{ 'divTags':['Position | Set tag'],
+                             'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
+                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                      'atUtils','set_nameTag', **{})},
+                             'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
+                                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                          'atUtils','set_position',
+                                                                          **{'ui':True})},
+                            'nameList | reset':{'ann':'Reset the name list to the profile',
+                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                  'atUtils','nameList_resetToProfile',
+                                                                  **{})},
+                             'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
+                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                  'atUtils','set_nameListFromName',
+                                                                  **{})}}                      }
+        
+        l_keys = d_s.keys()
+        l_keys.sort()
+        for s in l_keys:
+            d = d_s[s]
+            divTags = d.get('divTags',[])
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                            label = s,
+                            en=True,)
+            
+            if s == 'Set Side':
+                for i,side in enumerate(['none','left','right','center']):
+                    mUI.MelMenuItem(_sub,
+                                    l = side,
+                                    ann='Set contextual block side to: {0}'.format(side),
+                                    c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                        'atUtils','set_side',side,
+                                                        **{}))                
+                
+                continue
+            
+            l_keys2 = d.keys()
+            l_keys2.sort()
+            for l in l_keys2:
+                if l == 'divTags':
+                    continue
+                d2 = d[l]
+                mUI.MelMenuItem(_sub,
+                                label = l,
+                                ann = d2.get('ann',''),
+                                c=d2.get('call'))
+                if l in divTags:
+                    mUI.MelMenuItemDiv(_sub)
+                    
+
+        log.info("Context menu rebuilt")        
+        
+    def buildMenu_blockOLD( self, *args, **kws):
         self.uiMenu_block.clear()
         _menu = self.uiMenu_block
         
@@ -1699,6 +1809,7 @@ class ui(cgmUI.cgmGUI):
         _row.layout()
         
         #General ======================================================
+        """
         log.debug("|{0}| >> Queries ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
@@ -1722,7 +1833,8 @@ class ui(cgmUI.cgmGUI):
                   ann = 'Visualize the block tree in the script editor')
         mUI.MelSpacer(_row,w=1)
         _row.layout()
-        
+        """
+        """
         #Parent ======================================================
         log.debug("|{0}| >> parenting ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -1748,7 +1860,8 @@ class ui(cgmUI.cgmGUI):
                   ann = 'Clear blockParent')
         mUI.MelSpacer(_row,w=1)
         _row.layout()
-        
+        """
+        """
         #Side ======================================================
         log.debug("|{0}| >> side ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -1767,8 +1880,10 @@ class ui(cgmUI.cgmGUI):
                                                   **{}))
 
         mUI.MelSpacer(_row,w=1)
-        _row.layout()                
+        _row.layout()   
+        """
         
+        """
         #Naming ======================================================
         log.debug("|{0}| >> naming ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -1796,8 +1911,9 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row,w=1)
         _row.layout()        
-        
+        """
         #NameList ======================================================
+        """
         log.debug("|{0}| >> NameList ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
@@ -1824,7 +1940,7 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row,w=1)
         _row.layout()                
-        
+        """
         #BlcokDat ======================================================
         log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -1944,7 +2060,7 @@ class ui(cgmUI.cgmGUI):
         _row.layout()
         
         
-
+        """
         #Define ======================================================
         log.debug("|{0}| >> define ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)                
@@ -1964,8 +2080,8 @@ class ui(cgmUI.cgmGUI):
                   ann = "Reset define dat to base")
         mUI.MelSpacer(_row,w=1)
         _row.layout()
-        
-
+        """
+        """
         #Visualize ======================================================
         log.debug("|{0}| >> Visualize ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -2080,7 +2196,7 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row,w=1)
         _row.layout()                
-    
+        """
         
         return
         _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)

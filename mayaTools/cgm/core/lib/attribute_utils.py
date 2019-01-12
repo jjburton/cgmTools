@@ -3036,7 +3036,6 @@ def datList_setByIndex(node = None, attr = None, data = None, mode = None, dataA
             
     
     return True
-msgList_removeByIndex = datList_removeByIndex
 
 def datList_removeByIndex(node = None, attr = None, indices = None):
     """   
