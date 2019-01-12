@@ -129,8 +129,7 @@ class ui_post(cgmUI.cgmGUI):
                     
             if not self.mPuppet:
                 return log.warning("|Post| >> No Puppet loaded")
-                
-                
+
             self.uiStatus(edit=True,vis=True,label = 'Processing...')
             
             
@@ -155,6 +154,8 @@ class ui_post(cgmUI.cgmGUI):
             
             for v in ['proxyMesh','connectRig']:
                 if v in l_toDo:
+                    self.uiStatus(edit=True,vis = True,label='Rig Reset...')
+                    cgmUI.progressBar_test(self.uiPB_test,10)                    
                     self.mPuppet.atUtils('anim_reset')
                     break
             
@@ -1161,12 +1162,23 @@ class ui(cgmUI.cgmGUI):
                     ml_blocks = ml_tmp
                     log.warning("|{0}| >> new blocks: {1}".format(_str_func,ml_blocks))                    
                     
-                
-                for mBlock in ml_blocks:
+                int_len = len(ml_blocks)
+                self.uiRow_progress(edit=1,vis=1)
+                cgmUI.progressBar_start(self.uiPB_mrs)
+                for i,mBlock in enumerate(ml_blocks):
+                    _short = mBlock.p_nameShort
+                    _call = str(args[0])
+                    if _call in ['atUtils']:
+                        _call = str(args[1])
+                    self.uiProgressText(edit=True,vis=1,label="{0} | {1} | call: {2}".format(_short,_contextMode,_call))
+                    cgmUI.progressBar_set(self.uiPB_mrs,
+                                          maxValue = int_len,isInterruptable=True,
+                                          progress=i, vis=True)
                     log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)                    
                     if mBlock in ml_processed:
                         log.info("|{0}| >> Processed: {1}".format(_str_func,mBlock))
                         continue
+                    kws['progressBar'] = self.uiPB_mrs
                     RIGBLOCKS.contextual_rigBlock_method_call(mBlock,_contextMode,*args,**kws)
                     
                 #if _updateUI:
@@ -1185,7 +1197,10 @@ class ui(cgmUI.cgmGUI):
                 
         except Exception,err:
             cgmGEN.cgmException(Exception,err)
-    
+        finally:
+            self.uiRow_progress(edit=1,vis=0)
+            self.uiProgressText(edit=True,label='...')
+            cgmUI.progressBar_end(self.uiPB_mrs)
     @cgmGEN.Timer
     def uiFunc_contextModuleCall(self,*args,**kws):
         _str_func = ''
@@ -2617,18 +2632,30 @@ class ui(cgmUI.cgmGUI):
         #self.buildTab_create(uiTab_create)
         #self.buildTab_update(uiTab_update)
     
+        self.uiRow_progress = mUI.MelHLayout(_MainForm,vis=False)
+        self.uiProgressText = mUI.MelLabel(self.uiRow_progress,
+                                           bgc = SHARED._d_gui_state_colors.get('warning'),
+                                           label = '...',
+                                           h=20)        
+        self.uiPB_mrs=None
+        mc.setParent(self.uiRow_progress)
+        self.uiPB_mrs = mc.progressBar()
+        self.uiRow_progress.layout()
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)
-        
+        self.uiRow_cgm = _row_cgm
         _MainForm(edit = True,
                   af = [(ui_tabs,"top",0),
                         (ui_tabs,"left",0),
-                        (ui_tabs,"right",0),                        
+                        (ui_tabs,"right",0),
+                        (self.uiRow_progress,"left",0),
+                        (self.uiRow_progress,"right",0),                        
                         (_row_cgm,"left",0),
-                        (_row_cgm,"right",0),                        
+                        (_row_cgm,"right",0),
                         (_row_cgm,"bottom",0),
     
                         ],
-                  ac = [(ui_tabs,"bottom",0,_row_cgm),
+                  ac = [(ui_tabs,"bottom",0,self.uiRow_progress),
+                        (self.uiRow_progress,"bottom",0,_row_cgm)
                         ],
                   attachNone = [(_row_cgm,"top")])
         

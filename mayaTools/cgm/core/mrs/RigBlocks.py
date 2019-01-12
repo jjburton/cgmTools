@@ -58,6 +58,7 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
 import cgm.core.mrs.lib.module_utils as MODULEUTILS
 import cgm.core.rig.general_utils as RIGGEN
+from cgm.core.classes import GuiFactory as cgmUI
 
 for m in MODULEUTILS,PUPPETUTILS,BLOCKUTILS,BLOCKGEN:
     reload(m)
@@ -1350,7 +1351,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         print res
         return res
-
+    @cgmGEN.Timer
     def verify_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         """
         Function to call a blockModule function by string. For menus and other reasons
@@ -4205,6 +4206,10 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
 
     if not args:
         args = []
+        
+    _progressBar = None
+    if kws:
+        _progressBar = kws.pop('progressBar')
 
     if not kws:
         kws = {}
@@ -4223,11 +4228,17 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
         mc.select([mBlock.mNode for mBlock in _l_context])
         return
     
-
-    for mBlock in _l_context:
+    if _progressBar:
+        print 'progressBar !!!! | {0}'.format(_progressBar)
+        int_len = len(_l_context)
+    for i,mBlock in enumerate(_l_context):
         try:
-            _short = mBlock.getShortName()            
-            log.debug("|{0}| >> On: {1}".format(_str_func,_short))            
+            _short = mBlock.getShortName()
+            if _progressBar:
+                cgmUI.progressBar_set(_progressBar,
+                                      maxValue = int_len,
+                                      progress=i, vis=True)                
+            log.debug("|{0}| >> On: {1}".format(_str_func,_short))
             res = getattr(mBlock,func)(*args,**kws) or None
             print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(str(a) for a in args),
                                                            _kwString,))

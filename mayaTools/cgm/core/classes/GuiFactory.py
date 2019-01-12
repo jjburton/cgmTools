@@ -1399,7 +1399,7 @@ def doEndMayaProgressBar(mayaMainProgressBar = None):
         mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar')
     mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
     
-def progressBar_test(progressBar=None, cnt = 1000,sleep=.001):
+def progressBar_test(progressBar=None, cnt = 1000,sleep=.0001):
     if not progressBar:
         progressBar = doStartMayaProgressBar(stepMaxValue=cnt+1)
     
