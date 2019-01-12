@@ -582,7 +582,7 @@ def skeleton_connectToParent(self):
             return False
         
         if ml_parentBlocks[0].blockType == 'master':
-            log.info("|{0}| >> Master block...".format(_str_func))           
+            log.debug("|{0}| >> Master block...".format(_str_func))           
             if mParentModule.getMessage('rootJoint'):
                 log.debug("|{0}| >> Root joint on master found".format(_str_func))
                 ml_moduleJoints[0].p_parent = mParentModule.getMessage('rootJoint')[0]
@@ -1061,8 +1061,8 @@ def mirror_get(self,recheck=False):
 
 def mirror_reportSetup(self):
     _str_func = ' mirror_reportSetup'
-    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.info("{0}".format(self))
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     d_self = get_mirrorDat(self)
     d_mirror = {}
@@ -1189,10 +1189,10 @@ def mirror_verifySetup(self, d_Indices = {},
     
     def validate_controls(ml):
         for i,mObj in enumerate(ml):
-            log.info("|{0}| >> First pass: {1}".format(_str_func,mObj))
+            log.debug("|{0}| >> First pass: {1}".format(_str_func,mObj))
             
             if not issubclass(type(mObj), cgmMeta.cgmControl):
-                log.info("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
+                log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
                 
                 mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
                 ml[i] = mObj#...push back
@@ -1208,7 +1208,7 @@ def mirror_verifySetup(self, d_Indices = {},
             _setMirrorSide = False
             if _mirrorSideFromCGMDirection:
                 if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
-                    log.info("|{0}| >> {1}'s cgmDirection ({2}) is not it's mirror side({3}). Resolving...".format(_str_func,mObj.p_nameShort,_mirrorSideCurrent,_mirrorSideFromCGMDirection))
+                    log.debug("|{0}| >> {1}'s cgmDirection ({2}) is not it's mirror side({3}). Resolving...".format(_str_func,mObj.p_nameShort,_mirrorSideCurrent,_mirrorSideFromCGMDirection))
                     _setMirrorSide = _mirrorSideFromCGMDirection                                            
             elif not _mirrorSideCurrent:
                 _setMirrorSide = str_mirrorSide
@@ -1217,8 +1217,8 @@ def mirror_verifySetup(self, d_Indices = {},
                 if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
                     mObj.doStore('mirrorSide',_setMirrorSide)
                 else:
-                    #log.info("{0} mirrorSide driven".format(mObj.p_nameShort))
-                    log.info("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
+                    #log.debug("{0} mirrorSide driven".format(mObj.p_nameShort))
+                    log.debug("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
         """
             #append the control to our lists to process                                    
             #md_culling_controlLists[_mirrorSideCurrent].append(mObj)    
@@ -1237,7 +1237,7 @@ def mirror_verifySetup(self, d_Indices = {},
         if not d_self['ml_controls']:
             raise ValueError,"Not rigged: {0} ".format(self)
         validate_controls(d_self['ml_controls'])
-        log.info(cgmGEN._str_subLine)
+        log.debug(cgmGEN._str_subLine)
         _v = None
         int_len = len(d_self['ml_controls'])
         for i,mObj in enumerate(d_self['ml_controls']):
@@ -1250,7 +1250,7 @@ def mirror_verifySetup(self, d_Indices = {},
             _side = mObj.getEnumValueString('mirrorSide')
             i_start = d_Indices[_side]
             _v = i_start+1
-            log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+            log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
             mObj.mirrorIndex = _v
             d_Indices[_side] = _v#...push it back
             md_indicesToControls[_side][_v] = mObj
@@ -1263,12 +1263,12 @@ def mirror_verifySetup(self, d_Indices = {},
         return md_indicesToControls
     
     else:
-        log.info("|{0}| >>  Mirror module found...".format(_str_func))
+        log.debug("|{0}| >>  Mirror module found...".format(_str_func))
         mMirror = d_self['mMirror']
         
         #i_start = max([d_Indices['Left'],d_Indices['Right']])
         #i_running = copy.copy(i_start)
-        #log.info("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
+        #log.debug("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
         
         validate_controls(d_self['ml_controls'])
         validate_controls(d_mirror['ml_controls'])
@@ -1279,7 +1279,7 @@ def mirror_verifySetup(self, d_Indices = {},
             len_self = len(self_keyControls)
             len_mirr = len(mirr_keyControls)
             
-            log.info("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr))
+            log.debug("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr))
             
             ml_primeControls = self_keyControls #...longer list of controls
             ml_secondControls = mirr_keyControls
@@ -1303,7 +1303,7 @@ def mirror_verifySetup(self, d_Indices = {},
                 
                 mObj.mirrorIndex = _v
                 d_Indices[_side] = _v#...push it back                
-                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 md_indicesToControls[_side][_v] = mObj
                 
                 #l_baseSplit = mObj.p_nameBase.split('_')
@@ -1317,7 +1317,7 @@ def mirror_verifySetup(self, d_Indices = {},
                             _match = False
                             break
                     if _match:
-                        log.info("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
+                        log.debug("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
                         
                         mObj.doStore('mirrorControl',mCandidate)
                         mCandidate.doStore('mirrorControl',mObj)                        
@@ -1332,7 +1332,7 @@ def mirror_verifySetup(self, d_Indices = {},
 
                         
             for mObj in ml_cull:
-                log.info("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                log.debug("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 _side = mObj.getEnumValueString('mirrorSide')                
                 i_start = d_Indices[_side]
                 _v = i_start+1
@@ -1350,7 +1350,7 @@ def mirror_verifySetup(self, d_Indices = {},
                 _side = mObj.getEnumValueString('mirrorSide')                
                 i_start = d_Indices[_side]
                 _v = i_start+1
-                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 mObj.mirrorIndex = _v
                 d_Indices[_side] = _v#...push it back
                 md_indicesToControls[_side][_v] = mObj
@@ -1359,13 +1359,13 @@ def mirror_verifySetup(self, d_Indices = {},
                 _side = mObj.getEnumValueString('mirrorSide')                
                 i_start = d_Indices[_side]
                 _v = i_start+1
-                log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 mObj.mirrorIndex = _v
                 d_Indices[_side] = _v#...push it back
                 md_indicesToControls[_side][_v] = mObj
                 
             i_running = i_running + max(len_self,len_mirr)
-            log.info("|{0}| >>  i_running: {1}".format(_str_func,i_running))"""
+            log.debug("|{0}| >>  i_running: {1}".format(_str_func,i_running))"""
             #d_Indices[d_self['str_side']] = i_running
             #d_Indices[d_mirror['str_side']] = i_running
             
@@ -1441,16 +1441,16 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
     try:
         _str_func = 'switchMode'    
         if not bypassModuleCheck:
-            log.info("checking blockModule")        
+            log.debug("checking blockModule")        
             mBlockModule = self.p_blockModule
             reload(mBlockModule)
             _blockCall = mBlockModule.__dict__.get('switchMode')
             if _blockCall:
-                log.info("|{0}| >> Found swich mode in block module ".format(_str_func))
+                log.debug("|{0}| >> Found swich mode in block module ".format(_str_func))
                 return _blockCall(self,mode)
             
-        log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
-        log.info("{0}".format(self))
+        log.debug("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+        log.debug("{0}".format(self))
             
         mRigNull = self.rigNull
         mSettings = mRigNull.settings
@@ -1531,7 +1531,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             ml_handleJoints = mRigNull.msgList_get('handleJoints')
             
             for i,mObj in enumerate(ml_controls):
-                log.info("|{0}| >> On: {1} ".format(_str_func,mObj))
+                log.debug("|{0}| >> On: {1} ".format(_str_func,mObj))
                 
                 #if ml_handleJoints:
                 #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
@@ -1539,13 +1539,13 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 #else:
                 mTarget = mObj.getMessageAsMeta('switchTarget')
                 if not mTarget:
-                    log.info("|{0}| >> no switchTarget ".format(_str_func))                    
+                    log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
                     mTarget = mObj.getMessageAsMeta('blendJoint')
                 if not mTarget:
                     log.warning("|{0}| >> No target joint found! ".format(_str_func))
                     break
                 
-                log.info("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
+                log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
                 
                 ml_blends.append(mTarget)
                 l_pos.append(mTarget.p_position)
@@ -1570,9 +1570,9 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 
         elif _mode in ['iksnap','iksnapall']:
             if not mRigNull.getMessage('controlIK'):
-                return log.info("|{0}| >> No IK mode detected ".format(_str_func))
+                return log.debug("|{0}| >> No IK mode detected ".format(_str_func))
             if MATH.is_float_equivalent(mSettings.FKIK,1.0):
-                return log.info("|{0}| >> Already in IK mode ".format(_str_func))
+                return log.debug("|{0}| >> Already in IK mode ".format(_str_func))
             
             mControlIK = mRigNull.controlIK        
             ml_controls = [mControlIK]
@@ -1594,7 +1594,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             
             #IKsnapAll ========================================================================
             if _mode == 'iksnapall':
-                log.info("|{0}| >> iksnapall prep...".format(_str_func))
+                log.debug("|{0}| >> iksnapall prep...".format(_str_func))
                 mSettings.visDirect=True
                 ml_rigLocs = []
                 ml_rigJoints = mRigNull.msgList_get('rigJoints')
@@ -1636,7 +1636,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
     
             #IKsnapAll close========================================================================
             if _mode == 'iksnapall':
-                log.info("|{0}| >> iksnapall end...".format(_str_func))
+                log.debug("|{0}| >> iksnapall end...".format(_str_func))
                 for i,mObj in enumerate(ml_rigJoints):
                     SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)
             
@@ -1702,12 +1702,12 @@ def get_report(self, mode='rig'):
 
 def clean_null(self,null='rigNull'):
     _str_func = ' clean_null'
-    log.info("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     mNull = self.getMessageAsMeta(null)
     if mNull:
-        log.info("|{0}| >>  null: {1}".format(_str_func,mNull))        
+        log.debug("|{0}| >>  null: {1}".format(_str_func,mNull))        
         for mChild in mNull.getChildren(asMeta=True):
-            log.info("|{0}| >>  deleting: {1}".format(_str_func,mChild))
+            log.debug("|{0}| >>  deleting: {1}".format(_str_func,mChild))
             mChild.delete()
             

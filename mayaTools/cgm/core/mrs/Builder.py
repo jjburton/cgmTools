@@ -109,8 +109,8 @@ class ui_post(cgmUI.cgmGUI):
         
         self.__version__ = __version__
         self.__toolName__ = 'Builder'		
-        self.WINDOW_TITLE = post_win.WINDOW_TITLE
-        self.DEFAULT_SIZE = post_win.DEFAULT_SIZE
+        self.WINDOW_TITLE = ui_post.WINDOW_TITLE
+        self.DEFAULT_SIZE = ui_post.DEFAULT_SIZE
 
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
