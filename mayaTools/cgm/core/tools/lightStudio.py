@@ -38,6 +38,8 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
+reload(ATTR)
+
 d_profiles = {'modeling1':{'back': {'dag': {'orient': [-144.58960250011384,
                                                       2.2004948103566293,
                                                       -5.614774127338882],
@@ -456,12 +458,12 @@ class factory(object):
             
             
             
-class cgmLight(object):
+class cgmLightMaster(object):
     def __init__(self,node=None,name=None,lightType=None):
         pass
             
             
-class cgmLightMeta(cgmMeta.cgmObject): 
+class cgmLight(cgmMeta.cgmObject): 
     def __init__(self,node=None,name=None,nodeType=None, **kws):
         #>>> TO USE Cached instance ---------------------------------------------------------
         _str_func = 'cgmLight.__init__'        
@@ -470,8 +472,13 @@ class cgmLightMeta(cgmMeta.cgmObject):
                 raise ValueError,"Unknown light node: {0}".format(nodeType)
             if name is None:
                 name = nodeType
-
-        try: super(cgmLight, self).__init__(node,name,nodeType=nodeType, **kws)
+            _light = d_lightCalls.get(nodeType)(name=name)
+            _dag = cgmMeta.getTransform(_light)
+            ATTR.add(_dag,'mClass','string',value='cgmLight',lock=True)
+            self.__justCreatedState__ = True                
+            node = _dag
+                
+        try: super(cgmLight, self).__init__(node,name, **kws)
         except StandardError,error:
             raise StandardError, "cgmLight.__init__ fail! | %s"%error
         
@@ -488,17 +495,18 @@ class cgmLightMeta(cgmMeta.cgmObject):
         self.mShape = self.getShapes(asMeta=1)[0]
         
         
-    def __createnode__(self, nodeType, name):
+    def __createnodeasdf__(self, nodeType, name):
         '''
         :param nodeType: type of node to create
         :param name: name of the new node
         '''
+        _str_func = 'cgmLight.__createnode__'        
+        
         #Trying to use the light shape as the metaClass caused all sorts of issues. Best just to use the dag
         _light = d_lightCalls.get(nodeType)(name=name)
         _dag = cgmMeta.getTransform(_light)
-        ATTR.add(_dag,'mClass','string','cgmLight')
+        ATTR.add(_dag,'mClass','string',value='cgmLight')
         self.__justCreatedState__ = True
-        
         return _dag, True
     
     def __getattribute3__(self, attr):
@@ -549,6 +557,100 @@ class cgmLightMeta(cgmMeta.cgmObject):
         #    log.debug("|{0}| >> err: {1}".format(_str_func,err))
         #    return
     
+class cgmLightShape(cgmMeta.cgmNode): 
+    def __init__(self,node=None,name=None,nodeType=None, **kws):
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        _str_func = 'cgmLight.__init__'        
+        if node is None:
+            if nodeType not in d_lightCalls.keys():
+                raise ValueError,"Unknown light node: {0}".format(nodeType)
+            if name is None:
+                name = nodeType
+            _light = d_lightCalls.get(nodeType)(name=name)
+            _dag = cgmMeta.getTransform(_light)
+            ATTR.add(_dag,'mClass','string',value='cgmLight',lock=True)
+            self.__justCreatedState__ = True                
+            node = _dag
+                
+        try: super(cgmLight, self).__init__(node,name, **kws)
+        except StandardError,error:
+            raise StandardError, "cgmLight.__init__ fail! | %s"%error
+        
+        for a in ['mShape']:
+            if a not in self.UNMANAGED:
+                self.UNMANAGED.append(a)
+                
+        self.mShape = None
+
+        if self.cached:
+            log.debug("|{0}| >> cached | {1}".format(_str_func,self.cached))
+            return
+        
+        self.mShape = self.getShapes(asMeta=1)[0]
+        
+        
+    def __createnodeasdf__(self, nodeType, name):
+        '''
+        :param nodeType: type of node to create
+        :param name: name of the new node
+        '''
+        _str_func = 'cgmLight.__createnode__'        
+        
+        #Trying to use the light shape as the metaClass caused all sorts of issues. Best just to use the dag
+        _light = d_lightCalls.get(nodeType)(name=name)
+        _dag = cgmMeta.getTransform(_light)
+        ATTR.add(_dag,'mClass','string',value='cgmLight')
+        self.__justCreatedState__ = True
+        return _dag, True
+    
+    def __getattribute3__(self, attr):
+        '''
+        Overload the method to always return the MayaNode
+        attribute if it's been serialized to the MayaNode
+        '''
+        err = None
+        try:
+            _str_func = 'cgmLight.__getattribute__'            
+            log.debug("|{0}| >> trying dag | {1}".format(_str_func,attr))            
+            return r9Meta.MetaClass.__getattribute__(self,attr)
+        except Exception,err:
+            try:
+                log.debug("|{0}| >> trying shape | {1}".format(_str_func,attr))                            
+                return r9Meta.MetaClass.__getattribute__(self.mShape,attr)
+            except Exception,err:
+                pass
+        #finally:
+        #    log.debug("|{0}| >> err: {1}".format(_str_func,err))
+        #    return
+
+    def __setattr2__(self, attr, value, force=True, **kws):
+        err = None
+        if not ATTR.has_attr(self.mNode, attr):
+            log.debug("|{0}| >> trying shape | {1}".format(_str_func,attr))                            
+            try:
+                if ATTR.has_attr(self.mShape.mNode,attr):
+                    log.debug("|{0}| >> trying shape | {1}".format(_str_func,attr))                            
+                    return r9Meta.MetaClass.__getattribute__(self.mShape,attr, value, force=True, **kws)
+            except Exception,err:
+                log.debug("|{0}| >> shape attempt err: {1}".format(_str_func,err))
+        return r9Meta.MetaClass.__setattr__(self,attr, value, force=True, **kws)
+        
+        
+        try:
+            _str_func = 'cgmLight.__setattr__'            
+            log.debug("|{0}| >> trying dag | {1}".format(_str_func,attr))
+            
+            r9Meta.MetaClass.__setattr__(self,attr, value, force=True, **kws)
+        except Exception,err:
+            try:
+                log.debug("|{0}| >> trying shape | {1}".format(_str_func,attr))                            
+                r9Meta.MetaClass.__getattribute__(self.mShape,attr, value, force=True, **kws)
+            except Exception,err:
+                pass
+        #finally:
+        #    log.debug("|{0}| >> err: {1}".format(_str_func,err))
+        #    return
+        
         
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
