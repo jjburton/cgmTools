@@ -58,7 +58,7 @@ import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 
-for m in BLOCKGEN,BLOCKSHARE,SHARED,CONTEXT:
+for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT:
     reload(m)
 _d_blockTypes = {}
 
@@ -430,7 +430,8 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItemDiv(_menu)
         
         mUI.MelMenuItem( _menu, l="Gather Blocks",
-                         c=lambda *a: BUILDERUTILS.gather_rigBlocks() )
+                         c = self.uiCallback(self,BUILDERUTILS.gather_rigBlocks,self.uiPB_mrs))
+                         #c=lambda *a: BUILDERUTILS.gather_rigBlocks(self.uiPB_mrs) )
 
         mUI.MelMenuItem(_menu, l="Up to date?",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -829,7 +830,40 @@ class ui(cgmUI.cgmGUI):
         #self.uiMenu_Help.clear()
         
         #cgmUI.uiSection_help(self.uiMenu_Help)
-        
+    class uiCallback(object):
+        '''
+        By Hamish McKenzie
+        stupid little callable object for when you need to "bake" temporary args into a
+        callback - useful mainly when creating callbacks for dynamicly generated UI items
+        '''
+        def __init__( self, ui, func, *a, **kw ):
+            self._ui = ui
+            self._func = func
+            self._args = a
+            self._kwargs = kw
+        def __call__( self, *args ):
+            self._ui.uiRow_progress(edit=1,vis=1)
+            cgmUI.progressBar_start(self._ui.uiPB_mrs)
+            self._ui.uiProgressText(edit=True,vis=1,
+                                    label="{0} ".format(self._func.__name__))
+
+            try:return self._func( *self._args, **self._kwargs )
+            except Exception,err:
+                try:log.info("Func: {0}".format(self._func.__name__))
+                except:log.info("Func: {0}".format(self._func))
+                if self._args:
+                    log.info("args: {0}".format(self._args))
+                if self._kwargs:
+                    log.info("kws: {0}".format(self._kwargs))
+                for a in err.args:
+                    log.info(a)
+                    
+                cgmException(Exception,err)
+                raise Exception,err
+            finally:
+                self._ui.uiRow_progress(edit=1,vis=0)
+                self._ui.uiProgressText(edit=True,label='...')
+                cgmUI.progressBar_end(self._ui.uiPB_mrs)            
     def buildMenu_add( self, force=False, *args, **kws):
         if self.uiMenu_add and force is not True:
             log.debug("No load...")
@@ -1036,7 +1070,8 @@ class ui(cgmUI.cgmGUI):
 
                 
         self.uiUpdate_scrollList_blocks(_mBlock)
-        
+
+
     #@cgmGEN.Timer
     def uiFunc_contextBlockCall(self,*args,**kws):
         try:

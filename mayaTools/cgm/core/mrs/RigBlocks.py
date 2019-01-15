@@ -4231,36 +4231,40 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
     if _progressBar:
         print 'progressBar !!!! | {0}'.format(_progressBar)
         int_len = len(_l_context)
-    for i,mBlock in enumerate(_l_context):
-        try:
-            _short = mBlock.getShortName()
-            if _progressBar:
-                cgmUI.progressBar_set(_progressBar,
-                                      maxValue = int_len,
-                                      progress=i, vis=True)                
-            log.debug("|{0}| >> On: {1}".format(_str_func,_short))
-            res = getattr(mBlock,func)(*args,**kws) or None
-            print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(str(a) for a in args),
-                                                           _kwString,))
-            if res not in [True,None,False]:print(res)
-            _res.append(res)
-        except Exception,err:
-            log.error(cgmGEN._str_hardLine)
-            log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
-            log.error("block: {0} | func: {1} | context: {2}".format(_short,func,context))            
-            if args:
-                log.error("Args...")
-                for a in args:
-                    log.error("      {0}".format(a))
-            if kws:
-                log.error(" KWS...".format(_str_func))
-                for k,v in kws.iteritems():
-                    log.error("      {0} : {1}".format(k,v))   
-            log.error("Errors...")
-            for a in err.args:
-                log.error(a)
-            _res.append('ERROR')
-            log.error(cgmGEN._str_subLine)
+        
+    try:
+        for i,mBlock in enumerate(_l_context):
+            try:
+                _short = mBlock.getShortName()
+                if _progressBar:
+                    cgmUI.progressBar_set(_progressBar,
+                                          maxValue = int_len,beginProgress=True,
+                                          progress=i, vis=True)                
+                log.debug("|{0}| >> On: {1}".format(_str_func,_short))
+                res = getattr(mBlock,func)(*args,**kws) or None
+                print("|{0}| >> {1}.{2}({3},{4})".format(_str_func,_short,func,','.join(str(a) for a in args),
+                                                               _kwString,))
+                if res not in [True,None,False]:print(res)
+                _res.append(res)
+            except Exception,err:
+                log.error(cgmGEN._str_hardLine)
+                log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
+                log.error("block: {0} | func: {1} | context: {2}".format(_short,func,context))            
+                if args:
+                    log.error("Args...")
+                    for a in args:
+                        log.error("      {0}".format(a))
+                if kws:
+                    log.error(" KWS...".format(_str_func))
+                    for k,v in kws.iteritems():
+                        log.error("      {0} : {1}".format(k,v))   
+                log.error("Errors...")
+                for a in err.args:
+                    log.error(a)
+                _res.append('ERROR')
+                log.error(cgmGEN._str_subLine)
+    finally:
+        if _progressBar:cgmUI.progressBar_end(_progressBar)
     return _res
 
 def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):

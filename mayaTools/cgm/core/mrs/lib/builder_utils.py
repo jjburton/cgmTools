@@ -60,7 +60,7 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-
+from cgm.core.classes import GuiFactory as cgmUI
 for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN,SNAPCALLS:
     reload(m)
 
@@ -260,22 +260,39 @@ def get_controlSpaceSetupDict(self):
     
     return d_controlSpaces
 
-def gather_rigBlocks():
+def gather_rigBlocks(progressBar=False):
     _str_func = 'gather_rigBlocks'
-    
-    mGroup = get_blockGroup()
-    
-    for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network']):
-        log.debug("|{0}| >> Checking: {1}".format(_str_func,mObj))
-        
-        if not mObj.parent:
-            mObj.parent = mGroup
+    try:
+        mGroup = get_blockGroup()
+        ml_gathered = []
+        ml_blocks = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network'])
+        if progressBar:
+            int_len = len(ml_blocks)
             
-        for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
-            mLink = mObj.getMessageAsMeta(link)
-            if mLink and not mLink.parent:
-                log.debug("|{0}| >> {1} | {2}".format(_str_func,link,mLink))            
-                mLink.parent = mGroup
+        for i,mObj in enumerate(ml_blocks):
+            log.debug("|{0}| >> Checking: {1}".format(_str_func,mObj))
+            if progressBar:
+                cgmUI.progressBar_set(progressBar,
+                                      maxValue = int_len,
+                                      progress=i, vis=True)                        
+            if not mObj.parent:
+                mObj.parent = mGroup
+                ml_gathered.append(mLink)
+                
+            for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
+                mLink = mObj.getMessageAsMeta(link)
+                if mLink and not mLink.parent:
+                    log.info("|{0}| >> {1} | {2}".format(_str_func,link,mLink))            
+                    mLink.parent = mGroup
+                    ml_gathered.append(mLink)
+                    
+        
+        return log.info("|{0}| >> Gathered {1} dags".format(_str_func,len(ml_gathered)))
+    except Exception,err:
+        raise Exception,err
+    finally:
+        if progressBar:cgmUI.progressBar_end(progressBar)
+
 
 def get_blockGroup():
     if not mc.objExists('cgmRigBlocksGroup'):
