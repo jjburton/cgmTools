@@ -260,18 +260,20 @@ class ui(cgmUI.cgmGUI):
                     _l_report.append(mObj.p_nameBase)
                     
                 #if i == ATTR.get(self)
-                if _mode == 0:
-                    if self._mNode.space == i:
-                        _l_report.append('((Space))')
-                elif _mode == 1:
-                    if self._mNode.orientTo == i:
-                        _l_report.append('((Orient))')
-                else:
-                    if self._mNode.orientTo == i:
-                        _l_report.append('((Orient))')
-                    if self._mNode.follow == i:
-                        _l_report.append('((Follow))')
-
+                try:
+                    if _mode == 0:
+                        if self._mNode.space == i:
+                            _l_report.append('((Space))')
+                    elif _mode == 1:
+                        if self._mNode.orientTo == i:
+                            _l_report.append('((Orient))')
+                    else:
+                        if self._mNode.orientTo == i:
+                            _l_report.append('((Orient))')
+                        if self._mNode.follow == i:
+                            _l_report.append('((Follow))')
+                except Exception,err:
+                    log.warning(err)
                 if mObj.isReferenced():
                     _l_report.append("Referenced")
                 _str = " \ ".join(_l_report)

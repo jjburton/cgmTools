@@ -7184,6 +7184,15 @@ def rig_cleanUp(self):
         log.debug(cgmGEN._str_subLine)        
         ml_baseDynParents.append(mLimbRoot)
         ml_baseDynParents.append(mLeverFK)
+        
+        if self.b_singleChain:
+            log.debug("|{0}| >>  Single chain and lever...".format(_str_func))
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mLeverFK.mNode,dynMode=0)
+            for mTar in ml_endDynParents:
+                mDynGroup.addDynParent(mTar)
+            mDynGroup.rebuild()
+            
+            
     else:
         ml_baseDynParents.append(mRoot)
     
@@ -7352,7 +7361,7 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = mRoot
     
     
-    #...fk controls =================================================================================================
+    #...fk controls ============================================================================================
     log.debug("|{0}| >>  FK...".format(_str_func))                
     ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
     
@@ -7401,6 +7410,8 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
         pprint.pprint(ml_targetDynParents)                
         log.debug(cgmGEN._str_subLine)    
+    
+
     
     
     #Lock and hide =================================================================================
