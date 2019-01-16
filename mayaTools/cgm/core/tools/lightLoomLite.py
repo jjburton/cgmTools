@@ -1,6 +1,6 @@
 """
 ------------------------------------------
-lightStudio: cgm.core.tools
+Light Loom Lite: cgm.core.tools
 Authors: Matt Berenty | Josh Burton
 
 Website : http://www.cgmonastery.com
@@ -303,10 +303,10 @@ d_lightCalls = {'directionalLight':mc.directionalLight,
                 'spotLight':mc.spotLight}
 
 
-def uiMenu_cgmLightStudio(parent):
-    _str_func = 'uiSection_cgmLightStudio'  
+def uiMenu(parent):
+    _str_func = 'uiMenu'
     
-    _uiRoot = mc.menuItem(parent = parent, l='LightStudio', subMenu=True,tearOff=True)
+    _uiRoot = mc.menuItem(parent = parent, l='LightLoom Lite', subMenu=True,tearOff=True)
     
     _keys = d_profiles.keys()
     _keys.sort()

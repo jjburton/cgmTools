@@ -828,9 +828,12 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
         mSet.doName()
         mSet.purge()
         log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
-        
-        for mObj in get_joints(self,'bind') + get_rigGeo(self):
-            mSet.addObj(mObj.mNode)    
+        mMaster = self.masterNull
+        for mGrp in mMaster.skeletonGroup,mMaster.geoGroup:
+            for mChild in mGrp.getChildren(asMeta=1):
+                mSet.addObj(mChild.mNode)
+        #for mObj in get_joints(self,'bind') + get_rigGeo(self):
+            #mSet.addObj(mObj.mNode)    
         
 def groups_verify(self):
     try:

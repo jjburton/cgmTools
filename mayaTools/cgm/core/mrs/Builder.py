@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.01112019'
+__version__ = '1.01162019'
 _sidePadding = 25
 
 def check_cgm():
@@ -89,7 +89,7 @@ class ui_post(cgmUI.cgmGUI):
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 200,200
+    DEFAULT_SIZE = 200,230
     
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
     def __init__(self,mPuppet = None, *a,**kws):
@@ -137,7 +137,7 @@ class ui_post(cgmUI.cgmGUI):
             l_order = ['Mirror Verify','Gather Space Drivers',
                        'bakeQSS','deleteQSS','exportQSS',
                        'isHistoricallyInteresting','proxyMesh',
-                       'connectRig',]
+                       'connectRig','deleteBlocks']
             d_keyToFunction = {'Mirror Verify':'mirror_verify',
                                'Gather Space Drivers':'collect_worldSpaceObjects',
                                'proxyMesh':'proxyMesh_verify',
@@ -220,6 +220,7 @@ class ui_post(cgmUI.cgmGUI):
         _d = {'Gather Space Drivers':'gatherSpaceDrivers',
               'Mirror Verify':'mirrorVerify',
               'isHistoricallyInteresting':'ihi'}
+        
         self._dCB_reg = {}
         for k in _l_order:
             _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -246,6 +247,42 @@ class ui_post(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=10)    
             
             _row.layout()
+        
+        #Danger!!!!!!======================================================================
+        _l_order = ['Delete Blocks']
+        _d = {'Delete Blocks':'deleteBlocks'}
+    
+        mc.setParent(_inside)
+        cgmUI.add_Header('!!!!!DANGER!!!!!!')        
+        _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    
+        for k in _l_order:
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+            mUI.MelSpacer(_row,w=10)    
+    
+            mUI.MelLabel(_row, label = '{0}:'.format(k))
+            _row.setStretchWidget(mUI.MelSeparator(_row))
+    
+            _plug = 'cgmVar_mrsPostProcess_' + _d.get(k,k)
+            try:self.__dict__[_plug]
+            except:
+                log.debug("{0}:{1}".format(_plug,1))
+                self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 0)
+    
+            l = k
+            _buffer = _d.get(k)
+            if _buffer:l = _buffer
+            _cb = mUI.MelCheckBox(_row,
+                                  #annotation = 'Create qss set: {0}'.format(k),
+                                  value = self.__dict__[_plug].value,
+                                  en=False,
+                                  onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                  offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+            self._dCB_reg[k] = _cb
+            mUI.MelSpacer(_row,w=10)    
+    
+            _row.layout()                
+        
         
         #Qss======================================================================
         mc.setParent(_inside)
@@ -280,6 +317,7 @@ class ui_post(cgmUI.cgmGUI):
         _row.layout()
         
         
+        
         _button = mc.button(parent=_MainForm,
                             l = 'Process',
                             ut = 'cgmUITemplate',
@@ -288,6 +326,7 @@ class ui_post(cgmUI.cgmGUI):
                             ann = 'Test progress bar')        
         #_row_cgm = cgmUI.add_cgmFooter(_MainForm)
         mc.setParent(_MainForm)
+ 
         
         #_rowProgressBar = mUI.MelRow(_MainForm)
 
