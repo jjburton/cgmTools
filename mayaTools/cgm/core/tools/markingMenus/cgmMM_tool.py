@@ -1641,19 +1641,38 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(parent=_pnt,
                   l = 'Along line(Even)',
                   en = self._b_sel_few,
-                  ut = 'cgmUITemplate',                                                                                              
+                  ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
-                  ann = "Layout on line from first to last item",
+                  ann = ARRANGE._d_arrangeLine_ann.get('linearEven'),
                   rp = 'SW')
         mc.menuItem(parent=_pnt,
                   l = 'Along line(Spaced)',
                   en = self._b_sel_few,                  
-                  ut = 'cgmUITemplate',                                                                                              
+                  ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
-                  ann = "Layout on line from first to last item closest as possible to original position",
+                  ann = ARRANGE._d_arrangeLine_ann.get('linearSpaced'),
                   rp = 'S')
-        
-        
+        mc.menuItem(parent=_pnt,
+                  l = 'Along Curve(Even)',
+                  en = self._b_sel_few,                  
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubic'}),                                               
+                  ann = ARRANGE._d_arrangeLine_ann.get('cubicEven'),
+                  rp = 'SE')
+        mc.menuItem(parent=_pnt,
+                  l = 'Along Arc(Even)',
+                  en = self._b_sel_few,                  
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubicArc'}),                                               
+                  ann = ARRANGE._d_arrangeLine_ann.get('cubicArcEven'),
+                  rp = 'E')
+        mc.menuItem(parent=_pnt,
+                  l = 'Along Cubic Rebuild 2(Even)',
+                  en = self._b_sel_few,                  
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubicRebuild'}),                                               
+                  ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Even'),
+                  rp = 'NE')
         
         mc.menuItem(parent=_r,
                         l = 'Parent',

@@ -607,7 +607,11 @@ def buildSection_snap(self,parent):
               ut = 'cgmUITemplate',                                                                                              
               c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
               ann = "Layout on line from first to last item closest as possible to original position")    
-    
+    mc.button(parent=_row_arrange,
+                 l = 'Along Curve(Even)',
+                 ut = 'cgmUITemplate',
+                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubic'}),                                               
+                 ann = "Layout evenly on curve created from the list")        
     mUI.MelSpacer(_row_arrange,w=5)                                              
     _row_arrange.layout()      
     

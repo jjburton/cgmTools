@@ -572,23 +572,79 @@ def buildSection_snap(self,parent):
     mUI.MelSpacer(_row_match,w=5)                                              
     _row_match.layout()         
 
-    #>>>Arrange snap -------------------------------------------------------------------------------------
+    #>>>Linear snap -------------------------------------------------------------------------------------
     _row_arrange = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mUI.MelSpacer(_row_arrange,w=5)                                              
-    mUI.MelLabel(_row_arrange,l='Arrange:')
+    mUI.MelLabel(_row_arrange,l='Linear:')
     _row_arrange.setStretchWidget(mUI.MelSeparator(_row_arrange)) 
 
     mc.button(parent=_row_arrange,
-              l = 'Along line(Even)',
-              ut = 'cgmUITemplate',                                                                                              
+              l = 'Even',
+              ut = 'cgmUITemplate',
               c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
-              ann = "Layout on line from first to last item")
+              ann = ARRANGE._d_arrangeLine_ann.get('linearEven'))
     mc.button(parent=_row_arrange,
-              l = 'Along line(Spaced)',
-              ut = 'cgmUITemplate',                                                                                              
+              l = 'Spaced',
+              ut = 'cgmUITemplate',
               c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
-              ann = "Layout on line from first to last item closest as possible to original position")    
+              ann = ARRANGE._d_arrangeLine_ann.get('linearSpaced'))
     
+    mUI.MelSpacer(_row_arrange,w=5)                                              
+    _row_arrange.layout()
+    
+
+    #>>>Cubic snap -------------------------------------------------------------------------------------
+    _row_arrange = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row_arrange,w=5)                                              
+    mUI.MelLabel(_row_arrange,l='Cubic:')
+    _row_arrange.setStretchWidget(mUI.MelSeparator(_row_arrange)) 
+
+    mc.button(parent=_row_arrange,
+              l = 'Curve[Even]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubic'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicEven'))
+    mc.button(parent=_row_arrange,
+              l = 'Arc[Even]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubicArc'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcEven'))
+    mc.button(parent=_row_arrange,
+              l = 'Arc[Spaced]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced','curve':'cubicArc'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcSpaced'))
+    mUI.MelSpacer(_row_arrange,w=5)
+    _row_arrange.layout()
+
+
+    #>>>Arrange snap -------------------------------------------------------------------------------------
+    _row_arrange = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row_arrange,w=5)                                              
+    mUI.MelLabel(_row_arrange,l='Curve Rebuild:')
+    _row_arrange.setStretchWidget(mUI.MelSeparator(_row_arrange)) 
+
+    mc.button(parent=_row_arrange,
+              l = '2[Even]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubicRebuild','spans':2}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Even'))
+    mc.button(parent=_row_arrange,
+              l = '2[Spaced]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced','curve':'cubicRebuild','spans':2}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Spaced'))
+    mc.button(parent=_row_arrange,
+              l = '3[Even]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubicRebuild','spans':2}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Even'))
+    mc.button(parent=_row_arrange,
+              l = '3[Spaced]',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))    
+
     mUI.MelSpacer(_row_arrange,w=5)                                              
     _row_arrange.layout()
         

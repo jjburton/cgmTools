@@ -1297,7 +1297,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
     return True
 
 
-def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
+def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock = None,*a, **kws):
     """   
     Breaks connections on an attribute. Handles locks on source or end
 
@@ -1326,8 +1326,7 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
             raise ValueError,"{0} already exists.".format(_combined)
     
         _type = validate_attrTypeName(attrType)
-        _value = kws.pop('value')
-        _lock = kws.pop('lock')
+
         
         assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
     
@@ -1361,10 +1360,10 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],*a, **kws):
             raise ValueError,"Don't know what to do with attrType: {0}".format(attrType)
             #return False
             
-        if _value is not None:
-            set(_node,_attr,value=_value)
-        if _lock:
-            set_lock(_node,_attr,_lock)
+        if value is not None:
+            set(_node,_attr,value=value)
+        if lock:
+            set_lock(_node,_attr,lock)
         return _combined        
     except Exception,err:cgmGeneral.cgmException(Exception,err)
 def get_standardFlagsDict(*a):

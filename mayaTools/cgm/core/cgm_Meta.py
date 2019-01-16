@@ -6998,7 +6998,10 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                 if not _UUID2016:
                     ATTR.add(_argShort,'UUID','string')
             except:pass
-            ATTR.set(_argShort,'mClass',mType,True)
+            if not ATTR.has_attr(_argShort,'mClass'):
+                ATTR.add(_argShort,'mClass','string',value=mType,lock=True)
+            else:
+                ATTR.set(_argShort,'mClass',mType,True)
             t2 = time.clock()		    
             log.debug("attrSet %0.6f"%(t2-t_attr))	
             log.debug("setClass %0.6f"%(t2-t1))	
