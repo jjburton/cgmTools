@@ -137,7 +137,7 @@ class ui_post(cgmUI.cgmGUI):
             l_order = ['Mirror Verify','Gather Space Drivers',
                        'bakeQSS','deleteQSS','exportQSS',
                        'isHistoricallyInteresting','proxyMesh',
-                       'connectRig','deleteBlocks']
+                       'connectRig','Delete Blocks']
             d_keyToFunction = {'Mirror Verify':'mirror_verify',
                                'Gather Space Drivers':'collect_worldSpaceObjects',
                                'proxyMesh':'proxyMesh_verify',
@@ -174,7 +174,7 @@ class ui_post(cgmUI.cgmGUI):
                     cgmUI.progressBar_test(self.uiPB_test,100)
                 elif k == 'isHistoricallyInteresting':
                     self.mPuppet.atUtils('rigNodes_setAttr','ihi',0,self.uiPB_test)
-                elif k == 'deleteBlocks':
+                elif k == 'Delete Blocks':
                     pass
                 else:
                     log.warning("Finish {0}".format(k))
