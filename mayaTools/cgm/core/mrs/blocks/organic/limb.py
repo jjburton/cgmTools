@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -2121,6 +2121,9 @@ def rig_prechecks(self):
     
     mBlock = self.mBlock
     
+    if not mBlock.ikSetup:
+        self.l_precheckErrors.append('Must have ikSetup currently')
+        
     
     #if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
     #    self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
@@ -2128,372 +2131,372 @@ def rig_prechecks(self):
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):
-    _short = self.d_block['shortName']
-    _str_func = 'rig_dataBuffer'
-    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
-    log.debug(self)
-    
-    mBlock = self.mBlock
-    mModule = self.mModule
-    mRigNull = self.mRigNull
-    mPrerigNull = mBlock.prerigNull
-    ml_templateHandles = mBlock.msgList_get('templateHandles')
-    self.ml_templateHandles=ml_templateHandles
-    ml_prerigHandles = mBlock.msgList_get('prerigHandles')
-    
-    ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
-    mMasterNull = self.d_module['mMasterNull']
-    
-    self.mRootTemplateHandle = ml_templateHandles[0]
-    self.b_ikNeedEnd = False
-    self.b_pivotSetup = False
-    self.mPivotHelper = False
-    self.b_quadSetup = mBlock.hasQuadSetup
-    self.b_quadFront = False
-    log.debug("|{0}| >> Quad | self.b_quadSetup: {1} ".format(_str_func,self.b_quadSetup))
-    
-    #Initial option checks ============================================================================    
-    #if mBlock.scaleSetup:
-    #    raise NotImplementedError,"Haven't setup scale yet."
-    #if mBlock.ikSetup >=1:
-        #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
+    try:
+        _short = self.d_block['shortName']
+        _str_func = 'rig_dataBuffer'
+        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+        log.debug(self)
         
-    
-    self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
-    
-    #Single chain ============================================================================
-    self.b_singleChain = False
-    ml_joints = self.d_joints['ml_skinJoints']
-    len_joints = len(ml_joints)
-    len_prerigHandles = len(ml_prerigHandles)
-    
-    if len_prerigHandles == 2:
-        self.b_singleChain = True
-        if len_joints ==1:
-            self.b_ikNeedEnd = True
-
+        mBlock = self.mBlock
+        mModule = self.mModule
+        mRigNull = self.mRigNull
+        mPrerigNull = mBlock.prerigNull
+        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        self.ml_templateHandles=ml_templateHandles
+        ml_prerigHandles = mBlock.msgList_get('prerigHandles')
         
-    log.debug("|{0}| >> Single chain | self.b_singleChain: {1} ".format(_str_func,self.b_singleChain))
-    
-    #FollowParent ============================================================================
-    self.b_followParentBank = False
-    self.mPivotResult_moduleParent = False
-    if mBlock.followParentBank:
-        mModuleParent = self.d_module['mModuleParent']
-        if mModuleParent:
-            mPivotResult_moduleParent = mModuleParent.rigNull.getMessageAsMeta('pivotResultDriver')
-            if mPivotResult_moduleParent:
-                self.mPivotResult_moduleParent = mPivotResult_moduleParent
-                self.b_followParentBank = True
-    log.debug("|{0}| >> Follow parentBank | self.b_followParentBank: {1} ".format(_str_func,self.b_followParentBank))
-    log.debug("|{0}| >> Follow parentBank | self.mPivotResult_moduleParent: {1} ".format(_str_func,self.mPivotResult_moduleParent))
-    log.debug(cgmGEN._str_subLine)    
-    
-    #Lever ============================================================================    
-    _b_lever = False
-    self.b_leverJoint = False
-    ml_templateHandlesUse = copy.copy(ml_templateHandles)
-    ml_fkShapeHandles = copy.copy(ml_prerigHandles)
-    if mBlock.buildLeverBase:
-        _b_lever = True        
-        if mBlock.hasLeverJoint:
-            self.b_leverJoint = True
-        else:
-            log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
-        self.mRootTemplateHandle = ml_templateHandles[1]
-        ml_templateHandlesUse = ml_templateHandlesUse[1:]
+        ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
+        mMasterNull = self.d_module['mMasterNull']
         
-        ml_fkShapeHandles = ml_fkShapeHandles[1:]
-    self.b_lever = _b_lever
-        
-    self.ml_fkShapeTargets = ml_fkShapeHandles
-
-    if not self.b_singleChain:
-        self.int_templateHandleMidIdx = MATH.get_midIndex(len(ml_templateHandlesUse))
-        self.mMidTemplateHandle = ml_templateHandles[self.int_templateHandleMidIdx]
-            
-        log.debug("|{0}| >> Lever: {1}".format(_str_func,self.b_lever))    
-        log.debug("|{0}| >> self.mRootTemplateHandle : {1}".format(_str_func,self.mRootTemplateHandle))
-        log.debug("|{0}| >> self.mMidTemplateHandle : {1}".format(_str_func,self.mMidTemplateHandle))    
-        log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1}".format(_str_func,self.int_templateHandleMidIdx))
-    
-    
-        #Pivot checks ============================================================================
-        mPivotHolderHandle = ml_templateHandles[-1]
+        self.mRootTemplateHandle = ml_templateHandles[0]
+        self.b_ikNeedEnd = False
         self.b_pivotSetup = False
         self.mPivotHelper = False
-        if mPivotHolderHandle.getMessage('pivotHelper'):
-            log.debug("|{0}| >> Pivot setup needed".format(_str_func))
-            self.b_pivotSetup = True
-            self.mPivotHelper = mPivotHolderHandle.getMessageAsMeta('pivotHelper')
-            log.debug(cgmGEN._str_subLine)
+        self.b_quadSetup = mBlock.hasQuadSetup
+        self.b_quadFront = False
+        log.debug("|{0}| >> Quad | self.b_quadSetup: {1} ".format(_str_func,self.b_quadSetup))
         
-    #Roll joints =============================================================================
-    #Look for roll chains...
-    log.debug("|{0}| >> Looking for rollChains...".format(_str_func))    
-    _check = 0
-    
-    self.md_roll = {}
-    self.md_rollMulti = {}
-    self.ml_segHandles = []
-    self.md_segHandleIndices = {}
-    #self.b_segmentSetup = False
-    #self.b_rollSetup = False
-    
-    while _check <= len(ml_handleJoints):
-        mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
-        _len = len(mBuffer)
-        self.md_rollMulti[_check] = False
-        
-        if mBuffer:
-            mStart = ml_handleJoints[_check]
-            mEnd = ml_handleJoints[_check+1]            
+        #Initial option checks ============================================================================    
+        #if mBlock.scaleSetup:
+        #    raise NotImplementedError,"Haven't setup scale yet."
+        #if mBlock.ikSetup >=1:
+            #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
             
-            ml_roll = [mStart] + mBuffer + [mEnd]
-            self.ml_segHandles
-            if mStart not in self.ml_segHandles:
-                self.ml_segHandles.append(mStart)
-                self.md_segHandleIndices[mStart] = _check
-            if mEnd not in self.ml_segHandles:
-                self.ml_segHandles.append(mEnd)
-                self.md_segHandleIndices[mEnd] = _check+1
+        
+        self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
+        
+        #Single chain ============================================================================
+        self.b_singleChain = False
+        ml_joints = self.d_joints['ml_skinJoints']
+        len_joints = len(ml_joints)
+        len_prerigHandles = len(ml_prerigHandles)
+        
+        if mBlock.numControls <= 2:
+            self.b_singleChain = True
+            if len_joints ==1:
+                self.b_ikNeedEnd = True
+    
             
-            self.md_roll[_check] = ml_roll            
-            if _len > 1:
-                self.md_rollMulti[_check] = True
-            log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
-                                                                                      _check,
-                                                                                      _len,
-                                                                                      self.md_rollMulti[_check]))
-        _check +=1
+        log.debug("|{0}| >> Single chain | self.b_singleChain: {1} ".format(_str_func,self.b_singleChain))
         
-    #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
-    #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
-    
-    if self.b_leverJoint:
-        log.debug("|{0}| >> lever roll remap...".format(_str_func))
-        md_rollRemap = {}
-        for i,v in self.md_roll.iteritems():
-            md_rollRemap[i-1] = v
-        self.md_roll = md_rollRemap
-        
-        ml_indiceRemap = {}
-        for v,i in self.md_segHandleIndices.iteritems():
-            ml_indiceRemap[v] = i-1
-        self.md_segHandleIndices = ml_indiceRemap
-        
-    
-    log.debug("|{0}| >> self.md_roll...".format(_str_func))    
-    pprint.pprint(self.md_roll)
-    log.debug(cgmGEN._str_subLine)
-    
-    log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
-    pprint.pprint(self.ml_segHandles)
-    log.debug(cgmGEN._str_subLine)
-    
-    #Squash stretch logic  =================================================================================
-    log.debug("|{0}| >> Squash stretch..".format(_str_func))
-    self.b_scaleSetup = mBlock.scaleSetup
-    self.b_squashSetup = False
-    
-    if not self.md_roll:
-        log.debug("|{0}| >> No roll joints found for squash and stretch to happen".format(_str_func))
-        
-    else:
-        
-        self.d_squashStretch = {}
-        self.d_squashStretchIK = {}
-        
-        _squashStretch = None
-        if mBlock.squash:
-            _squashStretch =  mBlock.getEnumValueString('squash')
-            self.b_squashSetup = True
-        self.d_squashStretch['squashStretch'] = _squashStretch
-        
-        _squashMeasure = None
-        if mBlock.squashMeasure:
-            _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
-        self.d_squashStretch['squashStretchMain'] = _squashMeasure    
-    
-        _driverSetup = None
-        if mBlock.ribbonAim:
-            _driverSetup =  mBlock.getEnumValueString('ribbonAim')
-        self.d_squashStretch['driverSetup'] = _driverSetup
-        
-        #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
-        self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
-        self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
-        self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
-        
-        log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
-        pprint.pprint(self.d_squashStretch)
-        
-        #Check for mid control and even handle count to see if w need an extra curve
-        if mBlock.segmentMidIKControl:
-            if MATH.is_even(mBlock.numControls):
-                self.d_squashStretchIK['sectionSpans'] = 2
-                
-        if self.d_squashStretchIK:
-            log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
-            pprint.pprint(self.d_squashStretchIK)
-        
-        
-        if not self.b_scaleSetup:
-            pass
-        
-        log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
-        log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
-        
+        #FollowParent ============================================================================
+        self.b_followParentBank = False
+        self.mPivotResult_moduleParent = False
+        if mBlock.followParentBank:
+            mModuleParent = self.d_module['mModuleParent']
+            if mModuleParent:
+                mPivotResult_moduleParent = mModuleParent.rigNull.getMessageAsMeta('pivotResultDriver')
+                if mPivotResult_moduleParent:
+                    self.mPivotResult_moduleParent = mPivotResult_moduleParent
+                    self.b_followParentBank = True
+        log.debug("|{0}| >> Follow parentBank | self.b_followParentBank: {1} ".format(_str_func,self.b_followParentBank))
+        log.debug("|{0}| >> Follow parentBank | self.mPivotResult_moduleParent: {1} ".format(_str_func,self.mPivotResult_moduleParent))
         log.debug(cgmGEN._str_subLine)    
-    
-    
-    #Frame Handles =============================================================================
-    self.ml_handleTargets = mPrerigNull.msgList_get('handleJoints')
-    if self.b_leverJoint:
-        log.debug("|{0}| >> handleJoint lever cull...".format(_str_func))        
-        self.ml_handleTargets = self.ml_handleTargets[1:]
-        ml_handleJoints = ml_handleJoints[1:]
         
-    self.mToe = False
-    self.mBall = False
-    self.int_handleEndIdx = -1
-    self.b_cullFKEnd = False
-    self.b_ikNeedFullChain = False
-    l= []
-    
-    str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
-    log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
-    
-    
-    if self.b_quadSetup:
-        self.int_handleEndIdx -=1
-    else:
-        if str_ikEnd in ['foot']:
-            if mBlock.hasEndJoint:
-                self.mToe = self.ml_handleTargets.pop(-1)
-                log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
-                self.int_handleEndIdx -=1
-            if mBlock.hasBallJoint:
-                self.mBall = self.ml_handleTargets.pop(-1)
-                log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
-                self.int_handleEndIdx -=1
-                
-        elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
-            log.debug("|{0}| >> tip setup...".format(_str_func))        
-            if not mBlock.hasEndJoint:
-                if str_ikEnd == 'tipEnd':
-                    self.b_ikNeedEnd = True
-                    log.debug("|{0}| >> Need IK end joint".format(_str_func))
-                elif str_ikEnd == 'tipBase':
-                    pass
-            elif str_ikEnd == 'tipBase':
-                self.int_handleEndIdx -=1
-                self.b_cullFKEnd = True
-
-                
-        if str_ikEnd in ['tipCombo']:
-            log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
-            self.b_ikNeedFullChain = True
+        #Lever ============================================================================    
+        _b_lever = False
+        self.b_leverJoint = False
+        ml_templateHandlesUse = copy.copy(ml_templateHandles)
+        ml_fkShapeHandles = copy.copy(ml_prerigHandles)
+        if mBlock.buildLeverBase:
+            _b_lever = True        
+            if mBlock.hasLeverJoint:
+                self.b_leverJoint = True
+            else:
+                log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
+            self.mRootTemplateHandle = ml_templateHandles[1]
+            ml_templateHandlesUse = ml_templateHandlesUse[1:]
             
-    #elif mBlock.ikEndIndex > 1:
-        #log.debug("|{0}| >> Using ikEndIndex...".format(_str_func))        
-        #self.int_handleEndIdx = - mBlock.ikEndIndex
-    log.debug("|{0}| >> self.b_cullFKEnd: {1}".format(_str_func,
-                                                        self.b_cullFKEnd))            
-    log.debug("|{0}| >> self.ml_handleTargets: {1} | {2}".format(_str_func,
-                                                                     len(self.ml_handleTargets),
-                                                                     self.ml_handleTargets))
+            ml_fkShapeHandles = ml_fkShapeHandles[1:]
+        self.b_lever = _b_lever
+            
+        self.ml_fkShapeTargets = ml_fkShapeHandles
     
-    log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
-                                                                             ml_handleJoints[self.int_handleEndIdx]))
-    if not self.b_singleChain:
-    
-        ml_use = ml_handleJoints[:self.int_handleEndIdx]
-        if len(ml_use) == 1:
-            mid=0
-            mMidHandle = ml_use[0]
-        else:
-            mid = MATH.get_midIndex(len(ml_use))
-            mMidHandle = ml_use[mid]
-        self.int_handleMidIdx = mid
-    
-    
-    #if self.b_lever:
-        #log.debug("|{0}| >> lever pop...".format(_str_func))        
-        #self.int_templateHandleMidIdx +=1
-    
-    
-
-        log.debug("|{0}| >> Mid self.int_handleMidIdx idx: {1} | {2}".format(_str_func,self.int_handleMidIdx,
-                                                                             ml_handleJoints[self.int_handleMidIdx]))    
-
-    
-    
-    if self.int_handleEndIdx ==  -1:
-        self.ml_handleTargetsCulled = copy.copy(ml_handleJoints)
-    else:
-        self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
-    self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
-    
-    log.debug("|{0}| >> self.ml_handleTargetsCulled: {1} | {2}".format(_str_func,
-                                                                 len(self.ml_handleTargetsCulled),
-                                                                 self.ml_handleTargetsCulled))
-    log.debug("|{0}| >> self.mIKEndSkinJnt: {1}".format(_str_func,
-                                                        self.mIKEndSkinJnt))    
-    log.debug(cgmGEN._str_subLine)
-    
-    #Offset ============================================================================    
-    self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
-    """
-    str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
-    if not mBlock.offsetMode:
-        log.debug("|{0}| >> default offsetMode...".format(_str_func))
-        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
-    else:
-        str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
-        log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
+        if not self.b_singleChain:
+            self.int_templateHandleMidIdx = MATH.get_midIndex(len(ml_templateHandlesUse))
+            self.mMidTemplateHandle = ml_templateHandles[self.int_templateHandleMidIdx]
+                
+            log.debug("|{0}| >> Lever: {1}".format(_str_func,self.b_lever))    
+            log.debug("|{0}| >> self.mRootTemplateHandle : {1}".format(_str_func,self.mRootTemplateHandle))
+            log.debug("|{0}| >> self.mMidTemplateHandle : {1}".format(_str_func,self.mMidTemplateHandle))    
+            log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1}".format(_str_func,self.int_templateHandleMidIdx))
         
-        l_sizes = []
-        for mHandle in ml_templateHandles:
-            #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
-            #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
-            _size_sub = POS.get_bb_size(mHandle,True)
-            l_sizes.append( MATH.average(_size_sub) * .1 )            
-        self.v_offset = MATH.average(l_sizes)
-        #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
-        #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
-    """
-    log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
+        
+            #Pivot checks ============================================================================
+            mPivotHolderHandle = ml_templateHandles[-1]
+            self.b_pivotSetup = False
+            self.mPivotHelper = False
+            if mPivotHolderHandle.getMessage('pivotHelper'):
+                log.debug("|{0}| >> Pivot setup needed".format(_str_func))
+                self.b_pivotSetup = True
+                self.mPivotHelper = mPivotHolderHandle.getMessageAsMeta('pivotHelper')
+                log.debug(cgmGEN._str_subLine)
+            
+        #Roll joints =============================================================================
+        #Look for roll chains...
+        log.debug("|{0}| >> Looking for rollChains...".format(_str_func))    
+        _check = 0
+        
+        self.md_roll = {}
+        self.md_rollMulti = {}
+        self.ml_segHandles = []
+        self.md_segHandleIndices = {}
+        #self.b_segmentSetup = False
+        #self.b_rollSetup = False
+        
+        while _check <= len(ml_handleJoints):
+            mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
+            _len = len(mBuffer)
+            self.md_rollMulti[_check] = False
+            
+            if mBuffer:
+                mStart = ml_handleJoints[_check]
+                mEnd = ml_handleJoints[_check+1]            
+                
+                ml_roll = [mStart] + mBuffer + [mEnd]
+                self.ml_segHandles
+                if mStart not in self.ml_segHandles:
+                    self.ml_segHandles.append(mStart)
+                    self.md_segHandleIndices[mStart] = _check
+                if mEnd not in self.ml_segHandles:
+                    self.ml_segHandles.append(mEnd)
+                    self.md_segHandleIndices[mEnd] = _check+1
+                
+                self.md_roll[_check] = ml_roll            
+                if _len > 1:
+                    self.md_rollMulti[_check] = True
+                log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
+                                                                                          _check,
+                                                                                          _len,
+                                                                                          self.md_rollMulti[_check]))
+            _check +=1
+            
+        #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
+        #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
+        
+        if self.b_leverJoint:
+            log.debug("|{0}| >> lever roll remap...".format(_str_func))
+            md_rollRemap = {}
+            for i,v in self.md_roll.iteritems():
+                md_rollRemap[i-1] = v
+            self.md_roll = md_rollRemap
+            
+            ml_indiceRemap = {}
+            for v,i in self.md_segHandleIndices.iteritems():
+                ml_indiceRemap[v] = i-1
+            self.md_segHandleIndices = ml_indiceRemap
+            
+        
+        log.debug("|{0}| >> self.md_roll...".format(_str_func))    
+        pprint.pprint(self.md_roll)
+        log.debug(cgmGEN._str_subLine)
+        
+        log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
+        pprint.pprint(self.ml_segHandles)
+        log.debug(cgmGEN._str_subLine)
+        
+        #Squash stretch logic  =================================================================================
+        log.debug("|{0}| >> Squash stretch..".format(_str_func))
+        self.b_scaleSetup = mBlock.scaleSetup
+        self.b_squashSetup = False
+        
+        if not self.md_roll:
+            log.debug("|{0}| >> No roll joints found for squash and stretch to happen".format(_str_func))
+            
+        else:
+            
+            self.d_squashStretch = {}
+            self.d_squashStretchIK = {}
+            
+            _squashStretch = None
+            if mBlock.squash:
+                _squashStretch =  mBlock.getEnumValueString('squash')
+                self.b_squashSetup = True
+            self.d_squashStretch['squashStretch'] = _squashStretch
+            
+            _squashMeasure = None
+            if mBlock.squashMeasure:
+                _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
+            self.d_squashStretch['squashStretchMain'] = _squashMeasure    
+        
+            _driverSetup = None
+            if mBlock.ribbonAim:
+                _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+            self.d_squashStretch['driverSetup'] = _driverSetup
+            
+            #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+            self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
+            self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
+            self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
+            
+            log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
+            pprint.pprint(self.d_squashStretch)
+            
+            #Check for mid control and even handle count to see if w need an extra curve
+            if mBlock.segmentMidIKControl:
+                if MATH.is_even(mBlock.numControls):
+                    self.d_squashStretchIK['sectionSpans'] = 2
+                    
+            if self.d_squashStretchIK:
+                log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
+                pprint.pprint(self.d_squashStretchIK)
+            
+            
+            if not self.b_scaleSetup:
+                pass
+            
+            log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
+            log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
+            
+            log.debug(cgmGEN._str_subLine)    
+        
+        
+        #Frame Handles =============================================================================
+        self.ml_handleTargets = mPrerigNull.msgList_get('handleJoints')
+        if self.b_leverJoint:
+            log.debug("|{0}| >> handleJoint lever cull...".format(_str_func))        
+            self.ml_handleTargets = self.ml_handleTargets[1:]
+            ml_handleJoints = ml_handleJoints[1:]
+            
+        self.mToe = False
+        self.mBall = False
+        self.int_handleEndIdx = -1
+        self.b_cullFKEnd = False
+        self.b_ikNeedFullChain = False
+        l= []
+        
+        str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
+        log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
+        
+        
+        if self.b_quadSetup:
+            self.int_handleEndIdx -=1
+        else:
+            if str_ikEnd in ['foot']:
+                if mBlock.hasEndJoint:
+                    self.mToe = self.ml_handleTargets.pop(-1)
+                    log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
+                    self.int_handleEndIdx -=1
+                if mBlock.hasBallJoint:
+                    self.mBall = self.ml_handleTargets.pop(-1)
+                    log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
+                    self.int_handleEndIdx -=1
+                    
+            elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
+                log.debug("|{0}| >> tip setup...".format(_str_func))        
+                if not mBlock.hasEndJoint:
+                    if str_ikEnd == 'tipEnd':
+                        self.b_ikNeedEnd = True
+                        log.debug("|{0}| >> Need IK end joint".format(_str_func))
+                    elif str_ikEnd == 'tipBase':
+                        pass
+                elif str_ikEnd == 'tipBase':
+                    self.int_handleEndIdx -=1
+                    self.b_cullFKEnd = True
     
+                    
+            if str_ikEnd in ['tipCombo']:
+                log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
+                self.b_ikNeedFullChain = True
+                
+        #elif mBlock.ikEndIndex > 1:
+            #log.debug("|{0}| >> Using ikEndIndex...".format(_str_func))        
+            #self.int_handleEndIdx = - mBlock.ikEndIndex
+        log.debug("|{0}| >> self.b_cullFKEnd: {1}".format(_str_func,
+                                                            self.b_cullFKEnd))            
+        log.debug("|{0}| >> self.ml_handleTargets: {1} | {2}".format(_str_func,
+                                                                         len(self.ml_handleTargets),
+                                                                         self.ml_handleTargets))
+        
+        log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
+                                                                                 ml_handleJoints[self.int_handleEndIdx]))
+        if not self.b_singleChain:
+            ml_use = ml_handleJoints[:self.int_handleEndIdx]
+            if len(ml_use) == 1:
+                mid=0
+                mMidHandle = ml_use[0]
+            else:
+                mid = MATH.get_midIndex(len(ml_use))
+                mMidHandle = ml_use[mid]
+            self.int_handleMidIdx = mid
+        
+        
+        #if self.b_lever:
+            #log.debug("|{0}| >> lever pop...".format(_str_func))        
+            #self.int_templateHandleMidIdx +=1
+        
+        
     
-    #DynParents =============================================================================
-    self.UTILS.get_dynParentTargetsDat(self)
+            log.debug("|{0}| >> Mid self.int_handleMidIdx idx: {1} | {2}".format(_str_func,self.int_handleMidIdx,
+                                                                                 ml_handleJoints[self.int_handleMidIdx]))    
     
-    #rotateOrder =============================================================================
-    _str_orientation = self.d_orientation['str']
+        
+        
+        if self.int_handleEndIdx ==  -1:
+            self.ml_handleTargetsCulled = copy.copy(ml_handleJoints)
+        else:
+            self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
+        self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
+        
+        log.debug("|{0}| >> self.ml_handleTargetsCulled: {1} | {2}".format(_str_func,
+                                                                     len(self.ml_handleTargetsCulled),
+                                                                     self.ml_handleTargetsCulled))
+        log.debug("|{0}| >> self.mIKEndSkinJnt: {1}".format(_str_func,
+                                                            self.mIKEndSkinJnt))    
+        log.debug(cgmGEN._str_subLine)
+        
+        #Offset ============================================================================    
+        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        """
+        str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
+        if not mBlock.offsetMode:
+            log.debug("|{0}| >> default offsetMode...".format(_str_func))
+            self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        else:
+            str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
+            log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
+            
+            l_sizes = []
+            for mHandle in ml_templateHandles:
+                #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
+                #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
+                _size_sub = POS.get_bb_size(mHandle,True)
+                l_sizes.append( MATH.average(_size_sub) * .1 )            
+            self.v_offset = MATH.average(l_sizes)
+            #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
+            #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
+        """
+        log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
+        
+        
+        #DynParents =============================================================================
+        self.UTILS.get_dynParentTargetsDat(self)
+        
+        #rotateOrder =============================================================================
+        _str_orientation = self.d_orientation['str']
+        
+        self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+        self.rotateOrderIK = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+        
+        log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+        log.debug("|{0}| >> rotateOrder | self.rotateOrderIK: {1}".format(_str_func,self.rotateOrderIK))
     
-    self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
-    self.rotateOrderIK = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+        log.debug(cgmGEN._str_subLine)
+        
+        #mainRot axis =============================================================================
+        """For twist stuff"""
+        _mainAxis = ATTR.get_enumValueString(mBlock.mNode,'mainRotAxis')
+        _axis = ['aim','up','out']
+        if _mainAxis == 'up':
+            _upAxis = 'out'
+        else:
+            _upAxis = 'up'
+        
+        self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
+        log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))
     
-    log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
-    log.debug("|{0}| >> rotateOrder | self.rotateOrderIK: {1}".format(_str_func,self.rotateOrderIK))
-
-    log.debug(cgmGEN._str_subLine)
-    
-    #mainRot axis =============================================================================
-    """For twist stuff"""
-    _mainAxis = ATTR.get_enumValueString(mBlock.mNode,'mainRotAxis')
-    _axis = ['aim','up','out']
-    if _mainAxis == 'up':
-        _upAxis = 'out'
-    else:
-        _upAxis = 'up'
-    
-    self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
-    log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))
-
-    log.debug(cgmGEN._str_subLine)    
-    
+        log.debug(cgmGEN._str_subLine)    
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
 @cgmGEN.Timer
 def rig_skeleton(self):
