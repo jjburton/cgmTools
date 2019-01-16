@@ -174,6 +174,8 @@ class ui_post(cgmUI.cgmGUI):
                     cgmUI.progressBar_test(self.uiPB_test,100)
                 elif k == 'isHistoricallyInteresting':
                     self.mPuppet.atUtils('rigNodes_setAttr','ihi',0,self.uiPB_test)
+                elif k == 'deleteBlocks':
+                    pass
                 else:
                     log.warning("Finish {0}".format(k))
                     cgmUI.progressBar_test(self.uiPB_test,100)
