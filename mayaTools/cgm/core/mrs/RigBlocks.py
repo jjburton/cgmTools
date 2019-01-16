@@ -4209,7 +4209,8 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
         
     _progressBar = None
     if kws:
-        _progressBar = kws.pop('progressBar')
+        if kws.get('progressBar'):
+            _progressBar = kws.pop('progressBar')
 
     if not kws:
         kws = {}
@@ -4237,6 +4238,7 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
             try:
                 _short = mBlock.getShortName()
                 if _progressBar:
+                    cgmUI.progressBar_start(_progressBar)
                     cgmUI.progressBar_set(_progressBar,
                                           maxValue = int_len,beginProgress=True,
                                           progress=i, vis=True)                

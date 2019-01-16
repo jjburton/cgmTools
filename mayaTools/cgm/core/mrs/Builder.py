@@ -1182,6 +1182,8 @@ class ui(cgmUI.cgmGUI):
                     _message = "{0} \n Selected: {1}".format(_message,len(ml_blocks))
                     if not confirm(_title, _message, _funcString):return False
                 
+                self.uiRow_progress(edit=1,vis=1)
+                
                 #Now parse to sets of data
                 ml_processed = []
                 if args[0] == 'select':
@@ -1198,14 +1200,15 @@ class ui(cgmUI.cgmGUI):
                     log.warning("|{0}| >> new blocks: {1}".format(_str_func,ml_blocks))                    
                     
                 int_len = len(ml_blocks)
-                self.uiRow_progress(edit=1,vis=1)
-                cgmUI.progressBar_start(self.uiPB_mrs)
+                    
                 for i,mBlock in enumerate(ml_blocks):
                     _short = mBlock.p_nameShort
                     _call = str(args[0])
                     if _call in ['atUtils']:
                         _call = str(args[1])
                     self.uiProgressText(edit=True,vis=1,label="{0} | {1} | call: {2}".format(_short,_contextMode,_call))
+                    
+                    cgmUI.progressBar_start(self.uiPB_mrs,int_len)
                     cgmUI.progressBar_set(self.uiPB_mrs,
                                           maxValue = int_len,isInterruptable=True,
                                           progress=i, vis=True)

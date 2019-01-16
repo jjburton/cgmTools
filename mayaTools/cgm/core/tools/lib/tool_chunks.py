@@ -1207,12 +1207,12 @@ def uiSection_snap(parent, selection = None ):
     mc.menuItem(parent=_arrange,
               l = '3[Even]',
               ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':2}),
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':3}),
               ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Even'))
     mc.menuItem(parent=_arrange,
               l = '3[Spaced]',
               ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':3}),
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
               ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))    
     #cgmUI.mUI.MelSeparator(parent)
     mc.menuItem(parent=parent,
