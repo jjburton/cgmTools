@@ -474,18 +474,18 @@ def rig_disconnect(self,force=False):
         return True        
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def rig_reset(self,):
+def rig_reset(self,transformsOnly = True):
     _str_func = ' rig_reset'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:
         _sel = mc.ls(os=True) or []
         self.rigNull.moduleSet.select()
-        RIGGEN.reset_channels_fromMode(self.var_resetMode.value)
+        RIGGEN.reset_channels(transformsOnly = transformsOnly)
         if _sel:
             mc.select(_sel)
         return True
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
     
 def parentModule_set(self,mModuleParent = None):

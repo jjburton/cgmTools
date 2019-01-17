@@ -566,11 +566,34 @@ class ui(cgmUI.cgmGUI):
                   'call':None},
                   """    
         
+        
+        """
+                mUI.MelMenuItem(_mRig,
+                        label = 'Reset Rig controls',
+                        ann = self._d_ui_annotations.get('reset rig controls',"FIX") + _str_context,
+                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_reset',**{'updateUI':0}))
+                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_reset' ))
+        mUI.MelMenuItem(_mRig,
+                        label = 'Connect Rig',
+                        ann = self._d_ui_annotations.get('connect rig',"FIX") + _str_context,
+                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_connect',**{'updateUI':0}))
+                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_connect' ))
+        mUI.MelMenuItem(_mRig,
+                        label = 'Disconnect Rig',
+                        ann = self._d_ui_annotations.get('disconnect rig',"FIX") + _str_context,
+                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_disconnect',**{'updateUI':0}))
+                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_disconnect' ))        
+        
+        """
         d_s = {'Set Side':{},
                'Rig':{'Verify Proxy':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify_proxyMesh',
                                       **{'updateUI':0})},
+                      'Rig Connect':{'ann':self._d_ui_annotations.get('connect rig'),
+                                        'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_connect',**{'updateUI':0})},
+                      'Rig Disconnect':{'ann':self._d_ui_annotations.get('disconnect rig'),
+                                     'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_disconnect',**{'updateUI':0})},                      
                       'Reset Controls':{'ann':self._d_ui_annotations.get('reset rig controls'),
                                'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,
                                       'rig_reset',
