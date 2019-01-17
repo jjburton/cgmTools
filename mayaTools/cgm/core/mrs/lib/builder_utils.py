@@ -403,14 +403,14 @@ def get_block_lib_dat():
         cgmGEN.log_info_dict(_d_categories,"Categories")
     
     if _l_duplicates:
-        log.info(cgmGEN._str_subLine)
-        log.info("|{0}| >> DUPLICATE MODULES....".format(_str_func))
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> DUPLICATE MODULES....".format(_str_func))
         for m in _l_duplicates:
             print(m)
         raise Exception,"Must resolve"
     log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
     if _l_unbuildable:
-        log.info(cgmGEN._str_subLine)
+        log.debug(cgmGEN._str_subLine)
         log.error("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
         for m in _l_unbuildable:
             print(">>>    " + m) 
@@ -915,7 +915,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
         #>>Top bottom -----------------------------------------------------------------
         for i,crv in enumerate([targets[0],targets[-1]]):
             _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=.01,rn=0)
-            log.info(_res)
+            log.debug(_res)
             _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
             _tessellate = _inputs[0]        
             _d = {'format':1,#Fit
@@ -1041,7 +1041,7 @@ def get_blockScale(self,plug='blockScale',ml_joints = None):
     Creates a curve for measuring a segment length. This should be parented under whatever root you setup for that segment
     """
     _str_func = 'get_blockScale'
-    log.info("|{0}| >> ".format(_str_func)+ '-'*80)
+    log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
     mRigNull = self.mRigNull
     plug_curve = "{0}Curve".format(plug)
     
@@ -1091,8 +1091,8 @@ def get_blockScale(self,plug='blockScale',ml_joints = None):
 
 def get_switchTarget(self,mControl,parentTo=False):
     _str_func = 'switchMode'
-    log.info("|{0}| >> ".format(_str_func)+ '-'*80)
-    log.info("Control: {0} | parentTo: {1}".format(mControl,parentTo))
+    log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+    log.debug("Control: {0} | parentTo: {1}".format(mControl,parentTo))
     
     if mControl.getMessage('switchTarget'):
         mSwitchTarget = mControl.getMessage('switchTarget',asMeta=True)[0]
@@ -1124,7 +1124,7 @@ def register_mirrorIndices(self, ml_controls = []):
                 buffer = mCtrl.msgList_get(str_a)
                 if buffer:
                     ml_extraControls.extend(buffer)
-                    log.info("Extra controls : {0}".format(buffer))
+                    log.debug("Extra controls : {0}".format(buffer))
         except Exception,error:
             log.error("mCtrl failed to search for msgList : {0}".format(mCtrl))
             log.error(error)
@@ -1370,7 +1370,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     
                             
                     #cgmGEN.log_info_dict(_d,j)
-                    log.info("|{0}| >> v: {1} ...".format(_str_func,v))
+                    log.debug("|{0}| >> v: {1} ...".format(_str_func,v))
                 
                     #>>For each v value, make a new curve -----------------------------------------------------------------        
                     baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
@@ -2071,7 +2071,7 @@ def joints_mirrorChainAndConnect(self,ml_chain=None):
 
     joints_flipChainForBehavior(self, ml_chain)
     for i,mJoint in enumerate(ml_fkAttachJoints):
-        log.info("|{0}| >> Mirror connect: {1} | {2} ...".format(_str_func,i,mJoint))        
+        log.debug("|{0}| >> Mirror connect: {1} | {2} ...".format(_str_func,i,mJoint))        
         ml_chain[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
         #attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
         cgmMeta.cgmAttr(ml_chain[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
@@ -2361,7 +2361,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         d2 = min([d1,d2])
                         
                         #d_offset = d1 - _offset
-                        #log.info("{0} : {1}".format(d1,d_offset))
+                        #log.debug("{0} : {1}".format(d1,d_offset))
                         _sphere = mc.polySphere(axis = [0,0,1],
                                                 radius = d1*.5,
                                                 subdivisionsX = 10,

@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -796,7 +796,7 @@ def templateDelete(self):
                 pos = mHandle.p_position
                 
                 for i,c in enumerate(l_const):
-                    log.info("    {0} : {1}".format(i,c))
+                    log.debug("    {0} : {1}".format(i,c))
                 mc.delete(l_const)
                 mHandle.p_position = pos
                 
@@ -2211,7 +2211,7 @@ def rig_dataBuffer(self):
         self.b_lever = _b_lever
             
         self.ml_fkShapeTargets = ml_fkShapeHandles
-    
+
         if not self.b_singleChain:
             self.int_templateHandleMidIdx = MATH.get_midIndex(len(ml_templateHandlesUse))
             self.mMidTemplateHandle = ml_templateHandles[self.int_templateHandleMidIdx]
@@ -2525,7 +2525,7 @@ def rig_skeleton(self):
                                      d_rotateOrders)#d_preferredAngles)
     
     
-    log.info("|{0}| >> rig chain...".format(_str_func))              
+    log.debug("|{0}| >> rig chain...".format(_str_func))              
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                            ml_joints, None ,
                                                            mRigNull,'rigJoints',
@@ -2536,7 +2536,7 @@ def rig_skeleton(self):
     
     
     #...fk chain ----------------------------------------------------------------------------------------------
-    log.info("|{0}| >> fk_chain".format(_str_func))
+    log.debug("|{0}| >> fk_chain".format(_str_func))
     #ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints')
     
     
@@ -2631,7 +2631,7 @@ def rig_skeleton(self):
     
     #...ik joints-------------------------------------------------------------------------------------------
     if mBlock.ikSetup:
-        log.info("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  
+        log.debug("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  
         ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'blend','blendJoints')
         ml_ikJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'ik','ikJoints')
         
@@ -2704,7 +2704,7 @@ def rig_skeleton(self):
     #cgmGEN.func_snapShot(vars())        
     """
     if mBlock.numControls > 1:
-        log.info("|{0}| >> Handles...".format(_str_func))            
+        log.debug("|{0}| >> Handles...".format(_str_func))            
         ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
         if mBlock.ikSetup:
             for i,mJnt in enumerate(ml_segmentHandles):
@@ -2715,7 +2715,7 @@ def rig_skeleton(self):
                 """
     """
     if mBlock.ikSetup in [2,3]:#...ribbon/spline
-        log.info("|{0}| >> IK Drivers...".format(_str_func))            
+        log.debug("|{0}| >> IK Drivers...".format(_str_func))            
         ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
         for i,mJnt in enumerate(ml_ribbonIKDrivers):
             mJnt.parent = False
@@ -2797,7 +2797,7 @@ def rig_skeleton(self):
                 for ii,mJnt in enumerate(ml_segmentHandles):
                     mJnt.parent = ml_fkJointsToUse[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
                     
-            log.info
+            log.debug
             if mBlock.segmentMidIKControl:
                 ml_segmentMidHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                             [ml_set[0],ml_set[-1]], None, 
@@ -2872,7 +2872,7 @@ def rig_skeleton(self):
     
     """
     if self.b_segmentSetup:
-        log.info("|{0}| >> segment necessary...".format(_str_func))
+        log.debug("|{0}| >> segment necessary...".format(_str_func))
             
         ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                   ml_joints, None, 
@@ -2886,7 +2886,7 @@ def rig_skeleton(self):
         ml_jointsToHide.extend(ml_segmentChain)
         
     else:
-        log.info("|{0}| >> rollSetup joints...".format(_str_func))
+        log.debug("|{0}| >> rollSetup joints...".format(_str_func))
         
          
         for i,mBlend in enumerate(ml_blendJoints):
@@ -2951,7 +2951,7 @@ def rig_skeleton(self):
                 
     #Mirror if side...
     if self.d_module['mirrorDirection'] == 'Left':
-        log.info("|{0}| >> Mirror direction ...".format(_str_func))
+        log.debug("|{0}| >> Mirror direction ...".format(_str_func))
         ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
         ml_jointsToConnect.extend(ml_fkAttachJoints)
         
@@ -2963,16 +2963,16 @@ def rig_skeleton(self):
         self.atUtils('joints_flipChainForBehavior', ml_fkJoints)
         ml_jointsToConnect.extend(ml_fkAttachJoints)
         for i,mJoint in enumerate(ml_fkAttachJoints):
-            log.info("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
+            log.debug("Mirror connect: %s | %s"%(i,mJoint.p_nameShort))
             ml_fkJoints[i].connectChildNode(ml_fkAttachJoints[i],"fkAttach","rootJoint")
             #attributes.doConnectAttr(("%s.rotateOrder"%mJoint.mNode),("%s.rotateOrder"%ml_fkDriverJoints[i].mNode))
             cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
             mJoint.p_parent = ml_fkJoints[i]"""
     
     if self.b_pivotSetup:
-        log.info("|{0}| >> Pivot joints...".format(_str_func))        
+        log.debug("|{0}| >> Pivot joints...".format(_str_func))        
         if self.mBall:
-            log.info("|{0}| >> Ball joints...".format(_str_func))
+            log.debug("|{0}| >> Ball joints...".format(_str_func))
             
             mBallJointPivot = self.mBall.doCreateAt('joint',copyAttrs=True)#dup ball in place
             mBallJointPivot.parent = False
@@ -2992,7 +2992,7 @@ def rig_skeleton(self):
             ml_jointsToConnect.append(mBallWiggleJointPivot)
             
             if not self.mToe:
-                log.info("|{0}| >> Making toe joint...".format(_str_func))
+                log.debug("|{0}| >> Making toe joint...".format(_str_func))
                 mToe = mBallJointPivot.doDuplicate()
                 mToe.doSnapTo(self.mPivotHelper.pivotFront.mNode)
                 mToe.cgmName = 'toe'
@@ -3026,7 +3026,7 @@ def rig_digitShapes(self):
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         #_str_func = '[{0}] > rig_shapes'.format(_short)
-        log.info("|{0}| >> ...".format(_str_func))  
+        log.debug("|{0}| >> ...".format(_str_func))  
         
         mBlock = self.mBlock
         
@@ -3688,6 +3688,19 @@ def rig_shapes(self):
         
         _offset = self.v_offset
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
+        
+        
+        log.debug("|{0}| >> Making fkShapeTargets ".format(_str_func))
+        #This is from a bug that Benn reported where a prerig handle we had been using was rotated odd and throwing off the cast
+        self.ml_fkShapeTargetDags = []
+        for mObj in self.ml_fkShapeTargets:
+            mDag = mObj.doCreateAt(setClass='cgmObject')
+            self.ml_fkShapeTargetDags.append(mDag)
+            
+        if len(self.ml_fkShapeTargetDags)>1:
+            self.ml_fkShapeTargetDags[-1].p_orient = self.ml_fkShapeTargetDags[-2].p_orient
+
+        
         if str_rigSetup == 'digit':
             str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
             if str_profile in ['finger','thumb','toe']:
@@ -4298,7 +4311,7 @@ def rig_shapes(self):
             
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           #targets = [mObj.mNode for mObj in self.ml_handleTargets],
-                                          targets = [mObj.mNode for mObj in self.ml_fkShapeTargets],
+                                          targets = [mObj.mNode for mObj in self.ml_fkShapeTargetDags],
                                           #targets = ml_targets,
                                           offset = _offset,
                                           mode = 'frameHandle')#limbHandle
@@ -4395,6 +4408,9 @@ def rig_shapes(self):
             try:mShape.delete()
             except:pass
             
+        for mObj in self.ml_fkShapeTargetDags:
+            mObj.delete()
+            
         log.debug(cgmGEN._str_subLine)
 
         return
@@ -4467,7 +4483,7 @@ def rig_controls(self):
             ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
         #>> settings -------------------------------------------------------------------------------------
-        log.info("|{0}| >> Settings : {1}".format(_str_func, mSettings))
+        log.debug("|{0}| >> Settings : {1}".format(_str_func, mSettings))
         MODULECONTROL.register(mSettings,
                                mirrorSide= self.d_module['mirrorDirection'],
                                )
@@ -4528,11 +4544,11 @@ def rig_controls(self):
     
     # Pivots ================================================================================================
     #if mMainHandle.getMessage('pivotHelper'):
-        #log.info("|{0}| >> Pivot helper found".format(_str_func))
+        #log.debug("|{0}| >> Pivot helper found".format(_str_func))
     for a in 'center','front','back','left','right':#This order matters
         str_a = 'pivot' + a.capitalize()
         if mRigNull.getMessage(str_a):
-            log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
+            log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
             
             mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
             
@@ -4822,10 +4838,10 @@ def rig_segments(self):
     
     
     if not ml_handleJoints and not self.md_roll:
-        log.info("|{0}| >> No segment setup...".format(_str_func))
+        log.debug("|{0}| >> No segment setup...".format(_str_func))
         
         if mBlock.scaleSetup:
-            log.info("|{0}| >> Scale setup found. Resolving rig joints...".format(_str_func))
+            log.debug("|{0}| >> Scale setup found. Resolving rig joints...".format(_str_func))
             
             for mJnt in ml_rigJoints:
                 mParent = mJnt.masterGroup.getParent(asMeta=True)
@@ -5315,7 +5331,7 @@ def rig_segments(self):
     
     
     if not ml_segJoints:
-        log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
+        log.debug("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
         return True
     
     
@@ -5430,7 +5446,7 @@ def rig_frame(self):
         
         
         if mBlock.hasQuadSetup:
-            log.info("|{0}| >> Quad setup...".format(_str_func))            
+            log.debug("|{0}| >> Quad setup...".format(_str_func))            
             mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
             mIKHandleDriver = mIKBallRotationControl
             
@@ -5890,7 +5906,7 @@ def rig_frame(self):
                 
                 
                 #Mid IK driver -----------------------------------------------------------------------
-                log.info("|{0}| >> mid IK driver.".format(_str_func))
+                log.debug("|{0}| >> mid IK driver.".format(_str_func))
                 mMidControlDriver = mIKMid.doCreateAt()
                 mMidControlDriver.addAttr('cgmName','{0}_midIK'.format(self.d_module['partName']))
                 mMidControlDriver.addAttr('cgmType','driver')
@@ -5904,7 +5920,7 @@ def rig_frame(self):
                     l_midDrivers = [mRoot.mNode]
                     
                 if str_ikEnd in ['tipCombo'] and mIKControlEnd:
-                    log.info("|{0}| >> mIKControlEnd + tipCombo...".format(_str_func))
+                    log.debug("|{0}| >> mIKControlEnd + tipCombo...".format(_str_func))
                     l_midDrivers.append(mIKControl.mNode)
                 else:
                     l_midDrivers.append(mIKHandleDriver.mNode)
@@ -6534,7 +6550,7 @@ def rig_blendFrame(self):
         
     ml_ikJoints = mRigNull.msgList_get('ikJoints')
     if not ml_ikJoints:
-        log.info("|{0}| >> No ik setup...".format(_str_func))        
+        log.debug("|{0}| >> No ik setup...".format(_str_func))        
         return True 
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
@@ -6707,7 +6723,7 @@ def rig_pivotSetup(self):
     log.debug(self)
     
     if not self.b_pivotSetup and not self.b_followParentBank:
-        log.info("|{0}| >> No pivot setup...".format(_str_func))
+        log.debug("|{0}| >> No pivot setup...".format(_str_func))
         return True
     
     mBlock = self.mBlock
@@ -6986,7 +7002,7 @@ def rig_pivotSetup(self):
                             front = 'front', back = 'back')#front, back to clear the toe, heel defaults
         
         if _mode == 'foot':#and not mBlock.hasQuadSetup and not self.b_quadFront:
-            log.info("|{0}| >> foot ik".format(_str_func))
+            log.debug("|{0}| >> foot ik".format(_str_func))
             
             #Create foot IK -----------------------------------------------------------------------------
             reload(IK)
@@ -7475,7 +7491,7 @@ def rig_cleanUp(self):
         
         
     if mBlock.hasQuadSetup:
-        log.info("|{0}| >> Quad setup...".format(_str_func))            
+        log.debug("|{0}| >> Quad setup...".format(_str_func))            
         mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
         ATTR.set_default(mIKBallRotationControl.mNode, 'aimBack', 1.0)
         mIKBallRotationControl.aimBack = 0.0        
@@ -7498,7 +7514,7 @@ def rigDelete2(self):
         
         ml_controls = mRigNull.msgList_get('controlsAll')
         for mCtrl in ml_controls:
-            log.info("|{0}| >> Processing: {1}".format(_str_func,mCtrl))
+            log.debug("|{0}| >> Processing: {1}".format(_str_func,mCtrl))
             mDynGroup = mCtrl.getMessageAsmeta('dynParentGroup')
             if mDynGroup:
                 mDynGroup.doPurge()
@@ -7507,7 +7523,7 @@ def rigDelete2(self):
                 ml_spacePivots = mCtrl.msgList_get('spacePivots')
                 if ml_spacePivots:
                     for mObj in ml_spacePivots:
-                        log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj)) 
+                        log.debug("|{0}| >> SpacePivot: {1}".format(_str_func,mObj)) 
                 
         for link in ['constraintGroup','constrainGroup','masterGroup']:
             mGroup = mObj.getMessageAsMeta(link)
@@ -7672,7 +7688,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             """
             for i,crv in enumerate([l_targets[0],l_targets[-1]]):
                 _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=.01,rn=0)
-                log.info(_res)
+                log.debug(_res)
                 _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
                 _tessellate = _inputs[0]        
                 _d = {'format':1,#Fit
@@ -7783,7 +7799,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
         
         for i,mGeo in enumerate(ml_segProxy):
-            log.info("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             mGeo.parent = ml_moduleJoints[i]
             mGeo.doStore('cgmName',self.d_module['partName'])
             mGeo.addAttr('cgmIterator',i+1)
@@ -7794,7 +7810,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         return ml_segProxy
 
     for i,mGeo in enumerate(ml_segProxy):
-        log.info("{0} : {1}".format(mGeo, ml_rigJoints[i]))
+        log.debug("{0} : {1}".format(mGeo, ml_rigJoints[i]))
         mGeo.parent = ml_rigJoints[i]
         #ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
         mGeo.doStore('cgmName',self.d_module['partName'])
@@ -7832,24 +7848,24 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 @cgmGEN.Timer
 def switchMode(self,mode = 'fkOn'):
     _str_func = 'switchMode'
-    log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
-    log.info("{0}".format(self))
+    log.debug("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+    log.debug("{0}".format(self))
     
     _mode = mode.lower()
     
     if _mode not in ['iksnap','iksnapall']:#If we don't 
-        log.info("|{0}| >> Standard call. Passing back...".format(_str_func))
+        log.debug("|{0}| >> Standard call. Passing back...".format(_str_func))
         return self.atUtils('switchMode',mode,True)
     
-    log.info("|{0}| >> Special call. Processing...".format(_str_func))
+    log.debug("|{0}| >> Special call. Processing...".format(_str_func))
     
     mRigNull = self.rigNull
     mSettings = mRigNull.settings
     
     if not mRigNull.getMessage('controlIK'):
-        return log.info("|{0}| >> No IK mode detected ".format(_str_func))
+        return log.debug("|{0}| >> No IK mode detected ".format(_str_func))
     if MATH.is_float_equivalent(mSettings.FKIK,1.0):
-        return log.info("|{0}| >> Already in IK mode ".format(_str_func))
+        return log.debug("|{0}| >> Already in IK mode ".format(_str_func))
     
     mControlIK = mRigNull.controlIK
     mControlMid = False
@@ -7867,9 +7883,9 @@ def switchMode(self,mode = 'fkOn'):
         _cgmName = mJnt.getMayaAttr('cgmName') 
         if _cgmName == 'ball':
             mBall = mJnt
-            log.info("|{0}| >> mBall found: {1}".format(_str_func,mBall))
+            log.debug("|{0}| >> mBall found: {1}".format(_str_func,mBall))
             mBallBlend = mBall.getMessage('blendJoint',asMeta=1)[0]
-            log.info("|{0}| >> mBallBlend found: {1}".format(_str_func,mBallBlend))
+            log.debug("|{0}| >> mBallBlend found: {1}".format(_str_func,mBallBlend))
             
             d_ball = {'attrs':['x','y','z'],
                       'drivers':['ballLift','ballSide','ballTwist'],
@@ -7877,9 +7893,9 @@ def switchMode(self,mode = 'fkOn'):
                         
         elif _cgmName == 'toe':
             mToe = mJnt
-            log.info("|{0}| >> mToe found: {1}".format(_str_func,mToe))
+            log.debug("|{0}| >> mToe found: {1}".format(_str_func,mToe))
             mToeBlend = mToe.getMessage('blendJoint',asMeta=1)[0]
-            log.info("|{0}| >> mToeBlend found: {1}".format(_str_func,mToeBlend))
+            log.debug("|{0}| >> mToeBlend found: {1}".format(_str_func,mToeBlend))
             
             d_toe = {'attrs':['x','y','z'],
                      'drivers':['toeLift','toeSide','toeTwist'],
@@ -7904,7 +7920,7 @@ def switchMode(self,mode = 'fkOn'):
 
     #IKsnapAll ========================================================================
     if _mode == 'iksnapall':
-        log.info("|{0}| >> ik snap all prep...".format(_str_func))
+        log.debug("|{0}| >> ik snap all prep...".format(_str_func))
         mSettings.visDirect=True
         ml_rigLocs = []
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
@@ -7962,7 +7978,7 @@ def switchMode(self,mode = 'fkOn'):
 
     #IKsnapAll close========================================================================
     if _mode == 'iksnapall':
-        log.info("|{0}| >> ik snap all end...".format(_str_func))
+        log.debug("|{0}| >> ik snap all end...".format(_str_func))
         
         
         for ii in range(2):
@@ -7996,8 +8012,8 @@ def snapBall(self,driven = 'L_ball_blend_frame',
              target = 'L_ball_blend_frame_fromTarget_loc',
              handle = 'L_ankle_ik_anim'):
     _str_func = 'snapBall'
-    log.info("|{0}| >>".format(_str_func)+ '-'*80)
-    log.info("{0}".format(self))
+    log.debug("|{0}| >>".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
     #Get data -----------------------------------------------------------
     mDriven = cgmMeta.validateObjArg(driven)

@@ -95,10 +95,10 @@ def go(obj = None, target = None,
         else:
             log.debug("|{0}|...postion...".format(_str_func))
             pos = POS.get(target,_pivot,_space,_mode)
-            #log.info(pos)
+            #log.debug(pos)
             #cgmGEN.print_dict(kws,'move kws','snap.go')
             mc.move (pos[0],pos[1],pos[2], _obj, **kws_move)
-            #log.info(POS.get(_obj))
+            #log.debug(POS.get(_obj))
     if rotateAxis:
         log.debug("|{0}|...rotateAxis...".format(_str_func))        
         mc.xform(obj,ra = mc.xform(_target, q=True, ra=True, **kws), p=True, **kws)    
@@ -471,7 +471,7 @@ def verify_aimAttrs(obj = None, aim = None, up = None, checkOnly = False):
         if not _good:
             if checkOnly:
                 return False
-            log.warning("|{0}| >> {1} not a good attr. Must rebuild".format(_str_func,_d['combined']))
+            log.debug("|{0}| >> {1} not a good attr. Must rebuild".format(_str_func,_d['combined']))
             ATTR.delete(_d)
             ATTR.add(_d,'enum',enumOptions= _str_enum, hidden = False)
             ATTR.set(_d,value =_l_defaults[i])

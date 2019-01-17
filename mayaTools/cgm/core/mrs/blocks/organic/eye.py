@@ -305,7 +305,7 @@ def templateDelete(self):
                 pos = mHandle.p_position
                 
                 for i,c in enumerate(l_const):
-                    log.info("    {0} : {1}".format(i,c))
+                    log.debug("    {0} : {1}".format(i,c))
                 mc.delete(l_const)
                 mHandle.p_position = pos
                 
@@ -427,10 +427,10 @@ def template(self):
                                                      polyType = 'bezier',
                                                      baseName = 'lwrLid')    
             
-            log.info(self.uprLidTemplateLoft)
-            log.info(self.lwrLidTemplateLoft)
-            log.info(self.uprLidLoftCurve)
-            log.info(self.lwrLidLoftCurve)
+            log.debug(self.uprLidTemplateLoft)
+            log.debug(self.lwrLidTemplateLoft)
+            log.debug(self.uprLidLoftCurve)
+            log.debug(self.lwrLidLoftCurve)
     
         
     except Exception,err:
@@ -1401,7 +1401,7 @@ def rig_controls(self):
         
         #Settings ========================================================================================
         if mSettings:
-            log.info("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
+            log.debug("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
             
             _d = MODULECONTROL.register(mSettings,
                                         addDynParentGroup = False,
@@ -1414,7 +1414,7 @@ def rig_controls(self):
         
         
         #FK ========================================================================================    
-        log.info("|{0}| >> Found fk : {1}".format(_str_func, mControlFK))
+        log.debug("|{0}| >> Found fk : {1}".format(_str_func, mControlFK))
         
         _d = MODULECONTROL.register(mControlFK,
                                     mirrorSide= self.d_module['mirrorDirection'],
@@ -1432,7 +1432,7 @@ def rig_controls(self):
                 
         #ik ========================================================================================
         if mControlIK:
-            log.info("|{0}| >> Found ik : {1}".format(_str_func, mControlIK))
+            log.debug("|{0}| >> Found ik : {1}".format(_str_func, mControlIK))
             
             _d = MODULECONTROL.register(mControlIK,
                                         addDynParentGroup = True,
@@ -1599,7 +1599,7 @@ def rig_frame(self):
         mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK'
                                      )    
         #Aim setup ---------------------------------------------------------------
-        log.info("|{0}| >> Aim setup...".format(_str_func, mControlIK))    
+        log.debug("|{0}| >> Aim setup...".format(_str_func, mControlIK))    
         mc.aimConstraint(mControlIK.mNode,
                          mJointIK.mNode,
                          maintainOffset = False, weight = 1,
@@ -1684,9 +1684,9 @@ def create_clamBlinkCurves(self):
     
     ml_curves = []
     
-    log.info(mRigNull.uprLidCurve)
-    log.info(mRigNull.lwrLidCurve)
-    log.info(mSettings)
+    log.debug(mRigNull.uprLidCurve)
+    log.debug(mRigNull.lwrLidCurve)
+    log.debug(mSettings)
     
     mUprLidDriven = mRigNull.uprLidCurve
     mLwrLidDriven = mRigNull.lwrLidCurve
@@ -1771,7 +1771,7 @@ def create_clamBlinkCurves(self):
         d_crv = md_skinSetup[k]
         str_crv = d_crv['mi_crv'].p_nameShort
         l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-        log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+        log.debug(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
         try:
             mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
                                                           d_crv['mi_crv'].mNode,
@@ -1793,7 +1793,7 @@ def create_clamBlinkCurves(self):
     mPlug_height = cgmMeta.cgmAttr(mSettings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1)
     import cgm.lib.deformers as deformers
     l_bsAttrs = deformers.returnBlendShapeAttributes(mBsNode.mNode)
-    log.info(l_bsAttrs)
+    log.debug(l_bsAttrs)
     d_return = NODEFACTORY.createSingleBlendNetwork([mSettings.mNode,'blinkHeight'],
                                               [mSettings.mNode,'blinkHeight_upr'],
                                               [mSettings.mNode,'blinkHeight_lwr'],
@@ -2398,7 +2398,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 d_crv = md_skinSetup[k]
                 str_crv = d_crv['mi_crv'].p_nameShort
                 l_joints = [mi_obj.p_nameShort for mi_obj in d_crv['ml_joints']]
-                log.info(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
+                log.debug(" %s | crv : %s | joints: %s"%(k,str_crv,l_joints))
                 try:
                     mi_skinNode = cgmMeta.cgmNode(mc.skinCluster ([mi_obj.mNode for mi_obj in d_crv['ml_joints']],
                                                                   d_crv['mi_crv'].mNode,
@@ -2434,7 +2434,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mLoftSurface.doStore('cgmName',"{0}_{1}Lid".format(self.d_module['partName'],k),attrType='string')
             mLoftSurface.doStore('cgmType','proxy')
             mLoftSurface.doName()
-            log.info("|{0}| loft node: {1}".format(_str_func,_loftNode))             
+            log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode))             
             
             
             

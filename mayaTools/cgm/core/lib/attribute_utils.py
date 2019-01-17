@@ -296,7 +296,7 @@ def set_alias(node, attr = None, alias = None):
         try:
             if alias != get_alias(_d['combined']):
                 return mc.aliasAttr(alias, _d['combined'])
-            else:log.info("'{0}' already has that alias!".format(_d['combined']))
+            else:log.debug("'{0}' already has that alias!".format(_d['combined']))
         except:
             log.warning("'{0}' failed to set alias of {1}!".format(_d['combined'],alias))
 
@@ -321,19 +321,19 @@ def compare_attrs(source, targets, **kws):
     _source = NAMES.get_short(source)
     _l_targets = VALID.objStringList(targets)
 
-    log.info(cgmGeneral._str_hardLine)   
+    log.debug(cgmGeneral._str_hardLine)   
 
     for t in _l_targets:
         l_targetAttrs = mc.listAttr(t,**kws)
         if not l_targetAttrs:
             raise ValueError,"No attrs found. kws: {0}".format(kws)
         _t = NAMES.get_short(t)
-        log.info("Comparing {0} to {1}...".format(_source,_t))
+        log.debug("Comparing {0} to {1}...".format(_source,_t))
         _l_matching = []
         _l_notMatching = []
         for a in mc.listAttr(_source,**kws):
             try:
-                #log.info("Checking %s"%a)
+                #log.debug("Checking %s"%a)
                 selfBuffer = get(_source,a)
                 targetBuffer = get(t,a)
                 if a in l_targetAttrs and selfBuffer != targetBuffer:
@@ -342,19 +342,19 @@ def compare_attrs(source, targets, **kws):
                     continue
                 _l_matching.append(a)
                     #print ("{0}.{1} != {2}.{1}".format(self.getShortName(),a,_t))
-                    #log.info("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
+                    #log.debug("%s.%s : %s != %s.%s : %s"%(self.getShortName(),a,selfBuffer,target,a,targetBuffer))
             except Exception,error:
-                log.info(error)	
+                log.debug(error)	
                 log.warning("'%s.%s'couldn't query"%(_source,a))
-        log.info("Matching attrs: {0} | Unmatching: {1}".format(len(_l_matching),len(_l_notMatching)))
-        log.info(cgmGeneral._str_subLine)
+        log.debug("Matching attrs: {0} | Unmatching: {1}".format(len(_l_matching),len(_l_notMatching)))
+        log.debug(cgmGeneral._str_subLine)
         for b in _l_notMatching:
-            log.info("attr: {0}...".format(b[0]))
-            log.info("source: {0}".format(b[1]))
-            log.info("target: {0}".format(b[2]))
+            log.debug("attr: {0}...".format(b[0]))
+            log.debug("source: {0}".format(b[1]))
+            log.debug("target: {0}".format(b[2]))
 
-        log.info("{0} >>".format(_t) + cgmGeneral._str_subLine)
-    log.info(cgmGeneral._str_hardLine)
+        log.debug("{0} >>".format(_t) + cgmGeneral._str_subLine)
+    log.debug(cgmGeneral._str_hardLine)
 
     return True    
 
@@ -1288,7 +1288,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
 
     if transferConnection:
         if _connection and not is_connected(_d):
-            log.info("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,toAttr,fromAttr,_connection))            
+            log.debug("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,toAttr,fromAttr,_connection))            
             mc.connectAttr(_connection,_combined)
 
     if _wasLocked or lock:
@@ -2534,7 +2534,7 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
         if not is_hidden(node,a):
             _to_move.append(a)
 
-    log.info(_to_move)
+    log.debug(_to_move)
     if top:
         attrs.reverse()
         for a in attrs:
@@ -2543,7 +2543,7 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
                 _to_move.insert(0,a)
     else:
         _to_move = lists.reorderListInPlace(_to_move,attrs,direction)
-    log.info(_to_move)
+    log.debug(_to_move)
     
     #To reorder, we need delete and undo in the order we want
     _d_locks = {}
@@ -2618,7 +2618,7 @@ def get_nextAvailableSequentialAttrIndex(node, attr = None):
     _i = 0
     while _exists == False and _i < 100:
         _attr = "{0}_{1}".format(attr,_i)
-        log.info("|{0}| >> attr: {1}".format(_str_func,_attr))        
+        log.debug("|{0}| >> attr: {1}".format(_str_func,_attr))        
         if has_attr(node,_attr):
             _i += 1
         else:
@@ -2770,8 +2770,8 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
     if dataAttr is None:
         dataAttr = "{0}_datdict".format(attr)
         
-    log.info("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
-    log.info("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
+    log.debug("|{0}| >> node: {1} | attr: {2} | mode: {3}".format(_str_func,node,attr,mode))
+    log.debug("|{0}| >> data | len: {1} | list: {2}".format(_str_func, len(_l_dat), _l_dat))
     
     l_attrs = datList_getAttrs(node,attr)
     d_driven = {}
@@ -2939,8 +2939,8 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
     if mode == 'message':
         _l_long = [NAMES.get_long(o) for o in _l_dat]
         _str_long = NAMES.get_long(data)
-        #log.info(_l_long)
-        #log.info(_str_long)
+        #log.debug(_l_long)
+        #log.debug(_str_long)
         if _str_long in _l_long:
             idx = _l_long.index(_str_long)
     elif data in _l_dat:
@@ -2950,10 +2950,10 @@ def datList_index(node = None, attr = None, data = None, mode = None, dataAttr =
             idx = _l_dat.index(data) 
     
     if idx is None:
-        log.info("|{0}| >> Data not found. node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
-        log.info("|{0}| >> values...".format(_str_func))
+        log.debug("|{0}| >> Data not found. node: {1} | attr: {2} | data: {3} | mode: {4}".format(_str_func,node,attr,data,mode))
+        log.debug("|{0}| >> values...".format(_str_func))
         for i,v in enumerate(_l_dat):
-            log.info("idx: {0} | {1}".format(i,v))
+            log.debug("idx: {0} | {1}".format(i,v))
         raise ValueError,"Data not found"
     return idx
 
@@ -3469,9 +3469,9 @@ def get_compatible(node,attr,targetNode, direction = 'to'):
             
             if direction == 'to':
                 for k,types in _d_compatibility.iteritems():
-                    log.info(k + ' ' + _type)
+                    log.debug(k + ' ' + _type)
                     if _type in types:
-                        log.info(k)
+                        log.debug(k)
                         _l_goodTypes.append(k)
             else:
                 pass
@@ -3512,7 +3512,7 @@ def get_compatibilityDict(report = False):
             add(o,a+'test',a,keyable=True)
         
     for o in _l_created:
-        if report:log.info("|{0}| >> getting attrs for {1}".format(_str_func,o))
+        if report:log.debug("|{0}| >> getting attrs for {1}".format(_str_func,o))
         _d = get_attrsByTypeDict(o,keyable=True) 
         _l_d_byType.append( _d )
         for k in _d.keys():
@@ -3543,7 +3543,7 @@ def get_compatibilityDict(report = False):
                         connect(_n1_comb,_n2_comb)
                         if get(_n1_comb) == get(_n2_comb):
                             _d_compatible[k]['out'].append(k2)
-                            if report:log.info("|{0}| >> Connected out: {1} | type: {2}>{3} || value: {4}".format(_str_func,
+                            if report:log.debug("|{0}| >> Connected out: {1} | type: {2}>{3} || value: {4}".format(_str_func,
                                                                                                                   _n1_comb,
                                                                                                                   k,k2,get(_n1_comb)))                
                         break_connection(_n2_comb)
@@ -3554,7 +3554,7 @@ def get_compatibilityDict(report = False):
                         connect(_n2_comb,_n1_comb)
                         if get(_n1_comb) == get(_n2_comb):
                             _d_compatible[k]['in'].append(k2)
-                            if report:log.info("|{0}| >> Connected in: {1} | type: {2}>{3} || value: {4}".format(_str_func,
+                            if report:log.debug("|{0}| >> Connected in: {1} | type: {2}>{3} || value: {4}".format(_str_func,
                                                                                                                   _n1_comb,
                                                                                                                   k,k2,get(_n1_comb)))                
                         break_connection(_n1_comb)
@@ -3667,16 +3667,16 @@ def OLDrepairMessageToReferencedTarget(obj,attr):
     assert mc.objectType(objTest[0]) == 'reference',"'%s' isn't returning a reference. Aborted"%targetAttr 
 
     ref = objTest[0].split('RN.')[0] #Get to the ref
-    log.info("Reference connection found, attempting to fix...")
+    log.debug("Reference connection found, attempting to fix...")
 
     messageConnectionsOut =  mc.listConnections("%s.message"%(obj), p=1)
     if messageConnectionsOut and ref:
         for plug in messageConnectionsOut:
             if ref in plug:
-                log.info("Checking '%s'"%plug)                
+                log.debug("Checking '%s'"%plug)                
                 matchObj = plug.split('.')[0]#Just get to the object
                 doConnectAttr("%s.message"%matchObj,targetAttr)
-                log.info("'%s' restored to '%s'"%(targetAttr,matchObj))
+                log.debug("'%s' restored to '%s'"%(targetAttr,matchObj))
 
                 if len(messageConnectionsOut)>1:#fix to first, report other possibles
                     log.warning("Found more than one possible connection. Candidates are:'%s'"%"','".join(messageConnectionsOut))

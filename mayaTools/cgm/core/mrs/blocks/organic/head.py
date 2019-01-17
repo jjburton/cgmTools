@@ -254,7 +254,7 @@ def headGeo_getGroup(self):
     _str_func = 'get_headGeoGroup'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)    
     mGroup = self.getMessageAsMeta('headGeoGroup')
-    log.info(mGroup)
+    log.debug(mGroup)
     return mGroup
 
 def headGeo_lock(self,arg=None):
@@ -444,7 +444,7 @@ def templateDelete(self):
                 pos = mHandle.p_position
                 
                 for i,c in enumerate(l_const):
-                    log.info("    {0} : {1}".format(i,c))
+                    log.debug("    {0} : {1}".format(i,c))
                 mc.delete(l_const)
                 mHandle.p_position = pos
                 
@@ -559,7 +559,7 @@ def template(self):
     
     #Proxies ==============================================================================
     ml_proxies = []        
-    log.info("|{0}| >> Geo proxyType...".format(_str_func,))     
+    log.debug("|{0}| >> Geo proxyType...".format(_str_func,))     
     
     if _proxyType == 0:
         _res = build_prerigMesh(self)
@@ -581,7 +581,7 @@ def template(self):
         ATTR.connect(self.mNode + '.headRotate', mGroup.mNode + '.rotate')
         
     elif _proxyType == 1:
-        log.info("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func))     
+        log.debug("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func))     
         #self.scaleX = __dimensions[0] / __dimensions[1]
         #self.scaleZ = __dimensions[2] / __dimensions[1]        
         
@@ -1924,7 +1924,7 @@ def rig_skeleton(self):
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'])
                                      #d_rotateOrders, d_preferredAngles)
     
-    log.info("|{0}| >> Head...".format(_str_func))  
+    log.debug("|{0}| >> Head...".format(_str_func))  
     
     #ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=False)
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
@@ -1936,7 +1936,7 @@ def rig_skeleton(self):
     
     
     if self.mBlock.headAim:
-        log.info("|{0}| >> Head IK...".format(_str_func))              
+        log.debug("|{0}| >> Head IK...".format(_str_func))              
         ml_fkHeadJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_rigJoints[-1], 'fk', self.mRigNull, 'fkHeadJoint', singleMode = True)
         
         ml_blendHeadJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_rigJoints[-1], 'blend', self.mRigNull, 'blendHeadJoint', singleMode = True)
@@ -1948,7 +1948,7 @@ def rig_skeleton(self):
     if self.mBlock.neckBuild:
         ml_segmentHandles = False
         
-        log.info("|{0}| >> Neck Build".format(_str_func))
+        log.debug("|{0}| >> Neck Build".format(_str_func))
         
         #mOrientHelper = ml_templateHandles[1].orientHelper
         mOrientHelper =mBlock.orientHelper
@@ -1967,7 +1967,7 @@ def rig_skeleton(self):
 
 
         if self.mBlock.neckIK:
-            log.info("|{0}| >> buildIK on. Building blend and IK chains...".format(_str_func))  
+            log.debug("|{0}| >> buildIK on. Building blend and IK chains...".format(_str_func))  
             ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'blend','blendJoints')
             ml_ikJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'ik','ikJoints')
             ml_jointsToConnect.extend(ml_ikJoints)
@@ -2011,7 +2011,7 @@ def rig_skeleton(self):
                 ml_jointsToConnect.extend(ml_ribbonIKDrivers)
                 
         if mBlock.neckJoints > mBlock.neckControls:
-            log.info("|{0}| >> Handles...".format(_str_func))            
+            log.debug("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
                                                                      'handleJoints',
                                                                      clearType=True)
@@ -2024,7 +2024,7 @@ def rig_skeleton(self):
             for i,mJnt in enumerate(ml_segmentHandles):
                 mJnt.parent = ml_blendJoints[i]
             
-            log.info("|{0}| >> segment necessary...".format(_str_func))
+            log.debug("|{0}| >> segment necessary...".format(_str_func))
             ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_joints,
                                                                       None, mRigNull,
@@ -2048,7 +2048,7 @@ def rig_skeleton(self):
             
         """
         if mBlock.neckControls > 2 and ml_segmentHandles:
-            log.info("|{0}| >> IK Drivers...".format(_str_func))            
+            log.debug("|{0}| >> IK Drivers...".format(_str_func))            
             ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles,
                                                                        None, mRigNull,
                                                                        'baseIKDrivers',
@@ -2104,7 +2104,7 @@ def rig_shapes(self):
     
     #Head=============================================================================================
     if mBlock.headAim:
-        log.info("|{0}| >> Head aim...".format(_str_func))  
+        log.debug("|{0}| >> Head aim...".format(_str_func))  
         
         _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
                                          MATH.get_obj_vector(ml_rigJoints[-1].mNode,'y-'),
@@ -2131,7 +2131,7 @@ def rig_shapes(self):
     if not mBlock.neckBuild:
         b_FKIKhead = False
         if mBlock.neckControls > 1 and mBlock.neckBuild: 
-            log.info("|{0}| >> FK/IK head necessary...".format(_str_func))          
+            log.debug("|{0}| >> FK/IK head necessary...".format(_str_func))          
             b_FKIKhead = True            
         
         #IK ----------------------------------------------------------------------------------
@@ -2460,7 +2460,7 @@ def rig_controls(self):
             raise ValueError,"No rigRoot found"
         
         mRoot = mRigNull.rigRoot
-        log.info("|{0}| >> Found rigRoot : {1}".format(_str_func, mRoot))
+        log.debug("|{0}| >> Found rigRoot : {1}".format(_str_func, mRoot))
         
         
         _d = MODULECONTROL.register(mRoot,
@@ -2552,7 +2552,7 @@ def rig_controls(self):
 
 
     #ikHead ========================================================================================
-    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
+    log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
     
     _d = MODULECONTROL.register(mHeadIK,
@@ -2574,7 +2574,7 @@ def rig_controls(self):
     mHeadLookAt = False
     if mRigNull.getMessage('lookAt'):
         mHeadLookAt = mRigNull.lookAt
-        log.info("|{0}| >> Found lookAt : {1}".format(_str_func, mHeadLookAt))
+        log.debug("|{0}| >> Found lookAt : {1}".format(_str_func, mHeadLookAt))
         MODULECONTROL.register(mHeadLookAt,
                                typeModifier='lookAt',
                                addDynParentGroup = True, 
@@ -2597,7 +2597,7 @@ def rig_controls(self):
     #>> settings ========================================================================================
     if mHeadFK:
         mSettings = mRigNull.settings
-        log.info("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
+        log.debug("|{0}| >> Found settings : {1}".format(_str_func, mSettings))
         
         MODULECONTROL.register(mSettings,
                                mirrorSide= self.d_module['mirrorDirection'],
@@ -2698,10 +2698,10 @@ def rig_segments(self):
     log.debug("{0}".format(self))    
     
     if not self.mBlock.neckBuild:
-        log.info("|{0}| >> No neck build optioned".format(_str_func))                      
+        log.debug("|{0}| >> No neck build optioned".format(_str_func))                      
         return True
     
-    log.info("|{0}| >> ...".format(_str_func))  
+    log.debug("|{0}| >> ...".format(_str_func))  
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
@@ -2710,7 +2710,7 @@ def rig_segments(self):
     mRoot = mRigNull.rigRoot
     
     mHeadIK = mRigNull.headIK
-    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
+    log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
     
     ml_segJoints = mRigNull.msgList_get('segmentJoints')
     ml_blendJoints = mRigNull.msgList_get('blendJoints')
@@ -2720,7 +2720,7 @@ def rig_segments(self):
     
     
     if not ml_segJoints:
-        log.info("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
+        log.debug("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
         return True    
     
     for mJnt in ml_segJoints:
@@ -2744,7 +2744,7 @@ def rig_segments(self):
     
     mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
     if mSegMidIK and mBlock.neckControls == 1:
-        log.info("|{0}| >> seg mid IK control found...".format(_str_func))
+        log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
         ml_influences.append(mSegMidIK)
     
     _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
@@ -2833,7 +2833,7 @@ def rig_frame(self):
     mRootParent = self.mDeformNull
     mModule = self.mModule
     mHeadIK = mRigNull.headIK
-    log.info("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
+    log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
     
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     ml_fkJoints = mRigNull.msgList_get('fkJoints')
@@ -2863,7 +2863,7 @@ def rig_frame(self):
     """We use the ik head sometimes."""
     
     if self.mBlock.headAim:
-        log.info("|{0}| >> HeadAim setup...".format(_str_func))
+        log.debug("|{0}| >> HeadAim setup...".format(_str_func))
         mSettings = mRigNull.settings
         
         mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
@@ -2964,7 +2964,7 @@ def rig_frame(self):
         else:
             ml_rigJoints[-1].parent = mTopHandleDriver        
     else:
-        log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
+        log.debug("|{0}| >> NO Head IK setup...".format(_str_func))    
         #Parent the direct control to the 
         if ml_blendJoints:
             mTopHandleDriver = ml_blendJoints[-1]
@@ -3701,7 +3701,7 @@ def rig_cleanUp(self):
 
     #Add our parents
     mDynGroup = mHeadIK.dynParentGroup
-    log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+    log.debug("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
     mDynGroup.dynMode = 2
 
     for o in ml_headDynParents:
@@ -3713,7 +3713,7 @@ def rig_cleanUp(self):
     
     #...headLookat ---------------------------------------------------------------------------------------
     if mBlock.headAim:
-        log.info("|{0}| >> HeadAim setup...".format(_str_func))
+        log.debug("|{0}| >> HeadAim setup...".format(_str_func))
         
         mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
         
@@ -3740,7 +3740,7 @@ def rig_cleanUp(self):
         
         #Add our parents...
         mDynGroup = mHeadLookAt.dynParentGroup
-        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+        log.debug("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
     
         for o in ml_headLookAtDynParents:
             mDynGroup.addDynParent(o)
@@ -3903,9 +3903,9 @@ def is_rig(self):
 
 
     if _l_missing:
-        log.info("|{0}| >> Missing...".format(_str_func))  
+        log.debug("|{0}| >> Missing...".format(_str_func))  
         for l in _l_missing:
-            log.info("|{0}| >> {1}".format(_str_func,l))  
+            log.debug("|{0}| >> {1}".format(_str_func,l))  
         return False
     return True"""
 

@@ -510,7 +510,7 @@ def templateDelete(self):
         pos = mDefineEndHelper.p_position
         
         for i,c in enumerate(l_const):
-            log.info("    {0} : {1}".format(i,c))
+            log.debug("    {0} : {1}".format(i,c))
         mc.delete(l_const)
         mDefineEndHelper.p_position = pos
         
@@ -2357,7 +2357,7 @@ def rig_skeleton(self):
         
     #Mirror if side...
     if self.d_module['mirrorDirection'] == 'Left':
-        log.info("|{0}| >> Mirror direction ...".format(_str_func))
+        log.debug("|{0}| >> Mirror direction ...".format(_str_func))
         ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
         ml_jointsToConnect.extend(ml_fkAttachJoints)
        
