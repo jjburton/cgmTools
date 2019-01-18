@@ -4780,6 +4780,12 @@ def templateDelete(self):
 def templateAttrLock(self,v=1):
     self.template = v
     
+def test_exception(self,*args,**kws):
+    try:
+        raise ValueError,"here"
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
+    
 def template(self):
     _str_func = 'template'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
@@ -5093,185 +5099,185 @@ def rigDelete(self):
 
 @cgmGEN.Timer
 def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
-    try:
-        _str_func = 'changeState'
-        log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
-        
-        if self.isReferenced():
-            raise ValueError,"Referenced node. Cannot verify"
-        
+    #try:
+    _str_func = 'changeState'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
     
-        #>Validate our data ------------------------------------------------------
-        d_upStateFunctions = {'template':template,
-                              'prerig':prerig,
-                              'skeleton':skeleton,
-                              'rig':rig,
+    if self.isReferenced():
+        raise ValueError,"Referenced node. Cannot verify"
+    
+
+    #>Validate our data ------------------------------------------------------
+    d_upStateFunctions = {'template':template,
+                          'prerig':prerig,
+                          'skeleton':skeleton,
+                          'rig':rig,
+                          }
+    d_downStateFunctions = {'define':templateDelete,
+                            'template':prerigDelete,
+                            'prerig':skeleton_delete,
+                            'skeleton':rigDelete,
+                            }
+    d_deleteStateFunctions = {'template':templateDelete,
+                              'prerig':prerigDelete,
+                              'rig':rigDelete,
+                              'skeleton':skeleton_delete,
                               }
-        d_downStateFunctions = {'define':templateDelete,
-                                'template':prerigDelete,
-                                'prerig':skeleton_delete,
-                                'skeleton':rigDelete,
-                                }
-        d_deleteStateFunctions = {'template':templateDelete,
-                                  'prerig':prerigDelete,
-                                  'rig':rigDelete,
-                                  'skeleton':skeleton_delete,
-                                  }
-        
-        stateArgs = BLOCKGEN.validate_stateArg(state)
-        _l_moduleStates = BLOCKSHARE._l_blockStates
     
-        if not stateArgs:
-            log.info("|{0}| >> No state arg.".format(_str_func))            
-            return False
-    
-        _idx_target = stateArgs[0]
-        _state_target = stateArgs[1]
-    
-        log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
-        
-        
-    
-        #>>> Meat
-        #========================================================================
-        currentState = self.getState(False) 
-    
-        if rebuildFrom:
-            log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
+    stateArgs = BLOCKGEN.validate_stateArg(state)
+    _l_moduleStates = BLOCKSHARE._l_blockStates
+
+    if not stateArgs:
+        log.info("|{0}| >> No state arg.".format(_str_func))            
+        return False
+
+    _idx_target = stateArgs[0]
+    _state_target = stateArgs[1]
+
+    log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
     
     
-        if currentState == _idx_target:
-            if not forceNew:
-                if _idx_target == 0:
-                    define(self)
-                    return True
-                else:
-                    log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
+
+    #>>> Meat
+    #========================================================================
+    currentState = self.getState(False) 
+
+    if rebuildFrom:
+        log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
+
+
+    if currentState == _idx_target:
+        if not forceNew:
+            if _idx_target == 0:
+                define(self)
                 return True
-            elif currentState > 0:
-                log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
-                currentState_target = self.getState(True) 
-                d_deleteStateFunctions[currentState_target](self)
-    
-        #If we're here, we're going to move through the set states till we get to our spot
-        log.debug("|{0}| >> Changing states...".format(_str_func))
-        if _idx_target > currentState:
-            startState = currentState+1
+            else:
+                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
+            return True
+        elif currentState > 0:
+            log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
+            currentState_target = self.getState(True) 
+            d_deleteStateFunctions[currentState_target](self)
+
+    #If we're here, we're going to move through the set states till we get to our spot
+    log.debug("|{0}| >> Changing states...".format(_str_func))
+    if _idx_target > currentState:
+        startState = currentState+1
+        
+        
+        #>>>Parents ------------------------------------------------------------------------------------
+        ml_parents = self.getBlockParents() or []
+        ml_dependencies = []
+        if ml_parents:
+            #ml_children.reverse()
+            for mParent in ml_parents:
+                _parentState = mParent.getState(False)
+                if _parentState < _idx_target:
+                    ml_dependencies.append(mParent)
+                    
             
-            
-            #>>>Parents ------------------------------------------------------------------------------------
-            ml_parents = self.getBlockParents() or []
-            ml_dependencies = []
-            if ml_parents:
-                #ml_children.reverse()
-                for mParent in ml_parents:
-                    _parentState = mParent.getState(False)
-                    if _parentState < _idx_target:
-                        ml_dependencies.append(mParent)
-                        
+            if ml_dependencies:
+                _msg = "Target state: {1} \nThe Following [{0}] parents need processing: ".format(len(ml_dependencies),_state_target)
+                _l_parents = []
+                for mParent in ml_dependencies:
+                    _l_parents.append(mParent.p_nameShort)
+                if _l_parents:
+                    _msg = _msg + '\n' + '\n'.join(_l_parents)
+                result = mc.confirmDialog(title="Shall we continue",
+                                          message= _msg,
+                                          button=['OK', 'Cancel'],
+                                          defaultButton='OK',
+                                          cancelButton='Cancel',
+                                          dismissString='Cancel')
                 
-                if ml_dependencies:
-                    _msg = "Target state: {1} \nThe Following [{0}] parents need processing: ".format(len(ml_dependencies),_state_target)
-                    _l_parents = []
-                    for mParent in ml_dependencies:
-                        _l_parents.append(mParent.p_nameShort)
-                    if _l_parents:
-                        _msg = _msg + '\n' + '\n'.join(_l_parents)
+                if result != 'OK':
+                    log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+                    return False
+                    
+                for mParent in ml_dependencies:
+                    log.error("|{0}| >> Parent state lower than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mParent))
+                    changeState(mParent,_idx_target)
+    
+        
+        
+        
+        doStates = _l_moduleStates[startState:_idx_target+1]
+        log.debug("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
+
+        for doState in doStates:
+            #if doState in d_upStateFunctions.keys():
+            log.debug("|{0}| >> Up to: {1} ....".format(_str_func, doState))
+            if not d_upStateFunctions[doState](self,**kws):
+                log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                return False
+            elif checkState(self,True) != doState:
+                log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
+                return False
+            #else:
+            #    log.debug("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
+        return True
+    elif _idx_target < currentState:#Going down
+        #>>>Children ------------------------------------------------------------------------------------
+        ml_children = self.getBlockChildren() or []
+        ml_dependencies = []            
+        if ml_children:
+            ml_children.reverse()
+            for mChild in ml_children:
+                _childState = mChild.getState(False)
+                if _childState > _idx_target:
+                    ml_dependencies.append(mChild)
+                                            
+                                    
+            if ml_dependencies:
+                _msg = "Target state: {1} \nThe Following [{0}] children need processing: ".format(len(ml_dependencies),_state_target)
+                _l_parents = []
+                for mChild in ml_dependencies:
+                    _l_parents.append(mChild.p_nameShort)
+                if _l_parents:
+                    _msg = _msg + '\n' + '\n'.join(_l_parents)
                     result = mc.confirmDialog(title="Shall we continue",
                                               message= _msg,
                                               button=['OK', 'Cancel'],
                                               defaultButton='OK',
                                               cancelButton='Cancel',
                                               dismissString='Cancel')
-                    
-                    if result != 'OK':
-                        log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
-                        return False
-                        
-                    for mParent in ml_dependencies:
-                        log.error("|{0}| >> Parent state lower than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mParent))
-                        changeState(mParent,_idx_target)
-        
-            
-            
-            
-            doStates = _l_moduleStates[startState:_idx_target+1]
-            log.debug("|{0}| >> Going up. First stop: {1} | All stops: {2}".format(_str_func, _l_moduleStates[startState],doStates))
-    
-            for doState in doStates:
-                #if doState in d_upStateFunctions.keys():
-                log.debug("|{0}| >> Up to: {1} ....".format(_str_func, doState))
-                if not d_upStateFunctions[doState](self,**kws):
-                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
-                    return False
-                elif checkState(self,True) != doState:
-                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))                    
-                    return False
-                #else:
-                #    log.debug("|{0}| >> No upstate function for {1} ....".format(_str_func, doState))
-            return True
-        elif _idx_target < currentState:#Going down
-            #>>>Children ------------------------------------------------------------------------------------
-            ml_children = self.getBlockChildren() or []
-            ml_dependencies = []            
-            if ml_children:
-                ml_children.reverse()
-                for mChild in ml_children:
-                    _childState = mChild.getState(False)
-                    if _childState > _idx_target:
-                        ml_dependencies.append(mChild)
-                                                
-                                        
-                if ml_dependencies:
-                    _msg = "Target state: {1} \nThe Following [{0}] children need processing: ".format(len(ml_dependencies),_state_target)
-                    _l_parents = []
-                    for mChild in ml_dependencies:
-                        _l_parents.append(mChild.p_nameShort)
-                    if _l_parents:
-                        _msg = _msg + '\n' + '\n'.join(_l_parents)
-                        result = mc.confirmDialog(title="Shall we continue",
-                                                  message= _msg,
-                                                  button=['OK', 'Cancel'],
-                                                  defaultButton='OK',
-                                                  cancelButton='Cancel',
-                                                  dismissString='Cancel')
-                    
-                    if result != 'OK':
-                        log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
-                        return False
-                        
-                    for mChild in ml_dependencies:
-                        log.error("|{0}| >> Child state higher than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mChild))
-                        changeState(mChild,_idx_target)
-                        
-            
-            l_reverseModuleStates = copy.copy(_l_moduleStates)
-            l_reverseModuleStates.reverse()
-            startState = currentState 
-            rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
-            rev_end = l_reverseModuleStates.index( _l_moduleStates[_idx_target] )+1
-            doStates = l_reverseModuleStates[rev_start:rev_end]
-            log.debug("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
-    
-            for doState in doStates:
-                log.debug("|{0}| >> Down to: {1} ....".format(_str_func, doState))
-                if not d_downStateFunctions[doState](self,**kws):
-                    log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
-                    return False 
-                elif checkState(self,True)  != doState:
-                    log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))
-                    return False
                 
-                #if _idx_target == 0:
-                    #define(self)
-            return True
-        else:
-            log.error('Forcing recreate')
-            if _state_target in d_upStateFunctions.keys():
-                if not d_upStateFunctions[_state_target](self):return False
-                return True
+                if result != 'OK':
+                    log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+                    return False
+                    
+                for mChild in ml_dependencies:
+                    log.error("|{0}| >> Child state higher than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mChild))
+                    changeState(mChild,_idx_target)
+                    
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+        l_reverseModuleStates = copy.copy(_l_moduleStates)
+        l_reverseModuleStates.reverse()
+        startState = currentState 
+        rev_start = l_reverseModuleStates.index( _l_moduleStates[startState] )+1
+        rev_end = l_reverseModuleStates.index( _l_moduleStates[_idx_target] )+1
+        doStates = l_reverseModuleStates[rev_start:rev_end]
+        log.debug("|{0}| >> Going down. First stop: {1} | All stops: {2}".format(_str_func, startState, doStates))
+
+        for doState in doStates:
+            log.debug("|{0}| >> Down to: {1} ....".format(_str_func, doState))
+            if not d_downStateFunctions[doState](self,**kws):
+                log.error("|{0}| >> Failed: {1} ....".format(_str_func, doState))
+                return False 
+            elif checkState(self,True)  != doState:
+                log.error("|{0}| >> No errors but failed to query as:  {1} ....".format(_str_func, doState))
+                return False
+            
+            #if _idx_target == 0:
+                #define(self)
+        return True
+    else:
+        log.error('Forcing recreate')
+        if _state_target in d_upStateFunctions.keys():
+            if not d_upStateFunctions[_state_target](self):return False
+            return True
+    
+    #except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def get_shapeOffset(self):
     """

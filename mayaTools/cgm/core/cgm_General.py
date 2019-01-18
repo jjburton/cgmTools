@@ -1065,7 +1065,7 @@ def testException(message = 'cat'):
     except Exception,err:
         cgmExceptCB(Exception,err,fncDat=vars())
 
-def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,**kws):
+def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,tracebackCap=1,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
     
     if localDat is None:
@@ -1081,6 +1081,8 @@ def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None
         print(_str_headerDiv + " Exception Log " + _str_headerDiv + _str_subLine)		
 	
         for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
+            if i >= tracebackCap:
+                break
             print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
             print ' File "{1}", line {2}, in {3}\n'.format(*item),
             for item in inspect.getinnerframes(tb):
@@ -1501,7 +1503,11 @@ def func_snapShot(dat = None):
     print("..." + _str_headerDiv)
     print _str_hardLine
     
-    
+def test_rawValueError(*args,**kws):
+    bye = 'fred'
+    _l = range(12)
+    raise ValueError,"Bob's not home"
+
 def testExceptionNested(*args,**kws):
     try:
         hi = 'mike'

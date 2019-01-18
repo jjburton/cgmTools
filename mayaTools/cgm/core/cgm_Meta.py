@@ -1198,14 +1198,17 @@ class cgmNode(r9Meta.MetaClass):
         _short = self.p_nameShort        
         _str_func = 'stringModuleCall( {0} )'.format(_short)
         _res = None
-        
         if not args:
             _str_args = ''
             args = [self]
         else:
             _str_args = ','.join(str(a) for a in args) + ','
             args = [self] + [a for a in args]
-            
+        
+        try:
+            return getattr(module,func)(*args,**kws)
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err)
         if not kws:
             kws = {}
             _kwString = ''  

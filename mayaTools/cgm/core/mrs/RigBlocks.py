@@ -1258,45 +1258,47 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            _blockModule = self.p_blockModule
-            return self.stringModuleCall(_blockModule,func,*args, **kws)
-        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+        #try:
+        _blockModule = self.p_blockModule
+        return getattr(_blockModule,func)(self,*args,**kws)            
+        #return self.stringModuleCall(_blockModule,func,*args, **kws)
+        #except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
     
     def atRigModule(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            _str_func = 'atRigModule'
-            if self.blockType in ['master']:
-                log.debug("|{0}| >> ineligible blockType: {1}".format(_str_func, self.blockType))                 
-                return False
-            
-            return self.moduleTarget.atUtils(func,*args,**kws)
-        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+        #try:
+        _str_func = 'atRigModule'
+        if self.blockType in ['master']:
+            log.debug("|{0}| >> ineligible blockType: {1}".format(_str_func, self.blockType))                 
+            return False
+        
+        return self.moduleTarget.atUtils(func,*args,**kws)
+        #except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
     def atRigPuppet(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            _str_func = 'atRigPuppet'
-            if self.blockType in ['master']:
-                return self.moduleTarget.atUtils(func,*args,**kws)
-            
-            return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
-        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+        #try:
+        _str_func = 'atRigPuppet'
+        if self.blockType in ['master']:
+            return self.moduleTarget.atUtils(func,*args,**kws)
+        
+        return self.moduleTarget.modulePuppet.atUtils(func,*args,**kws)
+        #except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
     def atBlockUtils(self, func = '', *args,**kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            reload(BLOCKUTILS)
-            return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
-        except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+        #try:
+        reload(BLOCKUTILS)
+        return getattr(BLOCKUTILS,func)(self,*args,**kws)
+        #return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
     atUtils = atBlockUtils
     UTILS = BLOCKUTILS
@@ -4249,6 +4251,8 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
                 if res not in [True,None,False]:print(res)
                 _res.append(res)
             except Exception,err:
+                raise Exception,err
+                cgmGEN.cgmExceptCB(Exception,err)
                 log.error(cgmGEN._str_hardLine)
                 log.error("|{0}| >> Failure: {1}".format(_str_func, err.__class__))
                 log.error("block: {0} | func: {1} | context: {2}".format(_short,func,context))            
@@ -5213,7 +5217,8 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
+        return getattr(PUPPETUTILS,func)(self,*args,**kws)            
+        #return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
 
     def changeName(self,name = None):
         try:
@@ -5939,7 +5944,9 @@ class cgmRigModule(cgmMeta.cgmObject):
         try:
             reload(MODULEUTILS)
         except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
-        return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
+        return getattr(MODULEUTILS,func)(self,*args,**kws)            
+        
+        #return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
     UTILS = MODULEUTILS
     
     def __verify__(self,**kws):
@@ -6108,7 +6115,9 @@ class cgmRigModule(cgmMeta.cgmObject):
         try:
             reload(self.getBlockModule())
         except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
-        return self.stringModuleCall(self._blockModule,func,*args, **kws)    
+        return getattr(self._blockModule,func)(self,*args,**kws)            
+        
+        #return self.stringModuleCall(self._blockModule,func,*args, **kws)    
     
     
     def rig_reset(self):

@@ -1274,7 +1274,7 @@ class ui(cgmUI.cgmGUI):
                     
                     cgmUI.progressBar_start(self.uiPB_mrs,int_len)
                     cgmUI.progressBar_set(self.uiPB_mrs,
-                                          maxValue = int_len,isInterruptable=True,
+                                          maxValue = int_len,
                                           progress=i, vis=True)
                     log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)                    
                     if mBlock in ml_processed:
@@ -1297,8 +1297,8 @@ class ui(cgmUI.cgmGUI):
 
             return ml_blocks
                 
-        except Exception,err:
-            cgmGEN.cgmException(Exception,err)
+        #except Exception,err:
+        #    cgmGEN.cgmException(Exception,err)
         finally:
             self.uiRow_progress(edit=1,vis=0)
             self.uiProgressText(edit=True,label='...')
