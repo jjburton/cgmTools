@@ -922,7 +922,7 @@ class ui(cgmUI.cgmGUI):
                 for a in err.args:
                     log.info(a)
                     
-                cgmException(Exception,err)
+                cgmGEN.cgmException(Exception,err)
                 raise Exception,err
             finally:
                 self._ui.uiRow_progress(edit=1,vis=0)

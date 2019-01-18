@@ -558,7 +558,7 @@ def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+',
     _l_pos = positionList
     _radius = 1    
     mc.select(cl=True)
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     #>>Get positions ================================================================================
     _len = len(_l_pos)
@@ -709,7 +709,7 @@ def control_convertToWorldIK(mCtrl=None):
     if(highestUpDot < 0):
         closestUp = "{0}-".format(closestUp)
         
-    print('closest forward axis is "%s" and closest up axis is "%s"' % (closestForward, closestUp))    
+    log.debug('closest forward axis is "%s" and closest up axis is "%s"' % (closestForward, closestUp))    
     pos_aim = DIST.get_pos_by_vec_dist(mCtrl.p_position, [0,0,1], 10.0)
     
     SNAP.aim_atPoint(mGrp_zero.mNode, pos_aim, closestForward, mode='world', vectorUp=[0,1,0] )
@@ -1255,13 +1255,13 @@ def get_dynParentTargetsDat(self,allParents=True):
     
     log.debug(cgmGEN._str_subLine)
     log.debug("dynTargets | self.md_dynTargetsParent ...".format(_str_func))            
-    pprint.pprint(self.md_dynTargetsParent)
+    #pprint.pprint(self.md_dynTargetsParent)
     log.debug(cgmGEN._str_subLine)    
     log.debug("dynEndTargets | self.ml_dynEndParents ...".format(_str_func))                
-    pprint.pprint(self.ml_dynEndParents)
+    #pprint.pprint(self.ml_dynEndParents)
     log.debug(cgmGEN._str_subLine)
     log.debug("dynTargets from above | self.ml_dynParentsAbove ...".format(_str_func))                
-    pprint.pprint(self.ml_dynParentsAbove)    
+    #pprint.pprint(self.ml_dynParentsAbove)    
     log.debug(cgmGEN._str_subLine)    
 
 
