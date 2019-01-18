@@ -3440,7 +3440,7 @@ def blockDat_get(self,report = True):
         cgmGEN.cgmException(Exception,err)
         
 def blockDat_save(self):
-    self.blockDat = blockDat_get(self)
+    self.blockDat = blockDat_get(self,False)
 
 def blockDat_reset(self):
     #This needs more work.

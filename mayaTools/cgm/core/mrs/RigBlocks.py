@@ -795,7 +795,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             cgmGEN.cgmException(Exception,err,msg=vars())
             
     def saveBlockDat(self):
-        self.blockDat = self.getBlockDat()
+        self.blockDat = self.getBlockDat(False)
 
     def resetBlockDat(self):
         #This needs more work.
