@@ -2093,7 +2093,6 @@ def skeleton_build(self, forceNew = True):
             
             if self.hasBallJoint:
                 mEnd.doSnapTo(ml_prerigHandles[-1])
-                
             else:
                 mEnd.doSnapTo(ml_prerigHandles[-2])
             

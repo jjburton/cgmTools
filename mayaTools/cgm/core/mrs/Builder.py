@@ -1245,10 +1245,46 @@ class ui(cgmUI.cgmGUI):
                 if _b_confirm and _len>1:
                     _message = "{0} \n Selected: {1}".format(_message,len(ml_blocks))
                     if not confirm(_title, _message, _funcString):return False
+                    
+                
                 
                 self.uiRow_progress(edit=1,vis=1)
-                
+                ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
                 #Now parse to sets of data
+                if args[0] == 'select':
+                    #log.info('select...')
+                    return mc.select([mBlock.mNode for mBlock in ml_context])
+                
+                int_len = len(ml_context)
+                for i,mBlock in enumerate(ml_context):
+                    _short = mBlock.p_nameShort
+                    _call = str(args[0])
+                    if _call in ['atUtils']:
+                        _call = str(args[1])
+                    self.uiProgressText(edit=True,vis=1,label="{0}/{1} | {2} | call: {3}".format(i,int_len,_short,_contextMode,_call))
+                    
+                    cgmUI.progressBar_start(self.uiPB_mrs,int_len)
+                    cgmUI.progressBar_set(self.uiPB_mrs,
+                                          maxValue = int_len,
+                                          progress=i, vis=True)
+                    
+                    log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
+                    res = getattr(mBlock,args[0])(*args[1:],**kws) or None
+                    log.debug("|{0}| >> res: {1}".format(_str_func,res))
+                    
+
+                    
+                #if _updateUI:
+                    #self.uiUpdate_scrollList_blocks()
+                    
+                if _updateUI:
+                    self.uiUpdate_scrollList_blocks()
+                    
+                if args[0] not in ['delete']:
+                    #ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
+                    self.uiScrollList_blocks.selectByIdx(_indices[0])                
+                
+                """
                 ml_processed = []
                 if args[0] == 'select':
                     return mc.select([mBlock.mNode for mBlock in ml_blocks])
@@ -1291,7 +1327,7 @@ class ui(cgmUI.cgmGUI):
                     
                 if args[0] not in ['delete']:
                     ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
-                    self.uiScrollList_blocks.selectByIdx(_indices[0])                
+                    self.uiScrollList_blocks.selectByIdx(_indices[0])"""                
                     
 
 
@@ -1305,39 +1341,61 @@ class ui(cgmUI.cgmGUI):
             cgmUI.progressBar_end(self.uiPB_mrs)
     @cgmGEN.Timer
     def uiFunc_contextModuleCall(self,*args,**kws):
-        _str_func = ''
-        _updateUI = kws.pop('updateUI',True)
-        _startMode = self.var_contextStartMode.value   
-        _contextMode = self._l_contextModes[self.var_contextMode.value]
-        
-        if _startMode == 0 :#Active
-            mBlock = self._blockCurrent
+        try:
+            _str_func = ''
+            _updateUI = kws.pop('updateUI',True)
+            _startMode = self.var_contextStartMode.value   
+            _contextMode = self._l_contextModes[self.var_contextMode.value]
             
-            if not mBlock:
-                log.error("|{0}| >> No Active block".format(_str_func))
-                return False
-        else:
-            _indices = self.uiScrollList_blocks.getSelectedIdxs()
-            if not _indices:
-                log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-                return False    
-            if not self._ml_blocks:
-                log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
-                return False    
+            if _startMode == 0 :#Active
+                mBlock = self._blockCurrent
+                
+                if not mBlock:
+                    log.error("|{0}| >> No Active block".format(_str_func))
+                    return False
+            else:
+                _indices = self.uiScrollList_blocks.getSelectedIdxs()
+                if not _indices:
+                    log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
+                    return False    
+                if not self._ml_blocks:
+                    log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
+                    return False    
+                
+                _index = int(str(_indices[0]).split('L')[0])
+                try:mBlock = self._ml_blocks[_index]   
+                except:
+                    log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
+                    return False
+                
+            self.uiRow_progress(edit=1,vis=1)
+            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False)
+            #Now parse to sets of data
+            if args[0] == 'select':
+                #log.info('select...')
+                return mc.select([mBlock.mNode for mBlock in ml_context])
             
-            _index = int(str(_indices[0]).split('L')[0])
-            try:mBlock = self._ml_blocks[_index]   
-            except:
-                log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
-                return False                   
-        RIGBLOCKS.contextual_module_method_call(mBlock,_contextMode,*args,**kws)
-        if _updateUI:
-            self.uiUpdate_scrollList_blocks(mBlock)
-            self.uiUpdate_blockDat()
-            
-            if args[0] not in ['delete']:
-                self.uiScrollList_blocks.selectByIdx(_indices[0])
+            int_len = len(ml_context)
+            for i,mBlock in enumerate(ml_context):
+                _short = mBlock.p_nameShort
+                _call = str(args[0])
+                if _call in ['atUtils']:
+                    _call = str(args[1])
+                self.uiProgressText(edit=True,vis=1,label="{0}/{1} | {2} | call: {3}".format(i,int_len,_short,_contextMode,_call))
+                
+                cgmUI.progressBar_start(self.uiPB_mrs,int_len)
+                cgmUI.progressBar_set(self.uiPB_mrs,
+                                      maxValue = int_len,
+                                      progress=i, vis=True)
+                
+                log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
+                res = RIGBLOCKS.contextual_module_method_call(mBlock,'self',*args,**kws)
+                log.debug("|{0}| >> res: {1}".format(_str_func,res))
 
+        finally:
+            self.uiRow_progress(edit=1,vis=0)
+            self.uiProgressText(edit=True,label='...')
+            cgmUI.progressBar_end(self.uiPB_mrs)
             
     def uiFunc_contextPuppetCall(self,*args,**kws):
         _str_func = ''
