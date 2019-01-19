@@ -107,9 +107,8 @@ def spline(jointList = None,
     
     
     #module -----------------------------------------------------------------------------------------------
-    mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
-    try:mModule.isModule()
-    except:mModule = False
+    mModule = cgmMeta.validateObjArg(moduleInstance,'cgmRigModule',noneValid = True)
+    ml_toConnect=[]
 
     mi_rigNull = False	
     if mModule:
@@ -135,6 +134,10 @@ def spline(jointList = None,
         mGroup.doName()
     else:
         mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+        
+        
+    if mi_rigNull:
+        mGroup.p_parent = mi_rigNull
 
     #Good way to verify an instance list? #validate orientation             
     #> axis -------------------------------------------------------------
@@ -186,10 +189,7 @@ def spline(jointList = None,
         mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
         mSegmentCurve.doName()
 
-    #if mModule:#if we have a module, connect vis
-        #mSegmentCurve.overrideEnabled = 1		
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideVisibility'))    
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
+
 
     mIKSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
     
@@ -267,11 +267,8 @@ def spline(jointList = None,
             ml_distanceObjects.append(mDistanceDag)
             ml_distanceShapes.append(mDistanceShape)
 
-            if mModule:#Connect hides if we have a module instance:
-                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mDistanceDag.mNode))
-                ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideVisibility'))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideDisplayType'))    
+            ml_toConnect.append(mDistanceDag)
+
 
 
         #>>>Hook up stretch/scale #========================================================================= 
@@ -413,6 +410,17 @@ def spline(jointList = None,
     mPlug_twistEnd = d_twistReturn['mi_plug_end']
     _res['mPlug_twistStart'] = mPlug_twistStart
     _res['mPlug_twistEnd'] = mPlug_twistEnd
+    
+    ml_toConnect.append(mSegmentCurve)
+    if mi_rigNull:
+        mRigNull = mi_rigNull
+        mSegmentCurve.p_parent = mi_rigNull
+        _str_rigNull = mi_rigNull.mNode
+        for mObj in ml_toConnect:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            mObj.parent = mRigNull            
     return _res
 
 
