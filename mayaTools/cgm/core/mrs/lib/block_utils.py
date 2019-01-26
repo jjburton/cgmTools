@@ -7492,3 +7492,47 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         return True
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
+        
+def focus(self,arg=True,mode='vis',ml_focus = None):
+    '''
+    
+    :parameters:
+        arg(bool) - on or off
+        mode(string)
+            vis
+            template
+            
+    :returns:
+        None
+        
+    :raises:
+        Exception | if reached
+    
+    '''
+    try:
+        mRoot = self.getBlockRoot()
+        if mRoot:
+            if not ml_focus:
+                ml_focus = [self]
+            mChildren = mRoot.getBlockChildrenAll()
+            for mBlock in mChildren:
+                if not arg:
+                    mBlock.v=True
+                    mBlock.template = False
+                else:
+                    if mBlock not in ml_focus:
+                        if mode == 'vis':
+                            mBlock.v = False
+    
+                        elif mode == 'template':
+                            mBlock.template = True
+                            mBlock.v=True
+                    else:
+                        mBlock.v=True
+                        mBlock.template=False
+
+            
+        #cgmGEN.func_snapShot(vars())
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err,msg=vars())
