@@ -2583,18 +2583,7 @@ def handle(startJoint,
             
             # ['distIKStretch','stretchMultiplier','distIKNormal','distFullLengthNormal']
             d_baseAttrs['distIKRaw'].value = md_baseDistReturn['mShape'].distance
-            """
-            #dist ikStretch normal -----------------------------------------------------------------            
-            arg = "{0} = {1} * {2}".format(d_baseAttrs['distIKNormal'].p_combinedName,
-                                           md_baseDistReturn['mShape'].distance,
-                                           mPlug_globalScale.p_combinedName)
-            NODEFAC.argsToNodes(arg).doBuild()    
-            
-            #ik stretch normal ----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['stretchMultiplier'].p_combinedName,
-                                             mPlug_rawDistance.mNode,
-                                             d_baseAttrs['distIKNormal'].p_combinedName)
-            NODEFAC.argsToNodes(_arg).doBuild()            """
+
             
             #Normal base -----------------------------------------------------------------------
             _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedName,
@@ -2621,14 +2610,6 @@ def handle(startJoint,
                                             d_baseAttrs['distFullLengthNormal'].p_combinedName)
             NODEFAC.argsToNodes(_arg).doBuild()
             
-            """
-            #scaleFactorRawMid  -----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedName,
-                                            d_baseAttrs['distActiveNormal'].p_combinedName,
-                                            d_baseAttrs['distBaseNormal'].p_combinedName)
-            NODEFAC.argsToNodes(_arg).doBuild()            
-            
-            """
             
             #scaleFactorReal ---------------------------------------------------------------
             _arg = "{0} = if {1} >= {2}: {3} else 1".format(d_baseAttrs['scaleFactor'].p_combinedName,

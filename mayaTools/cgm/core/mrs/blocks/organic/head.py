@@ -99,10 +99,10 @@ d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'neckJoints':1,
-                              'neckControls':1,
-                              'neckBuild':True},
-                   'headNeck':{'neckJoints':1,
-                            'neckControls':1}
+                           'neckControls':1,
+                           'neckBuild':True},
+                'headNeck':{'neckJoints':1,
+                         'neckControls':1}
                    },
     'unityMed':{'default':{'neckJoints':1,
                           'neckControls':1},
@@ -132,23 +132,23 @@ d_block_profiles = {
               'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
                },
     'neck short':{'neckShapers':3,
-                'neckBuild':True,
-                'baseSize':[15.2, 23.2, 19.7],
-                'loftShape':'wideUp',
-                'neckDirection':'vertical',
-                'proxyType':'geo',
-                'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
-                 },
+                  'neckControls':1,
+                  'neckBuild':True,
+                  'baseSize':[15.2, 23.2, 19.7],
+                  'loftShape':'wideUp',
+                  'neckDirection':'vertical',
+                  'proxyType':'geo',
+                  'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
+                   },
     'neck long':{'neckShapers':3,
+                 'neckControls':3,
                 'neckBuild':True,
                 'baseSize':[15.2, 23.2, 19.7],
                 'loftShape':'wideUp',
                 'neckDirection':'vertical',
                 'proxyType':'geo',
                 'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
-                 },
-}
-
+                 },}
 
 
 #>>>Attrs =====================================================================================================
@@ -199,6 +199,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'neckBuild':'bool',
                  'neckControls':'int',
                  'neckShapers':'int',
+                 'neckSubShapers':'int',
                  'neckJoints':'int',
                  'loftSetup':'default:neck',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -211,9 +212,11 @@ d_defaultSettings = {'version':__version__,
                      'headAim':True,
                      'neckBuild':True,
                      'neckControls': 1,
+                     'neckShapers':2,
+                     'neckSubShapers':2,
                      'attachPoint':'end',
                      'loftSides': 10,
-                     'loftSplit':4,
+                     'loftSplit':1,
                      'loftDegree':'cubic',
                      'neckJoints':3,
                      'proxyDirect':True,
@@ -511,6 +514,13 @@ def template(self):
         mTemplateNull = BLOCKUTILS.templateNull_verify(self)
         mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template')
         
+        _mVectorAim = MATH.get_obj_vector(md_vectorHandles['aim'].mNode,
+                                          asEuclid=True)
+        log.debug("vectorAim: {0}".format(_mVectorAim))
+    
+        pos_self = self.p_position
+        pos_aim = DIST.get_pos_by_vec_dist(pos_self, _mVectorAim, 5)        
+        
         
         #Our main head handle =================================================================================
         mBBHelper = self.bbHelper
@@ -530,6 +540,8 @@ def template(self):
         mBBHelper.v = False
         #self.defineNull.template=True
         v_baseSize = DIST.get_bb_size(mBBHelper.mNode)
+
+        
         
         #Orient Helper ==============================================================================
         mOrientCurve = mHandleFactory.addOrientHelper(baseSize = v_baseSize[0] * .7,
@@ -540,27 +552,20 @@ def template(self):
         mOrientCurve.doName()    
         CORERIG.colorControl(mOrientCurve.mNode,_side,'sub')
         
-        _mVectorAim = MATH.get_obj_vector(md_vectorHandles['aim'].mNode,
-                                          asEuclid=True)
-        log.debug("vectorAim: {0}".format(_mVectorAim))
-        
-        pos_self = self.p_position
-        pos_aim = DIST.get_pos_by_vec_dist(pos_self, _mVectorAim, 5)
+        """
         SNAP.aim_atPoint(obj=mOrientCurve.mNode, position = pos_aim,
                          aimAxis="z+", upAxis="y+", 
-                         mode='vector', vectorUp= self.getAxisVector('y+'))
+                         mode='vector', vectorUp= self.getAxisVector('y+'))"""
         
         mOrientCurve.setAttrFlags(['rz','translate','scale','v'])
         
+
+        
+        self.connectChildNode(mOrientCurve.mNode,'orientHelper')
+        
+        
         mAimTrans = md_defineHandles['aim'].doCreateAt(setClass = True)
-        mAimTrans.p_parent = mOrientCurve.mNode
-        
-        mc.pointConstraint(mAimTrans.mNode,
-                           md_defineHandles['aim'].mNode,
-                           maintainOffset = True)
-        
-        self.connectChildNode(mOrientCurve.mNode,'orientHelper')      
-        
+        mAimTrans.p_parent = mOrientCurve.mNode                
         
         #Proxies ==============================================================================
         ml_proxies = []        
@@ -661,6 +666,8 @@ def template(self):
             _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
             _size_length = DIST.get_distance_between_points(self.p_position, _end)
             _size_handle = _size_width * 1.25
+            _size_loft = MATH.get_greatest(_size_width,_size_height)
+            
             #self.baseSize = [_size_width,_size_height,_size_length]
             _l_basePos.append(_end)
             log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
@@ -684,6 +691,18 @@ def template(self):
             _l_mainParents = [mTemplateNull, mHeadHandle]
             
             if _loftSetup == 'default':
+                
+                md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.template_segment(
+                    self,
+                    aShapers = 'neckShapers',aSubShapers = 'neckSubShapers',
+                    loftShape=_loftShape,l_basePos = _l_basePos, baseSize=_size_handle,
+                    orientHelperPlug='orientNeckHelper',
+                    sizeWidth = _size_width, sizeLoft=_size_loft,side = _side,
+                    mTemplateNull = mTemplateNull,mNoTransformNull = mNoTransformNull,
+                    mDefineEndObj=None)
+                
+                
+                """
                 log.debug("|{0}| >> Default loft setup...".format(_str_func))
                 for i,n in enumerate(['start','end']):
                     log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
@@ -749,7 +768,7 @@ def template(self):
                 mHandleFactory.color(mBaseOrientCurve.mNode,controlType='sub')
                 mc.select(cl=True)
             
-                if self.neckControls > 2:
+                if self.neckShapers > 2:
                     log.debug("|{0}| >> more handles necessary...".format(_str_func)) 
                     #Mid Track curve ============================================================================
                     log.debug("|{0}| >> TrackCrv...".format(_str_func)) 
@@ -770,7 +789,7 @@ def template(self):
                         l_scales.append(mHandle.scale)
                         mHandle.scale = 1,1,1
             
-                    _l_posMid = CURVES.returnSplitCurveList(mMidTrackCurve.mNode,self.neckControls,markPoints = False)
+                    _l_posMid = CURVES.returnSplitCurveList(mMidTrackCurve.mNode,self.neckShapers,markPoints = False)
                     #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.neckControls-1)] + [_pos_end]
             
             
@@ -877,12 +896,7 @@ def template(self):
                         mc.pointConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
                         self.connectChildNode(mHandle.mNode,'templateLeverHandle')      
             
-                        """
-                            mc.aimConstraint(md_handles['start'].mNode, mHandle.mNode, maintainOffset = False,
-                                             aimVector = [0,0,1], upVector = [0,1,0], 
-                                             worldUpObject = mRootUpHelper.mNode,
-                                             worldUpType = 'objectrotation', 
-                                             worldUpVector = [0,1,0])"""
+
             
                     #AimEndHandle ============================================================================
                     #mAimGroup = md_handles['end'].doGroup(True, asMeta=True,typeModifier = 'aim')
@@ -1219,17 +1233,8 @@ def template(self):
             
             
                         #Aim the segment
+            
                         """
-                            for ii,mHandle in enumerate(ml_shapersTmp):
-                                mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
-                                log.debug("|{0}| >> seg constrain: {1} {2} | end: {3}".format(_str_func,i,ii,_end))
-            
-                                mc.aimConstraint([_end], mAimGroup.mNode, maintainOffset = True, #skip = 'z',
-                                                 aimVector = [0,0,1], upVector = [0,1,0],
-                                                 worldUpObject = mBaseOrientCurve.mNode,
-                                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
-            
-            
                 #>>> Connections ====================================================================================
                 self.msgList_connect('templateHandles',[mHeadHandle]+[mObj.mNode for mObj in ml_handles_chain])
             
@@ -1292,7 +1297,6 @@ def template(self):
                 mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
                 mc.scaleConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=True)
                 
-                self.blockState = 'template'#...buffer        
                
                
                
@@ -1323,10 +1327,21 @@ def template(self):
         
             CORERIG.colorControl(mBaseOrientCurve.mNode,_side,'sub')          
             mc.select(cl=True)    """
+            
+        #Aim this last so we don't shear our head geo
+        SNAP.aim_atPoint(obj=mHeadHandle.mNode, position = pos_aim,
+                         aimAxis="z+", upAxis="y+", 
+                         mode='vector', vectorUp= self.getAxisVector('y+'))
+  
+        mc.pointConstraint(mAimTrans.mNode,
+                           md_defineHandles['aim'].mNode,
+                           maintainOffset = True)        
+        
         self.blockState = 'template'#...buffer
         
         return True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
 
