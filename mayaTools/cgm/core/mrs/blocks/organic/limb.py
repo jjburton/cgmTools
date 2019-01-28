@@ -128,57 +128,57 @@ d_build_profiles = {
 
 d_block_profiles = {
     'default':{},
-    'quadRear':{'numShapers':2,
-            'addCog':False,
-            'cgmName':'leg',
-            'loftShape':'circle',
-            'loftSetup':'default',
-            'settingsPlace':'end',
-            'settingsDirection':'down',
-            'ikSetup':'rp',
-            'ikEnd':'paw',
-            'hasQuadSetup':True,
-            'numControls':4,
-            'numShapers':3,
-            'ikRPAim':'default',
-            'rigSetup':'default',           
-            'mainRotAxis':'out',
-            'buildBaseLever':False,
-            'hasLeverJoint':False,
-            'hasBallJoint':False,
-            'hasEndJoint':True,
-            'nameList':['hip','knee','ankle','ball','toe'],
-            'baseAim':[0,-1,0],
-            'baseUp':[0,0,1],
-            'baseSize':[11.6,8,79],
-            'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
-            },
-    'quadFront':{'numShapers':2,
-                'addCog':False,
-                'attachPoint':'end',
-                'cgmName':'leg',
-                'loftShape':'circle',
-                'loftSetup':'default',
-                'settingsPlace':'end',
-                'settingsDirection':'down',
-                'ikSetup':'rp',
-                'ikEnd':'paw',
-                'hasQuadSetup':False,
-                'numControls':3,
-                'numShapers':3,
-                'ikRPAim':'default',
-                'rigSetup':'default',           
-                'mainRotAxis':'out',
-                'buildBaseLever':True,
-                'hasLeverJoint':True,
-                'hasBallJoint':False,
-                'hasEndJoint':True,
-                'nameList':['hip','knee','ankle','ball','toe'],
-                'baseAim':[0,-1,0],
-                'baseUp':[0,0,1],
-                'baseSize':[11.6,8,79],
-                'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
-                },    
+    'quadRear':{
+        'addCog':False,
+        'cgmName':'leg',
+        'loftShape':'circle',
+        'loftSetup':'default',
+        'settingsPlace':'end',
+        'settingsDirection':'down',
+        'ikSetup':'rp',
+        'ikEnd':'paw',
+        'hasQuadSetup':True,
+        'numControls':4,
+        'numShapers':3,
+        'ikRPAim':'default',
+        'rigSetup':'default',           
+        'mainRotAxis':'out',
+        'buildBaseLever':False,
+        'hasLeverJoint':False,
+        'hasBallJoint':False,
+        'hasEndJoint':True,
+        'nameList':['hip','knee','ankle','ball','toe'],
+        'baseAim':[0,-1,0],
+        'baseUp':[0,0,1],
+        'baseSize':[11.6,8,79],
+        'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
+        },
+    'quadFront':{
+        'addCog':False,
+        'attachPoint':'end',
+        'cgmName':'leg',
+        'loftShape':'circle',
+        'loftSetup':'default',
+        'settingsPlace':'end',
+        'settingsDirection':'down',
+        'ikSetup':'rp',
+        'ikEnd':'paw',
+        'hasQuadSetup':True,
+        'numControls':3,
+        'numShapers':3,
+        'ikRPAim':'default',
+        'rigSetup':'default',           
+        'mainRotAxis':'out',
+        'buildBaseLever':True,
+        'hasLeverJoint':True,
+        'hasBallJoint':False,
+        'hasEndJoint':True,
+        'nameList':['shoulder','knee','wrist','ball','end'],
+        'baseAim':[0,-1,0],
+        'baseUp':[0,0,1],
+        'baseSize':[11.6,8,79],
+        'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
+        },    
     
     'leg':{'numShapers':2,
            'addCog':False,
@@ -189,6 +189,7 @@ d_block_profiles = {
            'settingsDirection':'down',
            'ikSetup':'rp',
            'ikEnd':'foot',
+           'hasQuadSetup':False,           
            'numControls':3,
            'numShapers':3,
            'ikRPAim':'default',
@@ -202,9 +203,34 @@ d_block_profiles = {
            'baseAim':[0,-1,0],
            'baseUp':[0,0,1],
            'baseSize':[11.6,13,70],
-           'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[0,0,-1]},
-           
+           'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
            },
+    
+    'insect':{
+              'addCog':False,
+              'cgmName':'leg',
+              'loftShape':'circle',
+              'loftSetup':'default',
+              'settingsPlace':'end',
+              'settingsDirection':'down',
+              'ikSetup':'rp',
+              'hasQuadSetup':True,              
+              'ikEnd':'bank',
+              'numControls':4,
+              'numShapers':3,
+              'ikRPAim':'default',
+              'rigSetup':'default',
+              'mainRotAxis':'out',
+              'buildBaseLever':False,
+              'hasLeverJoint':False,
+              'hasBallJoint':False,
+              'hasEndJoint':True,
+              'nameList':['hip','knee','ankle','ball','toe'],
+              'baseAim':[0,-1,0],
+              'baseUp':[0,0,1],
+              'baseSize':[11.6,13,70],
+              'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[0,0,-1]},
+              },
     
     'arm':{'numShapers':2,
            'addCog':False,
@@ -547,15 +573,23 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
         
-        _l_order = ['end','up','rp']
+        _l_order = ['end','up','rp','lever']
         
-        if self.hasLeverJoint or self.buildLeverBase:
-            _l_order.append('lever')
+            
         
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size)
         self.UTILS.define_set_baseSize(self)
         md_vector = _resDefine['md_vector']
         md_handles = _resDefine['md_handles']
+        
+        mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
+        mLeverGroup.p_parent = mDefineNull
+        mLeverGroup.rename('lever_null')
+        mLeverGroup.doConnectIn('visibility',"{0}.buildLeverBase".format(self.mNode))
+        
+        md_handles['lever'].p_parent = mLeverGroup
+        md_vector['lever'].p_parent = mLeverGroup
+        
         #Rotate Plane ======================================================================
         """
         {'md_handles':md_handles,
@@ -1372,8 +1406,8 @@ def template(self):
                 
                     _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
                     #_mVectorUp = _mVectorAim.up()
-                    #_worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
-                
+                    _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
+                    
                 
                     #Linear track curve ----------------------------------------------------------------------
                     _linearCurve = mc.curve(d=1,p=[_pos_start,_pos_end])
@@ -1398,12 +1432,33 @@ def template(self):
                 
                 
                     #Tmp loft mesh -------------------------------------------------------------------
-                    _l_targets = [mObj.loftCurve.mNode for mObj in mPair]
+                    #...we're going to duplicate our end curve to get a clean end aimer
+                    mDupLoft = False
+                    
+                    if self.buildLeverBase and i == 0:
+                        log.debug("|{0}| >> lever loft aim | 0".format(_str_func,i,_end))
+                        
+                        mDupLoft = mPair[1].loftCurve.doDuplicate(po=False)
+                        SNAP.aim_atPoint(mDupLoft.mNode,mPair[0].p_position,
+                                         'z-',mode='vector',vectorUp=mPair[0].getAxisVector('y+'))
+                        _l_targets = [mPair[0].loftCurve.mNode, mDupLoft.mNode]
+                    elif self.buildLeverBase and i == 1:
+                        log.debug("|{0}| >> lever loft aim | 1".format(_str_func,i,_end))
+                        
+                        mDupLoft = mPair[0].loftCurve.doDuplicate(po=False)
+                        SNAP.aim_atPoint(mDupLoft.mNode,mPair[1].p_position,
+                                         'z+',mode='vector',vectorUp=_worldUpVector)                            
+                        _l_targets = [mDupLoft.mNode, mPair[1].loftCurve.mNode]
+                            
+                    else:
+                        _l_targets = [mObj.loftCurve.mNode for mObj in mPair]
+                        
                     log.debug(_l_targets)
                     _res_body = mc.loft(_l_targets, o = True, d = 3, po = 0 )
                     _str_tmpMesh =_res_body[0]
                 
                     l_scales_seg = []
+                    
                 
                     #for mHandle in mPair:
                         #l_scales_seg.append(mHandle.scale)
@@ -1424,9 +1479,9 @@ def template(self):
                 
                         #...Make our curve
                         _d = RAYS.cast(_str_tmpMesh, _short, 'x+')
-                        pprint.pprint(_d)
+                        #pprint.pprint(_d)
                         log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
-                        cgmGEN.log_info_dict(_d)
+                        #cgmGEN.log_info_dict(_d)
                         _v = _d['uvs'][_str_tmpMesh][0][0]
                         log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
                 
@@ -1508,7 +1563,8 @@ def template(self):
                                          worldUpObject = mBaseOrientCurve.mNode,
                                          worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
                     
-                    
+                    if mDupLoft:
+                        mDupLoft.delete()
             #>>> Connections ====================================================================================
             self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
     
@@ -2403,9 +2459,9 @@ def rig_dataBuffer(self):
                     self.b_cullFKEnd = True
     
                     
-            if str_ikEnd in ['tipCombo']:
-                log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
-                self.b_ikNeedFullChain = True
+        if str_ikEnd in ['tipCombo']:
+            log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
+            self.b_ikNeedFullChain = True
                 
         #elif mBlock.ikEndIndex > 1:
             #log.debug("|{0}| >> Using ikEndIndex...".format(_str_func))        
@@ -5827,7 +5883,7 @@ def rig_frame(self):
                 #>>> mBallRotationControl
                 mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
                 
-                if mIKBallRotationControl:
+                if mIKBallRotationControl and str_ikEnd not in ['tipCombo']:
                     mBallOrientGroup = cgmMeta.validateObjArg(mIKBallRotationControl.doGroup(True,False,asMeta=True,typeModifier = 'orient'),'cgmObject',setClass=True)
                     ATTR.set(mBallOrientGroup.mNode, 'rotateOrder', _jointOrientation)
                     
@@ -5914,10 +5970,7 @@ def rig_frame(self):
                     mc.orientConstraint([mIKEndDriver.mNode],
                                         ml_ikJoints[self.int_handleEndIdx].mNode,
                                         maintainOffset = True)
-                
-                
 
-                
                 
                 #Mid IK driver -----------------------------------------------------------------------
                 log.debug("|{0}| >> mid IK driver.".format(_str_func))
@@ -8029,7 +8082,6 @@ def switchMode(self,mode = 'fkOn'):
                 log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
                 log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
                 log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))
-        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
 def snapBall(self,driven = 'L_ball_blend_frame',
@@ -8097,6 +8149,9 @@ def get_handleIndices(self):
                 log.debug("|{0}| >> Need IK end joint".format(_str_func))
             elif str_ikEnd == 'tipBase':
                 idx_end -=1
+                
+        if self.hasQuadSetup:
+            idx_end -=1
                 
         return idx_start,idx_end
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

@@ -71,7 +71,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
                                                 mObj.mNode)
 
         log.debug("|{0}| >> jnt: {1} | {2}".format(_str_func,mObj.mNode, d_closest))
-        pprint.pprint(d_closest)
+        #pprint.pprint(d_closest)
 
         if d_closest['type'] in ['mesh','nurbsSurface']:
             log.debug("|{0}| >> Follicle mode...".format(_str_func))
