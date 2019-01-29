@@ -47,7 +47,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 _l_core_order = ['cgm_General',
                  'cgm_Meta',
@@ -55,6 +55,7 @@ _l_core_order = ['cgm_General',
                  'cgm_PuppetMeta',
                  'mrs.RigBlocks',
                  'cgm_RigMeta',
+                 'tools.lightLoomLite',
                  'cgmPy.validateArgs',
                  'rigger.ModuleFactory',
                  'rigger.JointFactory',
