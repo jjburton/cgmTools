@@ -94,7 +94,8 @@ l_attrsStandard = ['side',
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
                  'axisAim':":".join(CORESHARE._l_axis_by_string),
-                 'axisUp':":".join(CORESHARE._l_axis_by_string),                 
+                 'axisUp':":".join(CORESHARE._l_axis_by_string),
+                 'rotPivotPlace':'handle:jointHelper:cog',
                  'targetJoint':'messageSimple',
                  'rootJoint':'messageSimple'}
 
@@ -106,6 +107,7 @@ d_defaultSettings = {'version':__version__,
                      'axisAim':2,
                      'axisUp':4,
                      'attachPoint':'end',
+                     'rotPivotPlace':0,
                      'proxy':1,
                      'proxyType':1}
 
@@ -482,9 +484,13 @@ def rig_shapes(self):
 
     #Control ----------------------------------------------------------------------------------
     log.info("|{0}| >> Main control shape...".format(_str_func))
-    if mBlock.addCog and mMainHandle.getMessage('cogHelper'):
+    _str_rotPivot = mBlock.getEnumValueString('rotPivotPlace')
+    
+    if _str_rotPivot == 'cog' and mBlock.addCog and mMainHandle.getMessage('cogHelper'):
         log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
         mControl = mMainHandle.cogHelper.doCreateAt()
+    elif _str_rotPivot == 'jointHelper':
+        mControl = mMainHandle.jointHelper.doCreateAt()        
     else:
         mControl = mMainHandle.doCreateAt()
         
