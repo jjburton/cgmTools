@@ -67,6 +67,15 @@ __l_rigBuildOrder__ = ['rig_skeleton',
 d_build_profiles = {'unityLow':{},
                     'unityMed':{},
                     'feature':{}}
+d_block_profiles = {
+    'cube':{
+        'basicShape':'cube',
+        'cgmName':'cube',
+        },
+    'sphere':{
+        'basicShape':'sphere',
+        'cgmName':'sphere',
+        },}
 
 #>>>Attrs ========================================================================================================
 l_attrsStandard = ['side',
@@ -92,7 +101,7 @@ d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
 d_defaultSettings = {'version':__version__,
                      'hasJoint':True,
                      'basicShape':5,
-                     'addAim':True,
+                     'addAim':False,
                      'shapeDirection':2,
                      'axisAim':2,
                      'axisUp':4,
@@ -645,7 +654,7 @@ def rig_controls(self):
     
     
         #Connections =======================================================================================
-        ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+        #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
         
@@ -881,15 +890,13 @@ def rig_cleanUp(self):
 
     #>>  Attribute defaults =================================================================================
     
-    #Final close out stuff....move to 
-    mRigNull.version = __version__
+    mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    
+    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    self.UTILS.rigNodes_store(self)
 
 
-
-def build_proxyMesh(self, forceNew = True):
+def build_proxyMesh(self, forceNew = True,**kws):
     """
     Build our proxyMesh
     """

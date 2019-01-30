@@ -130,13 +130,13 @@ d_block_profiles = {
     'default':{},
     'quadRear':{
         'addCog':False,
-        'cgmName':'leg',
+        'cgmName':'quadRear',
         'loftShape':'circle',
         'loftSetup':'default',
         'settingsPlace':'end',
         'settingsDirection':'down',
         'ikSetup':'rp',
-        'ikEnd':'paw',
+        'ikEnd':'pad',
         'buildLeverEnd':True,
         'numControls':4,
         'numShapers':3,
@@ -156,15 +156,15 @@ d_block_profiles = {
     'quadFront':{
         'addCog':False,
         'attachPoint':'end',
-        'cgmName':'leg',
+        'cgmName':'quadFront',
         'loftShape':'circle',
         'loftSetup':'default',
         'settingsPlace':'end',
         'settingsDirection':'down',
         'ikSetup':'rp',
-        'ikEnd':'paw',
+        'ikEnd':'pad',
         'buildLeverEnd':True,
-        'numControls':3,
+        'numControls':4,
         'numShapers':3,
         'ikRPAim':'default',
         'rigSetup':'default',           
@@ -177,7 +177,7 @@ d_block_profiles = {
         'baseAim':[0,-1,0],
         'baseUp':[0,0,1],
         'baseSize':[11.6,8,79],
-        'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
+        'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[1,0,0]},
         },    
     
     'leg':{'numShapers':2,
@@ -206,9 +206,9 @@ d_block_profiles = {
            'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
            },
     
-    'insect':{
+    'crab':{
               'addCog':False,
-              'cgmName':'leg',
+              'cgmName':'crabLeg',
               'loftShape':'circle',
               'loftSetup':'default',
               'settingsPlace':'end',
@@ -226,10 +226,10 @@ d_block_profiles = {
               'hasBallJoint':False,
               'hasEndJoint':True,
               'nameList':['hip','knee','ankle','ball','toe'],
-              'baseAim':[0,-1,0],
+              'baseAim':[-1,-1,0],
               'baseUp':[0,0,1],
               'baseSize':[11.6,13,70],
-              'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[0,0,-1]},
+              'baseDat':{'rp':[-1,0,0],'up':[-1,0,0],'lever':[1,0,0]},
               },
     
     'arm':{'numShapers':2,
@@ -441,7 +441,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'buildLeverEnd':'bool',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
-                 'ikEnd':'none:bank:foot:paw:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
+                 'ikEnd':'default:bank:foot:pad:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
                  #'ikBase':'none:fkRoot',
                  'hasLeverJoint':'bool',
                  'buildLeverBase':'bool',#...fkRoot is our clav like setup
@@ -1607,7 +1607,7 @@ def template(self):
                 if _ikEnd == 'bank':
                     log.debug("|{0}| >> Bank setup".format(_str_func)) 
                     mHandleFactory.addPivotSetupHelper(baseSize = _bankSize).p_parent = mTemplateNull
-                elif _ikEnd in ['foot','paw']:
+                elif _ikEnd in ['foot','pad']:
                     log.debug("|{0}| >> foot setup".format(_str_func)) 
                     mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseSize=_bankSize)
                     mFoot.p_parent = mTemplateNull
@@ -1719,7 +1719,7 @@ def prerig(self):
     
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
-        if _ikEnd not in ['paw','bank']:
+        if _ikEnd not in ['pad','bank']:
             if self.hasBallJoint and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
                 ml_templateHandles.append(mHelp)
@@ -1804,7 +1804,7 @@ def prerig(self):
             mHandle.p_parent = mPrerigNull
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
-            if mTemplateHandle == mEndHandle and _ikEnd in ['foot','paw','bank']:
+            if mTemplateHandle == mEndHandle and _ikEnd in ['foot','pad','bank']:
                 #_size_width = mDefineEndObj.width#...x width
                 SNAP.aim_atPoint(mHandle.mNode, DIST.get_pos_by_vec_dist(mHandle.p_position, _mVectorUp, mDefineEndObj.length))
             
@@ -1974,7 +1974,7 @@ def skeleton_build(self, forceNew = True):
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
         log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
         _int_rollStart = 0
-        if self.hasLeverJoint:
+        if self.hasLeverJoint and self.buildLeverBase:
             _int_rollStart = 1
         _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
         
@@ -6027,7 +6027,7 @@ def rig_frame(self):
                     mc.orientConstraint([mPivotResultDriver.mNode],
                                             ml_ikJoints[self.int_handleEndIdx].mNode,
                                             maintainOffset = True)
-                elif str_ikEnd == 'paw':
+                elif str_ikEnd == 'pad':
                     mc.orientConstraint([mPivotResultDriver.mNode],
                                         ml_ikJoints[self.int_handleEndIdx].mNode,
                                         maintainOffset = True)                    
@@ -6245,7 +6245,7 @@ def rig_frame(self):
                 if mIKControlBase:
                     mc.pointConstraint(mIKControlBase.mNode,ml_ikFullChain[0].mNode,maintainOffset=False)
             
-            #ml_ikJoints[0].parent = mIKGroup            
+            ml_ikJoints[0].parent = mIKGroup            
             if mIKControlBase:
                 #ml_ikJoints[0].p_parent = mIKControlBase
                 mc.pointConstraint(mIKControlBase.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
@@ -7092,7 +7092,7 @@ def rig_pivotSetup(self):
             mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)[0]
             _pivotSetup = ATTR.get_enumValueString(self.mBlock.mNode,'ikEnd')
             
-            if self.b_leverEnd or _pivotSetup in ['paw']:
+            if self.b_leverEnd or _pivotSetup in ['pad']:
                 _pivotSetup == 'bank'
                 
             mToeIK = False
@@ -7421,7 +7421,7 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             if mHandle == mControlIK:
-                if str_blockProfile in ['leg'] or str_ikEnd in ['paw','foot']:
+                if str_blockProfile in ['leg'] or str_ikEnd in ['pad','foot']:
                     #_idx = ml_targetDynParents.index( self.dynTargets(puppet))
                     ATTR.set_default(mHandle.mNode,'space','puppet')
             
@@ -7617,7 +7617,7 @@ def rig_cleanUp(self):
             ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
             ml_handleJoints[0].stable_0 = 1.0
             
-        if str_blockProfile in ['leg'] or str_ikEnd in ['paw','foot']:
+        if str_blockProfile in ['leg'] or str_ikEnd in ['pad','foot']:
             log.debug("|{0}| >> 'leg' setup...".format(_str_func))
             
             if mSettings.hasAttr('FKIK'):

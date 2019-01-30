@@ -940,7 +940,8 @@ class ui(cgmUI.cgmGUI):
             finally:
                 self._ui.uiRow_progress(edit=1,vis=0)
                 self._ui.uiProgressText(edit=True,label='...')
-                cgmUI.progressBar_end(self._ui.uiPB_mrs)            
+                cgmUI.progressBar_end(self._ui.uiPB_mrs)
+                
     def buildMenu_add( self, force=False, *args, **kws):
         if self.uiMenu_add and force is not True:
             log.debug("No load...")
@@ -962,6 +963,7 @@ class ui(cgmUI.cgmGUI):
                         mUI.MelMenuItem(self.uiMenu_add, l=o,
                                         c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
                                         ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
         
         for c in _d[1].keys():
             #d_sections[c] = []
@@ -979,10 +981,14 @@ class ui(cgmUI.cgmGUI):
                             mUI.MelMenuItem(_sub, l=_l,
                                             c=_c,
                                             ann="{0} : {1}".format(_l, _c)
-                                            )                            
-                            """
-                            d_sections[c].append( ["{0} ({1})".format(o,b),
-                                                   cgmGEN.Callback(self.uiFunc_block_create,b,o)] )       """ 
+                                            )
+                    else:
+                        mUI.MelMenuItem(self.uiMenu_add, l=b,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,'default'),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+                        """
+                        d_sections[c].append( ["{0} ({1})".format(o,b),
+                                               cgmGEN.Callback(self.uiFunc_block_create,b,o)] )       """ 
         
         """
         d_sections = {}
