@@ -277,14 +277,17 @@ def gather_rigBlocks(progressBar=False):
                                       progress=i, vis=True)                        
             if not mObj.parent:
                 mObj.parent = mGroup
-                ml_gathered.append(mLink)
+                ml_gathered.append(mObj)
                 
             for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
-                mLink = mObj.getMessageAsMeta(link)
-                if mLink and not mLink.parent:
-                    log.info("|{0}| >> {1} | {2}".format(_str_func,link,mLink))            
-                    mLink.parent = mGroup
-                    ml_gathered.append(mLink)
+                try:
+                    mLink = mObj.getMessageAsMeta(link)
+                    if mLink and not mLink.parent:
+                        log.info("|{0}| >> {1} | {2}".format(_str_func,link,mLink))            
+                        mLink.parent = mGroup
+                        ml_gathered.append(mLink)
+                except Exception,err:
+                    log.error("{0} | {1}".format(link,err))
                     
         
         return log.info("|{0}| >> Gathered {1} dags".format(_str_func,len(ml_gathered)))

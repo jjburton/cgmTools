@@ -291,6 +291,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 for a,v in kws.iteritems():
                     if self.hasAttr(a):
                         try:
+                            if a == 'side' and v == None:
+                                v = 0
                             log.info("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
                             ATTR.set(self.mNode,a,v)
                         except Exception,err:

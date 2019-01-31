@@ -125,10 +125,10 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     elif curve in ['cubic','cubicRebuild']:
         l_pos = [POS.get(o) for o in objList]
         knot_len = len(l_pos)+3-1		
-        curveBuffer = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
-        
+        crv1 = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
+        curveBuffer = [crv1]
         if curve == 'cubicRebuild':
-            curveBuffer=mc.rebuildCurve (curveBuffer, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=spans, d=3, tol=0.001)[0]
+            curveBuffer.append(mc.rebuildCurve (crv1, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=spans, d=3, tol=0.001)[0])
 
     elif curve == 'cubicArc':
         _mid = MATH.get_midIndex(_len)-1

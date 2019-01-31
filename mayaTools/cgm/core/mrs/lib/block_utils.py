@@ -1500,7 +1500,7 @@ def rigDeleteBAK(self,msgLinks = []):
         if self.blockState != 'rig':
             raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
     
-        self.blockState = 'rig>prerig'        
+        #self.blockState = 'rig>prerig'        
     
         mModuleTarget = self.moduleTarget
         if mModuleTarget:
@@ -6039,8 +6039,9 @@ def getState(self, asString = True, fastCheck=True):
         log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
         
         if fastCheck:
-            return returnRes(self.blockState)
-        
+            try:return returnRes(self.blockState)
+            except:pass
+            
         _blockModule = self.p_blockModule
         _goodState = False
     

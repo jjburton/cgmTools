@@ -104,8 +104,7 @@ d_build_profiles = {
                 'headNeck':{'neckJoints':1,
                          'neckControls':1}
                    },
-    'unityMed':{'default':{'neckJoints':1,
-                          'neckControls':1},
+    'unityMed':{'default':{'neckJoints':1},
                },
     'unityHigh':{'default':{'neckJoints':3,
                           'neckControls':1},
@@ -142,6 +141,7 @@ d_block_profiles = {
                    },
     'neck long':{'neckShapers':3,
                  'neckControls':3,
+                 'neckJoints':5,
                 'neckBuild':True,
                 'baseSize':[15.2, 23.2, 19.7],
                 'loftShape':'wideUp',

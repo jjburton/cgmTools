@@ -52,7 +52,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.12192017'
+__version__ = 'alpha.01302019'
 __autoTemplate__ = True
 __component__ = True
 __menuVisible__ = True
@@ -64,16 +64,22 @@ __l_rigBuildOrder__ = ['rig_skeleton',
                        'rig_cleanUp']
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {'unityLow':{},
-                    'unityMed':{},
-                    'feature':{}}
+d_build_profiles = {'unityLow':{'default':{}},
+                    'unityMed':{'default':{}},
+                    'unityHigh':{'default':{}},
+                    'feature':{'default':{}}}
 d_block_profiles = {
     'cube':{
         'basicShape':'cube',
-        'cgmName':'cube',
-        },
+        'proxyShape':'cube',
+        'cgmName':'cube'},
+    'cone':{
+    'basicShape':'pyramid',
+    'proxyShape':'cone',
+    'cgmName':'cone'},    
     'sphere':{
         'basicShape':'sphere',
+        'proxyShape':'sphere',
         'cgmName':'sphere',
         },}
 
@@ -111,8 +117,7 @@ d_defaultSettings = {'version':__version__,
                      'proxy':1,
                      'proxyType':1}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
-                   'msgLists':['prerigHandles']}
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_template = {'msgLinks':['templateNull'],
                      }
 
@@ -120,9 +125,38 @@ d_wiring_template = {'msgLinks':['templateNull'],
 #>> Define
 #=============================================================================================================
 def define(self):
+    _str_func = 'define'
     _short = self.mNode
-    #self.translate = 0,0,0
-    #self.rotate = 0,0,0
+    
+    for a in 'baseAim','baseSize','baseUp':
+        if ATTR.has_attr(_short,a):
+            ATTR.set_hidden(_short,a,True)    
+    
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz','sz'])
+    self.doConnectOut('sy',['sx','sz'])    
+
+    _shapes = self.getShapes()
+    if _shapes:
+        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
+        mc.delete(_shapes)
+        defineNull = self.getMessage('defineNull')
+        if defineNull:
+            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+            mc.delete(defineNull)
+
+    _size = self.atUtils('defineSize_get')
+
+    #_sizeSub = _size / 2.0
+    log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
+    _crv = CURVES.create_fromName(name='locatorForm',
+                                  direction = 'z+', size = _size * 2.0)
+
+    SNAP.go(_crv,self.mNode,)
+    CORERIG.override_color(_crv, 'white')
+    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+    mHandleFactory = self.asHandleFactory()
+    self.addAttr('cgmColorLock',True,lock=True,visible=False)    
     
 
     #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
@@ -139,6 +173,7 @@ def template(self):
         _size = self.baseSize
         mHandleFactory = self.asHandleFactory(self)
         _shapeDirection = self.getEnumValueString('shapeDirection')
+        _proxyShape = self.getEnumValueString('proxyShape')
         #Create temple Null  ==================================================================================
         mTemplateNull = BLOCKUTILS.templateNull_verify(self)        
         
@@ -182,8 +217,7 @@ def template(self):
             ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )        
             
         self.msgList_connect('templateHandles',[mHandle.mNode])
-    except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
         
 #def is_template(self):
 #    if self.getMessage('templateNull'):
@@ -227,7 +261,7 @@ def prerig(self):
             
         
         #Helpers=====================================================================================
-        self.msgList_connect('prerigHandles',[self.mNode])
+        #self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addPivot:
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
@@ -242,8 +276,8 @@ def prerig(self):
         
         return
 
-    except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+
 
 
 def prerigDelete(self):
@@ -252,9 +286,10 @@ def prerigDelete(self):
     #    for s in mTemplateLoft.getShapes(asMeta=True):
     #        s.overrideDisplayType = 2     
     
-    if self.getMessage('noTransformNull'):
-        mc.delete(self.getMessage('noTransformNull'))
-    return BLOCKUTILS.prerig_delete(self,templateHandles=True)
+    #if self.getMessage('noTransformNull'):
+    #    mc.delete(self.getMessage('noTransformNull'))
+    #return BLOCKUTILS.prerig_delete(self,templateHandles=True)
+    return True
 
 #def is_prerig(self):
 #    return BLOCKUTILS.is_prerig(self,msgLinks=['moduleTarget','prerigNull'])
@@ -312,8 +347,8 @@ def is_rig(self):
                 log.info("|{0}| >> {1}".format(_str_func,l))  
             return False
         return True
-    except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+
 
 #=============================================================================================================
 #>> Skeleton
@@ -334,9 +369,6 @@ def skeleton_build(self, forceNew = True):
     if not mRigNull:
         raise ValueError,"No rigNull connected"
     
-    ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
-    if not ml_prerigHandles:
-        raise ValueError,"No prerigHandles connected"
     
     #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)

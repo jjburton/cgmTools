@@ -973,7 +973,7 @@ class ui(cgmUI.cgmGUI):
                     #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
                     l_options = RIGBLOCKS.get_blockProfile_options(b)
                     if l_options:
-                        _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,l=b)
+                        _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,l=b,tearOff=True)
                         l_options.sort()
                         for o in l_options:
                             _l = "{0}".format(o)
