@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -85,8 +85,8 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_skeleton',
                        'rig_shapes',
                        'rig_controls',
-                       'rig_segments',
                        'rig_frame',
+                       'rig_segments',                       
                        'rig_cleanUp']
 
 d_wiring_skeleton = {'msgLinks':[],
@@ -217,7 +217,7 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'end',
                      'loftSides': 10,
                      'loftSplit':1,
-                     'loftDegree':'cubic',
+                     'loftDegree':'linear',
                      'neckJoints':3,
                      'proxyDirect':True,
                      'attachPoint':'end',
@@ -2789,7 +2789,7 @@ def rig_segments(self):
               'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
               'influences':ml_influences,
               'settingsControl':_settingsControl,
-              'attachEndsToInfluences':True,
+              'attachEndsToInfluences':False,
               'moduleInstance':mModule}
         
         if mSegMidIK:
@@ -2878,6 +2878,7 @@ def rig_frame(self):
         ml_baseIKDrivers = self.mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         ml_segBlendTargets = copy.copy(ml_blendJoints)
+        mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
         
         mTopHandleDriver = mHeadIK
         
@@ -2890,16 +2891,18 @@ def rig_frame(self):
         
         if ml_blendJoints:
             mHeadStuffParent = ml_blendJoints[-1]
-            mAimParent = ml_blendJoints[-1]        
+            mAimParent = ml_blendJoints[-1]
+            mTopTwistDriver = ml_blendJoints[-1]
+            
         else:
             mHeadStuffParent = mHeadIK
             mAimParent = self.mDeformNull
             
-    
+        
         #>> headFK ========================================================================================
         """We use the ik head sometimes."""
         
-        if self.mBlock.headAim:
+        if mBlock.headAim:
             log.debug("|{0}| >> HeadAim setup...".format(_str_func))
             mSettings = mRigNull.settings
             
@@ -2927,7 +2930,7 @@ def rig_frame(self):
             
             mHeadLookAt.doStore('fkMatch', mTopDriver)
             mHeadLookAt.doStore('ikMatch', mHeadBlendJoint)
-            
+            mTopTwistDriver = mHeadBlendJoint
             if mBlock.scaleSetup:
                 for mJnt in mHeadFKJoint,mHeadAimJoint,mHeadBlendJoint:
                     mJnt.segmentScaleCompensate = False
@@ -3086,14 +3089,6 @@ def rig_frame(self):
                 # Neck controls --------------------------------------------------------------
                 if mBlock.neckControls == 1:
                     log.debug("|{0}| >> Neck IK | Single Control...".format(_str_func))
-                    mc.aimConstraint(mHeadIK.mNode,
-                                     ml_ikJoints[0].mNode,
-                                     maintainOffset = True, weight = 1,
-                                     aimVector = self.d_orientation['vectorAim'],
-                                     upVector = self.d_orientation['vectorUp'],
-                                     worldUpVector = self.d_orientation['vectorOut'],
-                                     worldUpObject = mIKBaseControl.mNode,
-                                     worldUpType = 'objectRotation' )
                     mc.pointConstraint(mHeadIK.mNode,
                                        ml_ikJoints[-1].mNode,
                                        maintainOffset = True)
@@ -3103,13 +3098,69 @@ def rig_frame(self):
                     
                     #ml_ikJoints[0].parent = mIKGroup            
                     if mIKBaseControl:
-                        mc.pointConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)                
+                        mc.pointConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
+                        mc.orientConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
                         
-                    ml_rigJoints[0].masterGroup.p_parent = ml_handleParents[0]
+                        mNeckAim = mIKBaseControl.doCreateAt()
+                        mNeckAim.parent = mIKGroup            
+                        mNeckAim.doStore('cgmName','neckAim')                        
+                        mNeckAim.doStore('cgmTypeModifier','back')
+                        mNeckAim.doStore('cgmType','aimer')
+                        mNeckAim.doStore('cgmAlias','neckAim')
+                        
+                        mNeckAim.doName()
+                        
+                        mIKBaseControl.connectChildNode(mNeckAim,'aimDriver','source')#Connect
+                        
+                        mc.aimConstraint(mHeadIK.mNode,
+                                         mNeckAim.mNode,
+                                         maintainOffset = True, weight = 1,
+                                         aimVector = self.d_orientation['vectorAim'],
+                                         upVector = self.d_orientation['vectorUp'],
+                                         worldUpVector = self.d_orientation['vectorOut'],
+                                         worldUpObject = mRoot.mNode,
+                                         worldUpType = 'objectRotation' )                        
+                        
+                        
+                    else:
+                        mc.aimConstraint(mHeadIK.mNode,
+                                         ml_ikJoints[0].mNode,
+                                         maintainOffset = True, weight = 1,
+                                         aimVector = self.d_orientation['vectorAim'],
+                                         upVector = self.d_orientation['vectorUp'],
+                                         worldUpVector = self.d_orientation['vectorOut'],
+                                         worldUpObject = mIKBaseControl.mNode,
+                                         worldUpType = 'objectRotation' )
+                        
+                        
+                        
+                    if mBlock.neckJoints < 2:
+                        ml_rigJoints[0].masterGroup.p_parent = ml_handleParents[0]
+                        
+                    if mSegMidIK:
+                        log.debug("|{0}| >> seg mid IK control found | single neck control".format(_str_func))
+                        mSegMidIK.masterGroup.parent = mRoot
+                        #mc.pointConstraint([mObj.mNode for mObj in ml_handleJoints], mSegMidIK.masterGroup.mNode,maintainOffset = True )
+                        
+                        
+                        ml_midTrackJoints = copy.copy(ml_handleJoints)
+                        ml_midTrackJoints.insert(1,mSegMidIK)
+        
+                        d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
+                                 'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints],
+                                 'baseName' :self.d_module['partName'] + '_midRibbon',
+                                 'driverSetup':None,
+                                 'squashStretch':None,
+                                 'msgDriver':'masterGroup',
+                                 'specialMode':'noStartEnd',
+                                 'paramaterization':'floating',
+                                 'connectBy':'constraint',
+                                 'influences':ml_handleJoints,
+                                 'moduleInstance' : mModule}
+                        reload(IK)
+                        l_midSurfReturn = IK.ribbon(**d_mid)
                     
-                else:
-                    log.debug("|{0}| >> Neck IK | MultiControl...".format(_str_func))
-                    
+                if ml_handleJoints:                    
                     log.debug("|{0}| >> Neck IK | handleJoints...".format(_str_func))
                     for i,mHandle in enumerate(ml_handleJoints):
                         log.debug("|{0}| >> Neck IK | mHandle {1} | {2}".format(_str_func, i, mHandle))                    
@@ -3119,6 +3170,7 @@ def rig_frame(self):
                         s_targetBack = False
                         mMasterGroup = mHandle.masterGroup
                         b_first = False
+                        b_last = False
                         if mHandle == ml_handleJoints[0]:
                             log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
                             if len(ml_handleJoints) <=2:
@@ -3133,50 +3185,75 @@ def rig_frame(self):
                             log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
                             s_rootTarget = ml_handleParents[i].mNode                
                             s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
+                            b_last = True
                         else:
                             log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
                             s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
                             s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
                 
-                        #Decompose matrix for parent...
-                        mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                        mUpDecomp.doStore('cgmName',ml_handleParents[i])                
-                        mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
-                        mUpDecomp.doName()
-                
-                        ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
-                
-                        if s_targetForward:
-                            mAimForward = mHandle.doCreateAt()
-                            mAimForward.parent = mMasterGroup            
-                            mAimForward.doStore('cgmTypeModifier','forward')
-                            mAimForward.doStore('cgmType','aimer')
-                            mAimForward.doName()
-                
-                            _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
-                                                    aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                                    worldUpType = 'vector', worldUpVector = [0,0,0])            
-                            s_targetForward = mAimForward.mNode
-                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
-                
+
+                        
+                        if b_last and mBlock.headAim:
+                            if s_targetBack:
+                                mAimBack = mHandle.doCreateAt()
+                                mAimBack.parent = mMasterGroup            
+                                mAimBack.doStore('cgmTypeModifier','back')
+                                mAimBack.doStore('cgmType','aimer')
+                                mAimBack.doName()
+                    
+                                _const=mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                                        aimVector = [0,0,-1], upVector = [1,0,0],
+                                                        worldUpObject = mTopTwistDriver.mNode,
+                                                        worldUpType = 'objectRotation', worldUpVector = [1,0,0])            
+                                s_targetBack = mAimBack.mNode
+                    
+                            s_targetForward = mTopTwistDriver.mNode
+                    
+
+
                         else:
-                            s_targetForward = ml_handleParents[i].mNode
+
+
+                            #Decompose matrix for parent...
+                            mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
+                            mUpDecomp.doStore('cgmName',ml_handleParents[i])                
+                            mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
+                            mUpDecomp.doName()
+                            
+                            
+                            ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))                            
                 
-                        if s_targetBack:
-                            mAimBack = mHandle.doCreateAt()
-                            mAimBack.parent = mMasterGroup                        
-                            mAimBack.doStore('cgmTypeModifier','back')
-                            mAimBack.doStore('cgmType','aimer')
-                            mAimBack.doName()
-                
-                            _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
-                                                      aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                                      worldUpType = 'vector', worldUpVector = [0,0,0])  
-                            s_targetBack = mAimBack.mNode
-                            ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
-                        else:
-                            s_targetBack = s_rootTarget
-                            #ml_handleParents[i].mNode
+                            if s_targetForward:
+                                mAimForward = mHandle.doCreateAt()
+                                mAimForward.parent = mMasterGroup            
+                                mAimForward.doStore('cgmTypeModifier','forward')
+                                mAimForward.doStore('cgmType','aimer')
+                                mAimForward.doName()
+                    
+                                _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
+                                                        aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                        worldUpType = 'vector', worldUpVector = [0,0,0])            
+                                s_targetForward = mAimForward.mNode
+                                ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
+                    
+                            else:
+                                s_targetForward = ml_handleParents[i].mNode
+                    
+                            if s_targetBack:
+                                mAimBack = mHandle.doCreateAt()
+                                mAimBack.parent = mMasterGroup                        
+                                mAimBack.doStore('cgmTypeModifier','back')
+                                mAimBack.doStore('cgmType','aimer')
+                                mAimBack.doName()
+                    
+                                _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
+                                                          aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
+                                                          worldUpType = 'vector', worldUpVector = [0,0,0])  
+                                s_targetBack = mAimBack.mNode
+                                ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
+                            else:
+                                s_targetBack = s_rootTarget
+                                #ml_handleParents[i].mNode
                 
                         #pprint.pprint([s_targetForward,s_targetBack])
                         mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
@@ -3207,12 +3284,13 @@ def rig_frame(self):
                     #Defaults ---------------------------------------------------------------------
                     for mHandle in ml_handleJoints:
                         if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                            mHandle.followRoot = 1
-                            ATTR.set_default(mHandle.mNode,'followRoot',1.0)
+                            mHandle.followRoot = 0
+                            ATTR.set_default(mHandle.mNode,'followRoot',0)
                         else:
                             mHandle.followRoot = .5
                             ATTR.set_default(mHandle.mNode,'followRoot',.5)
                             
+                if mBlock.neckControls > 1:
                     #Ribbon or Spline =============================================================
                     log.debug("|{0}| >> Neck IK | ikType: {1}".format(_str_func,_ikNeck))
                     
@@ -3664,7 +3742,9 @@ def rig_cleanUp(self):
         
         if mControlIK:
             ml_ikControls.append(mRigNull.controlIK)
-        if mRigNull.getMessage('controlIKBase'):
+            
+        mControlIKBase = mRigNull.getMessageAsMeta('controlIKBase')
+        if mControlIKBase:
             ml_ikControls.append(mRigNull.controlIKBase)
             
         for mHandle in ml_ikControls:
@@ -3675,6 +3755,11 @@ def rig_cleanUp(self):
             
             ml_targetDynParents.append(self.md_dynTargetsParent['world'])
             ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
+            
+            if mHandle == mControlIKBase:
+                mAim = mHandle.getMessageAsMeta('aimDriver')
+                if mAim:
+                    ml_targetDynParents.insert(0,mAim)
         
             mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
             #mDynGroup.dynMode = 2
@@ -3776,7 +3861,6 @@ def rig_cleanUp(self):
                 if not ml_blendJoints[-1].hasAttr('cgmAlias'):
                     ml_blendJoints[-1].addAttr('cgmAlias','blendHead')        
             #mHeadIK.masterGroup.addAttr('cgmAlias','headRoot')
-            
             #Add our parents...
             mDynGroup = mHeadLookAt.dynParentGroup
             log.debug("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
@@ -3858,8 +3942,8 @@ def rig_cleanUp(self):
         
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
-            ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 1.0)
-            ml_handleJoints[0].followRoot = 1.0    
+            ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', .5)
+            ml_handleJoints[0].followRoot = .5
             
             
         #Lock and hide =================================================================================
