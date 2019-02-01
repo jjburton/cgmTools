@@ -6454,8 +6454,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
     log.debug("|{0}| >>  Unified: {1} | Skin: {2} ".format(_str_func,unified,skin)+ '-'*80)
     log.debug("{0}".format(self))
     
-    
-    
+
     mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
     if not mModuleTarget:
         return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
@@ -6507,8 +6506,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
     ml_mesh = []
     subSkin = False
     if skin:
-        if not unified:
-            subSkin=True
+        #if not unified:
+        subSkin=True
             
     for mBlock in ml_ordered:
         if mBlock.blockType in ['master']:
@@ -6533,12 +6532,15 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             ml_moduleJoints.extend(ml_joints)
         
     if unified:
-        ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
-        ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
         
         if skin:
-            #self.msgList_connect('simpleMesh',ml_mesh)       
+            #self.msgList_connect('simpleMesh',ml_mesh)
+            for mObj in ml_mesh:
+                mObj.p_parent = False
+            ml_mesh = cgmMeta.validateObjListArg(mc.polyUniteSkinned([mObj.mNode for mObj in ml_mesh],ch=False))
+            ml_mesh[0].p_parent = mGeoGroup
             
+            """
             log.debug("|{0}| >> skinning..".format(_str_func))
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
@@ -6551,11 +6553,18 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                                        heatmapFalloff = 1.0,
                                        maximumInfluences = 2,
                                        normalizeWeights = 1, dropoffRate=10.0)
-                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        
-        
+                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        """
+        else:
+            ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
+            
+        ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
         
     if skin or proxy:
-        mPuppet.msgList_connect('puppetMesh',ml_mesh)        
+        mPuppet.msgList_connect('puppetMesh',ml_mesh)
+        
+    for mGeo in ml_mesh:
+        CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+        
     return ml_mesh
     
             

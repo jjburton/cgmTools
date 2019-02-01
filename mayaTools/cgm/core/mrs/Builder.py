@@ -68,7 +68,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.01252019'
+__version__ = '1.01312019'
 _sidePadding = 25
 
 def check_cgm():
@@ -531,32 +531,32 @@ class ui(cgmUI.cgmGUI):
         
         #>>Mesh ---------------------------------------------------------------------
         mUI.MelMenuItemDiv(_menu)        
-        _mMesh = mUI.MelMenuItem(_menu, l="Puppet Mesh",
+        _mMesh = mUI.MelMenuItem(_menu, l="Puppet Mesh",tearOff=True,
                                  subMenu = True)
         
         mUI.MelMenuItem(_mMesh, l="Unified",
                         ann = "Create a unified unskinned puppet mesh from the active block's basis.",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                             **{'unified':True,'skin':False}))
         mUI.MelMenuItem(_mMesh, l="Unified [Skinned]",
                         ann = "Create parts skinned puppet mesh from the active block's basis.",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                             **{'unified':True,'skin':True}))        
         mUI.MelMenuItem(_mMesh, l="Parts Mesh",
                         ann = "Create parts unskinned puppet mesh from the active block's basis.",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                             **{'unified':False,'skin':False}))
         mUI.MelMenuItem(_mMesh, l="Parts Mesh [Skinned]",
                         ann = "Create parts skinned puppet mesh from the active block's basis.",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                             **{'unified':False,'skin':True}))
         mUI.MelMenuItem(_mMesh, l="Proxy Mesh [Parented]",
                         ann = "Create proxy puppet mesh parented to skin joints from the active block's basis.",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                             **{'proxy':True,'unified':False,'skin':False}))        
         mUI.MelMenuItem(_mMesh, l="Delete",
                         ann = "Remove skinned or wired puppet mesh",
-                        c = cgmGEN.Callback(self.uiFunc_activeBlockCall,'puppetMesh_delete'))
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete'))
             
     def buildMenu_block(self,*args,**kws):
         self.uiMenu_block.clear()   
@@ -1210,6 +1210,13 @@ class ui(cgmUI.cgmGUI):
                 elif _contextMode == 'root':
                     b_rootMode = True
             
+            try:
+                if args[1] in ['puppetMesh_create','puppetMesh_delete']:
+                    _contextMode = 'below'
+                    log.error("|{0}| >> Puppet Mesh".format(_str_func,_mode))
+                    
+            except:pass
+            
             if _contextMode != 'self':
                 if b_changeState:
                     _b_confirm = True
@@ -1315,7 +1322,7 @@ class ui(cgmUI.cgmGUI):
             if _updateUI:
                 self.uiUpdate_scrollList_blocks()
                 
-            if args[0] not in ['delete']:
+            if args[0] not in ['delete'] and _startMode != 0:
                 #ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
                 self.uiScrollList_blocks.selectByIdx(_indices[0])                
 

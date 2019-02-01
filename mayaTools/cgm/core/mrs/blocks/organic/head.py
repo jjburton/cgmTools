@@ -4051,7 +4051,6 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True):
             mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
             ml_headStuff.append(  mObj )
             mObj.p_parent = False
-        
 
     if self.neckBuild:#...Neck =====================================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))    
@@ -4060,6 +4059,11 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True):
         
     _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
     _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
+    CORERIG.color_mesh(_mesh,'puppetmesh')        
+    
+    for mObj in ml_headStuff:
+        try:mObj.delete()
+        except:pass
     
     return cgmMeta.validateObjListArg(_mesh)
 
@@ -4194,8 +4198,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 if mBlock.neckJoints == 1:
                     mProxy = ml_moduleJoints[0].doCreateAt(setClass=True)
                     mPrerigProxy = mBlock.getMessage('prerigLoftMesh',asMeta=True)[0]
-                    CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxy.mNode)
-                    
+                    mPrerigProxyDup = mPrerigProxy.doDuplicate(po=False)
+                    CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxyDup.mNode,False,True)
                     ATTR.copy_to(ml_moduleJoints[0].mNode,'cgmName',mProxy.mNode,driven = 'target')
                     mProxy.addAttr('cgmType','proxyPuppetGeo')
                     mProxy.doName()
@@ -4240,12 +4244,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mGeo.addAttr('cgmTypeModifier','end')
                     mGeo.addAttr('cgmType','proxyPuppetGeo')
                     mGeo.doName()
-                    
                     ml_segProxy.append( mGeo )
+                    
+            for mGeo in ml_segProxy:
+                CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
                 
-    
-                        
-            
             mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
             return ml_segProxy    
         
