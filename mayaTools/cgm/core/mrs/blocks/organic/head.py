@@ -4033,39 +4033,82 @@ def is_rig(self):
         return False
     return True"""
 
-def create_simpleMesh(self,  deleteHistory = True, cap=True):
-    _str_func = 'create_simpleMesh'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
-    
-    #>> Head ===================================================================================
-    log.debug("|{0}| >> Head...".format(_str_func))
-    
-    mGroup = self.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
-    l_headGeo = mGroup.getChildren(asMeta=False)
-    ml_headStuff = []
-    for i,o in enumerate(l_headGeo):
-        log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
-        if ATTR.get(o,'v'):
-            log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
-            mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
-            ml_headStuff.append(  mObj )
-            mObj.p_parent = False
-
-    if self.neckBuild:#...Neck =====================================================================
-        log.debug("|{0}| >> neckBuild...".format(_str_func))    
-        ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,deleteHistory,cap)
-        ml_headStuff.extend(ml_neckMesh)
+def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent=False):
+    try:
+        _str_func = 'create_simpleMesh'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
         
-    _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
-    _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
-    CORERIG.color_mesh(_mesh,'puppetmesh')        
+        if skin:
+            mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+            if not mModuleTarget:
+                return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+            mModuleTarget = mModuleTarget[0]
+            ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+            if not ml_moduleJoints:
+                return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))        
+        
+        #>> Head ===================================================================================
+        log.debug("|{0}| >> Head...".format(_str_func))
+        
+        mGroup = self.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
+        l_headGeo = mGroup.getChildren(asMeta=False)
+        ml_headStuff = []
+        for i,o in enumerate(l_headGeo):
+            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
+            if ATTR.get(o,'v'):
+                log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
+                mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
+                ml_headStuff.append(  mObj )
+                mObj.p_parent = False
+                if parent:
+                    mObj.p_parent = parent
+                    #if skin:mObj.doCopyPivot(parent)
+                if skin:
+                    mc.skinCluster ([ ml_moduleJoints[-1].mNode],
+                                    mObj.mNode,
+                                    tsb=True,
+                                    bm=1,
+                                    maximumInfluences = 3,
+                                    normalizeWeights = 1, dropoffRate=10)
     
-    for mObj in ml_headStuff:
-        try:mObj.delete()
-        except:pass
-    
-    return cgmMeta.validateObjListArg(_mesh)
+        if self.neckBuild:#...Neck =====================================================================
+            log.debug("|{0}| >> neckBuild...".format(_str_func))    
+            ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,deleteHistory,cap)
+            ml_headStuff.extend(ml_neckMesh)
+            if parent:
+                for mObj in ml_neckMesh:
+                    mObj.p_parent = parent
+                    #if skin:mObj.doCopyPivot(parent)
+            
+            if skin:
+                for mMesh in ml_neckMesh:                    
+                    mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                    mMesh.mNode,
+                                    tsb=True,
+                                    bm=1,
+                                    maximumInfluences = 3,
+                                    normalizeWeights = 1, dropoffRate=10)
+        if skin:
+            _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
+            _mesh = mc.rename(_res[0],'{0}_0_geo'.format(self.p_nameBase))
+            mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))
+            mMesh = cgmMeta.asMeta(_mesh)
+            if parent:
+                mMesh.dagLock(False)
+                mMesh.p_parent = parent
+            
+        else:
+            _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
+            _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
+        CORERIG.color_mesh(_mesh,'puppetmesh')        
+        
+        for mObj in ml_headStuff:
+            try:mObj.delete()
+            except:pass
+        
+        return cgmMeta.validateObjListArg(_mesh)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def asdfasdfasdf(self, forceNew = True, skin = False):
     """

@@ -1010,7 +1010,7 @@ def getControlShader(direction = 'center', controlType = 'main',
                 
                 _rgb = [.5,.5,.5]
                 
-                _d = {'diffuse':.75,
+                _d = {'diffuse':.65,
                       'specularColor':[0.142857,0.142857,0.142857]}
                 for a,v in _d.iteritems():
                     try:

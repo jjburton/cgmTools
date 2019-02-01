@@ -852,7 +852,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
     if targets == None:
         targets = mc.ls(sl=True)
     if not targets:
-        raise ValueError, "|{0}| >> Failed to get attr dict".format(_str_func,blockType)
+        raise ValueError, "|{0}| >> No targets provided".format(_str_func)
     
     mc.select(cl=True)
     log.debug("|{0}| >> targets: {1}".format(_str_func,targets))

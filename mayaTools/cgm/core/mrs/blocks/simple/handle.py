@@ -934,7 +934,67 @@ def rig_cleanUp(self):
     self.UTILS.rigNodes_store(self)
 
 
-def build_proxyMesh(self, forceNew = True,**kws):
+
+
+def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent=False):
+    try:
+        _str_func = 'create_simpleMesh'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
+        
+        if skin:
+            mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+            if not mModuleTarget:
+                return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+            mModuleTarget = mModuleTarget[0]
+            ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+            if not ml_moduleJoints:
+                return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))        
+        
+        ml_proxy=[]
+        #>> Build bbProxy -----------------------------------------------------------------------------
+        if self.getMessage('proxyHelper'):
+            mDup = self.proxyHelper.doDuplicate(po=False)
+            
+            #mNew = self.doCreateAt(setClass='cgmObject')
+            newShapes = []
+            for mShape in mDup.getShapes(asMeta=1):
+                _res = mc.nurbsToPoly(mShape.mNode, mnd=1,ch=0,f=3,pt =1,pc =200,
+                                      chr =0.9,ft =0.01,mel =0.001,d =0.1,ut =1,un =3,
+                                      vt =1,vn =3,uch =0,ucr =0,cht =0.2,es =0,ntr =0,
+                                      mrt =0,uss =1)
+                newShapes.append(_res[0])
+                
+            if len(newShapes)>1:
+                _mesh = mc.polyUnite(newShapes,ch=False)[0]
+            else:
+                _mesh = newShapes[0]
+            
+            mNew = cgmMeta.asMeta(_mesh)
+            
+            #for s in newShapes:
+            mDup.delete()
+                
+            #CORERIG.shapeParent_in_place(mNew.mNode, _mesh, False)
+                
+            #CORERIG.color_mesh(mNew.mNode,'puppetmesh')
+            
+            if parent and skin:
+                mNew.p_parent=parent
+            
+            if skin:
+                mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                mNew.mNode,
+                                tsb=True,
+                                bm=1,
+                                maximumInfluences = 3,
+                                normalizeWeights = 1, dropoffRate=10)            
+            mNew.rename('{0}_puppetmesh_geo'.format(self.p_nameBase))
+            ml_proxy.append(mNew)
+        return ml_proxy
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     """
     Build our proxyMesh
     """
@@ -950,6 +1010,16 @@ def build_proxyMesh(self, forceNew = True,**kws):
     
     
     #>> If proxyMesh there, delete ----------------------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+            
     _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
     if _bfr:
         log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
@@ -958,16 +1028,35 @@ def build_proxyMesh(self, forceNew = True,**kws):
             mc.delete([mObj.mNode for mObj in _bfr])
         else:
             return _bfr
-    
+      
     #>> Build bbProxy -----------------------------------------------------------------------------
     if mBlock.getMessage('proxyHelper'):
         mDup = mBlock.proxyHelper.doDuplicate(po=False)
         mDup.p_parent = mRigNull.msgList_get('rigJoints')[0]
-        
+    
         ml_proxy = [mDup]
+        
     #Connect to setup ------------------------------------------------------------------------------------
     mPuppetSettings = self.d_module['mMasterControl'].controlSettings
     _side = BLOCKUTILS.get_side(self.mBlock)
+    
+    if puppetMeshMode:
+        log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
+        ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
+    
+       
+    
+        for i,mGeo in enumerate(ml_proxy):
+            log.debug("|{0}| >> geo: {1}...".format(_str_func,mObj))
+            CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+            
+            mc.makeIdentity(mGeo.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+            
+            mGeo.p_parent = ml_moduleJoints[0]
+
+        mRigNull.msgList_connect('puppetProxyMesh', ml_proxy)
+        return ml_proxy    
+    
     
     for mProxy in ml_proxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
