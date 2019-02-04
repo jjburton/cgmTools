@@ -90,6 +90,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'loftShape':'circle:square:squareRoundUp:squareRoundDown:diamond:wideUp:wideDown:widePos:wideNeg:digit',
                    'loftSides':'int',     
                    'loftSplit':'int',
+                   'loftList':'enumDatList',
                    'loftDegree':'linear:cubic',
                    'controlType':'main:sub:direct:extra',    
                    'nameList':'stringDatList',
@@ -102,6 +103,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'numJoints':'int',
                    'numRoll':'int',
                    'numShapers':'int',
+                   'numSubShapers':'int',
                    'numSpacePivots':'int',
                    'hasLeverJoint':'bool',
                    'buildLeverBase':'bool',#...fkRoot is our clav like setup
@@ -133,7 +135,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'settingsDirection':'up:down:out:in',
                    'proxyDirect':'bool',
                    'proxyGeoRoot':'none:loft:ball',
-                   'proxyType':'none:castMesh'}
+                   'proxyType':'none:castMesh',
+                   'visMeasure':'bool',}
 
 _l_pivotOrder = ['center','back','front','left','right']
 _d_pivotBankNames = {'default':{'left':'outer','right':'inner'},

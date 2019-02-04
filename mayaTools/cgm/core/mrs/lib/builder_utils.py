@@ -1324,7 +1324,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if offset is None:
             offset = self.mPuppet.atUtils('get_shapeOffset')
             #offset = self.d_module.get('f_shapeOffset',1.0)
-            
+
         if mode in ['default',
                     'segmentHandle',
                     'ikHandle',
@@ -1337,6 +1337,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     'limbSegmentHandle',
                     'limbSegmentHandleBack',
                     'simpleCast',
+                    'singleCurve',
                     'singleCast']:
             #Get our cast mesh        
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
@@ -1349,7 +1350,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             
             l_failSafes = MATH.get_splitValueList(minU,maxU,
                                                   len(ml_targets))
-    
+            if f_factor is None:
+                f_factor = (maxU-minU)/(20)    
             if mode == 'default':
                 log.debug("|{0}| >> Default cast...".format(_str_func))                        
                 _average = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_targets],average=True)/4
@@ -1384,12 +1386,27 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #mTrans = mTar.doCreateAt()
                     #CORERIG.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
+            elif mode == 'singleCurve':
+                ml_shapes = []
+                _add = f_factor/2
+                
+                l_curves = SURF.get_splitValues(str_meshShape,
+                                                [minU,maxU],
+                                                mode='u',
+                                                insertMax=True,
+                                                preInset = f_factor*.25,
+                                                postInset = -f_factor*.25,
+                                                curvesCreate=True,
+                                                curvesConnect=True,
+                                                connectionPoints=connectionPoints,
+                                                offset=offset)
+                ml_shapes = cgmMeta.validateObjListArg(l_curves)
+
                     
             elif mode in ['segmentHandle','ikHandle','frameHandle','castHandle','limbHandle','limbSegmentHandleBack','limbSegmentHandle','simpleCast','singleCast',
                           'ikEnd','ikBase']:
                 
-                if f_factor is None:
-                    f_factor = (maxU-minU)/(20)
+               
                 if targets:
                     ml_fkJoints = ml_targets
                 else:

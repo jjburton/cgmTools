@@ -316,6 +316,9 @@ def get_dat(surface = None, uKnots = True, vKnots = True):
     if mSurfaceInfo:mSurfaceInfo.delete()
     return _res
 
+
+
+
 def attachObjToSurface(*args,**kws):
     """
     objToAttach = None

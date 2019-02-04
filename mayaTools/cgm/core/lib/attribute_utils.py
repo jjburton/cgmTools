@@ -2749,7 +2749,7 @@ def msgList_connect(node = None, attr = None, data = None, connectBack = None, d
     
     return True
 msgList_set = msgList_connect
-def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr=None):
+def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr=None,enum='off:on'):
     """   
     Because multimessage data can't be counted on for important sequential connections we have
     implemented this.
@@ -2784,7 +2784,7 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
             
     datList_purge(node,attr)
     
-    mi_node = r9Meta.MetaClass(node)
+    #mi_node = r9Meta.MetaClass(node)
     """
     if dataAttr is not None:
         _str_dataAttr = dataAttr
@@ -2799,6 +2799,17 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
                     connect("{0}.{1}".format(node,attr), p)
                 except Exception,err:
                     log.warning("|{0}| >> Failed to reconnect {1} | driven: {2} | err: {3}".format(_str_func, str_attr,p,err ))
+        
+    elif mode == 'enum':
+        for i,v in enumerate(_l_dat):
+            str_attr = "{0}_{1}".format(attr,i)
+            if not has_attr(node,str_attr):
+                add(node,str_attr,'enum',value= v, enumOptions=enum,keyable=False)
+            else:
+                strValue = get_enumValueString(node,str_attr)
+                add(node,str_attr,'enum',enumOptions=enum,value = v, keyable=False)
+                if strValue:
+                    set(node,str_attr,strValue)        
         
     else:
         """_str_dataAttr = "{0}_datdict".format(attr)
@@ -2823,7 +2834,7 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
 def msgList_get(node = None, attr = None, dataAttr = None, cull = False, ):
     return datList_get(node,attr,'message', dataAttr, cull)
 
-def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = False ):
+def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = False,enum=False ):
     """   
     Get datList return.
     
@@ -2862,12 +2873,17 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
     
     for k in d_attrs.keys():
         if _mode == 'message':
-            _res = get_message(node,d_attrs[k], dataAttr, k ) or False
+            _res = get_message(node,d_attrs[k], dataAttr, k ) or None
             if _res:_res = _res[0]
-            
         else:
             try:
-                _res = get(node,d_attrs[k])
+                if enum:
+                    if get_type(node,d_attrs[k]) == 'enum':
+                        _res = get_enumValueString(node,d_attrs[k])
+                    else:
+                        _res = get(node,d_attrs[k])
+                else:
+                    _res = get(node,d_attrs[k])
             except Exception,err:
                 log.warning("|{0}| >> {1}.{2} Failed! || err: {3}".format(_str_func,node,d_attrs[k],err))
                 _res = None
@@ -2882,8 +2898,8 @@ def datList_get(node = None, attr = None, mode = None, dataAttr = None, cull = F
         #else:log.debug("index: %s | msg: '%s' "%(i,str_msgBuffer))
 
     if cull:
-        l_return = [o for o in l_return if o]
-    if l_return.count(False) == len(l_return):
+        l_return = [o for o in l_return if o != None]
+    if l_return.count(None) == len(l_return):
         return []
     return l_return
 

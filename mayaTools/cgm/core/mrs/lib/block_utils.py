@@ -200,6 +200,16 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                         if v == None:
                             v = []
                         ATTR.datList_connect(_short, a, v, mode='string')
+                elif t == 'enumDatList':
+                    if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
+                        mc.select(cl=True)
+                        if v == None:
+                            v = []
+                        if a == 'loftList':
+                            enum = BLOCKSHARE._d_attrsTo_make['loftShape']
+                        else:
+                            enum = 'off:on'
+                        ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
                 elif t == 'float3':
                     if not self.hasAttr(a):
                         ATTR.add(_short, a, attrType='float3', keyable = True)
@@ -2120,7 +2130,14 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
     log.debug("|{0}| >>  baseNames: {1}".format(_str_func,_l_baseNames))
-    
+    if not _baseNameAttrs and not _l_baseNames:
+        _l_baseNames = []
+        for i in range(_number):
+            _l_baseNames.append(self.cgmName)
+    else:
+        _l_baseNames = []
+        for i,a in enumerate(_baseNameAttrs):
+            _l_baseNames.append(self.getMayaAttr(a))
     #Name dict...
     _nameDict ={}
     
@@ -2155,7 +2172,7 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
         _specialName = False
         _cnt+=1
         if i == 0:
-            if self.getMayaAttr(_baseNameAttrs[0]):
+            if _l_baseNames[0]:
                 log.debug("|{0}| >>  First and name attr...interupting default name".format(_str_func))                            
                 _nameDictTemp['cgmName'] = _l_baseNames[0]
                 #_nameDict['cgmName'] = _l_baseNames[0]#...interupt the default name...
@@ -2163,7 +2180,7 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
                 _specialName = True
         elif i == len(l_range) -1:
             log.debug("|{0}| >>  last...".format(_str_func))            
-            if self.getMayaAttr(_baseNameAttrs[-1]):
+            if _l_baseNames[-1]:
                 log.debug("|{0}| >>  found: {1}".format(_str_func,_l_baseNames[-1]))                            
                 _nameDictTemp['cgmName'] = _l_baseNames[-1]
                 _specialName = True
@@ -4813,13 +4830,30 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     md_loftHandles ={}
     ml_shapers = []
     ml_handles_chain = []
-    _templateAim = templateAim,
+    _templateAim = templateAim
+    
     try:
+        _short = self.mNode        
         _int_shapers = self.getMayaAttr(aShapers)
-        _int_sub = self.getMayaAttr(aSubShapers)
+        _int_sub = self.getMayaAttr(aSubShapers)        
+        _loftSetup = self.getEnumValueString('loftSetup')
+        _loftShape = self.getEnumValueString('loftShape')
+        
+        if _loftSetup == 'loftList':
+            _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
+            if len(_l_loftShapes) != _int_shapers:
+                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShap".format(_str_func,i,n))
+                while len(_l_loftShapes) < _int_shapers:
+                    _l_loftShapes.append(self.loftShape)
+        else:
+            _l_loftShapes = [_loftShape for i in range(_int_shapers)]
+
+        log.debug("|{0}| >> loftShapes: {1}".format(_str_func,_l_loftShapes)) 
+        
+        
+
         mHandleFactory = self.asHandleFactory()
         mRootUpHelper = self.vectorUpHelper
-        mRootUpHelper = self.vectorUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)            
         pprint.pprint(vars())
@@ -4839,8 +4873,12 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             #Convert to loft curve setup ----------------------------------------------------
             mHandleFactory.setHandle(mHandle.mNode)
             #mHandleFactory = self.asHandleFactory(mHandle.mNode)
-        
-            mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_loftShape, _size_loft, shapeDirection = 'z+',rebuildHandle = False)
+            if n == 'start':
+                _shape = 'loft' + _l_loftShapes[0][0].capitalize() + ''.join(_l_loftShapes[0][1:])
+            else:
+                _shape = 'loft' + _l_loftShapes[-1][0].capitalize() + ''.join(_l_loftShapes[-1][1:])
+                
+            mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_shape, _size_loft, shapeDirection = 'z+',rebuildHandle = False)
             mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
         
             mHandleFactory.color(mHandle.mNode)            
@@ -4880,6 +4918,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         mBaseOrientCurve.p_parent =  mTemplateNull
         mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
         mc.pointConstraint(md_handles['start'].mNode, mOrientHelperAimGroup.mNode )
+        
         _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
                                   aimVector = [0,0,1], upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
@@ -4944,7 +4983,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 #mHandle.resetAttrs()
     
                 mHandleFactory.setHandle(mHandle.mNode)
-                mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_loftShape,
+                mLoftCurve = mHandleFactory.rebuildAsLoftTarget('loft' + _l_loftShapes[i+1][0].capitalize() + ''.join(_l_loftShapes[i+1][1:]),#_loftShape,
                                                                 _size_loft,
                                                                 shapeDirection = 'z+',rebuildHandle = False)
                 mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
@@ -5162,7 +5201,10 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 ATTR.set(const,'interpType',2)#.shortest...
     
                 #...also aim our main handles...
+                
                 if mHandle not in [md_handles['end'],md_handles['start']]:
+                    log.debug("|{0}| >> {2} | Aiming Handle: {1}".format(_str_func,mHandle,_templateAim))
+                    
                     mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
                     if not mHandleAimGroup:
                         mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
@@ -6179,9 +6221,13 @@ def blockProfile_load(self, arg):
             _typeDat = type(v)
             if issubclass(_typeDat,list):
                 if self.datList_exists(a):
-                    log.debug("|{0}| datList...".format(_str_func))                                     
-                    mc.select(cl=True)
-                    ATTR.datList_connect(_short, a, v, mode='string')
+                    log.debug("|{0}| datList...".format(_str_func))
+                    if a == 'loftList':
+                        ATTR.datList_connect(_short, a, v, 
+                                             mode='enum',enum= BLOCKSHARE._d_attrsTo_make['loftShape'])
+                    else:
+                        mc.select(cl=True)
+                        ATTR.datList_connect(_short, a, v, mode='string')
                     _done = True
                 else:
                     log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))
@@ -6541,8 +6587,11 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                     mObj.dagLock(False)
                     mObj.p_parent = False
                 #Have to dup and copy weights because the geo group isn't always world center
-                mMesh = cgmMeta.validateObjListArg(mc.polyUniteSkinned([mObj.mNode for mObj in ml_mesh],ch=0))
-                mMesh = mMesh[0]
+                if len(ml_mesh)>1:
+                    mMesh = cgmMeta.validateObjListArg(mc.polyUniteSkinned([mObj.mNode for mObj in ml_mesh],ch=0))
+                    mMesh = mMesh[0]
+                else:
+                    mMesh = ml_mesh[0]
                 
                 mMesh.dagLock(False)
                 
@@ -6575,7 +6624,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                                            normalizeWeights = 1, dropoffRate=10.0)
                     skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        """
             else:
-                ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
+                if len(ml_mesh)>1:
+                    ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
                 
             ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
             
@@ -6911,7 +6961,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             _pos = _dtmp.get('pos',False)
             
             #sphere
-            _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+            if k == 'aim':
+                _shape = 'eye'
+            else:
+                _shape = 'sphere'
+            _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
                                           direction = 'z+', size = _useSize)
             #CORERIG.shapeParent_in_place(_crv,_circle,False)
         

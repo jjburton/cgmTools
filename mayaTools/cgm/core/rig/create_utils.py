@@ -65,5 +65,28 @@ def distanceMeasure(start = None, end = None, baseName = 'measureThis',asMeta=Tr
     except Exception,err:cgmGEN.cgmException(Exception,err)
 
 
+def get_meshFromNurbs(nurbSurface = None):
+    mMesh = cgmMeta.validateObjArg(nurbSurface,mayaType='nurbsSurface')
+    mDup = mMesh.doDuplicate(po=False)
+    
+    #mNew = self.doCreateAt(setClass='cgmObject')
+    newShapes = []
+    for mShape in mDup.getShapes(asMeta=1):
+        _res = mc.nurbsToPoly(mShape.mNode, mnd=1,ch=0,f=3,pt =1,pc =200,
+                              chr =0.9,ft =0.01,mel =0.001,d =0.1,ut =1,un =3,
+                              vt =1,vn =3,uch =0,ucr =0,cht =0.2,es =0,ntr =0,
+                              mrt =0,uss =1)
+        newShapes.append(_res[0])
 
+    if len(newShapes)>1:
+        _mesh = mc.polyUnite(newShapes,ch=False)[0]
+    else:
+        _mesh = newShapes[0]
+
+    mNew = cgmMeta.asMeta(_mesh)
+
+    #for s in newShapes:
+    mDup.delete()
+    
+    return mNew
 
