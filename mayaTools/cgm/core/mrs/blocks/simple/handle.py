@@ -79,11 +79,14 @@ d_block_profiles = {
         'proxyShape':'cube',
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',
+        'baseSize':[10,10,10],
         'cgmName':'cube'},
     'cone':{
     'basicShape':'pyramid',
     'proxyShape':'cone',
-    'shapeDirection':'y+',    
+    'shapeDirection':'y+',
+    'baseSize':[10,10,20],
+    
     'rotPivotPlace':'jointHelper',            
     'cgmName':'cone'},    
     'sphere':{
@@ -92,6 +95,7 @@ d_block_profiles = {
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',        
         'cgmName':'sphere',
+        'baseSize':[10,10,10],        
         },
     'shapers4':{
             'proxyShape':'shapers',
@@ -102,6 +106,7 @@ d_block_profiles = {
             'rotPivotPlace':'jointHelper',
             'shapeDirection':'y+',            
             'loftSetup':'default',
+            'baseSize':[10,10,20],
             },
     'shaperList':{'proxyShape':'shapers',
                 'cgmName':'shaperList',
@@ -110,7 +115,9 @@ d_block_profiles = {
                 'shapersAim':'toEnd',
                 'loftSetup':'loftList',
                 'rotPivotPlace':'jointHelper',
-                'shapeDirection':'y+',                
+                'shapeDirection':'y+',
+                'baseSize':[10,10,20],
+                
                 'loftList':['circle','square','wideDown','wideUp']
                 },}
 
@@ -227,7 +234,7 @@ def define(self):
         _l_order = ['aim','end','up']
         
         reload(self.UTILS)
-        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size)
+        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,upRotControl=True)
         
         _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
                                    'x-':{'end':[-1,0,0],'up':[0,1,0]},
@@ -238,15 +245,12 @@ def define(self):
         _shapeDirection = self.getEnumValueString('shapeDirection')
         
         _dBase = self.baseDat
+        
         _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
         _dBase['lever'] = [-1 * v for v in _dBase['end']]
         self.baseDat = _dBase
         
-        
-        
         #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
-        
-        
         
         self.UTILS.define_set_baseSize(self)
         md_vector = _resDefine['md_vector']
@@ -258,7 +262,7 @@ def define(self):
         mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
     
         md_handles['aim'].p_parent = mAimGroup
-        md_vector['aim'].p_parent = mAimGroup        
+        md_vector['aim'].p_parent = mAimGroup
     
         #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
         #mLeverGroup.p_parent = mDefineNull
@@ -275,8 +279,7 @@ def define(self):
             'md_vector':md_vector,
             'md_jointLabels':md_jointLabels}
             """    
-        
-    
+
         #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
         #self.doConnectOut('sy',['sx','sz'])
         #ATTR.set_alias(_short,'sy','blockScale')
@@ -780,7 +783,8 @@ def skeleton_build(self, forceNew = True):
         raise ValueError,"No rigNull connected"
     
     
-    #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
+    
+    #>> If skeletons there, delete ------------------------------------------------------------------------ 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
     if _bfr:
         log.debug("|{0}| >> Joints detected...".format(_str_func))            
@@ -817,6 +821,8 @@ def skeleton_build(self, forceNew = True):
     mRigNull.msgList_connect('moduleJoints', [mJoint])
     
     self.atBlockUtils('skeleton_connectToParent')
+    
+    mJoint.rotateOrder = 5
     
     return mJoint.mNode        
 
@@ -1433,10 +1439,20 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         #>> Build bbProxy -----------------------------------------------------------------------------
         if self.getMessage('proxyHelper'):
             #mDup = self.proxyHelper.doDuplicate(po=False)
-            mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper)
-
-            #CORERIG.shapeParent_in_place(mNew.mNode, _mesh, False)
+            str_setup = self.getEnumValueString('proxyShape')
+            if str_setup == 'shapers':
+                d_kws = {}
+                mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
                 
+            else:
+                d_kws = {'mode':'general',
+                         'uNumber':self.loftSplit,
+                         'vNumber':self.loftSides,
+                         }
+                mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
+                                            #mode = 'general',
+                                               # uNumber = self.loftSplit, vNumber=self.loftSides)
+            #CORERIG.shapeParent_in_place(mNew.mNode, _mesh, False)
             #CORERIG.color_mesh(mNew.mNode,'puppetmesh')
             
             if parent and skin:
@@ -1492,7 +1508,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     #>> Build bbProxy -----------------------------------------------------------------------------
     if mBlock.getMessage('proxyHelper'):
         reload(RIGCREATE)
-        mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper)
+        mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper,
+                                            mode = 'general',
+                                            uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
         #mMesh.p_parent = False
         #mDup = mBlock.proxyHelper.doDuplicate(po=False)
         mMesh.p_parent = mRigNull.msgList_get('rigJoints')[0]

@@ -1764,6 +1764,7 @@ def skeleton_build(self, forceNew = True):
         mRigNull.msgList_connect('moduleJoints', ml_joints)
         self.msgList_connect('moduleJoints', ml_joints)
         self.atBlockUtils('skeleton_connectToParent')
+        for mJnt in ml_joints:mJnt.rotateOrder = 5
         
         return ml_joints
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

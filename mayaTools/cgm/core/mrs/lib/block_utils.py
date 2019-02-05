@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -5933,6 +5933,28 @@ def get_shapeOffset(self):
         return 1
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
+def puppet_get(self,mModuleTarget = None):
+    try:
+        _str_func = ' puppet_get'
+        if mModuleTarget is None:
+            mModuleTarget = self.getMessageAsMeta('moduleTarget') or False
+        
+        if self.blockType == 'master':
+            return mModuleTarget
+        
+        mPuppet = mModuleTarget.getMessageAsMeta('modulePuppet')
+        if not mPuppet:
+            mRoot = self.p_blockRoot
+            if mRoot:
+                log.debug("|{0}| >>  Checking root for puppet: {1} ".format(_str_func,mRoot))
+                mPuppetTest = mRoot.getMessageAsMeta('moduleTarget')
+                log.debug("|{0}| >>  root target: {1} ".format(_str_func,mPuppetTest))
+                if mPuppetTest and mPuppetTest.mClass == 'cgmRigPuppet':
+                    mPuppet = mPuppetTest
+                else:
+                    mPuppet = False
+        return mPuppet
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
     
 def puppet_verify(self):
     """
@@ -6509,10 +6531,26 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
         if not ml_moduleJoints:
             return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
-        mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+        
+        
+        mPuppet = puppet_get(self,mModuleTarget)
         if not mPuppet:
-            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
-        mPuppet = mPuppet[0]
+            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))        
+        """
+        mPuppet = mModuleTarget.getMessageAsMeta('modulePuppet')
+        if not mPuppet:
+            mRoot = self.p_blockRoot
+            if mRoot:
+                log.debug("|{0}| >>  Checking root for puppet: {1} ".format(_str_func,mRoot))
+                mPuppetTest = mRoot.getMessageAsMeta('moduleTarget')
+                log.debug("|{0}| >>  root target: {1} ".format(_str_func,mPuppetTest))
+                if mPuppetTest and mPuppetTest.mClass == 'cgmRigPuppet':
+                    mPuppet = mPuppetTest
+                else:
+                    mPuppet = False
+            if not mPuppet:
+                return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))"""
+            
         mGeoGroup = mPuppet.masterNull.geoGroup
         log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
         log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
@@ -6662,10 +6700,9 @@ def create_simpleMesh(self, forceNew = True, skin = False):
     mModuleTarget = self.getMessageAsMeta('moduleTarget')
     if not mModuleTarget:
         return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))        
-    mPuppet = mModuleTarget.getMessage('modulePuppet',asMeta=True)
+    mPuppet = puppet_get(self,mModuleTarget)
     if not mPuppet:
         return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
-    mPuppet = mPuppet[0]
     mGeoGroup = mPuppet.masterNull.geoGroup
     log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
     log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
@@ -6678,7 +6715,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
         ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mGeoGroup)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self,divisions=5)
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=1,divisions=2)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -6726,7 +6763,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
     return ml_mesh
             
 
-def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
+def create_simpleLoftMesh(self,  deleteHistory = True, form = 2, cap=True,degree=1,divisions = 3):
     _str_func = 'create_simpleLoftMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -6770,8 +6807,10 @@ def create_simpleLoftMesh(self,  deleteHistory = True, cap=True,divisions = 3):
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
                                        divisions=divisions,
                                        cap = cap,
-                                       form=3,
-                                       degree=1)
+                                       form=form,
+                                       degree=degree)
+    if form in [1,2]:
+        mc.polyNormal(_mesh,nm=0)    
 
     _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
     
@@ -6923,7 +6962,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, upRotControl = False):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -6961,61 +7000,109 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             _pos = _dtmp.get('pos',False)
             
             #sphere
-            if k == 'aim':
-                _shape = 'eye'
-            else:
-                _shape = 'sphere'
-            _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
-                                          direction = 'z+', size = _useSize)
-            #CORERIG.shapeParent_in_place(_crv,_circle,False)
-        
-            #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
-            #                              direction = 'z+', size = _sizeSub)
-            mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
-            mHandle.p_parent = mParentNull
-            mHandle.doSnapTo(self.mNode)
-            CORERIG.override_color(_crv, _dtmp['color'])
-        
-            if k not in ['end']:
-                mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+            if k == 'up' and upRotControl:
                 
-            if _tagOnly:
-                mHandle.doStore('cgmName',k)
-            else:
-                mHandle.doStore('cgmName',self)
-                mHandle.doStore('cgmTypeModifier',str_name)
-            mHandle.doStore('cgmType','defineHandle')
-            mHandle.doName()
-            mHandle.doStore('handleTag',k,attrType='string')
-        
-            mHandle.resetAttrs()
-        
-            #Move for initial aim ----------------------------------------------------------------------
-            ATTR.set(mHandle.mNode,'tz', _size * 5)
-            """
-                    mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
-                                     aimVector = [0,0,-1], upVector = [0,1,0], 
-                                     worldUpObject = self.mNode,
-                                     worldUpType = 'object', 
-                                     worldUpVector = [0,1,0])"""
+                _crv = CORERIG.create_at(create='curveLinear', 
+                                         l_pos=[[0,0,0],[0,_size*2,0]], 
+                                         baseName='up')
             
-            if mScaleSpace and _dtmp['scaleSpace']:
-                mLoc = mHandle.doLoc()
-                mLoc.p_parent = mScaleSpace
+                mHandle = cgmMeta.validateObjArg(_crv)
+                mHandle.p_parent = mParent
+                mHandle.resetAttrs()
                 
-                mLoc.translate = [v*.5 for v in _dtmp['scaleSpace']]
-                mHandle.p_position = mLoc.p_position
-                mLoc.delete()
-            elif _pos:
-                mHandle.p_position = _pos
-            else:
-                mHandle.resetAttrs('translate')
+                ATTR.set_standardFlags(mHandle.mNode,['tx','ty','tz','sx','sy','sz'])
+            
+                mHandle.doStore('mClass','cgmObject')            
                 
-            for a,v in _dtmp.get('defaults',{}).iteritems():
-                if issubclass(type(v),list):
-                    ATTR.set(mHandle.mNode, a, v)
+                if k not in ['end']:
+                    mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+                    
+                if _tagOnly:
+                    mHandle.doStore('cgmName',k)
                 else:
-                    ATTR.set(mHandle.mNode, a, _offset * v)
+                    mHandle.doStore('cgmName',self)
+                    mHandle.doStore('cgmTypeModifier',str_name)
+                mHandle.doStore('cgmType','defineHandle')
+                mHandle.doName()
+                mHandle.doStore('handleTag',k,attrType='string')                
+            
+                #mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
+                                 #aimVector = [0,0,1], upVector = [0,0,0], 
+                                 #worldUpType = 'none')
+                                 
+                self.connectChildNode(mHandle.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                md_vector[k] = mHandle
+                
+                _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                direction = 'z+', size = _sizeSub)
+            
+                mArrow = cgmMeta.cgmObject(_arrow)
+                mArrow.p_parent = mParent
+                mArrow.resetAttrs()
+                mArrow.ty = _size*2
+            
+                SNAP.aim_atPoint(mArrow.mNode,mHandle.p_position, 'z-')
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)
+                
+                CORERIG.override_color(mHandle.mNode, _dtmp['color'])
+                
+            else:
+                if k == 'aim':
+                    _shape = 'eye'
+                else:
+                    _shape = 'sphere'
+                _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
+                                              direction = 'z+', size = _useSize)
+                #CORERIG.shapeParent_in_place(_crv,_circle,False)
+            
+                #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+                #                              direction = 'z+', size = _sizeSub)
+                mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+                mHandle.p_parent = mParentNull
+                mHandle.doSnapTo(self.mNode)
+                CORERIG.override_color(_crv, _dtmp['color'])
+            
+                if k not in ['end']:
+                    mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+                    
+                if _tagOnly:
+                    mHandle.doStore('cgmName',k)
+                else:
+                    mHandle.doStore('cgmName',self)
+                    mHandle.doStore('cgmTypeModifier',str_name)
+                mHandle.doStore('cgmType','defineHandle')
+                mHandle.doName()
+                mHandle.doStore('handleTag',k,attrType='string')
+            
+                mHandle.resetAttrs()
+            
+                #Move for initial aim ----------------------------------------------------------------------
+                ATTR.set(mHandle.mNode,'tz', _size * 5)
+                """
+                        mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
+                                         aimVector = [0,0,-1], upVector = [0,1,0], 
+                                         worldUpObject = self.mNode,
+                                         worldUpType = 'object', 
+                                         worldUpVector = [0,1,0])"""
+            
+                if mScaleSpace and _dtmp['scaleSpace']:
+                    mLoc = mHandle.doLoc()
+                    mLoc.p_parent = mScaleSpace
+                    
+                    mLoc.translate = [v*.5 for v in _dtmp['scaleSpace']]
+                    mHandle.p_position = mLoc.p_position
+                    mLoc.delete()
+                elif _pos:
+                    mHandle.p_position = _pos
+                else:
+                    mHandle.resetAttrs('translate')
+                    
+                for a,v in _dtmp.get('defaults',{}).iteritems():
+                    if issubclass(type(v),list):
+                        ATTR.set(mHandle.mNode, a, v)
+                    else:
+                        ATTR.set(mHandle.mNode, a, _offset * v)
         
             md_handles[k] = mHandle
             ml_handles.append(mHandle)        
@@ -7048,63 +7135,69 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
  
             #Helper --------------------------------------------------------------------------------
             if _dtmp.get('vectorLine') !=False:
-                _crv = CORERIG.create_at(create='curveLinear', 
-                                         l_pos=[[0,0,0],[0,0,_size / 2.0]], 
-                                         baseName='end')
-            
-                CORERIG.override_color(_crv, _dtmp['color'])
-                mAim = cgmMeta.validateObjArg(_crv)
-                mAim.p_parent = mParent
-                mAim.resetAttrs()
-            
-                mAim.doStore('mClass','cgmObject')            
-                mAim.doStore('cgmName',self)
-                mAim.doStore('cgmTypeModifier',str_name)
-                mAim.doStore('cgmType','aimLine')
-                mAim.doName()            
-            
-                mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
-                                 aimVector = [0,0,1], upVector = [0,0,0], 
-                                 worldUpType = 'none')
-            
-                for mShape in mAim.getShapes(asMeta=1):
-                    mShape.overrideEnabled = 1
-                    mShape.overrideDisplayType = 2
-            
-                mAim.dagLock(True)
+                if upRotControl and k == 'up':
+                    pass
+                else:
+                    _crv = CORERIG.create_at(create='curveLinear', 
+                                             l_pos=[[0,0,0],[0,0,_size / 2.0]], 
+                                             baseName='end')
+                
+                    CORERIG.override_color(_crv, _dtmp['color'])
+                    mAim = cgmMeta.validateObjArg(_crv)
+                    mAim.p_parent = mParent
+                    mAim.resetAttrs()
+                
+                    mAim.doStore('mClass','cgmObject')            
+                    mAim.doStore('cgmName',self)
+                    mAim.doStore('cgmTypeModifier',str_name)
+                    mAim.doStore('cgmType','aimLine')
+                    mAim.doName()            
+                
+                    mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,0,0], 
+                                     worldUpType = 'none')
+                
+                    for mShape in mAim.getShapes(asMeta=1):
+                        mShape.overrideEnabled = 1
+                        mShape.overrideDisplayType = 2
+                
+                    mAim.dagLock(True)
         
                 
             if _dtmp.get('arrow') !=False:#Arrow ---------------------------------------------
-                _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
-                                                direction = 'z+', size = _sizeSub)
-                CORERIG.override_color(_arrow, _dtmp['color'])
-            
-                mArrow = cgmMeta.cgmObject(_arrow)
-                mArrow.p_parent = mParent
-                mArrow.resetAttrs()
-                mArrow.tz = _sizeSub * 3.0
+                if upRotControl and k == 'up':
+                    pass
+                else:                
+                    _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                    direction = 'z+', size = _sizeSub)
+                    CORERIG.override_color(_arrow, _dtmp['color'])
                 
-                CORERIG.copy_pivot(mArrow.mNode,mParent.mNode)
-            
-                mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
-                                 aimVector = [0,0,1], upVector = [0,0,0], 
-                                 worldUpType = 'none')
-            
-                mArrow.doStore('mClass','cgmObject')            
-                mArrow.doStore('cgmName',self)
-                mArrow.doStore('cgmTypeModifier',str_name)
-                mArrow.doStore('cgmType','vectorHelper')
-                mArrow.doName()
-            
-                mArrow.dagLock()
-            
-                md_vector[k] = mArrow
-                self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                    mArrow = cgmMeta.cgmObject(_arrow)
+                    mArrow.p_parent = mParent
+                    mArrow.resetAttrs()
+                    mArrow.tz = _sizeSub * 3.0
+                    
+                    CORERIG.copy_pivot(mArrow.mNode,mParent.mNode)
                 
-                for mShape in mArrow.getShapes(True):
-                    mShape.overrideEnabled = 1
-                    mShape.overrideDisplayType = 2
-        
+                    mc.aimConstraint(mHandle.mNode, mArrow.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,0,0], 
+                                     worldUpType = 'none')
+                
+                    mArrow.doStore('mClass','cgmObject')            
+                    mArrow.doStore('cgmName',self)
+                    mArrow.doStore('cgmTypeModifier',str_name)
+                    mArrow.doStore('cgmType','vectorHelper')
+                    mArrow.doName()
+                
+                    mArrow.dagLock()
+                
+                    md_vector[k] = mArrow
+                    self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                    
+                    for mShape in mArrow.getShapes(True):
+                        mShape.overrideEnabled = 1
+                        mShape.overrideDisplayType = 2
+            
             if _dtmp.get('jointLabel') !=False:#Joint Label-----------------------------------------------------------------
                 if _tagOnly:
                     labelName = k
@@ -7179,16 +7272,22 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             ATTR.set(mEndAimLoc.mNode,'tz',-2)
             mEndAimLoc.dagLock()
             
-            
+            #SNAP.aim_atPoint(md_handles['end'].mNode,self.p_position,'z-')
             #aim
+            
             mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
                              aimVector = [0,0,-1], upVector = [0,1,0], 
                              worldUpObject = md_vector.get('up').mNode,
                              worldUpType = 'objectRotation', 
-                             worldUpVector = [0,0,1])    
+                             worldUpVector = [0,1,0])
+            #FINISH THE AIM BACK< JOOISD:fla;sldkjf;aslkdjf;lksdjf;laksjdf;lksjadf;lkjasdf;lk
+            
 
 
         if md_handles.get('end'):
+            _rotUpType = 'object'
+            if upRotControl:
+                _rotUpType = 'objectRotation'
             #BaseSizeHandle -------------------------------------------------
             _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
                                           direction = 'z+', size = 1.0)
@@ -7197,15 +7296,15 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             mBaseSizeHandle.p_parent = mParentNull
             mBaseSizeHandle.resetAttrs()
             mBaseSizeHandle.v = False
-        
+            
             mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
                              aimVector = [0,0,1], upVector = [0,1,0], 
                              worldUpObject = md_handles['up'].mNode,
-                             worldUpType = 'object', 
+                             worldUpType = _rotUpType, 
                              worldUpVector = [0,1,0])
             #md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
             md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mBaseSizeHandle.mNode))
-            md_handles['end'].doConnectOut('scaleZ', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
+            md_handles['end'].doConnectOut('scaleY', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
         
             mBaseSizeHandle.doStore('cgmName',self)
             mBaseSizeHandle.doStore('cgmTypeModifier',k)
@@ -7225,12 +7324,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             mc.pointConstraint(md_handles['end'].mNode, mEndSizeHandle.mNode,maintainOffset=False)
             md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mEndSizeHandle.mNode))
-            md_handles['end'].doConnectOut('scaleZ', "{0}.scaleY".format(mEndSizeHandle.mNode))
+            md_handles['end'].doConnectOut('scaleY', "{0}.scaleY".format(mEndSizeHandle.mNode))
         
             mc.aimConstraint(mEndAimLoc.mNode, mEndSizeHandle.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], 
                              worldUpObject = md_handles['up'].mNode,
-                             worldUpType = 'object', 
+                             worldUpType = _rotUpType, 
                              worldUpVector = [0,1,0])
         
             mEndSizeHandle.doStore('cgmName',self)
@@ -7295,6 +7394,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             for tag,mHandle in md_handles.iteritems():
                 if tag in ['lever']:
+                    continue
+                if tag == 'up' and upRotControl:
                     continue
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
@@ -7369,9 +7470,15 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
         pprint.pprint(d_baseDat)
         for k,vec in d_baseDat.iteritems():
             mHandle = self.getMessageAsMeta('define{0}Helper'.format(k.capitalize()))
+            mUp = self.getMessageAsMeta('vector{0}Helper'.format(k.capitalize()))
+            
             if mHandle:
                 log.debug("|{0}| >>  mHandle: {1}".format(_str_func,mHandle))
-                mHandle.p_position = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec), baseSize[1])
+                _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[1])
+                if mHandle == mUp:
+                    SNAP.aim_atPoint(mHandle.mNode,_pos,'y+')
+                else:
+                    mHandle.p_position = _pos
             else:
                 log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
     

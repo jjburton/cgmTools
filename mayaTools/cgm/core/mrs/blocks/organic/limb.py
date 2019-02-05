@@ -2159,6 +2159,7 @@ def skeleton_build(self, forceNew = True):
                      ml_templateHandles[-1].getAxisVector('y+'))"""
             JOINT.freezeOrientation(mEnd.mNode)
             
+        for mJnt in ml_joints:mJnt.rotateOrder = 5
         self.blockState = 'skeleton'#...buffer
         
         return ml_joints

@@ -886,6 +886,7 @@ def skeleton_build(self, forceNew = True):
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
         mJnt.radius = _radius
+    for mJnt in ml_joints:mJnt.rotateOrder = 5
         
     return ml_joints    
 

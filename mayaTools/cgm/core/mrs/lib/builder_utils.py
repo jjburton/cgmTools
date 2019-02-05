@@ -831,7 +831,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 3, divisions = 2,
+def create_loftMesh(targets = None, name = 'test', degree = 2, divisions = 2,
                     cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True ):
     """
     Create lofted mesh from target curves.

@@ -1212,9 +1212,8 @@ class ui(cgmUI.cgmGUI):
             
             try:
                 if args[1] in ['puppetMesh_create','puppetMesh_delete']:
-                    _contextMode = 'below'
+                    _contextMode = 'self'
                     log.error("|{0}| >> Puppet Mesh".format(_str_func,_mode))
-                    
             except:pass
             
             if _contextMode != 'self':
