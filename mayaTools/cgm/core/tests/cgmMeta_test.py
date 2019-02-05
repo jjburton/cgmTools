@@ -64,7 +64,7 @@ class MorpheusBase_Test():
 
     def getMesh(self,**kws):
         mFile = 'J:/Dropbox/MRv2Dev/Assets/Morphy/maya/scenes/Morphy_JoshTesting.ma'
-        mc.file(mFile, i = True, pr = True, force = True,prompt = False) # prompt means no error message
+        mc.file(mFile, i = True, pr = True, force = True) 
 
     def sizeTest(self,**kws):
         spine = cgmPM.cgmLimb(self.Morpheus.getMessage('moduleChildren')[0],handles = 4)
@@ -1513,7 +1513,7 @@ def ut_cgmLimb(*args, **kws):
 
             try:
                 mFile = DIR_SEPARATOR.join([_path_folder,_str_fileName])
-                mc.file(mFile, i = True, pr = True, force = True,prompt = False) 		
+                mc.file(mFile, i = True, pr = True, force = True)#,prompt = False
 
             except Exception,error:
                 self.log_error("Found: %s"%l_mayaTestFiles)

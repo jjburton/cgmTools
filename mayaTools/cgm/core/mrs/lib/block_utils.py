@@ -4839,6 +4839,10 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         _loftSetup = self.getEnumValueString('loftSetup')
         _loftShape = self.getEnumValueString('loftShape')
         
+        _baseName = self.cgmName
+        if not _baseName:
+            _baseName = self.blockType
+        
         if _loftSetup == 'loftList':
             _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
             if len(_l_loftShapes) != _int_shapers:
@@ -4944,7 +4948,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     
             _midTrackCurve = _midTrackResult[0]
             mMidTrackCurve = cgmMeta.validateObjArg(_midTrackCurve,'cgmObject')
-            mMidTrackCurve.rename(self.cgmName + 'midHandlesTrack_crv')
+            mMidTrackCurve.rename(_baseName + 'midHandlesTrack_crv')
             mMidTrackCurve.parent = mNoTransformNull
     
             for s in _midTrackResult[1]:
@@ -5041,7 +5045,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                                  baseName='mainTrack')
     
             mMainTrackCurve = cgmMeta.validateObjArg(_mainTrackResult[0],'cgmObject')
-            mMainTrackCurve.rename(self.cgmName + 'mainHandlesTrack_crv')
+            mMainTrackCurve.rename(_baseName+ 'mainHandlesTrack_crv')
             mMainTrackCurve.parent = mNoTransformNull
     
             for s in _mainTrackResult[1]:

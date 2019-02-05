@@ -116,6 +116,7 @@ d_build_profiles = {
 
 d_block_profiles = {
     'box':{'neckShapers':2,
+           'cgmName':'head',           
            'neckBuild':False,
            'baseAim':[0,-1,0],
            'baseUp':[0,0,-1],
@@ -123,6 +124,7 @@ d_block_profiles = {
            'loftShape':'square',
            },
     'simple':{'neckShapers':3,
+              'cgmName':'head',              
               'neckBuild':False,
               'baseSize':[15.2, 23.2, 19.7],
               'loftShape':'wideUp',
@@ -131,6 +133,7 @@ d_block_profiles = {
               'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
                },
     'neck short':{'neckShapers':3,
+                  'cgmName':'head',                  
                   'neckControls':1,
                   'neckBuild':True,
                   'baseSize':[15.2, 23.2, 19.7],
@@ -141,6 +144,7 @@ d_block_profiles = {
                    },
     'neck long':{'neckShapers':3,
                  'neckControls':3,
+                 'cgmName':'head',
                  'neckJoints':5,
                 'neckBuild':True,
                 'baseSize':[15.2, 23.2, 19.7],
@@ -591,7 +595,9 @@ def template(self):
             ATTR.connect(self.mNode + '.headRotate', mGroup.mNode + '.rotate')
             
         elif _proxyType == 1:
+            
             log.debug("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func))     
+            """
             #self.scaleX = __dimensions[0] / __dimensions[1]
             #self.scaleZ = __dimensions[2] / __dimensions[1]        
             
@@ -629,6 +635,7 @@ def template(self):
             mGeoProxies.overrideDisplayType = 2         
             #self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
             #mc.parentConstraint([mHeadHandle.mNode],mGeoProxies.mNode,maintainOffset = True)
+            """
             
         else:
             raise NotImplementedError,"|{0}| >> Unknown proxyType: [{1}:{2}]".format(_str_func,
