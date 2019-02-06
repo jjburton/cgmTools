@@ -1340,6 +1340,7 @@ class ui(cgmUI.cgmGUI):
             _updateUI = kws.pop('updateUI',True)
             _startMode = self.var_contextStartMode.value   
             _contextMode = self._l_contextModes[self.var_contextMode.value]
+            ml_blocks = []
             
             if _startMode == 0 :#Active
                 mBlock = self._blockCurrent
@@ -1347,6 +1348,8 @@ class ui(cgmUI.cgmGUI):
                 if not mBlock:
                     log.error("|{0}| >> No Active block".format(_str_func))
                     return False
+                ml_blocks = [mBlock]
+                
             else:
                 _indices = self.uiScrollList_blocks.getSelectedIdxs()
                 if not _indices:
@@ -1354,16 +1357,18 @@ class ui(cgmUI.cgmGUI):
                     return False    
                 if not self._ml_blocks:
                     log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
-                    return False    
+                    return False   
                 
-                _index = int(str(_indices[0]).split('L')[0])
-                try:mBlock = self._ml_blocks[_index]   
-                except:
-                    log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
-                    return False
+                for i in _indices:
+                    ml_blocks.append( self._ml_blocks[int(str(i).split('L')[0])])
+                    
+                if not ml_blocks:
+                    log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
+                    return False                
                 
             self.uiRow_progress(edit=1,vis=1)
-            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False)
+            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
+            pprint.pprint(ml_context)
             #Now parse to sets of data
             if args[0] == 'select':
                 #log.info('select...')

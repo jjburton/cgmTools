@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -4859,8 +4859,8 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         mHandleFactory = self.asHandleFactory()
         mRootUpHelper = self.vectorUpHelper
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)            
-        pprint.pprint(vars())
+        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)            
+        #pprint.pprint(vars())
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
             mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_handle, shapeDirection = 'z+')
@@ -4927,7 +4927,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                   aimVector = [0,0,1], upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
                                   worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,0,1])
+                                  worldUpVector = [0,1,0])
                 #worldUpType = 'vector',
                 #worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
     
@@ -5064,7 +5064,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                   upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
                                   worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,0,1])        
+                                  worldUpVector = [0,1,0])        
         #mAimGroup = md_handles['end'].doGroup(True, asMeta=True,typeModifier = 'aim')
         #...not doing this now...
         #SNAP.go(md_handles['end'].mNode, self.mNode, position=False)
@@ -5088,7 +5088,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                   upVector = [0,1,0], 
                                   worldUpObject = mRootUpHelper.mNode,
                                   worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,0,1])
+                                  worldUpVector = [0,1,0])
     
     
     
@@ -6531,11 +6531,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
         if not mModuleTarget:
             return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
-        mModuleTarget = mModuleTarget[0]
-        ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
-        if not ml_moduleJoints:
-            return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
-        
+        mModuleTarget = mModuleTarget[0]        
         
         mPuppet = puppet_get(self,mModuleTarget)
         if not mPuppet:
@@ -6559,7 +6555,6 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
         log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
         log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
-        log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))    
         
         
         if proxy:
@@ -6588,10 +6583,12 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 skin = False
         
         #Process-------------------------------------------------------------------------------------
-        mRoot = self.getBlockParents()[-1]
+        if self.blockType == 'master':
+            mRoot = self
+        else:
+            mRoot = self.getBlockParents()[-1]
         log.debug("|{0}| >> mRoot: {1}".format(_str_func,mRoot))
         ml_ordered = mRoot.getBlockChildrenAll()
-        ml_moduleJoints = []
         ml_mesh = []
         subSkin = False
         if skin:
@@ -6966,7 +6963,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, upRotControl = False):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, upRotControl = False,blockUpVector = [0,1,0]):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -7005,9 +7002,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             #sphere
             if k == 'up' and upRotControl:
-                
                 _crv = CORERIG.create_at(create='curveLinear', 
-                                         l_pos=[[0,0,0],[0,_size*2,0]], 
+                                         l_pos=[[0,0,0],[0,1.25,0]], 
                                          baseName='up')
             
                 mHandle = cgmMeta.validateObjArg(_crv)
@@ -7028,7 +7024,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mHandle.doStore('cgmTypeModifier',str_name)
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
-                mHandle.doStore('handleTag',k,attrType='string')                
+                mHandle.doStore('handleTag',k,attrType='string')
+                
+                SNAP.aim_atPoint(mHandle.mNode,md_handles['end'].p_position, 'z+')
             
                 #mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
                                  #aimVector = [0,0,1], upVector = [0,0,0], 
@@ -7036,7 +7034,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                  
                 self.connectChildNode(mHandle.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
                 md_vector[k] = mHandle
-                
+                """
                 _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
                                                 direction = 'z+', size = _sizeSub)
             
@@ -7047,7 +7045,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
                 SNAP.aim_atPoint(mArrow.mNode,mHandle.p_position, 'z-')
                 
-                CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)
+                CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)"""
                 
                 CORERIG.override_color(mHandle.mNode, _dtmp['color'])
                 
@@ -7158,7 +7156,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mAim.doName()            
                 
                     mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,0,0], 
+                                     aimVector = [0,1,0], upVector = [0,0,0], 
                                      worldUpType = 'none')
                 
                     for mShape in mAim.getShapes(asMeta=1):
@@ -7209,30 +7207,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     labelName = str_name
                 mJointLabel = mHandleFactory.addJointLabel(mHandle,labelName)
                 md_jointLabels[k] = mJointLabel
-    
-                """
-                mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-                md_jointLabels[k] = mJointLabel
-                CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
-            
-                mJointLabel.p_parent = mHandle
-                mJointLabel.resetAttrs()
-            
-                mJointLabel.radius = 0
-                mJointLabel.side = 0
-                mJointLabel.type = 18
-                mJointLabel.drawLabel = 1
-                mJointLabel.otherType = k
-            
-                mJointLabel.doStore('cgmName',self)
-                mJointLabel.doStore('cgmTypeModifier',str_name)
-                mJointLabel.doStore('cgmType','jointLabel')
-                mJointLabel.doName()            
-            
-                mJointLabel.dagLock()
-            
-                mJointLabel.overrideEnabled = 1
-                mJointLabel.overrideDisplayType = 2"""
         
         
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
@@ -7278,12 +7252,18 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             #SNAP.aim_atPoint(md_handles['end'].mNode,self.p_position,'z-')
             #aim
-            
-            mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
-                             aimVector = [0,0,-1], upVector = [0,1,0], 
-                             worldUpObject = md_vector.get('up').mNode,
-                             worldUpType = 'objectRotation', 
-                             worldUpVector = [0,1,0])
+            if upRotControl:
+                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
+                                aimVector = [0,0,-1], upVector = [0,1,0], 
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectRotation', 
+                                worldUpVector = blockUpVector)
+            else:
+                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
+                                 aimVector = [0,0,-1], upVector = [0,1,0], 
+                                 worldUpObject = md_vector.get('up').mNode,
+                                 worldUpType = 'objectRotation', 
+                                 worldUpVector = [0,1,0])
             #FINISH THE AIM BACK< JOOISD:fla;sldkjf;aslkdjf;lksdjf;laksjdf;lksjadf;lkjasdf;lk
             
 
@@ -7347,7 +7327,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             d_measure = {'height':'ty',
                          'width':'tx',
                          'length':'tz'}
+            md_measure = {}
             for k,d in d_measure.iteritems():
+                md_measure[k] = {}
                 if k == 'length':
                     mPos =mEndSizeHandle.doLoc()
                     mNeg = mBaseSizeHandle.doLoc()
@@ -7381,7 +7363,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
                 buffer['mShape'].overrideEnabled = 1
                 buffer['mShape'].overrideDisplayType = 2
-        
+                md_measure[k]['Dag'] = buffer['mDag']
+                md_measure[k]['mShape'] = buffer['mDag']
+                
                 ATTR.connect("{0}.visMeasure".format(_short), "{0}.visibility".format(buffer['mDag'].mNode))
                 #mHandleFactory.color(buffer['mShape'].mNode,controlType='sub')
         
@@ -7402,6 +7386,25 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 if tag == 'up' and upRotControl:
                     continue
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
+                
+            #Scaling our up vector =============================================================
+            if upRotControl and md_handles.get('up'):
+                mPlug = cgmMeta.cgmAttr(md_handles['end'],'average',attrType='float')
+                _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
+                                                 "{0}.baseSizeX".format(_short),
+                                                 "{0}.baseSizeY".format(_short),
+                                                 )
+                NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
+                mPlug.doConnectOut("{0}.scaleY".format(md_handles['up'].mNode))
+                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleX".format(md_handles['up'].mNode))
+                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleY".format(md_handles['up'].mNode))
+                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleZ".format(md_handles['up'].mNode))
+                
+                #md_handles['end'].doConnectOut('scaleX',"{0}.scaleX".format(md_handles['up'].mNode) )
+                #md_handles['end'].doConnectOut('scaleX',"{0}.scaleY".format(md_handles['up'].mNode) )
+                #md_handles['end'].doConnectOut('scaleX',"{0}.scaleZ".format(md_handles['up'].mNode) )
+                
+                #mScaleGroup = md_handles['up'].doGroup(True,asMeta=True,typeModifier = 'scale')
                 
 
         return {'md_handles':md_handles,
@@ -7456,7 +7459,7 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
 
     
     #Meat ==================================================
-    log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*40)
+    log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*80)
     pos_self = self.p_position
     pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,baseAim), baseSize[2])
     
@@ -7478,7 +7481,10 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
             
             if mHandle:
                 log.debug("|{0}| >>  mHandle: {1}".format(_str_func,mHandle))
-                _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[1])
+                if k == 'end':
+                    _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[2])
+                else:
+                    _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[1])
                 if mHandle == mUp:
                     SNAP.aim_atPoint(mHandle.mNode,_pos,'y+')
                 else:

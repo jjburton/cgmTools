@@ -80,11 +80,13 @@ d_block_profiles = {
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',
         'baseSize':[10,10,10],
+        'addPivot':True,
         'cgmName':'cube'},
     'cone':{
     'basicShape':'pyramid',
     'proxyShape':'cone',
     'shapeDirection':'y+',
+    'addPivot':True,    
     'baseSize':[10,10,20],
     
     'rotPivotPlace':'jointHelper',            
@@ -95,18 +97,21 @@ d_block_profiles = {
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',        
         'cgmName':'sphere',
+        'loftSides':10,
+        'loftSplit':10,
         'baseSize':[10,10,10],        
         },
     'shapers4':{
             'proxyShape':'shapers',
-            'cgmName':'shapers3',
+            'cgmName':'shapers',
             'loftShape':'square',
             'numShapers':4,
             'shapersAim':'toEnd',
             'rotPivotPlace':'jointHelper',
             'shapeDirection':'y+',            
             'loftSetup':'default',
-            'baseSize':[10,10,20],
+            'addPivot':True,            
+            'baseSize':[10,10,40],
             },
     'shaperList':{'proxyShape':'shapers',
                 'cgmName':'shaperList',
@@ -117,6 +122,7 @@ d_block_profiles = {
                 'rotPivotPlace':'jointHelper',
                 'shapeDirection':'y+',
                 'baseSize':[10,10,20],
+                'addPivot':True,
                 
                 'loftList':['circle','square','wideDown','wideUp']
                 },}
@@ -219,7 +225,21 @@ def define(self):
         self.addAttr('cgmColorLock',True,lock=True,visible=False)    
         mDefineNull = self.atUtils('stateNull_verify','define')
         
-        
+        #Get our base attr dat ============================================================
+        _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
+                                   'x-':{'end':[-1,0,0],'up':[0,1,0]},
+                                   'y+':{'end':[0,1,0],'up':[0,0,-1]},
+                                   'y-':{'end':[0,1,0],'up':[0,0,-1]},
+                                   'z+':{'end':[0,0,1],'up':[0,1,0]},
+                                   'z-':{'end':[0,0,-1],'up':[0,1,0]}}
+        _shapeDirection = self.getEnumValueString('shapeDirection')
+
+        _dBase = self.baseDat
+
+        _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
+        _dBase['lever'] = [-1 * v for v in _dBase['end']]
+        self.baseDat = _dBase        
+
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
               'end':{'color':'blueBright','defaults':{'tz':1}},
@@ -234,21 +254,11 @@ def define(self):
         _l_order = ['aim','end','up']
         
         reload(self.UTILS)
-        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,upRotControl=True)
+        _resDefine = self.UTILS.create_defineHandles(self, _l_order,
+                                                     _d, _size,
+                                                     upRotControl=True,blockUpVector = _dBase['up'])
         
-        _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
-                                   'x-':{'end':[-1,0,0],'up':[0,1,0]},
-                                   'y+':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'y-':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'z+':{'end':[0,0,1],'up':[0,1,0]},
-                                   'z-':{'end':[0,0,-1],'up':[0,1,0]}}
-        _shapeDirection = self.getEnumValueString('shapeDirection')
-        
-        _dBase = self.baseDat
-        
-        _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
-        _dBase['lever'] = [-1 * v for v in _dBase['end']]
-        self.baseDat = _dBase
+       
         
         #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
         
@@ -283,6 +293,9 @@ def define(self):
         #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
         #self.doConnectOut('sy',['sx','sz'])
         #ATTR.set_alias(_short,'sy','blockScale')
+        
+        #ATTR.set(self.vectorUpHelper.mNode,'sy', MATH.average(md_handles['end'].width,md_handles['end'].height))
+        #self.vectorUpHelper.scale = MATH.average(md_handles['end'].width,md_handles['end'].height)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 #=============================================================================================================
@@ -303,10 +316,14 @@ def templateDelete(self):
                     pos = mHandle.p_position
                     
                     for i,c in enumerate(l_const):
-                        log.debug("    {0} : {1}".format(i,c))
-                    mc.delete(l_const)
+                        log.debug("{0} : {1}".format(i,c))
+                        if not mc.ls(c,type='aimConstraint'):
+                            mc.delete(c)
                     mHandle.p_position = pos
+                if k == 'end':
+                    self.baseSize = mHandle.width,mHandle.height,mHandle.length
                     
+                        
                 mHandle.v = True
                 mHandle.template = False
                 
@@ -316,7 +333,6 @@ def templateDelete(self):
             
         self.defineLoftMesh.v = True
         self.defineLoftMesh.template = False
-        
         mNoTransformNull = self.getMessageAsMeta('noTransTemplateNull')
         if mNoTransformNull:
             mNoTransformNull.delete()
@@ -388,8 +404,8 @@ def template(self):
                 md_defineHandles[k] = mHandle
                 if k in ['end']:
                     mHandle.template = True        
-                if k in ['up']:
-                    mHandle.v=False
+                #if k in ['up']:
+                    #mHandle.v=False
     
         mDefineLoftMesh = self.defineLoftMesh
         _v_range = DIST.get_distance_between_points(self.p_position,
@@ -426,7 +442,7 @@ def template(self):
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
             mRootUpHelper = self.vectorUpHelper    
             _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
+            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
             mDefineEndObj = self.defineEndHelper
             mDefineUpObj = self.defineUpHelper
         
@@ -493,6 +509,7 @@ def template(self):
                                  polyType='bezier',
                                  baseName = self.cgmName )
             mMesh.connectParentNode(self.mNode,'handle','proxyHelper')        
+            mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
         
             mNoTransformNull.v = False
             
@@ -619,6 +636,7 @@ def prerig(self):
         _short = self.p_nameShort
         _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
         _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
+        _shape = self.getEnumValueString('basicShape')
         
         _side = self.atUtils('get_side')
             
@@ -635,6 +653,8 @@ def prerig(self):
             pos_shaperBase = ml_templateHandles[0].p_position
         else:
             mMain = ml_templateHandles[0]
+
+
         mHandleFactory = self.asHandleFactory(mMain.mNode)
         
         #Create preRig Null  ==================================================================================
@@ -665,8 +685,9 @@ def prerig(self):
             mPivot.p_parent = mPrerigNull
             ml_templateHandles[0].connectChildNode(mPivot,'pivotHelper')
 
-            
-            if b_shapers:mPivot.p_position = pos_shaperBase
+            if _shape in ['pyramid','semiSphere','circle','square']:
+                mPivot.p_position = self.p_position
+            elif b_shapers:mPivot.p_position = pos_shaperBase
                 
         
         if self.addScalePivot:
