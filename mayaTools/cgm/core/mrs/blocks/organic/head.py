@@ -257,11 +257,13 @@ d_rotationOrders = {'head':'yxz'}
 #=============================================================================================================
 #>> UI
 #=============================================================================================================
-def headGeo_getGroup(self):
+def headGeo_getGroup(self,select=False):
     _str_func = 'get_headGeoGroup'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)    
     mGroup = self.getMessageAsMeta('headGeoGroup')
     log.debug(mGroup)
+    if select:
+        mc.select(mGroup.mNode)
     return mGroup
 
 def headGeo_lock(self,arg=None):
@@ -275,7 +277,7 @@ def headGeo_lock(self,arg=None):
         mGroup.overrideEnabled = arg
 
 def headGeo_add(self,arg = None):
-    _str_func = 'get_headGeoGroup'
+    _str_func = 'headGeo_add'
     if not arg:
         arg = mc.ls(sl=1)
     ml_stuff = cgmMeta.validateObjListArg(arg)
@@ -295,7 +297,25 @@ def headGeo_add(self,arg = None):
         self.msgList_append('headMeshProxy',mProxy,'block')
         
         mProxy.rename("{0}_proxyGeo".format(mProxy.p_nameBase))
-        
+
+def headGeo_remove(self,arg = None):
+    _str_func = 'headGeo_remove'
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| remove | Nothing selected and no arg offered ".format(self.p_nameShort))
+    mProxyGeoGrp = headGeo_getGroup(self)
+    ml_proxies = []
+    _side = self.UTILS.get_side(self)
+    
+    for mObj in ml_stuff:
+        mObj.p_parent = False
+        self.msgList_remove('headMeshProxy',mObj)
+        mObj.rename(mObj.p_nameBase.replace('proxyGeo','geo'))
+        mObj.overrideEnabled = 0
+        for mShape in mObj.getShapes(asMeta=1):
+            mShape.overrideEnabled = 0
         
 def headGeo_replace(self,arg = None):
     _str_func = 'get_headGeoGroup'
@@ -331,6 +351,13 @@ def uiBuilderMenu(self,parent = None):
     mc.menuItem(ann = '[{0}] REPLACE existing geo with selected'.format(_short),
                 c = cgmGEN.Callback(headGeo_replace,self),
                 label = "Replace with selected")
+    mc.menuItem(ann = '[{0}]Remove selected to head geo proxy group'.format(_short),
+                c = cgmGEN.Callback(headGeo_remove,self),
+                label = "Remove selected")        
+    mc.menuItem(ann = '[{0}] Select Geo Group'.format(_short),
+                c = cgmGEN.Callback(headGeo_getGroup,self,True),
+                label = "Select Group")
+    
     
     mc.menuItem(ann = '[{0}] Head Geo Lock'.format(_short),
                 c = cgmGEN.Callback(headGeo_lock,self,None),
@@ -597,7 +624,6 @@ def template(self):
         elif _proxyType == 1:
             
             log.debug("|{0}| >> Geo proxyType. Pushing dimensions...".format(_str_func))     
-            """
             #self.scaleX = __dimensions[0] / __dimensions[1]
             #self.scaleZ = __dimensions[2] / __dimensions[1]        
             
@@ -635,7 +661,7 @@ def template(self):
             mGeoProxies.overrideDisplayType = 2         
             #self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
             #mc.parentConstraint([mHeadHandle.mNode],mGeoProxies.mNode,maintainOffset = True)
-            """
+            
             
         else:
             raise NotImplementedError,"|{0}| >> Unknown proxyType: [{1}:{2}]".format(_str_func,

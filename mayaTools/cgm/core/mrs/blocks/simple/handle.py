@@ -74,14 +74,14 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
 d_block_profiles = {
-    'cube':{
+    'box':{
         'basicShape':'cube',
         'proxyShape':'cube',
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',
         'baseSize':[10,10,10],
         'addPivot':True,
-        'cgmName':'cube'},
+        'cgmName':'box'},
     'cone':{
     'basicShape':'pyramid',
     'proxyShape':'cone',
@@ -146,6 +146,7 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'loftShape',
                    'loftDegree',
+                   'spaceSwitch_direct',
                    #'buildProfile',
                    'visMeasure',
                    'moduleTarget']
@@ -182,6 +183,103 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_template = {'msgLinks':['templateNull'],
                      }
+
+
+#=============================================================================================================
+#>> UI
+#=============================================================================================================
+def proxyGeo_getGroup(self,select=False):
+    _str_func = 'get_proxyGeoGroup'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)    
+    mGroup = self.getMessageAsMeta('proxyGeoGroup')
+    log.debug(mGroup)
+    if select:
+        mc.select(mGroup.mNode)
+    return mGroup
+
+def proxyGeo_add(self,arg = None):
+    _str_func = 'proxyGeo_add'
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
+    mProxyGeoGrp = proxyGeo_getGroup(self)
+    ml_proxies = []
+    _side = self.UTILS.get_side(self)
+    
+    for mObj in ml_stuff:
+        mProxy = mObj.doDuplicate(po=False)
+        mProxy = cgmMeta.validateObjArg(mProxy,'cgmObject',setClass=True)
+        ml_proxies.append(mProxy)
+        #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
+        mProxy.p_parent = mProxyGeoGrp
+        self.msgList_append('proxyMeshGeo',mProxy,'block')
+        mProxy.rename("{0}_proxyGeo".format(mProxy.p_nameBase))
+
+def proxyGeo_remove(self,arg = None):
+    _str_func = 'proxyGeo_remove'
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| remove | Nothing selected and no arg offered ".format(self.p_nameShort))
+    mProxyGeoGrp = proxyGeo_getGroup(self)
+    ml_proxies = []
+    _side = self.UTILS.get_side(self)
+    
+    for mObj in ml_stuff:
+        if self.msgList_remove('proxyMeshGeo',mObj):
+            mObj.p_parent = False
+            mObj.rename(mObj.p_nameBase.replace('proxyGeo','geo'))
+            mObj.overrideEnabled = 0
+            for mShape in mObj.getShapes(asMeta=1):
+                mShape.overrideEnabled = 0        
+def proxyGeo_replace(self,arg = None):
+    _str_func = 'get_proxyGeoGroup'
+    
+    if not arg:
+        arg = mc.ls(sl=1)
+    ml_stuff = cgmMeta.validateObjListArg(arg)
+    if not ml_stuff:
+        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
+    
+    mProxyGeoGrp = proxyGeo_getGroup(self)    
+    #Clean
+    ml_current = self.msgList_get('proxyMeshGeo')
+    for mObj in ml_current:
+        mObj.p_parent = False
+        mObj.rename("{0}_REMOVED".format(mObj.p_nameBase))
+        
+    self.msgList_purge('proxyMeshGeo')
+    proxyGeo_add(self,ml_stuff)
+    
+
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,
+                label = "Handle Geo")    
+    mc.menuItem(ann = '[{0}] Report proxy geo group'.format(_short),
+                c = cgmGEN.Callback(proxyGeo_getGroup,self),
+                label = "Report Group")
+    mc.menuItem(ann = '[{0}] Add selected to proxy geo proxy group'.format(_short),
+                c = cgmGEN.Callback(proxyGeo_add,self),
+                label = "Add selected")
+    mc.menuItem(ann = '[{0}] REPLACE existing geo with selected'.format(_short),
+                c = cgmGEN.Callback(proxyGeo_replace,self),
+                label = "Replace with selected")
+    mc.menuItem(ann = '[{0}]Remove selected to proxy geo proxy group'.format(_short),
+                c = cgmGEN.Callback(proxyGeo_remove,self),
+                label = "Remove selected")        
+    mc.menuItem(ann = '[{0}] Select Geo Group'.format(_short),
+                c = cgmGEN.Callback(proxyGeo_getGroup,self,True),
+                label = "Select Group")
+    
+
+
 
 #=============================================================================================================
 #>> Define
@@ -354,6 +452,9 @@ def template(self):
         _int_shapers = self.numShapers
         _loftSetup = self.getEnumValueString('loftSetup')
         
+        
+        
+        
         if _loftSetup == 'loftList':
             log.debug("loftList | attr validation"+ '-'*60)            
             l_loftList = ATTR.datList_get(_short,'loftList',enum=True)
@@ -379,6 +480,20 @@ def template(self):
 
         #Create temple Null  ==================================================================================
         mTemplateNull = BLOCKUTILS.templateNull_verify(self)
+        
+        
+        mGeoGroup = self.doCreateAt(setClass='cgmObject')
+        mGeoGroup.rename("proxyGeo")
+        mGeoGroup.parent = mTemplateNull
+        #mGeoProxies.parent = mTemplateNull
+    
+        #_bb = DIST.get_bb_size(self.mNode,True)
+    
+        mGeoGroup.connectParentNode(self, 'rigBlock','proxyGeoGroup') 
+        
+
+        #BaseDat ==================================================================================
+        
         self.defineLoftMesh.v = 0
         mRootUpHelper = self.vectorUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
@@ -508,7 +623,8 @@ def template(self):
                                  'loftSplit',
                                  polyType='bezier',
                                  baseName = self.cgmName )
-            mMesh.connectParentNode(self.mNode,'handle','proxyHelper')        
+            mMesh.connectParentNode(self.mNode,'handle','proxyHelper')
+            self.msgList_connect('proxyMeshGeo',[mMesh])
             mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
         
             mNoTransformNull.v = False
@@ -589,9 +705,11 @@ def template(self):
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
             mProxy.doStore('cgmType','proxyHelper')
+            self.msgList_connect('proxyMeshGeo',[mProxy])
+            
             mProxy.doName()    
         
-            mProxy.p_parent = mTemplateNull
+            mProxy.p_parent = mGeoGroup
         
         
             #CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
@@ -603,21 +721,21 @@ def template(self):
             
             self.msgList_connect('templateHandles',[mHandle.mNode,mProxy.mNode])
         
-            #attr = 'proxy'
-            #self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
-            #NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
-            #NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
+            attr = 'proxy'
+            self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+            NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
+            NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
                     
             #mProxy.resetAttrs()
             
-            #mProxy.overrideEnabled = 1
-            #ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mProxy.mNode) )
-            #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mProxy.mNode) )        
-            #for mShape in mProxy.getShapes(asMeta=1):
-                #str_shape = mShape.mNode
-                #mShape.overrideEnabled = 0
-                #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
-                #ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )        
+            mGeoGroup.overrideEnabled = 1
+            ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mGeoGroup.mNode) )
+            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mGeoGroup.mNode) )        
+            for mShape in mProxy.getShapes(asMeta=1):
+                str_shape = mShape.mNode
+                mShape.overrideEnabled = 0
+                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
+                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )        
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
         
@@ -844,6 +962,9 @@ def skeleton_build(self, forceNew = True):
     self.atBlockUtils('skeleton_connectToParent')
     
     mJoint.rotateOrder = 5
+    
+    mJoint.displayLocalAxis = 1
+    mJoint.radius = self.atUtils('get_shapeOffset') 
     
     return mJoint.mNode        
 
@@ -1373,26 +1494,27 @@ def rig_cleanUp(self):
     #mDynGroup.dynFollow.parent = mMasterDeformGroup
     
     #Direct ---------------------------------------------------------------------------------------------
-    for mControl in mRigNull.msgList_get('rigJoints'):
-        _short_direct = mControl.p_nameBase
-        if mControl.getMessage('dynParentGroup'):
-            log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
-            ml_directHandleDynParents = copy.copy(ml_baseDynParents_start)
-            ml_directHandleDynParents.extend(ml_baseDynParents_end)
-            
-            mDriver = mControl.masterGroup.getParent(asMeta=True)
-            if mDriver:
-                ml_directHandleDynParents.insert(0, mDriver)
-                if not mDriver.hasAttr('cgmAlias'):
-                    mDriver.addAttr('cgmAlias',_short_direct + '_driver')
+    if mBlock.spaceSwitch_direct:
+        for mControl in mRigNull.msgList_get('rigJoints'):
+            _short_direct = mControl.p_nameBase
+            if mControl.getMessage('dynParentGroup'):
+                log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
+                ml_directHandleDynParents = copy.copy(ml_baseDynParents_start)
+                ml_directHandleDynParents.extend(ml_baseDynParents_end)
                 
-            mDynGroup = mControl.dynParentGroup
-            log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-            mDynGroup.dynMode = 0
-        
-            for o in ml_directHandleDynParents:
-                mDynGroup.addDynParent(o)
-            mDynGroup.rebuild()        
+                mDriver = mControl.masterGroup.getParent(asMeta=True)
+                if mDriver:
+                    ml_directHandleDynParents.insert(0, mDriver)
+                    if not mDriver.hasAttr('cgmAlias'):
+                        mDriver.addAttr('cgmAlias',_short_direct + '_driver')
+                    
+                mDynGroup = mControl.dynParentGroup
+                log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+                mDynGroup.dynMode = 0
+            
+                for o in ml_directHandleDynParents:
+                    mDynGroup.addDynParent(o)
+                mDynGroup.rebuild()        
 
     
     #...look at ------------------------------------------------------------------------------------------
@@ -1456,38 +1578,57 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
             if not ml_moduleJoints:
                 return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))        
         
-        ml_proxy=[]
-        #>> Build bbProxy -----------------------------------------------------------------------------
-        if self.getMessage('proxyHelper'):
+        
+        
+        ml_geo = self.msgList_get('proxyMeshGeo')
+        ml_proxy = []
+        if ml_geo:
+            for i,mGeo in enumerate(ml_geo):
+                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
+                if mGeo.getMayaType() == 'nurbsSurface':
+                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,
+                                                        mode = 'general',
+                                                        uNumber = self.loftSplit, vNumber=self.loftSides)
+                else:
+                    mMesh = mGeo.doDuplicate(po=False)
+                    #mMesh.p_parent = False
+                    #mDup = mBlock.proxyHelper.doDuplicate(po=False)
+                mMesh.rename("{0}_{1}_mesh".format(self.p_nameBase,i))
+                #mDup.inheritsTransform = True
+                ml_proxy.append(mMesh)        
+        
+        
             #mDup = self.proxyHelper.doDuplicate(po=False)
             str_setup = self.getEnumValueString('proxyShape')
             if str_setup == 'shapers':
                 d_kws = {}
                 mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
-                
+                ml_proxy = [mMesh]
             else:
-                d_kws = {'mode':'general',
-                         'uNumber':self.loftSplit,
-                         'vNumber':self.loftSides,
-                         }
-                mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
-                                            #mode = 'general',
-                                               # uNumber = self.loftSplit, vNumber=self.loftSides)
-            #CORERIG.shapeParent_in_place(mNew.mNode, _mesh, False)
-            #CORERIG.color_mesh(mNew.mNode,'puppetmesh')
-            
-            if parent and skin:
-                mMesh.p_parent=parent
-            
-            if skin:
-                mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
-                                mMesh.mNode,
-                                tsb=True,
-                                bm=1,
-                                maximumInfluences = 3,
-                                normalizeWeights = 1, dropoffRate=10)            
-            mMesh.rename('{0}_puppetmesh_geo'.format(self.p_nameBase))
-            ml_proxy.append(mMesh)
+                for i,mGeo in enumerate(ml_geo):
+                    log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
+                    if mGeo.getMayaType() == 'nurbsSurface':
+                        d_kws = {'mode':'general',
+                                 'uNumber':self.loftSplit,
+                                 'vNumber':self.loftSides,
+                                 }
+                        mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
+                    else:
+                        mMesh = mGeo.doDuplicate(po=False)
+                    ml_proxy.append(mMesh)
+                    
+            for i,mMesh in enumerate(ml_proxy):
+                if parent and skin:
+                    mMesh.p_parent=parent
+                
+                if skin:
+                    mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                    mMesh.mNode,
+                                    tsb=True,
+                                    bm=1,
+                                    maximumInfluences = 3,
+                                    normalizeWeights = 1, dropoffRate=10)            
+                mMesh.rename('{0}_{1}_puppetmesh_geo'.format(self.p_nameBase,i))
         return ml_proxy
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -1527,17 +1668,24 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
             return _bfr
       
     #>> Build bbProxy -----------------------------------------------------------------------------
-    if mBlock.getMessage('proxyHelper'):
+    ml_geo = mBlock.msgList_get('proxyMeshGeo')
+    ml_proxy = []
+    if ml_geo:
         reload(RIGCREATE)
-        mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper,
-                                            mode = 'general',
-                                            uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
-        #mMesh.p_parent = False
-        #mDup = mBlock.proxyHelper.doDuplicate(po=False)
-        mMesh.p_parent = mRigNull.msgList_get('rigJoints')[0]
-        mMesh.rename("{0}_mesh".format(mBlock.p_nameBase))
-        #mDup.inheritsTransform = True
-        ml_proxy = [mMesh]
+        for i,mGeo in enumerate(ml_geo):
+            log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
+            if mGeo.getMayaType() == 'nurbsSurface':
+                mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper,
+                                                    mode = 'general',
+                                                    uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
+            else:
+                mMesh = mGeo.doDuplicate(po=False)
+                #mMesh.p_parent = False
+                #mDup = mBlock.proxyHelper.doDuplicate(po=False)
+            mMesh.p_parent = mRigNull.msgList_get('rigJoints')[0]
+            mMesh.rename("{0}_{1}_mesh".format(mBlock.p_nameBase,i))
+            #mDup.inheritsTransform = True
+            ml_proxy.append(mMesh)
     
     
     #Connect to setup ------------------------------------------------------------------------------------
