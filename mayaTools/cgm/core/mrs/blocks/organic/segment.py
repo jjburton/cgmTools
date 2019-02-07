@@ -280,7 +280,8 @@ l_attrsStandard = ['side',
                    'proxyDirect',
                    'proxyGeoRoot',                   
                    #'settingsPlace',
-                   'spaceSwitch_direct',                   
+                   'spaceSwitch_direct',
+                   'visRotatePlane',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -391,6 +392,7 @@ def define(self):
             if defineNull:
                 log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
                 mc.delete(defineNull)
+            self.verify()
         
         
         _size = self.atUtils('defineSize_get')
@@ -408,32 +410,11 @@ def define(self):
         
         #Joint Label ---------------------------------------------------------------------------
         mHandleFactory.addJointLabel(self,self.blockProfile)
-        """
-        mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-        CORERIG.override_color(mJointLabel.mNode, 'white')
-    
-        mJointLabel.p_parent = mDefineNull
-        mJointLabel.resetAttrs()
-    
-        mJointLabel.radius = 0
-        mJointLabel.side = 0
-        mJointLabel.type = 18
-        mJointLabel.drawLabel = 1
-        mJointLabel.otherType = self.blockProfile
-    
-        mJointLabel.doStore('cgmName',self)
-        mJointLabel.doStore('cgmTypeModifier',self.blockProfile)
-        mJointLabel.doStore('cgmType','jointLabel')
-        mJointLabel.doName()            
-    
-        mJointLabel.dagLock()
-    
-        mJointLabel.overrideEnabled = 1
-        mJointLabel.overrideDisplayType = 2    """
         
     
         #Define our controls ===================================================================
         _d = {'end':{'color':'blueBright','defaults':{'ty':1}},
+              'rp':{'color':'redBright','defaults':{'tx':.5}},              
               'up':{'color':'greenBright','defaults':{'tz':-1}}}
         
         md_handles = {}
@@ -441,11 +422,17 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
     
-        _l_order = ['end','up']
+        _l_order = ['end','up','rp']
     
-        self.UTILS.create_defineHandles(self, _l_order, _d, _size)
+        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
+                                                     rotVecControl=True,
+                                                     blockUpVector = self.baseDat['up'])
+        md_vector = _resDefine['md_vector']
+        md_handles = _resDefine['md_handles']        
         self.UTILS.define_set_baseSize(self)
         
+        #Rotate Plane ======================================================================
+        self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)        
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
@@ -518,7 +505,7 @@ def template(self):
         #Old method...
         mRootUpHelper = self.vectorUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
+        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,axis='y+',asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
             

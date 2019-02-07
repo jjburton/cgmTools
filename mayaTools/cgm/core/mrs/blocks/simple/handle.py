@@ -235,7 +235,8 @@ def proxyGeo_remove(self,arg = None):
             mObj.rename(mObj.p_nameBase.replace('proxyGeo','geo'))
             mObj.overrideEnabled = 0
             for mShape in mObj.getShapes(asMeta=1):
-                mShape.overrideEnabled = 0        
+                mShape.overrideEnabled = 0
+                
 def proxyGeo_replace(self,arg = None):
     _str_func = 'get_proxyGeoGroup'
     
@@ -354,7 +355,7 @@ def define(self):
         reload(self.UTILS)
         _resDefine = self.UTILS.create_defineHandles(self, _l_order,
                                                      _d, _size,
-                                                     upRotControl=True,blockUpVector = _dBase['up'])
+                                                     rotVecControl=True,blockUpVector = _dBase['up'])
         
        
         

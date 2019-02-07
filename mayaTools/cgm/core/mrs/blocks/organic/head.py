@@ -182,6 +182,7 @@ l_attrsStandard = ['side',
                    'proxyGeoRoot',
                    'spaceSwitch_direct',                   
                    'settingsDirection',
+                   'visRotatePlane',
                    'moduleTarget',]
 
 d_attrsToMake = {'visMeasure':'bool',
@@ -398,6 +399,8 @@ def define(self):
             if defineNull:
                 log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
                 mc.delete(defineNull)
+            self.verify()
+            
         
         _size = self.atUtils('defineSize_get')
         #_sizeSub = _size / 2.0
@@ -450,9 +453,16 @@ def define(self):
         if self.neckBuild:
             _l_order.extend(['end','up','rp'])
     
-        self.UTILS.create_defineHandles(self, _l_order, _d, _size)
+        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
+                                                     rotVecControl=True,
+                                                     blockUpVector = self.baseDat['up'])
         self.UTILS.define_set_baseSize(self)
-    
+        
+        md_vector = _resDefine['md_vector']
+        md_handles = _resDefine['md_handles']
+        
+        #Rotate Plane ======================================================================
+        self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)        
         return    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 

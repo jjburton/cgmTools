@@ -87,7 +87,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'addMotionJoint':'bool',
                    'proxy':'off:lock:on',
                    'addScalePivot':'bool',                   
-                   'loftShape':'circle:square:squareRoundUp:squareRoundDown:diamond:wideUp:wideDown:widePos:wideNeg:digit',
+                   'loftShape':'circle:square:squareRoundUp:squareRoundDown:diamond:wideUp:wideDown:widePos:wideNeg:triUp:triDown:triPos:triNeg:digit',
                    'loftSides':'int',     
                    'loftSplit':'int',
                    'loftList':'enumDatList',
@@ -136,6 +136,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyDirect':'bool',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
+                   'visRotatePlane':'bool',                   
                    'visMeasure':'bool',}
 
 _l_pivotOrder = ['center','back','front','left','right']

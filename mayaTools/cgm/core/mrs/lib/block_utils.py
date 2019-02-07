@@ -6963,7 +6963,95 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, upRotControl = False,blockUpVector = [0,1,0]):
+def create_define_rotatePlane(self, md_handles,md_vector):
+    try:
+        _str_func = 'create_define_rotatePlane'        
+        _side = self.UTILS.get_side(self)
+        mDefineNull = self.defineNull
+        #Make our curves...
+        vector_pos = md_vector['rp'].getAxisVector('y+',asEuclid = 0)
+        vector_neg = md_vector['rp'].getAxisVector('y-',asEuclid = 0)        
+        
+        mStart = self
+        mEnd = md_handles['end']
+    
+    
+        #Setup Loft curves and plane ----------------------------------------------------------------
+        log.debug("|{0}| >> Setup curves...".format(_str_func))                     
+    
+        l_crvs = []
+        ml_crvs = []
+        
+        for i,mObj in enumerate([mStart,mEnd]):
+            crv =   mc.curve (d=1, ep = [DIST.get_pos_by_vec_dist([0,0,0], [1,0,0], .5),
+                                         DIST.get_pos_by_vec_dist([0,0,0], [-1,0,0], .5)],
+                                   os=True)
+            log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            
+            mCrv = cgmMeta.validateObjArg(crv,setClass=True)#mObj.doCreateAt()
+            #CORERIG.shapeParent_in_place(mCrv.mNode,crv,False)
+            ml_crvs.append(mCrv)
+            
+            
+            if mObj == mStart:
+                mTarget = mEnd
+                _aim = [0,0,1]
+                _tag = 'start'
+            else:
+                mTarget = mStart
+                _aim = [0,0,-1]
+                _tag = 'end'
+                
+            mc.pointConstraint(mObj.mNode, mCrv.mNode,maintainOffset = False)
+            mc.aimConstraint(mTarget.mNode, mCrv.mNode, maintainOffset = False,
+                                 aimVector = _aim, upVector = [1,0,0], 
+                                 worldUpObject = md_vector['rp'].mNode,
+                                 worldUpType = 'objectRotation', 
+                                 worldUpVector = [0,1,0])
+            
+            mCrv.addAttr('cgmName',_tag)
+            mCrv.addAttr('cgmType','rpLoft')
+            mCrv.doName()
+            
+            mCrv.p_parent = mDefineNull
+            
+            mEnd.doConnectOut('height', "{0}.scaleX".format(mCrv.mNode))
+            mEnd.doConnectOut('height', "{0}.scaleY".format(mCrv.mNode))
+            
+            mCrv.v=False
+            
+        _res_body = mc.loft([mCrv.mNode for mCrv in ml_crvs], o = True, d = 1, po = 1 )
+        _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
+        _tessellate = _inputs[0]
+        
+        _d = {'format':2,#General
+              'polygonType':1,#'quads'
+              }
+              
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)
+        
+        mPlane = cgmMeta.validateObjArg(_res_body[0])
+        mPlane.doStore('cgmName', self)
+        mPlane.doStore('cgmType','rotatePlaneVisualize')
+        mPlane.doName()
+        
+        mPlane.p_parent = mDefineNull
+        mPlane.resetAttrs()
+        
+        mPlane.inheritsTransform = 0
+        for s in mPlane.getShapes(asMeta=True):
+            s.overrideDisplayType = 2
+            
+        CORERIG.colorControl(mPlane.mNode,_side,'sub',transparent = True)
+        self.doConnectOut('visRotatePlane',"{0}.visibility".format(mPlane.mNode))
+        #mHandleFactory.color(mPlane.mNode,controlType='sub',transparent=False)
+        mPlane.dagLock()
+        #Aim them...
+        #Make our loft...
+    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -7001,10 +7089,16 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             _pos = _dtmp.get('pos',False)
             
             #sphere
-            if k == 'up' and upRotControl:
-                _crv = CORERIG.create_at(create='curveLinear', 
-                                         l_pos=[[0,0,0],[0,1.25,0]], 
-                                         baseName='up')
+            if k in ['up','rp'] and rotVecControl:
+                _rotSize = [1,1,1]
+                if k == 'rp':
+                    _rotSize = [1.75,1.75,.75]
+                    
+                _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
+                                              direction = 'y+', size = _rotSize)                
+                #_crv = CORERIG.create_at(create='curveLinear', 
+                #                         l_pos=[[0,0,0],[0,1.25,0]], 
+                #                         baseName='up')
             
                 mHandle = cgmMeta.validateObjArg(_crv)
                 mHandle.p_parent = mParent
@@ -7137,8 +7231,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
  
             #Helper --------------------------------------------------------------------------------
             if _dtmp.get('vectorLine') !=False:
-                if upRotControl and k == 'up':
-                    pass
+                if rotVecControl and k in ['up','rp']:pass
                 else:
                     _crv = CORERIG.create_at(create='curveLinear', 
                                              l_pos=[[0,0,0],[0,0,_size / 2.0]], 
@@ -7167,8 +7260,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
                 
             if _dtmp.get('arrow') !=False:#Arrow ---------------------------------------------
-                if upRotControl and k == 'up':
-                    pass
+                if rotVecControl and k in ['up','rp']:pass
                 else:                
                     _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
                                                     direction = 'z+', size = _sizeSub)
@@ -7252,7 +7344,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             #SNAP.aim_atPoint(md_handles['end'].mNode,self.p_position,'z-')
             #aim
-            if upRotControl:
+            if rotVecControl:
                 mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
                                 aimVector = [0,0,-1], upVector = [0,1,0], 
                                 worldUpObject = self.mNode,
@@ -7270,7 +7362,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
 
         if md_handles.get('end'):
             _rotUpType = 'object'
-            if upRotControl:
+            if rotVecControl:
                 _rotUpType = 'objectRotation'
             #BaseSizeHandle -------------------------------------------------
             _crv = CURVES.create_fromName(name='square',#'arrowsAxis', 
@@ -7383,12 +7475,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             for tag,mHandle in md_handles.iteritems():
                 if tag in ['lever']:
                     continue
-                if tag == 'up' and upRotControl:
+                if tag in ['up','rp'] and rotVecControl:
                     continue
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
             #Scaling our up vector =============================================================
-            if upRotControl and md_handles.get('up'):
+            if rotVecControl and md_handles.get('up'):
                 mPlug = cgmMeta.cgmAttr(md_handles['end'],'average',attrType='float')
                 _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
                                                  "{0}.baseSizeX".format(_short),
@@ -7396,6 +7488,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                                  )
                 NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
                 mPlug.doConnectOut("{0}.scaleY".format(md_handles['up'].mNode))
+                
+                if md_handles.get('rp'):
+                    mPlug.doConnectOut("{0}.scaleY".format(md_handles['rp'].mNode))
+                    
                 #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleX".format(md_handles['up'].mNode))
                 #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleY".format(md_handles['up'].mNode))
                 #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleZ".format(md_handles['up'].mNode))
