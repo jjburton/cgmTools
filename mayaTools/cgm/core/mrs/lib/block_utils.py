@@ -2754,6 +2754,35 @@ def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = Fal
     return ml_handleChain
 
 
+def verify_loftList(self,int_shapers):
+    try:
+        log.debug("loftList | attr validation"+ '-'*60)
+        _short = self.p_nameShort
+        
+        l_loftList = ATTR.datList_get(_short,'loftList',enum=True)
+        
+        if len(l_loftList) > int_shapers:
+            log.debug("loftList | cleaning")
+            _d_attrs = ATTR.get_sequentialAttrDict(_short, 'loftList')
+            for i in range(len(l_loftList) - int_shapers):
+                ATTR.delete(_short,_d_attrs[i+int_shapers] )
+    
+        v = self.loftShape
+        _enum_loftShape = BLOCKSHARE._d_attrsTo_make['loftShape']
+        for i in range(int_shapers):
+            str_attr = "loftList_{0}".format(i)
+            if not ATTR.has_attr(_short,str_attr):
+                self.addAttr(str_attr, v, attrType = 'enum',
+                             enumName= _enum_loftShape,
+                             keyable = False)
+            else:
+                strValue = ATTR.get_enumValueString(_short,str_attr)
+                self.addAttr(str_attr,initialValue = v, attrType = 'enum', enumName= _enum_loftShape, keyable = False)
+                if strValue:
+                    ATTR.set(_short,str_attr,strValue)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+
+                    
 def verify_dynSwitch(self):
     _short = self.mNode
     _str_func = 'skeleton_buildHandleChain [{0}]'.format(_short)
@@ -3179,6 +3208,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
                 log.debug("|{0}| >> mirror dat check {1} | {2}".format(_str_func, k, dIter))
                 blockDat['ud'][k] = dIter.get(blockDat['ud'][k])        
                 _l_done.append(k)
+        
                 
         _mask = ['side','version','blockState','baseAim','baseAimY']
         for a,v in _ud.iteritems():
@@ -3201,7 +3231,24 @@ def blockMirror_settings(blockSource, blockMirror = None,
                     log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
                     #r9Meta.printMetaCacheRegistry()                
                     for arg in err.args:
-                        log.error(arg)                      
+                        log.error(arg)
+                        
+        #loftList
+        _loftList = ATTR.datList_get(mSource.mNode,'loftList','enum',enum=True)
+        log.debug("|{0}| >> loftList pre : {1}".format(_str_func,_loftList))
+        _loftUse = []
+        for i,v in enumerate(_loftList):
+            if 'Pos' in v:
+                log.debug("|{0}| >> loftList pos: {1}".format(_str_func,v))                
+                _loftUse.append(str(v).replace('Pos','Neg'))
+            elif 'Neg' in v:
+                log.debug("|{0}| >> loftList neg: {1}".format(_str_func,v))                                
+                _loftUse.append(str(v).replace('Neg','Pos'))
+            else:
+                _loftUse.append(v)
+        log.debug("|{0}| >> loftList post: {1}".format(_str_func,_loftUse))
+            
+        ATTR.datList_connect(mTarget.mNode, 'loftList', _loftUse,'enum',enum = BLOCKSHARE._d_attrsTo_make['loftShape'])
     
         if _udFail:
             log.error("|{0}| >> UD Fails...".format(_str_func) + '-'*80)
@@ -3389,7 +3436,24 @@ def defineSize_get(self):
     if _baseSize:
         log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
         return MATH.average(_baseSize[:-2])/2.0
-    return self.atUtils('get_shapeOffset') or 1.0# * 2.0    
+    return self.atUtils('get_shapeOffset') or 1.0# * 2.0
+
+def define_getHandles(self):
+    md_vectorHandles = {}
+    md_defineHandles = {}
+    #Template our vectors
+    for k in BLOCKSHARE._l_defineHandlesOrder:
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
+        if mHandle:
+            log.debug("define vector: {0} | {1}".format(k,mHandle))            
+            md_vectorHandles[k] = mHandle
+            
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))    
+        if mHandle:
+            log.debug("define handle: {0} | {1}".format(k,mHandle))                        
+            md_defineHandles[k] = mHandle
+
+    return md_defineHandles,md_vectorHandles
 
 
 def blockDat_get(self,report = True):
@@ -4379,7 +4443,7 @@ def controls_mirror(blockSource, blockMirror = None,
         if not ml_controls:
             raise ValueError,"No controls"
         
-        blockMirror.blockScale = blockSource.blockScale
+        blockMirror.scaleY = blockSource.scaleY
         #Root ----------------------------------------------------------------------------------
         log.debug("|{0}| >> root dat...".format(_str_func))
         
@@ -4818,6 +4882,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     """
     _str_func = 'template_segment'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    _short = self.p_nameShort    
     _size_handle = baseSize
     _size_loft = sizeLoft
     _side = side
@@ -4855,7 +4920,6 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         log.debug("|{0}| >> loftShapes: {1}".format(_str_func,_l_loftShapes)) 
         
         
-
         mHandleFactory = self.asHandleFactory()
         mRootUpHelper = self.vectorUpHelper
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
@@ -7109,7 +7173,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mHandle.doStore('mClass','cgmObject')            
                 
                 if k not in ['end']:
-                    mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+                    mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
                     
                 if _tagOnly:
                     mHandle.doStore('cgmName',k)
@@ -7160,7 +7224,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 CORERIG.override_color(_crv, _dtmp['color'])
             
                 if k not in ['end']:
-                    mHandle.addAttr('cgmColorLock',True,lock=True,visible=False)
+                    mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
                     
                 if _tagOnly:
                     mHandle.doStore('cgmName',k)
@@ -7596,17 +7660,22 @@ def prerig_snapRPtoOrientHelper(self):
     mRP = self.getMessageAsMeta('defineRpHelper')
     if not mRP:
         return log.error("No rp found")
-
+    mRPVec = self.getMessageAsMeta('vectorRpHelper')
+    
     try:mOrientHelper = self.orientHelper
     except:return log.error("No orientHelper found")
     log.debug("|{0}| >>  mOrientHelper: {1}".format(_str_func,mOrientHelper))    
-    log.debug("|{0}| >>  mRP: {1}".format(_str_func,mRP))    
-
-    pos_self = self.p_position
-    dist = DIST.get_distance_between_points(pos_self, mRP.p_position)
-    vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
+    log.debug("|{0}| >>  mRP: {1}".format(_str_func,mRP))        
     
-    mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+    if mRP == mRPVec:
+        mRP.p_orient = mOrientHelper.p_orient
+
+    else:
+        pos_self = self.p_position
+        dist = DIST.get_distance_between_points(pos_self, mRP.p_position)
+        vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
+    
+        mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
     
 def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     _str_func = 'prerig_snapHandlesToRotatePlane'

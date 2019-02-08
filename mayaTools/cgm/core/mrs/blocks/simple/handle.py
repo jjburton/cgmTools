@@ -321,7 +321,7 @@ def define(self):
         CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
         mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,visible=False)    
+        self.addAttr('cgmColorLock',True,lock=True,hidden=True)    
         mDefineNull = self.atUtils('stateNull_verify','define')
         
         #Get our base attr dat ============================================================
@@ -451,11 +451,10 @@ def template(self):
         
         #If we have a loftList setup, we need to validate those attributes
         _int_shapers = self.numShapers
+        
+        
         _loftSetup = self.getEnumValueString('loftSetup')
-        
-        
-        
-        
+ 
         if _loftSetup == 'loftList':
             log.debug("loftList | attr validation"+ '-'*60)            
             l_loftList = ATTR.datList_get(_short,'loftList',enum=True)
@@ -494,7 +493,6 @@ def template(self):
         
 
         #BaseDat ==================================================================================
-        
         self.defineLoftMesh.v = 0
         mRootUpHelper = self.vectorUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
@@ -640,7 +638,6 @@ def template(self):
             mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
             
             
-        
             #mc.pointConstraint(mUpTrans.mNode,
             #                   md_defineHandles['up'].mNode,
             #                   maintainOffset = True)                    

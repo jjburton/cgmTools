@@ -139,12 +139,15 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'visRotatePlane':'bool',                   
                    'visMeasure':'bool',}
 
+_l_defineHandlesOrder = ['end','up','rp','aim','lever']
 _l_pivotOrder = ['center','back','front','left','right']
 _d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
                       'right':{'left':'inner','right':'outer'}}
 
 _d_mirrorAttrCheck = {'loftShape':{'widePos':'wideNeg',
-                               'wideNeg':'widePos'},
+                                   'wideNeg':'widePos',
+                                   'triPos':'triNeg',
+                                   'triNeg':'triPos'},
                       'testing':{}}
 
 #>> State Attr Masks =================================================================================

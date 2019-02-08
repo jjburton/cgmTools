@@ -1674,6 +1674,8 @@ class handleFactory(object):
                                  'left':'x+',
                                  'right':'x-'}        
             _axisBox = False
+            
+            _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
 
             for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
                 _strPivot = a.split('pivot')[-1]
@@ -1708,7 +1710,7 @@ class handleFactory(object):
                     ml_pivots.append(mPivot)
 
                     if not mPivotRootHandle:
-                        pivotHandle = CURVES.create_controlCurve(mHandle.mNode, shape='squareOpen',
+                        pivotHandle = CURVES.create_controlCurve(mHandle.mNode, shape=_baseShape,
                                                                  direction = upAxis,
                                                                  sizeMode = 'fixed', size = _size * 1.1)
                         mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
@@ -1784,9 +1786,10 @@ class handleFactory(object):
                 mAxis = VALID.simpleAxis(d_pivotDirections['front'])
                 p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
                 
+                _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
                 #Main Handle -----------------------------------------------------------------------------
                 pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
-                                                         shape='loftCircle',
+                                                         shape=_baseShape,
                                                          direction = 'y-',
                                                          sizeMode = 'fixed',
                                                          size = _size)
