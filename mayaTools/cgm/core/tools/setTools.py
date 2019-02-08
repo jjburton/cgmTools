@@ -1434,7 +1434,7 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
     
     except Exception,err:
         print err
-        #raise cgmGEN.cgmException(Exception,err)
+        #raise cgmGEN.cgmExceptCB(Exception,err)
     finally:return 
 
     

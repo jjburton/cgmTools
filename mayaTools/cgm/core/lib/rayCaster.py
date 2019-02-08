@@ -174,7 +174,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
             return EUCLID.Vector3(_res[0], _res[1], _res[2])
         return _res
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 
 def cast(mesh = None, obj = None, axis = 'z+',

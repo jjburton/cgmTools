@@ -525,7 +525,7 @@ def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
                 wantedUp = -right
     
         return wantedAim, wantedUp
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def normalizeList(L, normalizeTo=1):
     '''normalize values of a list to make its max = normalizeTo'''

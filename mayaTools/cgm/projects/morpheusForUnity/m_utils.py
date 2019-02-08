@@ -78,7 +78,7 @@ def rigJoint_verify(joints = [], name=True, connect=True):
         return ml_rigJoints
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
         
 def driverGroup_verify(joints = []):
@@ -98,7 +98,7 @@ def driverGroup_verify(joints = []):
         return ml_new
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
 
 
@@ -123,7 +123,7 @@ def rigJoint_connect(joints = []):
         return ml_rigJoints
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
 
 def rigJoint_connectFromRig(joints = []):
@@ -148,7 +148,7 @@ def rigJoint_connectFromRig(joints = []):
         return ml_rigJoints
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
 
 
@@ -358,7 +358,7 @@ def split_blends(driven1 = None,
         
         
     except Exception,err:
-            cgmGEN.cgmException(Exception,err,msg=vars())    
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())    
     
 def ribbon_seal(driven1 = None,
                 driven2 = None,
@@ -854,4 +854,4 @@ def ribbon_seal(driven1 = None,
     
             
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())

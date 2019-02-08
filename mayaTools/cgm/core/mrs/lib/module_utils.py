@@ -76,7 +76,7 @@ def get_partName(self):
         log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
         return STRINGS.stripInvalidChars(_str)
 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def get_dynSwitch(self):
     _str_func = ' get_dynSwitch'
@@ -90,7 +90,7 @@ def get_dynSwitch(self):
         mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=mRigNull.mNode)
         log.debug("|{0}| >> Created dynSwitch: {1}".format(_str_func,mDynSwitch))
         return mDynSwitch
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def mirror_getSideString(self):
     _str_func = ' mirror_getSideString'
@@ -102,7 +102,7 @@ def mirror_getSideString(self):
         if _str_direction is not None and _str_direction.lower() in ['right','left']:
             return _str_direction.capitalize()
         else:return 'Centre'	           
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 def get_settingsHandle(self):
@@ -124,7 +124,7 @@ def get_settingsHandle(self):
         log.debug("|{0}| >> No settings found".format(_str_func))   
     
         return False       
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def moduleChildren_get(self,excludeSelf = True):
@@ -151,7 +151,7 @@ def moduleChildren_get(self,excludeSelf = True):
             ml_children.append(self)
         return ml_children
     
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def doName(self):
     _str_func = ' doName'
@@ -167,7 +167,7 @@ def doName(self):
         log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
         self.rename(_str)
     
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 #=============================================================================================================
 #>> verify
 #=============================================================================================================
@@ -190,7 +190,7 @@ def verify_objectSet(self):
             if not mi_modulePuppet.getMessage('puppetSet'):
                 mi_modulePuppet.verify_objectSet()
             self.modulePuppet.puppetSet.addObj(mSet.mNode)
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def verify_faceObjectSet(self):
     _str_func = ' verify_faceObjectSet'
@@ -228,7 +228,7 @@ def verify_faceObjectSet(self):
             mPuppetSet.addObj(mFaceSet.mNode)
         return mFaceSet
             
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 #=============================================================================================================
 #>> Skeleton
@@ -249,7 +249,7 @@ def is_skeletonized(self):
             log.debug("|{0}| >> no joints found...".format(_str_func))
             return False  
         return True
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def rig_getSkinJoints(self,asMeta=True):
     _str_func = ' rig_getSkinJoints'
@@ -271,7 +271,7 @@ def rig_getSkinJoints(self,asMeta=True):
         if ml_skinJoints:
             return [obj.p_nameShort for obj in ml_skinJoints]	            
 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 #=============================================================================================================
 #>> Rig
@@ -340,7 +340,7 @@ def is_rigged(self):
                 log.warning("No data found on '%s'"%(attr))
                 mRigNull.version = ''#clear the version            
                 return False            
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 def rig_connect(self,force=False):
@@ -394,7 +394,7 @@ def rig_connect(self,force=False):
             #attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
 
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def rig_isConnected(self):
@@ -416,7 +416,7 @@ def rig_isConnected(self):
                 return False
 
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def rig_getSkinJoints(self,asMeta=True):
     _str_func = ' rig_getSkinJoints'
@@ -440,7 +440,7 @@ def rig_getSkinJoints(self,asMeta=True):
             return [obj.mNode for obj in ml_skinJoints]	    
         return True
     
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def rig_disconnect(self,force=False):
     _str_func = ' rig_disconnect'
@@ -472,7 +472,7 @@ def rig_disconnect(self,force=False):
 
         if l_constraints:mc.delete(l_constraints)
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def rig_reset(self,transformsOnly = True):
     _str_func = ' rig_reset'
@@ -485,7 +485,7 @@ def rig_reset(self,transformsOnly = True):
         if _sel:
             mc.select(_sel)
         return True
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
     
 def parentModule_set(self,mModuleParent = None):
@@ -511,7 +511,7 @@ def parentModule_set(self,mModuleParent = None):
         self.moduleParent = mModuleParent.mNode
     self.parent = mModuleParent.parent
     return True
-    #except Exception,err:cgmGEN.cgmException(Exception,err)
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 set_parentModule = parentModule_set
 
 def parentModule_get(self):
@@ -902,7 +902,7 @@ def get_joints(self, skinJoints = False, moduleJoints =False, rigJoints=False,
         return l_return        
     
     
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 #=============================================================================================================
@@ -923,7 +923,7 @@ def anim_settings_toggle(self,attr=None):
         else:
             log.debug("|{0}| >>  Missing settings: {1}".format(_str_func,self.mNode))
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 
@@ -941,7 +941,7 @@ def anim_reset(self,transformsOnly = True):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_select(self):
     try:
@@ -950,7 +950,7 @@ def anim_select(self):
         mRigNull = self.rigNull        
         mRigNull.moduleSet.select()
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_key(self,**kws):
     try:
@@ -970,7 +970,7 @@ def anim_key(self,**kws):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def siblings_get(self,matchType = False, excludeSelf = True, matchName=False):
     _str_func = 'siblings_get'
@@ -1434,7 +1434,7 @@ def mirror(self,mode = 'self'):
             mc.select(l_objs)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
@@ -1645,7 +1645,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
         else:
             raise ValueError,"|{0}| >> unknown mode: {1} | [{2}]".format(_str_func,_mode,self)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 def is_upToDate(self,report=False):
     _str_func = ' is_upToDate'

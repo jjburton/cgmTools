@@ -525,7 +525,7 @@ def template(self):
 
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 #=============================================================================================================
 #>> Prerig
@@ -983,7 +983,7 @@ def prerig(self):
     
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 #=============================================================================================================
 #>> Skeleton
@@ -1533,7 +1533,7 @@ def rig_shapes(self):
                 mJnt.radius = .00001                
         return
     except Exception,error:
-        cgmGEN.cgmException(Exception,error,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
 @cgmGEN.Timer
@@ -1643,7 +1643,7 @@ def rig_controls(self):
         mRigNull.faceSet.extend(ml_controlsAll)
         
     except Exception,error:
-        cgmGEN.cgmException(Exception,error,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
 @cgmGEN.Timer

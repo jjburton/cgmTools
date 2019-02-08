@@ -575,7 +575,7 @@ def rig_cleanUp(self):
         mMasterControl.doStore('version', self.d_block['buildVersion'])
         
         #log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-        #except Exception,err:cgmGEN.cgmException(Exception,err)
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 @cgmGEN.Timer
@@ -624,7 +624,7 @@ def rigDelete(self):
         self.v = 1
         try:self.moduleTarget.masterControl.masterGroup.delete()
         except Exception,err:
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
             raise Exception,err
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

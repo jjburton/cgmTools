@@ -107,7 +107,7 @@ def _reload():
             except Exception, e:
                 for arg in e.args:
                     log.error(arg)
-                cgmGen.cgmException(Exception,e)
+                cgmGen.cgmExceptCB(Exception,e)
             """log.debug("|{0}| >> Cull: {1} | Ordered: {2}".format(_str_func,
                                                                  len(_l_cull),
                                                                  len(_l_ordered)))"""            

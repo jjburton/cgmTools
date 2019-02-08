@@ -100,4 +100,4 @@ def get_nonintermediate(shape):
                 raise ValueError,"Not sure what to do with this many intermediate shapes: {0}".format(_l_matches)
         else:
             return shape
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)

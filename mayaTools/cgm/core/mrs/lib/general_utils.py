@@ -241,7 +241,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     
         return blockList,stringList
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 def walk_rigBlock_heirarchy(mBlock,dataDict = None, asMeta = True,l_processed = None):
     """
     

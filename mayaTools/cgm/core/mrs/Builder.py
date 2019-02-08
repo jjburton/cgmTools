@@ -935,7 +935,7 @@ class ui(cgmUI.cgmGUI):
                 for a in err.args:
                     log.info(a)
                     
-                cgmGEN.cgmException(Exception,err)
+                cgmGEN.cgmExceptCB(Exception,err)
                 raise Exception,err
             finally:
                 self._ui.uiRow_progress(edit=1,vis=0)
@@ -1328,7 +1328,7 @@ class ui(cgmUI.cgmGUI):
             return ml_context
                 
         #except Exception,err:
-        #    cgmGEN.cgmException(Exception,err)
+        #    cgmGEN.cgmExceptCB(Exception,err)
         finally:
             self.uiRow_progress(edit=1,vis=False)
             self.uiProgressText(edit=True,label='...')
@@ -1736,7 +1736,7 @@ class ui(cgmUI.cgmGUI):
             uiMenu_changeSpace(self,_popUp)
         
             return
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     def uiFunc_block_clearActive(self):
         #self.uiField_inspector(edit=True, label = '')
         self.uiField_report(edit=True, label = '')        
@@ -1860,7 +1860,7 @@ class ui(cgmUI.cgmGUI):
                         mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get_enumValueString(_short,a)))                   
                     else:
                         mUI.MelLabel(self.uiFrame_blockAttrs,l="{0}:{1}".format(a,ATTR.get(_short,a)))
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
              
     def uiCallback_setAttrFromField(self, obj, attr, attrType, field):
         _v = field.getValue()
@@ -3221,7 +3221,7 @@ def uiOptionMenu_blockSizeMode(self, parent, callback = cgmGEN.Callback):
                         rb = _rb)
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err))
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
                         
     
@@ -3251,7 +3251,7 @@ class uiCallback_withUpdate(object):
             for a in err.args:
                 log.debug(a)
                 
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
             raise Exception,err
         
         if self._mBlock == self._ui._blockCurrent:

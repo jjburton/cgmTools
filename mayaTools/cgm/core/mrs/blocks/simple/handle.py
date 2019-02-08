@@ -1325,7 +1325,7 @@ def rig_controls(self):
         
         
         return 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def rig_frame(self):
     try:
@@ -1416,7 +1416,7 @@ def rig_frame(self):
             
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def rig_cleanUp(self):
     _short = self.d_block['shortName']

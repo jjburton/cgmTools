@@ -199,6 +199,33 @@ d_block_profiles = {
             'baseSize':[14,9,76],
             },
     
+    'tentacle':{'attachPoint':'base',
+                'numShapers':4,
+                'addCog':False,
+                'cgmName':'tentacle',
+                'loftShape':'wideDown',
+                'loftSetup':'loftList',
+                'loftList':['wideDown','squircleDiamond','squircleDiamond','circle'],
+                'ikSetup':'spline',
+                'ikBase':'simple',
+                'ikEnd':'tipBase',            
+                'nameIter':'tentacle',
+                'numControls':6,
+                'numJoints':9,
+                'nameList':['base','tip'],
+                'squash':'both',
+                'squashExtraControl':True,
+                'squashMeasure':'pointDist',
+                'squashFactorMax':1.0,
+                'squashFactorMin':.25,
+                'ribbonAim':'stable',
+                'shapersAim':'chain',
+                'baseAim':[0,0,1],
+                'baseUp':[0,1,0],
+                'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,-1]},
+                'baseSize':[14,9,76],
+                },    
+    
     'spineFwd':{'numShapers':4,
              'numSubShapers':2,
              'addCog':True,
@@ -415,7 +442,7 @@ def define(self):
         
     
         #Define our controls ===================================================================
-        _d = {'end':{'color':'blueBright','defaults':{'ty':1}},
+        _d = {'end':{'color':'white','defaults':{'ty':1}},
               'rp':{'color':'redBright','defaults':{'tx':.5}},              
               'up':{'color':'greenBright','defaults':{'tz':-1}}}
         

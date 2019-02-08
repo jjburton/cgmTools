@@ -446,8 +446,8 @@ def define(self):
         
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
-              'end':{'color':'blueBright','name':'neckBase','defaults':{'ty':-1}},
-              'start':{'color':'blueBright','name':'neckEnd','defaults':{}},
+              'end':{'color':'white','name':'neckBase','defaults':{'ty':-1}},
+              'start':{'color':'white','name':'neckEnd','defaults':{}},
               'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
               'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
         for k,d in _d.iteritems():
@@ -866,7 +866,7 @@ def template(self):
         self.blockState = 'template'#...buffer
         
         return True
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
 #=============================================================================================================

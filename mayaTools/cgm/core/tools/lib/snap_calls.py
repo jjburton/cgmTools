@@ -150,7 +150,7 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast',
         mc.select(objects)
         return
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag
 reload(cgmDrag)
@@ -330,7 +330,7 @@ def specialSnap(obj = None, targets = None,
             
         POS.set(_obj,p)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
 def snap(obj = None, targets = None,
@@ -522,7 +522,7 @@ def snap(obj = None, targets = None,
         if scalePivot:
             log.debug("|{0}|...scalePivot...".format(_str_func))
             mc.xform(obj,sp = pos_target, p=True, **kws_xform)
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 def get_axisBox_size(targets = None, maxDistance = 10000000, mark=False):
@@ -563,7 +563,7 @@ def get_axisBox_size(targets = None, maxDistance = 10000000, mark=False):
             
         return d_res['x'],d_res['y'],d_res['z']
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 
@@ -689,4 +689,4 @@ def get_special_pos(targets = None,
         if _sel and not mark:
             mc.select(_sel)
         return _res
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)

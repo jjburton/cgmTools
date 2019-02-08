@@ -342,5 +342,5 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         #pprint.pprint(vars())
         
         return {'mObj':mi_control,'instance':mi_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}	
-    except Exception,err: cgmGeneral.cgmException(Exception,err)
+    except Exception,err: cgmGeneral.cgmExceptCB(Exception,err)
 

@@ -688,7 +688,7 @@ def uiFunc_createLoc(self,selfMode = False):
         SNAPCALLS.snap( obj,targets, **_d)
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def uiFunc_snap(self):
     try:
@@ -705,7 +705,7 @@ def uiFunc_snap(self):
         SNAPCALLS.snap( obj,targets, **_d)
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def uiFunc_snapOrdered(self):
     try:
@@ -725,7 +725,7 @@ def uiFunc_snapOrdered(self):
         reload(MMCONTEXT)
         MMCONTEXT.func_process(SNAPCALLS.snap,targets,'eachToNextReverse',**_d)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  

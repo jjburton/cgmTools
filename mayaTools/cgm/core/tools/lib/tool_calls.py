@@ -33,7 +33,7 @@ def cgmSnapTools():
         reload(SNAP)
         SNAP.ui()
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def mocapBakeTool():
     try:
@@ -41,7 +41,7 @@ def mocapBakeTool():
         reload(MOCAPBAKE)
         MOCAPBAKE.ui()
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def cgmUpdateTool():
     try:
@@ -49,7 +49,7 @@ def cgmUpdateTool():
         reload(CGMUPDATE)
         CGMUPDATE.ui()
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def locinator():
     from cgm.core.tools import locinator as LOCINATOR

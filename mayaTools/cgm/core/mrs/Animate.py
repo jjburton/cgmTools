@@ -1118,7 +1118,7 @@ class ui(cgmUI.cgmGUI):
         except Exception,err:
             print ('Unable to copy pose : %s > to Project dirctory' % self.poseSelected)
             
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
     def _uiPoseAddPoseHandler(self, *args):
         '''
@@ -1310,7 +1310,7 @@ class ui(cgmUI.cgmGUI):
         except r9Setup.ProPack_Error:
             log.warning('ProPack not Available')
         except Exception, error:
-            cgmGEN.cgmException(Exception,error,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,error,msg=vars())
             
         if objs and not func == 'HierarchyTest':
             mc.select(objs)
@@ -1351,7 +1351,7 @@ class ui(cgmUI.cgmGUI):
             log.info('Pose Stored to : %s' % path)
             self._uiCB_fillPoses(rebuildFileList=True)
         except Exception,error:
-            raise cgmGEN.cgmException(Exception,error,msg=vars())
+            raise cgmGEN.cgmExceptCB(Exception,error,msg=vars())
         
     def get_poseNodes(self,select=False):
         nodes = self._uiCB_getPoseInputNodes()

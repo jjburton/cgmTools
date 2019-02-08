@@ -112,7 +112,7 @@ def reset(node, attrs = None, amount = None):
                 log.error("{0}.{1} resetAttrs | error: {2}".format(node, attr,err))   	
         return _reset
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
     
         
@@ -435,7 +435,7 @@ def get(*a, **kws):
             return mc.getAttr(_combined, **kws)
     except Exception,err:
         if has_attr(*a):
-            cgmGeneral.cgmException(Exception,err)
+            cgmGeneral.cgmExceptCB(Exception,err)
         return False
 def set_keyframe(node, attr = None, value = None, time = None):
     """   
@@ -1200,7 +1200,7 @@ def break_connection(*a):
     
         return False
     except Exception,err:
-        cgmGeneral.cgmException(Exception,err,msg=vars())
+        cgmGeneral.cgmExceptCB(Exception,err,msg=vars())
 def disconnect(fromAttr,toAttr):
     """   
     Disconnects attributes. Handles locks on source or end
@@ -1365,7 +1365,7 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock
         if lock:
             set_lock(_node,_attr,lock)
         return _combined        
-    except Exception,err:cgmGeneral.cgmException(Exception,err)
+    except Exception,err:cgmGeneral.cgmExceptCB(Exception,err)
 def get_standardFlagsDict(*a):
     """   
     Returns a diciontary of locked,keyable,locked states of an attribute. If
@@ -2394,7 +2394,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
             storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
             
         return True
-    except Exception,err:cgmGeneral.cgmException(Exception,err)
+    except Exception,err:cgmGeneral.cgmExceptCB(Exception,err)
     
 def convert_type(node = None, attr = None, attrType = None):
     """   
@@ -3416,7 +3416,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
             set_lock(node,attr,lock)
         return True
     except Exception,err:
-        raise cgmGeneral.cgmException(Exception,err)
+        raise cgmGeneral.cgmExceptCB(Exception,err)
 def get_attrsByTypeDict(node,typeCheck = [],*a,**kws):
     """   
     Replacement for getAttr which get's message objects as well as parses double3 type 

@@ -717,7 +717,7 @@ def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     
 
         return _res
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 def create_closest_point_node(source = None, targetSurface = None, singleReturn = False):
     """
@@ -834,7 +834,7 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
                 mc.delete(n, _locs[i])
         
         return _locs[_idx], _nodes[_idx], _shapes[_idx], _types[_idx]
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 
     
@@ -975,7 +975,7 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
                 _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
         mc.delete([_loc],_created[0],_node)
         return _res
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
     _str_func = 'get_normalizedWeightsByDistance'

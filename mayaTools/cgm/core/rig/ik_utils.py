@@ -869,7 +869,7 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
         #    ATTR.set(_tessellate,a,v)
         mc.delete(l_crvs)
         return _res_body
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def ribbon(jointList = None,
@@ -2784,7 +2784,7 @@ def handle(startJoint,
         if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
         
         return d_return   
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 
@@ -3227,7 +3227,7 @@ def handleBAK(startJoint,
         if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
     
         return d_return   
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 
@@ -3868,4 +3868,4 @@ def ribbon_seal(driven1 = None,
 
 
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())

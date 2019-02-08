@@ -162,7 +162,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)  
 
         #pprint.pprint(vars())
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def driven_disconnect(driven = None, driver = None, mode = 'best'):
     """

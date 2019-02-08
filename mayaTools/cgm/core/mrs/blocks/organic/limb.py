@@ -578,7 +578,7 @@ def define(self):
         
         
         #Aim Controls ==================================================================
-        _d = {'end':{'color':'blueBright','defaults':{'tz':1}},
+        _d = {'end':{'color':'white','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':.5}},
               'rp':{'color':'redBright','defaults':{'tx':.5}},
               'lever':{'color':'yellow','defaults':{'tz':-.25}}}
@@ -7461,7 +7461,7 @@ def rigDelete2(self):
         
         return True
     except Exception,err:
-        raise cgmGEN.cgmException(Exception,err,msg=vars())
+        raise cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
     
 

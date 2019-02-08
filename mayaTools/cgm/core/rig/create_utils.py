@@ -62,7 +62,7 @@ def distanceMeasure(start = None, end = None, baseName = 'measureThis',asMeta=Tr
         if _res.get('loc_end'):
             _res['mLoc_end'] = cgmMeta.asMeta(_res['loc_end'])            
         return _res
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 def get_meshFromNurbs(nurbSurface = None, mode = 'default', uNumber = 10, vNumber = 10):

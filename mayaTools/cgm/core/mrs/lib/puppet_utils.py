@@ -65,7 +65,7 @@ def example(self):
         _str_func = ' example'.format(self)
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def get_shapeOffset(self):
     """
@@ -100,7 +100,7 @@ def get_shapeOffset(self):
         return 1
         
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def modules_get(self):
     try:
@@ -121,7 +121,7 @@ def modules_get(self):
                     ml_allModules.append(m)
                     
         return ml_allModules        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def modules_gather(self,**kws):
     try:
@@ -136,7 +136,7 @@ def modules_gather(self,**kws):
             _str_module = mModule.p_nameShort
             module_connect(self,mModule,**kws)
         return ml_modules
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def module_connect(self,mModule,**kws):
     try:
@@ -163,7 +163,7 @@ def module_connect(self,mModule,**kws):
     
         return True        
        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def is_upToDate(self,report = True):
@@ -450,7 +450,7 @@ def mirror_getNextIndex(self,side):
             return max(l_return)+1
         else:return 0        
      
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
     
@@ -484,7 +484,7 @@ def mirror_getDict(self):
                         d_return[int_side].append(int_idx)
         return d_return
      
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 #=============================================================================================================
 #>> Anim
@@ -507,7 +507,7 @@ def modules_settings_set(self,**kws):
             else:
                 log.debug("|{0}| >>  Missing settings: {1}".format(_str_func,mModule))
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_reset(self,transformsOnly = True):
     try:
@@ -524,7 +524,7 @@ def anim_reset(self,transformsOnly = True):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_select(self):
     try:
@@ -532,7 +532,7 @@ def anim_select(self):
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         self.puppetSet.select()
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_key(self,**kws):
     try:
@@ -551,7 +551,7 @@ def anim_key(self,**kws):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 @cgmGEN.Timer
 def layer_verify(self,**kws):
@@ -576,7 +576,7 @@ def layer_verify(self,**kws):
             self.connectChildNode(mLayer.mNode,'controlLayer')
         
         return self.displayLayer, self.controlLayer
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def armature_verify(self):
@@ -874,7 +874,7 @@ def groups_verify(self):
             elif attr == 'puppetSpaceObjects':
                 mGroup.addAttr('cgmAlias','puppet')
                 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def collect_worldSpaceObjects(self,progressBar = None):
     _str_func = 'collect_worldSpaceObjects'

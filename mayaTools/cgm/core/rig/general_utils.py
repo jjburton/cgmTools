@@ -639,7 +639,7 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
 
     except Exception,err:
         #pprint.pprint(vars())
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         raise Exception,err
     
 def split_blends(driven1 = None,
@@ -871,4 +871,4 @@ def split_blends(driven1 = None,
         return d_dat
 
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())    
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())    

@@ -228,10 +228,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err)) 
                 _msg= ("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err))
                 if not forceReset:
-                    cgmGEN.cgmException(Exception,err,msg=_msg)                    
+                    cgmGEN.cgmExceptCB(Exception,err,msg=_msg)                    
 
         return True
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def set_nameListFromName(self):
     try:
@@ -247,7 +247,7 @@ def set_nameListFromName(self):
             self.datList_connect('nameList',_l)
             return _l
         return False
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
         
 def set_nameTag(self,nameTag = None):
@@ -281,7 +281,7 @@ def set_nameTag(self,nameTag = None):
         self.cgmName = nameTag
         self.doName()
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def set_blockNullTemplateState(self,state=True, define = True, template=True,prerig=True):
     _str_func = 'set_blockNullTemplateState'
@@ -404,7 +404,7 @@ def set_side(self,side=None):
         self.doName()
         color(self)
             
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def set_position(self,position=None,ui=False):
     try:
@@ -439,7 +439,7 @@ def set_position(self,position=None,ui=False):
             return False
         
         self.doName()
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def color(self):
     try:
@@ -463,7 +463,7 @@ def color(self):
                     mHandleFactory.color(mShape.mNode)
             
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 
 def test(self):
@@ -498,7 +498,7 @@ def get_infoBlock_report(self):
                 _res.append("{0} : {1}".format(a,ATTR.get_enumValueString(_short,a)))
         return _res
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 #=============================================================================================================
 #>> Utilities
@@ -551,7 +551,7 @@ def is_template(self):
         return msgDat_check(self, get_stateLinks(self,'template'))
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def templateDeleteBAK(self,msgLinks = []):
     try:
@@ -564,7 +564,7 @@ def templateDeleteBAK(self,msgLinks = []):
                 mc.delete(self.getMessage(link))
         return True
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def templateNull_verify(self):
     if not self.getMessage('templateNull'):
@@ -684,7 +684,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         self.connectChildNode(mLoft.mNode, 'templateLoftMesh', 'block')    
         return mLoft
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 #=============================================================================================================
 #>> Prerig
@@ -710,7 +710,7 @@ def noTransformNull_verify(self,mode='template'):
     
         return mNoTransformNull    
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def prerigNull_verify(self):
     try:
@@ -728,7 +728,7 @@ def prerigNull_verify(self):
             
         return mPrerigNull
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def prerig_simple(self):
     _str_func = 'prerig_simple'
@@ -775,7 +775,7 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
                 mc.delete(_buffer)
         return True   
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def delete(self):
     _d_delete = {4:rigDelete,
@@ -879,7 +879,7 @@ def get_stateLinks(self, mode = 'template' ):
         return d_wiring
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def is_prerig(self):
     try:
@@ -887,7 +887,7 @@ def is_prerig(self):
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         return msgDat_check(self, get_stateLinks(self,'prerig'))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def is_skeleton(self):
     try:
@@ -909,7 +909,7 @@ def is_skeleton(self):
         
         return msgDat_check(self, get_stateLinks(self,'skeleton'))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     try:
@@ -935,7 +935,7 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
             return False
         return True
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def get_castMesh(self):
     mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
@@ -1022,7 +1022,7 @@ def create_defineLoftMesh(self, targets = None,
         
         return mLoftSurface
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def create_prerigLoftMesh(self, targets = None,
                           mPrerigNull = None,
@@ -1173,7 +1173,7 @@ def create_prerigLoftMesh(self, targets = None,
         
         return mLoftSurface
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def create_simpleTemplateLoftMesh(self, targets = None,
                                   mNull = None,
@@ -1360,7 +1360,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         
         return mLoftSurface
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def create_jointLoft(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseCount = 1, baseName = 'test',degree = 1,
@@ -1549,7 +1549,7 @@ def rigDeleteBAK(self,msgLinks = []):
                 
         return True
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 """
 l_pivotOrder = ['center','back','front','left','right']
@@ -2651,7 +2651,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
                 log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
                 raise Exception,"Limit Buffer not implemented"
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOrientHelper = None):
     """
@@ -2956,7 +2956,7 @@ def duplicate2(self):
         mDup.loadBlockDat(self.getBlockDat())
         mDup.doName()
         return mDup
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def duplicate(self, uiPrompt = True, forceNew = False):
     """
@@ -3036,7 +3036,7 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         #mDup.p_blockParent = self.p_blockParent
         #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
         return mDup
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
     
@@ -3140,7 +3140,7 @@ def blockMirror_create(self, forceNew = False):
         
         blockMirror_settings(self,mMirror)
         return mMirror
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def blockMirror_go(self, mode = 'push',autoCreate = False):
     """
@@ -3161,7 +3161,7 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
             controls_mirror(mMirror,self)
 
         return mMirror
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def blockMirror_settings(blockSource, blockMirror = None,
                          mode = 'push'):
@@ -3386,7 +3386,7 @@ def mirror_blockDat(self = None, mirrorBlock = None, reflectionVector = MATH.Vec
                 if childBlock:
                     Block.MirrorBlockPush(childBlock)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
     '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
@@ -3521,7 +3521,7 @@ def blockDat_get(self,report = True):
         if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
         return _d
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 def blockDat_save(self):
     self.blockDat = blockDat_get(self,False)
@@ -4334,7 +4334,7 @@ def get_blockDagNodes(self):
                 if ml:
                     ml_controls.extend(ml)
         return ml_controls
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def controls_get(self,define = False, template = False, prerig= False):
     try:
@@ -4387,7 +4387,7 @@ def controls_get(self,define = False, template = False, prerig= False):
                 if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper)
 
         return ml_controls
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def controls_mirror(blockSource, blockMirror = None,
                     mirrorMode = 'push', 
@@ -4727,7 +4727,7 @@ def controls_mirror(blockSource, blockMirror = None,
                 
         return l_dat,md_remap
     
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 def controlsRig_reset(self):
     try:
         
@@ -4737,7 +4737,7 @@ def controlsRig_reset(self):
         
         self.moduleTarget.rigNull.moduleSet.reset()
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 _d_attrStateMasks = {0:[],
@@ -4810,7 +4810,7 @@ def uiQuery_getStateAttrs(self,mode = None):
         return l_attrs
 
      
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 #=============================================================================================================
 #>> State Changing
@@ -4868,7 +4868,7 @@ def test_exception(self,*args,**kws):
     try:
         raise ValueError,"here"
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
     
 def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
@@ -5978,7 +5978,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
             if not d_upStateFunctions[_state_target](self):return False
             return True
     
-    #except Exception,err:cgmGEN.cgmException(Exception,err)
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def get_shapeOffset(self):
     """
@@ -5999,7 +5999,7 @@ def get_shapeOffset(self):
                     log.debug("|{0}| >> {1} attr found on rigBlock: {2} | {3}".format(_str_func,a,v,mBlock.mNode))                
                     return v            
         return 1
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def puppet_get(self,mModuleTarget = None):
     try:
@@ -6022,7 +6022,7 @@ def puppet_get(self,mModuleTarget = None):
                 else:
                     mPuppet = False
         return mPuppet
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def puppet_verify(self):
     """
@@ -6079,7 +6079,7 @@ def puppet_verify(self):
     
         return mPuppet                
  
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
     """
@@ -6133,7 +6133,7 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
         #ATTR.set(mModule.mNode,'moduleType',_moduleType,lock=True)
         return mModule
  
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def is_rigged(self):
     try:
@@ -6146,7 +6146,7 @@ def is_rigged(self):
             return False
         return self.moduleTarget.atUtils('is_rigged')
 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def checkState(self,asString=True):
     return getState(self,asString,False)
@@ -6221,7 +6221,7 @@ def getState(self, asString = True, fastCheck=True):
         if asString:
             return _goodState
         return _l_blockStates.index(_goodState)
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 #Profile stuff ==============================================================================================
@@ -6269,7 +6269,7 @@ def nameList_resetToProfile(self,arg = None):
         log.debug("|{0}| >>  New: {1}".format(_str_func,self.datList_get('nameList')))
         return l_nameList
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 
 def blockProfile_getOptions(self):
@@ -6285,7 +6285,7 @@ def blockProfile_getOptions(self):
         except Exception,err:
             return log.error("|{0}| >>  Failed to query. | {1}".format(_str_func,err))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
         
 def blockProfile_load(self, arg):
@@ -6487,7 +6487,7 @@ def doSize(self, mode = None, postState = None):
 
     
     #except Exception,err:
-        #cgmGEN.cgmException(Exception,err)
+        #cgmGEN.cgmExceptCB(Exception,err)
 
 
 def get_loftCurves(self):
@@ -7025,7 +7025,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
             mCrv.dagLock()
         return {'md_curves':md_defineCurves,
                 'ml_curves':ml_defineCurves}
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
     try:
@@ -7119,7 +7119,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         #Aim them...
         #Make our loft...
         return mPlane
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]):
     try:
@@ -7607,7 +7607,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 'md_vector':md_vector,
                 'md_jointLabels':md_jointLabels}
  
-    except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
     
 def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
@@ -7914,7 +7914,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
     
         return True
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
         
 def focus(self,arg=True,mode='vis',ml_focus = None):
@@ -7958,4 +7958,4 @@ def focus(self,arg=True,mode='vis',ml_focus = None):
             
         #cgmGEN.func_snapShot(vars())
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())

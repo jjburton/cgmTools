@@ -223,7 +223,7 @@ def eyeLook_verify(self):
         return mCrv
     
     except Exception,error:
-        cgmGEN.cgmException(Exception,error,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
    
 
@@ -551,7 +551,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
     
         return True
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def build_skeleton(positionList = [], joints = 1, axisAim = 'z+', axisUp = 'y+', worldUpAxis = [0,1,0],asMeta = True):
     _str_func = 'build_skeleton'
@@ -1314,8 +1314,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             aimVector = self.d_orientation['vectorAim']
         
 
-        
-        
         #Get our prerig handles if none provided
         if mode not in ['singleCurve']:
             if targets is None:
@@ -1367,7 +1365,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     'limbSegmentHandle',
                     'limbSegmentHandleBack',
                     'simpleCast',
-                    'singleCurve',
                     'singleCast']:
             #Get our cast mesh        
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
@@ -1377,7 +1374,8 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             
             minU = ATTR.get(str_meshShape,'minValueU')
             maxU = ATTR.get(str_meshShape,'maxValueU')
-            
+            if f_factor is None:
+                f_factor = (maxU-minU)/(20)                            
             l_failSafes = MATH.get_splitValueList(minU,maxU,
                                                   len(ml_targets))
 
@@ -1409,11 +1407,6 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     #>>For each v value, make a new curve -----------------------------------------------------------------        
                     baseCrv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
                     DIST.offsetShape_byVector(baseCrv,offset)
-                    #offsetCrv = mc.offsetCurve(baseCrv, distance = -offset, ch=False, normal = _normal )[0]
-                    #log.debug("|{0}| >> created: {1} ...".format(_str_func,offsetCrv))
-                    #mc.delete(baseCrv)
-                    #mTrans = mTar.doCreateAt()
-                    #CORERIG.shapeParent_in_place(mTrans.mNode, crv, False)
                     ml_shapes.append(cgmMeta.validateObjArg(baseCrv))
                     
             elif mode in ['segmentHandle','ikHandle','frameHandle','castHandle','limbHandle','limbSegmentHandleBack','limbSegmentHandle','simpleCast','singleCast',
@@ -2066,7 +2059,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         
         if mMesh_tmp:mMesh_tmp.delete()
         return ml_shapes
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
 
@@ -2435,7 +2428,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         #>>Parent to the joints ----------------------------------------------------------------- 
         return l_new
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
 
@@ -2469,7 +2462,7 @@ def joints_connectToParent(self):
             
         
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start))) 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 check_nameMatches = RIGGEN.check_nameMatches

@@ -1223,7 +1223,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         return l_spanUPositions
 
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 #>>>>PRE Refactor ============================================================================================
 def returnSplitCurveList(*args, **kws):
