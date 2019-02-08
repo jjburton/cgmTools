@@ -1504,7 +1504,7 @@ class handleFactory(object):
             mTar.doName()
             
                 
-    def color(self, target = None, side = None, controlType = None, transparent = None):
+    def color(self, target = None, side = None, controlType = None, transparent = None,shaderOnly =True):
         _str_func = 'handleFactory.color'
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         _targets = VALID.listArg(target)
@@ -1550,11 +1550,12 @@ class handleFactory(object):
                 for s in _shapes:
                     log.debug("|{0}| >> s: {1}".format(_str_func, s))
                     _useType = _controlType
+                    _type = VALID.get_mayaType(s)
                     if controlType is not None:
                         log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
                         ATTR.store_info(s,'cgmControlType',controlType)
                         
-                    if transparent is not None and VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                    if transparent is not None and _type in ['mesh','nurbsSurface']:
                         log.debug("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
                         ATTR.store_info(s,'cgmControlTransparent',transparent)
                         
@@ -1563,7 +1564,8 @@ class handleFactory(object):
                         log.debug("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
                     log.debug("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
                         
-                    CORERIG.colorControl(s,_side,_useType,transparent = _transparent)
+                    CORERIG.colorControl(s,_side,_useType,transparent = _transparent,shaderOnly=shaderOnly)
+                        
 
 
     def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
@@ -1611,7 +1613,7 @@ class handleFactory(object):
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
 
-        if _baseShape not in ['sphere']:
+        if _baseShape not in ['sphere','sphere2','cube','locatorForm']:
             _baseSize = [_baseSize[0],_baseSize[1],None]
 
         if baseShape == 'self':

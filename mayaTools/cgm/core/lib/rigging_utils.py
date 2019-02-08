@@ -1074,7 +1074,7 @@ def get_RGB_fromHSV(rValue = 0, gValue = 0, bValue = 0, getNode = False):
     return res
     
 def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,
-                 rgb = True, shaderSetup = True,transparent = False,proxy=False, directProxy=False):
+                 rgb = True, shaderSetup = True,shaderOnly=False,transparent = False,proxy=False, directProxy=False):
     """
     Sets the override color on shapes and more
     
@@ -1115,11 +1115,12 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         log.debug("|{0}| >> shapes: {1} ...".format(_str_func,TRANS.shapes_get(t,True)))  
         log.debug("|{0}| >> type: {1} ...".format(_str_func,_type))
         
-        if rgb:
-            override_color(t,_color,pushToShapes=pushToShapes )
-        else:
-            _v = SHARED._d_colors_to_index[_color]
-            override_color(t,index=_v,pushToShapes=pushToShapes )
+        if not shaderOnly:
+            if rgb:
+                override_color(t,_color,pushToShapes=pushToShapes )
+            else:
+                _v = SHARED._d_colors_to_index[_color]
+                override_color(t,index=_v,pushToShapes=pushToShapes )
             
         if shaderSetup:
             mc.sets(t, edit=True, remove = 'initialShadingGroup')

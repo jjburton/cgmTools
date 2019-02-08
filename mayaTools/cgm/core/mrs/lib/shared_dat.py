@@ -139,7 +139,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'visRotatePlane':'bool',                   
                    'visMeasure':'bool',}
 
-_l_defineHandlesOrder = ['end','up','rp','aim','lever']
+_l_defineHandlesOrder = ['end','start','up','rp','aim','lever']
 _l_pivotOrder = ['center','back','front','left','right']
 _d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
                       'right':{'left':'inner','right':'outer'}}

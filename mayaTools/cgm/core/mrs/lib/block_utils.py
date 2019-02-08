@@ -4911,7 +4911,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         if _loftSetup == 'loftList':
             _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
             if len(_l_loftShapes) != _int_shapers:
-                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShap".format(_str_func,i,n))
+                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,n))
                 while len(_l_loftShapes) < _int_shapers:
                     _l_loftShapes.append(self.loftShape)
         else:
@@ -4927,7 +4927,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         #pprint.pprint(vars())
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_handle, shapeDirection = 'z+')
+            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
             mHandle.p_parent = mTemplateNull
         
             mHandle.resetAttrs()
@@ -7027,7 +7027,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
-def create_define_rotatePlane(self, md_handles,md_vector):
+def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
     try:
         _str_func = 'create_define_rotatePlane'        
         _side = self.UTILS.get_side(self)
@@ -7036,7 +7036,9 @@ def create_define_rotatePlane(self, md_handles,md_vector):
         vector_pos = md_vector['rp'].getAxisVector('y+',asEuclid = 0)
         vector_neg = md_vector['rp'].getAxisVector('y-',asEuclid = 0)        
         
-        mStart = self
+        if mStartParent:
+            mStart = mStartParent
+        else:mStart = self
         mEnd = md_handles['end']
     
     
@@ -7079,8 +7081,11 @@ def create_define_rotatePlane(self, md_handles,md_vector):
             
             mCrv.p_parent = mDefineNull
             
-            mEnd.doConnectOut('height', "{0}.scaleX".format(mCrv.mNode))
-            mEnd.doConnectOut('height', "{0}.scaleY".format(mCrv.mNode))
+            #mEnd.doConnectOut('height', "{0}.scaleX".format(mCrv.mNode))
+            #mEnd.doConnectOut('height', "{0}.scaleY".format(mCrv.mNode))
+            mCrv.scaleX = mEnd.height
+            mCrv.scaleY = mEnd.height
+            mc.scaleConstraint(mEnd.mNode, mCrv.mNode)
             
             mCrv.v=False
             
@@ -7113,6 +7118,7 @@ def create_define_rotatePlane(self, md_handles,md_vector):
         mPlane.dagLock()
         #Aim them...
         #Make our loft...
+        return mPlane
     except Exception,err:cgmGEN.cgmException(Exception,err,msg=vars())
 
 def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]):
@@ -7143,7 +7149,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 continue
             
             log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
-            if k == 'end':
+            if k in ['end','start']:
                 _useSize = 1.0
             else:
                 _useSize = _sizeSub
@@ -7156,7 +7162,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             if k in ['up','rp'] and rotVecControl:
                 _rotSize = [1,1,1]
                 if k == 'rp':
-                    _rotSize = [1.75,1.75,.75]
+                    _rotSize = [2.0,2.0,.75]
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
                                               direction = 'y+', size = _rotSize)                
@@ -7165,15 +7171,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 #                         baseName='up')
             
                 mHandle = cgmMeta.validateObjArg(_crv)
-                mHandle.p_parent = mParent
+                mHandle.p_parent = mParentNull
                 mHandle.resetAttrs()
-                
-                ATTR.set_standardFlags(mHandle.mNode,['tx','ty','tz','sx','sy','sz'])
-            
+                            
                 mHandle.doStore('mClass','cgmObject')            
                 
-                if k not in ['end']:
-                    mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
+                #if k not in ['end','star']:
+                mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
                     
                 if _tagOnly:
                     mHandle.doStore('cgmName',k)
@@ -7223,7 +7227,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mHandle.doSnapTo(self.mNode)
                 CORERIG.override_color(_crv, _dtmp['color'])
             
-                if k not in ['end']:
+                if k not in ['end','start']:
                     mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
                     
                 if _tagOnly:
@@ -7271,14 +7275,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             if _trackTag:
                 mParent = md_handles[_trackTag]
             else:
-                mParent = mParentNull            
+                mParent = mParentNull
             
-            #Aim the handle.........................
-            if k == 'end':
-                """
-                mc.aimConstraint(self.mNode, mHandle.mNode, maintainOffset = False,
-                                 aimVector = [0,0,-1], upVector = [0,0,0], 
-                                 worldUpType = 'none')"""
                         
                         
             if k == 'lever':#Arrow ---------------------------------------------
@@ -7296,6 +7294,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             #Helper --------------------------------------------------------------------------------
             if _dtmp.get('vectorLine') !=False:
                 if rotVecControl and k in ['up','rp']:pass
+                elif k in ['start']:pass
                 else:
                     _crv = CORERIG.create_at(create='curveLinear', 
                                              l_pos=[[0,0,0],[0,0,_size / 2.0]], 
@@ -7325,6 +7324,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 
             if _dtmp.get('arrow') !=False:#Arrow ---------------------------------------------
                 if rotVecControl and k in ['up','rp']:pass
+                elif k in ['start']:pass                
                 else:                
                     _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
                                                     direction = 'z+', size = _sizeSub)
@@ -7370,6 +7370,15 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
         self.msgList_connect('defineHandles', ml_handles)
         
+        #Parent the tags
+        for k in l_order:
+            _dtmp = d_definitions.get(k,False)
+            _trackTag = _dtmp.get('parentTag',False)
+            if _trackTag:
+                mc.pointConstraint(md_handles[_trackTag].mNode,  md_handles[k].mNode, maintainOffset = False)
+
+        
+        
         #Parent Up to aim ---------------------------------------------
         """
         if md_handles.get('up') and md_vector.get('end'):
@@ -7409,21 +7418,31 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             #SNAP.aim_atPoint(md_handles['end'].mNode,self.p_position,'z-')
             #aim
             if rotVecControl:
-                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
-                                aimVector = [0,0,-1], upVector = [0,1,0], 
+                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = False,
+                                aimVector = [0,0,1], upVector = [0,1,0], 
                                 worldUpObject = self.mNode,
                                 worldUpType = 'objectRotation', 
                                 worldUpVector = blockUpVector)
             else:
-                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = True,
-                                 aimVector = [0,0,-1], upVector = [0,1,0], 
+                mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
                                  worldUpObject = md_vector.get('up').mNode,
                                  worldUpType = 'objectRotation', 
                                  worldUpVector = [0,1,0])
-            #FINISH THE AIM BACK< JOOISD:fla;sldkjf;aslkdjf;lksdjf;laksjdf;lksjadf;lkjasdf;lk
-            
+                
+        if  md_handles.get('start'):
+            mc.aimConstraint(md_handles.get('end').mNode, md_handles.get('start').mNode, maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                             worldUpObject = md_vector.get('up').mNode,
+                             worldUpType = 'objectRotation', 
+                             worldUpVector = [0,1,0])            
 
 
+        if rotVecControl:
+            for k in 'rp','up':
+                if md_handles.get(k):
+                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz','sx','sy','sz'])
+                    
         if md_handles.get('end'):
             _rotUpType = 'object'
             if rotVecControl:
@@ -7449,7 +7468,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             mBaseSizeHandle.doStore('cgmName',self)
             mBaseSizeHandle.doStore('cgmTypeModifier',k)
             mBaseSizeHandle.doStore('cgmType','baseSizeBase')
-            mBaseSizeHandle.doName()                    
+            mBaseSizeHandle.doName()
+            
+            if md_handles.get('start'):
+                mc.pointConstraint(md_handles['start'].mNode, mBaseSizeHandle.mNode,maintainOffset=False)
+                
         
             mBaseSizeHandle.dagLock()
         
@@ -7536,11 +7559,15 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                          baseName = self.cgmName )
         
             
+
             for tag,mHandle in md_handles.iteritems():
                 if tag in ['lever']:
                     continue
                 if tag in ['up','rp'] and rotVecControl:
                     continue
+                if tag in ['start']:
+                    ATTR.set_standardFlags(mHandle.mNode,attrs = ['sx','sy','sz'])
+                    
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
             #Scaling our up vector =============================================================
@@ -7565,6 +7592,14 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 #md_handles['end'].doConnectOut('scaleX',"{0}.scaleZ".format(md_handles['up'].mNode) )
                 
                 #mScaleGroup = md_handles['up'].doGroup(True,asMeta=True,typeModifier = 'scale')
+            if md_handles.get('start'):
+                mHandleFactory.color(md_handles['start'].mNode)
+                mHandleFactory.color(md_jointLabels['start'].mNode)                
+                if  md_handles.get('end'):
+                    md_handles['end'].doConnectOut('scaleX',"{0}.scaleX".format(md_handles['start'].mNode))
+                    md_handles['end'].doConnectOut('scaleY',"{0}.scaleY".format(md_handles['start'].mNode))
+                    #mPlug.doConnectOut("{0}.scaleZ".format(md_handles['start'].mNode))
+                
                 
 
         return {'md_handles':md_handles,
