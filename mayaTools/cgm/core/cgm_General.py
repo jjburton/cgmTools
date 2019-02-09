@@ -970,7 +970,7 @@ class Callback(object):
                 
             cgmException(Exception,err)
             raise Exception,err
-        
+CB = Callback
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
     """
     Function to call from a given module a function by string name with args and kws. 

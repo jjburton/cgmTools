@@ -6748,7 +6748,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             
     
 
-def create_simpleMesh(self, forceNew = True, skin = False,connect=True):
+def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHistory=False):
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -6787,7 +6787,7 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True):
         ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2)
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -6836,7 +6836,8 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True):
     return ml_mesh
             
 
-def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,deleteHistory = True,divisions=None):
+def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,
+                          deleteHistory = True,divisions=None):
     """
     form
     0 - count
@@ -6899,6 +6900,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
                                        vSplit=vSplit,
                                        cap = cap,
                                        form=form,
+                                       deleteHistory=deleteHistory,
                                        degree=degree)
     
     """
@@ -7877,7 +7879,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         except Exception,err:
             return log.warning("|{0}| >> No rp helper found: {1}".format(_str_func,self))
         #vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
-        vec_base = MATH.get_obj_vector(mOrientHelper, 'z+')        
+        vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')        
         log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
         
         #...Get vector -----------------------------------------------------------------------

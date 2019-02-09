@@ -870,56 +870,123 @@ class ui(cgmUI.cgmGUI):
                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                    'atUtils', 'define_set_baseSize',
                                                                    **{'updateUI':0})}},
-               'Prerig':{'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
-                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                      'atUtils', 'prerig_get_rpBasePos',
-                                      **{'markPos':1,'updateUI':0})},
-                         'Snap RP to Orient':{'ann':'Snap rp hanlde to orient vector',
-                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                         'atUtils', 'prerig_snapRPtoOrientHelper',
-                                         **{'updateUI':0})},
-                         'Query Indices':{'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                 'atBlockModule', 'get_handleIndices',
-                                                                 **{'updateUI':0})},
-                         'Snap to RP':{'ann':'Snap handles to rp plane',
-                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                       'atUtils', 'prerig_snapHandlesToRotatePlane',
-                                       **{'updateUI':0})},
-                         },
-               'Queries':{'Visualize':{'ann':'Visualize the block tree in the script editor',
-                                        'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                               'VISUALIZEHEIRARCHY',
-                                                               **{'updateUI':0})},
-                          'Get Mesh':{'ann':'Generate Simple mesh',
-                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                             'atUtils','create_simpleMesh',
-                                                             **{'connect':False,'updateUI':0})},
-                          'Buildable?':{'ann':'Check if the block is buildable (DEV)',
-                                        'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                               'getModuleStatus',
-                                                               **{'updateUI':0})}},
-               'Names':{ 'divTags':['Position | Set tag'],
-                         'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
-                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                  'atUtils','set_nameTag', **{})},
-                         'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
-                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                      'atUtils','set_position',
-                                                                      **{'ui':True})},
-                        'nameList | reset':{'ann':'Reset the name list to the profile',
-                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                              'atUtils','nameList_resetToProfile',
-                                                              **{})},
-                         'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
-                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                              'atUtils','set_nameListFromName',
-                                                              **{})}}                      }
+               'Prerig':{
+                   'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
+                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                'atUtils', 'prerig_get_rpBasePos',
+                                **{'markPos':1,'updateUI':0})},
+                   'Snap RP to Orient':{'ann':'Snap rp hanlde to orient vector',
+                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                   'atUtils', 'prerig_snapRPtoOrientHelper',
+                                   **{'updateUI':0})},
+                   'Query Indices':{'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                           'atBlockModule', 'get_handleIndices',
+                                                           **{'updateUI':0})},
+                   'Snap to RP':{'ann':'Snap handles to rp plane',
+                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                 'atUtils', 'prerig_snapHandlesToRotatePlane',
+                                 **{'updateUI':0})},
+                   },
+               'Queries':{
+                   'Visualize':{'ann':'Visualize the block tree in the script editor',
+                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                       'VISUALIZEHEIRARCHY',
+                                                       **{'updateUI':0})},
+                  'Buildable?':{'ann':'Check if the block is buildable (DEV)',
+                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                       'getModuleStatus',
+                                                       **{'updateUI':0})}},
+               'Geo':{
+                   'order':['Block Mesh','Block Loft','Puppet Mesh',
+                            'Unified','Unified [Skinned]',
+                            'Parts Mesh','Parts Mesh [Skinned]',
+                            'Proxy Mesh [Parented]','Delete',
+                            ],
+                   'divTags':['Delete'],
+                   'headerTags':['Puppet Mesh'],
+                   'Block Mesh':{'ann':'Generate Simple mesh',
+                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0})},
+                   'Block Loft':{'ann':'Generate Simple mesh with history to weak the loft manually',
+                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':0})},
+                   'Unified':{'ann':"Create a unified unskinned puppet mesh from the active block's basis.",
+                              'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                               **{'unified':True,'skin':False})},
+                   'Unified [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':True,'skin':True})},
+                   'Parts Mesh':{
+                       'ann':"Create parts unskinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':False})},
+                   'Parts Mesh [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':True})},
+                   'Proxy Mesh [Parented]':{
+                       'ann':"Create proxy puppet mesh parented to skin joints from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'proxy':True,'unified':False,'skin':False})},
+                   'Delete':{
+                       'ann':"Remove skinned or wired puppet mesh",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete')},
+                   },
+               'Names':{ 
+                   'divTags':['nameList | iter baseName'],
+                   'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
+                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                            'atUtils','set_nameTag', **{})},
+                   'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
+                                         'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                'atUtils','set_position',
+                                                                **{'ui':True})},
+                  'nameList | reset':{'ann':'Reset the name list to the profile',
+                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                        'atUtils','nameList_resetToProfile',
+                                                        **{})},
+                   'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
+                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                        'atUtils','set_nameListFromName',
+                                                        **{})}}                      }
+        """
+        mUI.MelMenuItem(_mMesh, l="Unified",
+                        ann = "Create a unified unskinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':True,'skin':False}))
+        mUI.MelMenuItem(_mMesh, l="Unified [Skinned]",
+                        ann = "Create parts skinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':True,'skin':True}))        
+        mUI.MelMenuItem(_mMesh, l="Parts Mesh",
+                        ann = "Create parts unskinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':False,'skin':False}))
+        mUI.MelMenuItem(_mMesh, l="Parts Mesh [Skinned]",
+                        ann = "Create parts skinned puppet mesh from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':False,'skin':True}))
+        mUI.MelMenuItem(_mMesh, l="Proxy Mesh [Parented]",
+                        ann = "Create proxy puppet mesh parented to skin joints from the active block's basis.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'proxy':True,'unified':False,'skin':False}))        
+        mUI.MelMenuItem(_mMesh, l="Delete",
+                        ann = "Remove skinned or wired puppet mesh",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete'))        
+        
+        """
+        
+        
         
         l_keys = d_s.keys()
         l_keys.sort()
         for s in l_keys:
             d = d_s[s]
             divTags = d.get('divTags',[])
+            headerTags = d.get('headerTags',[])
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
                             label = s,
                             en=True,)
@@ -935,18 +1002,32 @@ class ui(cgmUI.cgmGUI):
                 
                 continue
             
-            l_keys2 = d.keys()
-            l_keys2.sort()
+            l_keys2 = d.get('order',False)
+            if l_keys2:
+                for k in d.keys():
+                    if k not in l_keys2:
+                        l_keys2.append(k)
+            else:
+                l_keys2 = d.keys()
+                l_keys2.sort()
             for l in l_keys2:
-                if l == 'divTags':
+                if l in ['divTags','headerTags','order']:
+                    continue
+                if l in divTags:
+                    mUI.MelMenuItemDiv(_sub)                
+                if l in headerTags:
+                    mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItem(_sub,
+                                    label = "--- {0} ---".format(l.upper()),
+                                    en=False)
+                    mUI.MelMenuItemDiv(_sub)
                     continue
                 d2 = d[l]
                 mUI.MelMenuItem(_sub,
                                 label = l,
                                 ann = d2.get('ann',''),
                                 c=d2.get('call'))
-                if l in divTags:
-                    mUI.MelMenuItemDiv(_sub)
+
                     
 
         log.info("Context menu rebuilt")        

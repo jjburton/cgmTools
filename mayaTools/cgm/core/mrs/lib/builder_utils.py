@@ -832,7 +832,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit=0, divisions = None,
-                    cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True ):
+                    cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True,deleteHistory =True ):
     """
     Create lofted mesh from target curves.
 
@@ -910,7 +910,8 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     if form == 2:
         mc.polyNormal(_res_body[0],nm=0)           
     
-    
+    if not deleteHistory:
+        return _res_body[0]
     if merge:
         #Get our merge distance
         l_cvPoints = []
