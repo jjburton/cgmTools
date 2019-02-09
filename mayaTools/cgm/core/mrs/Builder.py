@@ -79,6 +79,244 @@ def check_cgm():
         import cgm
         cgm.core._reload()
         
+class ui_stepBuild(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmBuilderSteppped'    
+    WINDOW_TITLE = 'cgmBuilder | Stepped | - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,275
+    
+    _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
+    def __init__(self,mBlock = None, *a,**kws):
+        self.mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock',True)
+        self.block = None
+        if mBlock:
+            self.block = self.mBlock.mNode
+        super(ui_stepBuild, self).__init__(*a,**kws)
+        
+    def insert_init(self,*args,**kws):
+        _str_func = 'post_win.insert_init'
+        #kws = self.kws
+        #args = self.args
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        #log.debug(self.__call__(q=True, title=True))
+        
+        self.__version__ = __version__
+        self.__toolName__ = 'Builder'		
+        self.WINDOW_TITLE = ui_stepBuild.WINDOW_TITLE
+        self.DEFAULT_SIZE = ui_stepBuild.DEFAULT_SIZE
+
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                    defaultValue = 'unityMed')
+                
+        
+    def build_menus(self):pass
+    
+    @cgmGEN.Timer
+    def uiFunc_process(self):
+        _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug("|{0}| >>...".format(_str_func))
+        try:
+            if not self.mBlock:
+                if self.block:
+                    self.mBlock = cgmMeta.validateObjArg(self.block,'cgmRigBlock',True)
+                    
+            if not self.mBlock:
+                return log.warning("|Post| >> No Block loaded")
+
+            self.uiStatus(edit=True,vis=True,label = 'Processing...')
+            
+            """
+            l_toDo = []
+            l_order = ['Mirror Verify','Gather Space Drivers',
+                       'bakeQSS','deleteQSS','exportQSS',
+                       'isHistoricallyInteresting','proxyMesh',
+                       'connectRig','Delete Blocks']
+            d_keyToFunction = {'Mirror Verify':'mirror_verify',
+                               'Gather Space Drivers':'collect_worldSpaceObjects',
+                               'proxyMesh':'proxyMesh_verify',
+                               'connectRig':'rig_connectAll'}
+            for k in l_order:
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                
+                if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                    l_toDo.append(k)
+                    
+                    
+            if not l_toDo:
+                return log.warning("|Post| >> No options selected")
+            
+            for v in ['proxyMesh','connectRig']:
+                if v in l_toDo:
+                    self.uiStatus(edit=True,vis = True,label='Rig Reset...')
+                    cgmUI.progressBar_test(self.uiPB_test,10)                    
+                    self.mBlock.atUtils('anim_reset')
+                    break
+            
+            lenDo = len(l_toDo)
+            for i,k in enumerate(l_toDo):
+                log.debug("|{0}| >> Processing: {1}...".format(_str_func,k)+'-'*30)
+                self.uiStatus(edit=True,vis = True, label=" {0} | {1}/{2}".format(k,i+1,lenDo))
+                
+                if k in ['Gather Space Drivers','Mirror Verify','connectRig','proxyMesh']:
+                    self.mBlock.atUtils(d_keyToFunction.get(k),progressBar=self.uiPB_test)
+                elif 'QSS' in k:
+                    d_qss = {'bakeQSS':{'blockSet':0,'bakeSet':1,'deleteSet':0,'exportSet':0},
+                             'deleteQSS':{'blockSet':0,'bakeSet':0,'deleteSet':1,'exportSet':0},
+                             'exportQSS':{'blockSet':0,'bakeSet':0,'deleteSet':0,'exportSet':1}}
+                    self.mBlock.atUtils('qss_verify',**d_qss.get(k))
+                    cgmUI.progressBar_test(self.uiPB_test,100)
+                elif k == 'isHistoricallyInteresting':
+                    self.mBlock.atUtils('rigNodes_setAttr','ihi',0,self.uiPB_test)
+                elif k == 'Delete Blocks':
+                    pass
+                else:
+                    log.warning("Finish {0}".format(k))
+                    cgmUI.progressBar_test(self.uiPB_test,100)
+            """
+                
+        finally:
+            self.uiStatus(edit=True,vis=False)
+            cgmUI.progressBar_end(self.uiPB_test)
+            
+    @cgmGEN.Timer
+    def step(self,fnc=None):
+        #mc.progressBar(mayaMainProgressBar, edit=True,
+                       #status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)    
+
+        mc.undoInfo(openChunk=True,chunkName=fnc)
+        _str_func = self.l_funcToShort.get(fnc)
+        self.uiStatus(edit=True,vis=True,label="Start: {0}".format(_str_func))
+        err=None
+        try:
+            getattr(self.mRigFac.d_block['buildModule'],fnc)(self.mRigFac)            
+        except Exception,err:
+            self.uiStatus(edit=True,vis=True,label="Failed: {0}".format(_str_func))
+            log.error(err)
+        
+        finally:
+            mc.undoInfo(closeChunk=True)
+            self.uiStatus(edit=True,vis=True,label="Done: {0}".format(_str_func))
+            
+            if err is not None:
+                cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+
+            
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >> mBlock: {1}".format(_str_func,self.mBlock))
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelColumnLayout(_MainForm)
+        if self.mBlock:
+            _strBlock = self.mBlock.p_nameBase
+        else:
+            _strBlock = self.mBlock
+            
+        SetHeader = cgmUI.add_Header('Block: {0}'.format(_strBlock))
+        self.uiStatus = mUI.MelLabel(_MainForm,
+                                     vis=True,
+                                     bgc = SHARED._d_gui_state_colors.get('warning'),
+                                     label = '...',
+                                     h=20)        
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+        
+        if not self.block:
+            self.uiStatus(edit=True,vis=True,label="Must have something loaded")
+            return
+        elif self.mBlock.blockState != 'skeleton':
+            self.uiStatus(edit=True,vis=True,label="Block must be skeleton state")            
+            return log.error("{0} Block must be skeleton state. Found: {1}".format(self.mBlock.p_nameShort,self.mBlock.blockState))
+            pass
+        
+        mRigFac = self.mBlock.asRigFactory(autoBuild=False)
+        self.mRigFac = mRigFac
+        mModule = mRigFac.d_block['buildModule']
+        
+        #SingleChecks======================================================================
+        mRow_buttons = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 2)
+        CGMUI.add_Button(mRow_buttons, "Reload",
+                         cgmGEN.Callback(reload,mModule),
+                         "Reload blockModule")
+        CGMUI.add_Button(mRow_buttons, "Log Self",
+                         cgmGEN.Callback( mRigFac.log_self),
+                         "Log Rig Factory")
+        mRow_buttons.layout()
+        
+        #SingleChecks======================================================================
+        mRow_buttons2 = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 2)
+        CGMUI.add_Button(mRow_buttons2, "INFO",
+                         cgmGEN.Callback(mModule.log.setLevel,mModule.logging.INFO),
+                         "Reload blockModule")
+        CGMUI.add_Button(mRow_buttons2, "DEBUG",
+                         cgmGEN.Callback(mModule.log.setLevel,mModule.logging.DEBUG),
+                         "Log Rig Factory")
+        mRow_buttons2.layout()        
+        
+        #Danger!!!!!!======================================================================
+        mc.setParent(_inside)
+        cgmUI.add_Header('Build Order')
+        
+        
+        _l_buildOrder = mRigFac.d_block['buildModule'].__dict__.get('__l_rigBuildOrder__')
+        if not _l_buildOrder:
+            raise ValueError,"No build order found"
+        _len = len(_l_buildOrder)
+        self.l_funcToShort = {}
+        
+        for i,fnc in enumerate(_l_buildOrder):
+            _short = '_'.join(fnc.split('_')[1:])
+            self.l_funcToShort[fnc] = _short
+
+            CGMUI.add_Button(_inside, _short,
+                             cgmGEN.Callback(self.step,fnc),
+                             "Process: {0}".format(_short))            
+        
+        
+        
+        mc.setParent(_inside)
+        CGMUI.add_LineBreak()
+        """
+        _button = mc.button(parent=_MainForm,
+                            l = 'Process',
+                            ut = 'cgmUITemplate',
+                            #c = cgmGEN.Callback(cgmUI.progressBar_test,self.uiPB_test,10000),
+                            c = cgmGEN.Callback(self.uiFunc_process),
+                            ann = 'Test progress bar')"""
+        
+        
+        
+        #_row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        mc.setParent(_MainForm)
+ 
+        
+        #_rowProgressBar = mUI.MelRow(_MainForm)
+
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (self.uiStatus,"left",0),
+                        (self.uiStatus,"right",0),
+                        #(self.uiPB_test,"left",0),
+                        #(self.uiPB_test,"right",0),                        
+                        #(_row_cgm,"left",0),
+                        #(_row_cgm,"right",0),
+                        (self.uiStatus,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,self.uiStatus),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(self.uiStatus,"top")])
         
 class ui_post(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -369,6 +607,7 @@ class ui(cgmUI.cgmGUI):
     
     check_cgm()
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui.",
+                         'step build':"DEV | Generate a step build ui for the block",
                          'rebuild':"Rebuild blocks from define state",
                          'save blockDat':'Save current blockDat to the block',
                          'load blockDat':'Load existing blockDat from the block to current settings',
@@ -599,7 +838,11 @@ class ui(cgmUI.cgmGUI):
                                            'focus',True,'template',
                                            **{'updateUI':0})},},
 
-               'Rig':{'Verify Proxy':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
+               'Rig':{'Step Build':{'ann':self._d_ui_annotations.get('step build'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                      'stepUI',
+                                                      **{'updateUI':0,'mode':'stepBuild'})},
+                      'Verify Proxy':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify_proxyMesh',
                                       **{'updateUI':0})},
@@ -643,30 +886,34 @@ class ui(cgmUI.cgmGUI):
                                        'atUtils', 'prerig_snapHandlesToRotatePlane',
                                        **{'updateUI':0})},
                          },
-                   'Queries':{'Visualize':{'ann':'Visualize the block tree in the script editor',
-                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                   'VISUALIZEHEIRARCHY',
-                                                                   **{'updateUI':0})},
-                              'Buildable?':{'ann':'Check if the block is buildable (DEV)',
-                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                   'getModuleStatus',
-                                                                   **{'updateUI':0})}},
-                   'Names':{ 'divTags':['Position | Set tag'],
-                             'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
+               'Queries':{'Visualize':{'ann':'Visualize the block tree in the script editor',
+                                        'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                               'VISUALIZEHEIRARCHY',
+                                                               **{'updateUI':0})},
+                          'Get Mesh':{'ann':'Generate Simple mesh',
+                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                             'atUtils','create_simpleMesh',
+                                                             **{'connect':False,'updateUI':0})},
+                          'Buildable?':{'ann':'Check if the block is buildable (DEV)',
+                                        'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                               'getModuleStatus',
+                                                               **{'updateUI':0})}},
+               'Names':{ 'divTags':['Position | Set tag'],
+                         'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
+                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                  'atUtils','set_nameTag', **{})},
+                         'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
                                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                      'atUtils','set_nameTag', **{})},
-                             'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
-                                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                          'atUtils','set_position',
-                                                                          **{'ui':True})},
-                            'nameList | reset':{'ann':'Reset the name list to the profile',
-                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                  'atUtils','nameList_resetToProfile',
-                                                                  **{})},
-                             'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
-                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                  'atUtils','set_nameListFromName',
-                                                                  **{})}}                      }
+                                                                      'atUtils','set_position',
+                                                                      **{'ui':True})},
+                        'nameList | reset':{'ann':'Reset the name list to the profile',
+                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                              'atUtils','nameList_resetToProfile',
+                                                              **{})},
+                         'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
+                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                              'atUtils','set_nameListFromName',
+                                                              **{})}}                      }
         
         l_keys = d_s.keys()
         l_keys.sort()
@@ -1196,6 +1443,7 @@ class ui(cgmUI.cgmGUI):
                 kws['sourceBlock'] = _mActiveBlock
                 kws.pop('mode')
                 
+                
             #elif  _mode == 'clearParentBlock':
             #else:
                 #raise ValueError,"Mode not setup: {0}".format(_mode)            
@@ -1209,6 +1457,8 @@ class ui(cgmUI.cgmGUI):
                     _contextMode = 'self'
                 elif _contextMode == 'root':
                     b_rootMode = True
+            elif args[0] == 'stepUI':
+                _contextMode = 'self'
             
             try:
                 if args[1] in ['puppetMesh_create','puppetMesh_delete']:
@@ -1275,7 +1525,9 @@ class ui(cgmUI.cgmGUI):
                 
             ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
             #Now parse to sets of data
-            if args[0] == 'select':
+            if args[0] == 'stepUI':
+                return ui_stepBuild(ml_blocks[0])
+            elif args[0] == 'select':
                 #log.info('select...')
                 return mc.select([mBlock.mNode for mBlock in ml_context])
             elif args[0]== 'focus':

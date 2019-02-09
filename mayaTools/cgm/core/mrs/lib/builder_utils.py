@@ -831,7 +831,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
-def create_loftMesh(targets = None, name = 'test', degree = 2, divisions = 2,
+def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit=0, divisions = None,
                     cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True ):
     """
     Create lofted mesh from target curves.
@@ -859,34 +859,44 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, divisions = 2,
     
     #tess method - general, uType 1, vType 2+ joint count
     
+    int_count = len(targets)
+    
     #>>Body -----------------------------------------------------------------
     _ss = 1
     if degree == 1:
         _loftDegree = 1
-        _ss = divisions
+        _ss = vSplit
     else:
         _loftDegree = 3
         
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss, autoReverse=True,reverseSurfaceNormals=False )
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss,
+                        autoReverse=True,
+                        reverseSurfaceNormals=False )
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
-    
 
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
 
     if degree == 1:
-        _d = {'format':3,#Fit
-              'polygonType':1,#'quads',
-              'vNumber':points,
-              'uNumber': 1 + divisions}
+        if form == 2:
+            _d = {'format':2,#General
+                  'polygonType':1,#'quads',
+                  'vNumber':1,
+                  'uNumber': int_count+(int_count*uSplit) }            
+        else:
+            _d = {'format':3,#General
+                  'polygonType':1,#'quads',
+                  'vNumber':1,
+                  'uNumber': int_count+(uSplit) }
     else:
         _d = {'format':form,#Fit              
               'polygonType':1,#'quads',
-              'vNumber':points,
-              'uNumber': 1 + divisions}
+              'vNumber':1+vSplit,
+              'uNumber': points+(uSplit*points)}
+        
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
@@ -896,6 +906,10 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, divisions = 2,
         ##mc.polyNormal(_res_body[0],nm=0)
         #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
         #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
+
+    if form == 2:
+        mc.polyNormal(_res_body[0],nm=0)           
+    
     
     if merge:
         #Get our merge distance
@@ -940,8 +954,8 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, divisions = 2,
     else:
         _res = _res_body
     
-    if degree == 1:
-        mc.polyNormal(_res_body[0],nm=0)
+    #if degree == 1:
+        #mc.polyNormal(_res_body[0],nm=0)
     
     if planar:
         mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)#THIS WILL MAKE GEO SMOOTH

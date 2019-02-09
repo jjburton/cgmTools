@@ -22,6 +22,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+log.debug("load...")
 # From Maya =============================================================
 import maya.cmds as mc
 
@@ -68,7 +69,6 @@ reload(BUILDUTILS)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.rig.skin_utils as CORESKIN
 reload(CURVES)
-
     
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -535,7 +535,7 @@ def template(self):
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        self.baseSize = [_size_width,_size_height,_size_length]        
+        #self.baseSize = [_size_width,_size_height,_size_length]        
         _size_handle = _size_width * 1.25
         _size_loft = MATH.get_greatest(_size_width,_size_height)
     
@@ -631,7 +631,7 @@ def template(self):
         #Constrain the define end to the end of the template handles
         #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
         
-        mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
+        #mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
             
             
         #End setup======================================================================================

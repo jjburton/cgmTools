@@ -3001,7 +3001,7 @@ def duplicate(self, uiPrompt = True, forceNew = False):
 
         
         log.debug("|{0}| >> Block settings...".format(_str_func))                    
-        pprint.pprint(_d)
+        #pprint.pprint(_d)
         mDup = cgmMeta.createMetaNode('cgmRigBlock',
                                       **_d)
         
@@ -6591,34 +6591,37 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         log.debug("|{0}| >>  Unified: {1} | Skin: {2} ".format(_str_func,unified,skin)+ '-'*80)
         log.debug("{0}".format(self))
         
-    
-        mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
-        if not mModuleTarget:
-            return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
-        mModuleTarget = mModuleTarget[0]        
-        
-        mPuppet = puppet_get(self,mModuleTarget)
-        if not mPuppet:
-            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))        
-        """
-        mPuppet = mModuleTarget.getMessageAsMeta('modulePuppet')
-        if not mPuppet:
-            mRoot = self.p_blockRoot
-            if mRoot:
-                log.debug("|{0}| >>  Checking root for puppet: {1} ".format(_str_func,mRoot))
-                mPuppetTest = mRoot.getMessageAsMeta('moduleTarget')
-                log.debug("|{0}| >>  root target: {1} ".format(_str_func,mPuppetTest))
-                if mPuppetTest and mPuppetTest.mClass == 'cgmRigPuppet':
-                    mPuppet = mPuppetTest
-                else:
-                    mPuppet = False
-            if not mPuppet:
-                return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))"""
+        mPuppet = False
+        mParent = False
+        if skin:
+            mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+            if not mModuleTarget:
+                return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+            mModuleTarget = mModuleTarget[0]        
             
-        mGeoGroup = mPuppet.masterNull.geoGroup
-        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
-        log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
-        log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
+            mPuppet = puppet_get(self,mModuleTarget)
+            if not mPuppet:
+                return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))        
+            """
+            mPuppet = mModuleTarget.getMessageAsMeta('modulePuppet')
+            if not mPuppet:
+                mRoot = self.p_blockRoot
+                if mRoot:
+                    log.debug("|{0}| >>  Checking root for puppet: {1} ".format(_str_func,mRoot))
+                    mPuppetTest = mRoot.getMessageAsMeta('moduleTarget')
+                    log.debug("|{0}| >>  root target: {1} ".format(_str_func,mPuppetTest))
+                    if mPuppetTest and mPuppetTest.mClass == 'cgmRigPuppet':
+                        mPuppet = mPuppetTest
+                    else:
+                        mPuppet = False
+                if not mPuppet:
+                    return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))"""
+                
+            mGeoGroup = mPuppet.masterNull.geoGroup
+            mParent = mGeoGroup
+            log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
+            log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
+            log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
         
         
         if proxy:
@@ -6629,14 +6632,15 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         
         
         #Check for existance of mesh ========================================================================
-        bfr = mPuppet.msgList_get('puppetMesh',asMeta=True)
-        if skin and bfr:
-            log.debug("|{0}| >> puppetMesh detected...".format(_str_func))            
-            if forceNew:
-                log.debug("|{0}| >> force new...".format(_str_func))                            
-                mc.delete([mObj.mNode for mObj in bfr])
-            else:
-                return bfr
+        if mPuppet:
+            bfr = mPuppet.msgList_get('puppetMesh',asMeta=True)
+            if skin and bfr:
+                log.debug("|{0}| >> puppetMesh detected...".format(_str_func))            
+                if forceNew:
+                    log.debug("|{0}| >> force new...".format(_str_func))                            
+                    mc.delete([mObj.mNode for mObj in bfr])
+                else:
+                    return bfr
         
         if proxy:
             if unified:
@@ -6701,7 +6705,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 #mMeshBase = mMeshBase[0]
                 #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
                 mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
-                mMesh.p_parent = mGeoGroup
+                mMesh.p_parent = mParent
                 cgmGEN.func_snapShot(vars())
                 
                 #now copy weights
@@ -6744,7 +6748,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             
     
 
-def create_simpleMesh(self, forceNew = True, skin = False):
+def create_simpleMesh(self, forceNew = True, skin = False,connect=True):
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -6752,35 +6756,38 @@ def create_simpleMesh(self, forceNew = True, skin = False):
     log.debug("|{0}| >>  forceNew: {1} | skin: {2} ".format(_str_func,forceNew,skin)+ '-'*80)
     log.debug("{0}".format(self))
     
+    mParent = False
     #Check for existance of mesh ========================================================================
-    bfr = self.msgList_get('simpleMesh',asMeta=True)
-    if skin and bfr:
-        log.debug("|{0}| >> simpleMesh detected...".format(_str_func))            
-        if forceNew:
-            log.debug("|{0}| >> force new...".format(_str_func))                            
-            mc.delete([mObj.mNode for mObj in bfr])
-        else:
-            return bfr
-        
-    mModuleTarget = self.getMessageAsMeta('moduleTarget')
-    if not mModuleTarget:
-        return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))        
-    mPuppet = puppet_get(self,mModuleTarget)
-    if not mPuppet:
-        return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
-    mGeoGroup = mPuppet.masterNull.geoGroup
-    log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
-    log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
-    log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
-        
+    if connect:
+        bfr = self.msgList_get('simpleMesh',asMeta=True)
+        if skin and bfr:
+            log.debug("|{0}| >> simpleMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in bfr])
+            else:
+                return bfr
+    if skin:
+        mModuleTarget = self.getMessageAsMeta('moduleTarget')
+        if not mModuleTarget:
+            return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))        
+        mPuppet = puppet_get(self,mModuleTarget)
+        if not mPuppet:
+            return log.error("|{0}| >> Must have puppet for skining mode".format(_str_func))
+        mGeoGroup = mPuppet.masterNull.geoGroup
+        mParent = mGeoGroup
+        log.debug("|{0}| >> mPuppet: {1}".format(_str_func,mPuppet))
+        log.debug("|{0}| >> mGeoGroup: {1}".format(_str_func,mGeoGroup))        
+        log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget))
+            
     #BlockModule call? ====================================================================================
     mBlockModule = self.p_blockModule
     if mBlockModule.__dict__.has_key('create_simpleMesh'):
         log.debug("|{0}| >> BlockModule 'create_simpleMesh' call found...".format(_str_func))            
-        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mGeoGroup)
+        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self,form=2,degree=1,divisions=2)
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -6802,7 +6809,7 @@ def create_simpleMesh(self, forceNew = True, skin = False):
             log.debug("|{0}| >> skinning..".format(_str_func))
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
-                mMesh.p_parent = mGeoGroup
+                mMesh.p_parent = mParent
                 #mMesh.doCopyPivot(mGeoGroup.mNode)
                 skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
                                        mMesh.mNode,
@@ -6824,11 +6831,20 @@ def create_simpleMesh(self, forceNew = True, skin = False):
             #Reparent
             for i,mJnt in enumerate(ml_moduleJoints):
                 mJnt.p_parent = md_parents[mJnt]
-    self.msgList_connect('simpleMesh',ml_mesh)        
+    if connect:
+        self.msgList_connect('simpleMesh',ml_mesh)        
     return ml_mesh
             
 
-def create_simpleLoftMesh(self,  deleteHistory = True, form = 2, cap=True,degree=1,divisions = 3):
+def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,deleteHistory = True,divisions=None):
+    """
+    form
+    0 - count
+    1 - fit
+    2 - general
+    3 - cvs
+    
+    """
     _str_func = 'create_simpleLoftMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -6840,6 +6856,15 @@ def create_simpleLoftMesh(self,  deleteHistory = True, form = 2, cap=True,degree
     ml_templateHandles = self.msgList_get('templateHandles')
     ml_loftCurves = []
     
+    if degree == None:
+        degree = 1 + self.loftDegree
+        if degree ==1:
+            form = 3
+    if vSplit == None:
+        vSplit = self.loftSides
+    if uSplit == None:
+        uSplit = self.loftSplit-1
+        
     for mHandle in ml_templateHandles:
         if mHandle.getMessage('loftCurve'):
             ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
@@ -6870,13 +6895,19 @@ def create_simpleLoftMesh(self,  deleteHistory = True, form = 2, cap=True,degree
     
     reload(BUILDUTILS)
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
-                                       divisions=divisions,
+                                       uSplit=uSplit,
+                                       vSplit=vSplit,
                                        cap = cap,
                                        form=form,
                                        degree=degree)
+    
+    """
     if form in [1,2]:
         mc.polyNormal(_mesh,nm=0)    
-
+    if form == 3 and degree ==1:
+        mc.polyNormal(_mesh,nm=0)    """
+        
+    
     _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
     
     if deleteHistory:

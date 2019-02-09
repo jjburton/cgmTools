@@ -4433,7 +4433,6 @@ class rigFactory(object):
         self.fnc_processBuild(**kws)
         
 
-
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
 
         #_verify = kws.get('verify',False)
@@ -4777,7 +4776,8 @@ class rigFactory(object):
     #@cgmGEN.Timer
     def log_self(self):
         _d = copy.copy(self.__dict__)
-        _d.pop('l_preNodesBuffer')
+        for k in ['l_preNodesBuffer','l_preNodesUUIDs']:
+            _d.pop(k)
         pprint.pprint(_d)
 
     #@cgmGEN.Timer
@@ -5014,9 +5014,8 @@ class rigFactory(object):
 
         if self.b_outOfDate and self.call_kws['autoBuild']:
             self.doBuild(**kws)
-        else:log.error("|{0}| >> No autobuild condition met. Out of date: {1}".format(_str_func, self.b_outOfDate))                    
-
-
+        else:log.error("|{0}| >> No autobuild condition met. Out of date: {1}".format(_str_func, self.b_outOfDate))
+        
         log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))            
 
     def doBuild(self,buildTo = '',**kws):

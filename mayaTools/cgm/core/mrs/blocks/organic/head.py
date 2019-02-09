@@ -3599,7 +3599,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
     
         if self.neckBuild:#...Neck =====================================================================
             log.debug("|{0}| >> neckBuild...".format(_str_func))    
-            ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,deleteHistory,cap)
+            ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,2,1,deleteHistory=deleteHistory,cap=cap)
             ml_headStuff.extend(ml_neckMesh)
             if parent:
                 for mObj in ml_neckMesh:
