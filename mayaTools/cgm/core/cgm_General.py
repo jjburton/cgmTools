@@ -746,6 +746,9 @@ def returnCallerFunctionName():
         log.exception("Failed to inspect function name")
     return result
 
+def log_start(str_func,split='/',intCount = 60):
+    log.debug("|{0}| >> ...".format(str_func)+split*intCount)
+    
 def log_info_dict(arg = None,tag = 'Stored Dict'):
     '''
     Log a dictionary.
@@ -1064,8 +1067,8 @@ def testException(message = 'cat'):
         raise Exception, message
     except Exception,err:
         cgmExceptCB(Exception,err,fncDat=vars())
-
-def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,tracebackCap=1,**kws):
+cgmExceptCB = cgmException
+def cgmExceptCB_BAK(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,tracebackCap=1,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
     
     if localDat is None:
@@ -1091,7 +1094,10 @@ def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None
                         #print ' File "{1}", line {2}, in {3}\n'.format(*item)
                     if item[4] is not None:
                         for line in item[4]:
-                            print ' ' + line.lstrip()
+                            try:
+                                print ' ' + line.lstrip()
+                            except Exception,err:
+                                print "Item [4] Failed: {0} | {1}".format(i,err)                            
                 except Exception,err:
                     print "Failed: {0} | {1}".format(i,err)
                     print item
@@ -1537,7 +1543,7 @@ def test_cgmExceptCB(*args,**kws):
         raise ValueError,"Bob's not home"
     except Exception,err:cgmExceptCB(Exception,err)
     
-def cgmException(etype = None, value = None, tb = None,msg=None):
+def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
 
     try:db_file = tb.tb_frame.f_code.co_filename

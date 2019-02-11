@@ -4867,9 +4867,11 @@ def templateAttrLock(self,v=1):
 def test_exception(self,*args,**kws):
     try:
         raise ValueError,"here"
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+def test_nestedException(self,*args,**kws):
+    try:
+        test_exception(self,*args,**kws)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                      loftShape=None,l_basePos = None, baseSize=1.0,

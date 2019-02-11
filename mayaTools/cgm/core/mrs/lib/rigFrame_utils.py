@@ -89,6 +89,75 @@ def get_spinGroup(self,mStart,mRoot,mControl):
     mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,self.d_orientation['str'][0]))
     return mSpinGroup
 
+
+def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None):
+    try:
+        _str_func = 'segment_mid'
+        cgmGEN.log_start(_str_func)
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        mModule = self.mModule
+        
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        
+        if not mHandle:
+            mHandle = mRigNull.getMessageAsMeta('controlSegMidIK')
+            if not mHandle:
+                raise ValueError,"{0} | ml_handles required".format(_str_func)
+        if not ml_ribbonHandles:
+            raise ValueError,"{0} | ml_ribbonHandles required".format(_str_func)
+            
+            
+        mHandle.masterGroup.parent = mGroup
+
+        ml_midTrackJoints = copy.copy(ml_ribbonHandles)
+        ml_midTrackJoints.insert(1,mHandle)
+
+        d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
+                 #'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
+                 'baseName' :self.d_module['partName'] + '_midRibbon',
+                 'driverSetup':None,
+                 'squashStretch':None,
+                 'msgDriver':'masterGroup',
+                 'specialMode':'noStartEnd',
+                 'paramaterization':'floating',
+                 'connectBy':'constraint',
+                 'influences':ml_ribbonHandles,
+                 'moduleInstance' : mModule}
+        reload(IK)
+        l_midSurfReturn = IK.ribbon(**d_mid)
+
+
+        """
+    log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
+
+    if mIKBaseControl:
+        ml_ribbonHandles[0].parent = mIKBaseControl
+    else:
+        ml_ribbonHandles[0].parent = mSpinGroup
+        mc.aimConstraint(mIKControl.mNode,
+                         ml_ribbonHandles[0].mNode,
+                         maintainOffset = True, weight = 1,
+                         aimVector = self.d_orientation['vectorAim'],
+                         upVector = self.d_orientation['vectorUp'],
+                         worldUpVector = self.d_orientation['vectorOut'],
+                         worldUpObject = mSpinGroup.mNode,
+                         worldUpType = 'objectRotation' )                    
+
+    ml_ribbonHandles[-1].parent = mIKControl"""
+
+
+    #if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
+        #ml_skinDrivers.extend(ml_handleJoints)        
+    
+        
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+    
+    
+
 def ik_rp(self,mStart,mEnd,ml_ikFrame = None,
           mIKControl=None,mIKControlBase = None,
           mIKHandleDriver = None,mRoot=None,mIKGroup=None,mIKControlEnd=None,

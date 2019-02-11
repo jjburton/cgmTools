@@ -309,6 +309,7 @@ l_attrsStandard = ['side',
                    'proxyGeoRoot',                   
                    #'settingsPlace',
                    'spaceSwitch_direct',
+                   'spaceSwitch_fk',
                    'visRotatePlane',
                    'settingsDirection',
                    'moduleTarget']
@@ -370,6 +371,7 @@ d_defaultSettings = {'version':__version__,
                      'numJoints':5,
                      'proxyDirect':True,
                      'spaceSwitch_direct':False,
+                     'spaceSwitch_fk':False,
                      'nameList':['',''],
                      #'blockProfile':'spine',
                      'attachPoint':'base',}
@@ -2999,7 +3001,7 @@ def rig_cleanUp(self):
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
         for i,mObj in enumerate(ml_fkJoints):
-            if i :
+            if i and not mBlock.spaceSwitch_fk:
                 continue
             if not mObj.getMessage('masterGroup'):
                 log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            

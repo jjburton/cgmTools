@@ -110,7 +110,7 @@ class ui_stepBuild(cgmUI.cgmGUI):
         self.__toolName__ = 'Builder'		
         self.WINDOW_TITLE = ui_stepBuild.WINDOW_TITLE
         self.DEFAULT_SIZE = ui_stepBuild.DEFAULT_SIZE
-
+        self.str_lastStep = 'None'
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
                 
@@ -190,22 +190,49 @@ class ui_stepBuild(cgmUI.cgmGUI):
                        #status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)    
 
         mc.undoInfo(openChunk=True,chunkName=fnc)
-        _str_func = self.l_funcToShort.get(fnc)
-        self.uiStatus(edit=True,vis=True,label="Start: {0}".format(_str_func))
+        log.debug(fnc)
+        _fncShort = self.d_funcToShort.get(fnc)
+        self.uiStatus(edit=True,label="Started: {0}".format(_fncShort))
         err=None
+        _short = self.mBlock.mNode
+        
+        if _fncShort not in ['dataBuffer']:
+            ATTR.store_info(_short, 'rigStepBuffer',_fncShort )
         try:
             getattr(self.mRigFac.d_block['buildModule'],fnc)(self.mRigFac)            
         except Exception,err:
-            self.uiStatus(edit=True,vis=True,label="Failed: {0}".format(_str_func))
             log.error(err)
         
         finally:
             mc.undoInfo(closeChunk=True)
-            self.uiStatus(edit=True,vis=True,label="Done: {0}".format(_str_func))
-            
+            #self.uiStatus(edit=True,vis=True,label="Done: {0}".format(_fncShort))
             if err is not None:
-                cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+                cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+                self.uiStatus(edit=True,label="Failed: {0}".format(_fncShort))
+            elif fnc == self.l_buildOrder[-1]:
+                self.uiStatus(edit=True,label="Done")
+                if ATTR.has_attr(_short,'rigStepBuffer'):
+                    ATTR.delete(_short,'rigStepBuffer')
+            else:
+                self.uiFunc_updateStatus()
+                
 
+                
+
+    def uiFunc_updateStatus(self):
+        if not self.mBlock:
+            self.uiStatus(edit=1,
+                          label='...')
+            return log.error("No block loaded")
+        
+        _status = self.mBlock.getMayaAttr('rigStepBuffer')
+        if _status:
+            self.uiStatus(edit=1,
+                          label="State: {0}".format(_status))
+        else:
+            self.uiStatus(edit=1,
+                          label=self.str_lastStep)
+            
             
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
@@ -220,11 +247,18 @@ class ui_stepBuild(cgmUI.cgmGUI):
             _strBlock = self.mBlock
             
         SetHeader = cgmUI.add_Header('Block: {0}'.format(_strBlock))
-        self.uiStatus = mUI.MelLabel(_MainForm,
-                                     vis=True,
-                                     bgc = SHARED._d_gui_state_colors.get('warning'),
-                                     label = '...',
-                                     h=20)        
+        
+        #mc.setParent(_MainForm)
+        self.uiStatus = mUI.MelButton(_MainForm,bgc=SHARED._d_gui_state_colors.get('warning'),
+                                      c=lambda *a:self.uiFunc_updateStatus(),
+                                      ann="Query the last buffered state and update status",
+                                      label='...',
+                                      h=20)
+        #mUI.MelLabel(_MainForm,
+        #                             vis=True,
+        #                             bgc = SHARED._d_gui_state_colors.get('warning'),
+        #                             label = '...',
+        #                             h=20)        
         self.uiPB_test=None
         self.uiPB_test = mc.progressBar(vis=False)
         
@@ -269,11 +303,12 @@ class ui_stepBuild(cgmUI.cgmGUI):
         if not _l_buildOrder:
             raise ValueError,"No build order found"
         _len = len(_l_buildOrder)
-        self.l_funcToShort = {}
+        self.d_funcToShort = {}
+        self.l_buildOrder = _l_buildOrder
         
         for i,fnc in enumerate(_l_buildOrder):
             _short = '_'.join(fnc.split('_')[1:])
-            self.l_funcToShort[fnc] = _short
+            self.d_funcToShort[fnc] = _short
 
             CGMUI.add_Button(_inside, _short,
                              cgmGEN.Callback(self.step,fnc),
@@ -283,6 +318,7 @@ class ui_stepBuild(cgmUI.cgmGUI):
         
         mc.setParent(_inside)
         CGMUI.add_LineBreak()
+        self.uiFunc_updateStatus()
         """
         _button = mc.button(parent=_MainForm,
                             l = 'Process',
