@@ -1491,6 +1491,8 @@ def ribbon(jointList = None,
             mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
         else:
             mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+            
+        mDriven.doStore('ribbonDriver',mDriver.mNode,attrType='msg')
         
     if extendEnds or additiveScaleEnds:
         #End follicle...

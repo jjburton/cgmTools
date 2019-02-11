@@ -90,7 +90,8 @@ def get_spinGroup(self,mStart,mRoot,mControl):
     return mSpinGroup
 
 
-def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None):
+def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
+                mIKBase = None, mIKEnd = None, ml_ikJoints = None):
     try:
         _str_func = 'segment_mid'
         cgmGEN.log_start(_str_func)
@@ -113,6 +114,10 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None):
         mHandle.masterGroup.parent = mGroup
 
         ml_midTrackJoints = copy.copy(ml_ribbonHandles)
+        
+        #Make our Driver -----------------------------------------------------
+        
+        
         ml_midTrackJoints.insert(1,mHandle)
 
         d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
@@ -128,7 +133,20 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None):
                  'moduleInstance' : mModule}
         reload(IK)
         l_midSurfReturn = IK.ribbon(**d_mid)
-
+        
+        
+        #Setup our aim setup ---------------------------------------------------------
+        mFollicle = mHandle.masterGroup.getMessageAsMeta('ribbonDriver')
+        
+        mTar = ml_ikJoints[1].doCreateAt(setClass='cgmObject')
+        mTar.rename('{0}_mid_baseTarget'.format(self.d_module['partName']))
+        mTar.p_parent = mIKBase
+        
+        mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
+        
+        mc.aimConstraint([mTar.mNode], mAimGroup.mNode, maintainOffset = True, #skip = 'z',
+                         aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = mHandle.masterGroup.mNode,
+                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])         
 
         """
     log.debug("|{0}| >> ribbon ik handles...".format(_str_func))

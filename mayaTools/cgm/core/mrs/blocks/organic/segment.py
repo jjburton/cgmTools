@@ -2529,9 +2529,13 @@ def rig_frame(self):
                 #mMasterCurve = res_segScale[1]                
                 
                 mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-
-                
                 if mSegMidIK:
+                    RIGFRAME.segment_mid(self,mSegMidIK,ml_ribbonIkHandles,mIKGroup,
+                                         mIKBaseControl,mIKControl,ml_ikJoints)
+                    ml_skinDrivers.append(mSegMidIK)
+                    max_influences+=1
+                    
+                    """
                     log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
                     mSegMidIK.masterGroup.parent = mIKGroup
                     ml_skinDrivers.append(mSegMidIK)
@@ -2552,7 +2556,7 @@ def rig_frame(self):
                              'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
                     reload(IK)
-                    l_midSurfReturn = IK.ribbon(**d_mid)
+                    l_midSurfReturn = IK.ribbon(**d_mid)"""
                     
                     
                 
