@@ -2382,6 +2382,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
                                                degree=1,divisions=1)
                     
+                    mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
                     
                     _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
                     mc.delete([end,mid1,mid2,root])

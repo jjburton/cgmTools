@@ -969,7 +969,7 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
-            raise Exception,err
+            #raise Exception,err
 CB = Callback
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
     """
@@ -1079,17 +1079,25 @@ def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None
         try:db_file = tb.tb_frame.f_code.co_filename
         except:db_file = "<maya console>"
         print(_str_headerDiv + " Exception Log " + _str_headerDiv + _str_subLine)		
-	
-        for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
-            if i >= tracebackCap:
-                break
-            print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
-            print ' File "{1}", line {2}, in {3}\n'.format(*item),
-            for item in inspect.getinnerframes(tb):
-                print ' File "{1}", line {2}, in {3}\n'.format(*item)
-            if item[4] is not None:
-                for line in item[4]:
-                    print ' ' + line.lstrip()
+        
+        try:
+            for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
+                try:
+                    if i >= tracebackCap:
+                        break
+                    print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
+                    print ' File "{1}", line {2}, in {3}\n'.format(*item),
+                    #for item in inspect.getinnerframes(tb):
+                        #print ' File "{1}", line {2}, in {3}\n'.format(*item)
+                    if item[4] is not None:
+                        for line in item[4]:
+                            print ' ' + line.lstrip()
+                except Exception,err:
+                    print "Failed: {0} | {1}".format(i,err)
+                    print item
+        except Exception,err:
+            print "Traceback Failed: {0}".format(err)
+                
     
     if value:
         print(_str_headerDiv + " Error log " + _str_headerDiv + _str_subLine)		        

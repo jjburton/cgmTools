@@ -5020,7 +5020,8 @@ class rigFactory(object):
 
     def doBuild(self,buildTo = '',**kws):
         _str_func = 'doBuild'  
-        _start = time.clock()        
+        _start = time.clock()
+        
 
         try:
             _l_buildOrder = self.d_block['buildModule'].__dict__.get('__l_rigBuildOrder__')
@@ -5035,27 +5036,38 @@ class rigFactory(object):
             mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
 
             for i,fnc in enumerate(_l_buildOrder):
-                #str_name = d_build[k].get('name','noName')
-                #func_current = d_build[k].get('function')
-                #_str_subFunc = str_name
-                #_str_subFunc = fnc.__name__
                 _str_func = '_'.join(fnc.split('_')[1:])
+                
                 mc.progressBar(mayaMainProgressBar, edit=True,
-                               status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)    
-
-                getattr(self.d_block['buildModule'],fnc)(self)
-
-                if buildTo is not None:
-                    _Break = False
-                    if VALID.stringArg(buildTo):
-                        if buildTo == fnc:
+                               status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
+                
+                mc.undoInfo(openChunk=True,chunkName=fnc)
+                
+                
+                err=None
+                try:
+                    getattr(self.mRigFac.d_block['buildModule'],fnc)(self.mRigFac)            
+                except Exception,err:
+                    log.error(err)
+            
+                finally:
+                    mc.undoInfo(closeChunk=True)            
+                    if err is not None:
+                        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())                        
+                
+                
+                    if buildTo is not None:
+                        _Break = False
+                        if VALID.stringArg(buildTo):
+                            if buildTo == fnc:
+                                _Break = True
+                        elif buildTo == i:
                             _Break = True
-                    elif buildTo == i:
-                        _Break = True
-
-                    if _Break:
-                        log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
-                        break
+                
+                        if _Break:
+                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
+                            break                                
+                
                     
             #self.mBlock.addAttr('rigNodeBuffer','message',l_diff)
             
