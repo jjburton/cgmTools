@@ -183,7 +183,7 @@ def rootOrCog(self,mHandle = None):
 
 
 def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkShapes = None,
-          ml_ikJoints = None, ml_fkJoints = None):
+          ml_ikJoints = None, ml_fkJoints = None,shapeArg = None):
     try:
         _str_func = 'ik_end'
         #Mid IK...---------------------------------------------------------------------------------
@@ -229,7 +229,31 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
     
             else:
                 mIKCrv = ml_handleTargets[-1].doCreateAt()
-            CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
+                
+            if shapeArg is not None:
+                mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
+                bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+                _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
+                ATTR.set(_ik_shape,'scale', 2.0)
+                mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                mIKShape.doSnapTo(mIK_templateHandle)          
+                
+                CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
+                
+            else:
+                CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
+        elif ikEnd == 'shapeArg':
+            mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
+            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+            _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
+            ATTR.set(_ik_shape,'scale', 1.1)
+    
+            mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+    
+            mIKShape.doSnapTo(mIK_templateHandle)
+            mIKCrv = ml_ikJoints[self.int_handleEndIdx].doCreateAt()
+            CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)                            
+            
         else:
             log.debug("|{0}| >> default IK shape...".format(_str_func))
             mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]

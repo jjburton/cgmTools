@@ -903,7 +903,9 @@ def ribbon(jointList = None,
            tightenWeights=True,
            extraKeyable = True,
            ribbonJoints = None,
-           attachEndsToInfluences = False,
+           attachEndsToInfluences = None,
+           attachStartToInfluence = None,
+           attachEndToInfluence = None,
            moduleInstance = None,
            parentGutsTo = None):
 
@@ -1019,7 +1021,11 @@ def ribbon(jointList = None,
         l_influences = [mObj.p_nameShort for mObj in ml_influences]
         int_lenInfluences = len(l_influences)#because it's called repeatedly    
     
-    
+    if attachEndsToInfluences:
+        if attachStartToInfluence == None:
+            attachStartToInfluence = True
+        if attachEndToInfluence == None:
+            attachStartToInfluence = True
     #module -----------------------------------------------------------------------------------------------
     mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
     #try:mModule.isModule()
@@ -1390,12 +1396,16 @@ def ribbon(jointList = None,
             raise ValueError,"Should have a masterScale plug by now"
     
         
-    b_attachToInfluences = False
+    #b_attachToInfluences = False
     if attachEndsToInfluences:
         log.debug("|{0}| >> attachEndsToInfluences flag. Checking...".format(_str_func))
         if influences and len(influences) > 1:
             b_attachToInfluences = True
-        log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
+            if attachStartToInfluence:
+                b_attachStart = True
+            if attachEndToInfluence:
+                b_attachEnd = True
+        #log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
         
     
     #>>> Follicles ======================================================================================        
@@ -1483,15 +1493,26 @@ def ribbon(jointList = None,
                 ml_upTargets.append(mUpDriver)
                 
         #Simple contrain
-        if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
-            if mJnt == ml_joints[0]:
-                mUse = ml_influences[0]
-            else:
-                mUse = ml_influences[-1]
-            mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
-        else:
-            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+        mUse = mDriver
+        if attachStartToInfluence and mJnt == ml_joints[0]:
+            mUse = ml_influences[0]
+            #mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
             
+        elif attachEndToInfluence and mJnt == ml_joints[-1]:
+            mUse = ml_influences[-1]
+            #mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+            
+        #if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
+        #    if mJnt == ml_joints[0]:
+        #        mUse = ml_influences[0]
+        #    else:
+        #        mUse = ml_influences[-1]
+        #    mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+        #else:
+            #mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+            
+        mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+        
         mDriven.doStore('ribbonDriver',mDriver.mNode,attrType='msg')
         
     if extendEnds or additiveScaleEnds:

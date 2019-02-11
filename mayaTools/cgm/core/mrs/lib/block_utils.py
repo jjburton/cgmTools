@@ -7919,8 +7919,10 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
                                                                               dist_base,
                                                                               dist_use))
         
-        pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
-        pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
+        pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,
+                                           DIST.get_distance_between_points(ml_handles[0].p_position,
+                                                                                            pos_mid)/4)
+        pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use)
         
         if markPos:
             crv = CORERIG.create_at(create='curve',l_pos= [pos_mid,pos_use])
