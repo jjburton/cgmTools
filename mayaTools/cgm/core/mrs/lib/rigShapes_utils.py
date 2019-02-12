@@ -126,7 +126,7 @@ def rootOrCog(self,mHandle = None):
         mBlock = self.mBlock
         ml_prerigHandles = self.ml_prerigHandles
         ml_templateHandles = self.ml_templateHandles
-        
+        _offset = self.v_offset
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
             mCogHelper = mBlock.cogHelper

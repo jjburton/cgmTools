@@ -2896,7 +2896,7 @@ def rig_cleanUp(self):
                 _mode = 2            
             else:
                 ml_targetDynParents.insert(0,mParent)
-                _mode = 1
+                _mode = 2
             
             ml_targetDynParents.extend(ml_endDynParents)
             ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
