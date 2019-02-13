@@ -1067,7 +1067,6 @@ def testException(message = 'cat'):
         raise Exception, message
     except Exception,err:
         cgmExceptCB(Exception,err,fncDat=vars())
-cgmExceptCB = cgmException
 def cgmExceptCB_BAK(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,tracebackCap=1,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
     
@@ -1581,3 +1580,4 @@ def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
             """
     if etype:raise etype,value,tb
 
+cgmExceptCB = cgmException
