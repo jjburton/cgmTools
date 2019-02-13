@@ -1589,7 +1589,7 @@ def prerig(self):
             mHandle.p_parent = mPrerigNull
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
-            if mTemplateHandle == mEndHandle and _ikEnd in ['foot','pad','bank']:
+            if mTemplateHandle == mEndHandle and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
                 #_size_width = mDefineEndObj.width#...x width
                 SNAP.aim_atPoint(mHandle.mNode, DIST.get_pos_by_vec_dist(mHandle.p_position, _mVectorUp, mDefineEndObj.length))
             
