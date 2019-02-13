@@ -581,7 +581,7 @@ def define(self):
         _d = {'end':{'color':'white','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':.5}},
               'rp':{'color':'redBright','defaults':{'tx':.5}},
-              'lever':{'color':'yellow','defaults':{'tz':-.25}}}
+              'lever':{'color':'orange','defaults':{'tz':-.25}}}
         
         md_handles = {}
         ml_handles = []
@@ -735,7 +735,7 @@ def template(self):
         log.debug("|{0}| >> base loftList: {1}".format(_str_func,_l_loftShapes))        
         if _l_loftShapes:
             if len(_l_loftShapes) < int_handles:
-                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,n))
+                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,_loftShape))
                 while len(_l_loftShapes) < int_handles:
                     _l_loftShapes.append(_loftShape)
         else:

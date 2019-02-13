@@ -4913,7 +4913,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         if _loftSetup == 'loftList':
             _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
             if len(_l_loftShapes) != _int_shapers:
-                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,n))
+                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,_loftShape))
                 while len(_l_loftShapes) < _int_shapers:
                     _l_loftShapes.append(self.loftShape)
         else:
@@ -7184,7 +7184,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 continue
             
             log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
-            if k in ['end','start']:
+            if k in ['end','start','lever']:
                 _useSize = 1.0
             else:
                 _useSize = _sizeSub
@@ -7195,9 +7195,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             #sphere
             if k in ['up','rp'] and rotVecControl:
-                _rotSize = [1,1,1]
+                _rotSize = [.25,.25,2.0]
                 if k == 'rp':
-                    _rotSize = [2.0,2.0,.75]
+                    _rotSize = [.5,.5,1.25]
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
                                               direction = 'y+', size = _rotSize)                
@@ -7316,13 +7316,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         
             if k == 'lever':#Arrow ---------------------------------------------
                 _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
-                                                direction = 'y+', size = _sizeSub)
+                                                direction = 'y+', size = _size)
                 CORERIG.override_color(_arrow, _dtmp['color'])
             
                 mArrow = cgmMeta.cgmObject(_arrow)
                 mArrow.p_parent = mHandle
                 mArrow.resetAttrs()
-                mArrow.ty = _sizeSub * 3.0
+                mArrow.ty = _size * 3
                 
                 CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)
  
