@@ -399,6 +399,7 @@ def get_key_indices_from(node = None, mode = 'all'):
             previous -- 
             forward --
             back --
+            bookEnd -- previous/next
             selected - from selected range
     
     :returns
@@ -427,7 +428,16 @@ def get_key_indices_from(node = None, mode = 'all'):
             mc.currentTime(keyBuffer)
         if lastKey > initialTimeState:
             keyFrames.append(lastKey) 
-            
+    elif mode == 'bookEnd':
+        _prev = mc.findKeyframe(node,which = 'previous',an='objects')
+        _next = mc.findKeyframe(node,which = 'next',an='objects')
+        _current = initialTimeState
+        if _next and _next > initialTimeState:
+            _l = [_prev,_next]
+            _currentKeyQuery = mc.findKeyframe(node,which = 'next',an='objects',time=(_prev,_next))
+            if _currentKeyQuery:
+                _l.insert(1,_currentKeyQuery)
+            return _l
     elif mode == 'previous':
         _key = mc.findKeyframe(node,which = 'previous',an='objects')
         #mc.currentTime(initialTimeState-1)
@@ -453,7 +463,7 @@ def get_key_indices_from(node = None, mode = 'all'):
         if mode == 'previous' and keyFrames:
             keyFrames = [keyFrames[-1]]
 
-    elif mode in ['all','selected']:
+    elif mode in ['all','selected','slider']:
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')
     
@@ -468,15 +478,16 @@ def get_key_indices_from(node = None, mode = 'all'):
     
         # Put the time back where we found it
         mc.currentTime(initialTimeState)
-        if mode == 'selected':
-            _range = get_time('selected')
+        if mode in ['selected','slider']:
+            _range = get_time(mode)
             if not _range:
                 return False
             _l_cull = []
             for k in keyFrames:
-                if k > (_range[0]-1) and k < (_range[1]):
+                if k > (_range[0]-1) and k < (_range[1]+1):
                     _l_cull.append(k)
             keyFrames = _l_cull
+            
                 
         
     else:

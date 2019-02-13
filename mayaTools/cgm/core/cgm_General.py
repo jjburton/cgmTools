@@ -746,8 +746,18 @@ def returnCallerFunctionName():
         log.exception("Failed to inspect function name")
     return result
 
-def log_start(str_func,split='/',intCount = 60):
+def log_start(str_func,split='-',intCount = 80):
     log.debug("|{0}| >> ...".format(str_func)+split*intCount)
+def log_sub(str_func,msg='break',split='_',intCount = 30):
+    log.debug("|{0}| >> {1} ".format(str_func,msg)+split*intCount)
+    
+def logString_start(str_func,split='-',intCount = 80):
+    if str_func:return "|{0}| >> ...".format(str_func)+split*intCount
+    return "...".format(str_func)+split*intCount
+
+def logString_sub(str_func,msg='break',split='_',intCount = 80):
+    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)+split*intCount
+    return "{0} ...".format(msg)+split*intCount
     
 def log_info_dict(arg = None,tag = 'Stored Dict'):
     '''
