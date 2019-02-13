@@ -5242,6 +5242,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
+        reload(PUPPETUTILS)
         return getattr(PUPPETUTILS,func)(self,*args,**kws)            
         #return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
 

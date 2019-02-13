@@ -355,7 +355,6 @@ def get_time(mode = 'current'):
         float/[float,float]
     """   
     _str_func = 'get_time'
-    returnDict = {}
     if mode == 'current':
         return mc.currentTime(q=True)
     elif mode == 'scene':
@@ -454,8 +453,6 @@ def get_key_indices_from(node = None, mode = 'all'):
         if mode == 'previous' and keyFrames:
             keyFrames = [keyFrames[-1]]
 
-        
-        
     elif mode in ['all','selected']:
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')

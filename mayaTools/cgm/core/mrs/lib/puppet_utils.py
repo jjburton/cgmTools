@@ -55,6 +55,7 @@ reload(cgmUI)
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
 #=============================================================================================================
 #>> Queries
@@ -1145,4 +1146,128 @@ def proxyMesh_verify(self, mode = 'connect', forceNew = True, puppetMeshMode = F
     
     if progressBar and progressEnd:
         cgmUI.progressBar_end(progressBar)
+        
+        
+#Controls dat ===========================================================================        
+l_controlOrder = ['root','settings','motionHandle']
+d_controlLinks = {'root':['masterControl'],
+                  'motionHandle':['rootMotionHandle'],
+                  'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder]}
+
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+    """
+    Function to find all the control data for comparison for mirroing or other reasons
+    """
+    def addMObj(mObj,mList):
+        if mObj not in mList:
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)            
+            """
+            if ml_objs is not None:
+                if mObj in ml_objs:
+                    ml_objs.remove(mObj)
+                else:
+                    log.warning("|{0}| >> Not in list. Skipped: {1}".format(_str_func,mObj))
+                    return
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)"""
+
+
+    _str_func = ' controls_getDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    ignore = VALID.listArg(ignore)
     
+    ml_objs = []
+    #try:ml_objs = self.puppetSet.getMetaList() or []
+    #except:pass
+    #l_objs = [mObj.mNode for mObj in ml_objs]
+    md_controls = {}
+    ml_controls = []
+    
+    if ml_objs:
+        for mObj in ml_objs:
+            if mObj.getMayaType() == 'objectSet':
+                ml_objs.remove(mObj)
+
+    if keys:
+        l_useKeys = VALID.listArg(keys)
+    else:
+        l_useKeys = l_controlOrder
+
+    if ignore:
+        log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
+        for k in ignore:
+            if k in l_useKeys:
+                l_useKeys.remove(k)
+
+    for key in l_useKeys:
+        l_options = d_controlLinks.get(key,[key])
+        log.debug("|{0}| >>  {1}:{2}".format(_str_func,key,l_options))
+        md_controls[key] = []
+        _ml = md_controls[key]
+        for o in l_options:
+            mObj = self.getMessageAsMeta(o)
+            if mObj:
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                addMObj(mObj,_ml)
+            elif self.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = self.msgList_get(o)
+                for mObj in _msgList:
+                    addMObj(mObj,_ml)
+        ml_controls.extend(_ml)
+
+    if ml_objs:
+        ml_dup = copy.copy(ml_objs)
+        log.debug("|{0}| >> Second pass {1}... ".format(_str_func,len(ml_objs))+'-'*20)
+        for mObj in ml_dup:
+            log.debug("|{0}| >> {1} ".format(_str_func,mObj))            
+            if mObj.hasAttr('cgmControlDat'):
+                _tags = mObj.cgmControlDat.get('tags',[])
+                log.debug("|{0}| >> tags: {1} ".format(_str_func,_tags))            
+                for t in _tags:
+                    _t = str(t)
+                    #if keys is not None and _t not in l_useKeys:
+                    #    continue
+                    if not md_controls.get(_t):
+                        md_controls[_t] = []
+                    _ml = md_controls[_t] 
+                    ml_controls.append(mObj)                    
+                    addMObj(mObj,_ml)
+
+    if not keys and 'spacePivots' not in ignore:
+        md_controls['spacePivots'] = []
+        _ml = md_controls['spacePivots']
+        for mObj in ml_controls:
+            mBuffer = mObj.msgList_get('spacePivots')
+            for mSpace in mBuffer:
+                addMObj(mSpace,_ml)
+                ml_controls.append(mSpace)
+
+    if report:
+        log.info("|{0}| >> Dict... ".format(_str_func))
+        pprint.pprint( md_controls)
+
+        log.info("|{0}| >> List... ".format(_str_func))
+        pprint.pprint( ml_controls)
+
+    if ml_objs and keys is None and not ignore:        
+        log.debug("|{0}| >> remaining... ".format(_str_func))
+        pprint.pprint( ml_objs)
+        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+
+    if report:
+        return
+
+    if keys or listOnly:
+        return ml_controls
+    return md_controls,ml_controls
+
+def controls_get(self,):
+    _str_func = ' controls_get'    
+    return controls_getDat(self,listOnly=True)
+        
+    log.error("|{0}| >> No options specified".format(_str_func))
+    return False
