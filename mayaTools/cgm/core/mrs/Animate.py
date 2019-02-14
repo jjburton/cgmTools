@@ -258,18 +258,23 @@ class ui(cgmUI.cgmGUI):
         TOOLBOX.optionVarSetup_basic(self)
         TOOLBOX.buildTab_options(self,uiTab_settings)
         TOOLBOX.buildTab_anim(self,uiTab_anim)
-
+        
+        mc.setParent(_MainForm)
+        self.uiProgressBar = mc.progressBar(vis=False)
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)  
         _MainForm(edit = True,
                   af = [(ui_tabs,"top",0),
                         (ui_tabs,"left",0),
-                        (ui_tabs,"right",0),                        
+                        (ui_tabs,"right",0),
+                        (self.uiProgressBar,"left",0),
+                        (self.uiProgressBar,"right",0),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
 
                         ],
-                  ac = [(ui_tabs,"bottom",0,_row_cgm),
+                  ac = [(ui_tabs,"bottom",0,self.uiProgressBar),
+                        (self.uiProgressBar,"bottom",0,_row_cgm)
                         ],
                   attachNone = [(_row_cgm,"top")])  
         
@@ -1715,7 +1720,7 @@ def buildTab_mrs(self,parent):
 
 @cgmGEN.Timer
 def get_contextTimeDat(self,mirrorQuery=False,**kws):
-    try:
+    try:        
         _str_func='get_contextTimeDat'
         log.debug(cgmGEN.logString_start(_str_func))
         _res = {}
@@ -1958,7 +1963,8 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         return _res
     except Exception,err:
         pprint.pprint(self.d_puppetData)
-        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        
 
 _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
@@ -2165,6 +2171,7 @@ def uiCB_contextualAction(self,**kws):
     
     _keys = d_timeContext.keys()
     _keys.sort()
+    _int_keys = len(_keys)
     
     mc.undoInfo(openChunk=True,chunkName="undo{0}".format(_mode))
     _resetMode = self.var_resetMode.value
@@ -2176,11 +2183,12 @@ def uiCB_contextualAction(self,**kws):
     _autoKey = mc.autoKeyframe(q=True,state=True)
     if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
-    
     mc.refresh(su=1)
     try:
         for i,f in enumerate(_keys):
             log.info(cgmGEN.logString_sub(None,'Key: {0}'.format(f),'_',40))
+            mc.progressBar(self.uiProgressBar,edit=True,maxValue = _int_keys,progress = i, vis=1)
+            
             mc.currentTime(f,update=True)
             
             if _mode in ['mirrorPush','mirrorPull',
@@ -2250,6 +2258,7 @@ def uiCB_contextualAction(self,**kws):
             else:
                 for mPart,controls in self.d_puppetData['partControls'].iteritems():
                     log.info(cgmGEN.logString_sub(None,'Part: {0}'.format(mPart),'_',40))
+                    mc.progressBar(self.uiProgressBar,edit=True,maxValue = len(self.d_puppetData['partControls'].keys()),step = 1, vis=1)
                     
 
                     if _mode in ['reset','resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
@@ -2349,7 +2358,7 @@ def uiCB_contextualAction(self,**kws):
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
             
         mc.refresh(su=0)
-        
+        cgmUI.progressBar_end(self.uiProgressBar)
         return endCall(self)            
         
         
