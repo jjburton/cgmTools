@@ -1729,8 +1729,12 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         
         if _contextTime == 'selected':
             if not SEARCH.get_time('selected'):
-                log.error("Time Context: selected | No time selected.")
-                return False
+                #log.error("Time Context: selected | No time selected.")
+                return False,"Time Context: selected | No time selected."
+            
+        if _context in ['puppet','scene'] and _contextTime in ['bookEnd']:
+            log.error("Unsupported context/time combo (bad mojo!) | context:{0} | contextTime:{1}".format(_context,_contextTime))
+            return False,"Unsupported context/time combo (bad mojo!) | context:{0} | contextTime:{1}".format(_context,_contextTime)            
         
         
         log.debug("|{0}| >> context: {1} | {2} - {3} | {4}".format(_str_func,_context,_contextKeys,_contextTime, ' | '.join(kws)))
@@ -1994,8 +1998,12 @@ def uiCB_contextualTimeAction(self,**kws):
         
     else:
         d_timeContext  = get_contextTimeDat(self,_mirrorQuery,**kws)
-        if not d_timeContext:
-            return log.error("Nothing found in time context: {0} ".format(_contextTime))
+        try:
+            if not d_timeContext[0]:
+                return log.error(d_timeContext[1])
+        except:
+            if not d_timeContext:
+                return log.error("Nothing found in time context: {0} ".format(_contextTime))
         
         #pprint.pprint(d_timeContext)
         if _mode == 'report':
