@@ -1265,9 +1265,15 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
 
-def controls_get(self,):
-    _str_func = ' controls_get'    
-    return controls_getDat(self,listOnly=True)
+def controls_get(self,walk=False):
+    _str_func = ' controls_get'
+    _res = controls_getDat(self,listOnly=True)
+    if not walk:
+        return _res
+    
+    for mModule in modules_get(self):
+        _res.extend( mModule.atUtils('controls_get'))
+    return _res
         
     log.error("|{0}| >> No options specified".format(_str_func))
     return False
