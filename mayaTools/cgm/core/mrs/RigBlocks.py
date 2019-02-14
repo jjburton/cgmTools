@@ -5046,7 +5046,7 @@ class rigFactory(object):
                 
                 err=None
                 try:
-                    getattr(self.mRigFac.d_block['buildModule'],fnc)(self.mRigFac)            
+                    getattr(self.d_block['buildModule'],fnc)(self)            
                 except Exception,err:
                     log.error(err)
             
