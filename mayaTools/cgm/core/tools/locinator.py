@@ -393,30 +393,31 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     _progressBar = cgmUI.doStartMayaProgressBar(len(_keysToProcess),"Processing...")
     _autoKey = mc.autoKeyframe(q=True,state=True)
     if _autoKey:mc.autoKeyframe(state=False)
-    
-    for i,f in enumerate(_keysToProcess):
-        mc.currentTime(f)
-        
-        for o in _l_toDo:
-            _keys = _d_keysOfTarget.get(o,[])
-            if f in _keys:
-                #log.info("|{0}| >> Baking: {1} | {2}...".format(_str_func,f,o))
+    mc.refresh(su=1)
+    try:
+        for i,f in enumerate(_keysToProcess):
+            for o in _l_toDo:
+                _keys = _d_keysOfTarget.get(o,[])
+                if f in _keys:
+                    #log.info("|{0}| >> Baking: {1} | {2}...".format(_str_func,f,o))
+                    
+                    if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                        break
+                    mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
                 
-                if mc.progressBar(_progressBar, query=True, isCancelled=True ):
-                    break
-                mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
-            
-                if matchMode == 'source':
-                    try:update_obj(o,move,rotate,mode=matchMode)
-                    except Exception,err:log.error(err)
-                    mc.setKeyframe(_d_toDo[o]['source'],time = f, at = _attrs)
-                else:
-                    try:update_obj(o,move,rotate)
-                    except Exception,err:log.error(err)
-                    mc.setKeyframe(o,time = f, at = _attrs)
-         
-
-    cgmUI.doEndMayaProgressBar(_progressBar)
+                    if matchMode == 'source':
+                        try:update_obj(o,move,rotate,mode=matchMode)
+                        except Exception,err:log.error(err)
+                        mc.setKeyframe(_d_toDo[o]['source'],time = f, at = _attrs)
+                    else:
+                        try:update_obj(o,move,rotate)
+                        except Exception,err:log.error(err)
+                        mc.setKeyframe(o,time = f, at = _attrs)
+    except Exception,err:
+        log.error(err)
+    finally:
+        mc.refresh(su=0)
+        cgmUI.doEndMayaProgressBar(_progressBar)
     mc.currentTime(_d_keyDat['currentTime'])
     if _autoKey:mc.autoKeyframe(state=True)
     mc.select(_targets)
