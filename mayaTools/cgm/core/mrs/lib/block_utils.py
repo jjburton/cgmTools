@@ -2321,7 +2321,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
     
     
     if indices:
-        log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
+        log.debug("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
         l_buffer = []
         for i in indices:
             l_buffer.append(sourceJoints[i])
@@ -2339,7 +2339,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
             l_jointsExist = connectToModule.msgList_get(connectAs,asMeta = False, cull = True)
         
         if l_jointsExist:
-            log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
+            log.debug("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
             mc.delete(l_jointsExist)
 
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
@@ -2354,7 +2354,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
     for i,mJnt in enumerate(ml_joints):
         if blockNames:
             _d_tmp = l_names[i]
-            log.info("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
+            log.debug("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
             for a in ['cgmIterator','cgmName']:
                 if _d_tmp.get(a):
                     mJnt.addAttr(a, str(_d_tmp.get(a)),attrType='string',lock=True)
@@ -2388,6 +2388,7 @@ def skeleton_buildDuplicateChain(self,sourceJoints = None, modifier = 'rig', con
             connectToModule.connectChildNode(ml_joints[0],connectAs,'rigNull')
         else:
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
+    log.debug(ml_joints)
     return ml_joints
 
 def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectToModule = False, connectAs = 'rigJoints', connectToSource = 'skinJoint', singleMode = False, cgmType = None, indices  = [],blockNames=False):
@@ -6800,20 +6801,19 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
                 return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))
             log.debug("|{0}| >> ml_moduleJoints: {1}".format(_str_func,ml_moduleJoints))        
 
-            
             md_parents = {}#We're going to un parent our joints before skinning and then reparent
             for i,mJnt in enumerate(ml_moduleJoints):
-                md_parents[mJnt] = mJnt.p_parent
-                if i:
-                    mJnt.p_parent = ml_moduleJoints[i-1]
+                md_parents[mJnt] = mJnt.getParent(asMeta=True)
+                if i:mJnt.p_parent = ml_moduleJoints[i-1]
         
 
             log.debug("|{0}| >> skinning..".format(_str_func))
+            l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
                 mMesh.p_parent = mParent
                 #mMesh.doCopyPivot(mGeoGroup.mNode)
-                skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                skin = mc.skinCluster (l_joints,
                                        mMesh.mNode,
                                        tsb=True,
                                        bm=1,
@@ -6833,6 +6833,7 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
             #Reparent
             for i,mJnt in enumerate(ml_moduleJoints):
                 mJnt.p_parent = md_parents[mJnt]
+            #pprint.pprint(md_parents)
     if connect:
         self.msgList_connect('simpleMesh',ml_mesh)        
     return ml_mesh
@@ -7762,8 +7763,8 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     mOrientHelper = self.getMessageAsMeta('vectorRpHelper')
     if mOrientHelper:
         log.debug("|{0}| >>  RP helper found...".format(_str_func))
-        vector_pos = mOrientHelper.getAxisVector('z+',asEuclid = 0)
-        vector_neg = mOrientHelper.getAxisVector('z-',asEuclid = 0)        
+        vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
+        vector_neg = mOrientHelper.getAxisVector('y-',asEuclid = 0)        
     else:
         try:mOrientHelper = self.orientHelper
         except:raise ValueError,"No orientHelper found"
@@ -7921,7 +7922,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         
         pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,
                                            DIST.get_distance_between_points(ml_handles[0].p_position,
-                                                                                            pos_mid)/4)
+                                                                                            pos_mid))
         pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use)
         
         if markPos:
