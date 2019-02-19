@@ -1391,10 +1391,14 @@ def template(self):
             
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
-                mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mTemplateNull
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_bankSize,loft=False)
+                mFoot.p_parent = mTemplateNull
+                
+                #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mTemplateNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
-                mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseShape = _shapeEnd, baseSize=_bankSize)
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_bankSize)
+                #mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseShape = _shapeEnd, baseSize=_bankSize)
                 mFoot.p_parent = mTemplateNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
@@ -1407,6 +1411,15 @@ def template(self):
                 log.debug("|{0}| >> posProxy: {1}".format(_str_func,pos_proxy))
                 mProxy.p_position = pos_proxy
                 CORERIG.copy_pivot(mProxy.mNode,mEndHandle.mNode)
+                
+            
+            if _ikEnd in ['bank','foot','pad']:
+                mPivotHelper = mEndHandle.pivotHelper
+                mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                mc.pointConstraint([mEndHandle.mNode],mGroup.mNode, skip='y')
+                mc.orientConstraint([mEndHandle.mNode],mGroup.mNode, skip=['z','x'])
+                mGroup.dagLock()
+                
                 
         #Aim end handle -----------------------------------------------------------------------------------
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 

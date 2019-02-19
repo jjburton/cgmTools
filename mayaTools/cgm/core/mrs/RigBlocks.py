@@ -1789,7 +1789,7 @@ class handleFactory(object):
                              'center':'ball'}
     
                 mAxis = VALID.simpleAxis(d_pivotDirections['front'])
-                p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
+                #p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
                 
                 _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
                 #Main Handle -----------------------------------------------------------------------------
