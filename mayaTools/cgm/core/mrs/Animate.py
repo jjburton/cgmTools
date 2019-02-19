@@ -2420,7 +2420,7 @@ def buildFrame_mrsTimeContext(self,parent):
         
     mUI.MelButton(_rowContextKeys,label='Q',
                   ann='Query the time context',
-                  c=cgmGEN.Callback(uiCB_contextualTimeAction,self,**{'mode':'report'}))
+                  c=cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'report'}))
     mUI.MelSpacer(_rowContextKeys,w=2)                          
     
     _rowContextKeys.layout()    
