@@ -780,6 +780,13 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+def prerig_handlesLock(self, lock=None):
+    try:
+        _str_func = 'prerig_handlesLock'
+        return True   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
 
 def delete(self):
     _d_delete = {4:rigDelete,
@@ -5893,39 +5900,38 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
     if _idx_target > currentState:
         startState = currentState+1
         
-        
-        #>>>Parents ------------------------------------------------------------------------------------
-        ml_parents = self.getBlockParents() or []
-        ml_dependencies = []
-        if ml_parents:
-            #ml_children.reverse()
-            for mParent in ml_parents:
-                _parentState = mParent.getState(False)
-                if _parentState < _idx_target:
-                    ml_dependencies.append(mParent)
+        if _idx_target > 2:
+            #>>>Parents ------------------------------------------------------------------------------------
+            ml_parents = self.getBlockParents() or []
+            ml_dependencies = []
+            if ml_parents:
+                #ml_children.reverse()
+                for mParent in ml_parents:
+                    _parentState = mParent.getState(False)
+                    if _parentState < _idx_target:
+                        ml_dependencies.append(mParent)
+                        
+                if ml_dependencies:
+                    _msg = "Target state: {1} \nThe Following [{0}] parents need processing: ".format(len(ml_dependencies),_state_target)
+                    _l_parents = []
+                    for mParent in ml_dependencies:
+                        _l_parents.append(mParent.p_nameShort)
+                    if _l_parents:
+                        _msg = _msg + '\n' + '\n'.join(_l_parents)
+                    result = mc.confirmDialog(title="Shall we continue",
+                                              message= _msg,
+                                              button=['OK', 'Cancel'],
+                                              defaultButton='OK',
+                                              cancelButton='Cancel',
+                                              dismissString='Cancel')
                     
-            
-            if ml_dependencies:
-                _msg = "Target state: {1} \nThe Following [{0}] parents need processing: ".format(len(ml_dependencies),_state_target)
-                _l_parents = []
-                for mParent in ml_dependencies:
-                    _l_parents.append(mParent.p_nameShort)
-                if _l_parents:
-                    _msg = _msg + '\n' + '\n'.join(_l_parents)
-                result = mc.confirmDialog(title="Shall we continue",
-                                          message= _msg,
-                                          button=['OK', 'Cancel'],
-                                          defaultButton='OK',
-                                          cancelButton='Cancel',
-                                          dismissString='Cancel')
-                
-                if result != 'OK':
-                    log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
-                    return False
-                    
-                for mParent in ml_dependencies:
-                    log.error("|{0}| >> Parent state lower than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mParent))
-                    changeState(mParent,_idx_target)
+                    if result != 'OK':
+                        log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+                        return False
+                        
+                    for mParent in ml_dependencies:
+                        log.error("|{0}| >> Parent state lower than target state | changing state to: {1} | {2}".format(_str_func, _idx_target, mParent))
+                        changeState(mParent,_idx_target)
     
         
         
@@ -8192,7 +8198,6 @@ def pivotHelper_get(self,mHandle=None,
                 mLoftSurface.doStore('cgmName',self)
                 mLoftSurface.doStore('cgmType','footApprox')
                 mLoftSurface.doName()
-    
     
     
                 #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
