@@ -532,6 +532,31 @@ def normalizeList(L, normalizeTo=1):
     vMax = max(L)
     return [ x/(vMax*1.0)*normalizeTo for x in L]
 
+def find_valueInList(v,l,mode='near'):
+    _d = {}
+    _l = []
+    _l_use = []
+    
+    if mode == 'previous':
+        for v1 in l:
+            if v1 < v:
+                _l_use.append(v1)
+    elif mode == 'next':
+        for v1 in l:
+            if v1 > v:
+                _l_use.append(v1)
+    else:_l_use = copy.copy(l)
+        
+    for v1 in _l_use:
+        _diff = abs(v1 - v)
+        _l.append(_diff)
+        _d[_diff] = v1
+    
+    pprint.pprint(vars())
+    if mode in ['near','previous','next']:return _d[min(_l)]
+    elif mode == 'far':return _d[max(_l)]
+
+
 def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     '''
     Get a factored list 

@@ -355,7 +355,6 @@ def get_time(mode = 'current'):
         float/[float,float]
     """   
     _str_func = 'get_time'
-    returnDict = {}
     if mode == 'current':
         return mc.currentTime(q=True)
     elif mode == 'scene':
@@ -400,6 +399,7 @@ def get_key_indices_from(node = None, mode = 'all'):
             previous -- 
             forward --
             back --
+            bookEnd -- previous/next
             selected - from selected range
     
     :returns
@@ -420,22 +420,70 @@ def get_key_indices_from(node = None, mode = 'all'):
         return []
     elif mode == 'forward':
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')
+        keyCheck = [lastKey]
+        rangeCheck = [initialTimeState-1,lastKey]
+        _i = 0
+        
+        while mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1])) not in keyCheck:
+            #if _i>100:break
+
+            _key = mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1]))
+            keyFrames.append(_key)
+            if rangeCheck[0] == _key:break
+            
+            rangeCheck[0] = _key
+            
+            #print "{0} | {1}".format(rangeCheck,_key)
+            _i+=1
+                
+        """
         mc.currentTime(initialTimeState-1)        
         while mc.currentTime(q=True) != lastKey:
             keyBuffer = mc.findKeyframe(node,which = 'next',an='objects')
             if keyBuffer > initialTimeState:
                 keyFrames.append(keyBuffer)
-            mc.currentTime(keyBuffer)
+            mc.currentTime(keyBuffer)"""
+            
         if lastKey > initialTimeState:
             keyFrames.append(lastKey) 
-            
+    elif mode == 'bookEnd':
+        _prev = mc.findKeyframe(node,which = 'previous',an='objects')
+        _next = mc.findKeyframe(node,which = 'next',an='objects')
+        _current = initialTimeState
+        if _next and _next > initialTimeState:
+            _l = [_prev,_next]
+            _currentKeyQuery = mc.findKeyframe(node,which = 'next',an='objects',time=(_prev,_next))
+            if _currentKeyQuery:
+                _l.insert(1,_currentKeyQuery)
+            return _l
+        
     elif mode == 'previous':
         _key = mc.findKeyframe(node,which = 'previous',an='objects')
         #mc.currentTime(initialTimeState-1)
         if _key:
             return [_key]
-        return []        
+        return []
+    
     elif mode in ['back']:
+        firstKey = mc.findKeyframe(node,which = 'first',an='objects')
+        keyCheck = [firstKey]
+        rangeCheck = [firstKey,initialTimeState]
+        _i = 0
+        keyFrames.append(firstKey)
+        
+        while mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1])) not in keyCheck:
+            #if _i>100:break
+            _key = mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1]))
+            
+            if _key > initialTimeState:break
+            if rangeCheck[0] == _key:break
+            
+            keyFrames.append(_key)
+            rangeCheck[0] = _key
+            #print "{0} | {1}".format(rangeCheck,_key)
+            _i+=1
+            
+        """
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')
         
@@ -450,16 +498,32 @@ def get_key_indices_from(node = None, mode = 'all'):
                 #log.debug(keyFrames)
                 mc.currentTime(keyBuffer)
             else:
-                break
+                break"""
         if mode == 'previous' and keyFrames:
             keyFrames = [keyFrames[-1]]
 
-        
-        
-    elif mode in ['all','selected']:
+    elif mode in ['all','selected','slider']:
         firstKey = mc.findKeyframe(node,which = 'first',an='objects')
         lastKey = mc.findKeyframe(node,which = 'last',an='objects')
-    
+        keyCheck = [firstKey]
+        rangeCheck = [firstKey,lastKey]
+        _i = 0
+        keyFrames.append(firstKey)
+        
+        while mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1])) not in keyCheck:
+            #if _i>100:break
+            _key = mc.findKeyframe(node,which = 'next',an='objects',time=(rangeCheck[0],rangeCheck[1]))
+            
+            if _key > lastKey:
+                break
+            keyFrames.append(_key)
+            if rangeCheck[0] == _key:break
+            rangeCheck[0] = _key
+            
+            #print "{0} | {1}".format(rangeCheck,_key)
+            _i+=1        
+        
+        """
         keyFrames.append(firstKey)
         mc.currentTime(firstKey-1)
         while mc.currentTime(q=True) != lastKey:
@@ -467,25 +531,26 @@ def get_key_indices_from(node = None, mode = 'all'):
             keyFrames.append(keyBuffer)
             mc.currentTime(keyBuffer)
     
-        keyFrames.append(lastKey)
+        keyFrames.append(lastKey)"""
     
         # Put the time back where we found it
-        mc.currentTime(initialTimeState)
-        if mode == 'selected':
-            _range = get_time('selected')
+        #mc.currentTime(initialTimeState)
+        if mode in ['selected','slider']:
+            _range = get_time(mode)
             if not _range:
                 return False
             _l_cull = []
             for k in keyFrames:
-                if k > (_range[0]-1) and k < (_range[1]):
+                if k > (_range[0]-1) and k < (_range[1]+1):
                     _l_cull.append(k)
             keyFrames = _l_cull
+            
                 
         
     else:
         raise ValueError,"Unknown mode: {0}".format(mode)
     
-    mc.currentTime(initialTimeState)
+    #mc.currentTime(initialTimeState)
     return lists.returnListNoDuplicates(keyFrames)
     
 

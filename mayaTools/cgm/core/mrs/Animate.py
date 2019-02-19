@@ -19,7 +19,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -43,6 +43,7 @@ import cgm.core.lib.name_utils as NAMES
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
+reload(cgmGEN)
 from cgm.core import cgm_Meta as cgmMeta
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
@@ -50,10 +51,12 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.dynParentTool as DYNPARENTTOOL
+reload(DYNPARENTTOOL)
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
+reload(SEARCH)
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 
@@ -69,16 +72,31 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.05222018 - ALPHA'
+__version__ = '1.02122019'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
                'puppet':{},
                'scene':{}}
 _l_contexts = _d_contexts.keys()
+_l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
+_d_shorts = {'back':'<-',
+             'previous':'|<',
+             'bookEnd':'|--|',
+             'current':'^',
+             'selected':'sel',
+             'next':'>|',
+             'slider':'[ ]',
+             'forward':'->'}
+_l_contextKeys = ['each','combined']
+
+
+
 
 _subLineBGC = [.75,.75,.75]
 
+log_start = cgmGEN.log_start
+log_sub = cgmGEN.log_sub
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -113,9 +131,19 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_snap = None
         self.uiMenu_help = None
         self._l_contexts = _l_contexts
+        self._l_contextTime = _l_contextTime
+        self._l_contextKeys = _l_contextKeys
+        
         try:self.var_mrsContext
-        except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext',
+        except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                           defaultValue = _l_contexts[0])
+        try:self.var_mrsContextTime
+        except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                          defaultValue = 'current')
+        
+        try:self.var_mrsContextKeys
+        except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                          defaultValue = 'each')
         
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.metaRig = False
@@ -230,18 +258,23 @@ class ui(cgmUI.cgmGUI):
         TOOLBOX.optionVarSetup_basic(self)
         TOOLBOX.buildTab_options(self,uiTab_settings)
         TOOLBOX.buildTab_anim(self,uiTab_anim)
-
+        
+        mc.setParent(_MainForm)
+        self.uiProgressBar = mc.progressBar(vis=False)
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)  
         _MainForm(edit = True,
                   af = [(ui_tabs,"top",0),
                         (ui_tabs,"left",0),
-                        (ui_tabs,"right",0),                        
+                        (ui_tabs,"right",0),
+                        (self.uiProgressBar,"left",0),
+                        (self.uiProgressBar,"right",0),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
 
                         ],
-                  ac = [(ui_tabs,"bottom",0,_row_cgm),
+                  ac = [(ui_tabs,"bottom",0,self.uiProgressBar),
+                        (self.uiProgressBar,"bottom",0,_row_cgm)
                         ],
                   attachNone = [(_row_cgm,"top")])  
         
@@ -1620,6 +1653,7 @@ def buildTab_mrs(self,parent):
         else:_rb = False
         _label = str(_d_contexts[item].get('short',item))
         uiRC.createButton(_rowContext,label=_label,sl=_rb,
+                          ann = "Set context: {0}".format(item),
                           onCommand = cgmGEN.Callback(mVar.setValue,item))
 
         #mUI.MelSpacer(_row,w=1)       
@@ -1655,13 +1689,14 @@ def buildTab_mrs(self,parent):
         self._dCB_contextOptions[k] = _cb
     _rowContextSub.layout()
     
+
+    
+    
     #Column below =================================================================
     _columnBelow = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
     
-
-
     mc.setParent(_columnBelow)
-    
+    buildFrame_mrsTimeContext(self,_columnBelow)        
     buildFrame_mrsAnim(self,_columnBelow)    
     buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
@@ -1682,6 +1717,744 @@ def buildTab_mrs(self,parent):
                  ],)
     
     return _column
+
+@cgmGEN.Timer
+def get_contextTimeDat(self,mirrorQuery=False,**kws):
+    try:        
+        _str_func='get_contextTimeDat'
+        log.debug(cgmGEN.logString_start(_str_func))
+        _res = {}
+        self.d_puppetData['partControls'] = {}
+        log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
+        
+        
+        _context = kws.get('context') or self.var_mrsContext.value
+        _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
+        _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+        _frame = SEARCH.get_time('current')
+        self.d_puppetData['frameInitial'] = _frame
+        
+        if _contextTime == 'selected':
+            if not SEARCH.get_time('selected'):
+                #log.error("Time Context: selected | No time selected.")
+                return False,"Time Context: selected | No time selected."
+            
+        if _context in ['puppet','scene'] and _contextTime in ['bookEnd']:
+            log.error("Unsupported context/time combo (bad mojo!) | context:{0} | contextTime:{1}".format(_context,_contextTime))
+            return False,"Unsupported context/time combo (bad mojo!) | context:{0} | contextTime:{1}".format(_context,_contextTime)            
+        
+        
+        log.debug("|{0}| >> context: {1} | {2} - {3} | {4}".format(_str_func,_context,_contextKeys,_contextTime, ' | '.join(kws)))
+        
+        #First cather our controls
+        _keys = kws.keys()
+        if 'children' in _keys:
+            b_children = kws.get('children')
+        else:
+            b_children = bool(self.cgmVar_mrsContext_children.value)
+        
+        if 'siblings' in _keys:
+            b_siblings = kws.get('siblings')
+        else:
+            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            
+        if 'mirror' in _keys:
+            b_mirror = kws.get('mirror')
+        else:
+            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            
+        if _context == 'control' and b_siblings:
+            if b_mirror:
+                log.warning("Context control + siblings = part mode")
+                _context = 'part'
+                b_siblings = False
+                
+        if _context == 'puppet' and b_siblings:
+            log.warning("Context puppet + siblings = scene mode")
+            _context = 'scene'
+            
+            
+        
+        def addSourceControls(self,mObj,controls):
+            if not self.d_puppetData['partControls'].get(mObj):
+                log.debug("New partControl list: {0}".format(mObj))
+                self.d_puppetData['partControls'][mObj] = []
+            
+            _l = self.d_puppetData['partControls'][mObj]
+            for c in controls:
+                if c not in _l:
+                    #log.debug("New control: {0}".format(c))                    
+                    _l.append(c)
+            self.d_puppetData['partControls'][mObj] = _l            
+                
+        
+        if _context != 'control':
+            log.debug("|{0}| >> Reaquiring control list...".format(_str_func))
+            ls = []
+
+            if self.d_puppetData['b_puppetPart']:
+                log.info("|{0}| >> puppetPart mode...".format(_str_func))
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    _l = [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet)]
+                    ls.extend(_l)
+                    addSourceControls(self,mPuppet,_l)
+            
+            if _context == 'part':
+                if mirrorQuery:
+                    for mPart in self.d_puppetData['mModules']:
+                        _l = [mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')]
+                        ls.extend(_l)
+                        addSourceControls(self,mPart,_l)
+ 
+                else:
+                    for mPart in self.d_puppetData['mModules']:
+                        _l = mPart.rigNull.moduleSet.getList()
+                        ls.extend(_l)
+                        addSourceControls(self,mPart,_l)
+                        
+            elif _context in ['puppet','scene']:
+                if mirrorQuery:
+                    for mPuppet in self.d_puppetData['mPuppets']:
+                        addSourceControls(self,mPuppet,
+                                          [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet)])
+                        
+                        for mPart in mPuppet.UTILS.modules_get(mPuppet):
+                            _l = [mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')]
+                            ls.extend(_l)
+                            addSourceControls(self,mPart,_l)
+                            
+                else:
+                    for mPuppet in self.d_puppetData['mPuppets']:
+                        _l =  [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet)]
+                        addSourceControls(self,mPuppet,_l)
+                        ls.extend(_l)
+                        
+                        for mPart in mPuppet.UTILS.modules_get(mPuppet):
+                            _l = [mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)]
+                            ls.extend(_l)
+                            addSourceControls(self,mPart,_l)
+                            
+                        #mPuppet.puppetSet.select()
+                        #ls.extend(mc.ls(sl=True))
+                    
+            self.d_puppetData['sControls'] = ls
+        else:
+            self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
+            self.d_puppetData['partControls']['control'] = self.d_puppetData['sControls']
+ 
+        self.d_puppetData['sControls'] = LISTS.get_noDuplicates(self.d_puppetData['sControls'])
+        self.d_puppetData['mControls'] = cgmMeta.validateObjListArg(self.d_puppetData['sControls'])
+        
+        #================================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'Find keys'))
+        self.l_sources = []
+        
+        def addSource(self,mObj,key,res):
+            if not _res.get(key):
+                log.debug("New frame: {0}".format(key))                
+                res[key]=[]
+            
+            _l = res[key]
+            if mObj not in _l:
+                _l.append(mObj)
+            if mObj not in self.l_sources:
+                self.l_sources.append(mObj)
+                
+            res[key] = _l
+            
+        if _contextTime == 'current':
+            _controls = self.d_puppetData['sControls']
+            _res[_frame] = _controls
+        else:
+            if _context == 'control':
+                for mObj in self.d_puppetData['mControls']:
+                    _keys = SEARCH.get_key_indices_from( mObj.mNode,mode = _contextTime)
+                    if _keys:
+                        log.debug("{0} | {1}".format(mObj.p_nameShort,_keys))
+                        for k in _keys:
+                            addSource(self,mObj,k,_res)
+            elif _context in ['part','puppet','scene']:
+                d_tmp = {}
+                l_keys = []
+                #First pass we collect all the keys...
+                for mPart,controls in self.d_puppetData['partControls'].iteritems():
+                    d_tmp[mPart] = []
+                    _l = d_tmp[mPart]
+                    for c in controls:
+                        _keys = SEARCH.get_key_indices_from( c,mode = _contextTime)
+                        if _keys:
+                            log.debug("{0} | {1}".format(c,_keys))
+                            for k in _keys:
+                                #addSource(self,mPart,k,_res)
+                                if k not in d_tmp[mPart]:d_tmp[mPart].append(k)
+                                if k not in l_keys:l_keys.append(k)
+                #Second pass we do any special processing in case a given set of controls gives us more data that we want...                
+                if _context in ['part']:
+                    if _contextTime in ['next','previous']:
+                        log.debug(cgmGEN.logString_sub(_str_func,'Second pass | {0}'.format(_contextTime)))                        
+                        for mPart,keys in d_tmp.iteritems():
+                            if not keys:
+                                continue
+                            if _contextTime== 'next':
+                                _match = MATH.find_valueInList(_frame,keys,'next')
+                            else:
+                                _match = MATH.find_valueInList(_frame,keys,'previous')
+                            d_tmp[mPart] = [_match]
+                elif _context == 'puppet':
+                    if _contextTime in ['next','previous']:
+                        log.debug(cgmGEN.logString_sub(_str_func,'Second pass | {0}'.format(_contextTime)))
+                        if _contextTime== 'next':
+                            _match = MATH.find_valueInList(_frame,l_keys,'next')
+                        else:
+                            _match = MATH.find_valueInList(_frame,l_keys,'previous')                        
+                        
+                        for mPart,keys in d_tmp.iteritems():
+                            d_tmp[mPart] = [_match]                    
+                    
+                
+                for mPart,keys in d_tmp.iteritems():
+                    for k in keys:
+                        addSource(self,mPart,k,_res)
+                        
+                
+                                
+                                
+        #We have to cull some data in some cases....
+        if _contextTime not in ['all']:
+            if _contextTime in ['next','previous'] and _context !='control' and 'cat'=='dog':
+                #We only want one value here...
+                if _contextTime== 'next':
+                    _match = MATH.find_valueInList(_frame,_res.keys(),'next')
+                else:
+                    _match = MATH.find_valueInList(_frame,_res.keys(),'previous')
+                
+                for k in _res.keys():
+                    if k != _match:
+                        _res.pop(k)
+            else:
+                _range = SEARCH.get_time('slider')
+                for k in _res.keys():
+                    if k < _range[0] or k > _range[1]:
+                        log.debug("Out of range: {0}".format(k))
+                        _res.pop(k)
+
+        if _contextKeys == 'combined':
+            log.debug(cgmGEN.logString_sub(_str_func,'Combining keys'))
+            
+            if _context == 'control':
+                for k in _res.keys():
+                    _res[k]= self.l_sources                
+            else:
+                mSources = self.d_puppetData['partControls'].keys()
+                for k in _res.keys():
+                    _res[k]= mSources
+            
+            if _contextTime in ['next','previous']:
+                log.debug(cgmGEN.logString_sub(_str_func,'Combined final cull | {0}'.format(_contextTime)))
+                if _contextTime== 'next':
+                    _match = MATH.find_valueInList(_frame,_res.keys(),'next')
+                else:
+                    _match = MATH.find_valueInList(_frame,_res.keys(),'previous')
+                
+                for k in _res.keys():
+                    if k != _match:
+                        _res.pop(k)                
+            
+        return _res
+    except Exception,err:
+        pprint.pprint(self.d_puppetData)
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+        
+
+_l_timeFunctions = ['reset','report',
+                    'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
+                    'FKon','IKon','FKsnap','IKsnap','IKsnapAll',
+                   'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
+                   'aimSnap','aimToIK','aimToFK',
+                   'mirrorPush','mirrorPull',
+                   'symLeft','symRight','mirrorFlip']
+
+_l_noReselect = ['aimSnap','aimToIK','aimToFK']
+
+
+@cgmGEN.Timer
+def uiCB_contextualAction(self,**kws):
+    _str_func='uiCB_contextualTime'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    l_kws = []
+    for k,v in kws.iteritems():
+        l_kws.append("{0}:{1}".format(k,v))
+    
+    _mode = kws.pop('mode',False)
+    _context = kws.get('context') or self.var_mrsContext.value
+    _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
+    _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+    
+
+    d_context = {}
+    _mirrorQuery = False
+    if _mode in ['mirrorPush','mirrorPull','symLeft','symRight','mirrorFlip','mirrorSelect','mirrorSelectOnly']:
+        kws['addMirrors'] = True
+        _mirrorQuery = True
+    res_context = get_context(self,**kws)
+    
+    #pprint.pprint(self.d_puppetData)
+    #return        
+    if not res_context:
+        return log.error("Nothing found in context: {0} ".format(_context))
+    
+    def endCall(self,report=True):
+        if _mode not in _l_noReselect:
+            mc.select(self._sel)
+        if report:log.info("Context: {0} | mode: {1} | {2} - {3} | done.".format(_context, _mode,
+                                                                                 _contextTime,_contextKeys))
+        return 
+    
+    self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
+    
+    #First we see if we have a current only function or current time ========================
+    if _contextTime == 'current' or _mode not in _l_timeFunctions:
+        log.info(cgmGEN.logString_sub(None,'Current Only mode: {0}'.format(_mode)))
+        _l_controls = get_contextualControls(self,_mirrorQuery,**kws)
+        _contextTime = 'current'
+        
+        if _mode == 'report':
+            log.info("Context: {0} | controls: {1}".format(_context, len(_l_controls)))
+            for i,v in enumerate(res_context):
+                log.info("[{0}] : {1}".format(i,v))
+            #pprint.pprint(self.d_puppetData['mModules'])
+            log.debug(cgmGEN._str_subLine)
+            return endCall(self)
+        elif _mode == 'select':
+            return  mc.select(_l_controls)
+        elif _mode in ['selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']:
+            if _mode == 'selectFK':
+                _tag = 'fk'
+            elif _mode == 'selectIK':
+                _tag = 'ik'
+            elif _mode == 'selectIKEnd':
+                _tag = 'ikEnd'
+            elif _mode == 'selectSeg':
+                _tag = 'segmentHandles'
+            elif _mode == 'selectDirect':
+                _tag = 'direct'
+        
+            l_new = []
+            for mObj in self.d_puppetData['mModules']:
+                _l_buffer = mObj.atUtils('controls_getDat',_tag,listOnly=True)
+                if _l_buffer:
+                    l_new.extend([mHandle.mNode for mHandle in _l_buffer])
+        
+            if not l_new:
+                return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
+        
+            return mc.select(l_new)                
+        elif _mode in ['nextKey','prevKey']:
+            l_keys = []
+            if _mode == 'nextKey':
+                for o in _l_controls:
+                    l_keys.extend( SEARCH.get_key_indices_from(o,'next') )
+                #mel.eval('NextKey;')
+            elif _mode == 'prevKey':
+                for o in _l_controls:
+                    l_keys.extend( SEARCH.get_key_indices_from(o,'previous') )
+            if l_keys:
+                _key = min(l_keys)
+                mc.currentTime(_key)
+            else:
+                log.error('No keys detected')
+            return endCall(self)
+        elif _mode == 'upToDate':
+            log.info("Context: {0} | {1}".format(_context,_mode))
+            if not self.d_puppetData['mPuppets']:
+                return log.error("No puppets detected".format(_mode))
+            for mPuppet in self.d_puppetData['mPuppets']:
+                mPuppet.atUtils('is_upToDate',True)
+            return endCall(self)
+        elif _mode == 'tweenDrag':
+            mc.select(_l_controls)
+            return ml_breakdownDragger.drag()
+        
+        elif _mode in ['tweenNext','tweenPrev','tweenAverage']:
+            v_tween = kws.get('tweenValue', None)
+            if v_tween is None:
+                try:v_tween = self.cgmUIFF_tweenBase.getValue()
+                except:pass
+                if not v_tween:
+                    return log.error("No tween value detected".format(_mode))
+            log.info("Context: {0} | {1} | tweenValue: {2}".format(_context,_mode,v_tween))
+            mc.select(_l_controls)
+    
+            if _mode == 'tweenNext':
+                ml_mode = 'next'
+            elif _mode == 'tweenPrev':
+                ml_mode = 'previous'
+            else:
+                ml_mode = 'average'
+    
+            ml_breakdown.weightBreakdownStep(ml_mode,v_tween)
+    
+            return endCall(self)
+    
+        elif _mode in ['holdCurrent','holdAverage','holdPrev','holdNext']:
+            mc.select(_l_controls)
+    
+            if _mode == 'holdCurrent':
+                ml_hold.current()
+            elif _mode == 'holdAverage':
+                ml_hold.average()
+            elif _mode == 'holdPrev':
+                ml_hold.previous()
+            elif _mode == 'holdNext':
+                ml_hold.next()
+            return endCall(self)
+        elif _mode == 'mirrorSelect':
+            mc.select(_l_controls)
+            return
+        elif _mode == 'mirrorSelectOnly':
+            l_sel = []
+            if _context == 'control':
+                for mObj in  self.d_puppetData['mControlsMirror']:
+                    l_sel.append(mObj.mNode)
+            elif _context == 'part':
+                #pprint.pprint( self.d_puppetData['mModulesMirror'] )
+                #return
+                for mPart in self.d_puppetData['mModulesMirror']:
+                    l_sel.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)])
+            else:
+                return log.error("Context not supported: {0}".format(_context))
+    
+            if not l_sel:
+                return log.error("Nothing found in context".format(_context))
+    
+            mc.select(l_sel)
+            return        
+        
+    
+    d_timeContext  = get_contextTimeDat(self,_mirrorQuery,**kws)
+    try:
+        if not d_timeContext[0]:
+            return log.error(d_timeContext[1])
+    except:
+        if not d_timeContext:
+            return log.error("Nothing found in time context: {0} ".format(_contextTime))
+    
+    #pprint.pprint(d_timeContext)
+    if _mode == 'report':
+        _keys = d_timeContext.keys()
+        _keys.sort()    
+        if _context not in ['control']:
+            log.info("Context: {0} | keys: {1} | sources: {2}".format(_context, len(d_timeContext.keys()),
+                                                                      len(self.d_puppetData['partControls'])))
+            log.info(cgmGEN.logString_sub(None,'Sources'))
+            for mObj,l in self.d_puppetData['partControls'].iteritems():
+                log.info("[{0}] || controls: {1}".format(mObj.p_nameBase,len(l)))        
+            log.info(cgmGEN.logString_sub(None,'Keys'))
+            for k in _keys:
+                log.info("{0} : {1}".format(k,d_timeContext[k]))
+            pprint.pprint(self.d_puppetData['partControls'])
+                
+        else:
+            log.info("Context: {0} | Time: {1} | keys: {2}".format(_context, _contextTime, len(d_timeContext.keys())))        
+            for k in _keys:
+                log.info("{0} : {1}".format(k,len(d_timeContext[k])))
+            #log.info(d_timeContext[k])
+            #pprint.pprint(self.d_puppetData['mModules'])
+            #pprint.pprint(self.d_puppetData['partControls'])
+        log.info(cgmGEN._str_subLine)
+        return endCall(self,True)
+        
+    
+    #Frame Processing ============================================================================
+    log.info(cgmGEN.logString_sub(None,'Frame Processing: {0}'.format(_mode)))
+    
+    _keys = d_timeContext.keys()
+    _keys.sort()
+    _int_keys = len(_keys)
+    
+    mc.undoInfo(openChunk=True,chunkName="undo{0}".format(_mode))
+    _resetMode = self.var_resetMode.value
+    d_buffer = {}
+    _primeAxis = False
+    _keyResult = False
+    err=None
+    if len(_keys):_keyResult=True
+    _autoKey = mc.autoKeyframe(q=True,state=True)
+    if _autoKey:mc.autoKeyframe(state=False)
+    _l_cBuffer = []
+    mc.refresh(su=1)
+    try:
+        for i,f in enumerate(_keys):
+            log.info(cgmGEN.logString_sub(None,'Key: {0}'.format(f),'_',40))
+            mc.progressBar(self.uiProgressBar,edit=True,maxValue = _int_keys,progress = i, vis=1)
+            
+            mc.currentTime(f,update=True)
+            
+            if _mode in ['mirrorPush','mirrorPull',
+                         'symLeft','symRight','mirrorFlip']:
+                mBaseModule = self.d_puppetData['mModulesBase'][0]                
+                log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
+                
+                if not _l_cBuffer:
+                    _l_cBuffer = self.d_puppetData['sControls']
+                    for mMirror in self.d_puppetData['mModulesMirror']:
+                        _l_cBuffer.extend([mObj.mNode for mObj in mMirror.UTILS.controls_get(mMirror)])                
+                    
+                log.debug(cgmGEN._str_subLine)
+                
+                #if not _primeAxis:
+                try:
+                    _primeAxis = self._ml_sel[0].getEnumValueString('mirrorSide')
+                    log.info("Prime axis from control: {0}".format(_primeAxis))
+                except:
+                    if mBaseModule.hasAttr('cgmDirection'):
+                        _primeAxis = mBaseModule.cgmDirection.capitalize()
+                    else:
+                        _primeAxis = 'Centre'
+                    log.info("Prime axis from module: {0}".format(_primeAxis))
+                _primeAxisUse = _primeAxis
+                if _mode == 'mirrorFlip':
+                    r9Anim.MirrorHierarchy().mirrorData(_l_cBuffer,mode = '')
+                else:
+                    log.info("mirror call...")
+                    
+                    if _mode == 'mirrorPull':
+                        _dFlip = {'Left':'Right',
+                                  'Right':'Left'}
+                
+                        _primeAxisUse = _dFlip.get(_primeAxis,_primeAxis)
+
+                    elif _mode == 'mirrorPush':
+                        pass #...trying to just use first selected
+                    elif _mode == 'symLeft':
+                        _primeAxisUse = 'Left'
+                    else:
+                        _primeAxisUse = 'Right'
+            
+                        log.debug("|{0}| >> Mirror {1} | primeAxis: {2}.".format(_str_func,_mode,_primeAxisUse))
+                    
+                    r9Anim.MirrorHierarchy().makeSymmetrical(_l_cBuffer,
+                                                             mode = '',
+                                                             primeAxis = _primeAxisUse )
+                if _keyResult:
+                    for o in self.d_puppetData['sControls']:
+                        mc.setKeyframe(o,time = f)
+            if _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
+                         'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+                log.info("Context: {0} | Switch call".format(_context))
+                res = []
+        
+                #if not self.d_puppetData['mModules']:
+                    #return log.error("No modules detected".format(_mode))
+                #pprint.pprint(self.d_puppetData['mModules'])
+                for mModule in self.d_puppetData['mModules']:
+                    res.append(mModule.atUtils('switchMode',_mode))
+                        
+                if _keyResult:
+                    for o in self.d_puppetData['sControls']:
+                        mc.setKeyframe(o,time = f)
+
+            else:
+                for mPart,controls in self.d_puppetData['partControls'].iteritems():
+                    log.info(cgmGEN.logString_sub(None,'Part: {0}'.format(mPart),'_',40))
+                    mc.progressBar(self.uiProgressBar,edit=True,maxValue = len(self.d_puppetData['partControls'].keys()),step = 1, vis=1)
+                    
+
+                    if _mode in ['reset','resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
+                        l_use = controls
+                        if _context != 'control':
+                            if _mode != 'reset':
+                                if _mode == 'resetFK':
+                                    _tag = 'fk'
+                                elif _mode == 'resetIK':
+                                    _tag = 'ik'
+                                elif _mode == 'resetIKEnd':
+                                    _tag = 'ikEnd'
+                                elif _mode == 'resetSeg':
+                                    _tag = 'segmentHandles'
+                                elif _mode == 'resetDirect':
+                                    _tag = 'direct'
+                                    
+                                l_use = d_buffer.get(mObj,[])
+                                if not l_use:
+                                    log.info("Buffering controls for: {0}".format(mP))
+                                    for mObj in self.d_puppetData['mModules']:
+                                        _l_buffer = mObj.atUtils('controls_getDat',_tag,listOnly=True)
+                                        if _l_buffer:l_use.extend([mHandle.mNode for mHandle in _l_buffer])
+                                    if not l_use:
+                                        return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
+                                    
+                        RIGGEN.reset_channels_fromMode(l_use,_resetMode)
+                        
+                    elif _mode in ['key','bdKey','reset','delete']:
+                        mc.select(controls)
+                        if _mode == 'reset':
+                            RIGGEN.reset_channels_fromMode(self.var_resetMode.value)
+                        elif _mode == 'key':
+                            setKey('default')
+                        elif _mode == 'bdKey':
+                            setKey('breakdown')
+                        elif _mode == 'delete':
+                            deleteKey()
+                    elif _mode in ['mirrorPush','mirrorPull',
+                                   'symLeft','symRight','mirrorFlip']:
+                        log.debug(cgmGEN._str_subLine)
+                        mBaseModule = self.d_puppetData['mModulesBase'][0]
+                        log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
+                    
+                        try:
+                            _primeAxis = self._ml_sel[0].getEnumValueString('mirrorSide')
+                            log.info("Prime axis from control: {0}".format(_primeAxis))
+                        except:
+                            if mBaseModule.hasAttr('cgmDirection'):
+                                _primeAxis = mBaseModule.cgmDirection.capitalize()
+                            else:
+                                _primeAxis = 'Centre'
+                            log.info("Prime axis from module: {0}".format(_primeAxis))
+                    
+                        if _mode == 'mirrorFlip':
+                            r9Anim.MirrorHierarchy().mirrorData(self.d_puppetData['sControls'],mode = '')
+                        else:
+                            if _mode == 'mirrorPull':
+                                _dFlip = {'Left':'Right',
+                                          'Right':'Left'}
+                        
+                                _primeAxis = _dFlip.get(_primeAxis,_primeAxis)
+                                #mMirror = mBaseModule.atUtils('mirror_get')
+                                #if mMirror and mMirror.hasAttr('cgmDirection'):
+                                #    _primeAxis = mMirror.cgmDirection.capitalize()
+                                #else:
+                                #    _primeAxis = 'Centre'
+                        
+                            elif _mode == 'mirrorPush':
+                                pass #...trying to just use first selected
+                                """
+                                        if mBaseModule.hasAttr('cgmDirection'):
+                                            _primeAxis = mBaseModule.cgmDirection.capitalize()
+                                        else:
+                                            _primeAxis = 'Centre'"""
+                            elif _mode == 'symLeft':
+                                _primeAxis = 'Left'
+                            else:
+                                _primeAxis = 'Right'
+                    
+                                log.debug("|{0}| >> Mirror {1} | primeAxis: {2}.".format(_str_func,_mode,_primeAxis))
+                            
+                                r9Anim.MirrorHierarchy().makeSymmetrical(self.d_puppetData['sControls'],
+                                                                 mode = '',
+                                                                 primeAxis = _primeAxis )                        
+
+            
+    except Exception,err:
+        pprint.pprint(vars())
+        log.error(err)
+    finally:
+        mc.undoInfo(closeChunk=True)
+        mc.currentTime(self.d_puppetData['frameInitial'])
+        if _autoKey:mc.autoKeyframe(state=True)
+        
+        if err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
+            
+        mc.refresh(su=0)
+        cgmUI.progressBar_end(self.uiProgressBar)
+        return endCall(self)            
+        
+        
+        
+        
+
+def buildFrame_mrsTimeContext(self,parent):
+    def setContext_time(self,arg):
+        self.var_mrsContextTime.setValue(arg)
+        updateHeader(self)
+    def setContext_keys(self,arg):
+        self.var_mrsContextKeys.setValue(arg)
+        updateHeader(self)        
+        
+    def updateHeader(self):
+        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContextKeys.value,
+                                                                       self.var_mrsContextTime.value))        
+        
+    try:self.var_mrsTimeContextFrameCollapse
+    except:self.create_guiOptionVar('mrsTimeContextFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsTimeContextFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Time',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                #ann='Contextual MRS functionality',
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    self.uiFrame_time = _frame
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Anim ===================================================================================== 
+    #>>>Keys Context Options -------------------------------------------------------------------------------
+    #bgc=_subLineBGC
+    _rowContextKeys = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    #_rowContextKeys = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5,bgc=_subLineBGC)
+
+
+    mUI.MelSpacer(_rowContextKeys,w=5)                          
+    mUI.MelLabel(_rowContextKeys,l='Keys: ')
+    _rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+
+    uiRC = mUI.MelRadioCollection()
+
+    mVar = self.var_mrsContextKeys
+    _on = mVar.value
+
+    for i,item in enumerate(_l_contextKeys):
+        if item == _on:
+            _rb = True
+        else:_rb = False
+        _label = str(_d_shorts.get(item,item))
+        uiRC.createButton(_rowContextKeys,label=_label,sl=_rb,
+                          ann = "Set keys context to: {0}".format(item),                          
+                          onCommand = cgmGEN.Callback(setContext_keys,self,item))
+        
+    mUI.MelButton(_rowContextKeys,label='Q',
+                  ann='Query the time context',
+                  c=cgmGEN.Callback(uiCB_contextualTimeAction,self,**{'mode':'report'}))
+    mUI.MelSpacer(_rowContextKeys,w=2)                          
+    
+    _rowContextKeys.layout()    
+
+    #>>>Time Context Options -------------------------------------------------------------------------------
+    #_rowContextTime = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    _rowContextTime = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+
+    _d = {}
+
+    #mUI.MelSpacer(_rowContextTime,w=5)                          
+    #mUI.MelLabel(_rowContextTime,l='Time: ')
+    #_rowContextTime.setStretchWidget( mUI.MelSeparator(_rowContextTime) )
+
+    uiRC = mUI.MelRadioCollection()
+
+    mVar = self.var_mrsContextTime
+    _on = mVar.value
+
+    for i,item in enumerate(_l_contextTime):
+        #if item == _on:
+        #    _rb = True
+        #else:_rb = False
+        _label = str(_d_shorts.get(item,item))
+        mUI.MelButton(_rowContextTime,label=_label,
+                      ann = "Set time context to: {0}".format(item),
+                      ut='cgmUITemplate',
+                      c = cgmGEN.Callback(setContext_time,self,item)) 
+        #uiRC.createButton(_rowContextTime,label=_label,sl=_rb,
+        #                  ann = "Set time context to: {0}".format(item),                          
+        #                  onCommand = cgmGEN.Callback(setContext_time,self,item))
+    _rowContextTime.layout()         
+    
+    updateHeader(self)
 
 def buildFrame_mrsAnim(self,parent):
     try:self.var_mrsAnimFrameCollapse
@@ -1731,9 +2504,7 @@ def buildFrame_mrsAnim(self,parent):
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
     _row.layout()
-    
-    
-    
+
     #>>>Select -------------------------------------------------------------------------------------
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
@@ -2076,7 +2847,6 @@ def buildFrame_mrsMirror(self,parent):
         if i == 2:#New row
             _row.layout()
             _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
-            
     _row.layout()
     
     
@@ -2087,7 +2857,7 @@ def buildFrame_poses(self,parent):
     _frame = mUI.MelFrameLayout(parent,label = 'Poses',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
-                                enable=True,
+                                enable=False,
                                 ann="Thanks Red9!",
                                 useTemplate = 'cgmUIHeaderTemplate',
                                 expandCommand = lambda:mVar_frame.setValue(0),
@@ -2834,270 +3604,310 @@ def buildFrame_puppet(self,parent):
 
 @cgmGEN.Timer
 def get_context(self, addMirrors = False,**kws):
-    _str_func='get_context'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    
-    _keys = kws.keys()
-    if 'children' in _keys:
-        b_children = kws.get('children')
-    else:
-        b_children = bool(self.cgmVar_mrsContext_children.value)
-    
-    if 'siblings' in _keys:
-        b_siblings = kws.get('siblings')
-    else:
-        b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+    try:
+        _str_func='get_context'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         
-    if 'mirror' in _keys:
-        b_mirror = kws.get('mirror')
-    else:
-        b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+        _keys = kws.keys()
+        if 'children' in _keys:
+            b_children = kws.get('children')
+        else:
+            b_children = bool(self.cgmVar_mrsContext_children.value)
         
-    if 'context' in _keys:
-        context = kws.get('context')
-    else:
-        context = self.var_mrsContext.value
-    
-    if context == 'control' and b_siblings:
-        if b_mirror or addMirrors:
-            log.warning("Context control + siblings = part mode")
-            context = 'part'
+        if 'siblings' in _keys:
+            b_siblings = kws.get('siblings')
+        else:
+            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            
+        if 'mirror' in _keys:
+            b_mirror = kws.get('mirror')
+        else:
+            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            
+        if 'context' in _keys:
+            context = kws.get('context')
+        else:
+            context = self.var_mrsContext.value
+        
+        if context == 'control' and b_siblings:
+            if b_mirror or addMirrors:
+                log.warning("Context control + siblings = part mode")
+                context = 'part'
+                b_siblings = False
+                
+        if context == 'puppet' and b_siblings:
+            log.warning("Context puppet + siblings = scene mode")
+            context = 'scene'
             b_siblings = False
-            
-    if context == 'puppet' and b_siblings:
-        log.warning("Context puppet + siblings = scene mode")
-        context = 'scene'
-        b_siblings = False
+        
+        log.debug("|{0}| >> context: {1} | children: {2} | siblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_siblings,b_mirror))
+        
+        #>>  Individual objects....===============================================================
+        sel = mc.ls(sl=True)
+        ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
+        self._sel = sel
+        self._ml_sel = ml_sel
+        self.d_puppetData = {'mControls':[],
+                             'mControlsMirror':[],
+                             'mPuppets':[],
+                             'mModules':[],
+                             'b_puppetPart':False,
+                             'mModulesMirror':[],
+                             'mModulesBase':[]}
+        
+        
+        res = []
+        #------------------------------------------------------
+        _cap = 5
+        for i,mObj in enumerate(ml_sel):
+            log.debug("|{0}| >> First pass check: {1}".format(_str_func,mObj))  
+            if i > _cap:
+                log.debug("|{0}| >> Large number of items selected, stopping processing at {1}".format(_str_func,i))              
+                break
+            #>>> Module --------------------------------------------------------------------------
+            if mObj.getMessage('rigNull'):
+                if mObj not in self.d_puppetData['mControls']:
+                    self.d_puppetData['mControls'].append(mObj)
+                    if context == 'control':
+                        res.append(mObj)
     
-    log.debug("|{0}| >> context: {1} | children: {2} | siblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_siblings,b_mirror))
-    
-    #>>  Individual objects....===============================================================
-    sel = mc.ls(sl=True)
-    ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
-    self._sel = sel
-    self._ml_sel = ml_sel
-    self.d_puppetData = {'mControls':[],
-                         'mControlsMirror':[],
-                         'mPuppets':[],
-                         'mModules':[],
-                         'mModulesMirror':[],
-                         'mModulesBase':[]}
-    
-    
-    res = []
-    #------------------------------------------------------
-    _cap = 5
-    for i,mObj in enumerate(ml_sel):
-        log.debug("|{0}| >> First pass check: {1}".format(_str_func,mObj))  
-        if i > _cap:
-            log.debug("|{0}| >> Large number of items selected, stopping processing at {1}".format(_str_func,i))              
-            break
-        #>>> Module --------------------------------------------------------------------------
-        if mObj.getMessage('rigNull'):
-            if mObj not in self.d_puppetData['mControls']:
-                self.d_puppetData['mControls'].append(mObj)
-                if context == 'control':
-                    res.append(mObj)
-
-            mRigNull = mObj.rigNull
-            mModule = mRigNull.module
-            
-            if mModule not in self.d_puppetData['mModules']:
-                self.d_puppetData['mModules'].append(mModule)
-                if context == 'part':
-                    res.append(mModule)
-            
-            if mModule.getMessage('modulePuppet'):
-                mPuppet = mModule.modulePuppet
+                mRigNull = mObj.rigNull
+                mModule = mRigNull.module
+                
+                if mModule not in self.d_puppetData['mModules']:
+                    self.d_puppetData['mModules'].append(mModule)
+                    if context == 'part':
+                        res.append(mModule)
+                
+                if mModule.getMessage('modulePuppet'):
+                    mPuppet = mModule.modulePuppet
+                    if mPuppet not in self.d_puppetData['mPuppets']:
+                        self.d_puppetData['mPuppets'].append(mPuppet)
+                        if context == 'puppet':
+                            res.append(mPuppet)
+            elif mObj.getMessage('puppet'):
+                mPuppet = mObj.puppet
                 if mPuppet not in self.d_puppetData['mPuppets']:
                     self.d_puppetData['mPuppets'].append(mPuppet)
-                    if context == 'puppet':
+                    self.d_puppetData['b_puppetPart'] = True
+                    if context in ['puppet','scene']:
                         res.append(mPuppet)
-        elif mObj.getMessage('puppet'):
-            mPuppet = mObj.puppet
-            if mPuppet not in self.d_puppetData['mPuppets']:
-                self.d_puppetData['mPuppets'].append(mPuppet)
-                if context == 'puppet':
-                    res.append(mPuppet)            
-
-    #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
-    self.d_puppetData['mModulesBase'] = copy.copy(self.d_puppetData['mModules'])
+                    else:
+                        res.append(mObj)
+                    #elif context == 'control':
+                        #res.append(mObj)
     
-
-    if context == 'scene':
-        log.debug("|{0}| >> Scene mode bail...".format(_str_func))          
-        self.d_puppetData['mPuppets'] = r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
-        ls=[]
-        for mPuppet in self.d_puppetData['mPuppets']:
-            for mModule in mPuppet.atUtils('modules_get'):
-                if mModule not in self.d_puppetData['mModules']:
-                    self.d_puppetData['mModules'].append(mModule)            
-            
-            #mPuppet.puppetSet.select()
-            #ls.extend(mc.ls(sl=True))
-        #self.d_puppetData['sControls'] = ls
-        return self.d_puppetData['mPuppets']
-
-
-    #process...
-    if b_siblings:
-        log.debug(cgmGEN._str_subLine)        
-        log.debug("|{0}| >> sibling check...".format(_str_func))
-        if context == 'part':
-            print(cgmGEN._str_hardBreak)        
-            log.warning(cgmGEN._str_hardBreak)        
-            log.warning("|{0}| >> JOSH ... part siblings won't work right until you tag build profile for matching ".format(_str_func))
-            log.warning(cgmGEN._str_hardBreak)        
-            print(cgmGEN._str_hardBreak)                    
-            
-            res = []
-            for mModule in self.d_puppetData['mModules']:
-                res.append(mModule)
-                
-                log.debug("|{0}| >> sibling check: {1}".format(_str_func,mModule))
-                for mSib in mModule.atUtils('siblings_get'):
-                    if mSib not in res:
-                        res.append(mSib)
-                            
-            self.d_puppetData['mModules'].extend(res)#...push new data back
-            
-        elif context == 'control':
-            res = []
-            for mModule in self.d_puppetData['mModules']:
-                log.debug("|{0}| >> sibling gathering for control | {1}".format(_str_func,mModule))
-                #res.extend(mModule.rigNull.msgList_get("controlsAll"))
-                res.extend(mModule.rigNull.moduleSet.getMetaList())
-            self.d_puppetData['mControls'] = res
-                
-    if b_children:
-        log.debug(cgmGEN._str_subLine)        
-        log.debug("|{0}| >> Children check...".format(_str_func))
+        #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
+        self.d_puppetData['mModulesBase'] = copy.copy(self.d_puppetData['mModules'])
         
-        if context == 'part':
-            for mModule in self.d_puppetData['mModules']:
-                log.debug("|{0}| >> child check: {1}".format(_str_func,mModule))
-                ml_children = mModule.atUtils('moduleChildren_get')
-                for mChild in ml_children:
-                    if mChild not in res:
-                        res.append(mChild)
-            self.d_puppetData['mModules'] = res
-
-        """   
-        elif context == 'puppet':
-            log.warning('Puppet context with children is [parts] contextually. Changing for remainder of query.')
-            context = 'part'
-            res = []
+    
+        if context == 'scene':
+            log.debug("|{0}| >> Scene mode bail...".format(_str_func))          
+            self.d_puppetData['mPuppets'] = r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
+            ls=[]
             for mPuppet in self.d_puppetData['mPuppets']:
-                res.extend(mPuppet.atUtils('modules_get'))
-            self.d_puppetData['mPuppets'] = res
-            """
-        
-    if  b_mirror or addMirrors:
-        log.debug(cgmGEN._str_subLine)        
-        log.debug("|{0}| >> Context mirror check...".format(_str_func))
-        if context == 'control':
-            ml_mirror = []
-            
-            for mControl in self.d_puppetData['mControls']:
-                if mControl.getMessage('mirrorControl'):
-                    log.debug("|{0}| >> Found mirror for: {1}".format(_str_func,mControl))                    
-                    ml_mirror.append(mControl.getMessage('mirrorControl',asMeta=True)[0])
-                    
-            if ml_mirror:
-                res.extend(ml_mirror)
-                self.d_puppetData['mControls'].extend(ml_mirror)
-                self.d_puppetData['mControlsMirror'].extend(ml_mirror)
-            
-        elif context == 'part':
-            ml_mirrors =[]
-            for mModule in self.d_puppetData['mModules']:
-                mMirror = mModule.atUtils('mirror_get')
-                if mMirror:
-                    log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
-                    if mMirror not in res:
-                        res.append(mMirror)
-                        ml_mirrors.append(mMirror)
-            
-            for mModule in res:
-                if mModule not in self.d_puppetData['mModules']:
-                    self.d_puppetData['mModules'].append(mModule)
-            self.d_puppetData['mModulesMirror'] = ml_mirrors
+                for mModule in mPuppet.atUtils('modules_get'):
+                    if mModule not in self.d_puppetData['mModules']:
+                        self.d_puppetData['mModules'].append(mModule)            
+                
+                #mPuppet.puppetSet.select()
+                #ls.extend(mc.ls(sl=True))
+            #self.d_puppetData['sControls'] = ls
+            return self.d_puppetData['mPuppets']
     
-    if context in ['puppet','scene']:
-        for mPuppet in self.d_puppetData['mPuppets']:
-            for mModule in mPuppet.atUtils('modules_get'):
-                if mModule not in self.d_puppetData['mModules']:
-                    self.d_puppetData['mModules'].append(mModule)
+    
+        #process...
+        if b_siblings:
+            log.debug(cgmGEN._str_subLine)        
+            log.debug("|{0}| >> sibling check...".format(_str_func))
+            if context == 'part':
+                print(cgmGEN._str_hardBreak)        
+                log.warning(cgmGEN._str_hardBreak)
+                log.warning("|{0}| >> JOSH ... part siblings won't work right until you tag build profile for matching ".format(_str_func))
+                log.warning(cgmGEN._str_hardBreak)        
+                print(cgmGEN._str_hardBreak)                    
+                
+                res = []
+                for mModule in self.d_puppetData['mModules']:
+                    res.append(mModule)
+                    
+                    log.debug("|{0}| >> sibling check: {1}".format(_str_func,mModule))
+                    for mSib in mModule.atUtils('siblings_get'):
+                        if mSib not in res:
+                            res.append(mSib)
+                                
+                self.d_puppetData['mModules'].extend(res)#...push new data back
+                
+            elif context == 'control':
+                res = []
+                for mModule in self.d_puppetData['mModules']:
+                    log.debug("|{0}| >> sibling gathering for control | {1}".format(_str_func,mModule))
+                    #res.extend(mModule.rigNull.msgList_get("controlsAll"))
+                    res.extend(mModule.rigNull.moduleSet.getMetaList())
+                self.d_puppetData['mControls'] = res
+                    
+        if b_children:
+            log.debug(cgmGEN._str_subLine)        
+            log.debug("|{0}| >> Children check...".format(_str_func))
+            
+            if self.d_puppetData['b_puppetPart']:
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    for mModule in mPuppet.atUtils('modules_get'):
+                        if mModule not in self.d_puppetData['mModules']:
+                            self.d_puppetData['mModules'].append(mModule)            
+    
+            
+            if context == 'part':
+                for mModule in self.d_puppetData['mModules']:
+                    log.debug("|{0}| >> child check: {1}".format(_str_func,mModule))
+                    ml_children = mModule.atUtils('moduleChildren_get')
+                    for mChild in ml_children:
+                        if mChild not in self.d_puppetData['mModules']:
+                            self.d_puppetData['mModules'].append(mChild)
+                #self.d_puppetData['mModules'] = res
+    
+            """   
+            elif context == 'puppet':
+                log.warning('Puppet context with children is [parts] contextually. Changing for remainder of query.')
+                context = 'part'
+                res = []
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    res.extend(mPuppet.atUtils('modules_get'))
+                self.d_puppetData['mPuppets'] = res
+                """
+            
+        if  b_mirror or addMirrors:
+            log.debug(cgmGEN._str_subLine)        
+            log.debug("|{0}| >> Context mirror check...".format(_str_func))
+            if context == 'control':
+                ml_mirror = []
+                
+                for mControl in self.d_puppetData['mControls']:
+                    if mControl.getMessage('mirrorControl'):
+                        log.debug("|{0}| >> Found mirror for: {1}".format(_str_func,mControl))                    
+                        ml_mirror.append(mControl.getMessage('mirrorControl',asMeta=True)[0])
+                        
+                if ml_mirror:
+                    res.extend(ml_mirror)
+                    self.d_puppetData['mControls'].extend(ml_mirror)
+                    self.d_puppetData['mControlsMirror'].extend(ml_mirror)
+                
+            elif context == 'part':
+                ml_mirrors =[]
+                for mModule in self.d_puppetData['mModules']:
+                    mMirror = mModule.atUtils('mirror_get')
+                    if mMirror:
+                        log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
+                        if mMirror not in self.d_puppetData['mModules']:
+                            #res.append(mMirror)
+                            ml_mirrors.append(mMirror)
+                
+                for mModule in ml_mirrors:
+                    if mModule not in self.d_puppetData['mModules']:
+                        self.d_puppetData['mModules'].append(mModule)
+                self.d_puppetData['mModulesMirror'] = ml_mirrors
+                
         
-    #pprint.pprint(self.d_puppetData)
-    return res
+        for mPuppet in self.d_puppetData['mPuppets']:
+            if not mPuppet.mClass == 'cgmRigPuppet':
+                log.error("|{0}| >> Not a cgmRigPuppet: {1}".format(_str_func,mPuppet))
+                self.d_puppetData['mPuppets'].remove(mPuppet)
+        
+        if context in ['puppet','scene']:
+            for mPuppet in self.d_puppetData['mPuppets']:
+                for mModule in mPuppet.atUtils('modules_get'):
+                    if mModule not in self.d_puppetData['mModules']:
+                        self.d_puppetData['mModules'].append(mModule)
+                        
+        for mModule in self.d_puppetData['mModules']:
+            if not mModule.mClass == 'cgmRigModule':
+                log.error("|{0}| >> Not a rigModule: {1}".format(_str_func,mModule))
+                self.d_puppetData['mModules'].remove(mModule)
+                
+
+                
+        #pprint.pprint(self.d_puppetData)
+        return res
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 @cgmGEN.Timer
 def get_contextualControls(self,mirrorQuery=False,**kws):
-    _str_func='get_contextualControls'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    
-    _keys = kws.keys()
-    if 'children' in _keys:
-        b_children = kws.get('children')
-    else:
-        b_children = bool(self.cgmVar_mrsContext_children.value)
-    
-    if 'siblings' in _keys:
-        b_siblings = kws.get('siblings')
-    else:
-        b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+    try:
+        _str_func='get_contextualControls'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         
-    if 'mirror' in _keys:
-        b_mirror = kws.get('mirror')
-    else:
-        b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+        _keys = kws.keys()
+        if 'children' in _keys:
+            b_children = kws.get('children')
+        else:
+            b_children = bool(self.cgmVar_mrsContext_children.value)
         
-    if 'context' in _keys:
-        context = kws.get('context')
-    else:
-        context = self.var_mrsContext.value
-    
-    if context == 'control' and b_siblings:
-        if b_mirror:
-            log.warning("Context control + siblings = part mode")
-            context = 'part'
-            b_siblings = False
+        if 'siblings' in _keys:
+            b_siblings = kws.get('siblings')
+        else:
+            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
             
-    if context == 'puppet' and b_siblings:
-        log.warning("Context puppet + siblings = scene mode")
-        context = 'scene'   
-    
-    if context != 'control':
-        log.debug("|{0}| >> Reaquiring control list...".format(_str_func))
-        ls = []
-        if context == 'part':
-            if mirrorQuery:
-                for mPart in self.d_puppetData['mModules']:
-                    ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
-            else:
-                for mPart in self.d_puppetData['mModules']:
-                    ls.extend(mPart.rigNull.moduleSet.getList())
-        elif context in ['puppet','scene']:
-            if mirrorQuery:
-                for mPuppet in self.d_puppetData['mPuppets']:
-                    for mPart in mPuppet.UTILS.modules_get(mPuppet):
-                        ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
-            else:
-                for mPuppet in self.d_puppetData['mPuppets']:
-                    mPuppet.puppetSet.select()
-                    ls.extend(mc.ls(sl=True))
-                
-        self.d_puppetData['sControls'] = ls
-    else:
-        self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
+        if 'mirror' in _keys:
+            b_mirror = kws.get('mirror')
+        else:
+            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            
+        if 'context' in _keys:
+            context = kws.get('context')
+        else:
+            context = self.var_mrsContext.value
         
-    self.d_puppetData['sControls'] = LISTS.get_noDuplicates(self.d_puppetData['sControls'])
-    self.d_puppetData['mControls'] = cgmMeta.validateObjListArg(self.d_puppetData['sControls'])
-    return self.d_puppetData['sControls']
+        if context == 'control' and b_siblings:
+            if b_mirror:
+                log.warning("Context control + siblings = part mode")
+                context = 'part'
+                b_siblings = False
+                
+        if context == 'puppet' and b_siblings:
+            log.warning("Context puppet + siblings = scene mode")
+            context = 'scene'   
+        
+        if context != 'control':
+            log.debug("|{0}| >> Reaquiring control list...".format(_str_func))
+            ls = []
+            
+            if self.d_puppetData['b_puppetPart']:
+                log.info("|{0}| >> puppetPart mode...".format(_str_func))
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    ls.extend([mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet)])
+            
+            if context == 'part':
+                if mirrorQuery:
+                    for mPart in self.d_puppetData['mModules']:
+                        ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
+                else:
+                    for mPart in self.d_puppetData['mModules']:
+                        ls.extend(mPart.rigNull.moduleSet.getList())
+            elif context in ['puppet','scene']:
+                #if mirrorQuery:
+                    #for mPuppet in self.d_puppetData['mPuppets']:
+                    #for mPart in mPuppet.UTILS.modules_get(mPuppet):
+                    #  ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
+                for mPuppet in self.d_puppetData['mPuppets']:
+                    _l = [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet,walk=True)]
+                    ls.extend(_l)
+                    #ls.extend(mPuppet.puppetSet.getList())
+                    #mPuppet.puppetSet.select()
+                    #ls.extend(mc.ls(sl=True))
+                    
+            self.d_puppetData['sControls'] = ls
+        else:
+            self.d_puppetData['sControls'] = [mObj.mNode for mObj in self.d_puppetData['mControls']]
+            
+        self.d_puppetData['sControls'] = LISTS.get_noDuplicates(self.d_puppetData['sControls'])
+        self.d_puppetData['mControls'] = cgmMeta.validateObjListArg(self.d_puppetData['sControls'])
+        return self.d_puppetData['sControls']
+    except Exception,err:
+        pprint.pprint(self.d_puppetData)
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 #@cgmGEN.Timer
-def uiCB_contextualAction(self, **kws):
+def uiCB_contextualActionBAK(self, **kws):
     try:
         _str_func='cgmUICB_contextualAction'
         l_kws = []
@@ -3366,9 +4176,8 @@ def uiCB_contextualAction(self, **kws):
         else:
             return log.error("Unknown contextual action: {0}".format(_mode))
         return 
-    except Exception,err:
-        pprint.pprint(vars())
-        raise Exception,err
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
 
 def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     _str_func='cgmUICB_settingsSet'
@@ -3860,6 +4669,27 @@ def mmUI_puppet(self,parent = None):
         mc.menuItem(p=parent,l=m,
                     c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
                 )
+        
+    #Mirror =============================================================================
+    d_setup = {'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}}
+    
+    _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
+
+    for m in ['Push','Pull','SymLeft','SymRight','Flip']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'context':_context,
+                  'mirror':_d.get('mirror',False),
+                  'children':_d.get('children',False),
+                  'siblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=_mirror,l=m,
+                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                )    
         
     #Toggles ===============================================================================
     _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)

@@ -746,8 +746,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
                 else:
-                    log.warning("|{0}| >> Not in list. Skipped: {1}".format(_str_func,mObj))
-                    return
+                    log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
                 
