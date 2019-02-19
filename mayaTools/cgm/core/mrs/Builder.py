@@ -3168,7 +3168,8 @@ class ui(cgmUI.cgmGUI):
         self._l_contextStartModes[self.var_contextStartMode.value],
         self.var_contextForceMode.value)
         
-        self.uiField_contextReport(edit=True,label=_label)
+        self.uiFrame_context(edit=True,label=_label)
+        #self.uiField_contextReport(edit=True,label=_label)
         
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -3288,15 +3289,33 @@ class ui(cgmUI.cgmGUI):
         #=============================================================================================
         #>> Top
         #=============================================================================================
-        mc.setParent(_RightUpperColumn)
-        #cgmUI.add_Header('Push',overrideUpper=True)
-        #mc.text(text, al = align, ut = 'cgmUIHeaderTemplate')
-        _row = mUI.MelHLayout(_RightUpperColumn)
+        self.create_guiOptionVar('contextSettingsFrameCollapse',defaultValue = 0)       
+            
+        _frame_context = mUI.MelFrameLayout(_RightUpperColumn,label = 'Utilities - Contextual',vis=True,
+                                                collapse=self.var_contextSettingsFrameCollapse.value,
+                                                collapsable=True,
+                                                enable=True,
+                                                useTemplate = 'cgmUIHeaderTemplate',
+                                                expandCommand = lambda:self.var_contextSettingsFrameCollapse.setValue(0),
+                                                collapseCommand = lambda:self.var_contextSettingsFrameCollapse.setValue(1)
+                                                )	
+        self.uiFrame_context = _frame_context
+        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate')          
+        
+        
+        
+        
+        
+        
+        
+        #mc.setParent(_RightUpperColumn)
+        """
+        _row = mUI.MelHLayout(_frame_context_inside)
         self.uiField_contextReport = mUI.MelLabel(_row,
                                                   ut='cgmUIHeaderTemplate',
                                                   label = '...',
                                                   h=20) 
-        _row.layout()
+        _row.layout()"""
         
         #Context mode  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextMode',defaultValue = 0)       
@@ -3311,7 +3330,7 @@ class ui(cgmUI.cgmGUI):
         
         #build our sub section options
         #MelHSingleStretchLayout
-        _row_contextModes = mUI.MelHSingleStretchLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 5)
+        _row_contextModes = mUI.MelHSingleStretchLayout(_frame_context_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextModes,w=1)
         mUI.MelLabel(_row_contextModes,l = 'Context:')
         _row_contextModes.setStretchWidget( mUI.MelSeparator(_row_contextModes) )
@@ -3338,7 +3357,7 @@ class ui(cgmUI.cgmGUI):
     
         #build our sub section options
         #MelHSingleStretchLayout
-        _row_contextStartModes = mUI.MelHSingleStretchLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 5)
+        _row_contextStartModes = mUI.MelHSingleStretchLayout(_frame_context_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Begin with:')
         _on = self.var_contextStartMode.value
