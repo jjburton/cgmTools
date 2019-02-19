@@ -1590,8 +1590,10 @@ def prerig(self):
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
             if mTemplateHandle == mEndHandle and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
+                log.debug("|{0}| >> end handle aim: {1}".format(_str_func,mEndHandle))
+                
                 #_size_width = mDefineEndObj.width#...x width
-                SNAP.aim_atPoint(mHandle.mNode, DIST.get_pos_by_vec_dist(mHandle.p_position, _mVectorUp, mDefineEndObj.length))
+                SNAP.aim_atPoint(mHandle.mNode, DIST.get_pos_by_vec_dist(mHandle.p_position, _mVectorUp, mDefineEndObj.length), mode='vector',vectorUp=_mVectorUp)
             
             ml_aimGroups.append(mGroup)
             

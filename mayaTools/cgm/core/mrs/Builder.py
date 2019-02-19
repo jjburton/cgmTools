@@ -931,7 +931,11 @@ class ui(cgmUI.cgmGUI):
                   'Buildable?':{'ann':'Check if the block is buildable (DEV)',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'getModuleStatus',
-                                                       **{'updateUI':0})}},
+                                                       **{'updateUI':0})},
+                  'Reorder UD':{'ann':'Reorder user defined attrs',
+                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                       'atUtils','reorder_udAttrs',
+                                                       **{'updateUI':0})}},               
                'Geo':{
                    'order':['Block Mesh','Block Loft','Puppet Mesh',
                             'Unified','Unified [Skinned]',
@@ -1534,7 +1538,8 @@ class ui(cgmUI.cgmGUI):
                     log.error("|{0}| >> Cancelled | {1}.".format(_str_func,funcString))
                     return False
                 return True
-                                    
+            
+            
             _str_func = ''
             _updateUI = kws.pop('updateUI',True)
             _startMode = self.var_contextStartMode.value   
@@ -1574,6 +1579,8 @@ class ui(cgmUI.cgmGUI):
                     _contextMode = 'self'
                 elif _contextMode == 'root':
                     b_rootMode = True
+                    
+                kws['forceNew'] = self.var_contextForceMode.value
             elif args[0] == 'stepUI':
                 _contextMode = 'self'
             
@@ -1634,6 +1641,10 @@ class ui(cgmUI.cgmGUI):
                 if not ml_blocks:
                     log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
                     return False
+                
+            if args[0] == 'VISUALIZEHEIRARCHY':
+                BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks[0],_contextMode,False,True)
+                return True
                 
             _len = len(ml_blocks)
             if _b_confirm and _len>1:
@@ -3139,7 +3150,18 @@ class ui(cgmUI.cgmGUI):
         if select:
             if select in self._ml_blocks:
                 self.uiScrollList_blocks.selectByIdx(self._ml_blocks.index(select))
-            
+                
+    def uiUpdate_context(self,var=None,value=None):
+        if var:
+            var.setValue(value)
+        
+        _label = "Context: {0} | Begin with: {1} | Force: {2}".format(
+        self._l_contextModes[self.var_contextMode.value],
+        self._l_contextStartModes[self.var_contextStartMode.value],
+        self.var_contextForceMode.value)
+        
+        self.uiField_contextReport(edit=True,label=_label)
+        
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
     
@@ -3259,11 +3281,14 @@ class ui(cgmUI.cgmGUI):
         #>> Top
         #=============================================================================================
         mc.setParent(_RightUpperColumn)
-        cgmUI.add_Header('Push',overrideUpper=True) 
-        """self.uiField_inspector= mUI.MelLabel(_RightColumn,
-                                             bgc = SHARED._d_gui_state_colors.get('help'),
-                                             label = '...',
-                                             h=20)  """
+        #cgmUI.add_Header('Push',overrideUpper=True)
+        #mc.text(text, al = align, ut = 'cgmUIHeaderTemplate')
+        _row = mUI.MelHLayout(_RightUpperColumn)
+        self.uiField_contextReport = mUI.MelLabel(_row,
+                                                  ut='cgmUIHeaderTemplate',
+                                                  label = '...',
+                                                  h=20) 
+        _row.layout()
         
         #Context mode  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextMode',defaultValue = 0)       
@@ -3282,14 +3307,14 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row_contextModes,w=1)
         mUI.MelLabel(_row_contextModes,l = 'Context:')
         _row_contextModes.setStretchWidget( mUI.MelSeparator(_row_contextModes) )
-    
         _on = self.var_contextMode.value
         for i,item in enumerate(self._l_contextModes):
             if i == _on:_rb = True
             else:_rb = False
             _rc_contextMode.createButton(_row_contextModes,label=self._l_contextModes[i],sl=_rb,
                                              ann = _d_ann[item],
-                                             onCommand = cgmGEN.Callback(self.var_contextMode.setValue,i))
+                                             onCommand = cgmGEN.Callback(self.uiUpdate_context,
+                                                                         self.var_contextMode,i))
             mUI.MelSpacer(_row_contextModes,w=2)
 
         _row_contextModes.layout()         
@@ -3307,17 +3332,48 @@ class ui(cgmUI.cgmGUI):
         #MelHSingleStretchLayout
         _row_contextStartModes = mUI.MelHSingleStretchLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextStartModes,w=1)
-        mUI.MelLabel(_row_contextStartModes,l = 'Begin actions with:')
-        _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
-        
+        mUI.MelLabel(_row_contextStartModes,l = 'Begin with:')
         _on = self.var_contextStartMode.value
         for i,item in enumerate(self._l_contextStartModes):
+            mc.button(l=self._l_contextStartModes[i],
+                      ann=_d_ann[item],
+                      ut='cgmUITemplate',
+                      c=cgmGEN.Callback(self.uiUpdate_context,self.var_contextStartMode,i))            
+            """
             if i == _on:_rb = True
             else:_rb = False
             _rc_contextStartMode.createButton(_row_contextStartModes,label=self._l_contextStartModes[i],sl=_rb,
                                               ann = _d_ann[item],
-                                              onCommand = cgmGEN.Callback(self.var_contextStartMode.setValue,i))
+                                              onCommand = cgmGEN.Callback(self.var_contextStartMode.setValue,i))"""
             mUI.MelSpacer(_row_contextStartModes,w=2)
+        
+        _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
+        
+        #..force modes
+        self.create_guiOptionVar('contextForceMode',defaultValue = 0)       
+    
+        _rc_contextForceMode = mUI.MelRadioCollection()
+        
+        #build our sub section options
+        #MelHSingleStretchLayout
+        mUI.MelSpacer(_row_contextStartModes,w=1)
+        mUI.MelLabel(_row_contextStartModes,l = 'Force:')
+        
+        _on = self.var_contextForceMode.value
+        for i,item in enumerate(['False','True']):
+            mc.button(l=item,
+                      ann="Force Mode: {0}".format(item),
+                      ut='cgmUITemplate',
+                      c=cgmGEN.Callback(self.uiUpdate_context,self.var_contextForceMode,i))
+            mUI.MelSpacer(_row_contextStartModes,w=2)
+            
+            """
+            if i == _on:_rb = True
+            else:_rb = False
+            _rc_contextForceMode.createButton(_row_contextStartModes,label=item,sl=_rb,
+                                              ann = "Force Mode: {0}".format(item),
+                                              onCommand = cgmGEN.Callback(self.var_contextForceMode.setValue,i))
+            mUI.MelSpacer(_row_contextStartModes,w=2)"""
     
         _row_contextStartModes.layout()       
         
@@ -3325,24 +3381,39 @@ class ui(cgmUI.cgmGUI):
         mc.setParent(_RightUpperColumn)
         CGMUI.add_LineSubBreak()
         _row_push = mUI.MelHLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 2)
-        CGMUI.add_Button(_row_push,'Define>',
-                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{}),
-                         '[Define] - initial block state')
-        CGMUI.add_Button(_row_push,'<Templ>',
-                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','template',**{'forceNew':True}),
-                         '[Template] - Shaping the proxy and initial look at settings')
+        mc.button(l='Define>',
+                  bgc = SHARED._d_gui_state_colors.get('warning'),
+                  height = 20,
+                  align='center',
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{}),
+                  ann='[Define] - initial block state')
+        mc.button(l='<Templ>',
+                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  height = 20,
+                  align='center',                  
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','template',**{'forceNew':True}),
+                  ann='[Template] - Shaping the proxy and initial look at settings')
                          
-        CGMUI.add_Button(_row_push,'<Prerig>',
-                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','prerig',**{'forceNew':True}),
-                         '[Prerig] - More refinded placement and setup before rig process')
+        mc.button(l='<Prerig>',
+                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  height = 20,
+                  align='center',
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','prerig',**{'forceNew':True}),
+                  ann='[Prerig] - More refinded placement and setup before rig process')
 
-        CGMUI.add_Button(_row_push,'<Joint>',
-                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','skeleton',**{'forceNew':True}),
-                         '[Joint] - Build skeleton if necessary')
+        mc.button(l='<Joint>',
+                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  height = 20,
+                  align='center',                  
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','skeleton',**{'forceNew':True}),
+                  ann='[Joint] - Build skeleton if necessary')
 
-        CGMUI.add_Button(_row_push,'<Rig',
-                         cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','rig',**{'forceNew':True}),
-                         '[Rig] - Push to a fully rigged state.')
+        mc.button(l='<Rig',
+                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  height = 20,
+                  align='center',                  
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','rig',**{'forceNew':True}),
+                  ann='[Rig] - Push to a fully rigged state.')
 
         _row_push.layout()
                
@@ -3449,7 +3520,7 @@ class ui(cgmUI.cgmGUI):
                            ],)
                 #attachNone = [(button_refresh,'top')])#(_row_cgm,"top")
 
-
+        self.uiUpdate_context()
         #>>> Layout form ---------------------------------------------------------------------------------------
         _MainForm(edit = True,
                   af = [(_row_report,"top",0),
