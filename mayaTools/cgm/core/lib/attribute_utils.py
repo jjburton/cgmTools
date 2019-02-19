@@ -2505,6 +2505,12 @@ def convert_type(node = None, attr = None, attrType = None):
         mc.setAttr(_combined,lock = True)     
     return True
 
+def reorder_ud(node):
+    ud = mc.listAttr(node,ud=True)
+    if ud:
+        ud.sort()
+        reorder(node,ud,top=True)
+
 def reorder(node = None, attrs = None, direction = 0,top = False):
     """   
     :Acknowledgement:
@@ -2549,9 +2555,9 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
     _d_locks = {}
     _l_relock = []
     
-    
     for a in _to_move:
         try:
+            mc.undoInfo(ock=True)
             _d = validate_arg(node,a)
             _lock = False
             if is_locked(_d):
@@ -2559,16 +2565,18 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
                 _lock = True
                 
             #mc.undo(ock=True)
-            mc.deleteAttr(_d['combined'])
+            #mc.deleteAttr(_d['combined'])
+            delete(_d)
             #delete(_d)
-            mc.undo()
-            #mc.undo(cck=True)            
 
-            if _lock:
-                set_lock(_d,True)
 
         except Exception,err:
             log.error("|{0}| >> {1} || err: {2}".format(_str_func,_d['combined'],err))
+        finally:
+            mc.undoInfo(cck=True)
+            mc.undo()
+            if _lock:
+                set_lock(_d,True)            
             
     mc.select(node)
     

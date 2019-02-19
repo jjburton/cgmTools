@@ -1539,8 +1539,11 @@ def rig_skeleton(self):
                     mMidIK.p_parent = False
                     mMidIK.doName()
                 
-                    mMidIK.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
-                                                                   ml_rigJoints[-1].p_position])
+                    mMidIK.p_position =POS.get_curveMidPointFromDagList([mObj.mNode for mObj in ml_rigJoints])
+                    
+                    
+                    # DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
+                                       #                            ml_rigJoints[-1].p_position])
                 
                     SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
                              vec_chainUp)

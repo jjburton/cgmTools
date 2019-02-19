@@ -73,6 +73,10 @@ def get_side(self):
         _side = self.getEnumValueString('side') 
     return _side
 
+def reorder_udAttrs(self):
+    ATTR.reorder_ud(self.mNode)
+
+
 def get_sideMirror(self):
     _side = get_side(self)
     if _side == 'left':return 'right'
