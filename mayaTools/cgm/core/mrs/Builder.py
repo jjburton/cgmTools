@@ -922,14 +922,33 @@ class ui(cgmUI.cgmGUI):
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                  'atUtils', 'prerig_snapHandlesToRotatePlane',
                                  **{'updateUI':0})},
-                   'Handles Lock':{'ann':'Lock the prerig handles',
+                   'Handles | Lock':{'ann':'Lock the prerig handles',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                  'atUtils', 'prerig_handlesLock',True,
                                  **{'updateUI':0})},
-                   'Handles Unlock':{'ann':'Unlock the prerig handles',
+                   'Handles | Unlock':{'ann':'Unlock the prerig handles',
                                    'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                    'atUtils', 'prerig_handlesLock',False,
-                                   **{'updateUI':0})},                   
+                                   **{'updateUI':0})},
+                   'divTags':['Handles | Lock','Query Indices'],                   
+                   'Arrange | Linear Spaced':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                             'atUtils', 'prerig_handlesLayout','spaced','linear',
+                                             **{'updateUI':0})},
+                   'Arrange | Linear Even':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                             'atUtils', 'prerig_handlesLayout','even','linear',
+                                             **{'updateUI':0})},
+                   'Arrange | Cubic Even':{'ann':'Unlock the prerig handles',
+                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                            'atUtils', 'prerig_handlesLayout','even','cubicRebuild',
+                                            **{'updateUI':0})},
+                   'Arrange | Cubic Spaced':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                             'atUtils', 'prerig_handlesLayout','spaced','cubicRebuild',
+                                             **{'updateUI':0})},                                      
+                   
+                   
                    },
                'Queries':{
                    'Visualize':{'ann':'Visualize the block tree in the script editor',
@@ -1076,7 +1095,22 @@ class ui(cgmUI.cgmGUI):
                                 ann = d2.get('ann',''),
                                 c=d2.get('call'))
 
-                    
+        #Vis menu -----------------------------------------------------------------------------
+        _vis = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                               label = 'Vis',
+                               en=True,)        
+        for a in ['Measure','RotatePlane']:
+            _sub = mUI.MelMenuItem(_vis, subMenu = True,tearOff=False,
+                                   label = a,
+                                   en=True,)
+            for i,v in enumerate(['off','on']):
+                mUI.MelMenuItem(_sub,
+                                l = v,
+                                ann='Set visibility of: {0} | {1}'.format(a,v),
+                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                            'atUtils', 'blockAttr_set',
+                                            **{"vis{0}".format(a):i}))                              
+            
 
         log.info("Context menu rebuilt")        
         
@@ -3240,10 +3274,9 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row_report,w=2)
         _row_report.layout()         
         
-        
-        #=================================================================================================
+        #=======================================================================
         #>> Left Column
-        #=================================================================================================
+        #============================================================
         _LeftColumn = mUI.MelFormLayout(_MainForm)
         _scrollList = mUI.MelObjectScrollList(_LeftColumn, ut='cgmUISubTemplate',
                                               allowMultiSelection=True,en=True,

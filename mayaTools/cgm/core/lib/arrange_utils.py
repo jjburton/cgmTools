@@ -96,6 +96,7 @@ _d_arrangeLine_ann = {'linearEven':"Layout on line from first to last item evenl
                       'cubicRebuild3Even':'Layout evenly on a 2 span rebuild curve from the list.',
                       'cubicRebuild2Spaced':'Layout spaced on a 2 span rebuild curve from the list.',
                       'cubicRebuild3Spaced':'Layout spaced on a 2 span rebuild curve from the list.'}
+
 def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     """    
     Arrange a list of objects evenly along a vector from first to last
@@ -153,7 +154,8 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
             _l_pos = CURVES.getUSplitList(curveBuffer,points = _len,rebuild=1)
             
         for i,o in enumerate(objList[1:-1]):
-            POS.set(o,_l_pos[i+1])                
+            POS.set(o,_l_pos[i+1])
+            
     elif mode == 'spaced':
         _l_pos = []
         for i,o in enumerate(objList[1:-1]):

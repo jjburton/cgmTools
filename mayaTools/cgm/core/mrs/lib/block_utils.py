@@ -36,7 +36,8 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core import cgm_RigMeta as RIGMETA
 import cgm.core.rig.create_utils as RIGCREATE
-
+import cgm.core.lib.arrange_utils as ARRANGE
+reload(ARRANGE)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -7849,6 +7850,29 @@ def prerig_snapRPtoOrientHelper(self):
         vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
     
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+        
+def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
+    _str_func = 'prerig_handlesLayout'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    ml_prerig = self.msgList_get('prerigHandles')
+    if not ml_prerig:
+        return log.error(cgmGEN.logString_msg(_str_func,'No prerigHandles found'))
+
+    try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+    except:idx_start,idx_end = 0,len(ml_prerig)-1
+        
+    mStart = ml_prerig[idx_start]
+    mEnd = ml_prerig[idx_end]
+    ml_toSnap = ml_prerig[idx_start:idx_end+1]
+    
+    if not ml_toSnap:
+        raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
+    
+    pprint.pprint(vars())
+    
+    return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
+    
     
 def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     _str_func = 'prerig_snapHandlesToRotatePlane'
