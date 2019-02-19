@@ -85,7 +85,8 @@ def get_sideMirror(self):
     
 def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
     _str_func = 'get_attachPoint'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     log.debug("|{0}| >> NOT SURE WE NEED THIS!!!!!".format(_str_func,self)+ '-'*80)
     
     mBlockParent = self.p_blockParent
@@ -132,7 +133,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
     try:
         _str_func = 'verify_blockAttrs'
         _short = self.mNode
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         if queryMode:
             log.debug("|{0}| >> QUERY MODE".format(_str_func,self))
         if blockType is None:
@@ -258,7 +260,8 @@ def set_nameTag(self,nameTag = None):
     try:
         _short = self.p_nameShort
         _str_func = 'set_nameTag'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -289,7 +292,8 @@ def set_nameTag(self,nameTag = None):
 
 def set_blockNullTemplateState(self,state=True, define = True, template=True,prerig=True):
     _str_func = 'set_blockNullTemplateState'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     self.template = state
     
@@ -317,7 +321,8 @@ def doName(self):
     """
     _short = self.p_nameShort
     _str_func = '[{0}] doName'.format(_short)
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
@@ -395,7 +400,8 @@ def set_side(self,side=None):
     try:
         _short = self.p_nameShort
         _str_func = 'set_side'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         if str(side).lower() in ['none']:
             side = 0
@@ -414,7 +420,8 @@ def set_position(self,position=None,ui=False):
     try:
         _short = self.p_nameShort
         _str_func = 'set_position'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         
         if ui:
@@ -449,7 +456,8 @@ def color(self):
     try:
         _short = self.p_nameShort
         _str_func = 'color'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         _side = get_side(self)
         log.debug("|{0}| >> side: {1}".format(_str_func,_side))
@@ -482,7 +490,8 @@ def get_infoBlock_report(self):
     """
     try:
         _str_func = 'get_infoBlock_report'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         _short = self.p_nameShort
         mBlockModule = self.p_blockModule
@@ -551,7 +560,8 @@ def is_templateBAK(self):
 def is_template(self):
     try:
         _str_func = 'is_template'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         return msgDat_check(self, get_stateLinks(self,'template'))
         
     except Exception,err:
@@ -560,7 +570,8 @@ def is_template(self):
 def templateDeleteBAK(self,msgLinks = []):
     try:
         _str_func = 'templateDelete'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         for link in msgLinks + ['templateNull']:
             if self.getMessage(link):
@@ -586,7 +597,8 @@ def templateNull_verify(self):
 
 def snap_toBaseDat(self):
     _str_func = 'snap_toBaseDat'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     pos = DIST.get_pos_by_vec_dist(self.p_position, self.baseAim, 100)
     log.debug("|{0}| >>  pos: {1}".format(_str_func,pos))
     
@@ -613,7 +625,8 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
                             uAttr = 'neckControls',baseName = 'test'):
     try:
         _str_func = 'create_templateLoftMesh'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         _side = 'center'
         if self.getMayaAttr('side'):
@@ -736,7 +749,8 @@ def prerigNull_verify(self):
         
 def prerig_simple(self):
     _str_func = 'prerig_simple'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     _short = self.p_nameShort
     _size = self.baseSize
@@ -759,7 +773,7 @@ def prerig_simple(self):
 def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
     try:
         _str_func = 'prerig_delete'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
         
         try:self.moduleTarget.delete()
         except:log.debug("|{0}| >> No moduleTarget...".format(_str_func))
@@ -784,6 +798,27 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
 def prerig_handlesLock(self, lock=None):
     try:
         _str_func = 'prerig_handlesLock'
+        log.debug(cgmGEN.logString_start(_str_func))
+        ml_prerigHandles = self.msgList_get('prerigHandles')
+        if not ml_prerigHandles:
+            return log.error(cgmGEN.logString_msg(_str_func,'No prerigHandles found'))
+        if lock:
+            mPrerigNull = self.prerigNull
+            for mHandle in ml_prerigHandles:
+                mLoc = mHandle.getMessageAsMeta('lockLoc')
+                if mLoc:
+                    mLoc.delete()
+                    
+                mLoc = mHandle.doLoc()
+                mLoc.p_parent = mPrerigNull
+                mc.parentConstraint([mLoc.mNode],mHandle.mNode)
+                mHandle.connectChildNode(mLoc.mNode,'lockLoc')
+        else:
+            for mHandle in ml_prerigHandles:            
+                mLoc = mHandle.getMessageAsMeta('lockLoc')
+                if mLoc:
+                    mLoc.delete()
+        
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -792,7 +827,8 @@ def delete(self):
     _d_delete = {4:rigDelete,
                  3:skeleton_delete}
     _str_func = 'delete'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     _int_state,_state = BLOCKGEN.validate_stateArg(self.blockState)
     
     _range = range(_int_state+1)
@@ -816,7 +852,8 @@ def delete(self):
 
 def msgDat_delete(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
     _str_func = 'msgDat_delete'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
+    log.debug(cgmGEN.logString_start(_str_func))
+    
     
     _l_missing = []
     for l in d_wiring.get('msgLinks',[]) + msgLinks:
@@ -846,7 +883,8 @@ def msgDat_delete(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
 
 def msgDat_check(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
     _str_func = 'msgDat_check'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)    
+    log.debug(cgmGEN.logString_start(_str_func))
+    
     
     _l_missing = []
     for l in d_wiring.get('msgLinks',[]) + msgLinks:
@@ -871,7 +909,8 @@ def msgDat_check(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
 def get_stateLinks(self, mode = 'template' ):
     try:
         _str_func = 'get_stateLinks'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
@@ -895,7 +934,8 @@ def get_stateLinks(self, mode = 'template' ):
 def is_prerig(self):
     try:
         _str_func = 'is_prerig'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         return msgDat_check(self, get_stateLinks(self,'prerig'))
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -903,7 +943,8 @@ def is_prerig(self):
 def is_skeleton(self):
     try:
         _str_func = 'is_skeleton'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         mBlockModule = self.p_blockModule
     
@@ -925,7 +966,8 @@ def is_skeleton(self):
 def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     try:
         _str_func = 'is_prerig'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         _l_missing = []
     
@@ -968,7 +1010,8 @@ def create_defineLoftMesh(self, targets = None,
                           baseName = 'test'):
     try:
         _str_func = 'create_prerigLoftMesh'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         _short = self.mNode
         _side = 'center'
         _rebuildNode = None
@@ -1045,7 +1088,8 @@ def create_prerigLoftMesh(self, targets = None,
                           baseName = 'test'):
     try:
         _str_func = 'create_prerigLoftMesh'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         _short = self.mNode
         _side = 'center'
         _rebuildNode = None
@@ -1199,7 +1243,8 @@ def create_simpleTemplateLoftMesh(self, targets = None,
                                   ):
     try:
         _str_func = 'create_prerigLoftMesh'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         _short = self.mNode
         _side = 'center'
         _rebuildNode = None
@@ -1378,7 +1423,8 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
                      simpleMode = False):
     
     _str_func = 'create_jointLoft'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -1451,7 +1497,8 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
                      uAttr = 'neckJoints', baseName = 'test'):
     
     _str_func = 'create_jointLoftBAK'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     _side = 'center'
     if self.getMayaAttr('side'):
@@ -1510,7 +1557,8 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
 def rigDeleteBAK(self,msgLinks = []):
     try:
         _str_func = 'rigDelete'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         
         if self.isReferenced():
@@ -1584,7 +1632,8 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     """
     _short = self.mNode
     _str_func = 'pivots_buildShapes'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     if mRigNull is None:
         mRigNull = self.moduleTarget.rigNull
@@ -1635,7 +1684,8 @@ def pivots_setup(self, mControl = None,
     """
     _short = self.mNode
     _str_func = 'pivots_setup'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
         
     _side = get_side(self)
     if _side in ['right']:
@@ -2019,7 +2069,8 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
         list
     """
     _str_func = 'prerigHandles_getNameDat'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     l_res = []
 
     mModule = self.moduleTarget
@@ -2100,7 +2151,8 @@ def skeleton_getNameDictBase(self):
     Get the base name dict - direction, etc
     """
     _str_func = 'skeleton_getNameDicts'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     l_res = []
 
         
@@ -2225,7 +2277,8 @@ def skeleton_getCreateDict(self, count = None):
     """
     _short = self.mNode
     _str_func = 'skeleton_getCreateDict'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     mModule = self.moduleTarget    
 
@@ -2479,7 +2532,8 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
 
 def skeleton_getAttachJoint(self):
     _str_func = 'skeleton_connectToParent'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     if self.blockType == 'master':
         log.debug("|{0}| >> Master block type. No connection possible".format(_str_func))                   
@@ -2529,7 +2583,8 @@ def skeleton_getAttachJoint(self):
 
 def skeleton_connectToParent(self):
     _str_func = 'skeleton_connectToParent'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     if self.blockType == 'master':
         log.debug("|{0}| >> Master block type. No connection possible".format(_str_func))                   
@@ -2894,7 +2949,8 @@ def prerig_getHandleTargets(self):
 #=============================================================================================================
 def blockParent_set(self, parent = False, attachPoint = None):        
     _str_func = 'blockParent_set'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     mParent_current =  self.blockParent
     if self.blockState == 'rig':
@@ -3724,7 +3780,8 @@ def blockDat_load(self, blockDat = None,
     _short = self.p_nameShort        
     _str_func = '[{0}] loadBlockDat'.format(_short)
     
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
 
     if blockDat is None:
         log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
@@ -4348,7 +4405,8 @@ def get_blockDagNodes(self):
     try:
         _short = self.p_nameShort
         _str_func = 'get_blockDagNodes'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         ml_controls = controls_get(self,True,True,True)
                 
@@ -4783,7 +4841,8 @@ _d_attrStateMasks = {0:[],
 def uiQuery_getStateAttrs(self,mode = None):
     try:
         _str_func = ' uiQuery_getStateAttrs'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         _short = self.mNode
         
         if mode is None:
@@ -6064,7 +6123,8 @@ def puppet_verify(self):
     """
     try:
         _str_func = 'puppet_verify'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         mPuppet = False
         if self.blockType == 'master':
@@ -6121,7 +6181,8 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
     """
     try:
         _str_func = 'module_verify'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         _moduleType = moduleType or self.blockType
         
         def checkAttrs(mModule):
@@ -6172,7 +6233,8 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
 def is_rigged(self):
     try:
         _str_func = 'is_rigged'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         if self.blockType == 'master':
             if self.getMessage('moduleTarget'):
                 if self.moduleTarget.getMessage('masterControl'):
@@ -6192,7 +6254,8 @@ def getState(self, asString = True, fastCheck=True):
                      'rig':is_rigged}
     try:
         _str_func = 'getState'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         _l_blockStates = BLOCKSHARE._l_blockStates
         
@@ -6262,7 +6325,8 @@ def getState(self, asString = True, fastCheck=True):
 def nameList_resetToProfile(self,arg = None):
     try:
         _str_func = 'nameList_resetToProfile'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         if arg is None:
             arg = self.getMayaAttr('blockProfile')
         log.debug("|{0}| >>  arg: {1}".format(_str_func,arg))
@@ -6309,7 +6373,8 @@ def nameList_resetToProfile(self,arg = None):
 def blockProfile_getOptions(self):
     try:
         _str_func = 'blockProfile_getOptions'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
@@ -6324,7 +6389,8 @@ def blockProfile_getOptions(self):
         
 def blockProfile_load(self, arg):
     _str_func = 'blockProfile_load'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     _short = self.mNode
     
     mBlockModule = self.p_blockModule
@@ -6371,7 +6437,8 @@ def blockProfile_load(self, arg):
 
 def buildProfile_load(self, arg):
     _str_func = 'buildProfile_load'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     _short = self.mNode
     mBlockModule = self.p_blockModule
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
@@ -6453,7 +6520,8 @@ def doSize(self, mode = None, postState = None):
     """
     #try:
     _str_func = 'size'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     _str_state = getState(self)
     if _str_state not in ['define','template']:
@@ -6526,7 +6594,8 @@ def doSize(self, mode = None, postState = None):
 
 def get_loftCurves(self):
     _str_func = 'get_loftCurves'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     ml_templateHandles = self.msgList_get('templateHandles')
     ml_loftCurves = []
@@ -7679,7 +7748,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
     
 def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
     _str_func = 'define_set_baseSize'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     if baseSize is None:
         try:baseSize = self.baseSize
@@ -7757,7 +7827,8 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
 
 def prerig_snapRPtoOrientHelper(self):
     _str_func = 'prerig_snapRPtoOrientHelper'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     mRP = self.getMessageAsMeta('defineRpHelper')
     if not mRP:
@@ -7781,7 +7852,8 @@ def prerig_snapRPtoOrientHelper(self):
     
 def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     _str_func = 'prerig_snapHandlesToRotatePlane'
-    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     log.debug("|{0}| >>  Dat get...".format(_str_func)+ '-'*40)
     
@@ -7864,7 +7936,8 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
     """
     try:
         _str_func = 'get_midIK_basePosOrient'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        log.debug(cgmGEN.logString_start(_str_func))
+
         
         if ml_handles:
             ml_use = ml_handles

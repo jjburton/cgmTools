@@ -758,6 +758,10 @@ def logString_start(str_func,split='-',intCount = 80):
 def logString_sub(str_func,msg='break',split='_',intCount = 80):
     if str_func:return "|{0}| >> {1} ...".format(str_func,msg)+split*intCount
     return "{0} ...".format(msg)+split*intCount
+
+def logString_msg(str_func,msg='break'):
+    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)
+    return "{0} ...".format(msg)
     
 def log_info_dict(arg = None,tag = 'Stored Dict'):
     '''
