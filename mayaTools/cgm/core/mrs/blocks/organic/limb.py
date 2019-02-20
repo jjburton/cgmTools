@@ -782,7 +782,7 @@ def template(self):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
             iUse = 0
             if i:iUse = -1
-            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+            mHandle = mHandleFactory.buildBaseShape('cubeOpen',baseSize = _size_handle, shapeDirection = 'z+')
             mHandle.p_parent = mTemplateNull
             
             mHandle.resetAttrs()

@@ -5022,7 +5022,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         #pprint.pprint(vars())
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+            mHandle = mHandleFactory.buildBaseShape('cubeOpen',baseSize = _size_handle, shapeDirection = 'z+')
             mHandle.p_parent = mTemplateNull
         
             mHandle.resetAttrs()
@@ -7852,27 +7852,30 @@ def prerig_snapRPtoOrientHelper(self):
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
         
 def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
-    _str_func = 'prerig_handlesLayout'
-    log.debug(cgmGEN.logString_start(_str_func))
-    
-    ml_prerig = self.msgList_get('prerigHandles')
-    if not ml_prerig:
-        return log.error(cgmGEN.logString_msg(_str_func,'No prerigHandles found'))
-
-    try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
-    except:idx_start,idx_end = 0,len(ml_prerig)-1
+    try:
+        _str_func = 'prerig_handlesLayout'
+        log.debug(cgmGEN.logString_start(_str_func))
         
-    mStart = ml_prerig[idx_start]
-    mEnd = ml_prerig[idx_end]
-    ml_toSnap = ml_prerig[idx_start:idx_end+1]
-    
-    if not ml_toSnap:
-        raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
-    
-    pprint.pprint(vars())
-    
-    return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
-    
+        ml_prerig = self.msgList_get('prerigHandles')
+        if not ml_prerig:
+            return log.error(cgmGEN.logString_msg(_str_func,'No prerigHandles found'))
+        
+        ml_prerig = [mObj for mObj in ml_prerig if mObj.cgmType == 'blockHandle']
+        try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+        except:idx_start,idx_end = 0,len(ml_prerig)-1
+            
+        mStart = ml_prerig[idx_start]
+        mEnd = ml_prerig[idx_end]
+        ml_toSnap = ml_prerig[idx_start:idx_end+1]
+        
+        if not ml_toSnap:
+            raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
+        
+        pprint.pprint(vars())
+        
+        return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
     
 def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     _str_func = 'prerig_snapHandlesToRotatePlane'

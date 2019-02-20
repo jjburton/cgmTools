@@ -3200,11 +3200,19 @@ class ui(cgmUI.cgmGUI):
     def uiUpdate_context(self,var=None,value=None):
         if var:
             var.setValue(value)
+            
+        _context = self._l_contextModes[self.var_contextMode.value]
+        _contextStart = self._l_contextStartModes[self.var_contextStartMode.value]
+        _force = self.var_contextForceMode.value
+        
+        if _context == 'self':
+            log.info("Self mode means force = True")
+            _force = 1
         
         _label = "Context: {0} | Begin with: {1} | Force: {2}".format(
-        self._l_contextModes[self.var_contextMode.value],
-        self._l_contextStartModes[self.var_contextStartMode.value],
-        self.var_contextForceMode.value)
+        _context,
+        _contextStart,
+        bool(_force))
         
         self.uiFrame_context(edit=True,label=_label)
         #self.uiField_contextReport(edit=True,label=_label)
