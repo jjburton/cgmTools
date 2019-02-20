@@ -5130,7 +5130,7 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             ml_midLoftHandles = []
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-                crv = CURVES.create_fromName('squareDoubleRounded', _size_handle, direction = 'z+')
+                crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
     
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -7874,7 +7874,7 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
     return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
     
     
-def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
+def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     _str_func = 'prerig_snapHandlesToRotatePlane'
     log.debug(cgmGEN.logString_start(_str_func))
 
@@ -7902,8 +7902,11 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     log.debug("|{0}| >>  mOrientHelper: {1}".format(_str_func,mOrientHelper))
    
     try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
-    except:idx_start,idx_end = 0,len(ml_prerig)-1
+    except:
+        idx_start,idx_end = 0,len(ml_prerig)-1
         
+    log.info(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))        
+    
     mStart = ml_prerig[idx_start]
     mEnd = ml_prerig[idx_end]
     ml_toSnap = ml_prerig[idx_start:idx_end]
@@ -7911,7 +7914,6 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=1):
     if not ml_toSnap:
         raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
         
-    
     #pprint.pprint(vars())
     
     f_dist = DIST.get_distance_between_points(mStart.p_position,mEnd.p_position)
@@ -8079,8 +8081,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
     
     
         return True
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
         
         
 def focus(self,arg=True,mode='vis',ml_focus = None):
@@ -8145,8 +8146,9 @@ def pivotHelper_get(self,mHandle=None,
             else:
                 return mBuffer
             
-        _bbsize = POS.get_axisBox_size(mHandle.mNode,False)
-        _size = MATH.average(_bbsize)
+        #_bbsize = POS.get_axisBox_size(mHandle.mNode,False)
+        #_size = MATH.average(_bbsize)
+        _size = baseSize
         _sizeSub = _size * .2        
         mHandleFactory = self.asHandleFactory()
         
@@ -8202,8 +8204,8 @@ def pivotHelper_get(self,mHandle=None,
 
         mTopLoft.parent = mPivotRootHandle
 
-        _axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
-        SNAP.go(_axisBox,mHandle.mNode)
+        #_axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
+        #SNAP.go(_axisBox,mHandle.mNode)
             #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
 
         #Sub pivots =============================================================================
@@ -8333,10 +8335,10 @@ def pivotHelper_get(self,mHandle=None,
         #    SNAPCALLS.snap(mPivotRootHandle.mNode,mHandle.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
         #    mTopLoft.ty = 1
 
-        if _axisBox:
-            mc.delete(_axisBox)
+        #if _axisBox:
+        #    mc.delete(_axisBox)
 
-        log.info(_bbsize)
+        #log.info(_bbsize)
         #TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
         #mPivotRootHandle.scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2]
         #mc.xform(mPivotRootHandle.mNode,

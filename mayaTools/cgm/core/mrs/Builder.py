@@ -57,6 +57,7 @@ import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
+import cgm.core.tools.snapTools as SNAPTOOLS
 
 for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT:
     reload(m)
@@ -1621,8 +1622,11 @@ class ui(cgmUI.cgmGUI):
                     _contextMode = 'self'
                 elif _contextMode == 'root':
                     b_rootMode = True
-                    
-                kws['forceNew'] = self.var_contextForceMode.value
+                
+                if _contextMode == 'self':
+                    kws['forceNew'] = True
+                else:
+                    kws['forceNew'] = self.var_contextForceMode.value
             elif args[0] == 'stepUI':
                 _contextMode = 'self'
             
@@ -3215,12 +3219,13 @@ class ui(cgmUI.cgmGUI):
         uiTab_setup = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         self.uiTab_setup = uiTab_setup
         
-        uiTab_utils = mUI.MelFormLayout( ui_tabs )
+        uiTab_utils = mUI.MelScrollLayout( ui_tabs,ut='cgmUITemplate' )
         
         for i,tab in enumerate(['Setup','Utils']):
             ui_tabs.setLabel(i,tab)
             
         self.buildTab_setup(uiTab_setup)
+        self.buildTab_utilities(uiTab_utils)
         #TOOLBOX.buildTab_td(self,uiTab_utils)
 
         #self.buildTab_create(uiTab_create)
@@ -3252,6 +3257,86 @@ class ui(cgmUI.cgmGUI):
                         (self.uiRow_progress,"bottom",0,_row_cgm)
                         ],
                   attachNone = [(_row_cgm,"top")])
+    
+    def buildTab_utilities(self,parent):
+        _MainForm = parent
+        
+        self.uiPopUpMenu_createShape = None
+        self.uiPopUpMenu_color = None
+        self.uiPopUpMenu_attr = None
+        self.uiPopUpMenu_raycastCreate = None
+                
+        try:self.var_attrCreateType
+        except:self.var_attrCreateType = cgmMeta.cgmOptionVar('cgmVar_attrCreateType', defaultValue = 'float')        
+        try:self.var_curveCreateType
+        except:self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+        try:self.var_curveCreateType
+        except:self.var_curveCreateType = cgmMeta.cgmOptionVar('cgmVar_curveCreateType', defaultValue = 'circle')
+        try:self.var_defaultCreateColor
+        except:self.var_defaultCreateColor = cgmMeta.cgmOptionVar('cgmVar_defaultCreateColor', defaultValue = 'yellow')
+        try:self.var_createAimAxis 
+        except:self.var_createAimAxis = cgmMeta.cgmOptionVar('cgmVar_createAimAxis', defaultValue = 2)
+        try:self.var_createSizeMode 
+        except:self.var_createSizeMode = cgmMeta.cgmOptionVar('cgmVar_createSizeMode', defaultValue=0)
+        try:self.var_createSizeValue     
+        except:self.var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)
+        try:self.var_createSizeMulti     
+        except:self.var_createSizeMulti = cgmMeta.cgmOptionVar('cgmVar_createSizeMultiplierValue', defaultValue=1.25)
+    
+        self.var_createRayCast = cgmMeta.cgmOptionVar('cgmVar_createRayCast', defaultValue = 'locator')        
+        self.var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])            
+        self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
+        self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
+        self.var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0) 
+        self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)
+        self.var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)
+    
+        try:
+            parent(edit = True,
+                   af = [(_MainForm,"top",0),
+                         (_MainForm,"left",0),
+                         (_MainForm,"right",0),
+                         (_MainForm,"bottom",0)])
+        except:pass
+        #>>>Shape Creation ====================================================================================
+        mc.setParent(parent)
+        
+    
+        #>>>Tools -------------------------------------------------------------------------------------  
+        #self.buildRow_context(parent)                     
+        
+        SNAPTOOLS.buildSection_snap(self,parent)
+        cgmUI.add_HeaderBreak()        
+        
+        SNAPTOOLS.buildSection_aim(self,parent)
+        cgmUI.add_HeaderBreak()
+        
+        SNAPTOOLS.buildSection_advancedSnap(self,parent)
+        cgmUI.add_HeaderBreak()           
+        
+        #buildSection_rigging(self,parent)
+        #cgmUI.add_SectionBreak()  
+        
+        TOOLBOX.buildSection_joint(self,parent)
+        cgmUI.add_SectionBreak()          
+        
+        #buildSection_transform(self,parent)
+        #cgmUI.add_SectionBreak()  
+        
+        
+        TOOLBOX.buildSection_shape(self,parent)
+        cgmUI.add_SectionBreak()            
+        
+        TOOLBOX.buildSection_color(self,parent)
+        cgmUI.add_SectionBreak()  
+        
+        TOOLBOX.buildSection_rayCast(self,parent)
+        cgmUI.add_SectionBreak()      
+        
+        TOOLBOX.buildSection_distance(self,parent)        
+        
+        
+
         
     def buildTab_setup(self,parent):
         _str_func = 'buildTab_setup'

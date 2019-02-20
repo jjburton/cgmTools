@@ -2125,6 +2125,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      ballBase = True,
                      ballMode = 'asdf',
                      ballPosition = 'joint',
+                     reverseNormal=False,
                      extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
@@ -2302,7 +2303,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
             log.debug("|{0}| >> mesh created...".format(_str_func))                            
             CORERIG.match_transform(_mesh,ml_targets[i])
-            #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            if reverseNormal:
+                mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
             
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))

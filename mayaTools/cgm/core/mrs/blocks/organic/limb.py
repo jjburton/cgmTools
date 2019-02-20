@@ -181,83 +181,86 @@ d_block_profiles = {
         'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[1,0,0]},
         },    
     
-    'leg':{'numSubShapers':2,
-           'addCog':False,
-           'cgmName':'leg',
-           'loftShape':'circle',
-           'loftSetup':'default',
-           'settingsPlace':'end',
-           'settingsDirection':'down',
-           'ikSetup':'rp',
-           'ikEnd':'foot',
-           'buildLeverEnd':False,           
-           'numControls':3,
-           'numSubShapers':3,
-           'ikRPAim':'default',
-           'rigSetup':'default',           
-           'mainRotAxis':'out',
-           'buildBaseLever':False,
-           'hasLeverJoint':False,
-           'hasBallJoint':True,
-           'hasEndJoint':True,
-           'nameList':['hip','knee','ankle','ball','toe'],
-           'baseAim':[0,-1,0],
-           'baseUp':[0,0,1],
-           'baseSize':[11.6,13,70],
-           'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
-           'loftList':['wideNeg','wideDown','diamond'],
-           'loftShapeEnd':'wideUp',
+    'leg':{
+        'numSubShapers':2,
+        'addCog':False,
+        'cgmName':'leg',
+        'loftShape':'circle',
+        'loftSetup':'default',
+        'settingsPlace':'end',
+        'settingsDirection':'down',
+        'ikSetup':'rp',
+        'ikEnd':'foot',
+        'buildLeverEnd':False,           
+        'numControls':3,
+        'numSubShapers':3,
+        'ikRPAim':'default',
+        'rigSetup':'default',           
+        'mainRotAxis':'out',
+        'buildBaseLever':False,
+        'hasLeverJoint':False,
+        'hasBallJoint':True,
+        'hasEndJoint':True,
+        'nameList':['hip','knee','ankle','ball','toe'],
+        'baseAim':[0,-1,0],
+        'baseUp':[0,0,1],
+        'baseSize':[11.6,13,70],
+        'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
+        'loftList':['wideNeg','wideDown','diamond'],
+        'loftShapeEnd':'wideUp',
            },
     
     'crab':{
-              'addCog':False,
-              'cgmName':'crabLeg',
-              'loftShape':'circle',
-              'loftSetup':'default',
-              'settingsPlace':'end',
-              'settingsDirection':'down',
-              'ikSetup':'rp',
-              'buildLeverEnd':True,              
-              'ikEnd':'bank',
-              'numControls':4,
-              'numSubShapers':3,
-              'ikRPAim':'default',
-              'rigSetup':'default',
-              'mainRotAxis':'out',
-              'buildBaseLever':False,
-              'hasLeverJoint':False,
-              'hasBallJoint':False,
-              'hasEndJoint':True,
-              'nameList':['hip','knee','ankle','ball','toe'],
-              'baseAim':[-1,-1,0],
-              'baseUp':[0,0,1],
-              'baseSize':[11.6,13,70],
-              'baseDat':{'rp':[-1,0,0],'up':[-1,0,0],'lever':[1,0,0]},
+        'addCog':False,
+        'cgmName':'crabLeg',
+        'loftShape':'squircleDiamond',
+        'loftSetup':'default',
+        'settingsPlace':'end',
+        'settingsDirection':'down',
+        'ikSetup':'rp',
+        'buildLeverEnd':True,
+        'settingsDirection':'up',
+        'ikEnd':'bank',
+        'numControls':4,
+        'numSubShapers':3,
+        'ikRPAim':'default',
+        'rigSetup':'default',
+        'mainRotAxis':'out',
+        'buildBaseLever':False,
+        'hasLeverJoint':False,
+        'hasBallJoint':False,
+        'hasEndJoint':True,
+        'nameList':['hip','knee','ankle','ball','toe'],
+        'baseAim':[-1,-1,0],
+        'baseUp':[0,0,1],
+        'baseSize':[11.6,13,70],
+        'baseDat':{'rp':[-1,0,0],'up':[-1,0,0],'lever':[1,0,0]},
               },
     
-    'arm':{'numSubShapers':2,
-           'addCog':False,
-           'attachPoint':'end',
-           'cgmName':'arm',
-           'loftShape':'circle',
-           'loftSetup':'default',
-           'settingsPlace':'end',
-           'ikSetup':'rp',
-           'ikEnd':'hand',
-           'numSubShapers':3,
-           'mainRotAxis':'up',
-           'numControls':3,
-           'ikRPAim':'free',
-           'buildLeverBase':True,
-           'hasLeverJoint':True,
-           'hasBallJoint':False,
-           'hasEndJoint':True,
-           'rigSetup':'default',
-           'nameList':['clav','shoulder','elbow','wrist'],
-           'baseAim':[-1,0,0],
-           'baseSize':[14,9,76],
-           'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
-           'loftList':['circle','widePos','square'],
+    'arm':{
+        'numSubShapers':2,
+        'addCog':False,
+        'attachPoint':'end',
+        'cgmName':'arm',
+        'loftShape':'circle',
+        'loftSetup':'default',
+        'settingsPlace':'end',
+        'ikSetup':'rp',
+        'ikEnd':'hand',
+        'numSubShapers':3,
+        'mainRotAxis':'up',
+        'numControls':3,
+        'ikRPAim':'free',
+        'buildLeverBase':True,
+        'hasLeverJoint':True,
+        'hasBallJoint':False,
+        'hasEndJoint':True,
+        'rigSetup':'default',
+        'nameList':['clav','shoulder','elbow','wrist'],
+        'baseAim':[-1,0,0],
+        'baseSize':[14,9,76],
+        'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
+        'loftList':['circle','widePos','square'],
            },
     'wingBase':{'numSubShapers':2,
                 'addCog':False,
@@ -412,6 +415,7 @@ l_attrsStandard = ['side',
                    'loftList',
                    'loftSplit',
                    'loftShape',
+                   'loftReverseNormal',
                    'ikSetup',
                    'scaleSetup',
                    'numControls',
@@ -778,7 +782,7 @@ def template(self):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
             iUse = 0
             if i:iUse = -1
-            mHandle = mHandleFactory.buildBaseShape('squareDoubleRounded',baseSize = _size_handle, shapeDirection = 'z+')
+            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
             mHandle.p_parent = mTemplateNull
             
             mHandle.resetAttrs()
@@ -852,7 +856,7 @@ def template(self):
         log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
         
         if _b_lever:
-            crv = CURVES.create_fromName('squareDoubleRounded', _size_handle, direction = 'z+')
+            crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             md_handles['lever'] = mHandle
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -926,7 +930,7 @@ def template(self):
             ml_midLoftHandles = []
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-                crv = CURVES.create_fromName('squareDoubleRounded', _size_handle, direction = 'z+')
+                crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1379,6 +1383,8 @@ def template(self):
             #ATTR.set(t,'v',0)
         mNoTransformNull.v = False
         
+  
+        mPivotHelper= False
         #End setup======================================================================================
         if _ikSetup != 'none':
             mEndHandle = ml_handles_chain[-1]
@@ -1391,13 +1397,13 @@ def template(self):
             
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
-                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_bankSize,loft=False)
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle,loft=False)
                 mFoot.p_parent = mTemplateNull
                 
                 #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mTemplateNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
-                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_bankSize)
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle)
                 #mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseShape = _shapeEnd, baseSize=_bankSize)
                 mFoot.p_parent = mTemplateNull
             elif _ikEnd == 'proxy':
@@ -1415,15 +1421,40 @@ def template(self):
             
             if _ikEnd in ['bank','foot','pad']:
                 mPivotHelper = mEndHandle.pivotHelper
-                mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-                mc.pointConstraint([mEndHandle.mNode],mGroup.mNode, skip='y')
-                mc.orientConstraint([mEndHandle.mNode],mGroup.mNode, skip=['z','x'])
-                mGroup.dagLock()
                 
+                if self.blockProfile in ['arm']:
+                    mPivotHelper.doSnapTo(mEndHandle,True,True)
+                    mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                    mc.parentConstraint([mEndHandle.mNode],mGroup.mNode,)
+                    mc.scaleConstraint([mEndHandle.mNode],mGroup.mNode,)
+                    mGroup.dagLock()
+                elif _ikEnd == 'bank':
+                    mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                    mc.parentConstraint([mEndHandle.mNode],mGroup.mNode,)
+                    mc.scaleConstraint([mEndHandle.mNode],mGroup.mNode,)
+                    mGroup.dagLock()                    
+                else:
+                    mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                    mc.pointConstraint([mEndHandle.mNode],mGroup.mNode, skip='y')
+                    mc.orientConstraint([mEndHandle.mNode],mGroup.mNode, skip=['z','x'])
+                    mGroup.dagLock()
                 
-        #Aim end handle -----------------------------------------------------------------------------------
+                    
+        #Aim end handle ----------------------------------------------------------------------------------- 
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
                          aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
+        
+        if mPivotHelper:
+            if self.blockProfile in ['arm']:
+                mPivotHelper.doSnapTo(mEndHandle,True,True)
+                mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('y-',_size_height)
+            elif _ikEnd in ['foot','pad']:
+                mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('z+',_size_height)
+                
+            #else:
+            #    mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('y-',_size_height)
+
+                
         self.blockState = 'template'#...buffer
     
     
@@ -7584,6 +7615,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                      ml_rigJoints,
                                                                      ballBase = _ballBase,
                                                                      ballMode = _ballMode,
+                                                                     reverseNormal=mBlock.loftReverseNormal,
                                                                      extendToStart=_extendToStart),
                                                  'cgmObject')
         
@@ -7694,7 +7726,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     ml_segProxy.append(mMeshHeel)
                     
                     
-    
                     #toe -----------------------------------------------------------------------------------
                     if mToe:
                         mToeMesh = mBallMesh.doDuplicate(po=False)
@@ -8004,8 +8035,7 @@ def get_handleIndices(self):
         str_ikEnd = ATTR.get_enumValueString(self.mNode,'ikEnd')
         log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
         
-        
-        
+
         if str_ikEnd in ['foot']:
             if self.hasBallJoint:
                 idx_end -=1
@@ -8019,8 +8049,8 @@ def get_handleIndices(self):
             elif str_ikEnd == 'tipBase':
                 idx_end -=1
                 
-        if self.buildLeverEnd:
-            idx_end -=1
+        #if self.buildLeverEnd:
+            #idx_end -=1
                 
         return idx_start,idx_end
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
