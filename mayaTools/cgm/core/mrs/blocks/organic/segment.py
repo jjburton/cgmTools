@@ -1054,9 +1054,8 @@ d_rotateOrders = {'default':'yxz'}
 @cgmGEN.Timer
 def rig_prechecks(self):
     try:
-        _short = self.d_block['shortName']
         _str_func = 'rig_prechecks'
-        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+        log.debug(cgmGEN.logString_start(_str_func))
         log.debug(self)
         
         mBlock = self.mBlock    

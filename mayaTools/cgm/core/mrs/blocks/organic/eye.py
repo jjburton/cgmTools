@@ -997,10 +997,9 @@ d_rotateOrders = {'head':'yxz'}
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
 @cgmGEN.Timer
 def rig_prechecks(self):
-    _short = self.d_block['shortName']
     _str_func = 'rig_prechecks'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
+    log.debug(cgmGEN.logString_start(_str_func))
+
     
     mBlock = self.mBlock
     

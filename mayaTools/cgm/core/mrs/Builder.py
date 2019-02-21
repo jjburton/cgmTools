@@ -879,6 +879,10 @@ class ui(cgmUI.cgmGUI):
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                       'stepUI',
                                                       **{'updateUI':0,'mode':'stepBuild'})},
+                      'Prechecks':{'ann':'Precheck blocks for problems',
+                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                          'asRigFactory',
+                                                          **{'updateUI':0,'mode':'prechecks'})},                      
                       'Verify Proxy':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'verify_proxyMesh',
@@ -963,7 +967,8 @@ class ui(cgmUI.cgmGUI):
                   'Reorder UD':{'ann':'Reorder user defined attrs',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'atUtils','reorder_udAttrs',
-                                                       **{'updateUI':0})}},               
+                                                       **{'updateUI':0})}},
+                  
                'Geo':{
                    'order':['Block Mesh','Block Loft','Puppet Mesh',
                             'Unified','Unified [Skinned]',

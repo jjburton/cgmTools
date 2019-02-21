@@ -208,7 +208,7 @@ def mirror_self(self,primeAxis = 'Left'):
         log.debug("|{0}| >> prerig...".format(_str_func)+ '-'*80)        
         ml_mirrorHandles = self.msgList_get('prerigHandles') + self.msgList_get('jointHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
-                                                 mode = '',primeAxis = primeAxis.capitalize() )       
+                                                 mode = '',primeAxis = primeAxis.capitalize() )
 
 @cgmGEN.Timer
 def define(self):
@@ -2967,11 +2967,9 @@ d_rotateOrders = {}
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
 @cgmGEN.Timer
 def rig_prechecks(self):
-    _short = self.d_block['shortName']
     _str_func = 'rig_prechecks'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
-    
+    log.debug(cgmGEN.logString_start(_str_func))
+
     mBlock = self.mBlock
     
     str_faceType = mBlock.getEnumValueString('faceType')

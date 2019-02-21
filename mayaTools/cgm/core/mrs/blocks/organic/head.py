@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -1304,13 +1304,11 @@ d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation 
 d_rotateOrders = {'head':'yxz'}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
-@cgmGEN.Timer
+
 def rig_prechecks(self):
     try:
-        _short = self.d_block['shortName']
         _str_func = 'rig_prechecks'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
+        log.debug(cgmGEN.logString_start(_str_func))
         
         mBlock = self.mBlock
         
@@ -1328,6 +1326,12 @@ def rig_prechecks(self):
             
         if mBlock.neckIK not in [0,3]:
             self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
+            
+        #Checking our data points
+        ml_pre = mBlock.msgList_get('prerigHandles')
+        if len(ml_pre) != mBlock.neckControls +1:
+            self.l_precheckErrors.append('Not enough preHandles for the neckControls count. | neckControls: {0} | prerig: {1} | Excpected: {2}'.format(mBlock.neckControls,len(ml_pre),mBlock.neckControls+1))
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 @cgmGEN.Timer
