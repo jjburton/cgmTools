@@ -214,6 +214,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _postState = None#...for sizeMode call
         _doVerify = kws.get('doVerify',False)
         _justCreated = False
+        kw_name = kws.get('name',None)
         
         if node is None:
             _sel = mc.ls(sl=1)            
@@ -262,11 +263,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 else:
                     _blockModule = False
                 
-                kw_name = kws.get('name',None)
                 kw_blockProfile = kws.get('blockProfile',None)
                 if self.__justCreatedState__:
                     self.addAttr('blockType', value = blockType,lock=True)
-                    if kw_blockProfile and not kw_name:
+                    if kw_blockProfile and kw_name is None:
                         kw_name = kw_blockProfile
                     elif blockType is not None and not kw_name:
                         kw_name = blockType
@@ -277,6 +277,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     self.addAttr('cgmName',attrType='string')
                     if kw_name:
                         self.cgmName = kw_name
+                        
     
                 log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
                 if self.isReferenced():
@@ -361,7 +362,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 #if _sizeMode:
                     #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                     #self.atUtils('doSize', _sizeMode, postState = _postState )                
-            
+
         except Exception,err:
             pprint.pprint(vars())
             log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
@@ -381,7 +382,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
             _str_func = '[{0}] verify'.format(self.p_nameShort)
     
-            _start = time.clock()
+            #_start = time.clock()
     
             if self.isReferenced():
                 raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
@@ -433,7 +434,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
     
             self.doName()
-            log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+            #log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
             
             if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
                 ATTR.convert_type(self.mNode,'blockProfile','string')

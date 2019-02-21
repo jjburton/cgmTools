@@ -5737,24 +5737,26 @@ def skeleton_delete(self):
         self.atBlockModule('skeleton_delete')
     
     else:
-        ml_joints = self.moduleTarget.rigNull.msgList_get('moduleJoints')
-        if not ml_joints:
-            closeOut()
-            return log.error("|{0}| >> No joints found".format(_str_func))
-        else:
-            ml_children = []
-            for mJnt in ml_joints:
-                ml_childrenTmp = mJnt.getChildren(asMeta=True)
-                log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
-                for mChild in ml_childrenTmp:
-                    if mChild not in ml_children and mChild not in ml_joints:
-                        ml_children.append(mChild)
-                        
-            for mChild in ml_children:
-                log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
-                mChild.p_parent = False
-                
-            ml_joints[0].delete()
+        mModule = self.getMessageAsMeta('moduleTarget')
+        if mModule:
+            ml_joints = mModule.rigNull.msgList_get('moduleJoints')
+            if not ml_joints:
+                closeOut()
+                return log.error("|{0}| >> No joints found".format(_str_func))
+            else:
+                ml_children = []
+                for mJnt in ml_joints:
+                    ml_childrenTmp = mJnt.getChildren(asMeta=True)
+                    log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
+                    for mChild in ml_childrenTmp:
+                        if mChild not in ml_children and mChild not in ml_joints:
+                            ml_children.append(mChild)
+                            
+                for mChild in ml_children:
+                    log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
+                    mChild.p_parent = False
+                    
+                ml_joints[0].delete()
         
     closeOut()
     return True
@@ -5934,7 +5936,11 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
 
     log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
     
-    
+    if self.getMayaAttr('isMegaBlock'):
+        log.debug(cgmGEN.logString_sub(_str_func,'megaBlock bypass'))
+        if _idx_target:
+            self.blockState = _state_target
+            return 'blockFrame'
 
     #>>> Meat
     #========================================================================
@@ -7111,8 +7117,8 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
         
         if mParentNull == None:
             mParentNull = self.atUtils('stateNull_verify','define')
+            
         mHandleFactory = self.asHandleFactory()
-        
         for k in d_definitions.keys():
             log.debug("|{0}| >>  curve: {1}...".format(_str_func,k))            
             _dtmp = d_definitions[k]
@@ -7154,7 +7160,6 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
                 l_clusters.append(_res)
                 ATTR.set(_res[1],'visibility',False)
                 
-            
             if _dtmp.get('rebuild'):
                 _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
                                         ch=1,s=len(ml_handles),
@@ -7165,6 +7170,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
         return {'md_curves':md_defineCurves,
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+    finally:pass
 
 def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
     try:

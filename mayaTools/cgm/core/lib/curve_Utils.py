@@ -13,7 +13,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -1036,6 +1036,7 @@ def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
 def getUSplitList(curve=None, points=3, markPoints=False,
                   startSplitFactor=None, insetSplitFactor=None,
                   rebuild=False, rebuildSpans=10,minU=None,maxU=None,
+                  returnU=False,
                   reverse=False):
     """
     Function to split a curve up u positionally 
@@ -1051,6 +1052,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         'minU'(None) -- specify minU to use
         'maxU'(None) -- specify maxU to use
         'reverse'(False) -- Reverse before split
+        'returnU'(False) -- if you just want the u values
     :returns
         list of positions(list)
     """ 
@@ -1117,86 +1119,88 @@ def getUSplitList(curve=None, points=3, markPoints=False,
 
         _range = (f_minU - f_maxU)
         l_uValues = [f_minU]
-        if points == 1:
-            l_uValues = [_range/2]
+        if int_points == 1:
+            l_uValues = [(f_maxU-f_minU)/2]
             
-        elif startSplitFactor:
-            if points < 5:
-                raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
-            log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))
-            
-            #Figure out our u's
-            f_base = startSplitFactor * _range 
-            l_uValues.append( f_base )
-            f_len = f_maxU - (f_base *2)	
-            int_toMake = f_points-4
-            f_factor = f_len/(int_toMake+1)
-            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
-            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
-            log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
-            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
-            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-            for i in range(1,int_points-3):
-                l_uValues.append(((i*f_factor + f_base)))
-            l_uValues.append(f_maxU - f_base)
-            l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
-
-        elif insetSplitFactor:
-            log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
-            #Figure out our u's
-            f_base = insetSplitFactor * _range 
-            f_len = f_maxU - (f_base *2)	
-            f_factor = f_len/(f_points-1)
-            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
-            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
-            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
-            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-            for i in range(1,int_points-1):
-                l_uValues.append((i*f_factor))
-            l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
-            """
-        elif f_kwMinU is not False or f_kwMaxU is not False:
-            log.debug("%s >> Sub mode. "%(_str_func))
-            if f_kwMinU is not False:
-                if f_kwMinU > f_maxU:
-                    raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
-                f_useMinU = f_kwMinU
-            else:f_useMinU = 0.0
-            if f_kwMaxU is not False:
-                if f_kwMaxU > f_maxU:
-                    raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
-                f_useMaxU = f_kwMaxU
-            else:f_useMaxU = f_maxU
-
-            if int_points == 1:
-                l_uValues = [(f_useMaxU - f_useMinU)/2]
-            elif int_points == 2:
-                l_uValues = [f_useMaxU,f_useMinU]		    
-            else:
-                l_uValues = [f_useMinU]
-                f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
-                log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
-                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-                for i in range(1,int_points-1):
-                    l_uValues.append((i*f_factor) + f_useMinU)
-                l_uValues.append(f_useMaxU)"""
         else:
-            #Figure out our u's
-            log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))
-            if int_points == 3:
-                l_uValues.append(f_maxU/2)
-                l_uValues.append(f_maxU)
-            else:
-                f_factor = f_maxU/(f_points-1)
+            if startSplitFactor:
+                if points < 5:
+                    raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
+                log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))
+                
+                #Figure out our u's
+                f_base = startSplitFactor * _range 
+                l_uValues.append( f_base )
+                f_len = f_maxU - (f_base *2)	
+                int_toMake = f_points-4
+                f_factor = f_len/(int_toMake+1)
                 log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
+                log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
+                log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
+                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                for i in range(1,int_points-3):
+                    l_uValues.append(((i*f_factor + f_base)))
+                l_uValues.append(f_maxU - f_base)
+                l_uValues.append(f_maxU)
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
+
+            elif insetSplitFactor:
+                log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
+                #Figure out our u's
+                f_base = insetSplitFactor * _range 
+                f_len = f_maxU - (f_base *2)	
+                f_factor = f_len/(f_points-1)
+                log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
+                log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
                 log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
                 for i in range(1,int_points-1):
-                    l_uValues.append(i*f_factor)
+                    l_uValues.append((i*f_factor))
                 l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
+                """
+            elif f_kwMinU is not False or f_kwMaxU is not False:
+                log.debug("%s >> Sub mode. "%(_str_func))
+                if f_kwMinU is not False:
+                    if f_kwMinU > f_maxU:
+                        raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
+                    f_useMinU = f_kwMinU
+                else:f_useMinU = 0.0
+                if f_kwMaxU is not False:
+                    if f_kwMaxU > f_maxU:
+                        raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
+                    f_useMaxU = f_kwMaxU
+                else:f_useMaxU = f_maxU
+    
+                if int_points == 1:
+                    l_uValues = [(f_useMaxU - f_useMinU)/2]
+                elif int_points == 2:
+                    l_uValues = [f_useMaxU,f_useMinU]		    
+                else:
+                    l_uValues = [f_useMinU]
+                    f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
+                    log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
+                    log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                    for i in range(1,int_points-1):
+                        l_uValues.append((i*f_factor) + f_useMinU)
+                    l_uValues.append(f_useMaxU)"""
+            else:
+                #Figure out our u's
+                log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))
+                if int_points == 3:
+                    l_uValues.append(f_maxU/2)
+                    l_uValues.append(f_maxU)
+                else:
+                    f_factor = f_maxU/(f_points-1)
+                    log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                    log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                    for i in range(1,int_points-1):
+                        l_uValues.append(i*f_factor)
+                    l_uValues.append(f_maxU)
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
 
+        l_uValues = [float(v) for v in l_uValues]
         for u in l_uValues:
             l_spanUPositions.append(POS.get("{0}.u[{1}]".format(_shapeUse,u)))
             #l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
@@ -1220,6 +1224,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
                 except StandardError,error:raise StandardError,"Scale fail : %s"%error
         
         mc.delete(useCurve)#Delete our use curve
+        if returnU:return l_uValues
         return l_spanUPositions
 
     except Exception,err:
