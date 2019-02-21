@@ -4355,7 +4355,7 @@ def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName
 
 class rigFactory(object):
     #@cgmGEN.Timer    
-    def __init__(self, rigBlock = None, forceNew = True, autoBuild = False, ignoreRigCheck = False,
+    def __init__(self, rigBlock = None, forceNew = True, autoBuild = False, ignoreRigCheck = False,mode=None,
                  *a,**kws):
         """
         Core rig block builder factory
@@ -4387,38 +4387,48 @@ class rigFactory(object):
             self.call_kws = kws
             #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
 
-
         self.call_kws['forceNew'] = forceNew
         self.call_kws['rigBlock'] = rigBlock
         self.call_kws['autoBuild'] = autoBuild
         self.call_kws['ignoreRigCheck'] = ignoreRigCheck
         
+        self.mBlock = cgmMeta.validateObjArg(self.call_kws['rigBlock'],'cgmRigBlock',noneValid=False)
+        
         #cgmGEN.log_info_dict(self.call_kws,_str_func)
-        
-        self.fnc_get_nodeSnapShot()
-        
-        self.fnc_check_rigBlock()
+        _buildModule = rigBlock.p_blockModule
+        reload(_buildModule)
+        _short = self.mBlock.p_nameShort
+        if _buildModule.__dict__.get('rig_prechecks'):
+            log.debug("|{0}| >> Found precheck call".format(_str_func,))
+            _buildModule.rig_prechecks(self)        
         
         if self.l_precheckErrors:
             _short = self.mBlock.mNode
             print(cgmGEN._str_hardLine)
-            print("|{0}| >> Block: {1} ".format(_str_func, self.d_block['shortName']))            
+            print("|{0}| >> Block: {1} ".format(_str_func, _short))            
             print("|{0}| >> Prechecks failed! ".format(_str_func))
             for i,e in enumerate(self.l_precheckErrors):
                 print("{0} | {1}".format(i,e))
             print(cgmGEN._str_hardLine)
             #log.error("[ '{0}' ] Failure. See script editor".format(_short))
+            return log.error("[ '{0}' ] Failure. See script editor".format(_short))
             raise ValueError,("[ '{0}' ] Failure. See script editor".format(_short))
         
         if self.l_precheckWarnings:
             print(cgmGEN._str_hardLine)
-            print("|{0}| >> Block: {1} ".format(_str_func, self.d_block['shortName']))            
+            print("|{0}| >> Block: {1} ".format(_str_func, _short))            
             print("|{0}| >> Prechecks Warnings! ".format(_str_func))
             for i,e in enumerate(self.l_precheckWarnings):
                 print("{0} | {1}".format(i,e))
             print(cgmGEN._str_hardLine)            
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
+        if mode == 'prechecks':
+            print(cgmGEN.logString_start("[ {0} ] || PRECHECK PASSED".format(self.mBlock.p_nameShort)))
+            return
+        
+        self.fnc_check_rigBlock()
+        self.fnc_get_nodeSnapShot()
         self.fnc_check_module()
         if not self.fnc_rigNeed():
             log.error('No rig need detected. Check settings. self: {0}'.format(self))
@@ -4489,6 +4499,8 @@ class rigFactory(object):
         """
         Check the rig block data 
         """
+        if self.l_precheckErrors:
+            return False        
         _str_func = 'fnc_check_rigBlock' 
         _d = {}
         self.d_block = _d    
@@ -4499,9 +4511,9 @@ class rigFactory(object):
             raise RuntimeError,'No rigBlock stored in call kws'
 
         #BlockFactory = factory(self.call_kws['rigBlock'])
-        mBlock = cgmMeta.validateObjArg(self.call_kws['rigBlock'],'cgmRigBlock')
-        
+        mBlock = self.mBLock
         mBlock.verify()
+        
         _d['mBlock'] = mBlock
         self.mBlock = mBlock
         #_d['mFactory'] = BlockFactory
@@ -4510,13 +4522,13 @@ class rigFactory(object):
         _blockType = _d['mBlock'].blockType
 
         _buildModule = get_blockModule(_blockType)
+        """
         reload(_buildModule)
         if _buildModule.__dict__.get('rig_prechecks'):
             log.debug("|{0}| >> Found precheck call".format(_str_func,))
             
-            _buildModule.rig_prechecks(self)
-            if self.l_precheckErrors:
-                return False
+            _buildModule.rig_prechecks(self)"""
+
         
 
         if not _buildModule:

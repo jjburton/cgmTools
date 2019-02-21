@@ -2731,8 +2731,9 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOri
         
     """
     _short = self.mNode
-    _str_func = 'skeleton_getHandleChain [{0}]'.format(_short)
+    _str_func = 'skeleton_getHandleChain'
     #start = time.clock()	
+    log.debug(cgmGEN.logString_start(_str_func))
     
     mRigNull = self.moduleTarget.rigNull
     ml_fkJoints = mRigNull.msgList_get('fkJoints')

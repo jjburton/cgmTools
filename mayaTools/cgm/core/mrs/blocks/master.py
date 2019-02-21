@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -406,8 +406,8 @@ def rig_prechecks(self):
     #try:
     #_short = self.d_block['shortName']
     _str_func = 'rig_prechecks'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
+    log.debug(cgmGEN.logString_start(_str_func))
+
     """
     if not self.mBlock.buildProfile:
         self.l_precheckErrors.append('Must have build profile')
