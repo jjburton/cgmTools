@@ -26,8 +26,7 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-#r9Meta.cleanCache()#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+import Red9.core.Red9_AnimationUtils as r9Anim
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -50,352 +49,330 @@ import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
+import cgm.core.lib.locator_utils as LOC
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.01302019'
+__version__ = 'alpha.02.202019'
 __autoTemplate__ = False
-__component__ = True
+__component__ = False
 __menuVisible__ = True
 __baseSize__ = 10,10,10
-__l_rigBuildOrder__ = ['rig_dataBuffer',
-                       'rig_skeleton',
-                       'rig_shapes',
-                       'rig_controls',
-                       'rig_frame',
-                       'rig_cleanUp']
+__l_rigBuildOrder__ = []
 
-#>>>Profiles =====================================================================================================
+#>>>Profiles ===================================================================================================
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
-d_block_profiles = {
-    'box':{
-        'basicShape':'cube',
-        'proxyShape':'cube',
-        'rotPivotPlace':'jointHelper',
-        'shapeDirection':'y+',
-        'baseSize':[10,10,10],
-        'addPivot':True,
-        'cgmName':'box'},
-    'cone':{
-    'basicShape':'pyramid',
-    'proxyShape':'cone',
-    'shapeDirection':'y+',
-    'addPivot':True,    
-    'baseSize':[10,10,20],
-    
-    'rotPivotPlace':'jointHelper',            
-    'cgmName':'cone'},    
-    'sphere':{
-        'basicShape':'sphere',
-        'proxyShape':'sphere',
-        'rotPivotPlace':'jointHelper',
-        'shapeDirection':'y+',        
-        'cgmName':'sphere',
-        'loftSides':10,
-        'loftSplit':10,
-        'baseSize':[10,10,10],        
-        },
-    'shapers4':{
-            'proxyShape':'shapers',
-            'cgmName':'shapers',
-            'loftShape':'square',
-            'numShapers':4,
-            'shapersAim':'toEnd',
-            'rotPivotPlace':'jointHelper',
-            'shapeDirection':'y+',            
-            'loftSetup':'default',
-            'addPivot':True,            
-            'baseSize':[10,10,40],
-            },
-    'shaperList':{'proxyShape':'shapers',
-                'cgmName':'shaperList',
-                'loftShape':'square',
-                'numShapers':4,
-                'shapersAim':'toEnd',
-                'loftSetup':'loftList',
-                'rotPivotPlace':'jointHelper',
-                'shapeDirection':'y+',
-                'baseSize':[10,10,20],
-                'addPivot':True,
-                
-                'loftList':['circle','square','wideDown','wideUp']
-                },}
+d_block_profiles = {}
 
 #>>>Attrs ========================================================================================================
 l_attrsStandard = ['side',
                    'position',
-                   'hasJoint',
-                   'basicShape',
                    'attachPoint',
-                   'addAim',
-                   'baseDat',
-                   'addPivot',
-                   'addCog',
-                   'addScalePivot',
-                   'proxy',
-                   'numShapers',
-                   'numSubShapers',
+                   #'baseDat',
                    'blockProfile',
-                   'loftSides',
-                   'loftSplit',
-                   'loftShape',
-                   'loftDegree',
-                   'loftReverseNormal',                   
-                   'loftList',
-                   'spaceSwitch_direct',
-                   #'buildProfile',
                    'visMeasure',
                    'moduleTarget']
 
-d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
-                 'axisAim':":".join(CORESHARE._l_axis_by_string),
-                 'axisUp':":".join(CORESHARE._l_axis_by_string),
-                 'rotPivotPlace':'handle:jointHelper:cog',
-                 'loftSetup':'default:loftList',
-                 'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
-                 'targetJoint':'messageSimple',
-                 'shapersAim':'toEnd:chain',
-                 'rootJoint':'messageSimple'}
+d_attrsToMake = {
+    'definePose':'wide:relax',
+    'numFinger':'int',
+    'numThumb':'int',}
 
 d_defaultSettings = {'version':__version__,
-                     'hasJoint':True,
-                     'basicShape':5,
-                     'addAim':False,
-                     'shapeDirection':2,
-                     'axisAim':2,
-                     'axisUp':4,
-                     'attachPoint':'end',
-                     'rotPivotPlace':0,
-                     'loftSides': 10,
-                     'loftSplit':1,
-                     'rotPivotPlace':'jointHelper',
-                     'proxy':1,
-                     'numShapers':2,
-                     'loftList':['square','circle','square'],
-                     'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
-                     'proxyType':1}
+                     'definePose':'wide',
+                     'numFinger':4,
+                     'numThumb':1,}
+                     #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
+d_wiring_prerig = {'msgLinks':['prerigNull']}
 d_wiring_template = {'msgLinks':['templateNull'],
                      }
 
 
 #=============================================================================================================
-#>> UI
-#=============================================================================================================
-def proxyGeo_getGroup(self,select=False):
-    _str_func = 'get_proxyGeoGroup'    
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)    
-    mGroup = self.getMessageAsMeta('proxyGeoGroup')
-    log.debug(mGroup)
-    if select:
-        mc.select(mGroup.mNode)
-    return mGroup
-
-def proxyGeo_add(self,arg = None):
-    _str_func = 'proxyGeo_add'
-    if not arg:
-        arg = mc.ls(sl=1)
-    ml_stuff = cgmMeta.validateObjListArg(arg)
-    if not ml_stuff:
-        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
-    mProxyGeoGrp = proxyGeo_getGroup(self)
-    ml_proxies = []
-    _side = self.UTILS.get_side(self)
-    
-    for mObj in ml_stuff:
-        mProxy = mObj.doDuplicate(po=False)
-        mProxy = cgmMeta.validateObjArg(mProxy,'cgmObject',setClass=True)
-        ml_proxies.append(mProxy)
-        #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
-        mProxy.p_parent = mProxyGeoGrp
-        self.msgList_append('proxyMeshGeo',mProxy,'block')
-        mProxy.rename("{0}_proxyGeo".format(mProxy.p_nameBase))
-
-def proxyGeo_remove(self,arg = None):
-    _str_func = 'proxyGeo_remove'
-    if not arg:
-        arg = mc.ls(sl=1)
-    ml_stuff = cgmMeta.validateObjListArg(arg)
-    if not ml_stuff:
-        return log.error("|{0}| remove | Nothing selected and no arg offered ".format(self.p_nameShort))
-    mProxyGeoGrp = proxyGeo_getGroup(self)
-    ml_proxies = []
-    _side = self.UTILS.get_side(self)
-    
-    for mObj in ml_stuff:
-        if self.msgList_remove('proxyMeshGeo',mObj):
-            mObj.p_parent = False
-            mObj.rename(mObj.p_nameBase.replace('proxyGeo','geo'))
-            mObj.overrideEnabled = 0
-            for mShape in mObj.getShapes(asMeta=1):
-                mShape.overrideEnabled = 0
-                
-def proxyGeo_replace(self,arg = None):
-    _str_func = 'get_proxyGeoGroup'
-    
-    if not arg:
-        arg = mc.ls(sl=1)
-    ml_stuff = cgmMeta.validateObjListArg(arg)
-    if not ml_stuff:
-        return log.error("|{0}| add | Nothing selected and no arg offered ".format(self.p_nameShort))
-    
-    mProxyGeoGrp = proxyGeo_getGroup(self)    
-    #Clean
-    ml_current = self.msgList_get('proxyMeshGeo')
-    for mObj in ml_current:
-        mObj.p_parent = False
-        mObj.rename("{0}_REMOVED".format(mObj.p_nameBase))
-        
-    self.msgList_purge('proxyMeshGeo')
-    proxyGeo_add(self,ml_stuff)
-    
-
-def uiBuilderMenu(self,parent = None):
-    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
-    _short = self.p_nameShort
-    
-    mc.menuItem(en=False,
-                label = "Handle Geo")    
-    mc.menuItem(ann = '[{0}] Report proxy geo group'.format(_short),
-                c = cgmGEN.Callback(proxyGeo_getGroup,self),
-                label = "Report Group")
-    mc.menuItem(ann = '[{0}] Add selected to proxy geo proxy group'.format(_short),
-                c = cgmGEN.Callback(proxyGeo_add,self),
-                label = "Add selected")
-    mc.menuItem(ann = '[{0}] REPLACE existing geo with selected'.format(_short),
-                c = cgmGEN.Callback(proxyGeo_replace,self),
-                label = "Replace with selected")
-    mc.menuItem(ann = '[{0}]Remove selected to proxy geo proxy group'.format(_short),
-                c = cgmGEN.Callback(proxyGeo_remove,self),
-                label = "Remove selected")        
-    mc.menuItem(ann = '[{0}] Select Geo Group'.format(_short),
-                c = cgmGEN.Callback(proxyGeo_getGroup,self,True),
-                label = "Select Group")
-    
-
-
-
-#=============================================================================================================
 #>> Define
 #=============================================================================================================
+def mirror_self(self,primeAxis = 'Left'):
+    _str_func = 'mirror_self'
+    _idx_state = self.getState(False)
+    
+    log.debug("|{0}| >> define...".format(_str_func)+ '-'*80)
+    ml_mirrorHandles = self.msgList_get('defineSubHandles')
+    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                             mode = '',primeAxis = primeAxis.capitalize() )    
+    """
+    if _idx_state > 0:
+        log.debug("|{0}| >> template...".format(_str_func)+ '-'*80)
+        ml_mirrorHandles = self.msgList_get('templateHandles')
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                                     mode = '',primeAxis = primeAxis.capitalize() )
+    
+    if _idx_state > 1:
+        log.debug("|{0}| >> prerig...".format(_str_func)+ '-'*80)        
+        ml_mirrorHandles = self.msgList_get('prerigHandles') + self.msgList_get('jointHandles')
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                                 mode = '',primeAxis = primeAxis.capitalize() )
+        """
+
+
 def define(self):
     try:
         _str_func = 'define'
         _short = self.mNode
+        log.debug(cgmGEN.logString_start(_str_func))
         
-        for a in 'baseAim','baseSize','baseUp':
-            if ATTR.has_attr(_short,a):
-                ATTR.set_hidden(_short,a,True)    
-        
-        ATTR.set_min(_short,'numShapers',2)
-        ATTR.set_min(_short,'numSubShapers',0)
+        #Attributes =========================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'attributes'))
         
         ATTR.set_alias(_short,'sy','blockScale')    
         self.setAttrFlags(attrs=['sx','sz','sz'])
-        self.doConnectOut('sy',['sx','sz'])    
+        self.doConnectOut('sy',['sx','sz'])
     
+        _str_pose = self.getEnumValueString('definePose')
+        #ATTR.set_min(_short, 'loftSplit', 1)
+        #ATTR.set_min(_short, 'paramUprStart', 0.0)
+        #ATTR.set_min(_short, 'paramLwrStart', 0.0)
+        
+        
+        #Buffer our values...
+        #_str_faceType = self.getEnumValueString('faceType')
+        #_str_muzzleSetup = self.getEnumValueString('muzzleSetup')
+        #_str_noseSetup = self.getEnumValueString('noseSetup')
+        #_str_uprJawSetup = self.getEnumValueString('uprJawSetup')    
+        #_str_lipsSetup = self.getEnumValueString('lipsSetup')
+        #_str_teethSetup = self.getEnumValueString('teethSetup')
+        #_str_cheekSetup = self.getEnumValueString('cheekSetup')
+        #_str_tongueSetup = self.getEnumValueString('tongueSetup')
+        
+    
+        #Cleaning =========================================================        
         _shapes = self.getShapes()
         if _shapes:
-            log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
+            log.debug(cgmGEN.logString_msg(_str_func,'Removing old shapes'))
             mc.delete(_shapes)
-            mDefineNull = self.getMessageAsMeta('defineNull')
-            if mDefineNull:
-                log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
-                mDefineNull.delete()
-    
-        _size = self.atUtils('defineSize_get')
-    
-        #_sizeSub = _size / 2.0
-        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
-        _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
-    
+            defineNull = self.getMessage('defineNull')
+            if defineNull:
+                log.debug(cgmGEN.logString_msg(_str_func,'Removing old defineNull'))
+                mc.delete(defineNull)
+        ml_handles = []
+
+        mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
+        if mNoTransformNull:
+            mNoTransformNull.delete()
+        
+        #rigBlock Handle ===========================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'RigBlock Handle'))
+        
+        _size = MATH.average(self.baseSize[1:])
+        _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
+                                      direction = 'z+', size = _size/4)
         SNAP.go(_crv,self.mNode,)
-        CORERIG.override_color(_crv, 'white')
+        CORERIG.override_color(_crv, 'white')        
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
         mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,hidden=True)    
+        self.addAttr('cgmColorLock',True,lock=True, hidden=True)
         mDefineNull = self.atUtils('stateNull_verify','define')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','define')
         
-        #Get our base attr dat ============================================================
-        _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
-                                   'x-':{'end':[-1,0,0],'up':[0,1,0]},
-                                   'y+':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'y-':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'z+':{'end':[0,0,1],'up':[0,1,0]},
-                                   'z-':{'end':[0,0,-1],'up':[0,1,0]}}
-        _shapeDirection = self.getEnumValueString('shapeDirection')
-
-        _dBase = self.baseDat
-
-        _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
-        _dBase['lever'] = [-1 * v for v in _dBase['end']]
-        self.baseDat = _dBase        
-
-        #Aim Controls ==================================================================
-        _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
-              'end':{'color':'blueBright','defaults':{'tz':1}},
-              'up':{'color':'greenBright','defaults':{'ty':.5}},
-              'lever':{'color':'purple','defaults':{'tz':-.25}}}
-    
-        md_handles = {}
-        ml_handles = []
-        md_vector = {}
-        md_jointLabels = {}
-    
-        _l_order = ['aim','end','up']
+        #Bounding sphere ==================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'bbVisualize'))        
+        _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
+        mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+        mBBShape.p_parent = mDefineNull    
+        mBBShape.tz = .5
+        #mBBShape.ty = .5
         
-        reload(self.UTILS)
-        _resDefine = self.UTILS.create_defineHandles(self, _l_order,
-                                                     _d, _size,
-                                                     rotVecControl=True,blockUpVector = _dBase['up'])
+        CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+        mHandleFactory.color(mBBShape.mNode,controlType='sub')
+        mBBShape.setAttrFlags()
         
-       
+        mBBShape.doStore('cgmName', self)
+        mBBShape.doStore('cgmType','bbVisualize')
+        mBBShape.doName()    
         
-        #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
+        self.connectChildNode(mBBShape.mNode,'bbHelper')
+        self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
         
-        self.UTILS.define_set_baseSize(self)
-        md_vector = _resDefine['md_vector']
-        md_handles = _resDefine['md_handles']
         
-        mAimGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
-        mAimGroup.p_parent = mDefineNull
-        mAimGroup.rename('aim_null')
-        mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
+        #Make our handles creation data =======================================================
+        d_pairs = {}
+        d_creation = {}
+        l_order = []
+        d_curves = {}
+        d_curveCreation = {}
+        d_toParent = {}
+        
+        log.debug(cgmGEN.logString_sub(_str_func,'handle data'))        
+        
+        
+        _d_pairs = {'tipInner':'tipOuter',
+                    #'thumbTipInner':'thumbTipOuter',
+                    'thumbBaseInner':'thumbBaseOuter',
+                    'thumbMidInner':'thumbMidOuter',
+                    'thumbTipInner':'thumbTipOuter',
+                    'midInner':'midOuter',
+                    'baseInner':'baseOuter'
+                    }
+        
+        d_pairs.update(_d_pairs)
+        
+        _d_scaleSpace = {
+            'wide':{'tipInner':[.6,0,.8],
+                    'tipOuter':[-.6,0,.8],
+                    'tipMid':[0,.2,1],
+                    'baseInner':[.4,0,-.95],
+                    'baseOuter':[-.4,0,-.95],
+                    'baseMid':[0,.2,-.95],
+                    'midInner':[.5,0,0],
+                    'midOuter':[-.5,0,0],
+                    'midMid':[0,.2,0],
+                    'thumbTipInner':[1,-.25,0],
+                    'thumbBaseInner':[.5,-.1,-.95],
+                    'thumbTipOuter':[-1,-.25,0],
+                    'thumbBaseOuter':[-.5,-.1,-.95],                    
+                    #'rollInner':[.4,0,.5],
+                    #'rollOuter':[-.4,0,.5],
+                    #'rollMid':[0,.2,.5],
+                    },
+            }
     
-        md_handles['aim'].p_parent = mAimGroup
-        md_vector['aim'].p_parent = mAimGroup
-    
-        #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
-        #mLeverGroup.p_parent = mDefineNull
-        #mLeverGroup.rename('lever_null')
-        #mLeverGroup.doConnectIn('visibility',"{0}.buildLeverBase".format(self.mNode))
-    
-        #md_handles['lever'].p_parent = mLeverGroup
-        #md_vector['lever'].p_parent = mLeverGroup
-    
-        #Rotate Plane ======================================================================
+        _d = {#'thumbTipInner':{'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0},
+              #'thumbBaseInner':{'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0},
+              }
+        
+        for k in ['tip','base','roll','mid']:
+            _d['{0}Inner'.format(k)] = {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d['{0}Outer'.format(k)] = {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d['{0}Mid'.format(k)] = {'color':'yellow','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            
+        for k in ['thumbBase','thumbMid','thumbTip']:
+            _d['{0}Inner'.format(k)] = {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d['{0}Outer'.format(k)] = {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            
+        
+        for k,d in _d.iteritems():
+            _v = _d_scaleSpace[_str_pose].get(k)
+            if _v is not None:
+                d['scaleSpace'] = _v
+        
+        d_creation.update(_d)
+        l_order.extend(_d.keys())
         """
-            {'md_handles':md_handles,
-            'ml_handles':ml_handles,
-            'md_vector':md_vector,
-            'md_jointLabels':md_jointLabels}
-            """    
-
-        #self.setAttrFlags(attrs=['translate','rotate','sx','sz'])
-        #self.doConnectOut('sy',['sx','sz'])
-        #ATTR.set_alias(_short,'sy','blockScale')
+        l_order.extend(['tipInner','tipOuter','tipMid',
+                        'baseInner','baseOuter','baseMid',
+                        'midInner','midOuter','midMid',
+                        'rollInner','rollOuter','rollMid',                        
+                        'thumbTipInner','thumbBaseInner',
+                        ])"""
         
-        #ATTR.set(self.vectorUpHelper.mNode,'sy', MATH.average(md_handles['end'].width,md_handles['end'].height))
-        #self.vectorUpHelper.scale = MATH.average(md_handles['end'].width,md_handles['end'].height)
+        _d_curveCreation = {
+            'tipLine':{'keys':['tipInner','tipMid','tipOuter'],'rebuild':1},
+            'baseLine':{'keys':['baseInner','baseMid','baseOuter'],'rebuild':1},
+            'midLine':{'keys':['midInner','midMid','midOuter'],'rebuild':1},
+            'rollLine':{'keys':['rollInner','rollMid','rollOuter'],'rebuild':1},
+            'outerLine':{'keys':['baseOuter','midOuter','rollOuter','tipOuter'],'rebuild':0},
+            'innerLine':{'keys':['baseInner','midInner','rollInner','tipInner'],'rebuild':0},
+            'innerThumbLine':{'keys':['thumbBaseInner','thumbMidInner','thumbTipInner'],'rebuild':0},
+            'outerThumbLine':{'keys':['thumbBaseOuter','thumbMidOuter','thumbTipOuter'],'rebuild':0},
+            
+            
+        }
+        
+        d_curveCreation.update(_d_curveCreation)
+        
+        #pprint.pprint(vars())
+        
+        
+        #make em...============================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
+        
+        #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
+        md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10, mDefineNull, mBBShape)
+    
+        md_handles = md_res['md_handles']
+        ml_handles = md_res['ml_handles']
+        
+        
+        for k,p in d_toParent.iteritems():
+            md_handles[k].p_parent = md_handles[p]
+            
+        log.debug(cgmGEN.logString_sub(_str_func,'curves'))        
+        md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
+        
+        
+        #Setup our mid 
+        log.debug(cgmGEN.logString_sub(_str_func,'Position rolls'))                
+        for t in ['Inner','Outer','Mid']:
+            #Initial pos
+            k = 'roll'+t
+            mHandle = md_handles['roll'+t]
+            #log.debug(mHandle)                
+            
+            mStart = md_handles['tip'+t]
+            mEnd = md_handles['mid'+t]
+            pos=  DIST.get_average_position([mStart.p_position,
+                                             mEnd.p_position])
+            mHandle.p_position = pos
+            mGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'driver')
+            mc.parentConstraint([mStart.mNode,mEnd.mNode],mGroup.mNode,maintainOffset=True)
+            
+        log.debug(cgmGEN.logString_sub(_str_func,'thumbMids'))                
+        for t in ['Inner','Outer']:
+            #Initial pos
+            mHandle = md_handles['thumbMid'+t]
+            #log.debug(mHandle)                
+            
+            mStart = md_handles['thumbBase'+t]
+            mEnd = md_handles['thumbTip'+t]
+            pos=  DIST.get_average_position([mStart.p_position,
+                                             mEnd.p_position])
+            mHandle.p_position = pos
+            mGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'driver')
+            mc.parentConstraint([mStart.mNode,mEnd.mNode],mGroup.mNode,maintainOffset=True)
+
+        #mirror============================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'Mirror'))        
+        
+        idx_ctr = 0
+        idx_side = 0
+        d = {}
+        
+        for tag,mHandle in md_handles.iteritems():
+            mHandle._verifyMirrorable()
+            _center = True
+            for p1,p2 in d_pairs.iteritems():
+                if p1 == tag or p2 == tag:
+                    _center = False
+                    break
+            if _center:
+                log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+                mHandle.mirrorSide = 0
+                mHandle.mirrorIndex = idx_ctr
+                idx_ctr +=1
+            mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+    
+        #Self mirror wiring -------------------------------------------------------
+        for k,m in d_pairs.iteritems():
+            md_handles[k].mirrorSide = 1
+            md_handles[m].mirrorSide = 2
+            md_handles[k].mirrorIndex = idx_side
+            md_handles[m].mirrorIndex = idx_side
+            md_handles[k].doStore('mirrorHandle',md_handles[m])
+            md_handles[m].doStore('mirrorHandle',md_handles[k])
+            idx_side +=1
+    
+        #Curves -------------------------------------------------------------------------
+        self.msgList_connect('defineHandles',ml_handles)#Connect    
+        self.msgList_connect('defineSubHandles',ml_handles)#Connect
+        self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
+        return        
+        
+ 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 #=============================================================================================================

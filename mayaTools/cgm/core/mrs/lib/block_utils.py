@@ -4484,7 +4484,8 @@ def controls_get(self,define = False, template = False, prerig= False):
 def controls_mirror(blockSource, blockMirror = None,
                     mirrorMode = 'push', 
                     reflectionVector = MATH.Vector3(1,0,0),
-                    define=True,template = True, prerig= True):
+                    define=True,template = True, prerig= True,
+                    mirrorLofts = True):
     try:
         _short = blockSource.p_nameShort        
         _str_func = '[{0}] controls_mirror'.format(_short)
@@ -6067,7 +6068,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 #define(self)
         return True
     else:
-        log.error('Forcing recreate')
+        log.warning('Forcing recreate')
         if _state_target in d_upStateFunctions.keys():
             if not d_upStateFunctions[_state_target](self):return False
             return True
@@ -7281,7 +7282,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         for k in l_order:
             
             _dtmp = d_definitions.get(k,False)
-            if _dtmp is False:
+            if not _dtmp:
                 log.error("|{0}| >> handle: {1} has no dict. Bailing".format(_str_func,k))
                 continue
             
@@ -7387,7 +7388,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                          worldUpType = 'object', 
                                          worldUpVector = [0,1,0])"""
             
-                if mScaleSpace and _dtmp['scaleSpace']:
+                if mScaleSpace and _dtmp.get('scaleSpace'):
                     mLoc = mHandle.doLoc()
                     mLoc.p_parent = mScaleSpace
                     
@@ -7509,7 +7510,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
         #Parent the tags
         for k in l_order:
-            _dtmp = d_definitions.get(k,False)
+            _dtmp = d_definitions.get(k,{})
             _trackTag = _dtmp.get('parentTag',False)
             if _trackTag:
                 mc.pointConstraint(md_handles[_trackTag].mNode,  md_handles[k].mNode, maintainOffset = False)
