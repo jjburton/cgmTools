@@ -301,7 +301,6 @@ def define(self):
         }
         
         d_curveCreation.update(_d_curveCreation)
-        
         #pprint.pprint(vars())
         
         
@@ -309,7 +308,7 @@ def define(self):
         log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
         
         #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
-        md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, mDefineNull, mBBShape)
+        md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/4, mDefineNull, mBBShape)
     
         md_handles = md_res['md_handles']
         ml_handles = md_res['ml_handles']
@@ -380,6 +379,12 @@ def define(self):
         md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
         md_curves = md_resCurves['md_curves']
         
+        ATTR.set(md_curves['innerLine'].mNode,'v',False)
+        ATTR.set(md_curves['outerLine'].mNode,'v',False)
+        
+        for k in ['tipLine','rollLine','baseLine','midLine']:
+            md_curves[k].template = True
+        
         #...vis ===================================================================================
         log.debug(cgmGEN.logString_sub(_str_func,'inner thumb vis setup'))                
         for k in 'thumbBaseInner','thumbMidInner','thumbTipInner':
@@ -432,6 +437,12 @@ def define(self):
         self.msgList_connect('defineHandles',ml_handles)#Connect    
         self.msgList_connect('defineSubHandles',ml_handles)#Connect
         self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
+        
+        
+        #Verify our drivers
+        verify_drivers(self)
+        
+        
         return        
         
  
@@ -446,9 +457,26 @@ def uiBuilderMenu(self,parent = None):
     
     mc.menuItem(en=False,
                 label = "Hand")
-    mc.menuItem(ann = '[{0}] VerifyBlocks'.format(_short),
+    
+    mc.menuItem(ann = '[{0}] Build Drivers for our subs to attach to'.format(_short),
+                c = cgmGEN.Callback(verify_drivers,self),
+                label = "Verify Drivers")
+    
+    mc.menuItem(en=False,
+                label = "----Sub")    
+    mc.menuItem(ann = '[{0}] Verify sub blocks'.format(_short),
                 c = cgmGEN.Callback(verify_subBlocks,self),
-                label = "Verify Blocks")    
+                label = "Verify")
+    
+    mc.menuItem(ann = '[{0}] Snap sub blocks'.format(_short),
+                c = cgmGEN.Callback(sub_connect,self,'snap'),
+                label = "Snap")
+    mc.menuItem(ann = '[{0}] Attach sub blocks'.format(_short),
+                c = cgmGEN.Callback(sub_connect,self,'attach'),
+                label = "Attach")
+    mc.menuItem(ann = '[{0}] Detach sub blocks'.format(_short),
+                c = cgmGEN.Callback(sub_connect,self,'attach'),
+                label = "Detach")    
     
     return
     mc.menuItem(ann = '[{0}] Report Head geo group'.format(_short),
@@ -509,6 +537,148 @@ def get_nameOptions(self,mode = 'finger',count = None):
         if int_count > 1:
             return ["{0}_{1}".format(mode,i) for i in range(int_count)]
         return ['thumb']
+    
+def verify_drivers(self,forceNew=True):
+    try:
+        _str_func = 'verify_drivers'
+        _short = self.mNode
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        md_curves = {}
+        md_uValues = {}
+        md_drivers = {}
+        md_driverLists ={}
+        reload(CURVES)
+        
+        mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
+        
+        #Fingers ------------------------------------------------------------------------------
+        log.debug(cgmGEN.logString_msg(_str_func,'checking previous'))
+        int_fingers = self.numFinger
+        
+        if int_fingers:
+            log.debug(cgmGEN.logString_sub(_str_func,'fingers'))
+            
+            ml_check= self.msgList_get('fingerBaseDrivers')
+            _build = True
+            if ml_check:
+                if forceNew or len(ml_check) != int_fingers:
+                    _build = True
+                else:
+                    log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
+                    _build = False
+            
+            if _build:
+                l_fingerTags = ['base','mid','roll','tip']
+                md_handles = {}
+                md_tags = {}
+                log.debug(cgmGEN.logString_msg(_str_func,'finger Group...'))        
+                mFingerGroup = self.getMessageAsMeta('fingerNoTrans')
+                if mFingerGroup:
+                    mc.delete(mFingerGroup.getChildren())
+                else:
+                    mFingerGroup =mNoTransformNull.doCreateAt(setClass=True)
+                    mFingerGroup.rename('fingerStuff')
+                    mFingerGroup.p_parent = mNoTransformNull
+                    self.connectChildNode(mFingerGroup, 'fingerNoTrans','block')
+                
+                log.debug(cgmGEN.logString_msg(_str_func,'Gather dat...'))
+                for k in l_fingerTags:
+                    mCurve = self.getMessageAsMeta("{0}LineDefineCurve".format(k))
+                    if not mCurve:
+                        log.debug(cgmGEN.logString_msg(_str_func,'Missing Curve: {0}'.format(k)))
+                    else:
+                        md_curves[k] = mCurve
+                        
+                log.debug(cgmGEN.logString_msg(_str_func,'uValues'))
+                if int_fingers == 1:
+                    ml_uValues = [.5]
+                elif int_fingers == 2:
+                    ml_uValues = [0.0,1.0]
+                elif int_fingers == 3:
+                    ml_uValues = [0.0,.5, 1.0]
+                else:
+                    ml_uValues = CURVES.getUSplitList(md_curves['base'].mNode,int_fingers,False,returnU=True)
+                    ml_uValues = MATH.normalizeList(ml_uValues)
+                pprint.pprint(ml_uValues)
+                
+                log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
+                ATTR.datList_connect(self.mNode,'paramFinger',ml_uValues)
+                l_param = ATTR.datList_getAttrs(self.mNode, 'paramFinger')
+                for a in l_param:
+                    ATTR.set_lock(_short,a,False)
+                    ATTR.set_min(_short,a,0.0)
+                    ATTR.set_max(_short,a,1.0)
+                
+                log.debug(cgmGEN.logString_msg(_str_func,'drivers...'))            
+                for k in l_fingerTags:
+                    md_drivers[k] = {}
+                    ml = []
+                    ml_tags = []
+                    for i,v in enumerate(ml_uValues):
+                        if not md_tags.get(i):md_tags[i] = []
+                        
+                        log.debug(cgmGEN.logString_msg(_str_func,'Driver {0} | {1}...'.format(k,i)))        
+                        tag = "{0}_{1}".format(k,i)
+                        mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))#self.doLoc(fastMode=True)#cgmMeta.asMeta(self.doCreateAt('locator'))
+                        mCrv = md_curves[k]
+                        
+                        self.connectChildNode(mLoc, '{0}_{1}_fingerDriver'.format(k,i),'block')
+                        mLoc.rename("{0}_{1}_driver".format(k,i))
+                        mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
+                                                                                     turnOnPercentage=True))
+                        
+                        mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,l_param[i]))
+                        mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
+                        mPointOnCurve.rename('{0}_{1}_fingerDriver_poci'.format(k,i))
+                        mLoc.p_parent = mFingerGroup
+                        
+                        md_drivers[k][i] = mLoc
+                        ml.append(mLoc)
+                        md_handles[tag] = mLoc
+                        ml_tags.append(tag)
+                        md_tags[i].append(tag)
+                        
+                    self.msgList_connect('finger{0}Drivers'.format(k.capitalize()), ml)
+                    md_driverLists[k] = ml
+                    
+                #NewCurves
+                log.debug(cgmGEN.logString_msg(_str_func,'New Curves...'))
+                d_curveCreation = {}
+                for k,l in md_tags.iteritems():
+                    d_curveCreation["finger_{0}".format(k)] = {'keys':l,'rebuild':1}
+                
+                
+                """
+                _d_curveCreation = {
+                    'tipLine':{'keys':['tipInner','tipMid','tipOuter'],'rebuild':1},
+                    'baseLine':{'keys':['baseInner','baseMid','baseOuter'],'rebuild':1},
+                    'midLine':{'keys':['midInner','midMid','midOuter'],'rebuild':1},
+                    'rollLine':{'keys':['rollInner','rollMid','rollOuter'],'rebuild':1},
+                    'outerLine':{'keys':['baseOuter','midOuter','rollOuter','tipOuter'],'rebuild':0},
+                    'innerLine':{'keys':['baseInner','midInner','rollInner','tipInner'],'rebuild':0},
+                    'innerThumbLine':{'keys':['thumbBaseInner','thumbMidInner','thumbTipInner'],'rebuild':0},
+                    'outerThumbLine':{'keys':['thumbBaseOuter','thumbMidOuter','thumbTipOuter'],'rebuild':0},
+                }"""
+                
+                #d_curveCreation.update(_d_curveCreation)
+                md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mFingerGroup)
+                md_curves = md_resCurves['md_curves']
+                ml_curves = md_resCurves['ml_curves']
+                for mCrv in ml_curves:
+                    mCrv.inheritsTransform=0
+                    #mCrv.p_parent = mFingerGroup
+                
+                
+                
+                
+                    
+                pprint.pprint(md_drivers)
+                pprint.pprint(md_handles)
+                pprint.pprint(md_tags)
+                
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
     
 def verify_subBlocks(self,forceNew=True):
     try:
@@ -658,9 +828,9 @@ def verify_subBlocks(self,forceNew=True):
         cgmGEN.cgmException(Exception,err)
     
     
-def define_attach(self,mode='snap',forceNew=True):
+def sub_connect(self,mode='snap',forceNew=True):
     try:
-        _str_func = 'define_attach'
+        _str_func = 'sub_connect'
         _short = self.mNode
         log.debug(cgmGEN.logString_start(_str_func))
         
@@ -685,9 +855,10 @@ def define_attach(self,mode='snap',forceNew=True):
                 ml_baseDrivers = self.msgList_get('fingerBaseDrivers')
                 
                 for i,mSub in enumerate(ml_fingerBlocks):
-                    log.debug(cgmGEN.logString_msg(_str_func,'Finger {0} | {1}...'.format(i,mSub)))        
-                    mSub.p_position = ml_midDrivers[i].p_position
+                    log.debug(cgmGEN.logString_msg(_str_func,'Finger {0} | {1}...'.format(i,mSub)))
                     
+                    log.debug(cgmGEN.logString_msg(_str_func,'define...'))
+                    mSub.p_position = ml_midDrivers[i].p_position
                     if mode == 'attach':
                         mc.pointConstraint(ml_midDrivers[i].mNode,
                                             mSub.mNode,
@@ -715,7 +886,45 @@ def define_attach(self,mode='snap',forceNew=True):
                             mc.pointConstraint(_tar.mNode,
                                                 mAttachGroup.mNode,
                                                 maintainOffset = False)
-                        mDefineHandle.template=True            
+                        mDefineHandle.template=True
+                    
+                    #Template....
+                    log.debug(cgmGEN.logString_msg(_str_func,'template...'))
+                    
+            
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def sub_detach(self):
+    try:
+        _str_func = 'sub_detach'
+        _short = self.mNode
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        md_drivers = {}
+
+        mNoTransformNull = self.getMessage('noTransDefineNull')
+        
+        #Fingers ------------------------------------------------------------------------------
+        ml_fingerBlocks = self.msgList_get('fingerBlocks')
+        if ml_fingerBlocks:
+            log.debug(cgmGEN.logString_sub(_str_func,'fingerBlocks'))            
+            if not ml_fingerBlocks:
+                log.warning("No finger blocks found")
+            else:
+                for i,mSub in enumerate(ml_fingerBlocks):
+                    log.debug(cgmGEN.logString_msg(_str_func,'Finger {0} | {1}...'.format(i,mSub)))
+                    l_const = mSub.getConstraintsTo()
+                    if l_const:mc.delete(l_const)
+
+                    for t in ['end','lever']:
+                        mDefineHandle = mSub.getMessageAsMeta("define{0}Helper".format(t.capitalize()))
+                        mAttachGroup = mDefineHandle.getMessageAsMeta('attachGroup')
+                        if mAttachGroup:
+                            l_const = mAttachGroup.getConstraintsTo()
+                            if l_const:mc.delete(l_const)                                
+                                
+                        mDefineHandle.template=False            
             
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
