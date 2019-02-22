@@ -231,10 +231,10 @@ def define(self):
         _d_scaleSpace = {
             'wide':{'tipInner':[.6,0,.8],
                     'tipOuter':[-.6,0,.8],
-                    'tipMid':[0,.2,1],
+                    'tipMid':[0,0,1],
                     'baseInner':[.4,0,-.95],
                     'baseOuter':[-.4,0,-.95],
-                    'baseMid':[0,.2,-.95],
+                    'baseMid':[0,0,-.95],
                     'midInner':[.5,0,0],
                     'midOuter':[-.5,0,0],
                     'midMid':[0,.2,0],
@@ -308,7 +308,7 @@ def define(self):
         log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
         
         #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
-        md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/4, mDefineNull, mBBShape)
+        md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/2, mDefineNull, mBBShape)
     
         md_handles = md_res['md_handles']
         ml_handles = md_res['ml_handles']
@@ -546,14 +546,18 @@ def verify_drivers(self,forceNew=True):
         
         md_curves = {}
         md_uValues = {}
-        md_drivers = {}
-        md_driverLists ={}
+        md_baseDrivers = {}
+        md_driverLists = {}
+        md_baseDriverLists ={}
         reload(CURVES)
         
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
         
+        
+        
+        
+        
         #Fingers ------------------------------------------------------------------------------
-        log.debug(cgmGEN.logString_msg(_str_func,'checking previous'))
         int_fingers = self.numFinger
         
         if int_fingers:
@@ -571,7 +575,9 @@ def verify_drivers(self,forceNew=True):
             if _build:
                 l_fingerTags = ['base','mid','roll','tip']
                 md_handles = {}
-                md_tags = {}
+                md_baseTags = {}
+                md_driverTags = {}
+                
                 log.debug(cgmGEN.logString_msg(_str_func,'finger Group...'))        
                 mFingerGroup = self.getMessageAsMeta('fingerNoTrans')
                 if mFingerGroup:
@@ -610,56 +616,46 @@ def verify_drivers(self,forceNew=True):
                     ATTR.set_min(_short,a,0.0)
                     ATTR.set_max(_short,a,1.0)
                 
-                log.debug(cgmGEN.logString_msg(_str_func,'drivers...'))            
+                log.debug(cgmGEN.logString_msg(_str_func,'base drivers...'))            
                 for k in l_fingerTags:
-                    md_drivers[k] = {}
+                    md_baseDrivers[k] = {}
                     ml = []
                     ml_tags = []
                     for i,v in enumerate(ml_uValues):
-                        if not md_tags.get(i):md_tags[i] = []
+                        if not md_baseTags.get(i):md_baseTags[i] = []
                         
                         log.debug(cgmGEN.logString_msg(_str_func,'Driver {0} | {1}...'.format(k,i)))        
-                        tag = "{0}_{1}".format(k,i)
+                        tag = "base_{0}_{1}".format(k,i)
                         mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))#self.doLoc(fastMode=True)#cgmMeta.asMeta(self.doCreateAt('locator'))
+                        mLoc.doStore('baseTag',tag)
                         mCrv = md_curves[k]
                         
-                        self.connectChildNode(mLoc, '{0}_{1}_fingerDriver'.format(k,i),'block')
-                        mLoc.rename("{0}_{1}_driver".format(k,i))
+                        self.connectChildNode(mLoc, '{0}_{1}_fingerBaseDriver'.format(k,i),'block')
+                        mLoc.rename("{0}_{1}_baseDriver".format(k,i))
                         mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                                      turnOnPercentage=True))
                         
                         mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,l_param[i]))
                         mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
-                        mPointOnCurve.rename('{0}_{1}_fingerDriver_poci'.format(k,i))
+                        mPointOnCurve.rename('{0}_{1}_fingerBaseDriver_poci'.format(k,i))
                         mLoc.p_parent = mFingerGroup
                         
-                        md_drivers[k][i] = mLoc
+                        md_baseDrivers[k][i] = mLoc
                         ml.append(mLoc)
                         md_handles[tag] = mLoc
-                        ml_tags.append(tag)
-                        md_tags[i].append(tag)
+                        if k!= 'base':
+                            ml_tags.append(tag)
+                            md_baseTags[i].append(tag)
                         
-                    self.msgList_connect('finger{0}Drivers'.format(k.capitalize()), ml)
-                    md_driverLists[k] = ml
+                    self.msgList_connect('finger{0}BaseDrivers'.format(k.capitalize()), ml)
+                    md_baseDriverLists[k] = ml
                     
-                #NewCurves
-                log.debug(cgmGEN.logString_msg(_str_func,'New Curves...'))
+                #Basecurves
+                log.debug(cgmGEN.logString_msg(_str_func,'Base Curves...'))
                 d_curveCreation = {}
-                for k,l in md_tags.iteritems():
-                    d_curveCreation["finger_{0}".format(k)] = {'keys':l,'rebuild':1}
+                for i,l in md_baseTags.iteritems():
+                    d_curveCreation["fBase_{0}".format(i)] = {'keys':l,'rebuild':1}
                 
-                
-                """
-                _d_curveCreation = {
-                    'tipLine':{'keys':['tipInner','tipMid','tipOuter'],'rebuild':1},
-                    'baseLine':{'keys':['baseInner','baseMid','baseOuter'],'rebuild':1},
-                    'midLine':{'keys':['midInner','midMid','midOuter'],'rebuild':1},
-                    'rollLine':{'keys':['rollInner','rollMid','rollOuter'],'rebuild':1},
-                    'outerLine':{'keys':['baseOuter','midOuter','rollOuter','tipOuter'],'rebuild':0},
-                    'innerLine':{'keys':['baseInner','midInner','rollInner','tipInner'],'rebuild':0},
-                    'innerThumbLine':{'keys':['thumbBaseInner','thumbMidInner','thumbTipInner'],'rebuild':0},
-                    'outerThumbLine':{'keys':['thumbBaseOuter','thumbMidOuter','thumbTipOuter'],'rebuild':0},
-                }"""
                 
                 #d_curveCreation.update(_d_curveCreation)
                 md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mFingerGroup)
@@ -667,15 +663,148 @@ def verify_drivers(self,forceNew=True):
                 ml_curves = md_resCurves['ml_curves']
                 for mCrv in ml_curves:
                     mCrv.inheritsTransform=0
+                    mCrv.v=False
                     #mCrv.p_parent = mFingerGroup
+                    
                 
+                #Final drivers ------------------------------------------------------------
+                log.debug(cgmGEN.logString_sub(_str_func,'final drivers'))
                 
+                log.debug(cgmGEN.logString_msg(_str_func,'splits'))
+                l_splits = [.4,.8]
                 
+                log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
+                ATTR.datList_connect(self.mNode,'paramSplit',l_splits)
+                l_paramSplit = ATTR.datList_getAttrs(self.mNode, 'paramSplit')
+                for a in l_paramSplit:
+                    ATTR.set_lock(_short,a,False)
+                    ATTR.set_min(_short,a,0.05)
+                    ATTR.set_max(_short,a,.95)
+                    
+                
+                for i in md_baseTags.keys():
+                    log.debug(cgmGEN.logString_sub(_str_func,'subSplit {0}'.format(mCrv)))
+                    mCrv = md_curves["fBase_{0}".format(i)]
+                    if not md_driverTags.get(i):md_driverTags[i] = []
+                    ml = []
+                    l=[]
+                    l_tags = copy.copy(md_baseTags[i])
+                    l_tags.pop(1)
+                    _end = l_tags.pop(-1)
+                    
+                    for ii,a in enumerate(l_paramSplit):
+                        log.debug(cgmGEN.logString_msg(_str_func,'paramSplit {0}|{1}'.format(i,a)))                        
+                        tag = "finger_{0}_{1}".format(i,ii)
+                        mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))
+                        #mLoc = self.doLoc(fastMode=True)#cgmMeta.asMeta(self.doCreateAt('locator'))
+                        
+                        #self.connectChildNode(mLoc, '{0}_{1}_fingerDriver'.format(i,ii+2),'block')
+                        mLoc.rename("finger{0}_{1}_driver".format(i,ii))
+                        mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
+                                                                                     turnOnPercentage=True))
+                        
+                        mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,a))
+                        mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
+                        mPointOnCurve.rename('fingerDriver_{0}_{1}_poci'.format(i,ii+2))
+                        mLoc.p_parent = mFingerGroup
+                        
+                        #md[k][i] = mLoc
+                        ml.append(mLoc)
+                        md_handles[tag] = mLoc
+                        l_tags.append(tag)
+                    
+                    l_tags.append(_end)
+                    l_tags.insert(0,md_baseDrivers['base'][i].baseTag)
+                    md_driverTags[i] = l_tags
+                    
+                    
+                    self.msgList_connect('finger{0}Drivers'.format(i), [md_handles[tag] for tag in l_tags])
+                    
+                    
+                #NewCurves
+                log.debug(cgmGEN.logString_msg(_str_func,'Driver Curves...'))
+                d_curveCreation = {}
+                l_curveKeys = []
+                for i,l in md_driverTags.iteritems():
+                    key = "finger_{0}".format(i)
+                    d_curveCreation[key] = {'keys':l,'rebuild':0}
+                    l_curveKeys.append(key)
+                
+                #d_curveCreation.update(_d_curveCreation)
+                md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mFingerGroup)
+                md_curves = md_resCurves['md_curves']
+                ml_curves = md_resCurves['ml_curves']
+                for mCrv in ml_curves:
+                    mCrv.inheritsTransform=0
+                    #mCrv.v=False                    
+  
+                    #self.msgList_connect('finger{0}Drivers'.format(k.capitalize()), ml)
+                    #md_driverLists[k] = ml
+                    
+                #Visualization =================================================================
+                log.debug(cgmGEN.logString_sub(_str_func,'Visualization...'))
+                
+                log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
+                l_scales = [1.0 for v in range(len(md_baseTags.keys()))]
+                
+                ATTR.datList_connect(self.mNode,'scaleX',l_scales)
+                l_scaleX = ATTR.datList_getAttrs(self.mNode, 'scaleX')
+                
+                ATTR.datList_connect(self.mNode,'scaleY',l_scales)
+                l_scaleY = ATTR.datList_getAttrs(self.mNode, 'scaleY')                
+                
+                ATTR.datList_connect(self.mNode,'scaleTaper',l_scales)                
+                l_scaleTaper = ATTR.datList_getAttrs(self.mNode, 'scaleTaper')
+                
+                for a in l_scaleTaper + l_scaleX + l_scaleY:
+                    ATTR.set_lock(_short,a,False)
+                    ATTR.set_min(_short,a,.1)
+                    
+                for a in l_scaleY:
+                    ATTR.set(_short,a,1.25)                    
+                
+                for i,k in enumerate(l_curveKeys):
+                    mCrv = md_curves[k]
+                    mBaseHandle = md_baseDrivers['base'][i]
+                    _crv = CURVES.create_fromName(name='loftSquircle',
+                                                  direction = 'z+', size = 1.0)
+                    mProfile = cgmMeta.asMeta(_crv)
+                    mProfile.doSnapTo(self.mNode)
+                    mProfile.p_position = mBaseHandle.p_position
+                    mProfile.v=False
+                    
+                    #extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 0 -upn 1 -rotation 0 -scale 1 -rsp 1 "baseInner_defineHandle_crv" "finger_0_defineCurve" ;
+                    
+                    _res = mc.extrude(mProfile.mNode,[mCrv.mNode],ucp=0,fixedPath=False,extrudeType=2,ch=True)
+                    mSurface = cgmMeta.asMeta(_res[0])
+                    mExtrude = cgmMeta.asMeta(_res[1])
+                    
+                    mProfile.rename("finger_{0}_profile".format(i))
+                    mSurface.rename("finger_{0}_surf".format(i))
+                    mExtrude.rename("finger_{0}_extrude".format(i))
+                    
+                    
+                    mProfile.p_parent = mBaseHandle#mFingerGroup#mBaseHandle
+                    mSurface.p_parent = mFingerGroup
+                    
+                    self.asHandleFactory().color(mSurface.mNode,transparent=True)
+                    #CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = True)
+                    
+                    mExtrude.doConnectIn('scale',"{0}.{1}".format(_short,l_scaleTaper[i]))
+                    #for a in 'XYZ':
+                    mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleX[i]))
+                    mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleY[i]))
+                
+                    mSurface.inheritsTransform = 0
+                    mSurface.overrideEnabled = 1
+                    mSurface.overrideDisplayType = 2
+                    for s in mSurface.getShapes(asMeta=True):
+                        s.overrideEnabled = 1
+                        s.overrideDisplayType = 2   
                 
                     
-                pprint.pprint(md_drivers)
-                pprint.pprint(md_handles)
-                pprint.pprint(md_tags)
+
+                #cgmGEN.func_snapShot(vars())
                 
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
