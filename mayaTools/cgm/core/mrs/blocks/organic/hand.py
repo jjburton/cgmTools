@@ -554,6 +554,10 @@ def verify_drivers(self,forceNew=True):
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
         
         
+        #Thumbs ---------------------------------------------------------------------
+        log.debug(cgmGEN.logString_sub(_str_func,'thumb'))
+        
+        
         
         
         
@@ -609,24 +613,35 @@ def verify_drivers(self,forceNew=True):
                 pprint.pprint(ml_uValues)
                 
                 log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
-                ATTR.datList_connect(self.mNode,'paramFinger',ml_uValues)
-                l_param = ATTR.datList_getAttrs(self.mNode, 'paramFinger')
-                for a in l_param:
+                ATTR.datList_connect(self.mNode,'pFingerStart',ml_uValues)
+                l_paramStart = ATTR.datList_getAttrs(self.mNode, 'pFingerStart')
+                ATTR.datList_connect(self.mNode,'pFingerEnd',ml_uValues)
+                l_paramEnd = ATTR.datList_getAttrs(self.mNode, 'pFingerEnd')
+                
+                for a in l_paramStart + l_paramEnd:
                     ATTR.set_lock(_short,a,False)
                     ATTR.set_min(_short,a,0.0)
                     ATTR.set_max(_short,a,1.0)
+                    
+                    
+                    
                 
-                log.debug(cgmGEN.logString_msg(_str_func,'base drivers...'))            
+                log.debug(cgmGEN.logString_msg(_str_func,'base drivers...'))
+                md_rollFix = {}
+                
                 for k in l_fingerTags:
                     md_baseDrivers[k] = {}
                     ml = []
                     ml_tags = []
+                    
                     for i,v in enumerate(ml_uValues):
                         if not md_baseTags.get(i):md_baseTags[i] = []
+                        if not md_rollFix.get(i):md_rollFix[i] = {}
                         
                         log.debug(cgmGEN.logString_msg(_str_func,'Driver {0} | {1}...'.format(k,i)))        
                         tag = "base_{0}_{1}".format(k,i)
-                        mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))#self.doLoc(fastMode=True)#cgmMeta.asMeta(self.doCreateAt('locator'))
+                        mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))
+                        #mLoc = self.doLoc(fastMode=True)#cgmMeta.asMeta(self.doCreateAt('locator'))
                         mLoc.doStore('baseTag',tag)
                         mCrv = md_curves[k]
                         
@@ -635,7 +650,22 @@ def verify_drivers(self,forceNew=True):
                         mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                                      turnOnPercentage=True))
                         
-                        mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,l_param[i]))
+                        if k == 'tip':
+                            log.debug(cgmGEN.logString_msg(_str_func,'end! {0} | {1}...'.format(k,i)))        
+                            mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,l_paramEnd[i]))
+                        elif k == 'roll':
+                            """
+                            md_rollFix[i]['mPoci'] = mPointOnCurve
+                            md_rollFix[i]['mCrv'] = mCrv"""
+                            NODEFACTORY.argsToNodes("{0} = {1} >< {2}".format(
+                                "{0}.parameter".format(mPointOnCurve.mNode),
+                                "{0}.{1}".format(_short,l_paramStart[i]),
+                                "{0}.{1}".format(_short,l_paramEnd[i]),
+                                )).doBuild()
+                            
+                        else:
+                            mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,l_paramStart[i]))
+                            
                         mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
                         mPointOnCurve.rename('{0}_{1}_fingerBaseDriver_poci'.format(k,i))
                         mLoc.p_parent = mFingerGroup
@@ -649,6 +679,23 @@ def verify_drivers(self,forceNew=True):
                         
                     self.msgList_connect('finger{0}BaseDrivers'.format(k.capitalize()), ml)
                     md_baseDriverLists[k] = ml
+                    
+                #Do our roll fixes =================================================================
+                """
+                for i,v in enumerate(ml_uValues):
+                    mLoc = cgmMeta.asMeta(self.doCreateAt(setClass=True))
+                    mLoc.rename("{0}_{1}_rollParamDriver".format(k,i))
+                    mLoc.p_parent = mFingerGroup
+                    mc.pointConstraint([md_baseDrivers['mid'][i].mNode,
+                                        md_baseDrivers['tip'][i].mNode],mLoc.mNode,maintainOffset = False)
+                    
+                    _node = mc.createNode ('nearestPointOnCurve')
+                    _node = mc.rename('roll{0}_{1}_npoc'.format(k,i))
+                    mc.connectAttr ((mLoc.mNode+'.translate'),(_node+'.inPosition'))
+                    mc.connectAttr ((md_rollFix[i]['mCrv'].getShapes()[0]+'.worldSpace'),(_node+'.inputCurve'))
+                
+                    md_rollFix[i]['mPoci'].doConnectIn('parameter',"{0}.parameter".format(_node))
+                    md_rollFix[i]['mPoci'].turnOnPercentage = 0"""
                     
                 #Basecurves
                 log.debug(cgmGEN.logString_msg(_str_func,'Base Curves...'))
@@ -719,7 +766,6 @@ def verify_drivers(self,forceNew=True):
                     
                     
                     self.msgList_connect('finger{0}Drivers'.format(i), [md_handles[tag] for tag in l_tags])
-                    
                     
                 #NewCurves
                 log.debug(cgmGEN.logString_msg(_str_func,'Driver Curves...'))
