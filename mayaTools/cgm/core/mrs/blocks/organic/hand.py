@@ -52,6 +52,7 @@ import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.lib.locator_utils as LOC
+import cgm.core.lib.string_utils as STR
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -553,10 +554,31 @@ def verify_drivers(self,forceNew=True):
         
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
         
-        
         #Thumbs ---------------------------------------------------------------------
         log.debug(cgmGEN.logString_sub(_str_func,'thumb'))
-        
+        for a in 'thumbInner','thumbOuter':
+            sAttr = 'num'+STR.capFirst(a)
+            v = self.getMayaAttr(sAttr)
+            if v:
+                
+                if v>1:
+                    log.error("Only one thumb supported per side currently.")
+                    ATTR.set(_short,sAttr,1)
+                    
+                ml_check= self.msgList_get('finger{0}Curves')
+                _build = True
+                if ml_check:
+                    if forceNew or len(ml_check) != int_fingers:
+                        log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding: {0}'.format(a)))
+                        _build = True
+                    else:
+                        log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
+                        _build = False
+                        
+                if _build:
+                    log.debug(cgmGEN.logString_msg(_str_func,'building: {0}'.format(a)))
+                    
+                
         
         
         
@@ -567,10 +589,11 @@ def verify_drivers(self,forceNew=True):
         if int_fingers:
             log.debug(cgmGEN.logString_sub(_str_func,'fingers'))
             
-            ml_check= self.msgList_get('fingerBaseDrivers')
+            ml_check= self.msgList_get('finger{0}Curves')
             _build = True
             if ml_check:
                 if forceNew or len(ml_check) != int_fingers:
+                    log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding'))
                     _build = True
                 else:
                     log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
@@ -786,6 +809,7 @@ def verify_drivers(self,forceNew=True):
   
                     #self.msgList_connect('finger{0}Drivers'.format(k.capitalize()), ml)
                     #md_driverLists[k] = ml
+                ml_mainCurves = ml_curves
                     
                 #Visualization =================================================================
                 log.debug(cgmGEN.logString_sub(_str_func,'Visualization...'))
@@ -846,7 +870,10 @@ def verify_drivers(self,forceNew=True):
                     mSurface.overrideDisplayType = 2
                     for s in mSurface.getShapes(asMeta=True):
                         s.overrideEnabled = 1
-                        s.overrideDisplayType = 2   
+                        s.overrideDisplayType = 2
+                        
+                self.msgList_connect('finger{0}Curves'.format(i), ml_mainCurves)
+                    
                 
                     
 

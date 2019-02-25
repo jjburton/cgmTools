@@ -28,3 +28,6 @@ def levenshtein(s1, s2):
         previous_row = current_row
     
     return previous_row[-1]
+
+def capFirst(s1):
+    return "{0}{1}".format(s1[0].capitalize(),s1[1:])
