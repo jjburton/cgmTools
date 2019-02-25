@@ -232,7 +232,7 @@ class ui(cgmUI.cgmGUI):
         
         _lastUpdate = self.var_lastUpdate.getValue() or None
         
-        if _lastUpdate[0] != 'None':
+        if _lastUpdate and _lastUpdate[0] != 'None':
             try:_lastBranch = _lastUpdate[0] 
             except:pass
             try:_lastHash = _lastUpdate[1]
