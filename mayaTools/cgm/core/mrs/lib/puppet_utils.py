@@ -1105,7 +1105,7 @@ def rig_connectAll(self, mode = 'connect', progressBar = None,progressEnd=True):
         cgmUI.progressBar_end(progressBar)
     
 @cgmGEN.Timer
-def proxyMesh_verify(self, mode = 'connect', forceNew = True, puppetMeshMode = False,progressBar = None,progressEnd=True):
+def proxyMesh_verify(self, forceNew = True, puppetMeshMode = False,progressBar = None,progressEnd=True):
     """
     Connect/disconnect the whole puppet
     """
@@ -1113,16 +1113,7 @@ def proxyMesh_verify(self, mode = 'connect', forceNew = True, puppetMeshMode = F
     log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
     ml_modules = modules_get(self)
-    
-    
-    ml_modules = modules_get(self)
 
-        
-        
-    _d_modeToCall = {'connect':'rig_connect',
-                     'disconnect':'rig_disconnect'}
-    if not _d_modeToCall.get(mode):
-        raise ValueError,"Unknown mode: {0}".format(mode)
     ml_rigBLocks = []
     
     for i,mModule in enumerate([self] + ml_modules):  
@@ -1133,16 +1124,17 @@ def proxyMesh_verify(self, mode = 'connect', forceNew = True, puppetMeshMode = F
             
     if progressBar:
         int_len = len(ml_rigBLocks)
-        cgmUI.progressBar_start(progressBar,int_len+1)    
+        cgmUI.progressBar_start(progressBar,int_len+1)
+        
     for i,mRigBlock in enumerate(ml_rigBLocks):
         if progressBar:
             cgmUI.progressBar_set(progressBar,
                                   status = mRigBlock.p_nameShort,
                                   progress=i, vis=True)
-            try:
-                mRigBlock.verify_proxyMesh(forceNew,puppetMeshMode)
-            except Exception,err:
-                log.error("{0} | {1}".format(mRigBlock,err))
+        try:
+            mRigBlock.verify_proxyMesh(forceNew,puppetMeshMode)
+        except Exception,err:
+            log.error("{0} | {1}".format(mRigBlock,err))
     
     if progressBar and progressEnd:
         cgmUI.progressBar_end(progressBar)
