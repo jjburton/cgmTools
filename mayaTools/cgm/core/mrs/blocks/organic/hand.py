@@ -53,6 +53,7 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.string_utils as STR
+reload(STR)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
