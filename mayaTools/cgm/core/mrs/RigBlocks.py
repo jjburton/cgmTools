@@ -4512,7 +4512,7 @@ class rigFactory(object):
             raise RuntimeError,'No rigBlock stored in call kws'
 
         #BlockFactory = factory(self.call_kws['rigBlock'])
-        mBlock = self.mBLock
+        mBlock = self.mBlock
         mBlock.verify()
         
         _d['mBlock'] = mBlock
