@@ -289,7 +289,8 @@ d_block_profiles = {
               'addCog':False,
               'attachPoint':'end',
               'loftShape':'wideDown',
-              'loftSetup':'default',
+              'loftSetup':'loftList',
+              'loftList':['digit','digit','wideDown','digit'],                            
               'settingsPlace':'end',
               'ikSetup':'rp',
               'ikEnd':'tipBase',
@@ -343,7 +344,7 @@ d_block_profiles = {
               'addCog':False,
               'attachPoint':'end',
               'loftShape':'wideDown',
-              'loftSetup':'default',
+              'loftSetup':'loftList',
               'settingsPlace':'end',
               'ikSetup':'rp',
               'ikEnd':'tipBase',
@@ -363,6 +364,7 @@ d_block_profiles = {
               'baseAim':[1,0,0],
               'baseUp':[0,1,0],
               'baseSize':[3,2.5,13],
+              'loftList':['wideNeg','wideDown','digit'],              
               'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},              
               },    
     
@@ -504,6 +506,7 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'segmentMidIKControl':True,
+                     'visRotatePlane':False,
                      }
 
 
