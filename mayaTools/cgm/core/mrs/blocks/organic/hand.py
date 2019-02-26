@@ -632,7 +632,7 @@ def get_nameOptions(self,mode = 'finger',count = None):
             return ["{0}_{1}".format(mode,i) for i in range(int_count)]
         return ['thumb']
     
-def verify_drivers(self,forceNew=True):
+def verify_drivers(self,forceNew=True,resetToBase=True):
     try:
         _str_func = 'verify_drivers'
         _short = self.mNode
@@ -646,6 +646,146 @@ def verify_drivers(self,forceNew=True):
         reload(CURVES)
         
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
+        mDefineNull = self.getMessageAsMeta('defineNull')
+
+        #Thumbs ---------------------------------------------------------------------
+        log.debug(cgmGEN.logString_sub(_str_func,'thumb'))
+        for a in 'thumbInner','thumbOuter':
+            aCap = STR.capFirst(a)
+            sAttr = 'num'+STR.capFirst(a)
+            v = self.getMayaAttr(sAttr)
+            s_tag = a.split('thumb')[-1]
+            handleKey = "ThumbBase{0}".format(s_tag)
+            
+            if v:
+                if v>1:
+                    log.error("Only one thumb supported per side currently.")
+                    ATTR.set(_short,sAttr,1)
+                    v=1
+                    
+                ml_check= self.msgList_get('thumb{0}Curves')
+                _build = True
+                if ml_check:
+                    if forceNew or len(ml_check) != v:
+                        log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding: {0}'.format(a)))
+                        _build = True
+                    else:
+                        log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
+                        _build = False
+                        
+                if _build:
+                    log.debug(cgmGEN.logString_msg(_str_func,'building: {0}'.format(a)))
+                    
+                    
+                    log.debug(cgmGEN.logString_msg(_str_func,'Thumb Group...'))        
+                    mFingerGroup = self.getMessageAsMeta('{0}NoTrans'.format(a))
+                    if mFingerGroup:
+                        mc.delete(mFingerGroup.getChildren())
+                    else:
+                        mFingerGroup =mNoTransformNull.doCreateAt(setClass=True)
+                        mFingerGroup.rename('{0}Stuff'.format(a))
+                        mFingerGroup.p_parent = mNoTransformNull
+                        self.connectChildNode(mFingerGroup, '{0}NoTrans'.format(a),'block')                    
+                    
+                    
+                    k = 'thumbLine{0}DefineCurve'.format(s_tag)
+                    mCrv = self.getMessageAsMeta('{0}'.format(k))
+                    if not mCrv:raise ValueError,"Didn't find cruve " + k                    
+                    mBaseHandle = self.getMessageAsMeta('define{0}Helper'.format(handleKey))
+                    if not mBaseHandle:raise ValueError,"Didn't find " + handleKey
+                    
+
+                    
+                    log.debug(cgmGEN.logString_msg(_str_func,'Get drivers'))
+                    
+                    ml_drivers = []
+                    md_helpers = {}
+                    l_order = ['thumbBase','thumbMid','thumbRoll','thumbTip','thumbUp']
+                    for k in l_order:
+                        mHelper = self.getMessageAsMeta('define{0}{1}Helper'.format(STR.capFirst(k),
+                                                                                    s_tag.capitalize()))
+                        if not mHelper:
+                            raise ValueError,"Failed to query: {0}".format(k)
+                        md_helpers[k] = mHelper
+                        if k != 'thumbUp':
+                            ml_drivers.append(mHelper)
+                            
+                    self.msgList_connect("thumb{0}_0_Drivers".format(a.capitalize()).format(),ml_drivers)                    
+                    mUpHandle = md_helpers['thumbUp']
+                    
+                    #Scale ====================================================================
+                    log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
+                    l_scales = [1.0 for v in range(len(ml_drivers))]
+                
+                    ATTR.datList_connect(self.mNode,a+'_0_scaleX',l_scales)
+                    l_scaleAttrsX = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleX')
+                    
+                    ATTR.datList_connect(self.mNode,a+'_0_scaleY',l_scales)
+                    l_scaleAttrsY = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleY')                    
+                
+                
+                    for a2 in l_scaleAttrsX + l_scaleAttrsY:
+                        ATTR.set_lock(_short,a2,False)
+                        ATTR.set_min(_short,a2,.1)
+                        
+                        
+                    if resetToBase:
+                        for i,v in enumerate([4.3,3.4,3.3,2.3]):
+                            ATTR.set(_short, l_scaleAttrsX[i],v)
+                        for i,v in enumerate([4.8,3.3,2.8,1.9]):
+                            ATTR.set(_short, l_scaleAttrsY[i],v)                        
+                    
+                    #Scale ====================================================================
+                    log.debug(cgmGEN.logString_msg(_str_func,'profile curves'))
+                    ml_profiles = []
+                    for i,mDriver in  enumerate(ml_drivers):
+                        _crv = CURVES.create_fromName(name='loftSquircle',
+                                                      direction = 'z+', size = 1.0)
+                        mProfile = cgmMeta.asMeta(_crv)
+                        mProfile.doSnapTo(mDriver.mNode)
+                        mProfile.v=False
+                        mProfile.rename("{0}_profile_{1}".format(a,i))
+                        mc.reverseCurve(mProfile.mNode,ch=0)
+                        
+                        mProfile.p_parent = mDefineNull
+                        mc.pointConstraint([mDriver.mNode],mProfile.mNode, maintainOffset = False)
+                        
+                        if mDriver == ml_drivers[0]:
+                            mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,1], upVector = [0,1,0], 
+                                             worldUpObject = mUpHandle.mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])
+                        elif mDriver == ml_drivers[-1]:
+                            mc.aimConstraint(ml_drivers[i-1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                                             worldUpObject = ml_profiles[-1].mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])                            
+                            
+                        else:
+                            mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,1], upVector = [0,1,0], 
+                                             worldUpObject = ml_profiles[-1].mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])
+                        
+                        ml_profiles.append(mProfile)
+                        
+                        mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleAttrsX[i]))
+                        mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleAttrsY[i]))                        
+                    
+                    self.msgList_connect('{0}_0_profiles'.format(a), ml_profiles)
+                        
+                    mSurf = self.atUtils('create_defineLoftMesh',
+                                         [mObj.mNode for mObj in ml_profiles],
+                                         plug = a+'_0_LoftMesh')
+                    mSurf.doConnectIn('template',"{0}.template".format(_short))
+                    mSurf.p_parent = mFingerGroup                    
+                    self.msgList_connect('{0}Curves'.format(a), [mCrv])
+                    self.msgList_connect('{0}LoftSurfaces'.format(a), [mSurf])
+
+ 
         
         #Fingers ------------------------------------------------------------------------------
         int_fingers = self.numFinger
@@ -812,7 +952,7 @@ def verify_drivers(self,forceNew=True):
                     ATTR.set_min(_short,a,0.05)
                     ATTR.set_max(_short,a,.95)
                     
-                
+                md_drivers = {}
                 for i in md_baseTags.keys():
                     log.debug(cgmGEN.logString_sub(_str_func,'subSplit {0}'.format(mCrv)))
                     mCrv = md_curves["fBase_{0}".format(i)]
@@ -847,9 +987,9 @@ def verify_drivers(self,forceNew=True):
                     l_tags.append(_end)
                     l_tags.insert(0,md_baseDrivers['base'][i].baseTag)
                     md_driverTags[i] = l_tags
-                    
-                    
-                    self.msgList_connect('finger{0}Drivers'.format(i), [md_handles[tag] for tag in l_tags])
+                    ml_drivers = [md_handles[tag] for tag in l_tags]
+                    md_drivers[i] = ml_drivers
+                    self.msgList_connect('finger{0}Drivers'.format(i), ml_drivers)
                     
                 #NewCurves
                 log.debug(cgmGEN.logString_msg(_str_func,'Driver Curves...'))
@@ -866,13 +1006,94 @@ def verify_drivers(self,forceNew=True):
                 ml_curves = md_resCurves['ml_curves']
                 for mCrv in ml_curves:
                     mCrv.inheritsTransform=0
-                    #mCrv.v=False                    
-  
-                    #self.msgList_connect('finger{0}Drivers'.format(k.capitalize()), ml)
-                    #md_driverLists[k] = ml
                 ml_mainCurves = ml_curves
                     
                 #Visualization =================================================================
+
+                
+                #Scale ====================================================================
+                log.debug(cgmGEN.logString_msg(_str_func,'profile curves'))
+                ml_surfaces = []
+                for idx,ml in md_drivers.iteritems():
+                    ml_profiles = []
+                    
+                    log.debug(cgmGEN.logString_msg(_str_func,'finger visual {0}'.format(idx)))
+                    
+                    log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
+                    l_scales = [1.0 for v in range(len(ml))]
+                    
+                    ATTR.datList_connect(self.mNode,'finger_{0}_scaleX'.format(idx),l_scales)
+                    l_scaleAttrsX = ATTR.datList_getAttrs(self.mNode, 'finger_{0}_scaleX'.format(idx))
+                    
+                    ATTR.datList_connect(self.mNode,'finger_{0}_scaleY'.format(idx),l_scales)
+                    l_scaleAttrsY = ATTR.datList_getAttrs(self.mNode, 'finger_{0}_scaleY'.format(idx))                    
+                    for a2 in l_scaleAttrsX + l_scaleAttrsY:
+                        ATTR.set_lock(_short,a2,False)
+                        ATTR.set_min(_short,a2,.1)
+                        
+                    if resetToBase:
+                        for i,v in enumerate([2.1, 2.8, 2.4, 2.2,2]):
+                            ATTR.set(_short, l_scaleAttrsX[i],v)
+                        for i,v in enumerate([3.9, 3.2, 2.6, 2.3,2]):
+                            ATTR.set(_short, l_scaleAttrsY[i],v)
+                            
+
+                    for i,mDriver in enumerate(ml):
+                        log.debug(cgmGEN.logString_msg(_str_func,'driver {0} | {1}'.format(i,mDriver)))
+                        
+                        _crv = CURVES.create_fromName(name='loftSquircle',
+                                                      direction = 'z+', size = 1.0)
+                        mProfile = cgmMeta.asMeta(_crv)
+                        mProfile.doSnapTo(mDriver.mNode)
+                        mProfile.v=False
+                        mProfile.rename("finger_{0}_profile_{1}".format(idx,i))
+                        mc.reverseCurve(mProfile.mNode,ch=0)
+                        
+                        mProfile.p_parent = mDefineNull
+                        mc.pointConstraint([mDriver.mNode],mProfile.mNode, maintainOffset = False)
+                        
+                        if mDriver == ml[0]:
+                            mc.aimConstraint(ml[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,1], upVector = [0,1,0], 
+                                             worldUpObject = self.mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])
+                        elif mDriver == ml[-1]:
+                            mc.aimConstraint(ml[i-1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                                             worldUpObject = ml_profiles[-1].mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])                            
+                            
+                        else:
+                            mc.aimConstraint(ml[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                             aimVector = [0,0,1], upVector = [0,1,0], 
+                                             worldUpObject = ml_profiles[-1].mNode,
+                                             worldUpType = 'objectRotation', 
+                                             worldUpVector = [0,1,0])
+                        
+                        ml_profiles.append(mProfile)
+                        
+                        mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleAttrsX[i]))
+                        mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleAttrsY[i]))                        
+                        
+                        
+                    mSurf = self.atUtils('create_defineLoftMesh',
+                                         [mObj.mNode for mObj in ml_profiles],
+                                         plug = 'finger_{0}_LoftMesh'.format(idx))
+                    mSurf.rename("finger_{0}_{1}_surf".format(idx,i))
+                    
+                    mSurf.doConnectIn('template',"{0}.template".format(_short))
+                    mSurf.p_parent = mFingerGroup                    
+                    ml_surfaces.append(mSurf)
+                    
+                    self.msgList_connect('finger_{0}_profiles'.format(idx), ml_profiles)                
+                    
+                
+                self.msgList_connect('fingerCurves', ml_mainCurves)
+                self.msgList_connect('fingerLoftSurfaces', ml_surfaces)
+                
+                """
                 log.debug(cgmGEN.logString_sub(_str_func,'Visualization...'))
                 
                 log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
@@ -938,135 +1159,11 @@ def verify_drivers(self,forceNew=True):
                     
                     mSurface.doConnectIn('template',"{0}.template".format(_short))
                     
-                    ml_profiles.append(mProfile)
+                    ml_profiles.append(mProfile)"""
                         
-                self.msgList_connect('fingerCurves', ml_mainCurves)
-                self.msgList_connect('fingerLoftSurfaces', ml_surfaces)
-                self.msgList_connect('fingerProfiles', ml_profiles)
-                    
-                #cgmGEN.func_snapShot(vars())
-        
-        
-        
-        #Thumbs ---------------------------------------------------------------------
-        log.debug(cgmGEN.logString_sub(_str_func,'thumb'))
-        for a in 'thumbInner','thumbOuter':
-            aCap = STR.capFirst(a)
-            sAttr = 'num'+STR.capFirst(a)
-            v = self.getMayaAttr(sAttr)
-            s_tag = a.split('thumb')[-1]
-            handleKey = "ThumbBase{0}".format(s_tag)
-            
-            if v:
-                if v>1:
-                    log.error("Only one thumb supported per side currently.")
-                    ATTR.set(_short,sAttr,1)
-                    v=1
-                    
-                ml_check= self.msgList_get('thumb{0}Curves')
-                _build = True
-                if ml_check:
-                    if forceNew or len(ml_check) != v:
-                        log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding: {0}'.format(a)))
-                        _build = True
-                    else:
-                        log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
-                        _build = False
-                        
-                if _build:
-                    log.debug(cgmGEN.logString_msg(_str_func,'building: {0}'.format(a)))
-                    
-                    
-                    log.debug(cgmGEN.logString_msg(_str_func,'Thumb Group...'))        
-                    mFingerGroup = self.getMessageAsMeta('{0}NoTrans'.format(a))
-                    if mFingerGroup:
-                        mc.delete(mFingerGroup.getChildren())
-                    else:
-                        mFingerGroup =mNoTransformNull.doCreateAt(setClass=True)
-                        mFingerGroup.rename('{0}Stuff'.format(a))
-                        mFingerGroup.p_parent = mNoTransformNull
-                        self.connectChildNode(mFingerGroup, '{0}NoTrans'.format(a),'block')                    
-                    
-                    
-                    k = 'thumbLine{0}DefineCurve'.format(s_tag)
-                    mCrv = self.getMessageAsMeta('{0}'.format(k))
-                    if not mCrv:raise ValueError,"Didn't find cruve " + k                    
-                    mBaseHandle = self.getMessageAsMeta('define{0}Helper'.format(handleKey))
-                    if not mBaseHandle:raise ValueError,"Didn't find " + handleKey
-                    
-                    mUpHandle = self.getMessageAsMeta('defineThumbUp{0}Helper'.format(s_tag))
-                    if not mUpHandle:raise ValueError,"Didn't find up"                     
-                
-                    #Visualization =================================================================
-                    log.debug(cgmGEN.logString_sub(_str_func,'Visualization...'))
-                    
-                    log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
-                    l_scales = [1.0 for v in range(1)]
-                    
-                    ATTR.datList_connect(self.mNode,'scaleX'+aCap,l_scales)
-                    l_scaleX = ATTR.datList_getAttrs(self.mNode, 'scaleX'+aCap)
-                    
-                    ATTR.datList_connect(self.mNode,'scaleY'+aCap,l_scales)
-                    l_scaleY = ATTR.datList_getAttrs(self.mNode, 'scaleY'+aCap)                
-                    
-                    ATTR.datList_connect(self.mNode,'scaleTaper'+aCap,l_scales)                
-                    l_scaleTaper = ATTR.datList_getAttrs(self.mNode, 'scaleTaper'+aCap)
-                    
-                    for a2 in l_scaleTaper + l_scaleX + l_scaleY:
-                        ATTR.set_lock(_short,a2,False)
-                        ATTR.set_min(_short,a2,.1)
-                        
-                    for a2 in l_scaleY:
-                        ATTR.set(_short,a2,1.3)
-                        
-                    for a2 in l_scaleX:
-                        ATTR.set(_short,a2,2.0)                    
-                        
-                    for a2 in l_scaleTaper:
-                        ATTR.set(_short,a2,.7)                    
 
-                    _crv = CURVES.create_fromName(name='loftSquircle',
-                                                  direction = 'z+', size = 1.0)
-                    mProfile = cgmMeta.asMeta(_crv)
-                    mProfile.doSnapTo(self.mNode)
-                    mProfile.p_position = mBaseHandle.p_position
-                    mProfile.v=False
                     
-                    #extrude -ch true -rn false -po 0 -et 2 -ucp 1 -fpt 0 -upn 1 -rotation 0 -scale 1 -rsp 1 "baseInner_defineHandle_crv" "finger_0_defineCurve" ;
-                    
-                    _res = mc.extrude(mProfile.mNode,[mCrv.mNode],ucp=0,fixedPath=False,extrudeType=2,ch=True)
-                    mSurface = cgmMeta.asMeta(_res[0])
-                    mExtrude = cgmMeta.asMeta(_res[1])
-                    
-                    mProfile.rename("finger_{0}_profile".format(0))
-                    mSurface.rename("finger_{0}_surf".format(0))
-                    mExtrude.rename("finger_{0}_extrude".format(0))
-                    
-                    mProfile.p_parent = mBaseHandle#mFingerGroup#mBaseHandle
-                    mSurface.p_parent = mFingerGroup
-                    
-                    self.asHandleFactory().color(mSurface.mNode,transparent=True)
-                    #CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = True)
-                    
-                    mExtrude.doConnectIn('scale',"{0}.{1}".format(_short,l_scaleTaper[0]))
-                    #for a in 'XYZ':
-                    mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleX[0]))
-                    mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleY[0]))
-                
-                    mSurface.inheritsTransform = 0
-                    mSurface.overrideEnabled = 1
-                    mSurface.overrideDisplayType = 2
-                    for s in mSurface.getShapes(asMeta=True):
-                        s.overrideEnabled = 1
-                        s.overrideDisplayType = 2
-                        
-                    mc.orientConstraint([mUpHandle.mNode], mProfile.mNode,maintainOffset=False)
-                    mSurface.doConnectIn('template',"{0}.template".format(_short))
-                    
-                    
-                    self.msgList_connect('{0}Curves'.format(a), [mCrv])
-                    self.msgList_connect('{0}LoftSurfaces'.format(a), [mSurface])
-                    #mc.aimConstraint()
+                #cgmGEN.func_snapShot(vars())        
 
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
@@ -1113,12 +1210,12 @@ def verify_subBlocks(self,forceNew=True):
                 
                 #ml_curves = self.msgList_get('fingerCurves')
                 ml_surfaces = self.msgList_get('fingerLoftSurfaces')
-                ml_profiles = self.msgList_get('fingerProfiles')
                 l_names = get_nameOptions(self,'finger',int_fingers)
                 
                 for i in range(int_fingers):
                     md_fingerDat[i] = {}
                     log.debug(cgmGEN.logString_sub(_str_func,'Finger {0}'.format(i)))
+                    ml_profiles = self.msgList_get('finger_{0}_profiles'.format(i))
                     
                     ml_drivers = self.msgList_get('finger{0}Drivers'.format(i))
                     mCurve = self.getMessageAsMeta('finger_{0}DefineCurve'.format(i))
@@ -1129,6 +1226,8 @@ def verify_subBlocks(self,forceNew=True):
                     md_fingerDat[i]['mCurve'] = mCurve
                     md_fingerDat[i]['mSurface'] = mSurface
                     md_fingerDat[i]['mProfile'] = mProfile
+                    
+                    
                     
                     #size ========================================================================
                     _size = DIST.get_axisSize(mProfile.mNode)
@@ -1216,6 +1315,8 @@ def verify_subBlocks(self,forceNew=True):
                             ml_drivers.append(mHelper)
                             
                     self.msgList_connect("thumb{0}_0_Drivers".format(a.capitalize()).format(),ml_drivers)
+                    
+                    ml_profiles = self.msgList_get('thumb{0}_0_profiles'.format(a.capitalize()))
                         
                     #k = 'thumbLine{0}DefineCurve'.format(s_tag)
                     #mCrv = self.getMessageAsMeta('{0}'.format(k))
@@ -1233,8 +1334,7 @@ def verify_subBlocks(self,forceNew=True):
                     length = DIST.get_distance_between_points(md_helpers['thumbTip'].p_position,
                                                               md_helpers['thumbBase'].p_position)
                     
-                    l_width = ATTR.datList_get(self.mNode,'scaleXThumb'+a.capitalize())
-                    l_height = ATTR.datList_get(self.mNode,'scaleYThumb'+a.capitalize())
+                    _size = DIST.get_axisSize(ml_profiles[0].mNode)
                     
                     #create =========================================================================
                     log.debug(cgmGEN.logString_msg(_str_func,'thumb {0} | create'.format(a)))
@@ -1244,8 +1344,8 @@ def verify_subBlocks(self,forceNew=True):
                                                   name='thumb',side = _side,
                                                   blockProfile='thumb',
                                                   blockParent = self.p_blockParent,
-                                                  baseSize = [l_width[0],
-                                                              l_height[0],
+                                                  baseSize = [_size[0],
+                                                              _size[1],
                                                               length])
                     ml_thumbBlocks.append(mSub)
                     
@@ -1330,6 +1430,7 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                             raise ValueError,"Failed to query: {0}".format(tag)
                         md_helpers[tag] = mHelper
                     
+                    ml_profiles = self.msgList_get('{0}_0_profiles'.format(k))
                     
                     for k2,mBlock in dSet.iteritems():
                         ml_drivers = self.msgList_get('{0}_{1}_Drivers'.format(k,k2))
@@ -1366,6 +1467,8 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                 l_y = []
                                 
                                 for mHandle in ml_lofts:
+                                    log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
+                                    
                                     try:
                                         if mHandle in [ml_lofts[0],ml_lofts[-1]]:
                                             continue
@@ -1391,14 +1494,20 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                                        [l_x[0],
                                                         l_y[0],
                                                         None])
+                                _size = DIST.get_axisSize(ml_profiles[-1].mNode)
                                 DIST.scale_to_axisSize(ml_lofts[-1].mNode,
-                                                       [l_x[-1],
-                                                        l_y[-1],
+                                                       [_size[0],
+                                                        _size[1],
                                                         None])
+                                """
+                                DIST.scale_to_axisSize(ml_lofts[-1].mNode,
+                                                       [l_x[-1]*.3,
+                                                        l_y[-1]*.3,
+                                                        None])"""
                                     
                                 for mHandle in ml_lofts:
                                     mHandle.sz= 1.0
-                                pprint.pprint([l_x,l_y])
+                                #pprint.pprint([l_x,l_y])
                 else:
                     log.debug(cgmGEN.logString_sub(_str_func,'Fingers...'))                    
                     ml_surfaces = self.msgList_get('fingerLoftSurfaces')
@@ -1410,6 +1519,7 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                         mCurve = self.getMessageAsMeta('finger_{0}DefineCurve'.format(k2))
                         _blockState = mBlock.getState(False)
                         
+                        ml_profiles = self.msgList_get('finger_{0}_profiles'.format(k2))
                         #Define =====================================================================
                         log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | define'.format(k2)))
                         
@@ -1434,17 +1544,20 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                             ml_lofts = []
                             for i,mHandle in enumerate(ml_templateHandles):
                                 mHandle.p_position = ml_drivers[i].p_position
+                                
                                 ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
                                 ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
                             for i,mHandle in enumerate(ml_templateHandles):
                                 #Do it twice to account for subconstrained items
-                                mHandle.p_position = ml_drivers[i].p_position                            
+                                mHandle.p_position = ml_drivers[i].p_position
                             
                             if templateScale:
                                 l_x = []
                                 l_y = []
                                 
                                 for mHandle in ml_lofts:
+                                    log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
+                                    
                                     try:
                                         if mHandle in [ml_lofts[0],ml_lofts[-1]]:
                                             continue
@@ -1456,7 +1569,7 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                             l_y.append(yDist)
                                             
                                             l_box = [xDist,
-                                                     xDist,
+                                                     yDist,
                                                      1]
                                             #TRANS.scale_to_size(_mNode,l_box)
                                             DIST.scale_to_axisSize(_mNode,l_box)
@@ -1470,9 +1583,11 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                                        [l_x[0],
                                                         l_y[0],
                                                         None])
+                                
+                                _size = DIST.get_axisSize(ml_profiles[-1].mNode)
                                 DIST.scale_to_axisSize(ml_lofts[-1].mNode,
-                                                       [l_x[-1],
-                                                        l_y[-1],
+                                                       [_size[0],
+                                                        _size[1],
                                                         None])
                                     
                                 for mHandle in ml_lofts:

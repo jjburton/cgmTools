@@ -642,7 +642,7 @@ def stateNull_verify(self,state='define'):
     return mNull
 
 def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNull = None,
-                            uAttr = 'neckControls',baseName = 'test'):
+                            uAttr = 'neckControls',baseName = 'test',plug = 'templateLoftMesh'):
     try:
         _str_func = 'create_templateLoftMesh'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -718,7 +718,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
         for s in mLoft.getShapes(asMeta=True):
             s.overrideDisplayType = 2   
     
-        self.connectChildNode(mLoft.mNode, 'templateLoftMesh', 'block')    
+        self.connectChildNode(mLoft.mNode, plug, 'block')    
         return mLoft
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -1027,9 +1027,10 @@ def get_castMesh(self):
 def create_defineLoftMesh(self, targets = None,
                           mNull = None,
                           polyType = 'mesh',
-                          baseName = 'test'):
+                          baseName = 'test',
+                          plug = 'defineLoftMesh'):
     try:
-        _str_func = 'create_prerigLoftMesh'
+        _str_func = 'create_defineLoftMesh'
         log.debug(cgmGEN.logString_start(_str_func))
 
         _short = self.mNode
@@ -1044,7 +1045,7 @@ def create_defineLoftMesh(self, targets = None,
         
         
                 
-        _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False)
+        _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=0)
         mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
         _loftNode = _res_body[1]
         _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
@@ -1065,7 +1066,7 @@ def create_defineLoftMesh(self, targets = None,
         mLoftSurface.doName()
         log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
     
-        #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
+        #mc.polySetToFaceNormal(mLoftSurface.mNode,setUserNormal = True)
         #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
     
         #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
@@ -1092,7 +1093,7 @@ def create_defineLoftMesh(self, targets = None,
             mObj.doStore('cgmTypeModifier','prerigMesh')
             mObj.doName()                        
        
-        self.connectChildNode(mLoftSurface.mNode, 'defineLoftMesh', 'block')
+        self.connectChildNode(mLoftSurface.mNode, plug, 'block')
         
         return mLoftSurface
     except Exception,err:
@@ -5924,7 +5925,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
     if self.isReferenced():
         raise ValueError,"Referenced node. Cannot verify"
     
-
+    
     #>Validate our data ------------------------------------------------------
     d_upStateFunctions = {'template':template,
                           'prerig':prerig,
@@ -5959,25 +5960,31 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
     #>>> Meat
     #========================================================================
     currentState = self.getState(False) 
+    
+    
+    if self.getMayaAttr('isBlockFrame'):
+        if _idx_target == 0 and currentState == 0 and forceNew:
+            define(self)
+            return True
+        self.blockState = _state_target
+        log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
+        return    
+    
 
     if rebuildFrom:
         log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
-
-
-    if currentState == _idx_target:
+        
+        
+    log.info('forceNew: {0}'.format(forceNew))
+    
+    if _idx_target == 0 and currentState == 0 and forceNew:
+        define(self)
+        return True    
+    elif currentState == _idx_target:
         if not forceNew:
-            if _idx_target == 0:
-                define(self)
-                return True
-            else:
-                log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
+            log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))
             return True
         elif currentState > 0:
-            #if self.getMayaAttr('isMegaBlock'):
-             #   log.debug(cgmGEN.logString_sub(_str_func,'megaBlock bypass'))
-              #  if _idx_target:
-               #     self.blockState = _state_target
-                
             log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
             currentState_target = self.getState(True) 
             d_deleteStateFunctions[currentState_target](self)

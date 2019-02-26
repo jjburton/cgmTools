@@ -56,7 +56,7 @@ def scale_to_axisSize(arg = None, size = None):
             _targetScale.append(v)
         else:
             _targetScale.append(_currentScale[i])
-    log.info(_targetScale)
+    #log.info(_targetScale)
     
     for i,a in enumerate('xyz'):
         if size[i]:

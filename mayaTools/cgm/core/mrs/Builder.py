@@ -3575,7 +3575,7 @@ class ui(cgmUI.cgmGUI):
                   bgc = SHARED._d_gui_state_colors.get('warning'),
                   height = 20,
                   align='center',
-                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{}),
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{'forceNew':True}),
                   ann='[Define] - initial block state')
         mc.button(l='<Templ>',
                   bgc = SHARED._d_gui_state_colors.get('warning'),                  
