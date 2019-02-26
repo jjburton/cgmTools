@@ -64,6 +64,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.skin_utils as CORESKIN
+import cgm.core.lib.string_utils as STR
 reload(ATTR)
 #=============================================================================================================
 #>> Queries
@@ -709,7 +710,7 @@ def create_templateLoftMesh(self, targets = None, mDatHolder = None, mTemplateNu
 #=============================================================================================================
 def noTransformNull_verify(self,mode='template'):
     try:
-        _plug = 'noTrans{0}Null'.format(mode[0].capitalize() + mode[1:])
+        _plug = 'noTrans{0}Null'.format(STR.capFirst(mode[0]) + mode[1:])
         if not self.getMessage(_plug):
             str_prerigNull = mc.group(em=True)
             mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
@@ -3291,7 +3292,6 @@ def blockMirror_settings(blockSource, blockMirror = None,
                 
         _mask = ['side','version','blockState','baseAim','baseAimY']
         for a,v in _ud.iteritems():
-            #log.debug("{0} | {1} ...".format(a,v))
             if a in _mask or a in _l_done:
                 continue
             _type = ATTR.get_type(_short,a)
@@ -3534,12 +3534,12 @@ def define_getHandles(self):
     md_defineHandles = {}
     #Template our vectors
     for k in BLOCKSHARE._l_defineHandlesOrder:
-        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(STR.capFirst(k)))    
         if mHandle:
             log.debug("define vector: {0} | {1}".format(k,mHandle))            
             md_vectorHandles[k] = mHandle
             
-        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))    
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(STR.capFirst(k)))    
         if mHandle:
             log.debug("define handle: {0} | {1}".format(k,mHandle))                        
             md_defineHandles[k] = mHandle
@@ -5936,11 +5936,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
 
     log.debug("|{0}| >> Target state: {1} | {2}".format(_str_func,_state_target,_idx_target))
     
-    if self.getMayaAttr('isMegaBlock'):
-        log.debug(cgmGEN.logString_sub(_str_func,'megaBlock bypass'))
-        if _idx_target:
-            self.blockState = _state_target
-            return 'blockFrame'
+
 
     #>>> Meat
     #========================================================================
@@ -5959,9 +5955,16 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,**kws):
                 log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))                
             return True
         elif currentState > 0:
+            #if self.getMayaAttr('isMegaBlock'):
+             #   log.debug(cgmGEN.logString_sub(_str_func,'megaBlock bypass'))
+              #  if _idx_target:
+               #     self.blockState = _state_target
+                
             log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
             currentState_target = self.getState(True) 
             d_deleteStateFunctions[currentState_target](self)
+
+    
 
     #If we're here, we're going to move through the set states till we get to our spot
     log.debug("|{0}| >> Changing states...".format(_str_func))
@@ -7302,9 +7305,10 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
             _tagOnly = _dtmp.get('tagOnly',False)
             _pos = _dtmp.get('pos',False)
+            mEnd = md_handles.get(_dtmp.get('endTag')) or md_handles.get('end')
             
             #sphere
-            if k in ['up','rp'] and rotVecControl:
+            if k in ['up','rp'] or _dtmp.get('handleType') == 'vector':# and rotVecControl:
                 _rotSize = [.25,.25,2.0]
                 if k == 'rp':
                     _rotSize = [.5,.5,1.25]
@@ -7333,13 +7337,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
                 
-                SNAP.aim_atPoint(mHandle.mNode,md_handles['end'].p_position, 'z+')
+                SNAP.aim_atPoint(mEnd.p_position, 'z+')
             
                 #mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
                                  #aimVector = [0,0,1], upVector = [0,0,0], 
                                  #worldUpType = 'none')
                                  
-                self.connectChildNode(mHandle.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                self.connectChildNode(mHandle.mNode,'vector{0}Helper'.format(STR.capFirst(k)),'block')
                 md_vector[k] = mHandle
                 """
                 _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
@@ -7495,7 +7499,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mArrow.dagLock()
                 
                     md_vector[k] = mArrow
-                    self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(k.capitalize()),'block')
+                    self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(STR.capFirst(k)),'block')
                     
                     for mShape in mArrow.getShapes(True):
                         mShape.overrideEnabled = 1
@@ -7510,7 +7514,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 md_jointLabels[k] = mJointLabel
         
         
-            self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(k.capitalize()),'block')
+            self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(STR.capFirst(k)),'block')
         
         
         self.msgList_connect('defineHandles', ml_handles)
@@ -7582,6 +7586,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                              worldUpType = 'objectRotation', 
                              worldUpVector = [0,1,0])            
 
+        for k,dTmp in d_definitions.iteritems():
+            if dTmp.get('handleType') == 'vector':
+                if md_handles.get(k):
+                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz','sx','sy','sz'])
+                    
 
         if rotVecControl:
             for k in 'rp','up':
@@ -7717,7 +7726,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 
             #Scaling our up vector =============================================================
             if rotVecControl and md_handles.get('up'):
-                mPlug = cgmMeta.cgmAttr(md_handles['end'],'average',attrType='float')
+                mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
                 _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
                                                  "{0}.baseSizeX".format(_short),
                                                  "{0}.baseSizeY".format(_short),
@@ -7817,8 +7826,8 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
         log.debug("|{0}| >>  baseDat...".format(_str_func)+ '-'*40)
         #pprint.pprint(d_baseDat)
         for k,vec in d_baseDat.iteritems():
-            mHandle = self.getMessageAsMeta('define{0}Helper'.format(k.capitalize()))
-            mUp = self.getMessageAsMeta('vector{0}Helper'.format(k.capitalize()))
+            mHandle = self.getMessageAsMeta('define{0}Helper'.format(STR.capFirst(k)))
+            mUp = self.getMessageAsMeta('vector{0}Helper'.format(STR.capFirst(k)))
             
             if mHandle:
                 log.debug("|{0}| >>  mHandle: {1}".format(_str_func,mHandle))

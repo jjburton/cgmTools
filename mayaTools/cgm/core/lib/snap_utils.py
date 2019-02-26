@@ -172,10 +172,10 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
     """ 
     try:
         _str_func = 'aimAtPoint'
+        _loc = False
         
         
         _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-        _loc = False
         try:position = position.x,position.y,position.z
         except:pass
         try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
@@ -291,7 +291,8 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
         if _loc:mc.delete(_loc)
         return True
     except Exception,err:
-        if _loc:mc.delete(_loc)
+        try:mc.delete(_loc)
+        except:pass
         log.error( "aim_atPoint | obj: {0} | err: {1}".format(obj,err) )
         #cgmGEN.cgmExceptCB(Exception,err)
     

@@ -74,6 +74,7 @@ _l_ignoreTags = ['cgm.core.examples',
                  'cgm.lib.gigs',
                  'cgm.lib.zoo',
                  'cgm.projects',
+                 'cgm.core.rigger',
                  'cgmMeta_test']
 
 import cgm

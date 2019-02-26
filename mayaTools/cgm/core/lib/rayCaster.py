@@ -58,6 +58,20 @@ def get_eligibleMesh():
                 log.debug("|{0}| >> Inelibible: {1} | {2}".format(_str_func,_type,_mesh))
     return _res
 
+def get_dist_from_cast_axis(obj = None, axis = 'z', mode = 'near', shapes = None, mark = False,
+                            startPoint = None, maxDistance = 1000, asEuclid = False):
+    _str_func = 'get_dist_from_cast_axis'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    l_pos = []
+    for d in ['+','-']:
+        pos = get_cast_pos(obj,axis+d,mode,shapes,mark,startPoint,maxDistance,asEuclid)
+        l_pos.append(pos)
+        
+    return DIST.get_distance_between_points(l_pos[0],l_pos[1])
+    
+    
+
 def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = False, startPoint = None, maxDistance = 1000, asEuclid = False):
     """
     Get the 
