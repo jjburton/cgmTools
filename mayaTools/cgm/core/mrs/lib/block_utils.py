@@ -7599,13 +7599,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             #aim
             if rotVecControl:
                 mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = False,
-                                aimVector = [0,0,1], upVector = [0,1,0], 
+                                aimVector = [0,0,-1], upVector = [0,1,0], 
                                 worldUpObject = self.mNode,
                                 worldUpType = 'objectRotation', 
                                 worldUpVector = blockUpVector)
             else:
                 mc.aimConstraint(self.mNode, md_handles.get('end').mNode, maintainOffset = False,
-                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 aimVector = [0,0,-1], upVector = [0,1,0], 
                                  worldUpObject = md_vector.get('up').mNode,
                                  worldUpType = 'objectRotation', 
                                  worldUpVector = [0,1,0])

@@ -285,7 +285,7 @@ def define(self):
             'relax':{'tipInner':[.65,-.4,.85],
                     'tipOuter':[-.55,-.25,.7],
                     'tipMid':[.048,-.428,1],
-                    'baseInner':[.2,0,-.75],
+                    'baseInner':[.3,0,-.75],
                     'baseOuter':[-.25,0,-.75],
                     'baseMid':[0,0,-.75],
                     'midInner':[.475,0,0],
@@ -673,6 +673,8 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
         mDefineNull = self.getMessageAsMeta('defineNull')
 
+        _sizeProfile = self.baseSize[2] * .105
+
         #Thumbs ---------------------------------------------------------------------
         log.debug(cgmGEN.logString_sub(_str_func,'thumb'))
         for a in 'thumbInner','thumbOuter':
@@ -682,133 +684,134 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
             s_tag = a.split('thumb')[-1]
             handleKey = "ThumbBase{0}".format(s_tag)
             
-            if v:
-                if v>1:
-                    log.error("Only one thumb supported per side currently.")
-                    ATTR.set(_short,sAttr,1)
-                    v=1
+            if v>1:
+                log.error("Only one thumb supported per side currently.")
+                ATTR.set(_short,sAttr,1)
+                v=1
+                
+            ml_check= self.msgList_get('thumb{0}Curves')
+            _build = True
+            if ml_check:
+                if forceNew or len(ml_check) != v:
+                    log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding: {0}'.format(a)))
+                    _build = True
+                else:
+                    log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
+                    _build = False
                     
-                ml_check= self.msgList_get('thumb{0}Curves')
-                _build = True
-                if ml_check:
-                    if forceNew or len(ml_check) != v:
-                        log.warning(cgmGEN.logString_msg(_str_func,'Not enough data points. Rebuilding: {0}'.format(a)))
-                        _build = True
-                    else:
-                        log.debug(cgmGEN.logString_msg(_str_func,'good dat'))                    
-                        _build = False
-                        
-                if _build:
-                    log.debug(cgmGEN.logString_msg(_str_func,'building: {0}'.format(a)))
-                    
-                    
-                    log.debug(cgmGEN.logString_msg(_str_func,'Thumb Group...'))        
-                    mFingerGroup = self.getMessageAsMeta('{0}NoTrans'.format(a))
-                    if mFingerGroup:
-                        mc.delete(mFingerGroup.getChildren())
-                    else:
-                        mFingerGroup =mNoTransformNull.doCreateAt(setClass=True)
-                        mFingerGroup.rename('{0}Stuff'.format(a))
-                        mFingerGroup.p_parent = mNoTransformNull
-                        self.connectChildNode(mFingerGroup, '{0}NoTrans'.format(a),'block')                    
-                    
-                    
-                    k = 'thumbLine{0}DefineCurve'.format(s_tag)
-                    mCrv = self.getMessageAsMeta('{0}'.format(k))
-                    if not mCrv:raise ValueError,"Didn't find cruve " + k                    
-                    mBaseHandle = self.getMessageAsMeta('define{0}Helper'.format(handleKey))
-                    if not mBaseHandle:raise ValueError,"Didn't find " + handleKey
-                    
+            log.debug(cgmGEN.logString_msg(_str_func,'building: {0}'.format(a)))
+            
+            
+            log.debug(cgmGEN.logString_msg(_str_func,'Thumb Group...'))        
+            mFingerGroup = self.getMessageAsMeta('{0}NoTrans'.format(a))
+            if mFingerGroup:
+                mc.delete(mFingerGroup.getChildren())
+            else:
+                mFingerGroup =mNoTransformNull.doCreateAt(setClass=True)
+                mFingerGroup.rename('{0}Stuff'.format(a))
+                mFingerGroup.p_parent = mNoTransformNull
+                self.connectChildNode(mFingerGroup, '{0}NoTrans'.format(a),'block')                    
+            
+            mFingerGroup.doConnectIn('v',"{0}.{1}".format(_short,sAttr))
+            
+            k = 'thumbLine{0}DefineCurve'.format(s_tag)
+            mCrv = self.getMessageAsMeta('{0}'.format(k))
+            if not mCrv:raise ValueError,"Didn't find cruve " + k                    
+            mBaseHandle = self.getMessageAsMeta('define{0}Helper'.format(handleKey))
+            if not mBaseHandle:raise ValueError,"Didn't find " + handleKey
+            
 
+            log.debug(cgmGEN.logString_msg(_str_func,'Get drivers'))
+            
+            ml_drivers = []
+            md_helpers = {}
+            l_order = ['thumbBase','thumbMid','thumbRoll','thumbTip','thumbUp']
+            for k in l_order:
+                mHelper = self.getMessageAsMeta('define{0}{1}Helper'.format(STR.capFirst(k),
+                                                                            s_tag.capitalize()))
+                if not mHelper:
+                    raise ValueError,"Failed to query: {0}".format(k)
+                md_helpers[k] = mHelper
+                if k != 'thumbUp':
+                    ml_drivers.append(mHelper)
                     
-                    log.debug(cgmGEN.logString_msg(_str_func,'Get drivers'))
-                    
-                    ml_drivers = []
-                    md_helpers = {}
-                    l_order = ['thumbBase','thumbMid','thumbRoll','thumbTip','thumbUp']
-                    for k in l_order:
-                        mHelper = self.getMessageAsMeta('define{0}{1}Helper'.format(STR.capFirst(k),
-                                                                                    s_tag.capitalize()))
-                        if not mHelper:
-                            raise ValueError,"Failed to query: {0}".format(k)
-                        md_helpers[k] = mHelper
-                        if k != 'thumbUp':
-                            ml_drivers.append(mHelper)
-                            
-                    self.msgList_connect("thumb{0}_0_Drivers".format(a.capitalize()).format(),ml_drivers)                    
-                    mUpHandle = md_helpers['thumbUp']
-                    
-                    #Scale ====================================================================
-                    log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
-                    l_scales = [1.0 for v in range(len(ml_drivers))]
+            self.msgList_connect("thumb{0}_0_Drivers".format(a.capitalize()).format(),ml_drivers)                    
+            mUpHandle = md_helpers['thumbUp']
+            
+            #Scale ====================================================================
+            log.debug(cgmGEN.logString_msg(_str_func,'param scale'))
+            l_scales = [1.0 for v in range(len(ml_drivers))]
+        
+            ATTR.datList_connect(self.mNode,a+'_0_scaleX',l_scales)
+            l_scaleAttrsX = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleX')
+            
+            ATTR.datList_connect(self.mNode,a+'_0_scaleY',l_scales)
+            l_scaleAttrsY = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleY')                    
+        
+        
+            for a2 in l_scaleAttrsX + l_scaleAttrsY:
+                ATTR.set_lock(_short,a2,False)
+                ATTR.set_min(_short,a2,.1)
                 
-                    ATTR.datList_connect(self.mNode,a+'_0_scaleX',l_scales)
-                    l_scaleAttrsX = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleX')
-                    
-                    ATTR.datList_connect(self.mNode,a+'_0_scaleY',l_scales)
-                    l_scaleAttrsY = ATTR.datList_getAttrs(self.mNode, a+'_0_scaleY')                    
                 
+            if resetToBase:
+                for i,v in enumerate([1.97,1.12,1.34,.79]):
+                    ATTR.set(_short, l_scaleAttrsX[i],v)
+                for i,v in enumerate([2.14,.94,1.17,.59]):
+                    ATTR.set(_short, l_scaleAttrsY[i],v)
+            
+            #Scale ====================================================================
+            log.debug(cgmGEN.logString_msg(_str_func,'profile curves'))
+            ml_profiles = []
+            _size = DIST.get_distance_between_points(ml_drivers[0].p_position,
+                                                     ml_drivers[-1].p_position)
+            
+            for i,mDriver in  enumerate(ml_drivers):
+                _crv = CURVES.create_fromName(name='loftSquircle',
+                                              direction = 'z+', size = _sizeProfile)
+                mProfile = cgmMeta.asMeta(_crv)
+                mProfile.doSnapTo(mDriver.mNode)
+                mProfile.v=False
+                mProfile.rename("{0}_profile_{1}".format(a,i))
+                mc.reverseCurve(mProfile.mNode,ch=0)
                 
-                    for a2 in l_scaleAttrsX + l_scaleAttrsY:
-                        ATTR.set_lock(_short,a2,False)
-                        ATTR.set_min(_short,a2,.1)
-                        
-                        
-                    if resetToBase:
-                        for i,v in enumerate([4.3,3.4,3.3,2.3]):
-                            ATTR.set(_short, l_scaleAttrsX[i],v)
-                        for i,v in enumerate([4.8,3.3,2.8,1.9]):
-                            ATTR.set(_short, l_scaleAttrsY[i],v)                        
+                mProfile.p_parent = mDefineNull
+                mc.pointConstraint([mDriver.mNode],mProfile.mNode, maintainOffset = False)
+                
+                if mDriver == ml_drivers[0]:
+                    mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpObject = mUpHandle.mNode,
+                                     worldUpType = 'objectRotation', 
+                                     worldUpVector = [0,1,0])
+                elif mDriver == ml_drivers[-1]:
+                    mc.aimConstraint(ml_drivers[i-1].mNode, mProfile.mNode, maintainOffset = False,
+                                     aimVector = [0,0,-1], upVector = [0,1,0], 
+                                     worldUpObject = ml_profiles[-1].mNode,
+                                     worldUpType = 'objectRotation', 
+                                     worldUpVector = [0,1,0])                            
                     
-                    #Scale ====================================================================
-                    log.debug(cgmGEN.logString_msg(_str_func,'profile curves'))
-                    ml_profiles = []
-                    for i,mDriver in  enumerate(ml_drivers):
-                        _crv = CURVES.create_fromName(name='loftSquircle',
-                                                      direction = 'z+', size = 1.0)
-                        mProfile = cgmMeta.asMeta(_crv)
-                        mProfile.doSnapTo(mDriver.mNode)
-                        mProfile.v=False
-                        mProfile.rename("{0}_profile_{1}".format(a,i))
-                        mc.reverseCurve(mProfile.mNode,ch=0)
-                        
-                        mProfile.p_parent = mDefineNull
-                        mc.pointConstraint([mDriver.mNode],mProfile.mNode, maintainOffset = False)
-                        
-                        if mDriver == ml_drivers[0]:
-                            mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
-                                             aimVector = [0,0,1], upVector = [0,1,0], 
-                                             worldUpObject = mUpHandle.mNode,
-                                             worldUpType = 'objectRotation', 
-                                             worldUpVector = [0,1,0])
-                        elif mDriver == ml_drivers[-1]:
-                            mc.aimConstraint(ml_drivers[i-1].mNode, mProfile.mNode, maintainOffset = False,
-                                             aimVector = [0,0,-1], upVector = [0,1,0], 
-                                             worldUpObject = ml_profiles[-1].mNode,
-                                             worldUpType = 'objectRotation', 
-                                             worldUpVector = [0,1,0])                            
-                            
-                        else:
-                            mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
-                                             aimVector = [0,0,1], upVector = [0,1,0], 
-                                             worldUpObject = ml_profiles[-1].mNode,
-                                             worldUpType = 'objectRotation', 
-                                             worldUpVector = [0,1,0])
-                        
-                        ml_profiles.append(mProfile)
-                        
-                        mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleAttrsX[i]))
-                        mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleAttrsY[i]))                        
-                    
-                    self.msgList_connect('{0}_0_profiles'.format(a), ml_profiles)
-                        
-                    mSurf = self.atUtils('create_defineLoftMesh',
-                                         [mObj.mNode for mObj in ml_profiles],
-                                         plug = a+'_0_LoftMesh')
-                    mSurf.doConnectIn('template',"{0}.template".format(_short))
-                    mSurf.p_parent = mFingerGroup                    
-                    self.msgList_connect('{0}Curves'.format(a), [mCrv])
-                    self.msgList_connect('{0}LoftSurfaces'.format(a), [mSurf])
+                else:
+                    mc.aimConstraint(ml_drivers[i+1].mNode, mProfile.mNode, maintainOffset = False,
+                                     aimVector = [0,0,1], upVector = [0,1,0], 
+                                     worldUpObject = ml_profiles[-1].mNode,
+                                     worldUpType = 'objectRotation', 
+                                     worldUpVector = [0,1,0])
+                
+                ml_profiles.append(mProfile)
+                
+                mProfile.doConnectIn('scaleX',"{0}.{1}".format(_short,l_scaleAttrsX[i]))
+                mProfile.doConnectIn('scaleY',"{0}.{1}".format(_short,l_scaleAttrsY[i]))                        
+            
+            self.msgList_connect('{0}_0_profiles'.format(a), ml_profiles)
+                
+            mSurf = self.atUtils('create_defineLoftMesh',
+                                 [mObj.mNode for mObj in ml_profiles],
+                                 plug = a+'_0_LoftMesh')
+            mSurf.doConnectIn('template',"{0}.template".format(_short))
+            mSurf.p_parent = mFingerGroup                    
+            self.msgList_connect('{0}Curves'.format(a), [mCrv])
+            self.msgList_connect('{0}LoftSurfaces'.format(a), [mSurf])
 
  
         
@@ -1056,18 +1059,18 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
                         ATTR.set_lock(_short,a2,False)
                         ATTR.set_min(_short,a2,.1)
                         
+                    
                     if resetToBase:
-                        for i,v in enumerate([2.1, 2.8, 2.4, 2.2,2]):
+                        for i,v in enumerate([1,1,1,1,.66]):
                             ATTR.set(_short, l_scaleAttrsX[i],v)
-                        for i,v in enumerate([3.9, 3.2, 2.6, 2.3,2]):
+                        for i,v in enumerate([1.39,1.35,1.03,.92,.57]):
                             ATTR.set(_short, l_scaleAttrsY[i],v)
                             
-
                     for i,mDriver in enumerate(ml):
                         log.debug(cgmGEN.logString_msg(_str_func,'driver {0} | {1}'.format(i,mDriver)))
                         
                         _crv = CURVES.create_fromName(name='loftSquircle',
-                                                      direction = 'z+', size = 1.0)
+                                                      direction = 'z+', size = _sizeProfile)
                         mProfile = cgmMeta.asMeta(_crv)
                         mProfile.doSnapTo(mDriver.mNode)
                         mProfile.v=False

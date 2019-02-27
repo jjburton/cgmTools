@@ -207,8 +207,11 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 _l_report.append(''.join(l_name))
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
-                _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
-                _l_report.append("[{0}]".format(_blockState.upper()))
+                if mBlock.getMayaAttr('isBlockFrame'):
+                    _l_report.append("[FRAME]")
+                else:
+                    _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
+                    _l_report.append("[{0}]".format(_blockState.upper()))
                 
                 """
                 if mObj.hasAttr('baseName'):
@@ -218,6 +221,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
             
                 if mBlock.isReferenced():
                     _l_report.append("Referenced")
+                    
         
                 _str = s_start + " - ".join(_l_report)
                 log.debug(_str + "   >> " + mBlock.mNode)
