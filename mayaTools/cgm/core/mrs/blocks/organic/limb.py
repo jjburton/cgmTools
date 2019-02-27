@@ -2020,6 +2020,9 @@ def rig_prechecks(self):
         if mBlock.buildLeverEnd and mBlock.numControls < 4:
             self.l_precheckErrors.append('Quad Setup needs at least 4 controls')
             
+        if mBlock.numControls <= 3 and mBlock.getEnumValueString('ikEnd') != 'default':
+            self.l_precheckWarnings.append('With 3 or less controls, using ikEnd of default')
+            mBlock.ikEnd = 'default'
             
         
         #if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
@@ -3054,15 +3057,29 @@ def rig_digitShapes(self):
                         SNAP.go(mIKCrv.mNode,
                                 ml_prerigHandles[-1].jointHelper,
                                 rotation = False)
+                
+                if str_ikEnd == 'default':
+                    mIKTemplateHandle = ml_templateHandles[-1]
+                    #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                    
+                    _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                    #ATTR.set(_ik_shape,'scale', 1.5)
+                    
+                    mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                    mIKShape.doSnapTo(mIKCrv)
+                    CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
 
-                for mObj in ml_templateHandles[-2:]:
-                    mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
-                    DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
-                    mCrv.p_parent=False
-                    for mShape in mCrv.getShapes(asMeta=True):
-                        mShape.overrideDisplayType = False
-                    CORERIG.shapeParent_in_place(mIKCrv.mNode, mCrv.mNode, True)
-                    ml_curves.append(mCrv)
+                    
+                else:
+                    for mObj in ml_templateHandles[-2:]:
+                        mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
+                        DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
+                        mCrv.p_parent=False
+                        for mShape in mCrv.getShapes(asMeta=True):
+                            mShape.overrideDisplayType = False
+                        CORERIG.shapeParent_in_place(mIKCrv.mNode, mCrv.mNode, True)
+                        ml_curves.append(mCrv)
                     
                 #mCrv = ml_templateHandles[-1].loftCurve.doDuplicate(po=False,ic=False)
                 #DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
@@ -3603,7 +3620,7 @@ def rig_shapes(self):
         
         if str_rigSetup == 'digit':
             str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
-            if str_profile in ['finger','thumb','toe']:
+            if str_profile in ['finger','thumb','toe'] and not self.b_singleChain:
                 return rig_digitShapes(self)
             _offset = _offset/2.0
         

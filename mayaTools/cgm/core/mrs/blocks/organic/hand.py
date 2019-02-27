@@ -73,7 +73,30 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
-d_block_profiles = {}
+
+d_block_profiles = {
+    'human':{
+        'numFinger':4,
+        'numThumbInner':1,
+        'numThumbOuter':0,
+        'fingerProfile':'finger3',
+        'definePose':'relax',                
+        },
+    'toon':{
+        'numFinger':3,
+        'numThumbInner':1,
+        'numThumbOuter':0,
+        'definePose':'relax',        
+        'fingerProfile':'finger2',
+        },
+    'paw':{
+        'numFinger':4,
+        'numThumbInner':0,
+        'numThumbOuter':0,
+        'definePose':'wide',
+        'fingerProfile':'finger1',
+        },        
+}
 
 #>>>Attrs ========================================================================================================
 l_attrsStandard = [
@@ -88,12 +111,14 @@ d_attrsToMake = {
 'definePose':'wide:relax',
 'numFinger':'int',
 'numThumbInner':'int',
+'fingerProfile':'finger3:finger2:finger1:thumb',
 'numThumbOuter':'int'}
 
 d_defaultSettings = {
 'version':__version__,
-'definePose':'wide',
+'definePose':'relax',
 'numFinger':4,
+'side':'right',
 'numThumbOuter':0,
 'numThumbInner':1}
 #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},}
@@ -259,17 +284,17 @@ def define(self):
                     },
             'relax':{'tipInner':[.65,-.4,.85],
                     'tipOuter':[-.55,-.25,.7],
-                    'tipMid':[0,-.4,1],
+                    'tipMid':[.048,-.428,1],
                     'baseInner':[.2,0,-.75],
                     'baseOuter':[-.25,0,-.75],
                     'baseMid':[0,0,-.75],
                     'midInner':[.475,0,0],
                     'midOuter':[-.4,0,0],
                     'midMid':[0,.1,.1],
-                    'thumbTipInner':[.9,-.75,.225],
-                    'thumbBaseInner':[.4,-.2,-.8],
-                    'thumbTipOuter':[-1,-.25,0],
-                    'thumbBaseOuter':[-.5,-.1,-.95],
+                    'thumbTipInner':[.866,-.82,.312],
+                    'thumbBaseInner':[.32,-.124,-.75],
+                    'thumbTipOuter':[-.866,-.82,.312],
+                    'thumbBaseOuter':[-.32,-.124,-.75],
                     }
             }
     
@@ -536,7 +561,7 @@ def define(self):
         
         
         #Verify our drivers
-        #verify_drivers(self)
+        verify_drivers(self)
         
         
         return        
@@ -1182,7 +1207,11 @@ def verify_subBlocks(self,forceNew=True):
         
         if int_fingers:
             log.debug(cgmGEN.logString_sub(_str_func,'fingers'))
-            
+            str_fingerProfile = self.getEnumValueString('fingerProfile')
+            int_controls = None
+            if str_fingerProfile.startswith('finger'):
+                int_controls = int(str_fingerProfile.split('finger')[-1]) + 1
+                
             ml_fingerBlocks = self.msgList_get('fingerBlocks')
             _rebuild = False
             _build = True
@@ -1228,11 +1257,16 @@ def verify_subBlocks(self,forceNew=True):
                     md_fingerDat[i]['mProfile'] = mProfile
                     
                     
-                    
                     #size ========================================================================
-                    _size = DIST.get_axisSize(mProfile.mNode)
-                    _width = _size[0]
-                    _height = _size[1]
+                    l_width=[]
+                    l_height=[]                    
+                    for mObj in ml_profiles:
+                        _size = DIST.get_axisSize(mObj.mNode)
+                        l_width.append(_size[0])
+                        l_height.append(_size[1])
+                        
+                    _width = MATH.average(l_width)
+                    _height = MATH.average(l_height)
                     _length = DIST.get_distance_between_points(ml_drivers[0].p_position,
                                                               ml_drivers[-1].p_position)
                     
@@ -1245,6 +1279,9 @@ def verify_subBlocks(self,forceNew=True):
                                                   blockParent = blockParent,
                                                   blockProfile='finger',baseSize = [_width,_height,_length])
                     
+                    if int_controls is not None:
+                        mSub.numControls = int_controls
+                        
                     #align =========================================================================
                     log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | align'.format(i)))                
                     mSub.doSnapTo(ml_drivers[1].mNode)
@@ -1334,7 +1371,15 @@ def verify_subBlocks(self,forceNew=True):
                     length = DIST.get_distance_between_points(md_helpers['thumbTip'].p_position,
                                                               md_helpers['thumbBase'].p_position)
                     
-                    _size = DIST.get_axisSize(ml_profiles[0].mNode)
+                    l_width=[]
+                    l_height=[]
+                    for mObj in ml_profiles:
+                        _size = DIST.get_axisSize(mObj.mNode)
+                        l_width.append(_size[0])
+                        l_height.append(_size[1])
+                        
+                    _width = MATH.average(l_width)
+                    _height = MATH.average(l_height)                    
                     
                     #create =========================================================================
                     log.debug(cgmGEN.logString_msg(_str_func,'thumb {0} | create'.format(a)))
@@ -1344,8 +1389,8 @@ def verify_subBlocks(self,forceNew=True):
                                                   name='thumb',side = _side,
                                                   blockProfile='thumb',
                                                   blockParent = self.p_blockParent,
-                                                  baseSize = [_size[0],
-                                                              _size[1],
+                                                  baseSize = [_width,
+                                                              _height,
                                                               length])
                     ml_thumbBlocks.append(mSub)
                     
@@ -1542,14 +1587,29 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                             ml_templateHandles = mBlock.msgList_get('templateHandles')
                             
                             ml_lofts = []
-                            for i,mHandle in enumerate(ml_templateHandles):
-                                mHandle.p_position = ml_drivers[i].p_position
+                            
+                            if len(ml_drivers) != len(ml_templateHandles):
+                                log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | dat mismatch. Using alternate placment'.format(k2)))
                                 
-                                ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
-                                ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
-                            for i,mHandle in enumerate(ml_templateHandles):
-                                #Do it twice to account for subconstrained items
-                                mHandle.p_position = ml_drivers[i].p_position
+                                l_pos = CURVES.getUSplitList(mCurve.mNode,len(ml_templateHandles))
+                                for i,mHandle in enumerate(ml_templateHandles):
+                                    mHandle.p_position = l_pos[i]
+                                    
+                                    ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
+                                    ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
+                                for i,mHandle in enumerate(ml_templateHandles):
+                                    #Do it twice to account for subconstrained items
+                                    mHandle.p_position = l_pos[i]
+                                
+                            else:
+                                for i,mHandle in enumerate(ml_templateHandles):
+                                    mHandle.p_position = ml_drivers[i].p_position
+                                    
+                                    ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
+                                    ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
+                                for i,mHandle in enumerate(ml_templateHandles):
+                                    #Do it twice to account for subconstrained items
+                                    mHandle.p_position = ml_drivers[i].p_position
                             
                             if templateScale:
                                 l_x = []

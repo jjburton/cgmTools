@@ -4415,13 +4415,7 @@ class rigFactory(object):
             return log.error("[ '{0}' ] Failure. See script editor".format(_short))
             raise ValueError,("[ '{0}' ] Failure. See script editor".format(_short))
         
-        if self.l_precheckWarnings:
-            print(cgmGEN._str_hardLine)
-            print("|{0}| >> Block: {1} ".format(_str_func, _short))            
-            print("|{0}| >> Prechecks Warnings! ".format(_str_func))
-            for i,e in enumerate(self.l_precheckWarnings):
-                print("{0} | {1}".format(i,e))
-            print(cgmGEN._str_hardLine)            
+
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
         if mode == 'prechecks':
@@ -4441,10 +4435,19 @@ class rigFactory(object):
             raise RuntimeError,"|{0}| >> Failed to process module rig Checks. See warnings and errors.".format(_str_func)
 
         self.fnc_deformConstrainNulls()
+        
+        if self.l_precheckWarnings:
+            print(cgmGEN._str_hardLine)
+            print("|{0}| >> Block: {1} ".format(_str_func, _short))            
+            print("|{0}| >> Prechecks Warnings! ".format(_str_func))
+            for i,e in enumerate(self.l_precheckWarnings):
+                print("{0} | {1}".format(i,e))
+            print(cgmGEN._str_hardLine)                            
         self.fnc_processBuild(**kws)
         
 
-        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+        
 
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))

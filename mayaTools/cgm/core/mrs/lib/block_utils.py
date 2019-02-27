@@ -5758,24 +5758,30 @@ def skeleton_delete(self):
     else:
         mModule = self.getMessageAsMeta('moduleTarget')
         if mModule:
-            ml_joints = mModule.rigNull.msgList_get('moduleJoints')
-            if not ml_joints:
+            mRigNull = mModule.rigNull
+            if not mRigNull:
                 closeOut()
-                return log.error("|{0}| >> No joints found".format(_str_func))
-            else:
-                ml_children = []
-                for mJnt in ml_joints:
-                    ml_childrenTmp = mJnt.getChildren(asMeta=True)
-                    log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
-                    for mChild in ml_childrenTmp:
-                        if mChild not in ml_children and mChild not in ml_joints:
-                            ml_children.append(mChild)
-                            
-                for mChild in ml_children:
-                    log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
-                    mChild.p_parent = False
-                    
-                ml_joints[0].delete()
+                return log.error(cgmGEN.logString_sub(_str_func,'No rigNull'))
+            # return log.error("|{0}| >> No joints found".format(_str_func))                
+            if mRigNull:
+                ml_joints = mRigNull.msgList_get('moduleJoints')
+                if not ml_joints:
+                    closeOut()
+                    return log.error("|{0}| >> No joints found".format(_str_func))
+                else:
+                    ml_children = []
+                    for mJnt in ml_joints:
+                        ml_childrenTmp = mJnt.getChildren(asMeta=True)
+                        log.debug("|{0}| >> joint: {1} | children: {2}".format(_str_func,mJnt.p_nameBase,ml_childrenTmp))
+                        for mChild in ml_childrenTmp:
+                            if mChild not in ml_children and mChild not in ml_joints:
+                                ml_children.append(mChild)
+                                
+                    for mChild in ml_children:
+                        log.debug("|{0}| >> Stray child! {1}".format(_str_func,mChild))
+                        mChild.p_parent = False
+                        
+                    ml_joints[0].delete()
         
     closeOut()
     return True
