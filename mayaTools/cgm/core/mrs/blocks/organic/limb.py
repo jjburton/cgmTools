@@ -206,7 +206,7 @@ d_block_profiles = {
         'baseUp':[0,0,1],
         'baseSize':[11.6,13,70],
         'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
-        'loftList':['wideNeg','wideDown','diamond'],
+        'loftList':['wideNeg','wideDown','circle'],
         'loftShapeEnd':'wideUp',
            },
     
@@ -457,7 +457,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'hasBallJoint':'bool',
                  #'ikEndIndex':'int',
                  'shapersAim':'toEnd:chain',
-                 'loftSetup':'default:loftList',                 
+                 'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  
@@ -508,7 +508,7 @@ d_defaultSettings = {'version':__version__,
                      'segmentMidIKControl':True,
                      'visRotatePlane':False,
                      }
-
+_l_hiddenAttrs = ['baseAim','baseSize','baseUp']
 
 #d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 #d_rotationOrders = {'head':'yxz'}
@@ -525,7 +525,7 @@ def define(self):
         
         _short = self.mNode
         
-        for a in 'baseAim','baseSize','baseUp':
+        for a in _l_hiddenAttrs:
             if ATTR.has_attr(_short,a):
                 ATTR.set_hidden(_short,a,True)
         
@@ -614,6 +614,11 @@ def define(self):
         #Rotate Plane ======================================================================
         self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
         
+        _end = md_handles['end'].mNode
+        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -643,9 +648,17 @@ def templateDelete(self):
                 mHandle.v = True
                 mHandle.template = False
                 
+                if k == 'end':
+                    _end = mHandle.mNode
+                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                  
+                
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
             if mHandle:
                 mHandle.template=False
+                
+                 
             
         self.defineLoftMesh.v = True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -677,7 +690,8 @@ def template(self):
         _ikEnd = self.getEnumValueString('ikEnd')
         _loftSetup = self.getEnumValueString('loftSetup')
                 
-        
+        for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
+            
         #Get base dat =====================================================================================    
         log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
         
@@ -706,7 +720,7 @@ def template(self):
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        self.baseSize = [_size_width,_size_height,_size_length]
+        #self.baseSize = [_size_width,_size_height,_size_length]
         _l_basePos.append(_end)
         log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
         
@@ -1153,13 +1167,13 @@ def template(self):
                 pass
                 #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
             elif mHandle in [md_handles['start'],md_handles['end']]:
-                _lock = ['sz','sx']
+                _lock = []
                 if mHandle == md_handles['start']:
                     _lock.append('rotate')
                     
-                ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
-                ATTR.set_standardFlags( mHandle.mNode, _lock)
-                mHandle.doConnectOut('sy',['sx','sz'])
+                #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
+                #ATTR.set_standardFlags( mHandle.mNode, _lock)
+                #mHandle.doConnectOut('sy',['sx','sz'])
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
                 
             else:

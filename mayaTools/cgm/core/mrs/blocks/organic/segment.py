@@ -248,7 +248,7 @@ d_block_profiles = {
              'settingsPlace':'cog',
              'baseAim':[0,0,1],
              #'baseUp':[0,0,-1],
-             'baseDat':{'rp':[0,0,-1],'up':[0,1,0],'lever':[0,0,-1]},
+             'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,-1]},
              'baseSize':[30,15,76]},
     
     'spineUp':{'numShapers':5,
@@ -466,7 +466,12 @@ def define(self):
         self.UTILS.define_set_baseSize(self)
         
         #Rotate Plane ======================================================================
-        self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)        
+        self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
+        _end = md_handles['end'].mNode
+        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
@@ -496,6 +501,11 @@ def templateDelete(self):
         self.defineEndHelper.v = True
         self.defineUpHelper.v = True
         self.defineLoftMesh.v = True
+        
+        _end = mDefineEndHelper.mNode
+        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
 def template(self):
@@ -540,7 +550,11 @@ def template(self):
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        #self.baseSize = [_size_width,_size_height,_size_length]        
+        #self.baseSize = [_size_width,_size_height,_size_length]
+        
+        for a in 'XYZ':
+            ATTR.break_connection(self.mNode,'baseSize'+a)
+            
         _size_handle = _size_width * 1.25
         _size_loft = MATH.get_greatest(_size_width,_size_height)
     
@@ -574,9 +588,7 @@ def template(self):
         mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template')
     
         _shaperAim = self.getEnumValueString('shaperAim')
-    
         
-    
         #Get base dat =============================================================================        
         _b_lever = False
         md_handles = {}

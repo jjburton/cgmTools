@@ -29,7 +29,7 @@ log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
-
+import maya.mel as mel
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
@@ -5409,13 +5409,13 @@ def template_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     
     
             if mHandle in [md_handles['start'],md_handles['end']]:
-                _lock = ['sz','sx']
+                _lock = []
                 if mHandle == md_handles['start']:
                     _lock.append('rotate')
     
-                ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
-                ATTR.set_standardFlags( mHandle.mNode, _lock)
-                mHandle.doConnectOut('sy',['sx','sz'])
+                #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
+                #ATTR.set_standardFlags( mHandle.mNode, _lock)
+                #mHandle.doConnectOut('sy',['sx','sz'])
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
     
             else:
@@ -7300,7 +7300,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         return mPlane
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, vectorScaleAttr = 'baseSize'):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -7340,9 +7340,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
             #sphere
             if k in ['up','rp'] or _dtmp.get('handleType') == 'vector':# and rotVecControl:
-                _rotSize = [.25,.25,2.0]
-                if k == 'rp':
-                    _rotSize = [.5,.5,1.25]
+                #if not vecControlLiveScale:
+                #    _rotSize = [.25,.25,2.0]
+                #    if k == 'rp':_rotSize = [.5,.5,1.25]
+                #else:
+                _rotSize = [.05,.05,.8]
+                if k == 'rp':_rotSize = [.105,.105,.6]                    
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
                                               direction = 'y+', size = _rotSize)                
@@ -7757,20 +7760,43 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 
             #Scaling our up vector =============================================================
             if rotVecControl and md_handles.get('up'):
-                mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
-                _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
-                                                 "{0}.baseSizeX".format(_short),
-                                                 "{0}.baseSizeY".format(_short),
-                                                 )
-                NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
-                mPlug.doConnectOut("{0}.scaleY".format(md_handles['up'].mNode))
                 
-                if md_handles.get('rp'):
-                    mPlug.doConnectOut("{0}.scaleY".format(md_handles['rp'].mNode))
+                if not vecControlLiveScale:
+                    mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
                     
-                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleX".format(md_handles['up'].mNode))
-                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleY".format(md_handles['up'].mNode))
-                #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleZ".format(md_handles['up'].mNode))
+                    
+                    _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
+                                                     "{0}.{1}X".format(_short,vectorScaleAttr),
+                                                     "{0}.{1}Y".format(_short,vectorScaleAttr),
+                                                     )
+                    NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
+                    
+                    for tag in ['rp','up']:
+                        if md_handles.get(tag):
+                            mPlug.doConnectOut("{0}.scaleX".format(md_handles[tag].mNode))
+                            mPlug.doConnectOut("{0}.scaleY".format(md_handles[tag].mNode))
+                            mPlug.doConnectOut("{0}.scaleZ".format(md_handles[tag].mNode))
+                
+                else:
+                    mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
+                    _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
+                                                     "{0}.distance".format(md_measure['width']['mShape'].mNode),
+                                                     "{0}.distance".format(md_measure['height']['mShape'].mNode),
+                                                     )
+                    NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
+                    
+                    for tag in ['rp','up']:
+                        if md_handles.get(tag):
+                            mPlug.doConnectOut("{0}.sx".format(md_handles[tag].mNode))
+                            mPlug.doConnectOut("{0}.sy".format(md_handles[tag].mNode))
+                            mPlug.doConnectOut("{0}.sz".format(md_handles[tag].mNode))
+                            
+                    
+
+                    
+                    #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleX".format(md_handles['up'].mNode))
+                    #md_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleY".format(md_handles['up'].mNode))
+                    #d_measure['length']['mShape'].doConnectOut('distance',"{0}.scaleZ".format(md_handles['up'].mNode))
                 
                 #md_handles['end'].doConnectOut('scaleX',"{0}.scaleX".format(md_handles['up'].mNode) )
                 #md_handles['end'].doConnectOut('scaleX',"{0}.scaleY".format(md_handles['up'].mNode) )
@@ -7785,7 +7811,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     md_handles['end'].doConnectOut('scaleY',"{0}.scaleY".format(md_handles['start'].mNode))
                     #mPlug.doConnectOut("{0}.scaleZ".format(md_handles['start'].mNode))
                 
+            if md_handles.get('end'):
+                pos = md_handles['end'].p_position
+                md_handles['end'].p_position = 1,2,3
+                md_handles['end'].p_position = pos
                 
+            mel.eval('EnableAll;doEnableNodeItems true all;')
 
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,

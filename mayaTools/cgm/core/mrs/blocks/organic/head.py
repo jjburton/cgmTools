@@ -199,6 +199,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashExtraControl' : 'bool',
                  'squashFactorMax':'float',
                  'squashFactorMin':'float',
+                 'neckSize':'double3',
              
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
@@ -257,6 +258,7 @@ d_skeletonSetup = {'mode':'curveCast',
 d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 d_rotationOrders = {'head':'yxz'}
 
+_l_hiddenAttrs = ['neckSize']
 
 #=============================================================================================================
 #>> UI
@@ -362,14 +364,9 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(headGeo_getGroup,self,True),
                 label = "Select Group")
     
-    
     mc.menuItem(ann = '[{0}] Head Geo Lock'.format(_short),
                 c = cgmGEN.Callback(headGeo_lock,self,None),
                 label = "Toggle Lock")
-    
-
-    
- 
 
     
     """
@@ -393,6 +390,9 @@ def define(self):
         ATTR.set_min(_short, 'loftSides', 3)
         ATTR.set_min(_short, 'loftSplit', 1)
         
+        for a in _l_hiddenAttrs:
+            if ATTR.has_attr(_short,a):
+                ATTR.set_hidden(_short,a,True)        
         
         _shapes = self.getShapes()
         if _shapes:
@@ -459,7 +459,8 @@ def define(self):
     
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
                                                      rotVecControl=True,
-                                                     blockUpVector = self.baseDat['up'])
+                                                     blockUpVector = self.baseDat['up'],
+                                                     vectorScaleAttr='neckSize')
         self.UTILS.define_set_baseSize(self)
         
         md_vector = _resDefine['md_vector']
@@ -480,6 +481,11 @@ def define(self):
         self.defineLoftMesh.p_parent = mNeckGroup
         self.defineLoftMesh.resetAttrs()
         mRotatePlane.p_parent = mNeckGroup
+        
+        _end = md_handles['end'].mNode
+        self.doConnectIn('neckSizeX',"{0}.width".format(_end))
+        self.doConnectIn('neckSizeY',"{0}.height".format(_end))
+        self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
         
         return    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -522,6 +528,12 @@ def templateDelete(self):
                             mc.delete(c)
                     mHandle.p_position = pos
                     
+                if k == 'end':
+                    _end = mHandle.mNode
+                    self.doConnectIn('neckSizeX',"{0}.width".format(_end))
+                    self.doConnectIn('neckSizeY',"{0}.height".format(_end))
+                    self.doConnectIn('neckSizeZ',"{0}.length".format(_end))                    
+                    
 
                 
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
@@ -553,6 +565,7 @@ def template(self):
         _ikSetup = self.getEnumValueString('ikSetup')
         _loftSetup = self.getEnumValueString('loftSetup')
                 
+        for a in 'XYZ':ATTR.break_connection(self.mNode,'neckSize'+a)
         
         #Get base dat =============================================================================
         log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)

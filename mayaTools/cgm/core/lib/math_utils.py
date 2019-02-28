@@ -361,8 +361,14 @@ def multiply(valueList):
 
 
 #Bosker's stuff ===========================================================================================================================
-def Clamp(val, minimum, maximum):
+def Clamp(val, minimum=None, maximum=None):
     '''Clamps the value between 2 minimum and maximum values'''
+    if minimum is None and maximum is None:
+        return val
+    if maximum is  None and minimum is not None:
+        return  max(val,minimum)
+    if minimum is None and maximum is not None:
+        return min(val,maximum)
     return max(min(val,maximum),minimum)
 
 def Lerp(start, end, percent):

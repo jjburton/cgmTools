@@ -373,6 +373,11 @@ def define(self):
     
         md_handles['aim'].p_parent = mAimGroup
         md_vector['aim'].p_parent = mAimGroup
+        
+        _end = md_handles['end'].mNode
+        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
     
         #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
         #mLeverGroup.p_parent = mDefineNull
@@ -421,8 +426,10 @@ def templateDelete(self):
                             mc.delete(c)
                     mHandle.p_position = pos
                 if k == 'end':
-                    self.baseSize = mHandle.width,mHandle.height,mHandle.length
-                    
+                    _end = mHandle.mNode
+                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
                         
                 mHandle.v = True
                 mHandle.template = False
@@ -452,6 +459,7 @@ def template(self):
         
         #If we have a loftList setup, we need to validate those attributes
         _int_shapers = self.numShapers
+        for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
         
         
         _loftSetup = self.getEnumValueString('loftSetup')

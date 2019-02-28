@@ -105,7 +105,7 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
         _str_func = 'get_callSize'
         
         def floatValues(arg):
-            return [float(v) for v in arg]
+            return [float(MATH.Clamp(v,.1,None)) for v in arg]
         _sel = mc.ls(sl=True)
 
         if mode in [None,'default']:
@@ -174,9 +174,11 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
         
         if not size:
             raise ValueError,"No size found"
+        
         _res = floatValues(size)
+        
         log.info("|{0}| >>  mode: {1} | arg: '{2}' | size: {3}".format(_str_func,mode,arg,_res))        
-        return floatValues(_res)
+        return _res
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
