@@ -87,7 +87,7 @@ d_block_profiles = {
         'numThumbInner':1,
         'numThumbOuter':0,
         'definePose':'relax',        
-        'fingerProfile':'finger2',
+        'fingerProfile':'finger3',
         },
     'paw':{
         'numFinger':4,
@@ -117,6 +117,7 @@ d_attrsToMake = {
 d_defaultSettings = {
 'version':__version__,
 'definePose':'relax',
+'attachPoint':'end',
 'numFinger':4,
 'side':'right',
 'numThumbOuter':0,
@@ -303,7 +304,7 @@ def define(self):
               }
         
         for k in ['tip','base','mid']:
-            _d['{0}Inner'.format(k)] = {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d['{0}Inner'.format(k)] = {'color':'blue','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
             _d['{0}Outer'.format(k)] = {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
             _d['{0}Mid'.format(k)] = {'color':'yellow','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
             if k == 'mid':
@@ -317,7 +318,7 @@ def define(self):
             
             
         for k in ['thumbBase','thumbTip']:
-            _d['{0}Inner'.format(k)] = {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d['{0}Inner'.format(k)] = {'color':'blue','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
             _d['{0}Outer'.format(k)] = {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
             
         for k in ['thumbMid','thumbRoll']:
@@ -334,7 +335,7 @@ def define(self):
         l_order.extend(_d.keys())
         
         for k in ['thumbUp']:
-            _d['{0}Inner'.format(k)] = {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'handleType':'vector','parentTag':'thumbBaseInner','endTag':'thumbTipInner'}
+            _d['{0}Inner'.format(k)] = {'color':'blue','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'handleType':'vector','parentTag':'thumbBaseInner','endTag':'thumbTipInner'}
             _d['{0}Outer'.format(k)] = {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'handleType':'vector','parentTag':'thumbBaseOuter','endTag':'thumbTipOuter'}
             l_order.extend(['{0}Inner'.format(k),'{0}Outer'.format(k)])
         
@@ -561,7 +562,7 @@ def define(self):
         
         
         #Verify our drivers
-        verify_drivers(self)
+        #verify_drivers(self)
         
         
         return        
@@ -868,10 +869,10 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
                 pprint.pprint(ml_uValues)
                 
                 log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
-                ATTR.datList_connect(self.mNode,'pFingerStart',ml_uValues)
-                l_paramStart = ATTR.datList_getAttrs(self.mNode, 'pFingerStart')
-                ATTR.datList_connect(self.mNode,'pFingerEnd',ml_uValues)
-                l_paramEnd = ATTR.datList_getAttrs(self.mNode, 'pFingerEnd')
+                ATTR.datList_connect(self.mNode,'paramDigitStart',ml_uValues)
+                l_paramStart = ATTR.datList_getAttrs(self.mNode, 'paramDigitStart')
+                ATTR.datList_connect(self.mNode,'paramDigitEnd',ml_uValues)
+                l_paramEnd = ATTR.datList_getAttrs(self.mNode, 'paramDigitEnd')
                 
                 for a in l_paramStart + l_paramEnd:
                     ATTR.set_lock(_short,a,False)
@@ -1719,8 +1720,8 @@ def verify_subBlocksBAK(self,forceNew=True):
             pprint.pprint(ml_uValues)
             
             log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
-            ATTR.datList_connect(self.mNode,'paramFinger',ml_uValues)
-            l_param = ATTR.datList_getAttrs(self.mNode, 'paramFinger')
+            ATTR.datList_connect(self.mNode,'paramDigit',ml_uValues)
+            l_param = ATTR.datList_getAttrs(self.mNode, 'paramDigit')
             for a in l_param:
                 ATTR.set_lock(_short,a,False)
                 ATTR.set_min(_short,a,0.0)
