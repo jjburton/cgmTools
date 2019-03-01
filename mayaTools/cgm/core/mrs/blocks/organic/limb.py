@@ -260,7 +260,7 @@ d_block_profiles = {
         'baseAim':[-1,0,0],
         'baseSize':[14,9,76],
         'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
-        'loftList':['circle','widePos','square'],
+        'loftList':['circle','widePos','squircle'],
            },
     'wingBase':{'numSubShapers':2,
                 'addCog':False,

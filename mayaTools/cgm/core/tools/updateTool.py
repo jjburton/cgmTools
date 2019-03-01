@@ -39,6 +39,7 @@ reload(cgmUpdate)
 __version__ = 'Alpha - 0.12272018 - 1'
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
+_l_branches = ['stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV']
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -351,7 +352,6 @@ def buildRow_branches(self,parent):
     mUI.MelLabel(_row,l='Choose which branch you want to use:')
     
     #>>>Settings -------------------------------------------------------------------------------------
-    _l_branches = ['stable','master','MRS','MRSWORKSHOP','MRSWORKSHOPDEV']
     
 
     #cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i)

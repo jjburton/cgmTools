@@ -222,6 +222,7 @@ d_block_profiles = {
                 'shapersAim':'chain',
                 'baseAim':[0,0,1],
                 'baseUp':[0,1,0],
+                'settingsPlace':'end',
                 'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,-1]},
                 'baseSize':[14,9,76],
                 },    
