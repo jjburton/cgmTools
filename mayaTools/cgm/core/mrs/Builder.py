@@ -837,31 +837,23 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_block(self,*args,**kws):
         self.uiMenu_block.clear()   
         _menu = self.uiMenu_block
-        """
-        'label':{'ann':'asfasdf',
-                  'call':None},
-                  """    
-        
-        
-        """
-                mUI.MelMenuItem(_mRig,
-                        label = 'Reset Rig controls',
-                        ann = self._d_ui_annotations.get('reset rig controls',"FIX") + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_reset',**{'updateUI':0}))
-                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_reset' ))
-        mUI.MelMenuItem(_mRig,
-                        label = 'Connect Rig',
-                        ann = self._d_ui_annotations.get('connect rig',"FIX") + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_connect',**{'updateUI':0}))
-                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_connect' ))
-        mUI.MelMenuItem(_mRig,
-                        label = 'Disconnect Rig',
-                        ann = self._d_ui_annotations.get('disconnect rig',"FIX") + _str_context,
-                        c = cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_disconnect',**{'updateUI':0}))
-                        #c=cgmGEN.Callback( _mBlock.atRigModule, 'rig_disconnect' ))        
-        
-        """
         d_s = {'Set Side':{},
+               'Utilities':{'Verify':{'ann':'Check if the block is current (DEV)',
+                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'verify',
+                                                     **{'updateUI':0})},                   
+                   'Block Current?':{'ann':'Check if the block is current (DEV)',
+                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                       'atUtils','is_current',
+                                                       **{'updateUI':0})},
+                  'Block Update':{'ann':'[DEV] Update a block. In testing',
+                                    'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                           'atUtils','update',
+                                                           **{'updateUI':0,'reverseContext':False})},
+                  'Reorder UD':{'ann':'Reorder user defined attrs',
+                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                       'atUtils','reorder_udAttrs',
+                                                       **{'updateUI':0})}},
                'blockFrame':{'Align To':{'ann':self._d_ui_annotations.get('blockframealignto'),
                                          'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                 'atUtils','blockFrame_alignTo',False,
@@ -869,8 +861,7 @@ class ui(cgmUI.cgmGUI):
                         'Shape To':{'ann':self._d_ui_annotations.get('blockframeshapeto'),
                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                            'atUtils','blockFrame_alignTo',True,
-                                           **{'updateUI':0})},
-                        },               
+                                           **{'updateUI':0})}},               
                'Focus':{'Clear':{'ann':self._d_ui_annotations.get('focus clear'),
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                         'focus',False,None,
@@ -976,12 +967,8 @@ class ui(cgmUI.cgmGUI):
                   'Buildable?':{'ann':'Check if the block is buildable (DEV)',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'getModuleStatus',
-                                                       **{'updateUI':0})},
-                  'Reorder UD':{'ann':'Reorder user defined attrs',
-                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                       'atUtils','reorder_udAttrs',
                                                        **{'updateUI':0})}},
-                  
+
                'Geo':{
                    'order':['Block Mesh','Block Loft','Puppet Mesh',
                             'Unified','Unified [Skinned]',
@@ -1088,10 +1075,19 @@ class ui(cgmUI.cgmGUI):
         
         l_keys = d_s.keys()
         l_keys.sort()
+        l_check = ['Define','Template','Prerig','Skeleton','Rig']
+        l_check.reverse()
+        for k in l_check:
+            if k in l_keys:
+                l_keys.remove(k)
+                l_keys.insert(0,k)
+                
         for s in l_keys:
             d = d_s[s]
             divTags = d.get('divTags',[])
             headerTags = d.get('headerTags',[])
+            
+                
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
                             label = s,
                             en=True,)
@@ -1132,6 +1128,9 @@ class ui(cgmUI.cgmGUI):
                                 label = l,
                                 ann = d2.get('ann',''),
                                 c=d2.get('call'))
+                
+            if s == 'Rig':
+                mUI.MelMenuItemDiv(_menu)            
 
         #Vis menu -----------------------------------------------------------------------------
         _vis = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
@@ -1621,7 +1620,9 @@ class ui(cgmUI.cgmGUI):
             
             
             _str_func = ''
+            log.info(cgmGEN._str_hardBreak)
             _updateUI = kws.pop('updateUI',True)
+            _reverseContext = kws.pop('reverseContext',False)
             _startMode = self.var_contextStartMode.value   
             _contextMode = kws.pop('contextMode', self._l_contextModes[self.var_contextMode.value])
             _b_confirm = False            
@@ -1654,14 +1655,14 @@ class ui(cgmUI.cgmGUI):
             b_rootMode = False
             if args[0] == 'changeState':
                 b_changeState = True
-                if _contextMode in ['self','scene']:
+                if _contextMode in ['scene']:
                     log.warning("|{0}| >> Change state cannot be run in any mode but self. Changing context.".format(_str_func))                    
-                    _contextMode = 'self'
                 elif _contextMode == 'root':
                     b_rootMode = True
                 
                 if _contextMode == 'self':
                     kws['forceNew'] = True
+                    kws['checkDependency'] = True
                 else:
                     kws['forceNew'] = self.var_contextForceMode.value
             elif args[0] == 'stepUI':
@@ -1735,6 +1736,11 @@ class ui(cgmUI.cgmGUI):
                 if not confirm(_title, _message, _funcString):return False
                 
             ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
+            
+            if _reverseContext:
+                log.warning(cgmGEN.logString_msg(_str_func,'REVERSE CONTEXT MODE ON'))
+                
+                ml_context.reverse()
             #Now parse to sets of data
             if args[0] == 'stepUI':
                 return ui_stepBuild(ml_blocks[0])
@@ -1772,7 +1778,6 @@ class ui(cgmUI.cgmGUI):
                 #cgmUI.progressBar_set(self.uiPB_mrs,
                 #                      maxValue = int_len+1,
                 #                      progress=i+i_add, vis=True)
-                time.sleep(.5)
                 log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
                 log.debug("|{0}| >> res: {1}".format(_str_func,res))

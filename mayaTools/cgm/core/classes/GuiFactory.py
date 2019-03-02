@@ -236,65 +236,65 @@ class cgmGUI(mUI.BaseMelWindow):
     l_allowedDockAreas = ['right', 'left']
     
     def __init__( self,*a,**kw):
-        _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
+        try:
+            _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
+                    
+            log.info("|{0}| >>...".format(_str_func))        
+            
+            #Check our tool option var for debug mode to set logger level if so
+            if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
+                log.setLevel(logging.DEBUG)	
                 
-        log.info("|{0}| >>...".format(_str_func))        
-        
-        #Check our tool option var for debug mode to set logger level if so
-        if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
-            log.setLevel(logging.DEBUG)	
             
-        
-        #killChildren(self)
-        #>>> Standard cgm variables
-        #====================	    
-        self.l_optionVars = []
-        self.l_helpElements = []
-        self.l_oldGenElements = []
-        self.description = __description__
-        self.initializeTemplates() 
-        self.setup_baseVariables()	
-        
-        #>>> Insert our init, overloaded for other tools
-        self.insert_init(self,*a,**kw)
+            #killChildren(self)
+            #>>> Standard cgm variables
+            #====================	    
+            self.l_optionVars = []
+            self.l_helpElements = []
+            self.l_oldGenElements = []
+            self.description = __description__
+            self.initializeTemplates() 
+            self.setup_baseVariables()	
             
-        #>>> Menu
-        self.build_menus()
-
-        #>>> Body
-        #====================        
-        self.build_layoutWrapper(self)
-
-        #====================
-        # Show and Dock
-        #====================
-        #Maya2011 QT docking - from Red9's examples
-        #if mayaVersion == 2011:
-        #'Maya2011 dock delete'
-
+            #>>> Insert our init, overloaded for other tools
+            self.insert_init(self,*a,**kw)
+                
+            #>>> Menu
+            self.build_menus()
+    
+            #>>> Body
+            #====================        
+            self.build_layoutWrapper(self)
+    
+            #====================
+            # Show and Dock
+            #====================
+            #Maya2011 QT docking - from Red9's examples
+            #if mayaVersion == 2011:
+            #'Maya2011 dock delete'
+    
+            #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
+            """_dock = '{0}Dock'.format(__toolName__)        
+            self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
+                                          label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
+                                          floating = self.var_Dock.value,
+                                          allowedArea=self.l_allowedDockAreas,
+                                          width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
             
-        #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
-        """_dock = '{0}Dock'.format(__toolName__)        
-        self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
-                                      label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
-                                      floating = self.var_Dock.value,
-                                      allowedArea=self.l_allowedDockAreas,
-                                      width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
-        
-        
-        _dock = '{0}Dock'.format(self.__toolName__)            
-        if mc.dockControl(_dock, exists=True):
-            log.info('Deleting {0}'.format(_dock))
-            mc.deleteUI(_dock, control=True)   
-        """    
-        if self.var_Dock and self.var_Dock.value:
-            try:
-                self.do_dock()
-            except Exception,err:
-                log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
-        """    
             
-        self.show()
+            _dock = '{0}Dock'.format(self.__toolName__)            
+            if mc.dockControl(_dock, exists=True):
+                log.info('Deleting {0}'.format(_dock))
+                mc.deleteUI(_dock, control=True)   
+            """    
+            if self.var_Dock and self.var_Dock.value:
+                try:
+                    self.do_dock()
+                except Exception,err:
+                    log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
+            """    
+            self.show()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
 
     def insert_init(self,*args,**kws):
         """ This is meant to be overloaded per gui """

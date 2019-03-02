@@ -12,6 +12,7 @@ Website : http://www.cgmonks.com
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',
+                'baseDat':'string',
                 'baseSize':'float3',
                 'cgmName':'string',
                 'cgmDirection':'string',
