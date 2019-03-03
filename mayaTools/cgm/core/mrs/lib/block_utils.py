@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -3794,8 +3794,289 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
     return _d
 
+def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
+    _str_func = 'blockDat_load_state'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    if not blockDat:
+        log.debug(cgmGEN.logString_msg(_str_func,"No blockDat, using self"))
+        blockDat = self.blockDat
+
+    d_state = blockDat.get(state,False)
+    if not d_state:
+        log.error(cgmGEN.logString_msg(_str_func,"No {0} data found in blockDat".format(state)))
+        return False
+    
+    ml_handles = self.atUtils('controls_get',**{state:True})
+    
+    if d_warnings:
+        if not d_warnings.get(state):
+            d_warnings[state] =  []
+        _l_warnings = d_warnings[state]
+    else:
+        _l_warnings = []
+        
+    if not ml_handles:
+        log.error("|{0}| >> No define handles found".format(_str_func))
+    else:
+        _posTempl = d_state.get('positions')
+        _orientsTempl = d_state.get('orients')
+        _scaleTempl = d_state.get('scales')
+        _jointHelpers = d_state.get('jointHelpers')
+        _loftCurves = d_state.get('loftCurves',{})
+        _subShapers = d_state.get('subShapers',{})
+        _len_posTempl = len(_posTempl)
+        _jointHelpersPre = {}
+        if state == 'prerig':
+            _jointHelpersPre = d_state.get('jointHelpers')
+            
+        if len(ml_handles) < _len_posTempl:
+            _l_warnings.append("|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state))
+        else:
+            for i_loop in range(3):
+                log.info(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
+                for i,mObj in enumerate(ml_handles):
+                    log.info(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
+                    
+                    if i > _len_posTempl-1:
+                        _l_warnings.append("No data for: {0}".format(mObj))
+                        continue
+                    
+                    mObj.p_position = _posTempl[i]
+                    if not ATTR.is_locked(mObj.mNode,'rotate'):
+                        mObj.p_orient = _orientsTempl[i]
+                        
+                    _tmp_short = mObj.mNode
+                    for ii,v in enumerate(_scaleTempl[i]):
+                        _a = 's'+'xyz'[ii]
+                        if not mObj.isAttrConnected(_a):
+                            ATTR.set(_tmp_short,_a,v)
+                        else:
+                            log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))
+                    if _jointHelpers and _jointHelpers.get(i):
+                        mObj.jointHelper.translate = _jointHelpers[i]
+                    
+                    _d_loft = _loftCurves.get(str(i))
+                    if _d_loft:
+                        if i_loop:
+                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                        
+                            mLoftCurve = mObj.loftCurve
+                            _rot = _d_loft.get('r')
+                            _s = _d_loft.get('s')
+                            _t = _d_loft.get('t')
+                            if _rot:
+                                ATTR.set(mLoftCurve.mNode,'rotate',_rot)
+                            if _s:
+                                ATTR.set(mLoftCurve.mNode,'scale',_s)
+                            if _t:
+                                ATTR.set(mLoftCurve.mNode,'translate',_t)
+                                
+                    if _jointHelpersPre and _jointHelpersPre.get(i):
+                        mObj.jointHelper.translate = _jointHelpersPre[i]                    
+                            
+                for i,d_sub in _subShapers.iteritems():
+                    ml_subs = ml_handles[int(i)].msgList_get('subShapers')
+                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                    if not ml_subs:
+                        raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                    _t = d_sub.get('t')
+                    _r = d_sub.get('r')
+                    _s = d_sub.get('s')
+                    _p = d_sub.get('p')
+                    for ii,mObj in enumerate(ml_subs):
+                        mObj.p_position = _p[ii]
+                        #ATTR.set(mObj.mNode,'t',_t[ii])
+                        ATTR.set(mObj.mNode,'r',_r[ii])
+                        ATTR.set(mObj.mNode,'s',_s[ii])        
+
 @cgmGEN.Timer
 def blockDat_load(self, blockDat = None,
+                  useMirror = False,
+                  settingsOnly = False,
+                  autoPush = True,
+                  currentOnly=False,
+                  redefine=False):
+    """
+    redefine - When duplicating, sometimes we need to redfine after data load
+    """
+    try:
+        _short = self.p_nameShort        
+        _str_func = 'blockDat_load'
+        log.debug(cgmGEN.logString_start(_str_func))
+        _d_warnings = {}
+    
+        if blockDat is None:
+            log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+            blockDat = self.blockDat
+    
+        if not issubclass(type(blockDat),dict):
+            raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
+    
+        _blockType = blockDat.get('blockType')
+        if _blockType != self.blockType:
+            raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
+    
+            
+        self.blockScale = blockDat['blockScale']
+        
+        #.>>>..UD ====================================================================================
+        log.debug("|{0}| >> ud...".format(_str_func)+ '-'*80)
+        _ud = blockDat.get('ud')
+        _udFail = {}
+        if not blockDat.get('ud'):
+            raise ValueError,"|{0}| >> No ud data found".format(_str_func)
+        
+        for a,v in _ud.iteritems():
+            _current = ATTR.get(_short,a)
+            if _current != v:
+                try:
+                    if ATTR.get_type(_short,a) in ['message']:
+                        log.debug("|{0}| >> userDefined '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                    else:
+                        log.debug("|{0}| >> userDefined '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        ATTR.set(_short,a,v)
+                except Exception,err:
+                    _udFail[a] = v
+                    log.error("|{0}| >> userDefined '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    #r9Meta.printMetaCacheRegistry()                
+                    for arg in err.args:
+                        log.error(arg)                      
+    
+        if _udFail:
+            log.warning(cgmGEN.logString_sub(_str_func,'UD Fails'))
+            pprint.pprint(_udFail)
+            
+        if settingsOnly:
+            log.warning(cgmGEN.logString_msg(_str_func,'settings only'))
+            return
+        
+        
+        #>>State ====================================================================================
+        log.debug("|{0}| >> State".format(_str_func) + '-'*80)
+        _stateArgs = BLOCKGEN.validate_stateArg(blockDat.get('blockState'))
+        _target_state_idx = _stateArgs[0]
+        _target_state = _stateArgs[1]
+        
+        _current_state = self.getState()
+        _onlyState = False
+        _current_state_idx = self.getState(False)
+        
+        if currentOnly:
+            log.debug("|{0}| >> Current only mode: {1}".format(_str_func,_current_state))
+            return blockDat_load_state(self,_current_state,blockDat)
+
+            
+        elif _target_state != _current_state:
+            log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
+            #self.p_blockState = _state
+            
+        mMirror = False
+        if useMirror:
+            if self.getMessage('blockMirror'):
+                mMirror = self.blockMirror
+            log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))
+            
+    
+        #>>Controls ====================================================================================
+        def setAttr(node,attr,value):
+            try:ATTR.set(node,attr,value)
+            except Exception,err:
+                log.warning("|{0}| >> Failed to set: {1} | attr:{2} | value:{3} | err: {4}".format(_str_func,
+                                                                                                   node,
+                                                                                                   attr,value))
+        log.debug("|{0}| >> Block main controls".format(_str_func)+ '-'*80)
+        _pos = blockDat.get('position')
+        _orients = blockDat.get('orient')
+        _scale = blockDat.get('scale')
+        _orientHelper = blockDat.get('rootOrientHelper')
+        
+        self.p_position = blockDat.get('position')
+        self.p_orient = blockDat.get('orient')
+        
+        if blockDat.get('blockScale'):
+            self.blockScale = blockDat['blockScale']
+        #else:
+            #for ii,v in enumerate(_scale):
+                #_a = 's'+'xyz'[ii]
+                #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
+                #setAttr(_short,_a,v)
+            
+        #>>Define Controls ====================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'define'))
+        
+        if redefine:
+            changeState(self,'define',forceNew=True,rebuildFrom='define')
+            _current_state_idx = 0
+            _current_state = 'define'
+            
+        if mMirror == 'cat':
+            log.info("|{0}| >> mMirror define pull...".format(_str_func))            
+            controls_mirror(mMirror,self,define=True)
+        else:
+            blockDat_load_state(self,'define',blockDat,_d_warnings)
+        
+        #>>Template Controls ====================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'template'))
+        
+        if _target_state_idx >= 1:
+            log.info("|{0}| >> template dat....".format(_str_func))
+            if autoPush:
+                if _current_state_idx < 1:
+                    log.info("|{0}| >> Pushing to template....".format(_str_func))
+                    self.p_blockState = 1
+            else:
+                return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
+            
+            log.debug(cgmGEN.logString_msg(_str_func,'template push'))
+            
+        if mMirror:
+            log.info("|{0}| >> mMirror template pull...".format(_str_func))            
+            self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
+        
+        else:
+            if _orientHelper:
+                mOrientHelper = self.getMessageAsMeta('orientHelper')
+                if mOrientHelper:
+                    _ctrl = mOrientHelper.mNode
+                    for ii,v in enumerate(_orientHelper):
+                        _a = 'r'+'xyz'[ii]
+                        setAttr(_ctrl,_a,v)
+                else:
+                    _d_warnings['template']=["Missing orient Helper. Data found."]
+                
+            blockDat_load_state(self,'template',blockDat,_d_warnings)
+           
+        
+        #Prerig ==============================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
+        
+        if _target_state_idx >= 2:
+            log.info("|{0}| >> prerig dat....".format(_str_func))
+            if _current_state_idx < 2:
+                if not autoPush:
+                    return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
+                else:
+                    log.info("|{0}| >> Pushing to prerig....".format(_str_func))
+                    self.p_blockState = 2
+
+        if mMirror:
+            log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
+            self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
+        else:
+            blockDat_load_state(self,'prerig',blockDat,_d_warnings)
+            
+        if _d_warnings:
+            for k,d in _d_warnings.iteritems():
+                for i,w in enumerate(d):
+                    if i == 0:log.warning(cgmGEN.logString_sub(_str_func,"{0} | Warnings".format(k)))
+                    log.warning(w)
+        return
+
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+def blockDat_load_prefactor(self, blockDat = None,
                   useMirror = False,
                   settingsOnly = False,
                   autoPush = True,
@@ -3858,6 +4139,8 @@ def blockDat_load(self, blockDat = None,
             pprint.pprint(_udFail)
             
         if settingsOnly:
+            log.warning(cgmGEN.logString_msg(_str_func,'settings only'))
+            
             return
         
         
@@ -3906,7 +4189,7 @@ def blockDat_load(self, blockDat = None,
                 #setAttr(_short,_a,v)
             
         #>>Define Controls ====================================================================================
-        log.info("|{0}| >> define dat....".format(_str_func))
+        log.debug(cgmGEN.logString_sub(_str_func,'define'))
         
         if redefine:
             changeState(self,'define',forceNew=True,rebuildFrom='define')
@@ -3994,6 +4277,8 @@ def blockDat_load(self, blockDat = None,
         
         
         #>>Template Controls ====================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'template'))
+        
         if _target_state_idx >= 1:
             log.info("|{0}| >> template dat....".format(_str_func))
             if autoPush and currentOnly != True:
@@ -4001,109 +4286,113 @@ def blockDat_load(self, blockDat = None,
                     log.info("|{0}| >> Pushing to template....".format(_str_func))
                     self.p_blockState = 1
             
-            if not _onlyState or _onlyState == 'template':
-                if mMirror:
-                    log.info("|{0}| >> mMirror template pull...".format(_str_func))            
-                    self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
-                
-                else:
-                    if _orientHelper:
-                        _ctrl = self.orientHelper.mNode
-                        for ii,v in enumerate(_orientHelper):
-                            _a = 'r'+'xyz'[ii]
-                            setAttr(_ctrl,_a,v)
-                    
-                    _d_template = blockDat.get('template',False)
-                    _d_warnings['template'] =  []
-                    _l_warnings = _d_warnings['template']
-                    
-                    if not _d_template:
-                        log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
-                    else:
-                        _ml_templateHandles = self.atUtils('controls_get',template=True)
-        
-                        if not _ml_templateHandles:
-                            log.error("|{0}| >> No template handles found".format(_str_func))
-                        else:
-                            _posTempl = _d_template.get('positions')
-                            _orientsTempl = _d_template.get('orients')
-                            _scaleTempl = _d_template.get('scales')
-                            _jointHelpers = _d_template.get('jointHelpers')
-                            _loftCurves = _d_template.get('loftCurves',{})
-                            _subShapers = _d_template.get('subShapers',{})
-                            
-                            if len(_ml_templateHandles) > len(_posTempl):
-                                _l_warnings.append("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl)))
-                            
-                            for i_loop in range(3):
-                                log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
-        
-                                for i,mObj in enumerate(_ml_templateHandles):
-                                    try:
-                                        log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
-                                        mObj.p_position = _posTempl[i]
-                                        if not ATTR.is_locked(mObj.mNode,'rotate'):
-                                            mObj.p_orient = _orientsTempl[i]
-                                            
-                                        _tmp_short = mObj.mNode
-                                        for ii,v in enumerate(_scaleTempl[i]):
-                                            _a = 's'+'xyz'[ii]
-                                            if not mObj.isAttrConnected(_a):
-                                                ATTR.set(_tmp_short,_a,v)   
-                                        if _jointHelpers and _jointHelpers.get(i):
-                                            mObj.jointHelper.translate = _jointHelpers[i]
-                                        
-                                        
-                                        _d_loft = _loftCurves.get(str(i))
-                                        if _d_loft:
-                                            if i_loop:
-                                                log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
-                                            
-                                                mLoftCurve = mObj.loftCurve
-                                                _rot = _d_loft.get('r')
-                                                _s = _d_loft.get('s')
-                                                _t = _d_loft.get('t')
-                                                _p = _d_loft.get('p')
-                                                if _rot:
-                                                    ATTR.set(mLoftCurve.mNode,'rotate',_rot)
-                                                if _s:
-                                                    ATTR.set(mLoftCurve.mNode,'scale',_s)
-                                                if _t:
-                                                    ATTR.set(mLoftCurve.mNode,'translate',_t)
-                                                elif _p:
-                                                    mLoftCurve.p_position = _p
-                                    except Exception,err:
-                                        _l_warnings.append("{0} | {1} | mObj: {2} | err: {3}".format(i_loop,i,mObj.p_nameShort, err))
-                                            
-                                for i,d_sub in _subShapers.iteritems():
-                                    try:
-                                        ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
-                                        log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
-                                        if not ml_subs:
-                                            raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
-                                        _t = d_sub.get('t')
-                                        _r = d_sub.get('r')
-                                        _s = d_sub.get('s')
-                                        _p = d_sub.get('p')
-                                        
-                                        for ii,mObj in enumerate(ml_subs):
-                                            #mObj.p_position = _p[0]                                    
-                                            ATTR.set(mObj.mNode,'t',_t[ii])
-                                            ATTR.set(mObj.mNode,'r',_r[ii])
-                                            ATTR.set(mObj.mNode,'s',_s[ii])
-                                    except Exception,err:
-                                        _l_warnings.append("{0} | {1} | subs | err: {2}".format(i_loop,i, err))
-                                        
-                                    
+        if not _onlyState or _onlyState == 'template':
+            log.debug(cgmGEN.logString_msg(_str_func,'template push'))
             
-                        #if _d_template.get('rootOrientHelper'):
-                            #if self.getMessage('orientHelper'):
-                            #    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
-                            #else:
-                                #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
-            #pprint.pprint(vars())
+            if mMirror:
+                log.info("|{0}| >> mMirror template pull...".format(_str_func))            
+                self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
+            
+            else:
+                if _orientHelper:
+                    _ctrl = self.orientHelper.mNode
+                    for ii,v in enumerate(_orientHelper):
+                        _a = 'r'+'xyz'[ii]
+                        setAttr(_ctrl,_a,v)
+                
+                _d_template = blockDat.get('template',False)
+                _d_warnings['template'] =  []
+                _l_warnings = _d_warnings['template']
+                
+                if not _d_template:
+                    log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+                else:
+                    _ml_templateHandles = self.atUtils('controls_get',template=True)
+    
+                    if not _ml_templateHandles:
+                        log.error("|{0}| >> No template handles found".format(_str_func))
+                    else:
+                        _posTempl = _d_template.get('positions')
+                        _orientsTempl = _d_template.get('orients')
+                        _scaleTempl = _d_template.get('scales')
+                        _jointHelpers = _d_template.get('jointHelpers')
+                        _loftCurves = _d_template.get('loftCurves',{})
+                        _subShapers = _d_template.get('subShapers',{})
+                        
+                        if len(_ml_templateHandles) > len(_posTempl):
+                            _l_warnings.append("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl)))
+                        
+                        for i_loop in range(3):
+                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+    
+                            for i,mObj in enumerate(_ml_templateHandles):
+                                try:
+                                    log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                                    mObj.p_position = _posTempl[i]
+                                    if not ATTR.is_locked(mObj.mNode,'rotate'):
+                                        mObj.p_orient = _orientsTempl[i]
+                                        
+                                    _tmp_short = mObj.mNode
+                                    for ii,v in enumerate(_scaleTempl[i]):
+                                        _a = 's'+'xyz'[ii]
+                                        if not mObj.isAttrConnected(_a):
+                                            ATTR.set(_tmp_short,_a,v)   
+                                    if _jointHelpers and _jointHelpers.get(i):
+                                        mObj.jointHelper.translate = _jointHelpers[i]
+                                    
+                                    
+                                    _d_loft = _loftCurves.get(str(i))
+                                    if _d_loft:
+                                        if i_loop:
+                                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                                        
+                                            mLoftCurve = mObj.loftCurve
+                                            _rot = _d_loft.get('r')
+                                            _s = _d_loft.get('s')
+                                            _t = _d_loft.get('t')
+                                            _p = _d_loft.get('p')
+                                            if _rot:
+                                                ATTR.set(mLoftCurve.mNode,'rotate',_rot)
+                                            if _s:
+                                                ATTR.set(mLoftCurve.mNode,'scale',_s)
+                                            if _t:
+                                                ATTR.set(mLoftCurve.mNode,'translate',_t)
+                                            elif _p:
+                                                mLoftCurve.p_position = _p
+                                except Exception,err:
+                                    _l_warnings.append("{0} | {1} | mObj: {2} | err: {3}".format(i_loop,i,mObj.p_nameShort, err))
+                                        
+                            for i,d_sub in _subShapers.iteritems():
+                                try:
+                                    ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
+                                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                                    if not ml_subs:
+                                        raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                                    _t = d_sub.get('t')
+                                    _r = d_sub.get('r')
+                                    _s = d_sub.get('s')
+                                    _p = d_sub.get('p')
+                                    
+                                    for ii,mObj in enumerate(ml_subs):
+                                        #mObj.p_position = _p[0]                                    
+                                        ATTR.set(mObj.mNode,'t',_t[ii])
+                                        ATTR.set(mObj.mNode,'r',_r[ii])
+                                        ATTR.set(mObj.mNode,'s',_s[ii])
+                                except Exception,err:
+                                    _l_warnings.append("{0} | {1} | subs | err: {2}".format(i_loop,i, err))
+                                    
+                                
+        
+                    #if _d_template.get('rootOrientHelper'):
+                        #if self.getMessage('orientHelper'):
+                        #    self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                        #else:
+                            #log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
+        #pprint.pprint(vars())
         
         #Prerig ==============================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
+        
         if _target_state_idx >= 2:
             log.info("|{0}| >> prerig dat....".format(_str_func))
             if _current_state_idx < 2:
@@ -4114,59 +4403,60 @@ def blockDat_load(self, blockDat = None,
                 log.info("|{0}| >> Pushing to prerig....".format(_str_func))
                 self.p_blockState = 2
             
-            if not _onlyState or _onlyState == 'prerig':
-            
-                if mMirror:
-                    log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
-                    self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
+        if not _onlyState or _onlyState == 'prerig':
+            log.debug(cgmGEN.logString_msg(_str_func,'prerig push'))
+        
+            if mMirror:
+                log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
+                self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
+            else:
+                _d_prerig = blockDat.get('prerig',False)
+                if not _d_prerig:
+                    log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
                 else:
-                    _d_prerig = blockDat.get('prerig',False)
-                    if not _d_prerig:
-                        log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+                    _ml_prerigControls = self.atUtils('controls_get',prerig=True)
+                    
+                    _d_warnings['prerig'] =  []
+                    _l_warnings = _d_warnings['prerig']
+                    
+                    if not _ml_prerigControls:
+                        log.error("|{0}| >> No prerig handles found".format(_str_func))
                     else:
-                        _ml_prerigControls = self.atUtils('controls_get',prerig=True)
-                        
-                        _d_warnings['prerig'] =  []
-                        _l_warnings = _d_warnings['prerig']
-                        
-                        if not _ml_prerigControls:
-                            log.error("|{0}| >> No prerig handles found".format(_str_func))
-                        else:
-                            _posPre = _d_prerig.get('positions')
-                            _orientsPre = _d_prerig.get('orients')
-                            _scalePre = _d_prerig.get('scales')
-                            _jointHelpersPre = _d_prerig.get('jointHelpers')
-                
-                            if len(_ml_prerigControls) > len(_posPre):
-                                _l_warnings.append("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
-                                pprint.pprint(_ml_prerigControls)
-                            
-                            for i_loop in range(3):
-                                log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                        _posPre = _d_prerig.get('positions')
+                        _orientsPre = _d_prerig.get('orients')
+                        _scalePre = _d_prerig.get('scales')
+                        _jointHelpersPre = _d_prerig.get('jointHelpers')
             
-                                for i,mObj in enumerate(_ml_prerigControls):
-                                    try:
-                                        log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
-                                        mObj.p_position = _posPre[i]
-                                        mObj.p_orient = _orientsPre[i]
-                                        _tmp_short = mObj.mNode
-                                        for ii,v in enumerate(_scalePre[i]):
-                                            _a = 's'+'xyz'[ii]
-                                            if not mObj.isAttrConnected(_a):
-                                                ATTR.set(_tmp_short,_a,v)   
-                                        if _jointHelpersPre and _jointHelpersPre.get(i):
-                                            mObj.jointHelper.translate = _jointHelpersPre[i]
-                                    except Exception,err:
-                                        _l_warnings.append("{0} | {1} | mObj: {2} | err: {3}".format(i_loop,i,mObj.p_nameShort, err))                
-                        #if _d_prerig.get('rootOrientHelper'):
-                            #if self.getMessage('orientHelper'):
-                                #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
-                            #else:
-                                #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
-                
-                #if _target_state_idx > 2:
-                #    self.p_blockState = _target_state
-    
+                        if len(_ml_prerigControls) > len(_posPre):
+                            _l_warnings.append("|{0}| >> Prerig handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre)))
+                            pprint.pprint(_ml_prerigControls)
+                        
+                        for i_loop in range(3):
+                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+        
+                            for i,mObj in enumerate(_ml_prerigControls):
+                                try:
+                                    log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
+                                    mObj.p_position = _posPre[i]
+                                    mObj.p_orient = _orientsPre[i]
+                                    _tmp_short = mObj.mNode
+                                    for ii,v in enumerate(_scalePre[i]):
+                                        _a = 's'+'xyz'[ii]
+                                        if not mObj.isAttrConnected(_a):
+                                            ATTR.set(_tmp_short,_a,v)   
+                                    if _jointHelpersPre and _jointHelpersPre.get(i):
+                                        mObj.jointHelper.translate = _jointHelpersPre[i]
+                                except Exception,err:
+                                    _l_warnings.append("{0} | {1} | mObj: {2} | err: {3}".format(i_loop,i,mObj.p_nameShort, err))                
+                    #if _d_prerig.get('rootOrientHelper'):
+                        #if self.getMessage('orientHelper'):
+                            #self.orientHelper.p_orient = _d_prerig.get('rootOrientHelper')
+                        #else:
+                            #log.error("|{0}| >> Found root orient Helper data but no orientHelper #control".format(_str_func))
+            
+            #if _target_state_idx > 2:
+            #    self.p_blockState = _target_state
+
         if _d_warnings:
             for k,d in _d_warnings.iteritems():
                 for i,w in enumerate(d):
@@ -4191,6 +4481,7 @@ def blockDat_load(self, blockDat = None,
     
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
+
 
 
 def blockDat_loadBAK(self, blockDat = None, mirror=False, reflectionVector = MATH.Vector3(1,0,0), controls=True):
@@ -8559,16 +8850,26 @@ def is_current(self):
         mBlockModule = self.getBlockModule()
         _ver_module = mBlockModule.__version__
         
+        _blockProfile = self.getMayaAttr('blockProfile')
+        _d_profiles = mBlockModule.__dict__.get('d_block_profiles',{})
+        _typeDict=  _d_profiles.get(_blockProfile,{})
+        if not _typeDict:
+            print(cgmGEN._str_subLine)
+            log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
+            pprint.pprint(_d_profiles.keys())
+            print(cgmGEN._str_subLine)
+            
+        
         if _ver_block == _ver_module:
-            print("[{0}] up to date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block))            
+            print("[{0}] up to date | blockVersion: {1}".format(self.p_nameShort, _ver_block))            
             return True
         
-        print("[{0}] out of date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block, _ver_module))
+        log.info("[{0}] out of date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block, _ver_module))
         return False   
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)    
+        cgmGEN.cgmExceptCB(Exception,err)
     
-def update(self,force=False,stopState = None):
+def update(self,force=False,stopState = 'define'):
     """
     Bring a rigBlock to current settings - check attributes, reset baseDat
     """
@@ -8580,9 +8881,9 @@ def update(self,force=False,stopState = None):
             return True
         
         log.debug(cgmGEN.logString_sub(_str_func,"Checking blockProfile"))
-        bModule = self.p_blockModule
+        mBlockModule = self.p_blockModule
         _blockProfile = self.getMayaAttr('blockProfile')
-        _d_profiles = bModule.d_block_profiles
+        _d_profiles = mBlockModule.d_block_profiles
         _typeDict=  _d_profiles.get(_blockProfile,{})
         if not _typeDict:
             log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
@@ -8604,9 +8905,10 @@ def update(self,force=False,stopState = None):
             _dat['blockState'] = stopState
             self.blockDat = _dat
         
+
         blockDat_load(self,redefine=True)
         
-        try:self.doStore('version', bModule.__version__, 'string',lock=True)
+        try:self.doStore('version', mBlockModule.__version__, 'string',lock=True)
         except Exception,err:
             log.error(cgmGEN.logString_msg(_str_func,"Failed to set version | {0}".format(err)))
         #Verify

@@ -1659,7 +1659,7 @@ def buildRow_shapeUtils(self,parent):
               l = 'Add',
               ann = "Add selected shapes to the last transform",                   
               c = lambda *a:MMCONTEXT.func_enumrate_all_to_last(RIGGING.shapeParent_in_place, None,'toFrom', **{}),
-              )       
+              )
 
     mc.button(parent=_row,
               ut = 'cgmUITemplate',
@@ -1683,6 +1683,22 @@ def buildRow_shapeUtils(self,parent):
               ann = "Generate pythonic recreation calls for selected curve shapes", 
               c =  lambda *a:MMCONTEXT.func_process( CURVES.get_python_call, None, 'all','describe'),                
               ) 
+    mc.button(parent=_row,
+              ut = 'cgmUITemplate',
+              l = 'Match OS',
+              ann = "Match the first shape to the rest | object space",                                                                                                                  
+              c = lambda *a:MMCONTEXT.func_process(
+                  CURVES.match,
+                  None,'firstToEach', 'match curve shape',False,
+                  **{'space':'os'}),)
+    mc.button(parent=_row,
+              ut = 'cgmUITemplate',
+              l = 'Match WS',
+              ann = "Match the first shape to the rest | World space",                                                                                                                  
+              c = lambda *a:MMCONTEXT.func_process(
+                  CURVES.match,
+                  None,'firstToEach', 'match curve shape',False,
+                  **{'space':'ws'}),)    
 
 
     mUI.MelSpacer(_row,w=5)                      

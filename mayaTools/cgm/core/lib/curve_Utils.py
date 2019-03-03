@@ -2006,7 +2006,7 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
         
     #pprint.pprint(vars())
     
-def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
+def match(base=None, target = None, autoRebuild = True, keepOriginal = True, space = 'os'):
     _str_func = 'match'
     _d_base = get_shape_info(base)
     _d_target = get_shape_info(target)
@@ -2025,8 +2025,8 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
     _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
     _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
     for i,ep in enumerate(_l_ep_source):
-        _pos = POS.get(ep)
-        POS.set(_l_ep_target[i], _pos, space= 'os')
+        _pos = POS.get(ep,space=space)
+        POS.set(_l_ep_target[i], _pos, space= space)
         
     return True
 

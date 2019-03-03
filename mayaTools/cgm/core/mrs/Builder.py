@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.01312019'
+__version__ = '1.03022019'
 _sidePadding = 25
 
 def check_cgm():
@@ -849,7 +849,7 @@ class ui(cgmUI.cgmGUI):
                   'Block Update':{'ann':'[DEV] Update a block. In testing',
                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                            'atUtils','update',
-                                                           **{'updateUI':0,'reverseContext':False})},
+                                                           **{'updateUI':1,'reverseContext':False})},
                   'Reorder UD':{'ann':'Reorder user defined attrs',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'atUtils','reorder_udAttrs',
@@ -2390,6 +2390,94 @@ class ui(cgmUI.cgmGUI):
         func(*args,**kws)
         self.uiUpdate_blockDat()
         
+    def uiSection_blockDatUtils(self,parent):
+        _str_func = 'uiUpdate_blockUtils'
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        
+        #self.uiFrame_blockDatUtils.clear()
+        #_column = self.uiFrame_blockDatUtils
+        
+        _column = parent
+        
+        #BlcokDat ======================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'BlockDat Main'))
+        mc.setParent(_column)
+        _row = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding = 2)
+        #mUI.MelSpacer(_row,w=1)
+        
+        mc.button(parent=_row,
+                  l = 'Save',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'saveBlockDat',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('save blockDat'))
+        mc.button(parent=_row,
+                  l = 'Load',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'loadBlockDat',
+                                      **{}),
+                  ann = self._d_ui_annotations.get('load blockDat'))
+        
+        mc.button(parent=_row,
+                  l = 'Load State',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'loadBlockDat',
+                                      **{'autoPush':False,'currentOnly':True}),
+                  ann = self._d_ui_annotations.get('load state blockDat'))
+        
+        mc.button(parent=_row,
+                  l = 'Query',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'getBlockDat',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('get blockDat'))
+        
+        mc.button(parent=_row,
+                  l = 'Copy',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','blockDat_copy',
+                                      **{'mode':'blockDatCopyActive'}),
+                  ann = "Copy the active blocks data")
+        
+        mc.button(parent=_row,
+                  l = 'Reset',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','blockDat_reset',
+                                      **{'updateUI':0}),
+                  ann = self._d_ui_annotations.get('reset blockDat'))        
+        
+        #mUI.MelSpacer(_row,w=1)
+        _row.layout()
+        
+        #BlcokDat ======================================================
+        log.debug(cgmGEN.logString_sub(_str_func,'BlockDat Selective'))
+        mc.setParent(_column)
+        _row = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+        
+        mUI.MelSpacer(_row,w=1)
+        mUI.MelLabel(_row,l="Load State data: ")        
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+        
+        
+        for state in ['define','template','prerig','skeleton',]:
+            mc.button(parent=_row,
+                      l = state.capitalize(),
+                      ut = 'cgmUITemplate',
+                      c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                          'atUtils','blockDat_load_state',state,
+                                          **{'updateUI':0}),
+                      ann = "Load {0} blockDat in context".format(state))
+       
+        mUI.MelSpacer(_row,w=1)
+        _row.layout()        
+        
+        
     def uiUpdate_blockUtils(self):
         _str_func = 'uiUpdate_blockUtils'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -2584,6 +2672,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=1)
         _row.layout()                
         """
+        """
         #BlcokDat ======================================================
         log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -2643,7 +2732,7 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row,w=1)
         _row.layout()
-        
+        """
         
         #Mirror ======================================================
         log.debug("|{0}| >> mirror ...".format(_str_func)+ '-'*40)
@@ -3631,8 +3720,23 @@ class ui(cgmUI.cgmGUI):
         _frame_blockUtils_inside = mUI.MelColumnLayout(_frame_blockUtils,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockUtils = _frame_blockUtils_inside
         
+        #BlockDat Frame =====================================================================================
+        log.debug("|{0}| >>  blockDat...".format(_str_func)+ '-'*40)
         
-        
+        self.create_guiOptionVar('blockDatFrameCollapse',defaultValue = 0)       
+    
+        _frame_blockDat = mUI.MelFrameLayout(_RightScroll,label = 'BlockDat',vis=True,
+                                             collapse=self.var_blockUtilsFrameCollapse.value,
+                                             collapsable=True,
+                                             enable=True,
+                                             useTemplate = 'cgmUIHeaderTemplate',
+                                             expandCommand = lambda:self.var_blockDatFrameCollapse.setValue(0),
+                                             collapseCommand = lambda:self.var_blockDatFrameCollapse.setValue(1)
+                                             )	
+        self.uiFrameLayout_blockDat = _frame_blockDat
+        _frame_blockDat_inside = mUI.MelColumnLayout(_frame_blockDat,useTemplate = 'cgmUISubTemplate')  
+        self.uiFrame_blockDat = _frame_blockDat_inside
+        self.uiSection_blockDatUtils(_frame_blockDat_inside)
         
         
         #Active  Frame ------------------------------------------------------------------------------------
@@ -3640,7 +3744,7 @@ class ui(cgmUI.cgmGUI):
         
         self.create_guiOptionVar('blockSettingsFrameCollapse',defaultValue = 0)       
     
-        _frame_blockSettings = mUI.MelFrameLayout(_RightScroll,label = 'Block Dat - Active',vis=True,
+        _frame_blockSettings = mUI.MelFrameLayout(_RightScroll,label = 'Settings - Active',vis=True,
                                                   collapse=self.var_blockSettingsFrameCollapse.value,
                                                   collapsable=True,
                                                   enable=True,
@@ -3656,7 +3760,7 @@ class ui(cgmUI.cgmGUI):
         #Contextual frame ------------------------------------------------------------------------------------
         log.debug("|{0}| >>  Contextual block frame...".format(_str_func)+ '-'*40)
         
-        _frame_shared = mUI.MelFrameLayout(_RightScroll,label = 'Block Dat - Contextual',vis=True,
+        _frame_shared = mUI.MelFrameLayout(_RightScroll,label = 'Settings - Contextual',vis=True,
                                            collapse=self.var_blockSharedFrameCollapse.value,
                                            collapsable=True,
                                            enable=True,
@@ -3716,6 +3820,7 @@ class ui(cgmUI.cgmGUI):
                 #attachNone = [(button_refresh,'top')])#(_row_cgm,"top")
 
         self.uiUpdate_context()
+        
         #>>> Layout form ---------------------------------------------------------------------------------------
         _MainForm(edit = True,
                   af = [(_row_report,"top",0),
