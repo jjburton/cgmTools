@@ -3838,6 +3838,15 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
                 for i,mObj in enumerate(ml_handles):
                     log.info(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
                     
+                    _handleType = mObj.getMayaAttr('handleType')
+                    if _handleType == 'vector':
+                        try:
+                            mObj.p_orient = _orientsTempl[i]
+                            continue
+                        except Exception,err:
+                            _l_warnings.append('{0}...'.format(mObj.p_nameShort))
+                            _l_warnings.append('Couldnt set vector handle orient | {0}'.format(err))
+                    
                     if i > _len_posTempl-1:
                         _l_warnings.append("No data for: {0}".format(mObj))
                         continue
@@ -8893,19 +8902,29 @@ def update(self,force=False,stopState = 'define'):
         
         verify_blockAttrs(self)
         
-        _baseDat = _d_profiles.get(_blockProfile).get('baseDat')
+        _baseDat = _typeDict.get('baseDat')
         if _baseDat:
-            log.debug(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
-            self.baseDat = _baseDat        
+            log.info(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
+            self.baseDat = _baseDat
+ 
             
         blockDat_save(self)
         
-        if stopState is not None:
-            _dat = self.blockDat
-            _dat['blockState'] = stopState
-            self.blockDat = _dat
+        _dat = self.blockDat
         
-
+        for k in ['baseAim','baseSize']:
+            _v = _typeDict.get(k)
+            if _v is not None:
+                log.info(cgmGEN.logString_msg(_str_func,'{0} : {1}'.format(k,_v)))
+                _dat['ud'][k] = _v
+                for a in 'XYZ':
+                    _dat['ud'].pop(k+a)
+        
+        if stopState is not None:
+            _dat['blockState'] = stopState
+        self.blockDat = _dat
+        
+        
         blockDat_load(self,redefine=True)
         
         try:self.doStore('version', mBlockModule.__version__, 'string',lock=True)

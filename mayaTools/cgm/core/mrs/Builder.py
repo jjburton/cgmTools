@@ -1027,6 +1027,7 @@ class ui(cgmUI.cgmGUI):
                                                                'atUtils','blockMirror_settings',
                                                                **{'updateUI':True,'mode':'pull'})},                  
                  },
+               'blockDat':{'order':[]},
                'Names':{ 
                    'divTags':['nameList | iter baseName'],
                    'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
@@ -1070,7 +1071,13 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete'))        
         
         """
-        
+        for state in ['define','template','prerig']:
+            d_s['blockDat']['order'].append('Load {0}'.format(state))
+            d_s['blockDat']['Load {0}'.format(state)] = {
+                'ann':"Load {0} blockDat in context".format(state),
+                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                       'atUtils','blockDat_load_state',state,
+                                       **{})}
         
         
         l_keys = d_s.keys()
@@ -2672,7 +2679,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=1)
         _row.layout()                
         """
-        """
+        
         #BlcokDat ======================================================
         log.debug("|{0}| >> Blockdat ...".format(_str_func)+ '-'*40)
         mc.setParent(_column)
@@ -2732,7 +2739,7 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelSpacer(_row,w=1)
         _row.layout()
-        """
+        
         
         #Mirror ======================================================
         log.debug("|{0}| >> mirror ...".format(_str_func)+ '-'*40)
@@ -3720,6 +3727,7 @@ class ui(cgmUI.cgmGUI):
         _frame_blockUtils_inside = mUI.MelColumnLayout(_frame_blockUtils,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockUtils = _frame_blockUtils_inside
         
+        """
         #BlockDat Frame =====================================================================================
         log.debug("|{0}| >>  blockDat...".format(_str_func)+ '-'*40)
         
@@ -3736,7 +3744,7 @@ class ui(cgmUI.cgmGUI):
         self.uiFrameLayout_blockDat = _frame_blockDat
         _frame_blockDat_inside = mUI.MelColumnLayout(_frame_blockDat,useTemplate = 'cgmUISubTemplate')  
         self.uiFrame_blockDat = _frame_blockDat_inside
-        self.uiSection_blockDatUtils(_frame_blockDat_inside)
+        self.uiSection_blockDatUtils(_frame_blockDat_inside)"""
         
         
         #Active  Frame ------------------------------------------------------------------------------------

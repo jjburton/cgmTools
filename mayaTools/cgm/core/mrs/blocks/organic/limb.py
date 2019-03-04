@@ -613,7 +613,6 @@ def define(self):
         
         #Rotate Plane ======================================================================
         self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
-        
         _end = md_handles['end'].mNode
         self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         self.doConnectIn('baseSizeY',"{0}.height".format(_end))
