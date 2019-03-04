@@ -2032,10 +2032,18 @@ def rig_prechecks(self):
             
         if mBlock.buildLeverEnd and mBlock.numControls < 4:
             self.l_precheckErrors.append('Quad Setup needs at least 4 controls')
-            
-        if mBlock.numControls <= 3 and mBlock.getEnumValueString('ikEnd') != 'default':
-            self.l_precheckWarnings.append('With 3 or less controls, using ikEnd of default')
+        
+        str_ikEnd = mBlock.getEnumValueString('ikEnd')
+        if mBlock.numControls < 3 and str_ikEnd != 'default':
+            self.l_precheckWarnings.append('With less than 3 controls, using ikEnd of default')
             mBlock.ikEnd = 'default'
+        elif str_ikEnd == 'default':
+            if mBlock.hasBallJoint:
+                self.l_precheckErrors.append("default ikEnd and hasBallJoint on. | Fix this setting. If you have a ball, you should probably be a pad or foot")
+            
+        #str_ikEnd = mBlock.getEnumValueString('ikEnd')
+        #ml_templateHandles = mBlock.msgList_get('templateHandles')
+        #if not mBlock.ikEnd and ml_templateHandles[-1].getMessage('pivotHelper')
             
         
         #if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
@@ -2284,6 +2292,33 @@ def rig_dataBuffer(self):
         if self.b_leverEnd:
             self.int_handleEndIdx -=1
         else:
+            if not mBlock.ikEnd:
+                if mBlock.hasEndJoint:
+                    self.int_handleEndIdx -=1
+                if mBlock.hasBallJoint:
+                    self.int_handleEndIdx -=1                
+            elif str_ikEnd in ['foot']:
+                if mBlock.hasEndJoint:
+                    self.mToe = self.ml_handleTargets.pop(-1)
+                    log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
+                    self.int_handleEndIdx -=1
+                if mBlock.hasBallJoint:
+                    self.mBall = self.ml_handleTargets.pop(-1)
+                    log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
+                    self.int_handleEndIdx -=1
+                    
+            elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
+                log.debug("|{0}| >> tip setup...".format(_str_func))        
+                if not mBlock.hasEndJoint:
+                    if str_ikEnd == 'tipEnd':
+                        self.b_ikNeedEnd = True
+                        log.debug("|{0}| >> Need IK end joint".format(_str_func))
+                    elif str_ikEnd == 'tipBase':
+                        pass
+                elif str_ikEnd == 'tipBase':
+                    self.int_handleEndIdx -=1
+                    self.b_cullFKEnd = True            
+            """
             if str_ikEnd in ['foot']:
                 if mBlock.hasEndJoint:
                     self.mToe = self.ml_handleTargets.pop(-1)
@@ -2304,7 +2339,7 @@ def rig_dataBuffer(self):
                         pass
                 elif str_ikEnd == 'tipBase':
                     self.int_handleEndIdx -=1
-                    self.b_cullFKEnd = True
+                    self.b_cullFKEnd = True"""
     
                     
         if str_ikEnd in ['tipCombo'] or self.b_leverEnd:
