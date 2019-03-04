@@ -444,7 +444,6 @@ def define(self):
         
         self.connectChildNode(mBBShape.mNode,'bbHelper')
         
-        
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
               'end':{'color':'white','name':'neckBase','defaults':{'ty':-1}},
@@ -539,7 +538,7 @@ def templateDelete(self):
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
             if mHandle:
                 mHandle.template=False
-        try:self.defineLoftMesh.template = False
+        try:self.defineLoftMesh.v = True
         except:pass
         self.bbHelper.v = True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -733,7 +732,7 @@ def template(self):
             #...just so we have something here. Replaced if we have a neck        
         else:
             log.debug("|{0}| >> Neck ...".format(_str_func)+ '-'*60)
-            self.defineLoftMesh.template = True
+            self.defineLoftMesh.v = False
             
             int_handles = self.neckShapers
             _loftShape = self.getEnumValueString('loftShape')

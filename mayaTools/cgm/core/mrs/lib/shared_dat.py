@@ -139,6 +139,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyDirect':'bool',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
+                   'visBoundingBox':'bool',
                    'visRotatePlane':'bool',                   
                    'visMeasure':'bool',}
 

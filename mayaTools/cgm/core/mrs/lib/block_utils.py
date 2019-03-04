@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -582,7 +582,7 @@ def templateDeleteBAK(self,msgLinks = []):
         
         for link in msgLinks + ['templateNull']:
             if self.getMessage(link):
-                log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
+                log.debug("|{0}| >> deleting link: {1}".format(_str_func,link))                        
                 mc.delete(self.getMessage(link))
         return True
     except Exception,err:
@@ -786,7 +786,7 @@ def prerig_simple(self):
     if self.getMayaAttr('side'):
         _side = self.getEnumValueString('side')
     
-    log.info("|{0}| >> [{1}] | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+    log.debug("|{0}| >> [{1}] | baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
     self._factory.module_verify()  
     
@@ -813,7 +813,7 @@ def prerig_delete(self, msgLinks = [], msgLists = [], templateHandles = True):
         for l in msgLists:
             _buffer = self.msgList_get(l,asMeta=False)
             if not _buffer:
-                log.info("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
+                log.debug("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
             else:
                 mc.delete(_buffer)
         return True   
@@ -863,10 +863,10 @@ def delete(self):
             int_state,state = BLOCKGEN.validate_stateArg(i)
             _subCall = _d_delete.get(int_state)
             if _subCall:
-                log.info("|{0}| >> Found subcall: {1}".format(_str_func,state))                  
+                log.debug("|{0}| >> Found subcall: {1}".format(_str_func,state))                  
                 _subCall(self)
             d_links = get_stateLinks(self, state)
-            log.info("|{0}| >> links {1} | {2}".format(_str_func,i,d_links))  
+            log.debug("|{0}| >> links {1} | {2}".format(_str_func,i,d_links))  
             msgDat_delete(self,d_links)
         except Exception,err:
             log.error(err)
@@ -925,9 +925,9 @@ def msgDat_check(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
             log.debug("|{0}| >>  Found msgList: {1}".format(_str_func,l))
             
     if _l_missing:
-        log.info("|{0}| >> Missing...".format(_str_func))  
+        log.debug("|{0}| >> Missing...".format(_str_func))  
         for l in _l_missing:
-            log.info("|{0}| >> {1}".format(_str_func,l))  
+            log.debug("|{0}| >> {1}".format(_str_func,l))  
         return False
     return True
     
@@ -1007,9 +1007,9 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
                 _l_missing.append(self.p_nameBase + '.[msgList]' + l)
     
         if _l_missing:
-            log.info("|{0}| >> Missing...".format(_str_func))  
+            log.debug("|{0}| >> Missing...".format(_str_func))  
             for l in _l_missing:
-                log.info("|{0}| >> {1}".format(_str_func,l))  
+                log.debug("|{0}| >> {1}".format(_str_func,l))  
             return False
         return True
     except Exception,err:
@@ -1069,7 +1069,7 @@ def create_defineLoftMesh(self, targets = None,
         mLoftSurface.doStore('cgmName',self)
         mLoftSurface.doStore('cgmType','shapeApprox')
         mLoftSurface.doName()
-        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
+        log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
     
         #mc.polySetToFaceNormal(mLoftSurface.mNode,setUserNormal = True)
         #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
@@ -1134,7 +1134,7 @@ def create_prerigLoftMesh(self, targets = None,
             _tessellate = _inputs[0]
             _loftNode = _inputs[1]
         
-            log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+            log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
             _d = {'format':2,#General
                   'polygonType':1,#'quads',
                   'uNumber': 1 + len(targets)}
@@ -1176,7 +1176,7 @@ def create_prerigLoftMesh(self, targets = None,
         mLoftSurface.doStore('cgmName',self)
         mLoftSurface.doStore('cgmType','shapeApprox')
         mLoftSurface.doName()
-        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
+        log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
     
         #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
         #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
@@ -1292,7 +1292,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
             _tessellate = _inputs[0]
             _loftNode = _inputs[1]
         
-            log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+            log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
             _d = {'format':2,#General
                   'polygonType':1,#'quads',
                   'uNumber': 1 + len(targets)}
@@ -1358,7 +1358,7 @@ def create_simpleTemplateLoftMesh(self, targets = None,
         mLoftSurface.doStore('cgmName',_cgmName,attrType='string')
         mLoftSurface.doStore('cgmType','shapeApprox')
         mLoftSurface.doName()
-        log.info("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
+        log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode)) 
     
         #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
         #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
@@ -1467,7 +1467,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     
     mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
 
-    log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+    log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
     _d = {'format':1,#fit, 2 - #General
           'polygonType':1,#'quads',
           'uNumber': baseCount + len(targets)}
@@ -1479,7 +1479,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     
         
 
-    log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+    log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
 
     mLoft.overrideEnabled = 1
     mLoft.overrideDisplayType = 2
@@ -1538,7 +1538,7 @@ def create_jointLoftBAK(self, targets = None, mPrerigNull = None,
     _tessellate = _inputs[0]
     _loftNode = _inputs[1]
 
-    log.info("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
+    log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
 
     mLoft.overrideEnabled = 1
     mLoft.overrideDisplayType = 2
@@ -1629,7 +1629,7 @@ def rigDeleteBAK(self,msgLinks = []):
         
         for link in msgLinks + ['rigNull']:
             if self.getMessage(link):
-                log.info("|{0}| >> deleting link: {1}".format(_str_func,link))                        
+                log.debug("|{0}| >> deleting link: {1}".format(_str_func,link))                        
                 mc.delete(self.getMessage(link))
                 
         return True
@@ -1675,13 +1675,13 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
         log.warning("|{0}| >> No module found for: {1}".format(_str_func,blockType))
         return False       
     
-    log.info("|{0}| >> ...".format(_str_func))
+    log.debug("|{0}| >> ...".format(_str_func))
     """
     
     for a in l_pivotOrder:
         str_a = 'pivot' + a.capitalize()
         if mPivotHelper.getMessage(str_a):
-            log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
+            log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
             mPivot = mPivotHelper.getMessage(str_a,asMeta=True)[0].doDuplicate(po=False)
             mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect    
             mPivot.parent = False
@@ -1756,7 +1756,7 @@ def pivots_setup(self, mControl = None,
                 a = 'left'
                 
         if mPivot:
-            log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
+            log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
             if mPivot[0].getMessage('masterGroup'):
                 mPivot = mPivot[0]
                 d_pivots[a] = mPivot
@@ -1828,7 +1828,7 @@ def pivots_setup(self, mControl = None,
     
     #Attributes ...---------------------------------------------------------------------------------------------
     
-    log.info("|{0}| >> Attributes ...".format(_str_func))    
+    log.debug("|{0}| >> Attributes ...".format(_str_func))    
 
     #Roll ===================================================================================================
     if b_rollOK:
@@ -1836,7 +1836,7 @@ def pivots_setup(self, mControl = None,
         
         
         if rollSetup in ['human','ik','foot']:
-            log.info("|{0}| >> foot setup ...".format(_str_func))
+            log.debug("|{0}| >> foot setup ...".format(_str_func))
             mFrontToe = d_drivenGroups['front']
             mHeel = d_drivenGroups['back']
             
@@ -1868,7 +1868,7 @@ def pivots_setup(self, mControl = None,
                 
                 
             #Heel setup ----------------------------------------------------------------------------------------
-            log.info("|{0}| >> Heel ...".format(_str_func))        
+            log.debug("|{0}| >> Heel ...".format(_str_func))        
             mPlug_heelClampResult = cgmMeta.cgmAttr(mControl,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
         
             #Setup the heel roll
@@ -1878,7 +1878,7 @@ def pivots_setup(self, mControl = None,
                                                    mPlug_roll.p_combinedShortName,
                                                    mPlug_roll.p_combinedShortName)
         
-            log.info("|{0}| >> heel arg: {1}".format(_str_func,_arg))        
+            log.debug("|{0}| >> heel arg: {1}".format(_str_func,_arg))        
             NODEFACTORY.argsToNodes(_arg).doBuild()
         
             #Inversion
@@ -1891,7 +1891,7 @@ def pivots_setup(self, mControl = None,
                         ballToeLiftRoll        md   ( pma   toeToeStraightRoll                    md  
                             1               4       3             2                            5
                 """
-            log.info("|{0}| >> ball ...".format(_str_func))    
+            log.debug("|{0}| >> ball ...".format(_str_func))    
         
             mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',
                                                           attrType='float',keyable = False,hidden=True)
@@ -1938,7 +1938,7 @@ def pivots_setup(self, mControl = None,
                               setRange                           md
                              1                                2
                 """
-            log.info("|{0}| >> Toe ...".format(_str_func))        
+            log.debug("|{0}| >> Toe ...".format(_str_func))        
         
             mPlug_toeRangeResult = cgmMeta.cgmAttr(mControl,'result_range_toeLiftStraightRoll',attrType='float',keyable = False,hidden=True)
             mPlug_toe_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_toeRange_x_roll',attrType='float',keyable = False,hidden=True)
@@ -1958,7 +1958,7 @@ def pivots_setup(self, mControl = None,
             #mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
             #mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))            
         else:
-            log.info("|{0}| >> StandardRoll ...".format(_str_func))
+            log.debug("|{0}| >> StandardRoll ...".format(_str_func))
             
             #Roll setup -----------------------------------------------------------------------------------------------
             """
@@ -1968,7 +1968,7 @@ def pivots_setup(self, mControl = None,
             inside_loc.rotateZ = max(0,$side);
             clamp2
             """   
-            log.info("|{0}| >> Bank ...".format(_str_func))        
+            log.debug("|{0}| >> Bank ...".format(_str_func))        
             mToe = d_drivenGroups['front']
             mHeel = d_drivenGroups['back']
             
@@ -1996,14 +1996,14 @@ def pivots_setup(self, mControl = None,
         if _side in ['right']:
             str_arg = "{0}.rx = -{1}".format(mDriven.mNode,
                                              mPlug_rollBall.p_combinedShortName)
-            log.info("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
+            log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
             NODEFACTORY.argsToNodes(str_arg).doBuild()
         else:
             mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         """
             
     
     #Spins ===================================================================================================
-    log.info("|{0}| >> Spin ...".format(_str_func))
+    log.debug("|{0}| >> Spin ...".format(_str_func))
     
     d_mPlugSpin = {}
     for k in d_drivenGroups.keys():
@@ -2071,7 +2071,7 @@ def pivots_setup(self, mControl = None,
         if _side in ['right']:
             str_arg = "{0}.rz = -{1}".format(mDriven.mNode,
                                              mPlug_bankBall.p_combinedShortName)
-            log.info("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
+            log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
             NODEFACTORY.argsToNodes(str_arg).doBuild()
         else:
             mPlug_bankBall.doConnectOut("{0}.rz".format(mDriven.mNode))         
@@ -2342,7 +2342,7 @@ def skeleton_getCreateDict(self, count = None):
         #_ml_controls = [self] + _ml_rigHandles
     
         for i,mObj in enumerate(_ml_rigHandles):
-            log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+            log.debug("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('jointHelper'):
                 _l_targets.append(mObj.jointHelper.mNode)
             else:
@@ -2360,10 +2360,10 @@ def skeleton_getCreateDict(self, count = None):
     """
     _helperOrient = ATTR.get_message(_short,'orientHelper')
     if not _helperOrient:
-        log.info("|{0}| >> No helper orient. Using root.".format(_str_func))   
+        log.debug("|{0}| >> No helper orient. Using root.".format(_str_func))   
         _axisWorldUp = MATH.get_obj_vector(_short,_helperUp)                 
     else:
-        log.info("|{0}| >> Found orientHelper: {1}".format(_str_func,_helperOrient))            
+        log.debug("|{0}| >> Found orientHelper: {1}".format(_str_func,_helperOrient))            
         _axisWorldUp = MATH.get_obj_vector(_helperOrient[0], _helperUp)
     log.debug("|{0}| >> axisWorldUp: {1}".format(_str_func,_axisWorldUp))  
     """
@@ -2489,7 +2489,7 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
     
     
     if indices:
-        log.info("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
+        log.debug("|{0}| >> Indices arg: {1}".format(_str_func, indices))          
         l_buffer = []
         for i in indices:
             l_buffer.append(sourceJoints[i])
@@ -2507,7 +2507,7 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
             l_jointsExist = connectToModule.msgList_get(connectAs,asMeta = False, cull = True)
         
         if l_jointsExist:
-            log.info("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
+            log.debug("|{0}| >> Deleting existing {1} chain".format(_str_func, modifier))  
             mc.delete(l_jointsExist)
 
     l_joints = mc.duplicate([i_jnt.mNode for i_jnt in ml_source],po=True,ic=True,rc=True)
@@ -2522,7 +2522,7 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
     for i,mJnt in enumerate(ml_joints):
         if blockNames:
             _d_tmp = l_names[i]
-            log.info("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
+            log.debug("|{0}| >> blockName dict {1} | {2}".format(_str_func, i,_d_tmp))              
             for a in ['cgmIterator','cgmName']:
                 if _d_tmp.get(a):
                     mJnt.addAttr(a, str(_d_tmp.get(a)),attrType='string',lock=True)
@@ -2581,7 +2581,7 @@ def skeleton_getAttachJoint(self):
             return False
         
         if ml_parentBlocks[0].blockType == 'master':
-            log.info("|{0}| >> Master block...".format(_str_func))           
+            log.debug("|{0}| >> Master block...".format(_str_func))           
             if mParentModule.getMessage('rootJoint'):
                 log.debug("|{0}| >> Root joint on master found".format(_str_func))
                 return mParentModule.getMessage('rootJoint')[0]
@@ -2632,7 +2632,7 @@ def skeleton_connectToParent(self):
             return False
         
         if ml_parentBlocks[0].blockType == 'master':
-            log.info("|{0}| >> Master block...".format(_str_func))           
+            log.debug("|{0}| >> Master block...".format(_str_func))           
             if mParentModule.getMessage('rootJoint'):
                 log.debug("|{0}| >> Root joint on master found".format(_str_func))
                 ml_moduleJoints[0].p_parent = mParentModule.getMessage('rootJoint')[0]
@@ -2670,7 +2670,7 @@ def skeleton_buildRigChain(self):
     ml_skinJoints = _mRigNull.msgList_get('moduleJoints')
     
     if l_rigJointsExist:
-        log.info("|{0}| >> Deleting existing rig chain".format(_str_func))  
+        log.debug("|{0}| >> Deleting existing rig chain".format(_str_func))  
         mc.delete(l_rigJointsExist)
 
     l_rigJoints = mc.duplicate([i_jnt.mNode for i_jnt in _mRigNull.msgList_get('moduleJoints')],po=True,ic=True,rc=True)
@@ -2694,7 +2694,7 @@ def skeleton_buildRigChain(self):
         mJnt.doName()	
         
     _mRigNull.msgList_connect('rigJoints',ml_rigJoints,'rigNull')#connect	
-    log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     
     return ml_rigJoints
 
@@ -2708,7 +2708,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
         for k in _l_axisAlias:
             if d_preferredAngles.get(k) is not None:
                 _v = d_preferredAngles.get(k)
-                log.info("|{0}| >> found default preferred {1}:{2}".format(_str_func,k,_v))  
+                log.debug("|{0}| >> found default preferred {1}:{2}".format(_str_func,k,_v))  
                 _preferredAxis[k] = _v
         
         for mJnt in ml_chain:
@@ -2721,12 +2721,12 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
             
             
             if _rotateOrderBuffer:
-                log.info("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
+                log.debug("|{0}| >> found rotate order data on {1}:{2}".format(_str_func,_key,_rotateOrderBuffer))  
                 TRANS.rotateOrder_set(mJnt.mNode, _rotateOrderBuffer, True)
                 
             if _preferredAngles:
-                log.info("|{0}| >> found preferred angle data on {1}:{2}".format(_str_func,_key,_preferredAngles))              
-                #log.info("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
+                log.debug("|{0}| >> found preferred angle data on {1}:{2}".format(_str_func,_key,_preferredAngles))              
+                #log.debug("preferred angles(%s)>>> %s"%(i_jnt.cgmName,__d_preferredAngles__.get(i_jnt.cgmName)))
                 for i,v in enumerate(_preferredAngles):	
                     #if side.lower() == 'right':#negative value
                     #    mJnt.__setattr__('preferredAngle{0}'.format(orientation[i].upper()),-v)				
@@ -2741,7 +2741,7 @@ def skeleton_pushSettings(ml_chain = None, orientation = 'zyx', side = 'right',
                     mJnt.__setattr__('preferredAngle{0}'.format(orientation[_idx].upper()),v)                
                 
             if _limitBuffer:
-                log.info("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
+                log.debug("|{0}| >> found limit data on {1}:{2}".format(_str_func,_key,_limitBuffer))              
                 raise Exception,"Limit Buffer not implemented"
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
@@ -2764,7 +2764,7 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOri
     ml_fkJoints = mRigNull.msgList_get('fkJoints')
     
     if not ml_fkJoints:
-        log.info("|{0}| >> Generating handleJoints".format(_str_func))
+        log.debug("|{0}| >> Generating handleJoints".format(_str_func))
         
         ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
         if not ml_templateHandles:
@@ -2809,9 +2809,9 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOri
                 
         ml_fkJoints[0].p_parent = False
     else:
-        log.info("|{0}| >> Found fkJoints".format(_str_func))
+        log.debug("|{0}| >> Found fkJoints".format(_str_func))
         
-    #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
+    #log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)	
     return ml_fkJoints
 
 
@@ -2844,7 +2844,7 @@ def skeleton_buildHandleChain(self,typeModifier = 'handle', connectNodesAs = Fal
     if connectNodesAs and type(connectNodesAs) in [str,unicode]:
         self.moduleTarget.rigNull.msgList_connect(connectNodesAs,ml_handleChain,'rigNull')#Push back
 
-    #log.info("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
+    #log.debug("%s >> Time >> = %0.3f seconds " % (_str_func,(time.clock()-start)) + "-"*75)
     return ml_handleChain
 
 
@@ -2907,7 +2907,7 @@ def rigNodes_get(self,report = False):
         
     if report:
         _len = len(_res)
-        log.info(cgmGEN._str_subLine)
+        log.debug(cgmGEN._str_subLine)
         ml = []
         l_fails = []
         """
@@ -2936,7 +2936,7 @@ def rigNodes_get(self,report = False):
             for i,mNode in enumerate(l):
                 print("{0} | {1}".format(i,mNode))
                 
-        log.info(cgmGEN._str_subLine)
+        log.debug(cgmGEN._str_subLine)
         _sort = d_counts.keys()
         _sort.sort()
         for k in _sort:
@@ -2945,7 +2945,7 @@ def rigNodes_get(self,report = False):
         #for i,n in enumerate(l_fails):
         #    print("{0} | {1}".format(i,n))            
         print("|{0}| >>  Total: {1} | {2}".format(_str_func,_len,self))
-        log.info(cgmGEN._str_hardLine)
+        log.debug(cgmGEN._str_hardLine)
     return _res
 
 
@@ -3125,7 +3125,7 @@ def duplicate(self, uiPrompt = True, forceNew = False):
         #changeState(mDup,'define',forceNew=True)#redefine to catch any optional created items from settings
         mDup.blockDat = blockDat
         blockDat_load(mDup,redefine=True)
-        #log.info('here...')
+        #log.debug('here...')
         #blockDat_load(mDup)#...investigate why we need two...
         
         #mDup.p_blockParent = self.p_blockParent
@@ -3648,8 +3648,8 @@ def blockDat_reset(self):
 
 def blockDat_copy(self,sourceBlock=None,ignoreChecks=False,load=False):
     _str_func = 'blockDat_copy'
-    log.info("|{0}| >>  ".format(_str_func)+ '='*80)
-    log.info("|{0}| {1}".format(_str_func,self))
+    log.debug("|{0}| >>  ".format(_str_func)+ '='*80)
+    log.debug("|{0}| {1}".format(_str_func,self))
     
     if self == sourceBlock:
         raise ValueError,"Can't copy blockDat from self."
@@ -3682,8 +3682,8 @@ def blockDat_copy(self,sourceBlock=None,ignoreChecks=False,load=False):
 def blockDat_getControlDat(self,mode = 'define',report = True):
     _short = self.p_nameShort        
     _str_func = 'blockDat_getControlDat'
-    log.info("|{0}| >>  ".format(_str_func)+ '='*80)
-    log.info("|{0}| {1}".format(_str_func,self))
+    log.debug("|{0}| >>  ".format(_str_func)+ '='*80)
+    log.debug("|{0}| {1}".format(_str_func,self))
     
     _mode_int,_mode_str = BLOCKGEN.validate_stateArg(mode)
     
@@ -3720,7 +3720,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     
     for i,mObj in enumerate(ml_handles):
         _str_short = mObj.mNode
-        log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+        log.debug("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
         if mObj.getMessage('orientHelper'):
             #_l_orientHelpers.append(mObj.orientHelper.rotate)
             _d_orientHelpers[i] = mObj.orientHelper.rotate
@@ -3733,7 +3733,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
             
         mLoftCurve = mObj.getMessageAsMeta('loftCurve')
         if mLoftCurve:
-            log.info("|{0}| >>  loftcurve: {1}".format(_str_func,mLoftCurve)+'-'*20)
+            log.debug("|{0}| >>  loftcurve: {1}".format(_str_func,mLoftCurve)+'-'*20)
             if mLoftCurve.v:
                 _d = {}
                 _rot = mLoftCurve.rotate
@@ -3751,12 +3751,12 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                 _d['p'] = _p
                 if _d:
                     _d_loftCurves[i] = _d
-                    log.info("|{0}| >>  d: {1}".format(_str_func,_d))
+                    log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
         
         ml_subShapers = mObj.msgList_get('subShapers')
         if ml_subShapers:
             _d = {}
-            log.info("|{0}| >>  subShapers...".format(_str_func))
+            log.debug("|{0}| >>  subShapers...".format(_str_func))
             _d = {'p':[mObj.p_position for mObj in ml_subShapers],
                   'o':[mObj.p_orient for mObj in ml_subShapers],
                   'r':[mObj.rotate for mObj in ml_subShapers],
@@ -3765,7 +3765,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
             if _d:
                 _d_subShapers[i] = _d            
         
-        log.info(cgmGEN._str_subLine)    
+        log.debug(cgmGEN._str_subLine)    
 
 
         #else:
@@ -3834,9 +3834,9 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
             _l_warnings.append("|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state))
         else:
             for i_loop in range(3):
-                log.info(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
+                log.debug(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
                 for i,mObj in enumerate(ml_handles):
-                    log.info(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
+                    log.debug(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
                     
                     _handleType = mObj.getMayaAttr('handleType')
                     if _handleType == 'vector':
@@ -3868,7 +3868,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
                     _d_loft = _loftCurves.get(str(i))
                     if _d_loft:
                         if i_loop:
-                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                            log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
                         
                             mLoftCurve = mObj.loftCurve
                             _rot = _d_loft.get('r')
@@ -3886,7 +3886,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
                             
                 for i,d_sub in _subShapers.iteritems():
                     ml_subs = ml_handles[int(i)].msgList_get('subShapers')
-                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                    log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
                     if not ml_subs:
                         raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
                     _t = d_sub.get('t')
@@ -4020,7 +4020,7 @@ def blockDat_load(self, blockDat = None,
             _current_state = 'define'
             
         if mMirror == 'cat':
-            log.info("|{0}| >> mMirror define pull...".format(_str_func))            
+            log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
             controls_mirror(mMirror,self,define=True)
         else:
             blockDat_load_state(self,'define',blockDat,_d_warnings)
@@ -4029,10 +4029,10 @@ def blockDat_load(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'template'))
         
         if _target_state_idx >= 1:
-            log.info("|{0}| >> template dat....".format(_str_func))
+            log.debug("|{0}| >> template dat....".format(_str_func))
             if autoPush:
                 if _current_state_idx < 1:
-                    log.info("|{0}| >> Pushing to template....".format(_str_func))
+                    log.debug("|{0}| >> Pushing to template....".format(_str_func))
                     self.p_blockState = 1
             else:
                 return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
@@ -4040,7 +4040,7 @@ def blockDat_load(self, blockDat = None,
             log.debug(cgmGEN.logString_msg(_str_func,'template push'))
             
         if mMirror:
-            log.info("|{0}| >> mMirror template pull...".format(_str_func))            
+            log.debug("|{0}| >> mMirror template pull...".format(_str_func))            
             self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
         
         else:
@@ -4061,16 +4061,16 @@ def blockDat_load(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
         
         if _target_state_idx >= 2:
-            log.info("|{0}| >> prerig dat....".format(_str_func))
+            log.debug("|{0}| >> prerig dat....".format(_str_func))
             if _current_state_idx < 2:
                 if not autoPush:
                     return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
                 else:
-                    log.info("|{0}| >> Pushing to prerig....".format(_str_func))
+                    log.debug("|{0}| >> Pushing to prerig....".format(_str_func))
                     self.p_blockState = 2
 
         if mMirror:
-            log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
+            log.debug("|{0}| >> mMirror prerig pull...".format(_str_func))            
             self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
         else:
             blockDat_load_state(self,'prerig',blockDat,_d_warnings)
@@ -4206,7 +4206,7 @@ def blockDat_load_prefactor(self, blockDat = None,
             _current_state = 'define'
             
         if mMirror == 'cat':
-            log.info("|{0}| >> mMirror define pull...".format(_str_func))            
+            log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
             controls_mirror(mMirror,self,define=True)
         else:
             if not _onlyState or _onlyState == 'define':
@@ -4231,9 +4231,9 @@ def blockDat_load_prefactor(self, blockDat = None,
                             log.error("|{0}| >> Define handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_defineHandles),_len_posTempl))
                         else:
                             for i_loop in range(3):
-                                log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop)+ '-'*80)
+                                log.debug("|{0}| >> Loop: {1}".format(_str_func,i_loop)+ '-'*80)
                                 for i,mObj in enumerate(_ml_defineHandles):
-                                    log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                                    log.debug ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
                                     if i > _len_posTempl-1:
                                         _l_warnings.append("No data for: {0}".format(mObj))
                                         continue
@@ -4256,7 +4256,7 @@ def blockDat_load_prefactor(self, blockDat = None,
                                     _d_loft = _loftCurves.get(str(i))
                                     if _d_loft:
                                         if i_loop:
-                                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                                            log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
                                         
                                             mLoftCurve = mObj.loftCurve
                                             _rot = _d_loft.get('r')
@@ -4271,7 +4271,7 @@ def blockDat_load_prefactor(self, blockDat = None,
                                             
                                 for i,d_sub in _subShapers.iteritems():
                                     ml_subs = _ml_defineHandles[int(i)].msgList_get('subShapers')
-                                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                                    log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
                                     if not ml_subs:
                                         raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
                                     _t = d_sub.get('t')
@@ -4289,17 +4289,17 @@ def blockDat_load_prefactor(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'template'))
         
         if _target_state_idx >= 1:
-            log.info("|{0}| >> template dat....".format(_str_func))
+            log.debug("|{0}| >> template dat....".format(_str_func))
             if autoPush and currentOnly != True:
                 if _current_state_idx < 1:
-                    log.info("|{0}| >> Pushing to template....".format(_str_func))
+                    log.debug("|{0}| >> Pushing to template....".format(_str_func))
                     self.p_blockState = 1
             
         if not _onlyState or _onlyState == 'template':
             log.debug(cgmGEN.logString_msg(_str_func,'template push'))
             
             if mMirror:
-                log.info("|{0}| >> mMirror template pull...".format(_str_func))            
+                log.debug("|{0}| >> mMirror template pull...".format(_str_func))            
                 self.UTILS.controls_mirror(mMirror,self,template=True,prerig=False)
             
             else:
@@ -4332,11 +4332,11 @@ def blockDat_load_prefactor(self, blockDat = None,
                             _l_warnings.append("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl)))
                         
                         for i_loop in range(3):
-                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                            log.debug("|{0}| >> Loop: {1}".format(_str_func,i_loop))
     
                             for i,mObj in enumerate(_ml_templateHandles):
                                 try:
-                                    log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                                    log.debug ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
                                     mObj.p_position = _posTempl[i]
                                     if not ATTR.is_locked(mObj.mNode,'rotate'):
                                         mObj.p_orient = _orientsTempl[i]
@@ -4353,7 +4353,7 @@ def blockDat_load_prefactor(self, blockDat = None,
                                     _d_loft = _loftCurves.get(str(i))
                                     if _d_loft:
                                         if i_loop:
-                                            log.info("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                                            log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
                                         
                                             mLoftCurve = mObj.loftCurve
                                             _rot = _d_loft.get('r')
@@ -4374,7 +4374,7 @@ def blockDat_load_prefactor(self, blockDat = None,
                             for i,d_sub in _subShapers.iteritems():
                                 try:
                                     ml_subs = _ml_templateHandles[int(i)].msgList_get('subShapers')
-                                    log.info ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                                    log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
                                     if not ml_subs:
                                         raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
                                     _t = d_sub.get('t')
@@ -4403,20 +4403,20 @@ def blockDat_load_prefactor(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
         
         if _target_state_idx >= 2:
-            log.info("|{0}| >> prerig dat....".format(_str_func))
+            log.debug("|{0}| >> prerig dat....".format(_str_func))
             if _current_state_idx < 2:
                 if not autoPush:
                     log.debug("|{0}| >> Autopush off. Stopping at template....".format(_str_func))                
                     return True
                 
-                log.info("|{0}| >> Pushing to prerig....".format(_str_func))
+                log.debug("|{0}| >> Pushing to prerig....".format(_str_func))
                 self.p_blockState = 2
             
         if not _onlyState or _onlyState == 'prerig':
             log.debug(cgmGEN.logString_msg(_str_func,'prerig push'))
         
             if mMirror:
-                log.info("|{0}| >> mMirror prerig pull...".format(_str_func))            
+                log.debug("|{0}| >> mMirror prerig pull...".format(_str_func))            
                 self.UTILS.controls_mirror(mMirror,self,template=False,prerig=True)
             else:
                 _d_prerig = blockDat.get('prerig',False)
@@ -4441,11 +4441,11 @@ def blockDat_load_prefactor(self, blockDat = None,
                             pprint.pprint(_ml_prerigControls)
                         
                         for i_loop in range(3):
-                            log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
+                            log.debug("|{0}| >> Loop: {1}".format(_str_func,i_loop))
         
                             for i,mObj in enumerate(_ml_prerigControls):
                                 try:
-                                    log.info ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
+                                    log.debug ("|{0}| >> Prerig handle: {1}".format(_str_func,mObj.mNode))
                                     mObj.p_position = _posPre[i]
                                     mObj.p_orient = _orientsPre[i]
                                     _tmp_short = mObj.mNode
@@ -4634,7 +4634,7 @@ def blockDat_loadBAK(self, blockDat = None, mirror=False, reflectionVector = MAT
     #>>Template Controls ====================================================================================
     _int_state = self.getState(False)
     if _int_state > 0:
-        log.info("|{0}| >> template dat....".format(_str_func))             
+        log.debug("|{0}| >> template dat....".format(_str_func))             
         _d_template = blockDat.get('template',False)
         if not _d_template:
             log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
@@ -4711,12 +4711,12 @@ def blockAttr_set(self, **kws):
                 log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
                 
             if a == 'numRoll':
-                log.info("numRoll check...")
+                log.debug("numRoll check...")
                 if ATTR.datList_exists(_short,'rollCount'):
-                    log.info("rollCount Found...")                                            
+                    log.debug("rollCount Found...")                                            
                     l = ATTR.datList_getAttrs(_short,'rollCount')
                     for a in l:
-                        log.info("{0}...".format(a))                                                
+                        log.debug("{0}...".format(a))                                                
                         ATTR.set(_short,a, v)                    
     
         
@@ -4872,9 +4872,9 @@ def controls_mirror(blockSource, blockMirror = None,
             if int_lenTarget!=int_lenSource:
                 for i,mObj in enumerate(ml_controls):
                     try:
-                        log.info(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+                        log.debug(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
                     except:
-                        log.info(" {0} >> ERROR".format(mObj.p_nameBase))
+                        log.debug(" {0} >> ERROR".format(mObj.p_nameBase))
                         
                 raise ValueError,"Control list lengths do not match. source: {0} | target: {1} ".format(int_lenSource,int_lenTarget)
             """
@@ -4995,7 +4995,7 @@ def controls_mirror(blockSource, blockMirror = None,
             ml_subShapers = mObj.msgList_get('subShapers')
             if ml_subShapers:
                 _d = {}
-                log.info("|{0}| >>  subShapers...".format(_str_func))
+                log.debug("|{0}| >>  subShapers...".format(_str_func))
                 for ii,mShaper in enumerate(ml_subShapers):
                     str_shaper = mShaper.mNode
                     _d_sub = {}
@@ -5029,7 +5029,7 @@ def controls_mirror(blockSource, blockMirror = None,
             if mLoftCurve:
                 mLoftCurve = mLoftCurve[0]
                 _d = {}
-                log.info("|{0}| >>  loftCurve: {1}.".format(_str_func,mLoftCurve))
+                log.debug("|{0}| >>  loftCurve: {1}.".format(_str_func,mLoftCurve))
                 str_shaper = mLoftCurve.mNode
                 _d_sub = {}
                 _d_sub['position'] =  mLoftCurve.p_positionEuclid.reflect(reflectionVector)
@@ -6179,7 +6179,7 @@ def rigDelete(self):
     
     
     if mModuleTarget:
-        log.info("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))
+        log.debug("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))
         ml_blockControls = self.UTILS.controls_get(self,True,True,True)
         for mNode in ml_blockControls:
             try:ml_blockControls.extend(mNode.getShapes(asMeta=1))
@@ -6214,25 +6214,25 @@ def rigDelete(self):
             mRigNull.rigNodes = []
             """
             #Deform null
-            log.info("|{0}| >> deformNull...".format(_str_func))                        
+            log.debug("|{0}| >> deformNull...".format(_str_func))                        
             _deformNull = mModuleTarget.getMessage('deformNull')
             if _deformNull:
-                log.info("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))
+                log.debug("|{0}| >> deformNull: {1}".format(_str_func,_deformNull))
                 mc.delete(_deformNull)
             
             #ModuleSet
-            log.info("|{0}| >> moduleSet...".format(_str_func))                        
+            log.debug("|{0}| >> moduleSet...".format(_str_func))                        
             _objectSet = mModuleTarget.rigNull.getMessage('moduleSet')
             if _objectSet:
-                log.info("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))
+                log.debug("|{0}| >> objectSet: {1}".format(_str_func,_objectSet))
                 mc.delete(_objectSet)
                 
             #Module
-            log.info("|{0}| >> Children...".format(_str_func))                        
+            log.debug("|{0}| >> Children...".format(_str_func))                        
             for mChild in mModuleTarget.rigNull.getChildren(asMeta=True):
                 mChild.delete()
                 
-            log.info("|{0}| >> Children of part...".format(_str_func))                        
+            log.debug("|{0}| >> Children of part...".format(_str_func))                        
             for mChild in mModuleTarget.getChildren(asMeta=True):
                 if mChild == mRigNull:continue
                 mChild.delete()            """
@@ -6264,7 +6264,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
         raise ValueError,"Referenced node. Cannot verify"
     
     if rebuildFrom:
-        log.info("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
+        log.debug("|{0}| >> Rebuid from: {1}".format(_str_func,rebuildFrom))
         changeState(self,rebuildFrom,forceNew=True)
     
     
@@ -6290,7 +6290,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
     _l_moduleStates = BLOCKSHARE._l_blockStates
 
     if not stateArgs:
-        log.info("|{0}| >> No state arg.".format(_str_func))            
+        log.debug("|{0}| >> No state arg.".format(_str_func))            
         return False
 
     _idx_target = stateArgs[0]
@@ -6313,17 +6313,17 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
         log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
         return    
     
-    log.info('forceNew: {0}'.format(forceNew))
+    log.debug('forceNew: {0}'.format(forceNew))
     
     if _idx_target == 0 and currentState == 0 and forceNew:
         define(self)
         return True    
     elif currentState == _idx_target:
         if not forceNew:
-            log.info("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))
+            log.debug("|{0}| >> block [{1}] already in {2} state".format(_str_func,self.mNode,currentState))
             return True
         elif currentState > 0:
-            log.info("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
+            log.debug("|{0}| >> Forcing new: {1}".format(_str_func,currentState))                
             currentState_target = self.getState(True) 
             d_deleteStateFunctions[currentState_target](self)
 
@@ -6504,7 +6504,7 @@ def puppet_verify(self):
         
         mPuppet = False
         if self.blockType == 'master':
-            log.info("|{0}| >> master...".format(_str_func))                                                    
+            log.debug("|{0}| >> master...".format(_str_func))                                                    
             if not self.getMessage('moduleTarget'):
                 mPuppet = cgmMeta.createMetaNode('cgmRigPuppet',rigBlock=self)
                 self.copyAttrTo('cgmName',mPuppet.mNode,'cgmName',driven='target')
@@ -6808,7 +6808,7 @@ def blockProfile_load(self, arg):
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
     
     self.doStore('blockProfile',arg)
-    log.info("|{0}| >>  Block: {1} | {2}".format(_str_func,_short,arg))
+    log.debug("|{0}| >>  Block: {1} | {2}".format(_str_func,_short,arg))
 
 
 def buildProfile_load(self, arg):
@@ -6875,18 +6875,18 @@ def buildProfile_load(self, arg):
                 ATTR.set(_short,a,v)
                 
             if a == 'numRoll':
-                log.info("special...")                            
+                log.debug("special...")                            
                 if ATTR.datList_exists(_short,'rollCount'):
-                    log.info("numRoll...")                            
+                    log.debug("numRoll...")                            
                     l = ATTR.datList_getAttrs(_short,'rollCount')
                     for a2 in l:
-                        log.info("{0}...".format(a2))
+                        log.debug("{0}...".format(a2))
                         ATTR.set(_short,a2, v)                
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
     
     self.doStore('buildProfile',arg)
-    log.info("|{0}| >>  [LOADED] Block: {1} | profile: {2}".format(_str_func,_short,arg))
+    log.debug("|{0}| >>  [LOADED] Block: {1} | profile: {2}".format(_str_func,_short,arg))
 
 
 #Profile stuff ==============================================================================================
@@ -6915,13 +6915,13 @@ def doSize(self, mode = None, postState = None):
     mRigBlock = self
     class castSizer(DRAGFACTORY.clickMesh):
         def __init__(self,rigBlock = mRigBlock,**kws):
-            if kws:log.info("kws: %s"%str(kws))
+            if kws:log.debug("kws: %s"%str(kws))
     
             super(castSizer, self).__init__(**kws)
             self._mRigBlock = mRigBlock
             self.toCreate = l_toCreate
             self._rigBlockTally = 0
-            log.info("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[0]))
+            log.debug("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[0]))
     
         def release_post_insert(self):
             
@@ -6931,9 +6931,9 @@ def doSize(self, mode = None, postState = None):
                 mc.delete(self._createModeBuffer)
                 
             if self._rigBlockTally < len(l_toCreate):
-                log.info("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[self._rigBlockTally]))
+                log.debug("|{0}| >>  Please place '{1}'".format(_str_func, self.toCreate[self._rigBlockTally]))
             else:
-                log.info("|{0}| >>  Finalizing...".format(_str_func,self)+ '-'*80)
+                log.debug("|{0}| >>  Finalizing...".format(_str_func,self)+ '-'*80)
                 
                 l_pos = self.l_returnRaw
                 mVector = MATH.get_vector_of_two_points(l_pos[0],l_pos[-1],asEuclid=True)
@@ -6948,11 +6948,11 @@ def doSize(self, mode = None, postState = None):
                 
                 #cgmGEN.func_snapShot(vars())
                 
-                log.info(" pos...")
+                log.debug(" pos...")
                 for p in l_pos:
-                    log.info("      {0}".format(p))
-                log.info(" baseAim: {0}".format(_str_func,mRigBlock.baseAim))
-                log.info(" baseSize: {0}".format(_str_func,mRigBlock.baseSize))
+                    log.debug("      {0}".format(p))
+                log.debug(" baseAim: {0}".format(_str_func,mRigBlock.baseAim))
+                log.debug(" baseSize: {0}".format(_str_func,mRigBlock.baseSize))
                 
                 self.finalize()
                 self.dropTool()
@@ -8074,11 +8074,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             # Loft ==============================================================================
             targets = [mEndSizeHandle.mNode, mBaseSizeHandle.mNode]
-        
+            
+            create_defineLoftMesh(self,targets,mParentNull,baseName= self.cgmName)
+            """
             self.atUtils('create_defineLoftMesh',
                          targets,
                          mParentNull,
-                         baseName = self.cgmName )
+                         baseName = self.cgmName )"""
         
             
 
@@ -8323,7 +8325,7 @@ def handles_snapToRotatePlane(self,mode = 'template',cleanUp=0):
     if mode == 'template':
         idx_end = -1
         
-    log.info(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))        
+    log.debug(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))        
     
     mStart = ml_handles[idx_start]
     mEnd = ml_handles[idx_end]
@@ -8405,7 +8407,7 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     except:
         idx_start,idx_end = 0,len(ml_prerig)-1
         
-    log.info(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))        
+    log.debug(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))        
     
     mStart = ml_prerig[idx_start]
     mEnd = ml_prerig[idx_end]
@@ -8713,7 +8715,7 @@ def pivotHelper_get(self,mHandle=None,
             _strPivot = a.split('pivot')[-1]
             _strPivot = _strPivot[0].lower() + _strPivot[1:]
             _strName = d_altName.get(_strPivot,_strPivot)
-            log.info("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
+            log.debug("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
             if _strPivot == 'center':
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                    direction = upAxis,
@@ -8768,7 +8770,7 @@ def pivotHelper_get(self,mHandle=None,
             
         if loft:
             if mHandle.getMessage('loftCurve'):
-                log.info("|{0}| >> LoftSetup...".format(_str_func))
+                log.debug("|{0}| >> LoftSetup...".format(_str_func))
     
                 #Fix the aim on the foot
                 mTopLoft.parent = False
@@ -8838,7 +8840,7 @@ def pivotHelper_get(self,mHandle=None,
         #if _axisBox:
         #    mc.delete(_axisBox)
 
-        #log.info(_bbsize)
+        #log.debug(_bbsize)
         #TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
         #mPivotRootHandle.scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2]
         #mc.xform(mPivotRootHandle.mNode,
@@ -8873,7 +8875,7 @@ def is_current(self):
             print("[{0}] up to date | blockVersion: {1}".format(self.p_nameShort, _ver_block))            
             return True
         
-        log.info("[{0}] out of date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block, _ver_module))
+        log.debug("[{0}] out of date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block, _ver_module))
         return False   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -8904,7 +8906,7 @@ def update(self,force=False,stopState = 'define'):
         
         _baseDat = _typeDict.get('baseDat')
         if _baseDat:
-            log.info(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
+            log.debug(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
             self.baseDat = _baseDat
  
             
@@ -8915,7 +8917,7 @@ def update(self,force=False,stopState = 'define'):
         for k in ['baseAim','baseSize']:
             _v = _typeDict.get(k)
             if _v is not None:
-                log.info(cgmGEN.logString_msg(_str_func,'{0} : {1}'.format(k,_v)))
+                log.debug(cgmGEN.logString_msg(_str_func,'{0} : {1}'.format(k,_v)))
                 _dat['ud'][k] = _v
                 for a in 'XYZ':
                     _dat['ud'].pop(k+a)

@@ -64,7 +64,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         _str_func = 'attach_toShape'
         mObj = cgmMeta.validateObjArg(obj,'cgmObject')
         targetShape = VALID.mNodeString(targetShape)
-        log.info("targetShape: {0}".format(targetShape))
+        log.debug("targetShape: {0}".format(targetShape))
 
         #Get our data...
         d_closest = DIST.get_closest_point_data(targetShape,
@@ -76,7 +76,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
         if d_closest['type'] in ['mesh','nurbsSurface']:
             log.debug("|{0}| >> Follicle mode...".format(_str_func))
             _shape = SHAPES.get_nonintermediate(d_closest['shape'] )
-            log.info("_shape: {0}".format(_shape))
+            log.debug("_shape: {0}".format(_shape))
 
             l_follicleInfo = NODES.createFollicleOnMesh( _shape )
 
@@ -626,10 +626,10 @@ def build_aimSequence(l_driven = None,
 
             mDriven.parent = False
 
-            log.info("|{0}| >> obj: {1} | {2}".format(_str_func,i,mDriven))
-            log.info("|{0}| >> forward: {1}".format(_str_func,s_targetForward))
-            log.info("|{0}| >> back: {1}".format(_str_func,s_targetBack))
-            log.info(cgmGEN._str_subLine)
+            log.debug("|{0}| >> obj: {1} | {2}".format(_str_func,i,mDriven))
+            log.debug("|{0}| >> forward: {1}".format(_str_func,s_targetForward))
+            log.debug("|{0}| >> back: {1}".format(_str_func,s_targetBack))
+            log.debug(cgmGEN._str_subLine)
 
             if b_first:
                 const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
