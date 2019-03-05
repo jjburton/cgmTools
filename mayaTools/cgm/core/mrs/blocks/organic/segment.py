@@ -3075,6 +3075,7 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
                                                                      firstToStart=True,
                                                                      ballBase = _ballBase,
                                                                      ballMode = _ballMode,
+                                                                     reverseNormal=mBlock.loftReverseNormal,
                                                                      extendToStart=_extendToStart),
                                                  'cgmObject')    
         

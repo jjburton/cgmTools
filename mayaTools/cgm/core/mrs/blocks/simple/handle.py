@@ -784,9 +784,9 @@ def prerig(self):
         
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
+        _size = DIST.get_bb_size(self.mNode,True,True)
         
         if self.hasJoint:
-            _size = DIST.get_bb_size(self.mNode,True,True)
             _sizeSub = _size * .2   
         
             log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
@@ -806,7 +806,8 @@ def prerig(self):
         #self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addPivot:
-            mPivot = mHandleFactory.addPivotSetupHelper()
+            mPivot = self.UTILS.pivotHelper_get(self,self,baseShape = 'square', baseSize=_size,loft=False)
+            #mHandleFactory.addPivotSetupHelper()
             mPivot.p_parent = mPrerigNull
             ml_formHandles[0].connectChildNode(mPivot,'pivotHelper')
 

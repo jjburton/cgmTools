@@ -3778,6 +3778,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         #l_vis = mc.ls(l_headGeo, visible = True)
         ml_segProxy = []
         ml_headStuff = []
+        _extendToStart = True
+        _ballBase = False
+        _ballMode = False
+        if mBlock.proxyGeoRoot:
+            _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+            _ballBase=True        
         if puppetMeshMode:
             log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
             ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
@@ -3808,6 +3814,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                                  ml_rigJoints,
                                                                                  ballBase = _ballBase,
                                                                                  ballMode = _ballMode,
+                                                                                 reverseNormal=mBlock.loftReverseNormal,
+                                                                                 
                                                                                  extendToStart=_extendToStart),
                                                              'cgmObject')                
                     
@@ -3864,7 +3872,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         if mBlock.neckBuild:#...Neck =====================================================
             log.debug("|{0}| >> neckBuild...".format(_str_func))
             
-            ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints[:-1]),'cgmObject')
+            ml_neckProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints[:-1],
+                                                                         ballBase = _ballBase,
+                                                                         ballMode = _ballMode,
+                                                                         reverseNormal=mBlock.loftReverseNormal,
+                                                                         extendToStart=_extendToStart),
+                                                             'cgmObject')             
             log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
     
             for i,mGeo in enumerate(ml_neckProxy):

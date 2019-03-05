@@ -8699,12 +8699,14 @@ def pivotHelper_get(self,mHandle=None,
         self.msgList_append('prerigHandles',mPivotRootHandle)
 
         #Top loft ----------------------------------------------------------------
-        mTopLoft = mPivotRootHandle.doDuplicate(po=False)
-        mTopLoft.addAttr('cgmName','topLoft')
-        mTopLoft.addAttr('cgmType','pivotHelper')            
-        mTopLoft.doName()
-
-        mTopLoft.parent = mPivotRootHandle
+        mTopLoft = False
+        if loft:
+            mTopLoft = mPivotRootHandle.doDuplicate(po=False)
+            mTopLoft.addAttr('cgmName','topLoft')
+            mTopLoft.addAttr('cgmType','pivotHelper')            
+            mTopLoft.doName()
+                
+            mTopLoft.parent = mPivotRootHandle
 
         #_axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
         #SNAP.go(_axisBox,mHandle.mNode)
@@ -8846,8 +8848,13 @@ def pivotHelper_get(self,mHandle=None,
         #mc.xform(mPivotRootHandle.mNode,
             #scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2],
             #worldSpace = True, absolute = True)
-
-        return mPivotRootHandle,mTopLoft
+        
+        if mTopLoft:
+            mTopLoft.p_position = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,'y+', MATH.average(_size)*.1)
+            
+            return mPivotRootHandle,mTopLoft
+        return mPivotRootHandle
+        
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
