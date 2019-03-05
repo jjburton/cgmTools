@@ -100,11 +100,11 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='Report issue',
                 ann = "Load a browser page to report a bug",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new"))    
+                c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools/issues/new"))    
     mc.menuItem(parent = parent,
                 l='Get Builds',
                 ann = "Get the latest builds of cgmTools from bitBucket",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads/?tab=branches")) 
+                c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools")) 
     _vids = mc.menuItem(parent = parent,subMenu = True,
                         l='Videos')
     
