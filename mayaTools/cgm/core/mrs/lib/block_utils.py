@@ -8941,3 +8941,11 @@ def update(self,force=False,stopState = 'define'):
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+def to_scriptEditor(self,string='mBlock'):
+    try:
+        _str_func = 'to_scriptEditor'
+        log.debug(cgmGEN.logString_start(_str_func))
+        mel.eval('python "import cgm.core.cgm_Meta as cgmMeta;mBlock = cgmMeta.asMeta({0});"'.format("'{0}'".format(self.mNode)))
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)

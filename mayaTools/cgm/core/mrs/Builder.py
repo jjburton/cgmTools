@@ -1602,6 +1602,8 @@ class ui(cgmUI.cgmGUI):
                 _mBlock.p_blockParent = _mActiveBlock
             elif  _mode == 'clearParentBlock':
                 _mBlock.p_blockParent = False
+            elif _mode == 'toScriptEditor':
+                _mBlock.atUtils('to_scriptEditor')
             else:
                 raise ValueError,"Mode not setup: {0}".format(_mode)
 
@@ -1981,8 +1983,12 @@ class ui(cgmUI.cgmGUI):
             mUI.MelMenuItem(_popUp,
                             ann = 'Select',
                             c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
-                            label = "Select")            
+                            label = "Select")
             
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor',
+                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
+                            label = "To ScriptEditor")            
             #>>>Heirarchy ------------------------------------------------------------------------------------
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = "Parent")
