@@ -72,7 +72,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.03012019'
+__version__ = 'alpha.03012019'
 __autoForm__ = False
 __dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -434,9 +434,10 @@ def define(self):
         #mBBShape.ty = .5
         
         #CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
-        self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+        mBBShape.scale = self.baseSize
+        #self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
         mHandleFactory.color(mBBShape.mNode,controlType='sub')
-        mBBShape.setAttrFlags()
+        #mBBShape.setAttrFlags(['scale'])
         
         mBBShape.doStore('cgmName', self)
         mBBShape.doStore('cgmType','bbVisualize')
@@ -485,6 +486,8 @@ def define(self):
         self.doConnectIn('neckSizeX',"{0}.width".format(_end))
         self.doConnectIn('neckSizeY',"{0}.height".format(_end))
         self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
+        
+        self.msgList_append('defineHandles', mBBShape)
         
         return    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -611,7 +614,7 @@ def form(self):
         #Our main head handle =================================================================================
         mBBHelper = self.bbHelper
         
-        mHeadHandle = self.doCreateAt(setClass=True)
+        mHeadHandle = mBBHelper.doCreateAt(setClass=True)
         self.copyAttrTo(_baseNameAttrs[-1],mHeadHandle.mNode,'cgmName',driven='target')    
         mHeadHandle.doStore('cgmType','blockHelper')
         mHeadHandle.doName()
@@ -619,13 +622,14 @@ def form(self):
         mHeadHandle.p_parent = mFormNull
         mHandleFactory = self.asHandleFactory(mHeadHandle.mNode, rigBlock = self.mNode)
         
-        
         CORERIG.shapeParent_in_place(mHeadHandle.mNode, mBBHelper.mNode, True, True)
         
         CORERIG.colorControl(mHeadHandle.mNode,_side,'main',transparent = True) 
         mBBHelper.v = False
         #self.defineNull.template=True
-        v_baseSize = DIST.get_bb_size(mBBHelper.mNode)
+        _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
+        v_baseSize = _bb_axisBox #SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
+        #v_baseSize = DIST.get_bb_size(mBBHelper.mNode)
 
         
         
@@ -652,6 +656,7 @@ def form(self):
         
         mAimTrans = md_defineHandles['aim'].doCreateAt(setClass = True)
         mAimTrans.p_parent = mOrientCurve.mNode                
+        
         
         #Proxies ==============================================================================
         ml_proxies = []        
@@ -684,7 +689,7 @@ def form(self):
             mFile = os.path.join(path_assets, 'headSimple_01.obj')
             _res = cgmOS.import_file(mFile,'HEADIMPORT')
             
-            mGeoProxies = self.doCreateAt()
+            mGeoProxies = mHeadHandle.doCreateAt()
             mGeoProxies.rename("proxyGeo")
             mGeoProxies.parent = mHeadHandle
             #mGeoProxies.parent = mFormNull
@@ -697,9 +702,10 @@ def form(self):
             for i,o in enumerate(_res):
                 mProxy = cgmMeta.validateObjArg(o,'cgmObject',setClass=True)
                 ml_proxies.append(mProxy)
-                mProxy.doSnapTo(self.mNode)                
-                #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
-                TRANS.scale_to_boundingBox(mProxy.mNode,[1,1,1])            
+                TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
+                #TRANS.scale_to_boundingBox(mProxy.mNode,[1,1,1])
+                mProxy.doSnapTo(mHeadHandle.mNode)                
+                
                 #CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
                 mHandleFactory.color(mProxy.mNode,transparent=True)
                 mProxy.parent = mGeoProxies
@@ -711,7 +717,7 @@ def form(self):
                 
             NODEFACTORY.build_conditionNetworkFromGroup(mGeoProxies.mNode,'headGeo',self.mNode)
             ATTR.set_keyable(self.mNode,'headGeo',False)
-            mGeoProxies.scale = self.baseSize
+            #mGeoProxies.scale = self.baseSize
             mGeoProxies.overrideEnabled = 1
             mGeoProxies.overrideDisplayType = 2         
             #self.doConnectOut('baseSize', "{0}.scale".format(mGeoProxies.mNode))
@@ -833,7 +839,7 @@ def form(self):
             
             #Constrain the define end to the end of the form handles
             mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            mc.scaleConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=True)
+            #mc.scaleConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=True)
             
             mc.pointConstraint(md_handles['end'].mNode,mDefineStartObj.mNode,maintainOffset=False)
            
@@ -868,9 +874,10 @@ def form(self):
             mc.select(cl=True)    """
             
         #Aim this last so we don't shear our head geo
+        """
         SNAP.aim_atPoint(obj=mHeadHandle.mNode, position = pos_aim,
                          aimAxis="z+", upAxis="y+", 
-                         mode='vector', vectorUp= self.getAxisVector('y+'))
+                         mode='vector', vectorUp= self.getAxisVector('y+'))"""
   
         mc.pointConstraint(mAimTrans.mNode,
                            md_defineHandles['aim'].mNode,

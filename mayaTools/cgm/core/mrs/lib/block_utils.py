@@ -8871,7 +8871,7 @@ def is_current(self):
         _blockProfile = self.getMayaAttr('blockProfile')
         _d_profiles = mBlockModule.__dict__.get('d_block_profiles',{})
         _typeDict=  _d_profiles.get(_blockProfile,{})
-        if not _typeDict:
+        if _blockProfile and not _typeDict:
             print(cgmGEN._str_subLine)
             log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
             pprint.pprint(_d_profiles.keys())
@@ -8879,10 +8879,10 @@ def is_current(self):
             
         
         if _ver_block == _ver_module:
-            print("[{0}] up to date | blockVersion: {1}".format(self.p_nameShort, _ver_block))            
+            print("[{0}] up to date | version: {1}".format(self.p_nameShort, _ver_block))            
             return True
         
-        log.debug("[{0}] out of date | blockVersion: {1} | blockModule: {2}".format(self.p_nameShort, _ver_block, _ver_module))
+        log.warning("[{0}] out of date || rigBlock: {1} | module: {2}".format(self.p_nameShort, _ver_block, _ver_module))
         return False   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -8903,7 +8903,7 @@ def update(self,force=False,stopState = 'define'):
         _blockProfile = self.getMayaAttr('blockProfile')
         _d_profiles = mBlockModule.d_block_profiles
         _typeDict=  _d_profiles.get(_blockProfile,{})
-        if not _typeDict:
+        if _blockProfile and not _typeDict:
             log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
             pprint.pprint(_d_profiles.keys())
             return False        
