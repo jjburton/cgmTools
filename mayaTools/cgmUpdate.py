@@ -325,15 +325,21 @@ def download(url='http://weknowyourdreams.com/images/mountain/mountain-03.jpg', 
         print '...'            
     
 
-def get_download(branch = _defaultBranch,  mode = None):
+def get_download(branch = _defaultBranch, idx = 0,  mode = None):
     """
     
     """   
     #pprint.pprint(_dat)
     
-    #Get our zip
-    url =  "https://github.com/jjburton/cgmTools/archive/" + branch + ".zip"
-    log.debug(" url: {0}".format(url))
+    #Get our zip   
+    try:_dat = get_dat(branch,idx+1)[idx]
+    except:_dat=None
+    
+    if not _dat:
+        return log.error("No build dat found. {0} | idx: {1}".format(branch,idx))
+    
+    url =  "https://github.com/jjburton/cgmTools/archive/" + _dat['hash'] + ".zip"
+    log.debug(" url: {0}".format(url))    
     
     if mode == 'url':
         return url
@@ -399,31 +405,38 @@ def get_dat(branch = 'master', limit = 3, update = False):
         response = urlopen(route)
         stable = json.load(response)
         _l_res = []
-        _len = len(stable['values'])
-        log.debug("|{0}| >> List of {1}".format(_str_func,_len))
-        
-        for idx in range(_len):
-            if idx == limit:break
-            #log.debug('-'*80)            
-            _hash = stable['values'][idx]['hash']
-            _msg = stable['values'][idx]['message']
-            _dateRaw= stable['values'][idx]['date']
+        #pprint.pprint(stable)
+        i = 0
+        for idx,d in enumerate(stable):
+            if i >= limit:
+                break
+            
+            #pprint.pprint(d)
+            _dCommit = d['commit']
+            _hash = d['sha']
+            _msg = _dCommit['message']
+            _dateRaw= _dCommit['committer']['date']
             
             try:_date = datetime.datetime.strptime( _dateRaw[:-6], "%Y-%m-%dT%H:%M:%S").__str__()
-            except:_date = _date
+            except:_date = _dateRaw
             
             _l_res.append({'hash':_hash,
                            'msg': _msg,
                            'date':_date,
+                           'url':d['html_url'],
                            'dateRaw':_dateRaw})
             log.debug("{0} | {1}{2} | date: {3} |msg: {4}".format(idx,
                                                                   _pathMain,
                                                                   _hash,
                                                                   _date,
                                                                   _msg,
-                                                                  ))
+                                                                  ))            
+
+            i+=1
             
-        pprint.pprint(_d_res)
+        _len = len(stable)
+        log.debug("|{0}| >> List of {1}".format(_str_func,_len))
+        
         pprint.pprint(_l_res)
         CGM_BUILDS_DAT[branch] = _l_res
         return _l_res 
@@ -558,7 +571,7 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     #get_dat(branch,5,update=True)
     try:
         #_zip = get_build(branch,idx)
-        _zip = get_download(branch)
+        _zip = get_download(branch,idx)
     except Exception,err:
         log.error(err)
         log.error("|{0}| >> Failed to acquire zip. Check branch name: {1}".format(_str_func,branch))
