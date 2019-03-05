@@ -113,7 +113,7 @@ _d_scrollList_shorts = {'left':'L',
                         'center':'C',
                         'front':'FRNT',
                         'define':'def',
-                        'template':'tmp',
+                        'form':'tmp',
                         'prerig':'pre',
                         'skeleton':'skl'}
 def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None):

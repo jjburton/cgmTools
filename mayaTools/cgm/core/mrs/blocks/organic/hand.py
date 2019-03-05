@@ -61,7 +61,7 @@ reload(RAYS)
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.02.202019'
-__autoTemplate__ = False
+__autoForm__ = False
 __component__ = False
 __menuVisible__ = True
 __baseSize__ = 10,10,10
@@ -125,7 +125,7 @@ d_defaultSettings = {
 #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},}
 
 d_wiring_prerig = {}
-d_wiring_template = {}
+d_wiring_form = {}
 d_wiring_define = {'msgLinks':['noTransDefineNull'],
                      }
 #=============================================================================================================
@@ -141,8 +141,8 @@ def mirror_self(self,primeAxis = 'Left'):
                                              mode = '',primeAxis = primeAxis.capitalize() )    
     """
     if _idx_state > 0:
-        log.debug("|{0}| >> template...".format(_str_func)+ '-'*80)
-        ml_mirrorHandles = self.msgList_get('templateHandles')
+        log.debug("|{0}| >> form...".format(_str_func)+ '-'*80)
+        ml_mirrorHandles = self.msgList_get('formHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                                      mode = '',primeAxis = primeAxis.capitalize() )
     
@@ -153,7 +153,7 @@ def mirror_self(self,primeAxis = 'Left'):
                                                  mode = '',primeAxis = primeAxis.capitalize() )
         """
 
-def templateDelete(self):pass
+def formDelete(self):pass
 
 def define(self):
     try:
@@ -592,10 +592,10 @@ def uiBuilderMenu(self,parent = None):
                 label = "Rebuild")    
     
     mc.menuItem(ann = '[{0}] Snap sub blocks | No scale'.format(_short),
-                c = cgmGEN.Callback(subBlock_align,self,**{'templateScale':False}),
+                c = cgmGEN.Callback(subBlock_align,self,**{'formScale':False}),
                 label = "Snap")
     mc.menuItem(ann = '[{0}] Shape sub blocks | snap and shape'.format(_short),
-                c = cgmGEN.Callback(subBlock_align,self,**{'templateScale':True}),
+                c = cgmGEN.Callback(subBlock_align,self,**{'formScale':True}),
                 label = "Shape")
     
     return
@@ -1419,7 +1419,7 @@ def verify_subBlocks(self,forceNew=True):
         cgmGEN.cgmException(Exception,err)
         
 
-def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = None, mCrv = None, mSurface = None, mOrientRootTo = None):
+def subBlock_align(self,mBlockArg  = None, formScale = True, ml_drivers = None, mCrv = None, mSurface = None, mOrientRootTo = None):
     try:
         _str_func = 'subBlock_align'
         _short = self.mNode
@@ -1496,22 +1496,22 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                             else:
                                 mDefineHandle.p_orient = md_helpers['thumbUp'].p_orient                        
                         
-                        #template..................
+                        #form..................
                         if _blockState > 0:
-                            log.debug(cgmGEN.logString_msg(_str_func,'template...'))
-                            ml_templateHandles = mBlock.msgList_get('templateHandles')
+                            log.debug(cgmGEN.logString_msg(_str_func,'form...'))
+                            ml_formHandles = mBlock.msgList_get('formHandles')
                             
                             ml_lofts = []
-                            for i,mHandle in enumerate(ml_templateHandles):
+                            for i,mHandle in enumerate(ml_formHandles):
                                 mHandle.p_position = ml_drivers[i].p_position
                     
                                 ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
                                 ml_lofts.extend(mHandle.msgList_get('subShapers'))
                                 
-                            for i,mHandle in enumerate(ml_templateHandles):
+                            for i,mHandle in enumerate(ml_formHandles):
                                 mHandle.p_position = ml_drivers[i].p_position                            
                         
-                            if templateScale:
+                            if formScale:
                                 l_x = []
                                 l_y = []
                                 
@@ -1534,7 +1534,7 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                             #TRANS.scale_to_size(_mNode,l_box)
                                             DIST.scale_to_axisSize(_mNode,l_box)
                                     except Exception,err:
-                                        log.error("Template Handle failed to scale: {0}".format(mHandle))
+                                        log.error("Form Handle failed to scale: {0}".format(mHandle))
                                         log.error(err)
                                         
                                         
@@ -1585,37 +1585,37 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                 mDefineHandle.p_orient =  self.p_orient
                                 mDefineHandle.p_position = ml_drivers[0].p_position                         
                         
-                        #template =====================================================================
+                        #form =====================================================================
                         if _blockState > 0:
-                            log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | template'.format(k2)))
-                            ml_templateHandles = mBlock.msgList_get('templateHandles')
+                            log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | form'.format(k2)))
+                            ml_formHandles = mBlock.msgList_get('formHandles')
                             
                             ml_lofts = []
                             
-                            if len(ml_drivers) != len(ml_templateHandles):
+                            if len(ml_drivers) != len(ml_formHandles):
                                 log.debug(cgmGEN.logString_msg(_str_func,'finger {0} | dat mismatch. Using alternate placment'.format(k2)))
                                 
-                                l_pos = CURVES.getUSplitList(mCurve.mNode,len(ml_templateHandles))
-                                for i,mHandle in enumerate(ml_templateHandles):
+                                l_pos = CURVES.getUSplitList(mCurve.mNode,len(ml_formHandles))
+                                for i,mHandle in enumerate(ml_formHandles):
                                     mHandle.p_position = l_pos[i]
                                     
                                     ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
                                     ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
-                                for i,mHandle in enumerate(ml_templateHandles):
+                                for i,mHandle in enumerate(ml_formHandles):
                                     #Do it twice to account for subconstrained items
                                     mHandle.p_position = l_pos[i]
                                 
                             else:
-                                for i,mHandle in enumerate(ml_templateHandles):
+                                for i,mHandle in enumerate(ml_formHandles):
                                     mHandle.p_position = ml_drivers[i].p_position
                                     
                                     ml_lofts.append(mHandle.getMessageAsMeta('loftCurve'))
                                     ml_lofts.extend(mHandle.msgList_get('subShapers'))                                  
-                                for i,mHandle in enumerate(ml_templateHandles):
+                                for i,mHandle in enumerate(ml_formHandles):
                                     #Do it twice to account for subconstrained items
                                     mHandle.p_position = ml_drivers[i].p_position
                             
-                            if templateScale:
+                            if formScale:
                                 l_x = []
                                 l_y = []
                                 
@@ -1638,7 +1638,7 @@ def subBlock_align(self,mBlockArg  = None, templateScale = True, ml_drivers = No
                                             #TRANS.scale_to_size(_mNode,l_box)
                                             DIST.scale_to_axisSize(_mNode,l_box)
                                     except Exception,err:
-                                        log.error("Template Handle failed to scale: {0}".format(mHandle))
+                                        log.error("Form Handle failed to scale: {0}".format(mHandle))
                                         log.error(err)
                                         
                                         
@@ -1870,8 +1870,8 @@ def sub_connect(self,mode='snap',forceNew=True):
                                                 maintainOffset = False)
                         mDefineHandle.template=True
                     
-                    #Template....
-                    log.debug(cgmGEN.logString_msg(_str_func,'template...'))
+                    #Form....
+                    log.debug(cgmGEN.logString_msg(_str_func,'form...'))
                     
             
     except Exception,err:

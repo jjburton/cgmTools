@@ -48,7 +48,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.1.05312018'
-__autoTemplate__ = True
+__autoForm__ = True
 __menuVisible__ = True
 __baseSize__ = 170,170,170
 
@@ -75,7 +75,7 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
-d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull']}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
 
 #MRP - Morpheus Rig Platform
@@ -108,7 +108,7 @@ def define(self):
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
     
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
 @cgmGEN.Timer
 def resize_masterShape(self,sizeBy=None,resize=False):
@@ -138,8 +138,8 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         _size = _average * 1.5
         _offsetSize = _average * .01    
         _blockScale = self.blockScale
-        mTemplateNull = self.atUtils('stateNull_verify','template')
-        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        mFormNull = self.atUtils('stateNull_verify','form')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         if resize or self.controlOffset == .9999:
             self.controlOffset = _offsetSize
@@ -167,7 +167,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         _bb_newSize = MATH.list_mult(self.baseSize,[_blockScale,_blockScale,_blockScale])
         TRANS.scale_to_boundingBox(_bb_shape,_bb_newSize)
         mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-        mBBShape.p_parent = mTemplateNull
+        mBBShape.p_parent = mFormNull
         
         mBBShape.inheritsTransform = False
         mc.parentConstraint(self.mNode,mBBShape.mNode,maintainOffset=False)
@@ -230,7 +230,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
-        mOffsetShape.p_parent = mTemplateNull
+        mOffsetShape.p_parent = mFormNull
         
         mOffsetShape.inheritsTransform = False
         mc.parentConstraint(self.mNode,mOffsetShape.mNode,maintainOffset=False)        
@@ -277,7 +277,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
             
         _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
         mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-        mBBShape.p_parent = mTemplateNull
+        mBBShape.p_parent = mFormNull
         
         SNAPCALLS.snap( mBBShape.mNode,self.mNode,objPivot='axisBox',objMode='y-')
         
@@ -300,10 +300,10 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
     
     
-def template(self):
+def form(self):
     try:
         _short = self.mNode    
-        _str_func = '[{0}] template'.format(_short)
+        _str_func = '[{0}] form'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
     
     
@@ -339,11 +339,11 @@ def template(self):
         RIG.shapeParent_in_place(self.mNode,s,False)
     return True
 
-def templateDelete(self):
+def formDelete(self):
     pass
     #self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
 
-def is_template(self):
+def is_form(self):
     if self.getShapes():
         return True
     return False
@@ -374,7 +374,7 @@ def prerig(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def prerigDelete(self):
-    self.atBlockUtils('prerig_delete',templateHandles=True)
+    self.atBlockUtils('prerig_delete',formHandles=True)
     try:self.moduleTarget.masterNull.delete()
     except Exception,err:
         for a in err:
@@ -567,7 +567,7 @@ def rig_cleanUp(self):
         mBlock.blockState = 'rig'
         
         mBlock.template = True
-        mBlock.noTransTemplateNull.template=True
+        mBlock.noTransFormNull.template=True
         self.UTILS.rigNodes_store(self)
         
         self.version = self.d_block['buildVersion']
@@ -585,7 +585,7 @@ def rigDelete(self):
         log.debug("|{0}| >> ...".format(_str_func,)+'-'*80)
         log.debug(self)
         self.template = False
-        self.noTransTemplateNull.template=True
+        self.noTransFormNull.template=True
         mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:

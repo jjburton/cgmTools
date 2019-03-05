@@ -77,7 +77,7 @@ def ik_rp(self,mHandle = None,ml_targets = None):
     #Mid IK...---------------------------------------------------------------------------------
     log.debug("|{0}| >> ...".format(_str_func)+'/'*30)
     if mHandle == None:
-        mHandle = self.mMidTemplateHandle
+        mHandle = self.mMidFormHandle
     if not ml_targets:
         self.ml_handleTargetsCulled
         
@@ -125,7 +125,7 @@ def rootOrCog(self,mHandle = None):
         
         mBlock = self.mBlock
         ml_prerigHandles = self.ml_prerigHandles
-        ml_templateHandles = self.ml_templateHandles
+        ml_formHandles = self.ml_formHandles
         _offset = self.v_offset
         if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
             log.debug("|{0}| >> Cog...".format(_str_func))
@@ -162,8 +162,8 @@ def rootOrCog(self,mHandle = None):
             ml_joints = self.d_joints['ml_moduleJoints']
             mRoot = ml_joints[0].doCreateAt()
     
-            #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_templateHandles[0].mNode))
-            _size_root = POS.get_bb_size(ml_templateHandles[0].loftCurve.mNode,True,mode='max')
+            #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_formHandles[0].mNode))
+            _size_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True,mode='max')
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
     
@@ -189,7 +189,7 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
         #Mid IK...---------------------------------------------------------------------------------
         log_start(_str_func)
         mBlock = self.mBlock
-        ml_templateHandles = self.ml_templateHandles
+        ml_formHandles = self.ml_formHandles
         
         if ml_handleTargets == None:
             raise ValueError,"{0} | ml_handleTargets required".format(_str_func)
@@ -197,9 +197,9 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
             ikEnd = mBlock.getEnumValueString('ikEnd')
     
         
-        if ml_templateHandles[-1].getMessage('proxyHelper'):
+        if ml_formHandles[-1].getMessage('proxyHelper'):
             log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
-            mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
+            mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
             #bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
             bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,mode='max')
         
@@ -231,39 +231,39 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 mIKCrv = ml_handleTargets[-1].doCreateAt()
                 
             if shapeArg is not None:
-                mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
-                bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+                mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
+                bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
                 _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 2.0)
                 mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
-                mIKShape.doSnapTo(mIK_templateHandle)          
+                mIKShape.doSnapTo(mIK_formHandle)          
                 
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
             else:
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
         elif ikEnd == 'shapeArg':
-            mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
-            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+            mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
+            bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
             _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
             ATTR.set(_ik_shape,'scale', 1.1)
     
             mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
     
-            mIKShape.doSnapTo(mIK_templateHandle)
+            mIKShape.doSnapTo(mIK_formHandle)
             mIKCrv = ml_ikJoints[self.int_handleEndIdx].doCreateAt()
             CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)                            
             
         else:
             log.debug("|{0}| >> default IK shape...".format(_str_func))
-            mIK_templateHandle = ml_templateHandles[ self.int_handleEndIdx ]
-            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+            mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
+            bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
             _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
             ATTR.set(_ik_shape,'scale', 1.1)
     
             mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
     
-            mIKShape.doSnapTo(mIK_templateHandle)
+            mIKShape.doSnapTo(mIK_formHandle)
             mIKCrv = ml_ikJoints[self.int_handleEndIdx].doCreateAt()
             CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)                
     
@@ -290,7 +290,7 @@ def ik_base(self,ikBase = None, ml_baseJoints = None, ml_fkShapes = None):
         mRigNull = self.mRigNull
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
-        ml_templateHandles = self.ml_templateHandles
+        ml_formHandles = self.ml_formHandles
         
         if ikBase == None:
             ikBase = mBlock.getEnumValueString('ikBase')        
@@ -314,16 +314,16 @@ def ik_base(self,ikBase = None, ml_baseJoints = None, ml_fkShapes = None):
             
         else:
             log.debug("|{0}| >> default IK base shape...".format(_str_func))
-            mIK_templateHandle = ml_templateHandles[ 0 ]
-            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
-            bb_ik = POS.get_bb_size(mIK_templateHandle.mNode,True,mode='max')
+            mIK_formHandle = ml_formHandles[ 0 ]
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
+            bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
             
             _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
             ATTR.set(_ik_shape,'scale', 1.1)
         
             mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
         
-            mIKBaseShape.doSnapTo(mIK_templateHandle)
+            mIKBaseShape.doSnapTo(mIK_formHandle)
             #pos_ik = POS.get_bb_center(mProxyHelper.mNode)
             #SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,
             #                                   'axisBox','z+',False)                

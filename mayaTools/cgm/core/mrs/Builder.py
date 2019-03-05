@@ -911,9 +911,9 @@ class ui(cgmUI.cgmGUI):
                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                    'atUtils', 'define_set_baseSize',
                                                                    **{'updateUI':0})}},
-               'Template':{'Snap to RP':{'ann':'Snap handles to rp plane',
+               'Form':{'Snap to RP':{'ann':'Snap handles to rp plane',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                 'atUtils', 'handles_snapToRotatePlane','template',True,
+                                 'atUtils', 'handles_snapToRotatePlane','form',True,
                                  **{'updateUI':0})},},               
                'Prerig':{
                    'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
@@ -1071,7 +1071,7 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete'))        
         
         """
-        for state in ['define','template','prerig']:
+        for state in ['define','form','prerig']:
             d_s['blockDat']['order'].append('Load {0}'.format(state))
             d_s['blockDat']['Load {0}'.format(state)] = {
                 'ann':"Load {0} blockDat in context".format(state),
@@ -1082,7 +1082,7 @@ class ui(cgmUI.cgmGUI):
         
         l_keys = d_s.keys()
         l_keys.sort()
-        l_check = ['Define','Template','Prerig','Skeleton','Rig']
+        l_check = ['Define','Form','Prerig','Skeleton','Rig']
         l_check.reverse()
         for k in l_check:
             if k in l_keys:
@@ -2478,7 +2478,7 @@ class ui(cgmUI.cgmGUI):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
         
         
-        for state in ['define','template','prerig','skeleton',]:
+        for state in ['define','form','prerig','skeleton',]:
             mc.button(parent=_row,
                       l = state.capitalize(),
                       ut = 'cgmUITemplate',
@@ -2979,11 +2979,11 @@ class ui(cgmUI.cgmGUI):
         
         _column = self.uiFrame_shared
         
-        d_shared = {'templateNull':{},
+        d_shared = {'formNull':{},
                     'prerigNull':{}}
         
         l_settings = ['visibility']
-        l_locks = ['rigBlock','templateNull','prerigNull']
+        l_locks = ['rigBlock','formNull','prerigNull']
         l_enums = []
     
         for n in l_locks:
@@ -3122,7 +3122,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
         _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
         
-        for null in ['templateNull','prerigNull']:
+        for null in ['formNull','prerigNull']:
             #_str_null = mBlock.getMessage(null)
             #_nullShort = _str_null[0]
             mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
@@ -3180,7 +3180,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
         _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
         
-        for null in ['templateNull','prerigNull']:
+        for null in ['formNull','prerigNull']:
             _str_null = mBlock.getMessage(null)
             if _str_null:
                 _nullShort = _str_null[0]
@@ -3684,11 +3684,11 @@ class ui(cgmUI.cgmGUI):
                   align='center',
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{'forceNew':True}),
                   ann='[Define] - initial block state')
-        mc.button(l='<Templ>',
+        mc.button(l='<Form>',
                   bgc = SHARED._d_gui_state_colors.get('warning'),                  
                   height = 20,
                   align='center',                  
-                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','template',**{'forceNew':True}),
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','form',**{'forceNew':True}),
                   ann='[Template] - Shaping the proxy and initial look at settings')
                          
         mc.button(l='<Prerig>',

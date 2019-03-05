@@ -27,9 +27,9 @@ d_defaultAttrSettings = {'blockState':'define'}
 _l_requiredSkeletonDat = ['__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']
 _l_requiredRigDat = []
 
-_l_blockStates = ['define','template','prerig','skeleton','rig']
+_l_blockStates = ['define','form','prerig','skeleton','rig']
 _l_requiredModuleDat = ['__version__',
-                        'template','is_template','templateDelete',
+                        'form','is_form','formDelete',
                         'prerig','is_prerig','prerigDelete',
                         'rig','is_rig','rigDelete']
 
@@ -156,7 +156,7 @@ _d_mirrorAttrCheck = {'loftShape':{'widePos':'wideNeg',
 
 #>> State Attr Masks =================================================================================
 _l_attrMask_all = ['visibility']
-_l_attrMask_template = ['baseSize','blockScale']
+_l_attrMask_form = ['baseSize','blockScale']
 _l_attrMask_prerig = []
 _l_attrMask_rig = []
 

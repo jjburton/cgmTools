@@ -279,7 +279,7 @@ def gather_rigBlocks(progressBar=False):
                 mObj.parent = mGroup
                 ml_gathered.append(mObj)
                 
-            for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
+            for link in ['noTransFormNull','noTransDefineNull','noTransPrerigNull']:
                 try:
                     mLink = mObj.getMessageAsMeta(link)
                     if mLink and not mLink.parent:
@@ -458,7 +458,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
             ml_use = ml_handles
         else:
             ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
-            ml_templateHandles = self.mBlock.msgList_get('templateHandles')
+            ml_formHandles = self.mBlock.msgList_get('formHandles')
             
             int_count = self.mBlock.numControls
             ml_use = ml_prerigHandles[:int_count]
@@ -534,7 +534,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
         
         return pos_use
         
-        pos_mid = ml_templateHandles[mid].p_position
+        pos_mid = ml_formHandles[mid].p_position
     
     
         #Get our point for knee...
@@ -2154,7 +2154,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
         
     
-        ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
+        ml_handles = self.mBlock.msgList_get('formHandles',asMeta = True)
         #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
         #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
         #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')

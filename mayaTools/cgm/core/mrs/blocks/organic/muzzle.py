@@ -79,7 +79,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.10.31.2018'
-__autoTemplate__ = False
+__autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True
 
@@ -101,7 +101,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull']}
-d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
@@ -199,8 +199,8 @@ def mirror_self(self,primeAxis = 'Left'):
                                              mode = '',primeAxis = primeAxis.capitalize() )    
     
     if _idx_state > 0:
-        log.debug("|{0}| >> template...".format(_str_func)+ '-'*80)
-        ml_mirrorHandles = self.msgList_get('templateHandles')
+        log.debug("|{0}| >> form...".format(_str_func)+ '-'*80)
+        ml_mirrorHandles = self.msgList_get('formHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                                      mode = '',primeAxis = primeAxis.capitalize() )
     
@@ -664,10 +664,10 @@ def define(self):
 
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
-def templateDelete(self):
-    _str_func = 'templateDelete'
+def formDelete(self):
+    _str_func = 'formDelete'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     ml_defSubHandles = self.msgList_get('defineSubHandles')
@@ -684,9 +684,9 @@ def templateDelete(self):
     
     
 @cgmGEN.Timer
-def template(self):
+def form(self):
     try:    
-        _str_func = 'template'
+        _str_func = 'form'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
@@ -697,8 +697,8 @@ def template(self):
         log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)    
 
         #Create temple Null  ==================================================================================
-        mTemplateNull = BLOCKUTILS.templateNull_verify(self)
-        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        mFormNull = BLOCKUTILS.formNull_verify(self)
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         mHandleFactory = self.asHandleFactory()
         
@@ -821,31 +821,31 @@ def template(self):
             d_creation.update(_d)
             d_pairs.update(_d_pairs)
             
-            _d_curveCreation = {'jawTemplateRight1':{'keys':['jawTopRight','cheekLineRightMid','cheekBoneRight'],
+            _d_curveCreation = {'jawFormRight1':{'keys':['jawTopRight','cheekLineRightMid','cheekBoneRight'],
                                                      'rebuild':True},
-                                'jawTemplateRight2':{'keys':['jawEdgeRightMid','cheekRight','smileRight'],
+                                'jawFormRight2':{'keys':['jawEdgeRightMid','cheekRight','smileRight'],
                                                      'rebuild':True},
-                                'jawTemplateRight3':{'keys':['jawRight','jawLineRightMid','chinRight'],
+                                'jawFormRight3':{'keys':['jawRight','jawLineRightMid','chinRight'],
                                                      'rebuild':True},
-                                'jawTemplateCenter':{'keys':['neckBase','jawUnder','chinBase'],
+                                'jawFormCenter':{'keys':['neckBase','jawUnder','chinBase'],
                                                      'rebuild':True},
-                                'jawTemplateLeft1':{'keys':['jawTopLeft','cheekLineLeftMid','cheekBoneLeft'],
+                                'jawFormLeft1':{'keys':['jawTopLeft','cheekLineLeftMid','cheekBoneLeft'],
                                                      'rebuild':True},
-                                'jawTemplateLeft2':{'keys':['jawEdgeLeftMid','cheekLeft','smileLeft'],
+                                'jawFormLeft2':{'keys':['jawEdgeLeftMid','cheekLeft','smileLeft'],
                                                      'rebuild':True},
-                                'jawTemplateLeft3':{'keys':['jawLeft','jawLineLeftMid','chinLeft'],
+                                'jawFormLeft3':{'keys':['jawLeft','jawLineLeftMid','chinLeft'],
                                                      'rebuild':True},                               
                                 }
             
             #if self.chinSetup:
-            #    _d_curveCreation['jawTemplateRight3']['keys'].append('chinFormRight')
-            #    _d_curveCreation['jawTemplateCenter']['keys'].append('chin')
-            #    _d_curveCreation['jawTemplateLeft3']['keys'].append('chinFormLeft')
+            #    _d_curveCreation['jawFormRight3']['keys'].append('chinFormRight')
+            #    _d_curveCreation['jawFormCenter']['keys'].append('chin')
+            #    _d_curveCreation['jawFormLeft3']['keys'].append('chinFormLeft')
 
             d_curveCreation.update(_d_curveCreation)
-            md_loftCreation['jaw'] =  {'keys':['jawTemplateRight1','jawTemplateRight2','jawTemplateRight3',
-                                               'jawTemplateCenter',
-                                               'jawTemplateLeft3','jawTemplateLeft2','jawTemplateLeft1'],
+            md_loftCreation['jaw'] =  {'keys':['jawFormRight1','jawFormRight2','jawFormRight3',
+                                               'jawFormCenter',
+                                               'jawFormLeft3','jawFormLeft2','jawFormLeft1'],
                                        'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
                                        'kws':{'noRebuild':True}}
             
@@ -1066,14 +1066,14 @@ def template(self):
             md_loftCreation['nose']['keys'].reverse()
             
             """
-            _d_curveCreation = {'jawTemplate1':{'keys':['jawTopLeft','jawEdgeLeftMid','jawLeft','neckBase',
+            _d_curveCreation = {'jawForm1':{'keys':['jawTopLeft','jawEdgeLeftMid','jawLeft','neckBase',
                                                         'jawRight','jawEdgeRightMid','jawTopRight'],
                                                 'rebuild':True},
-                                'jawTemplate2':{'keys':['cheekLineLeftMid','cheekLeft','jawLineLeftMid',
+                                'jawForm2':{'keys':['cheekLineLeftMid','cheekLeft','jawLineLeftMid',
                                                         'jawUnder',
                                                         'jawLineRightMid','cheekRight','cheekLineRightMid'],
                                                 'rebuild':True},
-                                'jawTemplate3':{'keys':['cheekBoneLeft','smileLeft','chinLeft','chin',
+                                'jawForm3':{'keys':['cheekBoneLeft','smileLeft','chinLeft','chin',
                                                         'chinRight','smileRight','cheekBoneRight'],
                                                 'rebuild':True},
                                 }
@@ -1445,7 +1445,7 @@ def template(self):
             
         
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10,
-                                                 mTemplateNull)
+                                                 mFormNull)
         ml_subHandles.extend(md_res['ml_handles'])
         md_handles.update(md_res['md_handles'])
     
@@ -1459,9 +1459,9 @@ def template(self):
                 mObj.v=False
             
             
-            self.UTILS.create_simpleTemplateLoftMesh(self,
+            self.UTILS.create_simpleFormLoftMesh(self,
                                                      [mObj.mNode for mObj in ml_curves],
-                                                     mTemplateNull,
+                                                     mFormNull,
                                                      polyType = 'faceLoft',
                                                      d_rebuild = d.get('rebuild',{}),
                                                      baseName = k,
@@ -1509,8 +1509,8 @@ def template(self):
         
         
         
-        self.msgList_connect('templateHandles',ml_subHandles)#Connect
-        self.msgList_connect('templateCurves',md_res['ml_curves'])#Connect        
+        self.msgList_connect('formHandles',ml_subHandles)#Connect
+        self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
         return
         
         
@@ -1518,10 +1518,10 @@ def template(self):
             
         #Build our brow loft --------------------------------------------------------------------------
         log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
-        self.UTILS.create_simpleTemplateLoftMesh(self,
+        self.UTILS.create_simpleFormLoftMesh(self,
                                                  [md_loftCurves['browLine'].mNode,
                                                   md_loftCurves['browUpr'].mNode],
-                                                 mTemplateNull,
+                                                 mFormNull,
                                                  polyType = 'bezier',
                                                  baseName = 'brow')
         
@@ -1535,9 +1535,9 @@ def template(self):
                 mLoc = cgmMeta.asMeta(self.doCreateAt())
                 mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
                 
-                self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
+                self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
                 
-                mLoc.rename("{0}_{1}_templateHelper".format(tag,k))
+                mLoc.rename("{0}_{1}_formHelper".format(tag,k))
                 
                 mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                              turnOnPercentage=True))
@@ -1582,10 +1582,10 @@ def template(self):
 #>> Prerig
 #=============================================================================================================
 def prerigDelete(self):
-    self.noTransTemplateNull.v=True
-    self.templateNull.template=False
+    self.noTransFormNull.v=True
+    self.formNull.template=False
     
-    for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('templateHandles'):
+    for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('formHandles'):
         mLabel = mObj.getMessageAsMeta('jointLabel')
         if mLabel:
             mLabel.v=1
@@ -1601,7 +1601,7 @@ def create_handle(self,tag,pos,mJointTrack=None,
 
     mHandle.p_parent = mStateNull
     mHandle.doStore('cgmName',tag)
-    mHandle.doStore('cgmType','templateHandle')
+    mHandle.doStore('cgmType','formHandle')
     mHandle.doName()
 
     mHandleFactory.color(mHandle.mNode,controlType='sub')
@@ -1821,8 +1821,8 @@ def prerig(self):
         self.atUtils('module_verify')
         mStateNull = self.UTILS.stateNull_verify(self,'prerig')
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
-        self.noTransTemplateNull.v=False
-        self.templateNull.template=True
+        self.noTransFormNull.v=False
+        self.formNull.template=True
         
         _offset = self.atUtils('get_shapeOffset')/4.0
         _size = MATH.average(self.baseSize[1:])
@@ -1834,7 +1834,7 @@ def prerig(self):
         vec_self = self.getAxisVector('z+')
         vec_selfUp = self.getAxisVector('y+')        
         #---------------------------------------------------------------
-        log.debug("|{0}| >> Gather define/template handles/curves in a useful format...".format(_str_func)) 
+        log.debug("|{0}| >> Gather define/form handles/curves in a useful format...".format(_str_func)) 
         d_pairs = {}
         ml_handles = []
         md_handles = {}
@@ -1843,14 +1843,14 @@ def prerig(self):
         md_jointHandles = {}
         ml_jointHandles = []
         ml_defineHandles = []
-        for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('templateHandles'):
+        for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('formHandles'):
             md_dHandles[mObj.handleTag] = mObj
             mLabel = mObj.getMessageAsMeta('jointLabel')
             if mLabel:
                 mLabel.v=0
             ml_defineHandles.append(mObj)
 
-        for mObj in self.msgList_get('defineCurves') + self.msgList_get('templateCurves') :
+        for mObj in self.msgList_get('defineCurves') + self.msgList_get('formCurves') :
             md_dCurves[mObj.handleTag] = mObj
             mObj.template=1        
         
@@ -1929,11 +1929,11 @@ def prerig(self):
                   'cgmType':'handleHelper'}
             
             _d_dat = {'upper':{'centerH':'uprFront',
-                               'mSurf':self.uprLipTemplateLoft,
+                               'mSurf':self.uprLipFormLoft,
                                'vec':[0,1,0],
                                'mCrv':md_dCurves['uprFront']},
                       'lower':{'centerH':'lwrFront',
-                               'mSurf':self.lwrLipTemplateLoft,
+                               'mSurf':self.lwrLipFormLoft,
                                'vec':[0,-1,-.5],
                                'noReverse':True,
                                'mCrv':md_dCurves['lwrFront']},                      
@@ -1985,7 +1985,7 @@ def prerig(self):
                 
                 #Make our surfaces
                 surf_kws = d_use.get('d_surf',{})                
-                mSurf = self.UTILS.create_simpleTemplateLoftMesh(self,
+                mSurf = self.UTILS.create_simpleFormLoftMesh(self,
                                                                  [mObj.mNode for mObj in [mCrvNeg,
                                                                                           mDup,
                                                                                           mCrvPos]],
@@ -2228,7 +2228,7 @@ def prerig(self):
             if str_noseSetup == 'simple':
                 log.debug("|{0}| >>  noseSetup: {1}".format(_str_func,str_noseSetup))
         
-                mSurf =  self.noseTemplateLoft
+                mSurf =  self.noseFormLoft
         
                 _d_name = {'cgmName':'nose',
                            'cgmType':'handleHelper'}
@@ -2334,7 +2334,7 @@ def prerig(self):
             if str_cheekSetup == 'single':
                 log.debug("|{0}| >>  cheekSetup: {1}".format(_str_func,str_cheekSetup))
                 
-                mSurf =  self.jawTemplateLoft
+                mSurf =  self.jawFormLoft
                 
                 _d_name = {'cgmName':'cheek',
                            'cgmType':'handleHelper'}
@@ -2381,7 +2381,7 @@ def prerig(self):
             if str_cheekSetup == 'single':
                 log.debug("|{0}| >>  chin: {1}".format(_str_func,str_chinSetup))
                 
-                mSurf =  self.lwrLipTemplateLoft
+                mSurf =  self.lwrLipFormLoft
                 
                 
                 _d_name = {'cgmName':'chin',
@@ -2472,7 +2472,7 @@ def prerig(self):
         
         #Get base dat =============================================================================    
         mBBHelper = self.bbHelper
-        mBrowLoft = self.getMessageAsMeta('browTemplateLoft')
+        mBrowLoft = self.getMessageAsMeta('browFormLoft')
         
         _size = MATH.average(self.baseSize[1:])
         _size_base = _size * .25
@@ -2520,9 +2520,9 @@ def prerig(self):
                 else:
                     _control = 'main'
                     
-                mTemplateHelper = self.getMessageAsMeta(tag+k.capitalize()+'templateHelper')
+                mFormHelper = self.getMessageAsMeta(tag+k.capitalize()+'formHelper')
                 
-                mHandle = create_handle(mTemplateHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
+                mHandle = create_handle(mFormHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
                 md_handles['brow'][_side].append(mHandle)
                 ml_handles.append(mHandle)                
             mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),md_handles['brow'][_side])
@@ -2564,7 +2564,7 @@ def prerig(self):
                 mLoc = cgmMeta.asMeta(self.doCreateAt())
                 mLoc.rename("{0}_{1}_jointTrackHelper".format(tag,i))
             
-                #self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
+                #self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
                 mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                              turnOnPercentage=True))
             
@@ -2869,7 +2869,7 @@ def skeleton_build(self, forceNew = True):
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
-    mHeadHelper = ml_templateHandles[0].orientHelper
+    mHeadHelper = ml_formHandles[0].orientHelper
     
     #...create ---------------------------------------------------------------------------
     mHead_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
@@ -4118,7 +4118,7 @@ def rig_cleanUp(self):
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    mBlock.UTILS.set_blockNullFormState(mBlock)
     self.UTILS.rigNodes_store(self)
 
 
@@ -4261,7 +4261,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     ml_new = []
     #Let's gather our proxy mesh
     for lnk in ['jaw','nose','uprLip','lwrLip','noseToCheekLeft','noseToCheekRight']:
-        mBase = mBlock.getMessageAsMeta(lnk+'TemplateLoft')
+        mBase = mBlock.getMessageAsMeta(lnk+'FormLoft')
         if mBase:
             log.debug("|{0}| >> On: {1}".format(_str_func,lnk)+'-'*40)
             
@@ -4416,7 +4416,7 @@ def build_proxyMeshBAK(self, forceNew = True, puppetMeshMode = False):
     mJaw = mRigNull.getMessageAsMeta('controlJaw')
     if mJaw:
         log.debug("|{0}| >> jaw...".format(_str_func))
-        mLoftSurface =  mBlock.jawTemplateLoft.doDuplicate(po=False,ic=False)
+        mLoftSurface =  mBlock.jawFormLoft.doDuplicate(po=False,ic=False)
         #nurbsToPoly -mnd 1  -ch 1 -f 1 -pt 1 -pc 200 -chr 0.9 -ft 0.01 -mel 0.001 -d 0.1 -ut 1 -un 3 -vt 1 -vn 3 -uch 0 -ucr 0 -cht 0.01 -es 0 -ntr 0 -mrt 0 -uss 1 "jaw_fk_anim_Transform";
         _surf = mc.nurbsToPoly(mLoftSurface.mNode, mnd=1, f=1, pt = 1,ch=0, pc=200, chr = .9, ft=.01, mel = .001, d = .1, ut=1, un = 3, vt=1, vn=3, uch = 0, cht = .01, ntr = 0, mrt = 0, uss = 1 )
         mDag = mJaw.doCreateAt()
@@ -4430,7 +4430,7 @@ def build_proxyMeshBAK(self, forceNew = True, puppetMeshMode = False):
     for mObj in ml_drivers:
         if mObj.getMayaAttr('cgmName')=='noseBase':
             log.debug("|{0}| >> noseBase...".format(_str_func))
-            mLoftSurface =  mBlock.noseTemplateLoft.doDuplicate(po=False,ic=False)
+            mLoftSurface =  mBlock.noseFormLoft.doDuplicate(po=False,ic=False)
             _surf = mc.nurbsToPoly(mLoftSurface.mNode, mnd=1, f=1, pt = 1,ch=0, pc=200, chr = .9, ft=.01, mel = .001, d = .1, ut=1, un = 3, vt=1, vn=3, uch = 0, cht = .01, ntr = 0, mrt = 0, uss = 1 )
             mDag = mObj.doCreateAt()
             CORERIG.shapeParent_in_place(mDag.mNode,_surf,False) 

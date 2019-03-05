@@ -84,7 +84,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.1.03012019'
-__autoTemplate__ = False
+__autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
 __sizeMode__ = 'castNames'
@@ -105,8 +105,8 @@ d_wiring_skeleton = {'msgLinks':['moduleTarget'],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
-d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull','prerigLoftMesh','orientHelper'],
-                     'msgLists':['templateHandles']}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull','prerigLoftMesh','orientHelper'],
+                     'msgLists':['formHandles']}
 d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================
@@ -623,11 +623,11 @@ def define(self):
 
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================    
-def templateDelete(self):
+def formDelete(self):
     try:
-        _str_func = 'templateDelete'
+        _str_func = 'formDelete'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
@@ -663,9 +663,9 @@ def templateDelete(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
     
-def template(self):
+def form(self):
     try:
-        _str_func = 'template'
+        _str_func = 'form'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
@@ -701,7 +701,7 @@ def template(self):
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
         
-        #Template our vectors
+        #Form our vectors
         for k in ['end','rp','up','lever']:
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
             if k not in ['rp']:
@@ -736,9 +736,9 @@ def template(self):
         #Create temple Null ==================================================================================
         log.debug("|{0}| >> nulls...".format(_str_func)+ '-'*40)
         
-        #mTemplateNull = self.atUtils('templateNull_verify')
-        mTemplateNull = self.UTILS.stateNull_verify(self,'template')
-        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        #mFormNull = self.atUtils('formNull_verify')
+        mFormNull = self.UTILS.stateNull_verify(self,'form')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         #Our main rigBlock shape ...
         mHandleFactory = self.asHandleFactory()
@@ -796,7 +796,7 @@ def template(self):
             iUse = 0
             if i:iUse = -1
             mHandle = mHandleFactory.buildBaseShape('cubeOpen',baseSize = _size_handle, shapeDirection = 'z+')
-            mHandle.p_parent = mTemplateNull
+            mHandle.p_parent = mFormNull
             
             mHandle.resetAttrs()
             
@@ -822,7 +822,7 @@ def template(self):
             md_loftHandles[n] = mLoftCurve                
             ml_loftHandles.append(mLoftCurve)
             
-            mLoftCurve.p_parent = mTemplateNull
+            mLoftCurve.p_parent = mFormNull
             mTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
             if not mTransformedGroup:
                 mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed',setClass='cgmObject')
@@ -831,7 +831,7 @@ def template(self):
             
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             
-        #Constrain the define end to the end of the template handles
+        #Constrain the define end to the end of the form handles
         mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
         #mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
         
@@ -847,7 +847,7 @@ def template(self):
         self.copyAttrTo('cgmName',mBaseOrientCurve.mNode,'cgmName',driven='target')
         mBaseOrientCurve.doName()
         
-        mBaseOrientCurve.p_parent =  mTemplateNull
+        mBaseOrientCurve.p_parent =  mFormNull
         mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
         mc.pointConstraint(md_handles['start'].mNode, mOrientHelperAimGroup.mNode )
         _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
@@ -878,7 +878,7 @@ def template(self):
             mHandle.doName()                
             
             _short = mHandle.mNode
-            mHandle.p_parent = mTemplateNull
+            mHandle.p_parent = mFormNull
             mHandle.resetAttrs()
             print md_handles['lever']
             mHandle.p_position = pos_lever
@@ -899,7 +899,7 @@ def template(self):
             
             
             mc.parentConstraint(mHandle.mNode, mDefineLeverObj.mNode, maintainOffset = False)
-            self.connectChildNode(mHandle.mNode,'templateLeverHandle')      
+            self.connectChildNode(mHandle.mNode,'formLeverHandle')      
             
             """
             mc.aimConstraint(md_handles['start'].mNode, mGroup.mNode, maintainOffset = False,
@@ -955,7 +955,7 @@ def template(self):
                 ml_midHandles.append(mHandle)
                 mHandle.p_position = p
 
-                mHandle.p_parent = mTemplateNull
+                mHandle.p_parent = mFormNull
                 #mHandle.resetAttrs()
                 
                 mHandleFactory.setHandle(mHandle.mNode)
@@ -984,7 +984,7 @@ def template(self):
                 mTransformedGroup.resetAttrs('rotate')
                 
                 
-                mLoftCurve.p_parent = mTemplateNull
+                mLoftCurve.p_parent = mFormNull
                 mLoftTransformedGroup = mLoftCurve.getMessageAsMeta('transformedGroup')
                 if not mLoftTransformedGroup:
                     mLoftTransformedGroup = mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'transformed')
@@ -1240,7 +1240,7 @@ def template(self):
                 #_l_clusterParents = [mStartHandle,mEndHandle]
                 for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                     _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
-                    TRANS.parent_set(_res[1], mTemplateNull)
+                    TRANS.parent_set(_res[1], mFormNull)
                     mc.pointConstraint(mPair[ii].mNode,#getMessage('loftCurve')[0],
                                        _res[1],maintainOffset=True)
                     ATTR.set(_res[1],'v',False)                
@@ -1320,10 +1320,10 @@ def template(self):
                     mHandle.doStore('cgmType','blockHandle')
                     mHandle.doName()
             
-                    mHandle.p_parent = mTemplateNull
+                    mHandle.p_parent = mFormNull
             
                     mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
-                    mGroup.p_parent = mTemplateNull
+                    mGroup.p_parent = mFormNull
             
                     _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mPair[0].mNode,mPair[1].mNode])
             
@@ -1367,7 +1367,7 @@ def template(self):
                 if mDupLoft:
                     mDupLoft.delete()
         #>>> Connections ====================================================================================
-        self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
+        self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
 
         #>>Loft Mesh =========================================================================================
         if self.numSubShapers:
@@ -1379,7 +1379,7 @@ def template(self):
         
         """
             return {'targets':targets,
-                    'mPrerigNull' : mTemplateNull,
+                    'mPrerigNull' : mFormNull,
                     'uAttr':'numControls',
                     'uAttr2':'loftSplit',
                     'polyType':'bezier',
@@ -1387,7 +1387,7 @@ def template(self):
     
         self.atUtils('create_prerigLoftMesh',
                      targets,
-                     mTemplateNull,
+                     mFormNull,
                      'numControls',                     
                      'loftSplit',
                      polyType='bezier',
@@ -1411,14 +1411,14 @@ def template(self):
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
                 mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle,loft=False)
-                mFoot.p_parent = mTemplateNull
+                mFoot.p_parent = mFormNull
                 
-                #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mTemplateNull
+                #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mFormNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
                 mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle)
                 #mFoot,mFootLoftTop = mHandleFactory.addFootHelper(baseShape = _shapeEnd, baseSize=_bankSize)
-                mFoot.p_parent = mTemplateNull
+                mFoot.p_parent = mFormNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
                 mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+',baseSize=_bankSize)
@@ -1468,7 +1468,7 @@ def template(self):
             #    mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('y-',_size_height)
 
                 
-        self.blockState = 'template'#...buffer
+        self.blockState = 'form'#...buffer
     
     
         return True
@@ -1496,17 +1496,17 @@ def prerig(self):
         _ikSetup = self.getEnumValueString('ikSetup')
         _ikEnd = self.getEnumValueString('ikEnd')
     
-        ml_templateHandles = self.msgList_get('templateHandles')
+        ml_formHandles = self.msgList_get('formHandles')
         
         #Names dat.... -----------------------------------------------------------------
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')        
         #b_iterNames = False
-        if len(_l_baseNames) < len(ml_templateHandles):
+        if len(_l_baseNames) < len(ml_formHandles):
             log.debug("|{0}| >>  Not enough nameList attrs, need to generate".format(_str_func))
             #b_iterNames = True
             baseName = self.cgmName#_l_baseNames[0]
             _l_baseNamesNEW = []
-            for i in range(len(ml_templateHandles)):
+            for i in range(len(ml_formHandles)):
                 _l_baseNamesNEW.append("{0}_{1}".format(baseName,i))
             ATTR.datList_connect(self.mNode,'nameList',_l_baseNamesNEW)
             _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
@@ -1521,10 +1521,10 @@ def prerig(self):
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
-            self.asHandleFactory(ml_templateHandles[0]).addCogHelper().p_parent = mPrerigNull
+            self.asHandleFactory(ml_formHandles[0]).addCogHelper().p_parent = mPrerigNull
         
-        mStartHandle = ml_templateHandles[0]    
-        mEndHandle = ml_templateHandles[-1]    
+        mStartHandle = ml_formHandles[0]    
+        mEndHandle = ml_formHandles[-1]    
         mOrientHelper = self.orientHelper
         #Because Maya doesn't eval correctly all the time...
         #_orient = mOrientHelper.rotate
@@ -1555,33 +1555,33 @@ def prerig(self):
         
         #Foot helper ============================================================================
         mFootHelper = False
-        if ml_templateHandles[-1].getMessage('pivotHelper'):
+        if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> footHelper".format(_str_func))
-            mFootHelper = ml_templateHandles[-1].pivotHelper
+            mFootHelper = ml_formHandles[-1].pivotHelper
     
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
         if _ikEnd not in ['pad','bank']:
             if self.hasBallJoint and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
-                ml_templateHandles.append(mHelp)
+                ml_formHandles.append(mHelp)
                 ml_noParent.append(mHelp)
             if self.hasEndJoint and mFootHelper:
                 mHelp = mFootHelper.pivotFront            
-                ml_templateHandles.append(mHelp)
+                ml_formHandles.append(mHelp)
                 ml_noParent.append(mHelp)
             
         #Finger Tip ============================================================================
         if _ikSetup != 'none' and _ikEnd == 'catInTheHat':#bankTip
             log.debug("|{0}| >> bankTip setup...".format(_str_func))
-            mEndHandle = ml_templateHandles[-1]
+            mEndHandle = ml_formHandles[-1]
             
             """
             #Make a tip last mesh segment to build our pivot setup from...
             l_curves = []
             mTrans = mEndHandle.doCreateAt()
             mTrans.p_parent = False
-            for mObj in ml_templateHandles[-2:]:
+            for mObj in ml_formHandles[-2:]:
                 #CORERIG.shapeParent_in_place(mTrans.mNode,mObj.loftCurve.mNode)
                 l_curves.append(mObj.loftCurve.mNode)
             BUILDUTILS.create_loftMesh(l_curves)"""
@@ -1597,22 +1597,22 @@ def prerig(self):
         ml_aimGroups = []
         _nameDict = self.getNameDict(ignore=['cgmName','cgmType'])
         #_nameDict['cgmType'] = 'blockHandle'
-        mPivotHelper = ml_templateHandles[-1].getMessageAsMeta('pivotHelper')
+        mPivotHelper = ml_formHandles[-1].getMessageAsMeta('pivotHelper')
         
         mDefineEndObj = self.defineEndHelper    
         _size_width = mDefineEndObj.width#...x width
         _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
         _sizeUse2 = self.atUtils('get_shapeOffset') * 2
         _sizeUse = min([_sizeUse1,_sizeUse2])
-        mPivotHelper = ml_templateHandles[-1].getMessageAsMeta('pivotHelper')
-        for i,mTemplateHandle in enumerate(ml_templateHandles):
-            log.debug("|{0}| >> prerig handle cnt: {1} | {2}".format(_str_func,i,mTemplateHandle))
-            if mTemplateHandle == mPivotHelper:
+        mPivotHelper = ml_formHandles[-1].getMessageAsMeta('pivotHelper')
+        for i,mFormHandle in enumerate(ml_formHandles):
+            log.debug("|{0}| >> prerig handle cnt: {1} | {2}".format(_str_func,i,mFormHandle))
+            if mFormHandle == mPivotHelper:
                 log.debug("|{0}| >> pivotHelper. Skipping".format(_str_func,i))
                 continue        
-            _HandleSnapTo = mTemplateHandle.mNode
+            _HandleSnapTo = mFormHandle.mNode
             
-            if mTemplateHandle == mEndHandle:
+            if mFormHandle == mEndHandle:
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
@@ -1646,7 +1646,7 @@ def prerig(self):
             mHandle.p_parent = mPrerigNull
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
-            if mTemplateHandle == mEndHandle and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
+            if mFormHandle == mEndHandle and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
                 log.debug("|{0}| >> end handle aim: {1}".format(_str_func,mEndHandle))
                 
                 #_size_width = mDefineEndObj.width#...x width
@@ -1654,7 +1654,7 @@ def prerig(self):
             
             ml_aimGroups.append(mGroup)
             
-            if mTemplateHandle not in ml_noParent:
+            if mFormHandle not in ml_noParent:
                 mc.parentConstraint(_HandleSnapTo, mGroup.mNode, maintainOffset=True)
             elif mFootHelper:
                 mc.parentConstraint(mFootHelper.mNode, mGroup.mNode, maintainOffset=True)
@@ -1666,7 +1666,7 @@ def prerig(self):
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
             mHandleFactory.color(mHandle.mNode,controlType='sub')
         
-            mTemplateHandle.connectChildNode(mHandle.mNode,'prerigHandle')
+            mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
             
         self.msgList_connect('prerigHandles', ml_handles)
         
@@ -1751,11 +1751,11 @@ def prerig(self):
     
 def prerigDelete(self):
     try:
-        if self.getMessage('templateLoftMesh'):
-            mTemplateLoft = self.getMessage('templateLoftMesh',asMeta=True)[0]
-            for s in mTemplateLoft.getShapes(asMeta=True):
+        if self.getMessage('formLoftMesh'):
+            mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
+            for s in mFormLoft.getShapes(asMeta=True):
                 s.overrideDisplayType = 2
-            mTemplateLoft.v = True
+            mFormLoft.v = True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def skeleton_check(self):
@@ -1778,9 +1778,9 @@ def skeleton_build(self, forceNew = True):
         if not mRigNull:
             raise ValueError,"No rigNull connected"
         
-        ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-        if not ml_templateHandles:
-            raise ValueError,"No templateHandles connected"
+        ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+        if not ml_formHandles:
+            raise ValueError,"No formHandles connected"
         
         ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
         if not ml_prerigHandles:
@@ -1946,9 +1946,9 @@ def skeleton_build(self, forceNew = True):
         
 
         #PivotHelper -------------------------------------------------------------------------------------
-        if ml_templateHandles[-1].getMessage('pivotHelper'):
+        if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
-            if len(ml_joints) < len(ml_templateHandles):
+            if len(ml_joints) < len(ml_formHandles):
                 log.debug("|{0}| >> No extra ball/toe joints detected...".format(_str_func))
                 
             elif not self.buildLeverEnd:
@@ -1964,7 +1964,7 @@ def skeleton_build(self, forceNew = True):
                     for mChild in ml_children:
                         mChild.parent = False
                         JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                                          worldUpAxis= ml_templateHandles[-1].pivotHelper.getAxisVector('y+') )
+                                          worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
                 
                     mEnd.jointOrient = 0,0,0
                 
@@ -1979,7 +1979,7 @@ def skeleton_build(self, forceNew = True):
                 mChild.parent = False
                 
                 JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                                  worldUpAxis= ml_templateHandles[-1].pivotHelper.getAxisVector('y+') )
+                                  worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
                 
             mEnd.jointOrient = 0,0,0
             
@@ -1998,9 +1998,9 @@ def skeleton_build(self, forceNew = True):
             
             """
             SNAP.aim(mEnd.mNode,
-                     ml_templateHandles[-1].mNode,
+                     ml_formHandles[-1].mNode,
                      'z+','y+','vector',
-                     ml_templateHandles[-1].getAxisVector('y+'))"""
+                     ml_formHandles[-1].getAxisVector('y+'))"""
             JOINT.freezeOrientation(mEnd.mNode)
             
         for mJnt in ml_joints:mJnt.rotateOrder = 5
@@ -2042,8 +2042,8 @@ def rig_prechecks(self):
                 self.l_precheckErrors.append("default ikEnd and hasBallJoint on. | Fix this setting. If you have a ball, you should probably be a pad or foot")
             
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
-        #ml_templateHandles = mBlock.msgList_get('templateHandles')
-        #if not mBlock.ikEnd and ml_templateHandles[-1].getMessage('pivotHelper')
+        #ml_formHandles = mBlock.msgList_get('formHandles')
+        #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')
             
         
         #if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
@@ -2062,14 +2062,14 @@ def rig_dataBuffer(self):
         mModule = self.mModule
         mRigNull = self.mRigNull
         mPrerigNull = mBlock.prerigNull
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
-        self.ml_templateHandles=ml_templateHandles
+        ml_formHandles = mBlock.msgList_get('formHandles')
+        self.ml_formHandles=ml_formHandles
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
         
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
         
-        self.mRootTemplateHandle = ml_templateHandles[0]
+        self.mRootFormHandle = ml_formHandles[0]
         self.b_ikNeedEnd = False
         self.b_pivotSetup = False
         self.mPivotHelper = False
@@ -2116,7 +2116,7 @@ def rig_dataBuffer(self):
         #Lever ============================================================================    
         _b_lever = False
         self.b_leverJoint = False
-        ml_templateHandlesUse = copy.copy(ml_templateHandles)
+        ml_formHandlesUse = copy.copy(ml_formHandles)
         ml_fkShapeHandles = copy.copy(ml_prerigHandles)
         if mBlock.buildLeverBase:
             _b_lever = True        
@@ -2124,8 +2124,8 @@ def rig_dataBuffer(self):
                 self.b_leverJoint = True
             else:
                 log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
-            self.mRootTemplateHandle = ml_templateHandles[1]
-            ml_templateHandlesUse = ml_templateHandlesUse[1:]
+            self.mRootFormHandle = ml_formHandles[1]
+            ml_formHandlesUse = ml_formHandlesUse[1:]
             
             ml_fkShapeHandles = ml_fkShapeHandles[1:]
         self.b_lever = _b_lever
@@ -2133,17 +2133,17 @@ def rig_dataBuffer(self):
         self.ml_fkShapeTargets = ml_fkShapeHandles
 
         if not self.b_singleChain:
-            self.int_templateHandleMidIdx = MATH.get_midIndex(len(ml_templateHandlesUse))
-            self.mMidTemplateHandle = ml_templateHandles[self.int_templateHandleMidIdx]
+            self.int_formHandleMidIdx = MATH.get_midIndex(len(ml_formHandlesUse))
+            self.mMidFormHandle = ml_formHandles[self.int_formHandleMidIdx]
                 
             log.debug("|{0}| >> Lever: {1}".format(_str_func,self.b_lever))    
-            log.debug("|{0}| >> self.mRootTemplateHandle : {1}".format(_str_func,self.mRootTemplateHandle))
-            log.debug("|{0}| >> self.mMidTemplateHandle : {1}".format(_str_func,self.mMidTemplateHandle))    
-            log.debug("|{0}| >> Mid self.int_templateHandleMidIdx idx: {1}".format(_str_func,self.int_templateHandleMidIdx))
+            log.debug("|{0}| >> self.mRootFormHandle : {1}".format(_str_func,self.mRootFormHandle))
+            log.debug("|{0}| >> self.mMidFormHandle : {1}".format(_str_func,self.mMidFormHandle))    
+            log.debug("|{0}| >> Mid self.int_formHandleMidIdx idx: {1}".format(_str_func,self.int_formHandleMidIdx))
         
         
             #Pivot checks ============================================================================
-            mPivotHolderHandle = ml_templateHandles[-1]
+            mPivotHolderHandle = ml_formHandles[-1]
             self.b_pivotSetup = False
             self.mPivotHelper = False
             if mPivotHolderHandle.getMessage('pivotHelper'):
@@ -2370,7 +2370,7 @@ def rig_dataBuffer(self):
         
         #if self.b_lever:
             #log.debug("|{0}| >> lever pop...".format(_str_func))        
-            #self.int_templateHandleMidIdx +=1
+            #self.int_formHandleMidIdx +=1
         
         
     
@@ -2404,13 +2404,13 @@ def rig_dataBuffer(self):
             log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
             
             l_sizes = []
-            for mHandle in ml_templateHandles:
+            for mHandle in ml_formHandles:
                 #_size_sub = SNAPCALLS.get_axisBox_size(mHandle)
                 #l_sizes.append( MATH.average(_size_sub[1],_size_sub[2]) * .1 )
                 _size_sub = POS.get_bb_size(mHandle,True)
                 l_sizes.append( MATH.average(_size_sub) * .1 )            
             self.v_offset = MATH.average(l_sizes)
-            #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_templateHandles[self.int_handleMidIdx])
+            #_size_midHandle = SNAPCALLS.get_axisBox_size(ml_formHandles[self.int_handleMidIdx])
             #self.v_offset = MATH.average(_size_midHandle[1],_size_midHandle[2]) * .1        
         """
         log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
@@ -2559,7 +2559,7 @@ def rig_skeleton(self):
             mFollowMid.p_parent = mFollowBase        
             
             mFollowEnd = mFollowBase.doDuplicate(po=True)
-            mFollowEnd.p_position = self.ml_templateHandles[-1].p_position
+            mFollowEnd.p_position = self.ml_formHandles[-1].p_position
             mFollowEnd.p_parent = mFollowMid
             
             JOINT.orientChain([mFollowBase.mNode, mFollowMid, mFollowEnd.mNode],
@@ -2986,7 +2986,7 @@ def rig_digitShapes(self):
         
         mRigNull = self.mRigNull
         
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        ml_formHandles = mBlock.msgList_get('formHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
         
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
@@ -3017,7 +3017,7 @@ def rig_digitShapes(self):
         #_bbSize.remove(max(_bbSize))
         #_size = MATH.average(_bbSize)
         
-        _bbSize = TRANS.bbSize_get(self.mRootTemplateHandle.loftCurve.mNode,shapes=True)
+        _bbSize = TRANS.bbSize_get(self.mRootFormHandle.loftCurve.mNode,shapes=True)
         _size = MATH.average(_bbSize[1:])
         
         
@@ -3031,7 +3031,7 @@ def rig_digitShapes(self):
             ml_fkCastTargets = copy.copy(ml_fkJoints)
 
         #Pivots ==================================================================================
-        mPivotHolderHandle = ml_templateHandles[-1]
+        mPivotHolderHandle = ml_formHandles[-1]
         mPivotHelper = False
         if mPivotHolderHandle.getMessage('pivotHelper'):
             mPivotHelper = mPivotHolderHandle.pivotHelper
@@ -3062,9 +3062,9 @@ def rig_digitShapes(self):
                 TRANS.rotatePivot_set(mIKCrv.mNode,
                                       ml_fkJoints[self.int_handleEndIdx].p_position )"""
                 
-            if ml_templateHandles[-1].getMessage('proxyHelper'):
+            if ml_formHandles[-1].getMessage('proxyHelper'):
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
-                mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
+                mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
                 #bb_ik = mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
                 bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,'maxFill')
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
@@ -3087,8 +3087,8 @@ def rig_digitShapes(self):
             else:
                 log.debug("|{0}| >> default IK shape...".format(_str_func))
                 """
-                mIKTemplateHandle = ml_templateHandles[-1]
-                bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                mIKFormHandle = ml_formHandles[-1]
+                bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 1.5)
     
@@ -3107,9 +3107,9 @@ def rig_digitShapes(self):
                                 rotation = False)
                 
                 if str_ikEnd == 'default':
-                    mIKTemplateHandle = ml_templateHandles[-1]
-                    #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                    bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                    mIKFormHandle = ml_formHandles[-1]
+                    #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                    bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                     
                     _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                     #ATTR.set(_ik_shape,'scale', 1.5)
@@ -3120,7 +3120,7 @@ def rig_digitShapes(self):
 
                     
                 else:
-                    for mObj in ml_templateHandles[-2:]:
+                    for mObj in ml_formHandles[-2:]:
                         mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
                         DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
                         mCrv.p_parent=False
@@ -3129,7 +3129,7 @@ def rig_digitShapes(self):
                         CORERIG.shapeParent_in_place(mIKCrv.mNode, mCrv.mNode, True)
                         ml_curves.append(mCrv)
                     
-                #mCrv = ml_templateHandles[-1].loftCurve.doDuplicate(po=False,ic=False)
+                #mCrv = ml_formHandles[-1].loftCurve.doDuplicate(po=False,ic=False)
                 #DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
                 #mCrv.p_parent=False
                 #for mShape in mCrv.getShapes(asMeta=True):
@@ -3137,10 +3137,10 @@ def rig_digitShapes(self):
                     
                 """
                 d_endPos = {}
-                _str_endHandle = ml_templateHandles[-1].mNode
+                _str_endHandle = ml_formHandles[-1].mNode
                 _str_loftCurve = mCrv.mNode
                 
-                pos_handle = ml_templateHandles[-1].p_position
+                pos_handle = ml_formHandles[-1].p_position
                 vec_handle = MATH.get_obj_vector(_str_endHandle,'z+')
                 
                 for k in ['x+','x-','y+','y-','z+']:
@@ -3208,8 +3208,8 @@ def rig_digitShapes(self):
     
             #Mid IK...----------------------------------------------------------------------------
             log.debug("|{0}| >> midIK...".format(_str_func))
-            mKnee = ml_fkCastTargets[self.int_templateHandleMidIdx].doCreateAt(setClass=True)
-            #size_knee =  POS.get_bb_size(ml_templateHandles[self.int_templateHandleMidIdx].mNode)
+            mKnee = ml_fkCastTargets[self.int_formHandleMidIdx].doCreateAt(setClass=True)
+            #size_knee =  POS.get_bb_size(ml_formHandles[self.int_formHandleMidIdx].mNode)
             
             crv = CURVES.create_controlCurve(mKnee, shape='sphere',
                                              direction = _jointOrientation[0]+'+',
@@ -3240,15 +3240,15 @@ def rig_digitShapes(self):
             #Base IK...---------------------------------------------------------------------------------
             log.debug("|{0}| >> baseIK...".format(_str_func))
         
-            mIK_templateHandle = self.mRootTemplateHandle
-            #bb_ik = POS.get_bb_size(mIK_templateHandle.loftCurve.mNode,True,'maxFill')
-            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
+            mIK_formHandle = self.mRootFormHandle
+            #bb_ik = POS.get_bb_size(mIK_formHandle.loftCurve.mNode,True,'maxFill')
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
             _ik_shape = CURVES.create_fromName('sphere', size = [_size,_size,_size])
             ATTR.set(_ik_shape,'scale', 1.1)
         
             mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
         
-            mIKBaseShape.doSnapTo(mIK_templateHandle)
+            mIKBaseShape.doSnapTo(mIK_formHandle)
             #pos_ik = POS.get_bb_center(mProxyHelper.mNode)
             #SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,
             #                                   'axisBox','z+',False)                
@@ -3277,7 +3277,7 @@ def rig_digitShapes(self):
             mDag = ml_followParentBankJoints[-1].doCreateAt(setClass=True)
     
             #if not bb_ik:
-                #bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
+                #bb_ik = mHandleFactory.get_axisBox_size(ml_formHandles[-1].mNode)
     
             _ik_shape = CURVES.create_fromName('cube', size =[v*.75 for v in [_size,_size,_size]])            
             SNAP.go(_ik_shape,mDag.mNode)
@@ -3320,7 +3320,7 @@ def rig_digitShapes(self):
     
             mRoot = ml_joints[0].doCreateAt()
     
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode)) * .75
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode)) * .75
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
     
@@ -3413,7 +3413,7 @@ def rig_digitShapes(self):
             mLimbRootHandle = ml_prerigHandles[1]
             mLimbRoot = ml_fkCastTargets[1].doCreateAt()
         
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode)) * .75
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode)) * .75
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mLimbRootHandle)
         
@@ -3448,7 +3448,7 @@ def rig_digitShapes(self):
         
 
             _mTar = ml_targets[0]
-            _settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[1].mNode,shapes=True))
+            _settingsSize = MATH.average(TRANS.bbSize_get(ml_formHandles[1].mNode,shapes=True))
             
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .5,
                                                                            '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
@@ -3493,10 +3493,10 @@ def rig_digitShapes(self):
 
             if _settingsPlace == 'start':
                 _mTar = ml_targets[0]
-                bbSize_handle = TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True)
+                bbSize_handle = TRANS.bbSize_get(self.mRootFormHandle.mNode,shapes=True)
             else:
                 _mTar = ml_targets[self.int_handleEndIdx]
-                bbSize_handle = TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True)
+                bbSize_handle = TRANS.bbSize_get(ml_formHandles[-1].mNode,shapes=True)
             
             _settingsSize = MATH.average(bbSize_handle[1:])
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .5,
@@ -3543,7 +3543,7 @@ def rig_digitShapes(self):
         if self.mPivotHelper:
             size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
         else:
-            size_pivotHelper = POS.get_bb_size(ml_templateHandles[-1].mNode)
+            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
     
         
         if self.mBall:
@@ -3674,7 +3674,7 @@ def rig_shapes(self):
         
         mRigNull = self.mRigNull
         
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        ml_formHandles = mBlock.msgList_get('formHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
         ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
         ml_blendJoints = self.mRigNull.msgList_get('blendJoints')
@@ -3711,7 +3711,7 @@ def rig_shapes(self):
         #_size = MATH.average(_bbSize)
 
         #Pivots =======================================================================================
-        mPivotHolderHandle = ml_templateHandles[-1]
+        mPivotHolderHandle = ml_formHandles[-1]
         mPivotHelper = mPivotHolderHandle.getMessageAsMeta('pivotHelper')
         if mPivotHelper:
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
@@ -3766,7 +3766,7 @@ def rig_shapes(self):
             mLimbRootHandle = ml_prerigHandles[idx]
             mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
     
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode))
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mLimbRootHandle)
     
@@ -3851,9 +3851,9 @@ def rig_shapes(self):
                 
                 if mBlock.blockProfile in ['arm']:
                     log.debug("|{0}| >> default IK shape...".format(_str_func))                
-                    mIKTemplateHandle = ml_templateHandles[-1]
-                    #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                    bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                    mIKFormHandle = ml_formHandles[-1]
+                    #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                    bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                 
                     _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                     SNAP.go(_ik_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
@@ -3866,8 +3866,8 @@ def rig_shapes(self):
                 if str_ikEnd in ['foot']:
                     #Make our ikEnd -----------------------------------------------------
                     log.debug("|{0}| >> IK end shape...".format(_str_func))                
-                    mIKTemplateHandle = ml_templateHandles[-1]
-                    bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    mIKFormHandle = ml_formHandles[-1]
+                    bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                     _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                     #ATTR.set(_ik_shape,'scale', 1.5)
                 
@@ -3883,9 +3883,9 @@ def rig_shapes(self):
                 
                     self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        
                     """
-            elif ml_templateHandles[-1].getMessage('proxyHelper') and str_profile not in ['arm']:
+            elif ml_formHandles[-1].getMessage('proxyHelper') and str_profile not in ['arm']:
                 log.debug("|{0}| >> proxyHelper IK shape...".format(_str_func))
-                mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
+                mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=True)[0]
                 bb_ik = POS.get_bb_size(mProxyHelper.mNode,True,mode='maxFill')#mHandleFactory.get_axisBox_size(mProxyHelper.mNode)
                 
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
@@ -3910,9 +3910,9 @@ def rig_shapes(self):
                     
             elif str_ikEnd in ['tipCombo']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> tipCombo IK shape...".format(_str_func))                
-                mIKTemplateHandle = ml_templateHandles[-1]
-                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                mIKFormHandle = ml_formHandles[-1]
+                #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                 
                 _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
                 ATTR.set(_ik_shape,'scale', 2.5)
@@ -3948,9 +3948,9 @@ def rig_shapes(self):
             else:
                 _ikDefault = True
                 log.debug("|{0}| >> default IK shape...".format(_str_func))                
-                mIKTemplateHandle = ml_templateHandles[-1]
-                #bb_ik = mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
-                bb_ik = POS.get_bb_size(mIKTemplateHandle.mNode,True,mode='maxFill')
+                mIKFormHandle = ml_formHandles[-1]
+                #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                 
                 _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                 #ATTR.set(_ik_shape,'scale', 1.5)
@@ -4000,7 +4000,7 @@ def rig_shapes(self):
             if not self.b_singleChain:
                 #Mid IK...---------------------------------------------------------------------------------
                 log.debug("|{0}| >> midIK...".format(_str_func))
-                size_knee =  MATH.average(POS.get_bb_size(self.mMidTemplateHandle.mNode,True)) * .75
+                size_knee =  MATH.average(POS.get_bb_size(self.mMidFormHandle.mNode,True)) * .75
                 crv = CURVES.create_fromName('sphere',
                                               direction = 'z+',#_jointOrientation[0]+'+',
                                               size = size_knee)#max(size_knee) * 1.25)            
@@ -4023,15 +4023,15 @@ def rig_shapes(self):
             #Base IK...---------------------------------------------------------------------------------
             log.debug("|{0}| >> baseIK...".format(_str_func))
             
-            mIK_templateHandle = self.mRootTemplateHandle
-            #bb_ik = mHandleFactory.get_axisBox_size(mIK_templateHandle.mNode)
-            bb_ik = POS.get_bb_size(mIK_templateHandle.loftCurve.mNode,True,mode='maxFill')
+            mIK_formHandle = self.mRootFormHandle
+            #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
+            bb_ik = POS.get_bb_size(mIK_formHandle.loftCurve.mNode,True,mode='maxFill')
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)#[v+_offset for v in bb_ik])
             #ATTR.set(_ik_shape,'scale', 1.5)
     
             mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
     
-            mIKBaseShape.doSnapTo(mIK_templateHandle)
+            mIKBaseShape.doSnapTo(mIK_formHandle)
             #pos_ik = POS.get_bb_center(mProxyHelper.mNode)
             #SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,
             #                                   'axisBox','z+',False)                
@@ -4056,7 +4056,7 @@ def rig_shapes(self):
             mDag = ml_followParentBankJoints[-1].doCreateAt(setClass=True)
     
             if not bb_ik:
-                bb_ik = mHandleFactory.get_axisBox_size(ml_templateHandles[-1].mNode)
+                bb_ik = mHandleFactory.get_axisBox_size(ml_formHandles[-1].mNode)
     
             _ik_shape = CURVES.create_fromName('cube', size = bb_ik)            
             SNAP.go(_ik_shape,mDag.mNode)
@@ -4099,8 +4099,8 @@ def rig_shapes(self):
             
             mRoot = ml_rigJoints[0].doCreateAt()
             
-            #mHandleFactory.get_axisBox_size(self.mRootTemplateHandle.mNode)
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootTemplateHandle.mNode,True,'maxFill'))
+            #mHandleFactory.get_axisBox_size(self.mRootFormHandle.mNode)
+            _size_root =  MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode,True,'maxFill'))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cube', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
         
@@ -4135,7 +4135,7 @@ def rig_shapes(self):
                     
                 if _settingsPlace == 'start':
                     _mTar = ml_targets[0]
-                    _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootTemplateHandle.mNode,shapes=True))
+                    _settingsSize = MATH.average(TRANS.bbSize_get(self.mRootFormHandle.mNode,shapes=True))
                     _mSnapTo = _mTar
                 else:
                     _mTar = ml_targets[self.int_handleEndIdx]
@@ -4144,10 +4144,10 @@ def rig_shapes(self):
                     else:
                         _mSnapTo = ml_targets[self.int_handleEndIdx]
                         
-                    mIKTemplateHandle = ml_templateHandles[-1]
-                    bb_ik = TRANS.bbSize_get(mIKTemplateHandle.mNode)#mHandleFactory.get_axisBox_size(mIKTemplateHandle.mNode)
+                    mIKFormHandle = ml_formHandles[-1]
+                    bb_ik = TRANS.bbSize_get(mIKFormHandle.mNode)#mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                     _settingsSize = MATH.average(bb_ik) * .75
-                    #_settingsSize = MATH.average(TRANS.bbSize_get(ml_templateHandles[-1].mNode,shapes=True))
+                    #_settingsSize = MATH.average(TRANS.bbSize_get(ml_formHandles[-1].mNode,shapes=True))
                     
                 mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize * .75,
                                                                                '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
@@ -4284,7 +4284,7 @@ def rig_shapes(self):
         if self.mPivotHelper:
             size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
         else:
-            size_pivotHelper = POS.get_bb_size(ml_templateHandles[-1].mNode)
+            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
         
         mBallFK = False
         mToeFK = False
@@ -5364,7 +5364,7 @@ def rig_frame(self):
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        ml_formHandles = mBlock.msgList_get('formHandles')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
         ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
@@ -5390,12 +5390,12 @@ def rig_frame(self):
             mIKControlEnd.masterGroup.p_parent =mIKControl
         mPivotResultDriver = mIKControl
         #Pivot Driver =======================================================================================
-        mPivotHolderHandle = ml_templateHandles[-1]
+        mPivotHolderHandle = ml_formHandles[-1]
         if mPivotHolderHandle.getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot setup initial".format(_str_func))
             
             if str_rigSetup == 'digit':
-                mPivotDriverHandle = ml_templateHandles[-2]
+                mPivotDriverHandle = ml_formHandles[-2]
             else:
                 mPivotDriverHandle = mPivotHolderHandle
             
@@ -6164,7 +6164,7 @@ def rig_frameSingle(self):
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
+        ml_formHandles = mBlock.msgList_get('formHandles')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
         ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
@@ -6188,12 +6188,12 @@ def rig_frameSingle(self):
             mIKHandleDriver = mIKControlEnd
             
         #Pivot Driver =======================================================================================
-        mPivotHolderHandle = ml_templateHandles[-1]
+        mPivotHolderHandle = ml_formHandles[-1]
         if mPivotHolderHandle.getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot setup initial".format(_str_func))
             
             if str_rigSetup == 'digit':
-                mPivotDriverHandle = ml_templateHandles[-2]
+                mPivotDriverHandle = ml_formHandles[-2]
             else:
                 mPivotDriverHandle = mPivotHolderHandle
             
@@ -6771,7 +6771,7 @@ def rig_pivotSetup(self):
         #ml_handleJoints = mRigNull.msgList_get('handleJoints')
         #ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         #ml_blendJoints = mRigNull.msgList_get('blendJoints')
-        #ml_templateHandles = mBlock.msgList_get('templateHandles')
+        #ml_formHandles = mBlock.msgList_get('formHandles')
         #mPlug_globalScale = self.d_module['mPlug_globalScale']
         #mRoot = mRigNull.rigRoot
     
@@ -7533,7 +7533,7 @@ def rig_cleanUp(self):
         #Close out ===============================================================================================
         mRigNull.version = self.d_block['buildVersion']
         mBlock.blockState = 'rig'
-        mBlock.UTILS.set_blockNullTemplateState(mBlock)
+        mBlock.UTILS.set_blockNullFormState(mBlock)
         self.UTILS.rigNodes_store(self)
         
         #cgmGEN.func_snapShot(vars())
@@ -7545,7 +7545,7 @@ def rigDelete2(self):
     try:
         _str_func = 'rigDelete'    
         self.template = False
-        self.noTransTemplateNull.template=True
+        self.noTransFormNull.template=True
         
         ml_controls = mRigNull.msgList_get('controlsAll')
         for mCtrl in ml_controls:
@@ -7594,7 +7594,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         ml_proxy = []
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
-        ml_templateHandles = mBlock.msgList_get('templateHandles',asMeta = True)
+        ml_formHandles = mBlock.msgList_get('formHandles',asMeta = True)
         
         if not ml_rigJoints:
             raise ValueError,"No rigJoints connected"
@@ -7685,7 +7685,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         #Proxyhelper-----------------------------------------------------------------------------------
         if _str_rigSetup != 'digit':
             log.debug("|{0}| >> proxyHelper... ".format(_str_func))
-            mProxyHelper = ml_templateHandles[-1].getMessage('proxyHelper',asMeta=1)
+            mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=1)
             if mProxyHelper:
                 log.debug("|{0}| >> proxyHelper... ".format(_str_func))
                 mProxyHelper = mProxyHelper[0]
@@ -7696,13 +7696,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 
                 
             # Foot --------------------------------------------------------------------------
-            elif ml_templateHandles[-1].getMessage('pivotHelper') and mBlock.blockProfile not in ['arm']:
+            elif ml_formHandles[-1].getMessage('pivotHelper') and mBlock.blockProfile not in ['arm']:
                 if mEnd:ml_rigJoints.append(mEnd)#...add this back
-                mPivotHelper = ml_templateHandles[-1].pivotHelper
+                mPivotHelper = ml_formHandles[-1].pivotHelper
                 log.debug("|{0}| >> foot ".format(_str_func))
                 
                 #make the foot geo....
-                l_targets = [ml_templateHandles[-1].loftCurve.mNode]
+                l_targets = [ml_formHandles[-1].loftCurve.mNode]
                 
                 mBaseCrv = mPivotHelper.doDuplicate(po=False)
                 mBaseCrv.parent = False
@@ -7772,7 +7772,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mBallLoc.delete()
     
                     #Add a ankleball ------------------------------------------------------------------------
-                    _target = ml_templateHandles[-1].mNode
+                    _target = ml_formHandles[-1].mNode
                     _bb_size = POS.get_bb_size(_target,True,'maxFill')#SNAPCALLS.get_axisBox_size(_target)
                     _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
                     _size = [v*.8 for v in _size]
@@ -8090,7 +8090,7 @@ def get_handleIndices(self):
         idx_start = 0
         idx_end = -1
         
-        if self.getMessage('templateLeverHandle'):
+        if self.getMessage('formLeverHandle'):
             log.debug("|{0}| >> lever base".format(_str_func))
             idx_start +=1
     

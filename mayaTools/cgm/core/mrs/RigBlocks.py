@@ -187,7 +187,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     _l_controlLinks = []
     _l_controlmsgLists = []
 
-    def __init__(self, node = None, blockType = None, blockParent = None, autoTemplate = True, *args,**kws):
+    def __init__(self, node = None, blockType = None, blockParent = None, autoForm = True, *args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
         our modular rigger.
@@ -343,14 +343,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                         _blockModule.define(self)
                 
-                #Template -------------------------------------------------
-                if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
-                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))
+                #Form -------------------------------------------------
+                if autoForm and _blockModule.__dict__.get('__autoForm__'):
+                    log.debug("|{0}| >> AutoForm...".format(_str_func))
                     if _sizeMode:
-                        _postState = 'template'
+                        _postState = 'form'
             
                     else:
-                        self.p_blockState = 'template'
+                        self.p_blockState = 'form'
             else:log.debug("|{0}| >> No verify...".format(_str_func))
                 
             if blockParent is not None:
@@ -611,28 +611,28 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def getModuleStatus(self,state = None):
         return get_blockModule_status(self.blockType, state)
 
-    def getBlockDat_templateControls(self,report = False):
+    def getBlockDat_formControls(self,report = False):
         _short = self.p_nameShort        
-        _str_func = '[{0}] getBlockDat_templateControls'.format(_short)
+        _str_func = '[{0}] getBlockDat_formControls'.format(_short)
 
         _blockState_int = self.getState(False)
 
         if not _blockState_int:
-            raise ValueError,'[{0}] not templated yet'.format(_short)
-            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-        _ml_templateHandles = self.atUtils('controls_get',True,False)
+            raise ValueError,'[{0}] not formd yet'.format(_short)
+            #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+        _ml_formHandles = self.atUtils('controls_get',True,False)
             
-        if not _ml_templateHandles:
-            log.error('[{0}] No template or prerig handles found'.format(_short))
+        if not _ml_formHandles:
+            log.error('[{0}] No form or prerig handles found'.format(_short))
             return False
 
-        _ml_controls = [self] + _ml_templateHandles
+        _ml_controls = [self] + _ml_formHandles
 
         _l_orientHelpers = []
         _l_jointHelpers = []
         _d_orientHelpers = {}
         _d_jointHelpers = {}        
-        for i,mObj in enumerate(_ml_templateHandles):
+        for i,mObj in enumerate(_ml_formHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
                 #_l_orientHelpers.append(mObj.orientHelper.rotate)
@@ -647,16 +647,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #else:
                 #_l_jointHelpers.append(False)
                 
-        _d = {'positions':[mObj.p_position for mObj in _ml_templateHandles],
-              'orientations':[mObj.p_orient for mObj in _ml_templateHandles],
-              'scales':[mObj.scale for mObj in _ml_templateHandles],
+        _d = {'positions':[mObj.p_position for mObj in _ml_formHandles],
+              'orientations':[mObj.p_orient for mObj in _ml_formHandles],
+              'scales':[mObj.scale for mObj in _ml_formHandles],
               'jointHelpers':_d_jointHelpers,
               'orientHelpers':_d_orientHelpers}
 
         if self.getMessage('orientHelper'):
             _d['rootOrientHelper'] = self.orientHelper.rotate
 
-        if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
+        if report:cgmGEN.walk_dat(_d,'[{0}] form blockDat'.format(self.p_nameShort))
         return _d
 
     def getBlockDat_prerigControls(self,report = False):
@@ -745,7 +745,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                   ##"blockDirection":self.getEnumValueString('side'),
                   ###"attachPoint":self.getEnumValueString('attachPoint'),
                   #"_rig":self._rig.name if self._rig else None, 
-                  #"_template":self._template.name if self._template else None, 
+                  #"_form":self._form.name if self._form else None, 
                   #"_controls":self._controls.name if self._controls else None, 
                   #"_attach":self._attach.name if self._attach else None, 
                   #"_noTouch":self._noTouch.name if self._noTouch else None, 
@@ -755,9 +755,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                   "scale":[mObj.scale for mObj in _ml_controls],
                   "isSkeletonized":self.isSkeletonized(),
                   #...these will be indexed against the number of handles
-                  #"templatePositions":[x.name for x in self.templatePositions or []], 
-                  #"templateOrientation":[x.name for x in self.templateOrientation or []], 
-                  #"templateNodes":[x.name for x in self.templateNodes or []], 
+                  #"formPositions":[x.name for x in self.formPositions or []], 
+                  #"formOrientation":[x.name for x in self.formOrientation or []], 
+                  #"formNodes":[x.name for x in self.formNodes or []], 
                   #"controls":[x.name for x in self.controls or []], 
                   #"rigJoints":[x.name for x in self.rigJoints or []], 
                   #"skinJoints":[x.name for x in self.skinJoints or []], 
@@ -779,7 +779,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 _d['size'] = self.baseSize
 
             if _blockState_int >= 1:
-                _d['template'] = self.getBlockDat_templateControls()
+                _d['form'] = self.getBlockDat_formControls()
 
             if _blockState_int >= 2:
                 _d['prerig'] = self.getBlockDat_prerigControls() 
@@ -875,39 +875,39 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         ATTR.set(_short,_a,v)
         
         
-        #>>Template Controls ====================================================================================
+        #>>Form Controls ====================================================================================
         _int_state = self.getState(False)
         
         if _int_state > 0:
-            log.info("|{0}| >> template dat....".format(_str_func))             
-            _d_template = blockDat.get('template',False)
-            if not _d_template:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+            log.info("|{0}| >> form dat....".format(_str_func))             
+            _d_form = blockDat.get('form',False)
+            if not _d_form:
+                log.error("|{0}| >> No form data found in blockDat".format(_str_func)) 
             else:
                 #if _int_state == 1:
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-                _ml_templateHandles = self.atUtils('controls_get',True,False)
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+                _ml_formHandles = self.atUtils('controls_get',True,False)
                 #else:
-                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                #_ml_formHandles = self.msgList_get('prerigHandles',asMeta = True)                
 
 
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-                if not _ml_templateHandles:
-                    log.error("|{0}| >> No template handles found".format(_str_func))
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+                if not _ml_formHandles:
+                    log.error("|{0}| >> No form handles found".format(_str_func))
                 else:
-                    _posTempl = _d_template.get('positions')
-                    _orientsTempl = _d_template.get('orientations')
-                    _scaleTempl = _d_template.get('scales')
-                    _jointHelpers = _d_template.get('jointHelpers')
+                    _posTempl = _d_form.get('positions')
+                    _orientsTempl = _d_form.get('orientations')
+                    _scaleTempl = _d_form.get('scales')
+                    _jointHelpers = _d_form.get('jointHelpers')
 
-                    if len(_ml_templateHandles) != len(_posTempl):
-                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                    if len(_ml_formHandles) != len(_posTempl):
+                        log.error("|{0}| >> Form handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_formHandles),len(_posTempl))) 
                     else:
                         for i_loop in range(2):
                             log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
                             
-                            for i,mObj in enumerate(_ml_templateHandles):
-                                log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                            for i,mObj in enumerate(_ml_formHandles):
+                                log.info ("|{0}| >> FormHandle: {1}".format(_str_func,mObj.mNode))
                                 mObj.p_position = _posTempl[i]
                                 mObj.p_orient = _orientsTempl[i]
                                 _tmp_short = mObj.mNode
@@ -918,9 +918,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                                 if _jointHelpers and _jointHelpers.get(i):
                                     mObj.jointHelper.translate = _jointHelpers[i]
                                 
-                if _d_template.get('rootOrientHelper'):
+                if _d_form.get('rootOrientHelper'):
                     if self.getMessage('orientHelper'):
-                        self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                        self.orientHelper.p_orient = _d_form.get('rootOrientHelper')
                     else:
                         log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
                         
@@ -928,16 +928,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.info("|{0}| >> prerig dat....".format(_str_func))             
             _d_prerig = blockDat.get('prerig',False)
             if not _d_prerig:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+                log.error("|{0}| >> No form data found in blockDat".format(_str_func)) 
             else:
                 #if _int_state == 1:
                 _ml_prerigControls = self.msgList_get('prerigHandles',asMeta = True)
                 #_ml_prerigControls = self.atUtils('controls_get',True,False)
                 #else:
-                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                #_ml_formHandles = self.msgList_get('prerigHandles',asMeta = True)                
 
 
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
                 if not _ml_prerigControls:
                     log.error("|{0}| >> No prerig handles found".format(_str_func))
                 else:
@@ -947,7 +947,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     _jointHelpersPre = _d_prerig.get('jointHelpers')
 
                     if len(_ml_prerigControls) != len(_posPre):
-                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
+                        log.error("|{0}| >> Form handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
                     else:
                         for i_loop in range(2):
                             log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
@@ -1118,7 +1118,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     @staticmethod
     def MirrorBlock(rootBlock = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
         try:
-            '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+            '''Mirrors the form positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
             _str_func = 'MirrorBlock'
     
             if not rootBlock or not mirrorBlock:
@@ -1131,7 +1131,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
             rootTransform = rootBlock
             rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
-            #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
+            #rootReflectionVector = rootTransform.formPositions[0].TransformDirection(reflectionVector).normalized()
             
             print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
             
@@ -1147,48 +1147,48 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
                     
                 #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
-                    #print "Can only mirror blocks in Template state"
+                    #print "Can only mirror blocks in Form state"
                     #return
                 
                 #cgmGEN.func_snapShot(vars())
                 return
             
-                currentTemplateObjects = block.templatePositions
-                templateHeirarchyDict = {}
-                for i,p in enumerate(currentTemplateObjects):
-                    templateHeirarchyDict[i] = p.fullPath.count('|')
+                currentFormObjects = block.formPositions
+                formHeirarchyDict = {}
+                for i,p in enumerate(currentFormObjects):
+                    formHeirarchyDict[i] = p.fullPath.count('|')
     
-                templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
+                formObjectsSortedByHeirarchy = sorted(formHeirarchyDict.items(), key=operator.itemgetter(1))
     
                 for x in range(2):
                     # do this twice in case there are any stragglers 
-                    for i in templateObjectsSortedByHeirarchy:
+                    for i in formObjectsSortedByHeirarchy:
                         index = i[0]
-                        #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
+                        #print "Mirroring %s to %s" % (mirrorBlock.formPositions[index].name, block.formPositions[index].name)
     
                         # reflect rotation
-                        reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
-                        reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
-                        mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+                        reflectAim = block.formPositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+                        reflectUp  = block.formPositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+                        mirrorBlock.formPositions[index].LookRotation( reflectAim, reflectUp )
     
-                    for i in templateObjectsSortedByHeirarchy:
+                    for i in formObjectsSortedByHeirarchy:
                         index = i[0]
-                        wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+                        wantedPos = (block.formPositions[index].position - rootTransform.formPositions[0].position).reflect( rootReflectionVector ) + rootTransform.formPositions[0].position
     
                         #print "wanted position:", wantedPos
-                        mirrorBlock.templatePositions[index].position = wantedPos
+                        mirrorBlock.formPositions[index].position = wantedPos
     
-                        if block.templatePositions[index].type == "joint":
-                            #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
-                            mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
+                        if block.formPositions[index].type == "joint":
+                            #mirrorBlock.formPositions[index].SetAttr("radius", block.formPositions[index].GetAttr("radius"))
+                            mirrorBlock.formPositions[index].radius = block.formPositions[index].radius
     
-                        wantedScale = block.templatePositions[index].localScale
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
+                        wantedScale = block.formPositions[index].localScale
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sx'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sx', wantedScale.x)
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sy'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sy', wantedScale.y)
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sz'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sz', wantedScale.z)
     
                 for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
                     mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
@@ -1207,7 +1207,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     @staticmethod
     def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
-        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+        '''Mirrors the form positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
 
         for blockName in mc.ls(sl=True):
             currentBlock = Block.LoadRigBlock( GetNodeType(blockName) )
@@ -1224,7 +1224,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     @staticmethod
     def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
-        '''Mirrors the given block using the mirrorBlock's template positions'''
+        '''Mirrors the given block using the mirrorBlock's form positions'''
 
         mirrorBlock = block.GetMirrorBlock()
 
@@ -1683,7 +1683,7 @@ class handleFactory(object):
                                  'right':'x-'}        
             _axisBox = False
             
-            _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
+            _baseShape = 'loft' + _baseShape[0].capitalize() + ''.join(_baseShape[1:])
 
             for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
                 _strPivot = a.split('pivot')[-1]
@@ -1794,7 +1794,7 @@ class handleFactory(object):
                 mAxis = VALID.simpleAxis(d_pivotDirections['front'])
                 #p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
                 
-                _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
+                _baseShape = 'loft' + _baseShape[0].capitalize() + ''.join(_baseShape[1:])
                 #Main Handle -----------------------------------------------------------------------------
                 pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
                                                          shape=_baseShape,
@@ -1910,9 +1910,9 @@ class handleFactory(object):
                     mLoftSurface.overrideDisplayType = 2
                     #...this used to be {1} + 1. may need to revisit for head/neck
                     
-                    mLoftSurface.parent = self.mBlock.templateNull
+                    mLoftSurface.parent = self.mBlock.formNull
 
-                    #mLoft.p_parent = mTemplateNull
+                    #mLoft.p_parent = mFormNull
                     mLoftSurface.resetAttrs()
                     
                     ATTR.set(_loftNode,'degree',1)    
@@ -1936,7 +1936,7 @@ class handleFactory(object):
                     for s in mLoftSurface.getShapes(asMeta=True):
                         s.overrideDisplayType = 2   
                 
-                    self.mBlock.connectChildNode(mLoftSurface.mNode, 'templateFootMesh', 'block')
+                    self.mBlock.connectChildNode(mLoftSurface.mNode, 'formFootMesh', 'block')
                     
                 for mPivot in ml_pivots:
                     mPivot.addAttr('cgmType','pivotHelper')            
@@ -2045,9 +2045,9 @@ class handleFactory(object):
             if mBlock.hasAttr('setupLids'):
                 mBlock.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
             
-            mLidHandle.p_parent = mBlock.templateNull
+            mLidHandle.p_parent = mBlock.formNull
             
-            mBlock.msgList_append('templateHandles',mLidHandle)
+            mBlock.msgList_append('formHandles',mLidHandle)
             
             
             
@@ -2132,7 +2132,7 @@ class handleFactory(object):
 
                 #CORERIG.colorControl(mHandle.mNode,_side,'sub') 
                 #self.color(mHandle.mNode,_side,'sub')
-                self.mBlock.msgList_append('templateHandles',mHandle)
+                self.mBlock.msgList_append('formHandles',mHandle)
                 
                 
             #Curves ============================================================
@@ -2712,7 +2712,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
             target = self.mNode
         CORERIG.colorControl(target,_side,_controlType,transparent = True)
 
-    def template(self):
+    def form(self):
         #...build loftCurve, wire
         self.verify()
         pass
@@ -3175,15 +3175,15 @@ class factory(object):
         _str_func = '[{0}] factory.changeState'.format(_mBlock.p_nameBase)
 
         #>Validate our data ------------------------------------------------------
-        d_upStateFunctions = {'template':self.template,
+        d_upStateFunctions = {'form':self.form,
                               'prerig':self.prerig,
                               'rig':self.rig,
                               }
-        d_downStateFunctions = {'define':self.templateDelete,#deleteSizeInfo,
-                                'template':self.prerigDelete,#deleteSkeleton,
+        d_downStateFunctions = {'define':self.formDelete,#deleteSizeInfo,
+                                'form':self.prerigDelete,#deleteSkeleton,
                                 'prerig':self.rigDelete,#rigDelete,
                                 }
-        d_deleteStateFunctions = {'template':self.templateDelete,#deleteTemplate,#handle from factory now
+        d_deleteStateFunctions = {'form':self.formDelete,#deleteForm,#handle from factory now
                                   'prerig':self.prerigDelete,
                                   'rig':self.rigDelete,#rigDelete,
                                   }        
@@ -3259,7 +3259,7 @@ class factory(object):
                 if not d_upStateFunctions[_state_target]():return False
                 return True	            
 
-    def template(self):
+    def form(self):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
         _mBlock = self._mi_block
@@ -3267,7 +3267,7 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
 
-        _str_func = '[{0}] factory.template'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.form'.format(_mBlock.p_nameBase)
 
         _str_state = _mBlock.blockState
 
@@ -3278,22 +3278,22 @@ class factory(object):
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'define>template'#...buffering that we're in process
+        _mBlock.blockState = 'define>form'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
-        if 'template' in _mBlockModule.__dict__.keys():
+        if 'form' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule call found...".format(_str_func))            
-            _mBlockModule.template(_mBlock)
+            _mBlockModule.form(_mBlock)
 
         for mShape in _mBlock.getShapes(asMeta=True):
             mShape.doName()
 
-        _mBlock.blockState = 'template'#...yes now in this state
+        _mBlock.blockState = 'form'#...yes now in this state
         return True
 
 
-    def templateDelete(self):
+    def formDelete(self):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
         _mBlock = self._mi_block
@@ -3301,30 +3301,30 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
 
-        _str_func = '[{0}] factory.templateDelete'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.formDelete'.format(_mBlock.p_nameBase)
 
 
         _str_state = _mBlock.blockState
 
-        if _mBlock.blockState != 'template':
-            log.error("{0} is not in template state. state: {1}".format(_str_func, _str_state))
+        if _mBlock.blockState != 'form':
+            log.error("{0} is not in form state. state: {1}".format(_str_func, _str_state))
 
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'template>define'        
+        _mBlock.blockState = 'form>define'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
 
-        if _mBlock.getMessage('templateNull'):
-            _mBlock.templateNull.delete()
+        if _mBlock.getMessage('formNull'):
+            _mBlock.formNull.delete()
 
-        if 'templateDelete' in _mBlockModule.__dict__.keys():
-            log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
-            _mBlockCall = _mBlockModule.templateDelete    
+        if 'formDelete' in _mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule formDelete call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.formDelete    
             _mBlockCall(_mBlock)
 
         if 'define' in _mBlockModule.__dict__.keys():
@@ -3350,14 +3350,14 @@ class factory(object):
         _str_func = '[{0}] factory.prerig'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
 
-        if _mBlock.blockState != 'template':
-            raise ValueError,"{0} is not in template state. state: {1}".format(_str_func, _str_state)
+        if _mBlock.blockState != 'form':
+            raise ValueError,"{0} is not in form state. state: {1}".format(_str_func, _str_state)
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'template>prerig'#...buffering that we're in process
+        _mBlock.blockState = 'form>prerig'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
@@ -3387,7 +3387,7 @@ class factory(object):
 
 
         #>>>Meat ------------------------------------------------------------------------------------        
-        _mBlock.blockState = 'prerig>template'        
+        _mBlock.blockState = 'prerig>form'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
@@ -3399,7 +3399,7 @@ class factory(object):
         if _mBlockCall:
             _mBlockCall(_mBlock)
 
-        _mBlock.blockState = 'template'
+        _mBlock.blockState = 'form'
 
         return True
 
@@ -4084,12 +4084,12 @@ def valid_blockModule_rigBuildOrder(blockType):
     return False
 
 _l_requiredModuleDat = ['__version__',
-                        'template',
+                        'form',
                         'prerig','is_prerig',
                         'rig','is_rig','rigDelete']
 
 _d_requiredModuleDat = {'define':['__version__'],
-                        'template':['template',],
+                        'form':['form',],
                         'prerig':['prerig'],
                         'skeleton':['skeleton_build'],
                         'rig':['is_rig','rigDelete']}
@@ -4825,8 +4825,8 @@ class rigFactory(object):
 
                 #_d['l_moduleColors'] = _mModule.getModuleColors() 
                 #_d['l_coreNames'] = []#...need to do this
-                #self.mTemplateNull = _mModule.templateNull
-                #_d['mTemplateNull'] = self.mTemplateNull
+                #self.mFormNull = _mModule.formNull
+                #_d['mFormNull'] = self.mFormNull
                 #_d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
                 _d['direction'] = _mModule.getAttr('cgmDirection')
 
@@ -5908,7 +5908,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 
 
-moduleStates = ['define','template','deform','rig']
+moduleStates = ['define','form','deform','rig']
 
 initLists = []
 initDicts = ['infoNulls','parentTagDict']
@@ -5927,15 +5927,15 @@ rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any m
                        'gutsVis':'int',                       
                        'dynSwitch':'messageSimple'}
 
-templateNullAttrs_toMake = {'version':'string',
+formNullAttrs_toMake = {'version':'string',
                             'gutsLock':'int',
                             'gutsVis':'int',
                             'controlsVis':'int',
                             'controlsLock':'int',
                             'root':'messageSimple',#The module root                            
                             'handles':'int',                            
-                            'templateStarterData':'string',#this will be a json dict
-                            'controlObjectTemplatePose':'string'}
+                            'formStarterData':'string',#this will be a json dict
+                            'controlObjectFormPose':'string'}
 
 class cgmRigModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
@@ -5949,7 +5949,7 @@ class cgmRigModule(cgmMeta.cgmObject):
         moduleName(string) -- either base name or the name of an existing module in scene
         moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
 
-        Naming and template tags. All Default to False
+        Naming and form tags. All Default to False
         position(string) -- position tag
         direction(string) -- direction
         directionModifier(string)
@@ -6082,7 +6082,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             self.addAttr('modulePuppet',attrType='messageSimple')
             self.addAttr('moduleChildren',attrType='message')
     
-            #stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
+            #stateDict = {'formState':0,'rigState':0,'skeletonState':0} #Initial dict
             #self.addAttr('moduleStates',attrType = 'string', initialValue=stateDict, lock = True)
     
             self.addAttr('rigNull',attrType='messageSimple',lock=True)
@@ -6115,7 +6115,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             for a,t in rigNullAttrs_toMake.iteritems():
                 mRigNull.addAttr(a,attrType=t)
             #self.__verifyAttributesOn__(self.i_rigNull,rigNullAttrs_toMake)
-            #self.__verifyAttributesOn__(self.i_templateNull,templateNullAttrs_toMake)
+            #self.__verifyAttributesOn__(self.i_formNull,formNullAttrs_toMake)
     
             #Set Module Parent if we have that kw
             #=================		
