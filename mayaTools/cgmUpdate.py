@@ -13,7 +13,7 @@ This is housed outside our core stuff to be able to access and update it.
 __version__ = '0.1.01312018'
 
 from urllib2 import Request, urlopen, URLError
-import urllib2
+#import urllib2
 import webbrowser
 import json
 import pprint
@@ -26,13 +26,21 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
+_pathMain = 'https://github.com/jjburton/cgmtools/commits/'
+_pathPull =  "https://github.com/jjburton/cgmtools/get/"
+#_pathMount  = 'https://api.github.com/repos/jjburton/cgmTools/commits/'
+
+_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
+#_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
+
+
+"""
 _pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
 _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
-#_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
 _pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
-_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
+_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'"""
 
 _defaultBranch = 'stable'
 _sep = os.sep
@@ -138,7 +146,7 @@ def clean_install_path(path = None):
 #zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\stuff.zip'
 zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\0c122db7cfd4d0269df8be1bf72269c4b86d3870.zip'
 
-def unzip(zFile = zFile, deleteZip = False, cleanFirst = False, targetPath = None):
+def unzip(zFile = zFile, deleteZip = True, cleanFirst = False, targetPath = None):
     if not os.path.exists(zFile):
         return log.error("Bad zip path: {0}".format(zFile))
     
@@ -163,6 +171,10 @@ def unzip(zFile = zFile, deleteZip = False, cleanFirst = False, targetPath = Non
     _zipDir = None
     _zipRoot = None
     _name_list = zip_ref.namelist()
+    
+    if cleanFirst:
+        log.debug("Unzip: cleaning...")        
+        clean_install_path(_dir)                
     
     try:
         mayaMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
@@ -207,10 +219,6 @@ def unzip(zFile = zFile, deleteZip = False, cleanFirst = False, targetPath = Non
         log.debug("Dir: {0}".format(_dir))
         log.debug("Zip Dir: {0}".format(_zipDir))
         log.debug("Zip Root: {0}".format(_zipRoot))
-        
-        if cleanFirst:
-            log.debug("Unzip: cleaning...")        
-            clean_install_path(_dir)    
         
         if targetPath:
             _path_target = os.path.abspath(targetPath)
@@ -317,7 +325,24 @@ def download(url='http://weknowyourdreams.com/images/mountain/mountain-03.jpg', 
         print '...'            
     
 
-def get_build(branch = _defaultBranch, idx = 0, mode = None):
+def get_download(branch = _defaultBranch,  mode = None):
+    """
+    
+    """   
+    #pprint.pprint(_dat)
+    
+    #Get our zip
+    url =  "https://github.com/jjburton/cgmTools/archive/" + branch + ".zip"
+    log.debug(" url: {0}".format(url))
+    
+    if mode == 'url':
+        return url
+    
+    #Download...
+    _zip = download(url)
+    return _zip
+
+def get_build_bit(branch = _defaultBranch, idx = 0, mode = None):
     """
     
     """
@@ -351,6 +376,70 @@ def get_dat(branch = 'master', limit = 3, update = False):
     
     """
     """branch = raw_input("Enter the name of the Branch ('Master' or 'Stable') to see a summary of last 10 commits: ")"""
+    _str_func = 'get_dat'
+    log.debug("|{0}| >> Branch: {1}".format(_str_func,branch))
+    
+    global CGM_BUILDS_DAT
+    #pprint.pprint(CGM_BUILDS_DAT)
+    
+    if CGM_BUILDS_DAT and not update:
+        _dat = CGM_BUILDS_DAT.get(branch,None)
+        if _dat:
+            log.debug('Checking buffer...')
+            if len(_dat) >= limit:
+                log.debug("passing buffer...")                          
+                return _dat
+            
+    route = 'https://api.github.com/repos/jjburton/cgmTools/commits?sha=' + branch
+    
+    #request = Request(route)
+    log.debug("|{0}| >> Route: {1}".format(_str_func,route))
+    
+    try:
+        response = urlopen(route)
+        stable = json.load(response)
+        _l_res = []
+        _len = len(stable['values'])
+        log.debug("|{0}| >> List of {1}".format(_str_func,_len))
+        
+        for idx in range(_len):
+            if idx == limit:break
+            #log.debug('-'*80)            
+            _hash = stable['values'][idx]['hash']
+            _msg = stable['values'][idx]['message']
+            _dateRaw= stable['values'][idx]['date']
+            
+            try:_date = datetime.datetime.strptime( _dateRaw[:-6], "%Y-%m-%dT%H:%M:%S").__str__()
+            except:_date = _date
+            
+            _l_res.append({'hash':_hash,
+                           'msg': _msg,
+                           'date':_date,
+                           'dateRaw':_dateRaw})
+            log.debug("{0} | {1}{2} | date: {3} |msg: {4}".format(idx,
+                                                                  _pathMain,
+                                                                  _hash,
+                                                                  _date,
+                                                                  _msg,
+                                                                  ))
+            
+        pprint.pprint(_d_res)
+        pprint.pprint(_l_res)
+        CGM_BUILDS_DAT[branch] = _l_res
+        return _l_res 
+
+    except URLError, e:
+        pprint.pprint(vars())
+        print 'It appears this is not working...URL or Timeout Error :(', e
+    finally:
+        print '...'
+        
+def get_dat_bit(branch = 'master', limit = 3, update = False):
+    """
+    
+    """
+    """branch = raw_input("Enter the name of the Branch ('Master' or 'Stable') to see a summary of last 10 commits: ")"""
+    
     _str_func = 'get_dat'
     log.debug("|{0}| >> Branch: {1}".format(_str_func,branch))
     
@@ -399,14 +488,15 @@ def get_dat(branch = 'master', limit = 3, update = False):
                                                                   ))
             
         #pprint.pprint(_d_res)
+        pprint.pprint(_l_res)
         CGM_BUILDS_DAT[branch] = _l_res
         return _l_res 
 
     except URLError, e:
+        pprint.pprint(vars())
         print 'It appears this is not working...URL or Timeout Error :(', e
     finally:
         print '...'
-
 
 def get_branch_names():
     _str_func = 'get_branch_names'
@@ -465,8 +555,10 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
 
     log.debug("|{0}| >> path: {1}".format(_str_func,_path))
     
-    get_dat(branch,5,update=True)
-    try:_zip = get_build(branch,idx)
+    #get_dat(branch,5,update=True)
+    try:
+        #_zip = get_build(branch,idx)
+        _zip = get_download(branch)
     except Exception,err:
         log.error(err)
         log.error("|{0}| >> Failed to acquire zip. Check branch name: {1}".format(_str_func,branch))
@@ -476,6 +568,7 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
         log.error("|{0}| >> Failed to acquire zip. Most likely invalid branch string: {1}".format(_str_func,branch))
         return        
     
+    
     log.debug("|{0}| >> zip: {1}".format(_str_func,_zip))
     
     unzip(_zip,True,cleanFirst, targetPath=_path)
@@ -483,16 +576,20 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     try:
         mel.eval('rehash')
         mel.eval('cgmToolbox')
+        import cgm
+        cgm.core._reload()
     except Exception,err:
         return log.error("Failed to load cgm | {0}".format(err))
     #import cgm
     #cgm.core._reload()
 
-def ryan():
-    from urllib2 import Request, urlopen, URLError
-    import webbrowser
-    import json
+
+def gitHub(branch = 'master'):
+    response= urlopen('https://api.github.com/repos/jjburton/cgmTools/commits')
     
+
+def ryan():
+
     while 1==1:
         branch = raw_input("Enter the name of the Branch ('Master' or 'Stable') to see a summary of last 10 commits: ")
         mount = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/?until='
