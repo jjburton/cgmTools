@@ -33,6 +33,8 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.classes import GuiFactory as CGMUI
+
 #from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 #from cgm.core.lib import position_utils as POS
@@ -405,4 +407,36 @@ def print_heirarchy_dict(arg = None, tag = None, counter = 0):
         else:
             print(' '* counter + ' {0} : '.format(tag) + str(arg))			                
 
-    return   
+    return
+
+def patch_templateToForm():
+    try:
+        _str_func = 'patch_templateToForm'
+        log.debug(cgmGEN.logString_start(_str_func))
+        _l = mc.ls()
+        _progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(_l))
+        
+        for i,o in enumerate(_l):
+            _str = "{0} | {1} ".format(i,o)
+            log.debug(cgmGEN.logString_sub(_str_func,_str))
+            CGMUI.progressBar_set(_progressBar,step=1,
+                                  status = _str)
+            mObj = cgmMeta.asMeta(o)
+            for a in mc.listAttr(o,ud=True) or []:
+                log.debug(cgmGEN.logString_msg(_str_func,str(a)))
+                if 'template' in a:
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1} | template in".format(_str,a)))
+                    ATTR.rename(o,a,a.replace('template','form'))
+                elif 'Template' in a:
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1} | Template in".format(_str,a)))
+                    ATTR.rename(o,a,a.replace('Template','Form'))                    
+                v = ATTR.get(o,a)
+                if 'template' == str(v):
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1} | template value".format(_str,str(a))))
+                    ATTR.set(o,a,'form')
+
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+    finally:
+        CGMUI.doEndMayaProgressBar()
