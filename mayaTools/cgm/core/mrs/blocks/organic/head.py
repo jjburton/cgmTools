@@ -72,7 +72,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03012019'
+__version__ = 'alpha.03052019'
 __autoForm__ = False
 __dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -135,6 +135,7 @@ d_block_profiles = {
     'neck short':{'neckShapers':3,
                   'cgmName':'head',                  
                   'neckControls':1,
+                  'neckShapers':1,
                   'neckBuild':True,
                   'baseSize':[15.2, 23.2, 19.7],
                   'loftShape':'wideUp',
@@ -142,17 +143,18 @@ d_block_profiles = {
                   'proxyType':'geo',
                   'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
                    },
-    'neck long':{'neckShapers':3,
+    'neck long':{'neckShapers':4,
                  'neckControls':3,
                  'cgmName':'head',
+                 'neckShapers':0,
                  'neckJoints':5,
-                'neckBuild':True,
-                'baseSize':[15.2, 23.2, 19.7],
-                'loftShape':'wideUp',
-                'neckDirection':'vertical',
-                'proxyType':'geo',
-                'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
-                 },}
+                 'neckBuild':True,
+                 'baseSize':[15.2, 23.2, 19.7],
+                 'loftShape':'wideUp',
+                 'neckDirection':'vertical',
+                 'proxyType':'geo',
+                 'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
+                  },}
 
 
 #>>>Attrs =====================================================================================================
@@ -220,7 +222,7 @@ d_defaultSettings = {'version':__version__,
                      'headAim':True,
                      'neckBuild':True,
                      'neckControls': 1,
-                     'neckShapers':2,
+                     'neckShapers':0,
                      'neckSubShapers':2,
                      'attachPoint':'end',
                      'loftSides': 10,
@@ -448,7 +450,7 @@ def define(self):
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
               'end':{'color':'white','name':'neckBase','defaults':{'ty':-1}},
-              'start':{'color':'white','name':'neckEnd','defaults':{}},
+              'start':{'color':'white','name':'neckEnd','defaults':{},'noLock':['translate']},
               'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
               'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
         for k,d in _d.iteritems():
@@ -460,7 +462,8 @@ def define(self):
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
                                                      rotVecControl=True,
                                                      blockUpVector = self.baseDat['up'],
-                                                     vectorScaleAttr='neckSize')
+                                                     startScale=True,)
+                                                     #vectorScaleAttr='neckSize')
         self.UTILS.define_set_baseSize(self)
         
         md_vector = _resDefine['md_vector']
@@ -805,6 +808,7 @@ def form(self):
                 mDefineEndObj=None)
             
             
+            self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
 
             #>>> Connections ====================================================================================
             self.msgList_connect('formHandles',[mHeadHandle]+[mObj.mNode for mObj in ml_handles_chain])
@@ -838,9 +842,7 @@ def form(self):
                              aimAxis="z+", mode='vector', vectorUp=_mVectorUp)
             
             #Constrain the define end to the end of the form handles
-            mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            #mc.scaleConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=True)
-            
+            mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)            
             mc.pointConstraint(md_handles['end'].mNode,mDefineStartObj.mNode,maintainOffset=False)
            
            

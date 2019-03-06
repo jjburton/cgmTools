@@ -76,7 +76,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03012019'
+__version__ = 'alpha.03052019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -448,7 +448,8 @@ def define(self):
         
     
         #Define our controls ===================================================================
-        _d = {'end':{'color':'white','defaults':{'ty':1}},
+        _d = {'start':{'color':'white'},
+              'end':{'color':'white','defaults':{'ty':1}},
               'rp':{'color':'redBright','defaults':{'tx':.5}},              
               'up':{'color':'greenBright','defaults':{'tz':-1}}}
         
@@ -457,11 +458,12 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
     
-        _l_order = ['end','up','rp']
+        _l_order = ['end','up','rp','start']
     
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
                                                      rotVecControl=True,
-                                                     blockUpVector = self.baseDat['up'])
+                                                     blockUpVector = self.baseDat['up'],
+                                                     startScale=True)
         md_vector = _resDefine['md_vector']
         md_handles = _resDefine['md_handles']        
         self.UTILS.define_set_baseSize(self)
@@ -498,7 +500,8 @@ def formDelete(self):
                 log.debug("    {0} : {1}".format(i,c))
             mc.delete(l_const)
             mDefineEndHelper.p_position = pos
-            
+        
+        self.defineStartHelper.v=True
         self.defineEndHelper.v = True
         self.defineUpHelper.v = True
         self.defineLoftMesh.v = True
@@ -539,6 +542,7 @@ def form(self):
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
+        mDefineStartObj = self.defineStartHelper
     
         _v_range = DIST.get_distance_between_points(self.p_position,
                                                     mDefineEndObj.p_position)
@@ -567,7 +571,7 @@ def form(self):
         mDefineLoftMesh.v = False
         mDefineUpObj.v = False
         mDefineEndObj.v = False
-        
+        mDefineStartObj.v= False
         #Create temple Null ==================================================================================
         log.debug("|{0}| >> nulls...".format(_str_func)+ '-'*40)
         mFormNull = self.UTILS.stateNull_verify(self,'form')
@@ -683,6 +687,10 @@ def form(self):
         #Aim end handle -----------------------------------------------------------------------------------
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
                          aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
+        
+        
+        self.UTILS.form_shapeHandlesToDefineMesh(self)
+        
         self.blockState = 'form'#...buffer
     
                 

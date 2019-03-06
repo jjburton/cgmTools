@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -7633,7 +7633,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         return mPlane
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, vectorScaleAttr = 'baseSize'):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, vectorScaleAttr = 'baseSize',startScale=False):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -7884,7 +7884,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(STR.capFirst(k)),'block')
         
-        
         self.msgList_connect('defineHandles', ml_handles)
         
         #Parent the tags
@@ -7949,7 +7948,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 
         if  md_handles.get('start'):
             mc.aimConstraint(md_handles.get('end').mNode, md_handles.get('start').mNode, maintainOffset = False,
-                             aimVector = [0,0,-1], upVector = [0,1,0], 
+                             aimVector = [0,0,1], upVector = [0,1,0], 
                              worldUpObject = md_vector.get('up').mNode,
                              worldUpType = 'objectRotation', 
                              worldUpVector = [0,1,0])            
@@ -7976,21 +7975,27 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             mBaseSizeHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass = True)
             mBaseSizeHandle.p_parent = mParentNull
             mBaseSizeHandle.resetAttrs()
-            mBaseSizeHandle.v = False
             
-            mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,1,0], 
-                             worldUpObject = md_handles['up'].mNode,
-                             worldUpType = _rotUpType, 
-                             worldUpVector = [0,1,0])
-            #md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
-            md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mBaseSizeHandle.mNode))
-            md_handles['end'].doConnectOut('scaleY', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
+            if startScale and md_handles.get('start'):
+                mBaseSizeHandle.p_parent = md_handles['start']
+                mBaseSizeHandle.resetAttrs()
+                
+            else:
+                mc.aimConstraint(md_handles['end'].mNode, mBaseSizeHandle.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = md_handles['up'].mNode,
+                                 worldUpType = _rotUpType, 
+                                 worldUpVector = [0,1,0])
+                #md_handles['end'].doConnectOut('scale', "{0}.scale".format(mBaseSizeHandle.mNode))
+                
+                md_handles['end'].doConnectOut('scaleX', "{0}.scaleX".format(mBaseSizeHandle.mNode))
+                md_handles['end'].doConnectOut('scaleY', "{0}.scaleY".format(mBaseSizeHandle.mNode))            
         
             mBaseSizeHandle.doStore('cgmName',self)
             mBaseSizeHandle.doStore('cgmTypeModifier',k)
             mBaseSizeHandle.doStore('cgmType','baseSizeBase')
             mBaseSizeHandle.doName()
+            mBaseSizeHandle.v = False
             
             if md_handles.get('start'):
                 mc.pointConstraint(md_handles['start'].mNode, mBaseSizeHandle.mNode,maintainOffset=False)
@@ -8029,21 +8034,23 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                          'width':'tx',
                          'length':'tz'}
             md_measure = {}
+            measureTag = 'end'
+            if startScale:measureTag = 'start'
             for k,d in d_measure.iteritems():
                 md_measure[k] = {}
                 if k == 'length':
-                    mPos =mEndSizeHandle.doLoc()
+                    mPos =mBaseSizeHandle.doLoc()
                     mNeg = mBaseSizeHandle.doLoc()
                     
                     mPos.p_parent = mEndSizeHandle
                     mNeg.p_parent = mBaseSizeHandle
                     
                 else:
-                    mPos = mEndSizeHandle.doLoc()
-                    mNeg = mEndSizeHandle.doLoc()
+                    mPos = mBaseSizeHandle.doLoc()
+                    mNeg = mBaseSizeHandle.doLoc()
             
                     for mObj in mPos,mNeg:
-                        mObj.p_parent = mEndSizeHandle
+                        mObj.p_parent = mBaseSizeHandle
             
                     ATTR.set(mPos.mNode,d,.5)
                     ATTR.set(mNeg.mNode,d,-.5)
@@ -8085,12 +8092,19 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             
 
             for tag,mHandle in md_handles.iteritems():
+                _dtmp = d_definitions.get(tag,False)
+                _noLock = _dtmp.get('noLock')
                 if tag in ['lever']:
                     continue
                 if tag in ['up','rp'] and rotVecControl:
                     continue
                 if tag in ['start']:
-                    ATTR.set_standardFlags(mHandle.mNode,attrs = ['sx','sy','sz'])
+                    if startScale:
+                        if 'translate' not in _noLock:
+                            ATTR.set_standardFlags(mHandle.mNode,attrs = ['tx','ty','tz'])
+                    else:
+                        ATTR.set_standardFlags(mHandle.mNode,attrs = ['sx','sy','sz'])
+                    
                     
                 ATTR.set_standardFlags(mHandle.mNode,attrs = ['rx','ry','rz'])
                 
@@ -8098,20 +8112,27 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             if rotVecControl and md_handles.get('up'):
                 
                 if not vecControlLiveScale:
-                    mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
-                    
-                    
-                    _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
-                                                     "{0}.{1}X".format(_short,vectorScaleAttr),
-                                                     "{0}.{1}Y".format(_short,vectorScaleAttr),
-                                                     )
-                    NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
-                    
-                    for tag in ['rp','up']:
-                        if md_handles.get(tag):
-                            mPlug.doConnectOut("{0}.scaleX".format(md_handles[tag].mNode))
-                            mPlug.doConnectOut("{0}.scaleY".format(md_handles[tag].mNode))
-                            mPlug.doConnectOut("{0}.scaleZ".format(md_handles[tag].mNode))
+                    if startScale and md_handles.get('start'):
+                        for tag in ['rp','up']:
+                            if md_handles.get(tag):
+                                ATTR.set_lock(md_handles[tag].mNode,'scale',False)
+                                ptag = d_definitions.get(tag,{}).get('parentTag','start')
+                                mc.scaleConstraint(md_handles[ptag].mNode, md_handles[tag].mNode )
+                    else:
+                        mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
+                        
+                        _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
+                                                         "{0}.{1}X".format(_short,vectorScaleAttr),
+                                                         "{0}.{1}Y".format(_short,vectorScaleAttr),
+                                                         )
+                        NODEFACTORY.argsToNodes("{0}".format(_arg)).doBuild()
+                        
+                        for tag in ['rp','up']:
+                            if md_handles.get(tag):
+                                mPlug.doConnectOut("{0}.scaleX".format(md_handles[tag].mNode))
+                                mPlug.doConnectOut("{0}.scaleY".format(md_handles[tag].mNode))
+                                mPlug.doConnectOut("{0}.scaleZ".format(md_handles[tag].mNode))                        
+
                 
                 else:
                     mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
@@ -8142,7 +8163,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             if md_handles.get('start'):
                 mHandleFactory.color(md_handles['start'].mNode)
                 mHandleFactory.color(md_jointLabels['start'].mNode)                
-                if  md_handles.get('end'):
+                if  md_handles.get('end') and not startScale:
                     md_handles['end'].doConnectOut('scaleX',"{0}.scaleX".format(md_handles['start'].mNode))
                     md_handles['end'].doConnectOut('scaleY',"{0}.scaleY".format(md_handles['start'].mNode))
                     #mPlug.doConnectOut("{0}.scaleZ".format(md_handles['start'].mNode))
@@ -8204,7 +8225,8 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
         
     log.debug("|{0}| >>  mDefineEndObj: {1}".format(_str_func,mDefineEndObj))
     
-
+    mDefineStartObj = self.getMessageAsMeta('defineStartHelper')
+    log.debug("|{0}| >>  mDefineStartObj: {1}".format(_str_func,mDefineStartObj))
     
     #Meat ==================================================
     log.debug("|{0}| >>  Processing...".format(_str_func)+ '-'*80)
@@ -8219,6 +8241,11 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     mDefineEndObj.sx = _width
     mDefineEndObj.sy = _height
     mDefineEndObj.sz = MATH.average(_width,_height)
+    
+    if mDefineStartObj and not ATTR.is_locked(mDefineEndObj.mNode,'scaleX'):
+        mDefineStartObj.sx = _width
+        mDefineStartObj.sy = _height
+        mDefineStartObj.sz = MATH.average(_width,_height)        
     
     if d_baseDat:
         log.debug("|{0}| >>  baseDat...".format(_str_func)+ '-'*40)
@@ -8751,7 +8778,7 @@ def pivotHelper_get(self,mHandle=None,
                 #SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
                 #SNAPCALLS.get_special_pos()
                 #mPivot.p_position = #SNAPCALLS.get_special_pos(mPivotRootHandle.p_nameLong,'axisBox',mAxis.p_string,True)
-                SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
+                #SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
 
                 ml_pivots.append(mPivot)
 
@@ -8858,6 +8885,65 @@ def pivotHelper_get(self,mHandle=None,
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
+
+
+def form_shapeHandlesToDefineMesh(self,ml_handles = None):
+    try:
+        _str_func = 'form_shapeHandlesToDefineMesh'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        if not ml_handles:
+            ml_handles = self.msgList_get('formHandles')
+            if not ml_handles:
+                return log.error("No handles found")
+        mDefineMesh = self.getMessageAsMeta('defineLoftMesh')
+        if not mDefineMesh:
+            return log.error(cgmGEN.logString_msg(_str_func,'No define Mesh'))
+        _surf = mDefineMesh.mNode
+        
+        l_x = []
+        l_y = []
+
+        for mHandle in ml_handles:
+            log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
+
+            try:
+                _mNode = mHandle.mNode
+                xDist = RAYS.get_dist_from_cast_axis(_mNode,'x',shapes=_surf)
+                yDist = RAYS.get_dist_from_cast_axis(_mNode,'y',shapes=_surf)
+                l_x.append(xDist)
+                l_y.append(yDist)
+
+                l_box = [xDist,
+                         yDist,
+                         None]
+                #TRANS.scale_to_size(_mNode,l_box)
+                DIST.scale_to_axisSize(_mNode,l_box)
+                pprint.pprint(l_box)
+            except Exception,err:
+                log.error("Form Handle failed to scale: {0}".format(mHandle))
+                log.error(err)
+
+
+                """
+                DIST.scale_to_axisSize(ml_lofts[0].mNode,
+                                       [l_x[0],
+                                        l_y[0],
+                                        None])
+                _size = DIST.get_axisSize(ml_profiles[-1].mNode)
+                DIST.scale_to_axisSize(ml_lofts[-1].mNode,
+                                       [_size[0],
+                                        _size[1],
+                                None])"""
+            
+        
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
+
+  
+
+
 
 def is_current(self):
     try:

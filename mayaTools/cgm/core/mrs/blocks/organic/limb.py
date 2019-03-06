@@ -83,7 +83,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03012019'
+__version__ = 'alpha.03052019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -582,7 +582,8 @@ def define(self):
         
         
         #Aim Controls ==================================================================
-        _d = {'end':{'color':'white','defaults':{'tz':1}},
+        _d = {'start':{'color':'white'},
+              'end':{'color':'white','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':.5}},
               'rp':{'color':'redBright','defaults':{'tx':.5}},
               'lever':{'color':'orange','defaults':{'tz':-.25}}}
@@ -592,12 +593,13 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
         
-        _l_order = ['end','up','rp','lever']
+        _l_order = ['end','up','rp','lever','start']
         
             
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
                                                      rotVecControl=True,
-                                                     blockUpVector = self.baseDat['up'])
+                                                     blockUpVector = self.baseDat['up'],
+                                                     startScale=True)
         #_resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size)
         self.UTILS.define_set_baseSize(self)
         md_vector = _resDefine['md_vector']
@@ -631,7 +633,7 @@ def formDelete(self):
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
-        for k in ['end','rp','up','lever']:
+        for k in ['end','rp','up','lever','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
                 l_const = mHandle.getConstraintsTo()
@@ -700,6 +702,7 @@ def form(self):
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
+        mDefineStartObj = self.defineStartHelper
         
         #Form our vectors
         for k in ['end','rp','up','lever']:
@@ -732,6 +735,7 @@ def form(self):
         mDefineLoftMesh.v = False
         mDefineUpObj.v = False
         mDefineEndObj.v=False
+        mDefineStartObj.v = False
         
         #Create temple Null ==================================================================================
         log.debug("|{0}| >> nulls...".format(_str_func)+ '-'*40)
@@ -1368,6 +1372,8 @@ def form(self):
                     mDupLoft.delete()
         #>>> Connections ====================================================================================
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
+        
+        
 
         #>>Loft Mesh =========================================================================================
         if self.numSubShapers:
@@ -1451,7 +1457,8 @@ def form(self):
                     mc.orientConstraint([mEndHandle.mNode],mGroup.mNode, skip=['z','x'])
                     mGroup.dagLock()
                 
-                    
+        
+        
         #Aim end handle ----------------------------------------------------------------------------------- 
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
                          aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
@@ -1466,6 +1473,7 @@ def form(self):
             #else:
             #    mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('y-',_size_height)
 
+        self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
                 
         self.blockState = 'form'#...buffer
     

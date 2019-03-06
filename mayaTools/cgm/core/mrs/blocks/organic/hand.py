@@ -1529,7 +1529,7 @@ def subBlock_align(self,mBlockArg  = None, formScale = True, ml_drivers = None, 
                                             l_y.append(yDist)
                                             
                                             l_box = [xDist,
-                                                     xDist,
+                                                     yDist,
                                                      1]
                                             #TRANS.scale_to_size(_mNode,l_box)
                                             DIST.scale_to_axisSize(_mNode,l_box)
