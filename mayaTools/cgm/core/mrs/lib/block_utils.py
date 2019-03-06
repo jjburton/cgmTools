@@ -7956,13 +7956,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         for k,dTmp in d_definitions.iteritems():
             if dTmp.get('handleType') == 'vector':
                 if md_handles.get(k):
-                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz','sx','sy','sz'])
+                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz'])
                     
 
         if rotVecControl:
             for k in 'rp','up':
                 if md_handles.get(k):
-                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz','sx','sy','sz'])
+                    ATTR.set_standardFlags(md_handles[k].mNode,['tx','ty','tz'])
                     
         if md_handles.get('end'):
             _rotUpType = 'object'
@@ -8039,7 +8039,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             for k,d in d_measure.iteritems():
                 md_measure[k] = {}
                 if k == 'length':
-                    mPos =mBaseSizeHandle.doLoc()
+                    mPos =mEndSizeHandle.doLoc()
                     mNeg = mBaseSizeHandle.doLoc()
                     
                     mPos.p_parent = mEndSizeHandle
@@ -8093,7 +8093,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
 
             for tag,mHandle in md_handles.iteritems():
                 _dtmp = d_definitions.get(tag,False)
-                _noLock = _dtmp.get('noLock')
+                _noLock = _dtmp.get('noLock',[])
                 if tag in ['lever']:
                     continue
                 if tag in ['up','rp'] and rotVecControl:
@@ -8118,7 +8118,18 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                                 ATTR.set_lock(md_handles[tag].mNode,'scale',False)
                                 ptag = d_definitions.get(tag,{}).get('parentTag','start')
                                 mc.scaleConstraint(md_handles[ptag].mNode, md_handles[tag].mNode )
+                                ATTR.set_lock(md_handles[tag].mNode,'scale',True)
                     else:
+                        for tag in ['rp','up']:
+                            if md_handles.get(tag):
+                                ATTR.set_lock(md_handles[tag].mNode,'scale',False)
+                                mc.scaleConstraint(md_handles['end'].mNode,
+                                                   md_handles[tag].mNode,
+                                                   maintainOffset=True)
+                                ATTR.set_lock(md_handles[tag].mNode,'scale',True)
+                                
+                        #        pass
+                        """
                         mPlug = cgmMeta.cgmAttr(mEnd,'average',attrType='float')
                         
                         _arg = "{0} = {1} >< {2}".format(mPlug.asCombinedShortName(),
@@ -8131,7 +8142,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                             if md_handles.get(tag):
                                 mPlug.doConnectOut("{0}.scaleX".format(md_handles[tag].mNode))
                                 mPlug.doConnectOut("{0}.scaleY".format(md_handles[tag].mNode))
-                                mPlug.doConnectOut("{0}.scaleZ".format(md_handles[tag].mNode))                        
+                                mPlug.doConnectOut("{0}.scaleZ".format(md_handles[tag].mNode))"""                        
 
                 
                 else:

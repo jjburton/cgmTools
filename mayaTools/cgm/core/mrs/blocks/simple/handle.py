@@ -342,6 +342,7 @@ def define(self):
 
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
+              'start':{'color':'white'},
               'end':{'color':'blueBright','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':.5}},
               'lever':{'color':'purple','defaults':{'tz':-.25}}}
@@ -351,12 +352,14 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
     
-        _l_order = ['aim','end','up']
+        _l_order = ['aim','end','up','start']
         
         reload(self.UTILS)
         _resDefine = self.UTILS.create_defineHandles(self, _l_order,
                                                      _d, _size,
-                                                     rotVecControl=True,blockUpVector = _dBase['up'])
+                                                     rotVecControl=True,
+                                                     startScale=True,
+                                                     blockUpVector = _dBase['up'])
         
        
         
@@ -412,7 +415,7 @@ def formDelete(self):
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
-        for k in ['end','rp','up','lever','aim']:
+        for k in ['end','rp','up','lever','aim','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
                 l_const = mHandle.getConstraintsTo()
@@ -508,13 +511,13 @@ def form(self):
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
-        
+        mDefineStartObj = self.defineStartHelper
         _l_basePos = [self.p_position]
         
         md_vectorHandles = {}
         md_defineHandles = {}
         #Form our vectors
-        for k in ['end','rp','up','aim']:
+        for k in ['end','rp','up','aim','start']:
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
             if mHandle:
                 log.debug("define vector: {0} | {1}".format(k,mHandle))            
@@ -525,6 +528,7 @@ def form(self):
             if mHandle:
                 log.debug("define handle: {0} | {1}".format(k,mHandle))                        
                 md_defineHandles[k] = mHandle
+                mHandle.v=False
                 if k in ['end']:
                     mHandle.template = True        
                 #if k in ['up']:
@@ -646,6 +650,7 @@ def form(self):
             #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
             mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
             
+            self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
             
             #mc.pointConstraint(mUpTrans.mNode,
             #                   md_defineHandles['up'].mNode,
