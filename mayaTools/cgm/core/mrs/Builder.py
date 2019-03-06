@@ -1611,9 +1611,11 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_scrollList_blocks(_mBlock)
 
 
-    #@cgmGEN.Timer
+    @cgmGEN.Timer
     def uiFunc_contextBlockCall(self,*args,**kws):
         try:
+            mc.refresh(su=1)
+            
             def confirm(title,message,funcString):
                 result = mc.confirmDialog(title=title,
                                           message= message,
@@ -1809,6 +1811,8 @@ class ui(cgmUI.cgmGUI):
         finally:
             self.uiRow_progress(edit=1,vis=False)
             self.uiProgressText(edit=True,label='...')
+            mc.refresh(su=0)
+            
             #cgmUI.progressBar_end(self.uiPB_mrs)
     @cgmGEN.Timer
     def uiFunc_contextModuleCall(self,*args,**kws):
@@ -1818,6 +1822,7 @@ class ui(cgmUI.cgmGUI):
             _startMode = self.var_contextStartMode.value   
             _contextMode = self._l_contextModes[self.var_contextMode.value]
             ml_blocks = []
+            mc.refresh(su=1)
             
             if _startMode == 0 :#Active
                 mBlock = self._blockCurrent
@@ -1872,6 +1877,7 @@ class ui(cgmUI.cgmGUI):
             self.uiRow_progress(edit=1,vis=0)
             self.uiProgressText(edit=True,label='...')
             cgmUI.progressBar_end(self.uiPB_mrs)
+            mc.refresh(su=0)
             
     def uiFunc_contextPuppetCall(self,*args,**kws):
         _str_func = ''

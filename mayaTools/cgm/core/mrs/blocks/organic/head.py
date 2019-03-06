@@ -294,13 +294,14 @@ def headGeo_add(self,arg = None):
     mProxyGeoGrp = headGeo_getGroup(self)
     ml_proxies = []
     _side = self.UTILS.get_side(self)
-    
+    mHandleFactory = self.asHandleFactory()
     for mObj in ml_stuff:
         mProxy = mObj.doDuplicate(po=False)
         mProxy = cgmMeta.validateObjArg(mProxy,'cgmObject',setClass=True)
         ml_proxies.append(mProxy)
         #TRANS.scale_to_boundingBox(mProxy.mNode,_bb_axisBox)
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
+        mHandleFactory.color(mProxy.mNode,_side,'sub',transparent=True)
+        
         mProxy.p_parent = mProxyGeoGrp
         self.msgList_append('headMeshProxy',mProxy,'block')
         
@@ -710,7 +711,8 @@ def form(self):
                 mProxy.doSnapTo(mHeadHandle.mNode)                
                 
                 #CORERIG.colorControl(mProxy.mNode,_side,'main',transparent = True)
-                mHandleFactory.color(mProxy.mNode,transparent=True)
+                mHandleFactory.color(mProxy.mNode,_side,'sub',transparent=True)
+                
                 mProxy.parent = mGeoProxies
                 mProxy.rename('head_{0}'.format(i))
                 
@@ -821,13 +823,15 @@ def form(self):
                 targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
                 
         
-            self.atUtils('create_prerigLoftMesh',
-                         targets,
-                         mFormNull,
-                         'neckControls',                     
-                         'loftSplit',
-                         polyType='bezier',
-                         baseName = self.cgmName )
+            mNeckSurf = self.atUtils('create_prerigLoftMesh',
+                                     targets,
+                                     mFormNull,
+                                     'neckControls',                     
+                                     'loftSplit',
+                                     polyType='bezier',
+                                     baseName = self.cgmName )
+            mHandleFactory.color(mNeckSurf.mNode,_side,'sub',transparent=True)
+            
 
             mNoTransformNull.v = False
         

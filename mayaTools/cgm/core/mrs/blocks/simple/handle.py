@@ -648,7 +648,7 @@ def form(self):
         
             #Constrain the define end to the end of the template handles
             #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
+            #mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
             
             self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
             

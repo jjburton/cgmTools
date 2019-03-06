@@ -230,7 +230,8 @@ d_block_profiles = {
     'spineFwd':{'numShapers':4,
              'numSubShapers':2,
              'addCog':True,
-             'loftSetup':'default',
+             'loftSetup':'loftList',
+             'loftList':['wideUp','circle','wideDown','wideDown'],             
              'loftShape':'circle',
              'ikSetup':'ribbon',
              'ikBase':'hips',
@@ -490,26 +491,28 @@ def formDelete(self):
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
-        mDefineEndHelper = self.defineEndHelper
-        l_const = mDefineEndHelper.getConstraintsTo()
-        if l_const:
-            log.debug("currentConstraints...")
-            pos = mDefineEndHelper.p_position
-            
-            for i,c in enumerate(l_const):
-                log.debug("    {0} : {1}".format(i,c))
-            mc.delete(l_const)
-            mDefineEndHelper.p_position = pos
+        for k in ['end','rp','up','lever','aim','start']:
+            mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+            if mHandle:
+                l_const = mHandle.getConstraintsTo()
+                if l_const:
+                    log.debug("currentConstraints...")
+                    pos = mHandle.p_position
         
-        self.defineStartHelper.v=True
-        self.defineEndHelper.v = True
-        self.defineUpHelper.v = True
-        self.defineLoftMesh.v = True
+                    for i,c in enumerate(l_const):
+                        log.debug("{0} : {1}".format(i,c))
+                        if not mc.ls(c,type='aimConstraint'):
+                            mc.delete(c)
+                    mHandle.p_position = pos
+                if k == 'end':
+                    _end = mHandle.mNode
+                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
         
-        _end = mDefineEndHelper.mNode
-        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                mHandle.v = True
+                mHandle.template = False        
+
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
 def form(self):

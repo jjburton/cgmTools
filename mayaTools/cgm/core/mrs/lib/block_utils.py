@@ -3893,7 +3893,15 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
                     _r = d_sub.get('r')
                     _s = d_sub.get('s')
                     _p = d_sub.get('p')
+                    _len_p = len(_p)
                     for ii,mObj in enumerate(ml_subs):
+                        if ii > _len_p-1:
+                            _l_warnings.append("No data for sub {0} on {1}".format(ii,mObj))
+                            mObj.p_position = _p[ii-1]
+                            #ATTR.set(mObj.mNode,'t',_t[ii])
+                            ATTR.set(mObj.mNode,'r',_r[ii-1])
+                            ATTR.set(mObj.mNode,'s',_s[ii-1])                             
+                            continue                            
                         mObj.p_position = _p[ii]
                         #ATTR.set(mObj.mNode,'t',_t[ii])
                         ATTR.set(mObj.mNode,'r',_r[ii])
