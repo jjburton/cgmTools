@@ -1948,7 +1948,7 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return                
             
-            _blockState = _mBlock.p_blockState
+            #_blockState = _mBlock.p_blockState
             _short = _mBlock.p_nameShort
             if _mBlock.mNode == None:
                 log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        

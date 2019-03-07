@@ -174,7 +174,7 @@ d_block_profiles = {
     'hasLeverJoint':True,
     'hasBallJoint':False,
     'hasEndJoint':True,
-    'nameList':['shoulder','knee','wrist','ball','end'],
+    'nameList':['clav','shoulder','knee','wrist','ball','end'],
     'baseAim':[0,-1,0],
     'baseUp':[0,0,1],
     'baseSize':[11.6,8,79],
@@ -443,6 +443,7 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'visMeasure':'bool',
                  'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
+                 'ikRollSetup':'attribute:control',                 
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
@@ -1568,7 +1569,7 @@ def prerig(self):
     
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
-        if _ikEnd not in ['pad','bank']:
+        if _ikEnd not in ['bank']:
             if self.hasBallJoint and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
                 ml_formHandles.append(mHelp)
@@ -2091,6 +2092,7 @@ def rig_dataBuffer(self):
             
         
         self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
+        self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
         
         #Single chain ============================================================================
         self.b_singleChain = False
@@ -2298,13 +2300,20 @@ def rig_dataBuffer(self):
         
         if self.b_leverEnd:
             self.int_handleEndIdx -=1
+            
+            if mBlock.hasBallJoint:
+                self.mBall = self.ml_handleTargets.pop(-1)
+                log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
+                self.int_handleEndIdx -=1            
         else:
             if not mBlock.ikEnd:
                 if mBlock.hasEndJoint:
                     self.int_handleEndIdx -=1
                 if mBlock.hasBallJoint:
                     self.int_handleEndIdx -=1                
-            elif str_ikEnd in ['foot']:
+            elif str_ikEnd in ['foot','pad']:
+                log.debug(cgmGEN.logString_msg(_str_func,'foot/pad'))
+                
                 if mBlock.hasEndJoint:
                     self.mToe = self.ml_handleTargets.pop(-1)
                     log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
@@ -2926,7 +2935,7 @@ def rig_skeleton(self):
                 cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
                 mJoint.p_parent = ml_fkJoints[i]"""
         
-        if self.b_pivotSetup:
+        if self.b_pivotSetup and self.str_ikRollSetup not in ['control']:
             log.debug("|{0}| >> Pivot joints...".format(_str_func))        
             if self.mBall:
                 log.debug("|{0}| >> Ball joints...".format(_str_func))
@@ -4345,8 +4354,8 @@ def rig_shapes(self):
                 continue
 
 
-            if mBlock.buildLeverEnd and mJnt == ml_fkJoints[-2]:
-                mDag = ml_fkJoints[-1].doCreateAt(setClass=True)
+            if mBlock.buildLeverEnd and mJnt == ml_fkJoints[self.int_handleEndIdx]:#-2
+                mDag = ml_fkJoints[self.int_handleEndIdx+1].doCreateAt(setClass=True)
                 CORERIG.shapeParent_in_place(mDag.mNode,mShape.mNode, True, replaceShapes=True)            
                 
                 mDag.p_parent = mIKCrv
