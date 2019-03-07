@@ -723,7 +723,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 log.debug("latheAxis: %s"%latheAxis)
                 log.debug("maxDistance: %s"%maxDistance)
                 
-                pos = RayCast.cast(mesh,mi_loc.mNode,aimAxis,
+                hit = RayCast.cast(mesh,mi_loc.mNode,aimAxis,
                                    offsetMode='vector',offsetDistance=posOffset,
                                    maxDistance=maxDistance)
                 
