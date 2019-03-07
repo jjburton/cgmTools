@@ -4304,7 +4304,37 @@ def rig_shapes(self):
         
         mBallFK = False
         mToeFK = False
+        mToeIK = False
+        mBallIK = False
         
+        if self.mToe:
+            #_size_ball = DIST.get_distance_between_targets([self.mToe.mNode,
+            #                                                self.mToe.p_parent])
+        
+            crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
+                                             direction = _jointOrientation[0]+'+',
+                                             sizeMode = 'fixed',
+                                             size = size_pivotHelper[0])
+        
+            mHandleFactory.color(crv, controlType = 'main')                    
+            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)
+        
+            ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
+        
+            if self.str_ikRollSetup == 'control':
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                mToeIK = self.mToe.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mToeIK.mNode,crv, True, replaceShapes=True)
+                mRigNull.connectChildNode(mToeIK,'controlIKToe','rigNull')#Connect
+        
+                mToeIK.doCopyNameTagsFromObject(self.mToe.mNode, ignore = ['cgmType'])
+                mToeIK.doStore('cgmTypeModifier','ik')
+                mToeIK.doName()
+                
+                mToeIK.connectChildNode(self.mToe.fkJoint.blendJoint.mNode,'blendJoint')#Connect
+                
+                
         if self.mBall:
             #_size_ball = DIST.get_distance_between_targets([self.mBall.mNode,
                                                             #self.mBall.p_parent])
@@ -4316,24 +4346,21 @@ def rig_shapes(self):
             mHandleFactory.color(crv, controlType = 'main')                                
             mBallFK = self.mBall.getMessageAsMeta('fkJoint')
             CORERIG.shapeParent_in_place(mBallFK.mNode,crv, True, replaceShapes=True)            
-            
             ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
             
-        if self.mToe:
-            #_size_ball = DIST.get_distance_between_targets([self.mToe.mNode,
-            #                                                self.mToe.p_parent])
-    
-            crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
-                                             direction = _jointOrientation[0]+'+',
-                                             sizeMode = 'fixed',
-                                             size = size_pivotHelper[0])
-            
-            mHandleFactory.color(crv, controlType = 'main')                    
-            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
-            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)            
-            
-            ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
-        
+            if self.str_ikRollSetup == 'control':
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                mBallIK = self.mBall.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mBallIK.mNode,crv, True, replaceShapes=True)
+                mRigNull.connectChildNode(mBallIK,'controlIKBall','rigNull')#Connect
+                
+                mBallIK.doCopyNameTagsFromObject(self.mBall.mNode, ignore = ['cgmType'])
+                mBallIK.doStore('cgmTypeModifier','ik')
+                mBallIK.doName()
+                
+                mBallIK.connectChildNode(self.mBall.fkJoint.blendJoint.mNode,'blendJoint')#Connect
+                
+
         
         
         log.debug("|{0}| >> FK...".format(_str_func))    
@@ -4663,19 +4690,31 @@ def rig_controls(self):
         mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
         if mIKBallRotationControl:
             log.debug("|{0}| >> Found controlBallRotation : {1}".format(_str_func, mIKBallRotationControl))
-            
-            
             _d = MODULECONTROL.register(mIKBallRotationControl,
                                         addDynParentGroup = False,
                                         mirrorSide= self.d_module['mirrorDirection'],
                                         mirrorAxis="translateX,rotateY,rotateZ",
                                         makeAimable = True)
-                    
             mIKControlEnd = _d['mObj']
             ml_controlsAll.append(mIKBallRotationControl)
-            
-                    
             log.debug(cgmGEN._str_subLine)
+            
+        
+        for control in ['controlIKBall','controlIKToe']:
+            mControl  = mRigNull.getMessageAsMeta(control)
+            if mControl:
+                log.debug("|{0}| >> Found {1} : {2}".format(_str_func,control, mControl))
+                _d = MODULECONTROL.register(mControl,
+                                            addDynParentGroup = False,
+                                            mirrorSide= self.d_module['mirrorDirection'],
+                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                            makeAimable = True)
+                
+                self.atUtils('get_switchTarget', mControl,mControl.blendJoint.mNode)
+                
+                mControl = _d['mObj']
+                ml_controlsAll.append(mControl)
+                log.debug(cgmGEN._str_subLine)                
             
         #>> handleJoints ==================================================================================
         if ml_handleJoints:
@@ -7008,7 +7047,8 @@ def rig_pivotSetup(self):
             mToeIK = False
             mBallIK = False
             b_realToe = False
-            if _pivotSetup == 'foot':
+            
+            if _pivotSetup == 'foot' and not self.str_ikRollSetup == 'control':
                 log.debug("|{0}| >> foot ...".format(_str_func))
                 
                 _mode = 'foot'
@@ -7037,7 +7077,8 @@ def rig_pivotSetup(self):
                 
             
             #pprint.pprint(vars())
-             
+            
+
             mBlock.atBlockUtils('pivots_setup',
                                 mControl = mIKControl, 
                                 mRigNull = mRigNull, 
@@ -7049,11 +7090,51 @@ def rig_pivotSetup(self):
                                 #mDag = mIKHandleDriver,
                                 front = 'front', back = 'back')#front, back to clear the toe, heel defaults
             
-            if _mode == 'foot':#and not mBlock.buildLeverEnd and not self.b_quadFront:
+
+            if self.str_ikRollSetup == 'control':
+                mParentUse = mPivotResultDriver.p_parent
+                
+                log.debug(cgmGEN.logString_sub(_str_func,'roll control setup'))
+                ml_ikJoints = mRigNull.msgList_get('ikJoints')
+                if self.mToe:
+                    mToeIK = ml_ikJoints.pop(-1)
+                    b_realToe = True
+                    mToeControl = mRigNull.controlIKToe
+                    mToeControl.masterGroup.p_parent = mParentUse
+                    #mToeIK.p_parent = mParentUse
+                    
+                    
+                    
+                if self.mBall:
+                    mBallIK = ml_ikJoints.pop(-1)
+                    if not mToeIK:
+                        mToeIK = mRigNull.getMessageAsMeta('toe_helpJoint')
+                    mBallControl = mRigNull.controlIKBall
+                    mBallControl.masterGroup.p_parent = mParentUse
+                    #mBallIK.p_parent = mParentUse                    
+                    mParentUse = mBallControl
+                    
+                    mPivotResultDriver.p_parent = mBallControl
+                
+                mAnkleIK = ml_ikJoints[-1]
+                
+                #Create foot IK -----------------------------------------------------------------------------
+                d_ballReturn = IK.handle(mAnkleIK.mNode,mBallIK.mNode,solverType='ikSCsolver',
+                                         baseName=mAnkleIK.cgmName,moduleInstance=mModule)
+                mi_ballIKHandle = d_ballReturn['mHandle']
+                mi_ballIKHandle.parent = mToeControl.mNode#ballIK to toe
+                
+                #Create toe IK -------------------------------------------------------------------------------
+                d_toeReturn = IK.handle(mBallIK.mNode,mToeIK.mNode,solverType='ikSCsolver',
+                                        baseName=mBallIK.cgmName,moduleInstance=mModule)
+                mi_toeIKHandle = d_toeReturn['mHandle']
+                mi_toeIKHandle.parent = mBallControl.mNode#toeIK to wiggle
+                
+                        
+            elif _mode == 'foot':#and not mBlock.buildLeverEnd and not self.b_quadFront:
                 log.debug("|{0}| >> foot ik".format(_str_func))
                 
                 #Create foot IK -----------------------------------------------------------------------------
-                reload(IK)
                 d_ballReturn = IK.handle(mAnkleIK.mNode,mBallIK.mNode,solverType='ikSCsolver',
                                          baseName=mAnkleIK.cgmName,moduleInstance=mModule)
                 mi_ballIKHandle = d_ballReturn['mHandle']
