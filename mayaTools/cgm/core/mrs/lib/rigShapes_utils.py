@@ -72,6 +72,88 @@ __version__ = 'alpha.1.09122018'
 def log_start(str_func):
     log.debug("|{0}| >> ...".format(str_func)+'/'*60)
     
+def ik_bankRollShapes(self):
+    try:
+        _str_func = 'bankRollShapes'
+        log.debug(cgmGEN.logString_sub(_str_func))        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        mHandleFactory = self.mHandleFactory
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        
+        mBallFK = False
+        mToeFK = False
+        mToeIK = False
+        mBallIK = False
+        
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        str_meshShape = mMesh_tmp.getShapes()[0]        
+        
+        if self.mPivotHelper:
+            size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
+        else:
+            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)        
+            
+        reload(SHAPECASTER)
+        if self.mToe:
+            crv = SHAPECASTER.createMeshSliceCurve(
+                str_meshShape, self.mToe.mNode,
+                l_specifiedRotates = [-30,-15,0,15,30],
+                vectorOffset=_offset,closedCurve=False)    
+            """
+            crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
+                                             direction = _jointOrientation[0]+'+',
+                                             sizeMode = 'fixed',
+                                             size = size_pivotHelper[0])"""
+    
+            mHandleFactory.color(crv, controlType = 'main')                    
+            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)
+    
+            #ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
+    
+            if self.str_ikRollSetup == 'control':
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                mToeIK = self.mToe.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mToeIK.mNode,crv, True, replaceShapes=True)
+                mRigNull.connectChildNode(mToeIK,'controlIKToe','rigNull')#Connect
+    
+                mToeIK.doCopyNameTagsFromObject(self.mToe.mNode, ignore = ['cgmType'])
+                mToeIK.doStore('cgmTypeModifier','ik')
+                mToeIK.doName()
+    
+                mToeIK.connectChildNode(self.mToe.fkJoint.blendJoint.mNode,'blendJoint')#Connect
+    
+    
+        if self.mBall:    
+            crv = CURVES.create_controlCurve(self.mBall.mNode, shape='circle',
+                                             direction = _jointOrientation[0]+'+',
+                                             sizeMode = 'fixed',
+                                             size = size_pivotHelper[0])
+            mHandleFactory.color(crv, controlType = 'main')                                
+            mBallFK = self.mBall.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mBallFK.mNode,crv, True, replaceShapes=True)            
+            #ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
+    
+            if self.str_ikRollSetup == 'control':
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                mBallIK = self.mBall.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mBallIK.mNode,crv, True, replaceShapes=True)
+                mRigNull.connectChildNode(mBallIK,'controlIKBall','rigNull')#Connect
+    
+                mBallIK.doCopyNameTagsFromObject(self.mBall.mNode, ignore = ['cgmType'])
+                mBallIK.doStore('cgmTypeModifier','ik')
+                mBallIK.doName()
+    
+                mBallIK.connectChildNode(self.mBall.fkJoint.blendJoint.mNode,'blendJoint')#Connect
+                
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                
+        mMesh_tmp.delete()
+      
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
 def ik_rp(self,mHandle = None,ml_targets = None):
     _str_func = 'rp'
     #Mid IK...---------------------------------------------------------------------------------

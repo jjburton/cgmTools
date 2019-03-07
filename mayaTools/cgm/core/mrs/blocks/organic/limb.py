@@ -70,7 +70,10 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
-
+import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
+import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
+for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
+    reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 #reload(CURVES)
 #reload(BUILDUTILS)
@@ -2073,6 +2076,7 @@ def rig_dataBuffer(self):
         ml_formHandles = mBlock.msgList_get('formHandles')
         self.ml_formHandles=ml_formHandles
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
+        self.mHandleFactory = mBlock.asHandleFactory()
         
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
@@ -2935,7 +2939,7 @@ def rig_skeleton(self):
                 cgmMeta.cgmAttr(ml_fkJoints[i].mNode,"rotateOrder").doConnectOut("%s.rotateOrder"%ml_fkAttachJoints[i].mNode)
                 mJoint.p_parent = ml_fkJoints[i]"""
         
-        if self.b_pivotSetup and self.str_ikRollSetup not in ['control']:
+        if self.b_pivotSetup:
             log.debug("|{0}| >> Pivot joints...".format(_str_func))        
             if self.mBall:
                 log.debug("|{0}| >> Ball joints...".format(_str_func))
@@ -2947,15 +2951,16 @@ def rig_skeleton(self):
                 mBallJointPivot.doName()
                 mRigNull.connectChildNode(mBallJointPivot,"pivot_ballJoint","rigNull")
                 ml_jointsToConnect.append(mBallJointPivot)
-        
-                #Ball wiggle pivot
-                mBallWiggleJointPivot = mBallJointPivot.doDuplicate(po = True)#dup ball in place
-                mBallWiggleJointPivot.parent = False
-                mBallWiggleJointPivot.cgmName = 'ballWiggle'
-                mBallWiggleJointPivot.addAttr('cgmType','pivotJoint')            
-                mBallWiggleJointPivot.doName()
-                mRigNull.connectChildNode(mBallWiggleJointPivot,"pivot_ballWiggle","rigNull") 
-                ml_jointsToConnect.append(mBallWiggleJointPivot)
+                
+                if not self.str_ikRollSetup not in ['control']:
+                    #Ball wiggle pivot
+                    mBallWiggleJointPivot = mBallJointPivot.doDuplicate(po = True)#dup ball in place
+                    mBallWiggleJointPivot.parent = False
+                    mBallWiggleJointPivot.cgmName = 'ballWiggle'
+                    mBallWiggleJointPivot.addAttr('cgmType','pivotJoint')            
+                    mBallWiggleJointPivot.doName()
+                    mRigNull.connectChildNode(mBallWiggleJointPivot,"pivot_ballWiggle","rigNull") 
+                    ml_jointsToConnect.append(mBallWiggleJointPivot)
                 
                 if not self.mToe:
                     log.debug("|{0}| >> Making toe joint...".format(_str_func))
@@ -3725,6 +3730,10 @@ def rig_shapes(self):
         #_bbSize = TRANS.bbSize_get(mBlock.getMessage('prerigLoftMesh')[0],shapes=True)
         #_bbSize.remove(max(_bbSize))
         #_size = MATH.average(_bbSize)
+        
+        RIGSHAPES.ik_bankRollShapes(self)
+        
+        return
 
         #Pivots =======================================================================================
         mPivotHolderHandle = ml_formHandles[-1]

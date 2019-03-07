@@ -13,7 +13,7 @@ This is housed outside our core stuff to be able to access and update it.
 __version__ = '0.1.01312018'
 
 from urllib2 import Request, urlopen, URLError
-#import urllib2
+import urllib2
 import webbrowser
 import json
 import pprint

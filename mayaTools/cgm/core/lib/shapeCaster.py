@@ -722,14 +722,18 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 log.debug("aimAxis: %s"%aimAxis)
                 log.debug("latheAxis: %s"%latheAxis)
                 log.debug("maxDistance: %s"%maxDistance)
-
-                d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, firstHit=False) or {}
-                d_hitReturnFromValue[rotateValue] = d_castReturn	
-                if closestInRange:
-                    hit = d_castReturn.get('near') or False
-                else:
-                    hit = d_castReturn.get('far') or False
-                if not hit:log.info("{0} -- {1}".format(rotateValue,d_castReturn))
+                
+                pos = RayCast.cast(mesh,mi_loc.mNode,aimAxis,
+                                   offsetMode='vector',offsetDistance=posOffset,
+                                   maxDistance=maxDistance)
+                
+                #d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, #maxDistance = maxDistance, firstHit=False) or {}
+               # d_hitReturnFromValue[rotateValue] = d_castReturn	
+                #if closestInRange:
+                    #hit = d_castReturn.get('near') or False
+                #else:
+                    #hit = d_castReturn.get('far') or False
+                #if not hit:log.info("{0} -- {1}".format(rotateValue,d_castReturn))
 
                 """if closestInRange:
 		    try:
@@ -755,6 +759,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 for arg in error.args:
                     log.error(arg)
                 raise Exception,"createMeshSliceCurve>> error: %s"%error 
+            
             log.debug("rotateValue %s | raw hit: %s"%(rotateValue,hit))
             if hit and not cgmMath.isVectorEquivalent(hit,d_rawHitFromValue.get(l_rotateSettings[i-1])):
                 log.debug("last raw: %s"%d_rawHitFromValue.get(l_rotateSettings[i-1]))
