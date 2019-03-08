@@ -27,6 +27,7 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+_test = 'MRS'
 
 _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
 _pathPull =  "https://github.com/jjburton/cgmtools/get/"
@@ -640,4 +641,10 @@ def ryan():
                     url =  "https://bitbucket.org/jjburton/cgmtools/get/" + commit['hash'] + ".zip"
                     file = webbrowser.open(url, new=0, autoraise=True)
                 if match == 'no' :
-                    print 'Please enter a numb'
+                    print 'Please enter a number 1-10'
+    
+    except URLError, e:
+        print 'It appears this is not working...URL or Timeout Error :(', e
+        
+
+
