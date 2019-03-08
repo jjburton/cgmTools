@@ -340,7 +340,7 @@ class cgmNode(r9Meta.MetaClass):
                     else:
                         value = VALID.mNodeString(value)
                 ATTR.set_message(self.mNode, attr, value)   
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
         
     def addAttr(self, attr,value = None, attrType = None, enumName = None,initialValue = None,lock = None,keyable = None, hidden = None,*args,**kws):
         _str_func = 'addAttr'
@@ -1198,14 +1198,17 @@ class cgmNode(r9Meta.MetaClass):
         _short = self.p_nameShort        
         _str_func = 'stringModuleCall( {0} )'.format(_short)
         _res = None
-        
         if not args:
             _str_args = ''
             args = [self]
         else:
             _str_args = ','.join(str(a) for a in args) + ','
             args = [self] + [a for a in args]
-            
+        
+        try:
+            return getattr(module,func)(*args,**kws)
+        except Exception,err:
+            cgmGEN.cgmExceptCB(Exception,err)
         if not kws:
             kws = {}
             _kwString = ''  
@@ -1241,7 +1244,7 @@ class cgmNode(r9Meta.MetaClass):
             #for a in err.args:
                 #log.error(a)
             #raise Exception,err
-            cgmGEN.cgmException(Exception,err)
+            cgmGEN.cgmExceptCB(Exception,err)
         return _res    
     
     def doLoc(self,forceBBCenter = False,nameLink = False, fastMode = False):
@@ -4235,7 +4238,7 @@ class cgmObjectSet(cgmNode):
             mc.sets(info,add = self.mNode)
             #log.debug("'%s' added to '%s'!"%(info,self.mNode))  	
         except Exception, err:
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
     addObj = append
     add = append
@@ -6708,7 +6711,7 @@ def asMeta(*args,**kws):
             return validateObjListArg(*args,**kws)
         return validateObjArg(*args,**kws)
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         """
         log.error("cgmMeta.asMeta failure... --------------------------------------------------")
         if args:
@@ -6759,7 +6762,7 @@ def createMetaNode(mType = None, *args, **kws):
                 
         for arg in err.args:
             log.error(arg)            
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
     
     
     
@@ -6998,7 +7001,10 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                 if not _UUID2016:
                     ATTR.add(_argShort,'UUID','string')
             except:pass
-            ATTR.set(_argShort,'mClass',mType,True)
+            if not ATTR.has_attr(_argShort,'mClass'):
+                ATTR.add(_argShort,'mClass','string',value=mType,lock=True)
+            else:
+                ATTR.set(_argShort,'mClass',mType,True)
             t2 = time.clock()		    
             log.debug("attrSet %0.6f"%(t2-t_attr))	
             log.debug("setClass %0.6f"%(t2-t1))	

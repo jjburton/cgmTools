@@ -295,7 +295,7 @@ def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFi
             shapeParent_in_place(targets[-1],o,keepSource,replaceShapes,snapFirst)
         return targets[-1]
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
@@ -417,7 +417,7 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             if not keepSource:
                 mc.delete(c)
         except Exception,err:
-            cgmGEN.cgmException(Exception,err,msg=vars())
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     return True
 
 def create_axisProxy(obj=None):
@@ -486,7 +486,7 @@ def create_axisProxy(obj=None):
         #match_transform(_proxy,_dag)
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def create_localAxisProxyBAK(obj=None):
     """
@@ -553,7 +553,7 @@ def create_localAxisProxyBAK(obj=None):
 
         return mc.rename(_proxy, "{0}_localAxisProxy".format(NAMES.get_base(_dag)))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
         
 _d_proxyCreate = {'cube':'nurbsCube',
@@ -614,7 +614,7 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
         
         return _res
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName = 'created'):
     """
@@ -974,14 +974,18 @@ def override_clear(target = None, pushToShapes = True):
             
 def getControlShader(direction = 'center', controlType = 'main',
                      transparent = False, proxy = False,
-                     directProxy = False):
+                     directProxy = False,shaderNode='phong'):
     """
     Proxy mode modifies the base value and setups up a different shader
     """
     if directProxy:
         _node = "cgmShader_directProxy"
     else:
-        _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
+        if controlType == 'puppetmesh':
+            _node = "cgmShader_{0}".format(controlType.capitalize())
+        else:
+            _node = "cgmShader_{0}{1}".format(direction,controlType.capitalize())
+            
         if transparent:
             _node = _node + '_trans'
         if proxy:
@@ -990,18 +994,34 @@ def getControlShader(direction = 'center', controlType = 'main',
     log.debug(_node)
     _set = False
     if not mc.objExists(_node):
-        _node = mc.shadingNode('phong',n =_node, asShader = True)
+        _node = mc.shadingNode(shaderNode,n =_node, asShader = True)
         _set = mc.sets(renderable=True, noSurfaceShader = True, em=True, name = _node + 'SG')
         ATTR.connect("{0}.outColor".format(_node), "{0}.surfaceShader".format(_set))
         
         if directProxy:
             ATTR.set(_node,'transparency',1)
-            
+            ATTR.set(_node,'ambientColorR',0)
+            ATTR.set(_node,'ambientColorG',0)
+            ATTR.set(_node,'ambientColorB',0)
+            ATTR.set(_node,'transparency',.5)
+            ATTR.set(_node,'incandescence',0)
         else:
-            _color = SHARED._d_side_colors[direction][controlType]
-            _rgb = SHARED._d_colors_to_RGB[_color]
+            if controlType == 'puppetmesh':
+                
+                _rgb = [.5,.5,.5]
+                
+                _d = {'diffuse':.65,
+                      'specularColor':[0.142857,0.142857,0.142857]}
+                for a,v in _d.iteritems():
+                    try:
+                        ATTR.set(_node,a,v)
+                    except Exception,err:
+                        log.error(err)
+            else:
+                _color = SHARED._d_side_colors[direction][controlType]
+                _rgb = SHARED._d_colors_to_RGB[_color]
             
-            ATTR.set(_node,'diffuse',1.0)
+                ATTR.set(_node,'diffuse',1.0)
             
             if proxy:
                 #_rgb = [v * .75 for v in _rgb]
@@ -1010,9 +1030,7 @@ def getControlShader(direction = 'center', controlType = 'main',
                 
                 _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
                 ATTR.set(_node,'diffuse',.75)
-                
-                
-        
+
             ATTR.set(_node,'colorR',_rgb[0])
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
@@ -1056,7 +1074,7 @@ def get_RGB_fromHSV(rValue = 0, gValue = 0, bValue = 0, getNode = False):
     return res
     
 def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,
-                 rgb = True, shaderSetup = True,transparent = False,proxy=False, directProxy=False):
+                 rgb = True, shaderSetup = True,shaderOnly=False,transparent = False,proxy=False, directProxy=False):
     """
     Sets the override color on shapes and more
     
@@ -1097,11 +1115,12 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         log.debug("|{0}| >> shapes: {1} ...".format(_str_func,TRANS.shapes_get(t,True)))  
         log.debug("|{0}| >> type: {1} ...".format(_str_func,_type))
         
-        if rgb:
-            override_color(t,_color,pushToShapes=pushToShapes )
-        else:
-            _v = SHARED._d_colors_to_index[_color]
-            override_color(t,index=_v,pushToShapes=pushToShapes )
+        if not shaderOnly:
+            if rgb:
+                override_color(t,_color,pushToShapes=pushToShapes )
+            else:
+                _v = SHARED._d_colors_to_index[_color]
+                override_color(t,index=_v,pushToShapes=pushToShapes )
             
         if shaderSetup:
             mc.sets(t, edit=True, remove = 'initialShadingGroup')
@@ -1118,8 +1137,7 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
                         try:
                             mc.disconnectAttr ('{0}.instObjGroups.objectGroups'.format(s),
                                                'initialShadingGroup.dagSetMembers')
-                        except:
-                            pass
+                        except:pass
                         
                         
                     else:
@@ -1128,7 +1146,39 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         mc.sets(t, edit=True, remove = 'initialShadingGroup')
     return True
 
-
+def color_mesh(target=None,mode='puppetmesh'):
+    _str_func = "color_mesh"    
+    if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
+    l_targets = VALID.listArg(target)
+    
+    _shader, _set = getControlShader(None,'puppetmesh',False,False,False)
+            
+    for t in l_targets:
+        log.debug("|{0}| >> t: {1} ...".format(_str_func,t))
+        _type = VALID.get_mayaType(t)
+        log.debug("|{0}| >> shapes: {1} ...".format(_str_func,TRANS.shapes_get(t,True)))  
+        log.debug("|{0}| >> type: {1} ...".format(_str_func,_type))
+        
+            
+        mc.sets(t, edit=True, remove = 'initialShadingGroup')
+        
+        if _type in ['nurbsSurface','mesh']:
+            mc.sets(t, e=True, forceElement = _set)                
+        else:
+            for s in TRANS.shapes_get(t,True):
+                log.debug("|{0}| >> s: {1} ...".format(_str_func,s))  
+                _type = VALID.get_mayaType(s)
+                if _type in ['nurbsSurface','mesh']:
+                    mc.sets(s, edit=True, forceElement = _set)
+                    mc.sets(s, remove = 'initialShadingGroup')
+                    try:
+                        mc.disconnectAttr ('{0}.instObjGroups.objectGroups'.format(s),
+                                           'initialShadingGroup.dagSetMembers')
+                    except:pass
+                else:
+                    log.debug("|{0}|  >> Not a valid target: {1} | {2}".format(_str_func,s,_type))
+        mc.sets(t, edit=True, remove = 'initialShadingGroup')
+    return True             
 
 
 def duplicate_shape(shape):

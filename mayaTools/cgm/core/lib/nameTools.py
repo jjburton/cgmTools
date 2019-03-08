@@ -155,7 +155,7 @@ def returnRawGeneratedName(obj,ignore=[False],removeDups=True):
                         continue
                 nameBuilder.append(str(buffer))
         return divider.join(nameBuilder)
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #@r9General.Timer   
 def returnCombinedNameFromDict(nameDict, stripInvalid = True, removeDups=True):
@@ -319,5 +319,5 @@ def get_objNameDict(obj,ignore=[False]):
         else:
             return namesDict
     except Exception,err:
-        raise cgmGEN.cgmException(Exception,err,msg=vars())
+        raise cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 returnObjectGeneratedNameDict = get_objNameDict

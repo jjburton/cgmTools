@@ -47,7 +47,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 _l_core_order = ['cgm_General',
                  'cgm_Meta',
@@ -55,6 +55,7 @@ _l_core_order = ['cgm_General',
                  'cgm_PuppetMeta',
                  'mrs.RigBlocks',
                  'cgm_RigMeta',
+                 'tools.lightLoomLite',
                  'cgmPy.validateArgs',
                  'rigger.ModuleFactory',
                  'rigger.JointFactory',
@@ -73,6 +74,7 @@ _l_ignoreTags = ['cgm.core.examples',
                  'cgm.lib.gigs',
                  'cgm.lib.zoo',
                  'cgm.projects',
+                 'cgm.core.rigger',
                  'cgmMeta_test']
 
 import cgm
@@ -106,40 +108,41 @@ def _reload():
             except Exception, e:
                 for arg in e.args:
                     log.error(arg)
-                cgmGen.cgmException(Exception,e)
+                cgmGen.cgmExceptCB(Exception,e)
             """log.debug("|{0}| >> Cull: {1} | Ordered: {2}".format(_str_func,
                                                                  len(_l_cull),
                                                                  len(_l_ordered)))"""            
 
                 
     log.debug("|{0}| >> Ordered modules completed...".format(_str_func))
-    
+    """
     try:
         import morpheusRig_v2.core.morpheus_meta
         reload(morpheusRig_v2.core.morpheus_meta)
     except Exception,err:
         for arg in err.args:
             log.warning("Morpheus core load: {0}".format(arg))
-        log.warning("|{0}| >> Morpheus Rig core not found.".format(_str_func))
+        log.warning("|{0}| >> Morpheus Rig core not found.".format(_str_func))"""
                 
     """
     Red9_Meta.registerMClassNodeMapping(nodeTypes = ['transform','objectSet','clamp','setRange','pointOnCurveInfo','decomposeMatrix','remapValue','ramp',
                                                      'ikSplineSolver','blendColors','blendTwoAttr','addDoubleLinear','condition','multiplyDivide','plusMinusAverage'])
 
     print('CGM Core Reloaded and META REGISTRY updated')"""
-    return
+    #return
     _d_failed = {}
     _l_skip = []
     for m in _l_ordered:
         _k = 'cgm.core.' + m
         for t in _l_ignoreTags:
             if t in _k:
+                #log.debug("|{0}| >> Skipping {1} | contain ignore tag".format(_str_func,m))                
                 _l_skip.append(m)        
     
     for m in _l_pycd:
     #for m in _l_ordered:
         if m in _l_skip:
-            log.debug("|{0}| >> Skipping {1} | containts skip tag".format(_str_func,m))
+            log.debug("|{0}| >> Skipping {1} | contains skip tag".format(_str_func,m))
             continue
         _k = 'cgm.core.' + m
         

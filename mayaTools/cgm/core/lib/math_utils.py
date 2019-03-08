@@ -361,8 +361,14 @@ def multiply(valueList):
 
 
 #Bosker's stuff ===========================================================================================================================
-def Clamp(val, minimum, maximum):
+def Clamp(val, minimum=None, maximum=None):
     '''Clamps the value between 2 minimum and maximum values'''
+    if minimum is None and maximum is None:
+        return val
+    if maximum is  None and minimum is not None:
+        return  max(val,minimum)
+    if minimum is None and maximum is not None:
+        return min(val,maximum)
     return max(min(val,maximum),minimum)
 
 def Lerp(start, end, percent):
@@ -525,12 +531,37 @@ def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
                 wantedUp = -right
     
         return wantedAim, wantedUp
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def normalizeList(L, normalizeTo=1):
     '''normalize values of a list to make its max = normalizeTo'''
     vMax = max(L)
     return [ x/(vMax*1.0)*normalizeTo for x in L]
+
+def find_valueInList(v,l,mode='near'):
+    _d = {}
+    _l = []
+    _l_use = []
+    
+    if mode == 'previous':
+        for v1 in l:
+            if v1 < v:
+                _l_use.append(v1)
+    elif mode == 'next':
+        for v1 in l:
+            if v1 > v:
+                _l_use.append(v1)
+    else:_l_use = copy.copy(l)
+        
+    for v1 in _l_use:
+        _diff = abs(v1 - v)
+        _l.append(_diff)
+        _d[_diff] = v1
+    
+    pprint.pprint(vars())
+    if mode in ['near','previous','next']:return _d[min(_l)]
+    elif mode == 'far':return _d[max(_l)]
+
 
 def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     '''

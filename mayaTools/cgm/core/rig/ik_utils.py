@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -107,9 +107,8 @@ def spline(jointList = None,
     
     
     #module -----------------------------------------------------------------------------------------------
-    mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
-    try:mModule.isModule()
-    except:mModule = False
+    mModule = cgmMeta.validateObjArg(moduleInstance,'cgmRigModule',noneValid = True)
+    ml_toConnect=[]
 
     mi_rigNull = False	
     if mModule:
@@ -135,6 +134,10 @@ def spline(jointList = None,
         mGroup.doName()
     else:
         mGroup = cgmMeta.validateObjArg(parentGutsTo,'cgmObject',False)
+        
+        
+    if mi_rigNull:
+        mGroup.p_parent = mi_rigNull
 
     #Good way to verify an instance list? #validate orientation             
     #> axis -------------------------------------------------------------
@@ -186,10 +189,7 @@ def spline(jointList = None,
         mSegmentCurve.addAttr('cgmType','splineIKCurve',attrType='string',lock=True)
         mSegmentCurve.doName()
 
-    #if mModule:#if we have a module, connect vis
-        #mSegmentCurve.overrideEnabled = 1		
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideVisibility'))    
-        #cgmMeta.cgmAttr(mi_rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mSegmentCurve.mNode,'overrideDisplayType'))    
+
 
     mIKSolver = cgmMeta.cgmNode(name = 'ikSplineSolver')
     
@@ -267,11 +267,8 @@ def spline(jointList = None,
             ml_distanceObjects.append(mDistanceDag)
             ml_distanceShapes.append(mDistanceShape)
 
-            if mModule:#Connect hides if we have a module instance:
-                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mDistanceDag.mNode))
-                ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(overrideDisplayType.mNode))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideVisibility'))
-                #cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mDistanceDag.mNode,'overrideDisplayType'))    
+            ml_toConnect.append(mDistanceDag)
+
 
 
         #>>>Hook up stretch/scale #========================================================================= 
@@ -413,6 +410,17 @@ def spline(jointList = None,
     mPlug_twistEnd = d_twistReturn['mi_plug_end']
     _res['mPlug_twistStart'] = mPlug_twistStart
     _res['mPlug_twistEnd'] = mPlug_twistEnd
+    
+    ml_toConnect.append(mSegmentCurve)
+    if mi_rigNull:
+        mRigNull = mi_rigNull
+        mSegmentCurve.p_parent = mi_rigNull
+        _str_rigNull = mi_rigNull.mNode
+        for mObj in ml_toConnect:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            mObj.parent = mRigNull            
     return _res
 
 
@@ -861,7 +869,7 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
         #    ATTR.set(_tessellate,a,v)
         mc.delete(l_crvs)
         return _res_body
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def ribbon(jointList = None,
@@ -895,7 +903,9 @@ def ribbon(jointList = None,
            tightenWeights=True,
            extraKeyable = True,
            ribbonJoints = None,
-           attachEndsToInfluences = False,
+           attachEndsToInfluences = None,
+           attachStartToInfluence = None,
+           attachEndToInfluence = None,
            moduleInstance = None,
            parentGutsTo = None):
 
@@ -1011,7 +1021,11 @@ def ribbon(jointList = None,
         l_influences = [mObj.p_nameShort for mObj in ml_influences]
         int_lenInfluences = len(l_influences)#because it's called repeatedly    
     
-    
+    if attachEndsToInfluences:
+        if attachStartToInfluence == None:
+            attachStartToInfluence = True
+        if attachEndToInfluence == None:
+            attachStartToInfluence = True
     #module -----------------------------------------------------------------------------------------------
     mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
     #try:mModule.isModule()
@@ -1382,12 +1396,16 @@ def ribbon(jointList = None,
             raise ValueError,"Should have a masterScale plug by now"
     
         
-    b_attachToInfluences = False
+    #b_attachToInfluences = False
     if attachEndsToInfluences:
         log.debug("|{0}| >> attachEndsToInfluences flag. Checking...".format(_str_func))
         if influences and len(influences) > 1:
             b_attachToInfluences = True
-        log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
+            if attachStartToInfluence:
+                b_attachStart = True
+            if attachEndToInfluence:
+                b_attachEnd = True
+        #log.debug("|{0}| >> b_attachToInfluences: {1}".format(_str_func,b_attachToInfluences))
         
     
     #>>> Follicles ======================================================================================        
@@ -1475,14 +1493,27 @@ def ribbon(jointList = None,
                 ml_upTargets.append(mUpDriver)
                 
         #Simple contrain
-        if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
-            if mJnt == ml_joints[0]:
-                mUse = ml_influences[0]
-            else:
-                mUse = ml_influences[-1]
-            mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
-        else:
-            mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+        mUse = mDriver
+        if attachStartToInfluence and mJnt == ml_joints[0]:
+            mUse = ml_influences[0]
+            #mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+            
+        elif attachEndToInfluence and mJnt == ml_joints[-1]:
+            mUse = ml_influences[-1]
+            #mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+            
+        #if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
+        #    if mJnt == ml_joints[0]:
+        #        mUse = ml_influences[0]
+        #    else:
+        #        mUse = ml_influences[-1]
+        #    mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+        #else:
+            #mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
+            
+        mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
+        
+        mDriven.doStore('ribbonDriver',mDriver.mNode,attrType='msg')
         
     if extendEnds or additiveScaleEnds:
         #End follicle...
@@ -2575,18 +2606,7 @@ def handle(startJoint,
             
             # ['distIKStretch','stretchMultiplier','distIKNormal','distFullLengthNormal']
             d_baseAttrs['distIKRaw'].value = md_baseDistReturn['mShape'].distance
-            """
-            #dist ikStretch normal -----------------------------------------------------------------            
-            arg = "{0} = {1} * {2}".format(d_baseAttrs['distIKNormal'].p_combinedName,
-                                           md_baseDistReturn['mShape'].distance,
-                                           mPlug_globalScale.p_combinedName)
-            NODEFAC.argsToNodes(arg).doBuild()    
-            
-            #ik stretch normal ----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['stretchMultiplier'].p_combinedName,
-                                             mPlug_rawDistance.mNode,
-                                             d_baseAttrs['distIKNormal'].p_combinedName)
-            NODEFAC.argsToNodes(_arg).doBuild()            """
+
             
             #Normal base -----------------------------------------------------------------------
             _arg = "{0} = {1} * {2}".format(d_baseAttrs['distBaseNormal'].p_combinedName,
@@ -2613,14 +2633,6 @@ def handle(startJoint,
                                             d_baseAttrs['distFullLengthNormal'].p_combinedName)
             NODEFAC.argsToNodes(_arg).doBuild()
             
-            """
-            #scaleFactorRawMid  -----------------------------------------------------------------------
-            _arg = "{0} = {1} / {2}".format(d_baseAttrs['scaleFactorRawMid'].p_combinedName,
-                                            d_baseAttrs['distActiveNormal'].p_combinedName,
-                                            d_baseAttrs['distBaseNormal'].p_combinedName)
-            NODEFAC.argsToNodes(_arg).doBuild()            
-            
-            """
             
             #scaleFactorReal ---------------------------------------------------------------
             _arg = "{0} = if {1} >= {2}: {3} else 1".format(d_baseAttrs['scaleFactor'].p_combinedName,
@@ -2795,7 +2807,7 @@ def handle(startJoint,
         if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
         
         return d_return   
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 
@@ -3238,7 +3250,7 @@ def handleBAK(startJoint,
         if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
     
         return d_return   
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
 
@@ -3879,4 +3891,4 @@ def ribbon_seal(driven1 = None,
 
 
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())

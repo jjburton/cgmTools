@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -167,12 +167,12 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
         if start is None:
             pos_start = POS.get(l_cvs[0])
             start = DIST.get_closestTarget(pos_start,l_influenceObjects)
-            log.warning("|{0}| >> No start arg, guessed: {1}".format(_str_func,start))
+            log.debug("|{0}| >> No start arg, guessed: {1}".format(_str_func,start))
             
         if end is None:
             pos_end = POS.get(l_cvs[-1])
             end = DIST.get_closestTarget(pos_end,l_influenceObjects)
-            log.warning("|{0}| >> No end arg, guessed: {1}".format(_str_func,end))
+            log.debug("|{0}| >> No end arg, guessed: {1}".format(_str_func,end))
         
 
     #>>>Tie down start and ends

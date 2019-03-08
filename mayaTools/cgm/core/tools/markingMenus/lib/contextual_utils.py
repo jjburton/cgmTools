@@ -400,7 +400,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             try:mc.select(objects)
             except Exception,err:log.error("|{0}.{1}| Select fail: {2}".format(__name__,_str_func,err))
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
 def func_context_all(func,context = 'selection',mType = None, **kws):
     """

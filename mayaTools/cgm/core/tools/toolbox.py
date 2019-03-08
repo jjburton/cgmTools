@@ -9,7 +9,7 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.10162017'
+__version__ = '0.1.01092019'
 
 import webbrowser
 
@@ -607,7 +607,11 @@ def buildSection_snap(self,parent):
               ut = 'cgmUITemplate',                                                                                              
               c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'spaced'}),                                               
               ann = "Layout on line from first to last item closest as possible to original position")    
-    
+    mc.button(parent=_row_arrange,
+                 l = 'Along Curve(Even)',
+                 ut = 'cgmUITemplate',
+                 c = cgmGen.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{'mode':'even','curve':'cubic'}),                                               
+                 ann = "Layout evenly on curve created from the list")        
     mUI.MelSpacer(_row_arrange,w=5)                                              
     _row_arrange.layout()      
     
@@ -984,6 +988,7 @@ def buildSection_rigging(self,parent):
     buildRow_attachBy(self,_inside)
     buildRow_skinDat(self,_inside)
     buildRow_SDK(self,_inside)
+    buildRow_cleanNodes(self,_inside)
     
     
 def buildSection_color(self,parent):
@@ -1654,7 +1659,7 @@ def buildRow_shapeUtils(self,parent):
               l = 'Add',
               ann = "Add selected shapes to the last transform",                   
               c = lambda *a:MMCONTEXT.func_enumrate_all_to_last(RIGGING.shapeParent_in_place, None,'toFrom', **{}),
-              )       
+              )
 
     mc.button(parent=_row,
               ut = 'cgmUITemplate',
@@ -1678,6 +1683,22 @@ def buildRow_shapeUtils(self,parent):
               ann = "Generate pythonic recreation calls for selected curve shapes", 
               c =  lambda *a:MMCONTEXT.func_process( CURVES.get_python_call, None, 'all','describe'),                
               ) 
+    mc.button(parent=_row,
+              ut = 'cgmUITemplate',
+              l = 'Match OS',
+              ann = "Match the first shape to the rest | object space",                                                                                                                  
+              c = lambda *a:MMCONTEXT.func_process(
+                  CURVES.match,
+                  None,'firstToEach', 'match curve shape',False,
+                  **{'space':'os'}),)
+    mc.button(parent=_row,
+              ut = 'cgmUITemplate',
+              l = 'Match WS',
+              ann = "Match the first shape to the rest | World space",                                                                                                                  
+              c = lambda *a:MMCONTEXT.func_process(
+                  CURVES.match,
+                  None,'firstToEach', 'match curve shape',False,
+                  **{'space':'ws'}),)    
 
 
     mUI.MelSpacer(_row,w=5)                      
@@ -1747,6 +1768,23 @@ def buildRow_SDK(self,parent):
               ann = "Fantastic blendtaper like tool for sdk poses by our pal - Scott Englert",                                                        
               c=lambda *a: mel.eval('seShapeTaper'),)   
 
+    mUI.MelSpacer(_row,w=5)                      
+    _row.layout()   
+    
+def buildRow_cleanNodes(self,parent):
+    #>>>Match mode -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)                      
+    mUI.MelLabel(_row,l='Clean Nodes:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    mc.button(parent = _row,
+              ut = 'cgmUITemplate',                                                                                                
+              l='Mental Ray',
+              ann = "Clean Mental Ray nodes",                                                        
+              c=lambda *a:NODES.renderer_clean('Mayatomr',True))
+ 
     mUI.MelSpacer(_row,w=5)                      
     _row.layout()   
 

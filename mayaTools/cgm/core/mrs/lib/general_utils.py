@@ -32,6 +32,7 @@ import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.cgmPy import validateArgs as VALID
 #from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 #from cgm.core.lib import position_utils as POS
@@ -206,8 +207,11 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 _l_report.append(''.join(l_name))
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
-                _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
-                _l_report.append("[{0}]".format(_blockState.upper()))
+                if mBlock.getMayaAttr('isBlockFrame'):
+                    _l_report.append("[FRAME]")
+                else:
+                    _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
+                    _l_report.append("[{0}]".format(_blockState.upper()))
                 
                 """
                 if mObj.hasAttr('baseName'):
@@ -217,6 +221,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
             
                 if mBlock.isReferenced():
                     _l_report.append("Referenced")
+                    
         
                 _str = s_start + " - ".join(_l_report)
                 log.debug(_str + "   >> " + mBlock.mNode)
@@ -240,7 +245,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
     
         return blockList,stringList
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 def walk_rigBlock_heirarchy(mBlock,dataDict = None, asMeta = True,l_processed = None):
     """
     
@@ -318,28 +323,42 @@ def get_rigBlock_heirarchy_context(mBlock, context = 'below', asList = False, re
         
     _str_func = 'get_rigBlock_heirarchy_context'
     
-    mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock')
-    log.debug("|{0}| >> mBlock: {1} | context: {2}".format(_str_func,mBlock.mNode,context)  )  
+    #blocks = VALID.listArg(mBlock)
+    ml_blocksRaw = cgmMeta.validateObjListArg(mBlock)
+    #mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock')
+    _res = {}
     
-    if context == 'self':
-        _res = {mBlock:{}}
-    elif context == 'below':
-        _res = walk_rigBlock_heirarchy(mBlock)
-    elif context == 'root':
-        _root = mBlock.p_blockRoot
-        if not _root:
-            _res = walk_rigBlock_heirarchy(mBlock)            
-        else:
-            _res = walk_rigBlock_heirarchy(mBlock.p_blockRoot)
-    elif context == 'scene':
+    if context == 'scene':
         _res = get_scene_block_heirarchy()
+    elif context == 'root':
+        ml_roots = []
+        for mObj in ml_blocksRaw:
+            _root = mObj.p_blockRoot
+            if not _root:
+                if mObj not in ml_roots:
+                    ml_roots.append(mObj)
+            else:
+                mRoot = mObj.p_blockRoot
+                if mRoot not in ml_roots:ml_roots.append(mRoot)
+                
+        for mRoot in ml_roots:
+            _res.update( walk_rigBlock_heirarchy(mRoot))
+
+    elif context in ['self','below']:
+        for mObj in ml_blocksRaw:
+            log.debug("|{0}| >> mBlock: {1} | context: {2}".format(_str_func,mObj.mNode,context)  )  
+            if context == 'self':
+                _res.update({mObj:{}})
+            elif context == 'below':
+                _res.update(walk_rigBlock_heirarchy(mObj))
+
     else:
         raise ValueError,"|{0}| >> unknown context: {1}".format(_str_func,context)
-    
+        
     if report:
         log.debug("|{0}| >> report...".format(_str_func))        
         #cgmGEN.walk_dat(_res,"Walking rigBLock: {0} | context: {1}".format(mBlock.mNode,context))
-        print_heirarchy_dict(_res,"Walking rigBlock: {0} | context: {1}".format(mBlock.p_nameShort,context))
+        print_heirarchy_dict(_res,"Walking context: {0}".format(context))
         
     if asList:
         log.debug("|{0}| >> asList...".format(_str_func))

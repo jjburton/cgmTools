@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -50,10 +50,12 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
-
+from cgm.core.classes import GuiFactory as cgmUI
+reload(cgmUI)
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
 #=============================================================================================================
 #>> Queries
@@ -64,7 +66,7 @@ def example(self):
         _str_func = ' example'.format(self)
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def get_shapeOffset(self):
     """
@@ -99,7 +101,7 @@ def get_shapeOffset(self):
         return 1
         
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def modules_get(self):
     try:
@@ -120,7 +122,7 @@ def modules_get(self):
                     ml_allModules.append(m)
                     
         return ml_allModules        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def modules_gather(self,**kws):
     try:
@@ -135,7 +137,7 @@ def modules_gather(self,**kws):
             _str_module = mModule.p_nameShort
             module_connect(self,mModule,**kws)
         return ml_modules
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def module_connect(self,mModule,**kws):
     try:
@@ -162,7 +164,7 @@ def module_connect(self,mModule,**kws):
     
         return True        
        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def is_upToDate(self,report = True):
@@ -191,7 +193,7 @@ def is_upToDate(self,report = True):
 #>> Mirror
 #=============================================================================================================
 @cgmGEN.Timer
-def mirror_verify(self):
+def mirror_verify(self,progressBar = None,progressEnd=True):
     """
     Verify the mirror setup of the puppet modules
     """
@@ -209,11 +211,24 @@ def mirror_verify(self):
     ml_modules = modules_get(self)
     int_lenModules = len(ml_modules)
     
-    for i,mModule in enumerate(ml_modules):
-        try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes, ml_processed)
-        except Exception,err:
-            log.error(err)
     
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+        
+    for i,mModule in enumerate(ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=int_lenModules+1,
+                                  progress=i, vis=True)
+        try:mModule.UTILS.mirror_verifySetup(mModule,d_runningSideIdxes,
+                                             ml_processed,
+                                             progressBar = progressBar,progressEnd=False)
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
     
     return
     
@@ -436,7 +451,7 @@ def mirror_getNextIndex(self,side):
             return max(l_return)+1
         else:return 0        
      
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
     
@@ -470,7 +485,7 @@ def mirror_getDict(self):
                         d_return[int_side].append(int_idx)
         return d_return
      
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 #=============================================================================================================
 #>> Anim
@@ -493,7 +508,7 @@ def modules_settings_set(self,**kws):
             else:
                 log.debug("|{0}| >>  Missing settings: {1}".format(_str_func,mModule))
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_reset(self,transformsOnly = True):
     try:
@@ -510,7 +525,7 @@ def anim_reset(self,transformsOnly = True):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_select(self):
     try:
@@ -518,7 +533,7 @@ def anim_select(self):
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         self.puppetSet.select()
         return True        
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def anim_key(self,**kws):
     try:
@@ -537,7 +552,7 @@ def anim_key(self,**kws):
         if _sel:mc.select(_sel)
         return _result
         
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 @cgmGEN.Timer
 def layer_verify(self,**kws):
@@ -562,7 +577,7 @@ def layer_verify(self,**kws):
             self.connectChildNode(mLayer.mNode,'controlLayer')
         
         return self.displayLayer, self.controlLayer
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
 def armature_verify(self):
@@ -814,9 +829,12 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
         mSet.doName()
         mSet.purge()
         log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
-        
-        for mObj in get_joints(self,'bind') + get_rigGeo(self):
-            mSet.addObj(mObj.mNode)    
+        mMaster = self.masterNull
+        for mGrp in mMaster.skeletonGroup,mMaster.geoGroup:
+            for mChild in mGrp.getChildren(asMeta=1):
+                mSet.addObj(mChild.mNode)
+        #for mObj in get_joints(self,'bind') + get_rigGeo(self):
+            #mSet.addObj(mObj.mNode)    
         
 def groups_verify(self):
     try:
@@ -857,9 +875,9 @@ def groups_verify(self):
             elif attr == 'puppetSpaceObjects':
                 mGroup.addAttr('cgmAlias','puppet')
                 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
-def collect_worldSpaceObjects(self):
+def collect_worldSpaceObjects(self,progressBar = None):
     _str_func = 'collect_worldSpaceObjects'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)    
@@ -868,15 +886,41 @@ def collect_worldSpaceObjects(self):
     mWorldSpaceObjectsGroup = mMasterNull.worldSpaceObjectsGroup
     mPuppetSpaceObjectsGroup = mMasterNull.puppetSpaceObjectsGroup
     
-    for mObj in self.masterControl.getChildren(asMeta = 1):
+
+        
+    ml_children = self.masterControl.getChildren(asMeta = 1) or []
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+        len_children = len(ml_children)
+    for i,mObj in enumerate(ml_children):
+        if progressBar:
+            #mc.progressBar(progressBar,edit = True,
+            #               minValue = 0,
+            #               maxValue=len_children,step=i, vis=True)
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=len_children+1,
+                                  progress=i, vis=True)
+            time.sleep(.01)
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
             mObj.parent = mPuppetSpaceObjectsGroup
             ml_objs.append(mObj)
-    for mObj in mMasterNull.getChildren(asMeta = 1):
+            
+    ml_children = mObj in mMasterNull.getChildren(asMeta = 1) or []
+    if progressBar:
+        len_children = len(ml_children)
+    for i,mObj in enumerate(ml_children):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=len_children+1,
+                                  progress=i,vis=True)
+            time.sleep(.01)
+            
         if mObj.getMayaAttr('cgmType') in ['dynDriver']:
             mObj.parent = mWorldSpaceObjectsGroup     
             ml_objs.append(mObj)
-            
+    if progressBar:cgmUI.progressBar_end(progressBar)
     return ml_objs
 
 def get_joints(self,mode='bind'):
@@ -939,6 +983,13 @@ def get_rigGeo(self):
         if mObj.getMayaAttr('mClass') == 'cgmControl':
             log.debug("|{0}| >> Invalid obj: {1}".format(_str_func,o))
             continue
+        if mObj.getMayaAttr('cgmType') in ['jointApprox','rotatePlaneVisualize']:
+            log.debug("|{0}| >> Invalid obj: {1}".format(_str_func,o))
+            continue
+        if 'proxy_geo' in o:
+            continue
+        if 'proxyGeo' in o:
+                continue        
         _res.append(mObj)
     
     log.debug("|{0}| >> Visible shapes: {1} | dags: {2} | res: {3} ".format(_str_func,
@@ -953,7 +1004,7 @@ def get_exportSetDat(self):
     """
     First pass on qss verification
     """
-    _str_func = 'get_deleteSetDat'
+    _str_func = 'get_exportSetDat'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     mMasterNull = self.masterNull
@@ -966,3 +1017,255 @@ def get_exportSetDat(self):
     return _joints + _geo
     
     
+@cgmGEN.Timer
+def rigNodes_setAttr(self,attr=None,value=None,progressBar = None,progressEnd=True):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' rigNodes_setAttr'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    md_data = {}
+    ml_modules = modules_get(self)
+    
+    ml_processed = []
+    
+    ml_modules = modules_get(self)
+    if progressBar:
+        int_lenModules = len(ml_modules)
+        cgmUI.progressBar_start(progressBar,int_lenModules+1)
+        
+        
+    l_dat = self.getMessage('rigNodes')
+    
+    for i,mModule in enumerate(ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  progress=i, vis=True)
+        try:l_dat.extend(mModule.rigNull.getMessage('rigNodes'))
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+            
+    if attr and value is not None:
+        int_lenNodes = len(l_dat)
+        if progressBar:
+            cgmUI.progressBar_start(progressBar,int_lenNodes+1)
+        for i,node in enumerate(l_dat):
+            if progressBar:
+                cgmUI.progressBar_set(progressBar,
+                                      status=node,
+                                      progress=i, vis=True)
+            try:
+                _shapes = TRANS.shapes_get(node)
+                if _shapes:
+                    for s in _shapes:
+                        ATTR.set(node,attr,value)
+                ATTR.set(node,attr,value)
+            except Exception,err:
+                log.error("{0} | {1}".format(node,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+    
+    return l_dat
+
+@cgmGEN.Timer
+def rig_connectAll(self, mode = 'connect', progressBar = None,progressEnd=True):
+    """
+    Connect/disconnect the whole puppet
+    """
+    _str_func = ' rig_connectAll'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    ml_modules = modules_get(self)
+    
+    
+    ml_modules = modules_get(self)
+    if progressBar:
+        int_lenModules = len(ml_modules)
+        cgmUI.progressBar_start(progressBar,int_lenModules+2)
+        
+        
+    _d_modeToCall = {'connect':'rig_connect',
+                     'disconnect':'rig_disconnect'}
+    if not _d_modeToCall.get(mode):
+        raise ValueError,"Unknown mode: {0}".format(mode)
+    for i,mModule in enumerate([self] + ml_modules):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  status = mModule.p_nameShort,
+                                  progress=i, vis=True)
+            
+        try:
+            mModule.atUtils(_d_modeToCall.get(mode))
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+    
+@cgmGEN.Timer
+def proxyMesh_verify(self, forceNew = True, puppetMeshMode = False,progressBar = None,progressEnd=True):
+    """
+    Connect/disconnect the whole puppet
+    """
+    _str_func = ' rig_connectAll'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    ml_modules = modules_get(self)
+
+    ml_rigBLocks = []
+    
+    for i,mModule in enumerate([self] + ml_modules):  
+        try:
+            ml_rigBLocks.append(mModule.rigBlock)
+        except Exception,err:
+            log.error("{0} | {1}".format(mModule,err))
+            
+    if progressBar:
+        int_len = len(ml_rigBLocks)
+        cgmUI.progressBar_start(progressBar,int_len+1)
+        
+    for i,mRigBlock in enumerate(ml_rigBLocks):
+        if progressBar:
+            cgmUI.progressBar_set(progressBar,
+                                  status = mRigBlock.p_nameShort,
+                                  progress=i, vis=True)
+        try:
+            mRigBlock.verify_proxyMesh(forceNew,puppetMeshMode)
+        except Exception,err:
+            log.error("{0} | {1}".format(mRigBlock,err))
+    
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+        
+        
+#Controls dat ===========================================================================        
+l_controlOrder = ['root','settings','motionHandle']
+d_controlLinks = {'root':['masterControl'],
+                  'motionHandle':['rootMotionHandle'],
+                  'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder]}
+
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+    """
+    Function to find all the control data for comparison for mirroing or other reasons
+    """
+    def addMObj(mObj,mList):
+        if mObj not in mList:
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)            
+            """
+            if ml_objs is not None:
+                if mObj in ml_objs:
+                    ml_objs.remove(mObj)
+                else:
+                    log.warning("|{0}| >> Not in list. Skipped: {1}".format(_str_func,mObj))
+                    return
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)"""
+
+
+    _str_func = ' controls_getDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    ignore = VALID.listArg(ignore)
+    
+    ml_objs = []
+    #try:ml_objs = self.puppetSet.getMetaList() or []
+    #except:pass
+    #l_objs = [mObj.mNode for mObj in ml_objs]
+    md_controls = {}
+    ml_controls = []
+    
+    if ml_objs:
+        for mObj in ml_objs:
+            if mObj.getMayaType() == 'objectSet':
+                ml_objs.remove(mObj)
+
+    if keys:
+        l_useKeys = VALID.listArg(keys)
+    else:
+        l_useKeys = l_controlOrder
+
+    if ignore:
+        log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
+        for k in ignore:
+            if k in l_useKeys:
+                l_useKeys.remove(k)
+
+    for key in l_useKeys:
+        l_options = d_controlLinks.get(key,[key])
+        log.debug("|{0}| >>  {1}:{2}".format(_str_func,key,l_options))
+        md_controls[key] = []
+        _ml = md_controls[key]
+        for o in l_options:
+            mObj = self.getMessageAsMeta(o)
+            if mObj:
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                addMObj(mObj,_ml)
+            elif self.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = self.msgList_get(o)
+                for mObj in _msgList:
+                    addMObj(mObj,_ml)
+        ml_controls.extend(_ml)
+
+    if ml_objs:
+        ml_dup = copy.copy(ml_objs)
+        log.debug("|{0}| >> Second pass {1}... ".format(_str_func,len(ml_objs))+'-'*20)
+        for mObj in ml_dup:
+            log.debug("|{0}| >> {1} ".format(_str_func,mObj))            
+            if mObj.hasAttr('cgmControlDat'):
+                _tags = mObj.cgmControlDat.get('tags',[])
+                log.debug("|{0}| >> tags: {1} ".format(_str_func,_tags))            
+                for t in _tags:
+                    _t = str(t)
+                    #if keys is not None and _t not in l_useKeys:
+                    #    continue
+                    if not md_controls.get(_t):
+                        md_controls[_t] = []
+                    _ml = md_controls[_t] 
+                    ml_controls.append(mObj)                    
+                    addMObj(mObj,_ml)
+
+    if not keys and 'spacePivots' not in ignore:
+        md_controls['spacePivots'] = []
+        _ml = md_controls['spacePivots']
+        for mObj in ml_controls:
+            mBuffer = mObj.msgList_get('spacePivots')
+            for mSpace in mBuffer:
+                addMObj(mSpace,_ml)
+                ml_controls.append(mSpace)
+
+    if report:
+        log.info("|{0}| >> Dict... ".format(_str_func))
+        pprint.pprint( md_controls)
+
+        log.info("|{0}| >> List... ".format(_str_func))
+        pprint.pprint( ml_controls)
+
+    if ml_objs and keys is None and not ignore:        
+        log.debug("|{0}| >> remaining... ".format(_str_func))
+        pprint.pprint( ml_objs)
+        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+
+    if report:
+        return
+
+    if keys or listOnly:
+        return ml_controls
+    return md_controls,ml_controls
+
+def controls_get(self,walk=False):
+    _str_func = ' controls_get'
+    _res = controls_getDat(self,listOnly=True)
+    if not walk:
+        return _res
+    
+    for mModule in modules_get(self):
+        _res.extend( mModule.atUtils('controls_get'))
+    return _res
+        
+    log.error("|{0}| >> No options specified".format(_str_func))
+    return False

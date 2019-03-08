@@ -96,6 +96,7 @@ log.setLevel(logging.INFO)
 
 # global var so that the animUI is exposed to anything as a global object
 global RED_ANIMATION_UI
+RED_ANIMATION_UI = None
 
 global RED_ANIMATION_UI_OPENCALLBACKS
 RED_ANIMATION_UI_OPENCALLBACKS = []
@@ -604,6 +605,15 @@ class AnimationLayerContext(object):
 class AnimationUI(object):
 
     def __init__(self, dockUI=True):
+
+        # WARNING HACK ALERT!
+        # ====================
+        # ensue we add the red9 icons path. This is set during the boot sequence BUT because
+        # workspaces come up BEFORE we get access to the boot sequence we end up with an
+        # AnimUI with no icons. This fixes that
+        r9Setup.addIconsPath()
+        # END ================
+
         self.buttonBgc = r9Setup.red9ButtonBGC(1)
         self.win = 'Red9AnimToolsWin'
         self.dockCnt = 'Red9AnimToolsDoc'
@@ -682,10 +692,14 @@ class AnimationUI(object):
         # Maya 2017 we switch from dockControl to workspaceControl
         # ========================================================
         if r9Setup.mayaVersion() >= 2017:
+            # seriously, delete it so that we force it to refresh and update the global RED_ANIMATION_UI?
+            if cmds.workspaceControl(animUI.workspaceCnt, q=True, exists=True):
+                cmds.workspaceControl(animUI.workspaceCnt, e=True, close=True)
+
             # if the workspace exists just show it, else bind the ui to it
             if not cmds.workspaceControl(animUI.workspaceCnt, q=True, exists=True):
                 element = mel.eval('getUIComponentDockControl("Channel Box / Layer Editor", false);')  # get the channelBox element control
-                windowcall = 'import Red9.core.Red9_AnimationUtils as r9Anim;animUI=r9Anim.AnimationUI();animUI._showUI()'
+                windowcall = 'import Red9.core.Red9_AnimationUtils as r9Anim;animUI=r9Anim.AnimationUI();animUI._showUI();'
                 cmds.workspaceControl(animUI.workspaceCnt, label="Red9_Animation",
                                       uiScript=windowcall,  # animUI._showUI,
                                       tabToControl=(element, -1),
@@ -698,7 +712,7 @@ class AnimationUI(object):
             else:
                 print 'Workspace Red9 already exists, calling open'
             cmds.workspaceControl(animUI.workspaceCnt, e=True, vis=True)
-            cmds.workspaceControl(animUI.workspaceCnt, e=True, r=True)  # raise it
+            cmds.workspaceControl(animUI.workspaceCnt, e=True, r=True, rs=True)  # raise it
             if not animUI.dock:
                 cmds.workspaceControl(animUI.workspaceCnt, e=True, fl=True)
         else:
@@ -809,6 +823,12 @@ class AnimationUI(object):
 
 
     def _showUI(self, *args):
+        '''
+        PRIVATE FUNCTION, DO NOT CALL FROM CODE
+        '''
+        # Ensure this is recast, we've had issues with workspace control management!!
+        global RED_ANIMATION_UI
+        RED_ANIMATION_UI = self
 
         if not r9Setup.mayaVersion() >= 2017:
             # 2017 introduces workspaces and we're going to use those instead of dockControls
@@ -861,7 +881,7 @@ class AnimationUI(object):
         # ====================
         # CopyAttributes
         # ====================
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.copy_attrs, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.copy_attrs, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         cmds.button(label=LANGUAGE_MAP._AnimationUI_.copy_attrs, bgc=self.buttonBgc,
                     ann=LANGUAGE_MAP._AnimationUI_.copy_attrs_ann,
@@ -882,7 +902,7 @@ class AnimationUI(object):
         # CopyKeys
         # ====================
         cmds.separator(h=10, st='in')
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.copy_keys, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.copy_keys, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         cmds.button(label=LANGUAGE_MAP._AnimationUI_.copy_keys, bgc=self.buttonBgc,
                     ann=LANGUAGE_MAP._AnimationUI_.copy_keys_ann,
@@ -932,7 +952,7 @@ class AnimationUI(object):
         # SnapTransforms
         # ====================
         cmds.separator(h=10, st='in')
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.snaptransforms, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.snaptransforms, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         cmds.button(label=LANGUAGE_MAP._AnimationUI_.snaptransforms, bgc=self.buttonBgc,
                      ann=LANGUAGE_MAP._AnimationUI_.snaptransforms_ann,
@@ -973,7 +993,7 @@ class AnimationUI(object):
         # Stabilizer
         # ====================
         cmds.separator(h=10, st='in')
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.tracknstabilize, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.tracknstabilize, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         # cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
         cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 100), (2, 55), (3, 55), (4, 100)], columnSpacing=[(1, 10), (3, 5)])
@@ -1002,7 +1022,7 @@ class AnimationUI(object):
         # TimeOffset
         # ====================
         cmds.separator(h=10, st='in')
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.timeoffset, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.timeoffset, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         # cmds.rowColumnLayout(numberOfColumns=4, columnWidth=[(1, 100), (2, 55), (3, 55), (4, 100)], columnSpacing=[(1, 10), (3, 5)])
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)], rowSpacing=[(1, 5), (2, 5)])
@@ -1064,7 +1084,7 @@ class AnimationUI(object):
         # Mirror Controls
         # ====================
         cmds.separator(h=10, st='in')
-        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.mirror_controls, cll=True, borderStyle='etchedOut')
+        cmds.frameLayout(label=LANGUAGE_MAP._AnimationUI_.mirror_controls, cll=True)  # , borderStyle='etchedOut')
         cmds.columnLayout(adjustableColumn=True)
         cmds.separator(h=3, st='none')
         cmds.rowColumnLayout(numberOfColumns=3, columnWidth=[(1, 100), (2, 100), (3, 100)], columnSpacing=[(1, 10), (2, 10), (3, 5)])
@@ -1397,14 +1417,16 @@ class AnimationUI(object):
                                      floating=False,
                                      allowedArea=['right', 'left'],
                                      width=350)
+
+                    cmds.evalDeferred("cmds.dockControl('%s', e=True, r=True)" % self.dockCnt)  # for fuck sake Maya, raise the dock yourself!!
                 except:
                     # Dock failed, opening standard Window
                     cmds.showWindow(animwindow)
-                    cmds.window(self.win, edit=True, widthHeight=(355, 720))
+                    cmds.window(self.win, edit=True, widthHeight=(360, 780))
                     self.dock = False
             else:
                 cmds.showWindow(animwindow)
-                cmds.window(self.win, edit=True, widthHeight=(355, 720))
+                cmds.window(self.win, edit=True, widthHeight=(360, 780))
 
         # set the initial Interface up
         self.__uiPresetsUpdate()
@@ -1530,9 +1552,9 @@ class AnimationUI(object):
         if height > 440:
             cmds.scrollLayout(self.uiglPoseScroll, e=True, h=max(height - 430, 200))
 
-            print 'width self.MainLayout:', cmds.scrollLayout(self.MainLayout, q=True, w=True)
-            print 'width self.form:', cmds.formLayout(self.form, q=True, w=True)
-            print 'width poseScroll:', cmds.scrollLayout(self.uiglPoseScroll, q=True, w=True)
+            log.debug('width self.MainLayout: %s' % cmds.scrollLayout(self.MainLayout, q=True, w=True))
+            log.debug('width self.form: %s' % cmds.formLayout(self.form, q=True, w=True))
+            log.debug('width poseScroll: %s' % cmds.scrollLayout(self.uiglPoseScroll, q=True, w=True))
 
     def __uiCB_setCopyKeyPasteMethod(self, *args):
         self.ANIM_UI_OPTVARS['AnimationUI']['keyPasteMethod'] = cmds.optionMenu('om_PasteMethod', q=True, v=True)
@@ -1649,6 +1671,13 @@ class AnimationUI(object):
             if 'snapPriority' in self.filterSettings.rigData \
                     and r9Core.decodeString(self.filterSettings.rigData['snapPriority']):
                 cmds.checkBox(self.uicbSnapPriorityOnly, e=True, v=True)
+
+        # manage the MatchMethod setting
+        if self.filterSettings.metaRig:
+            # self.matchMethod = 'metaData'
+            cmds.optionMenu('om_MatchMethod', e=True, v='metaData')
+        else:
+            cmds.optionMenu('om_MatchMethod', e=True, v='stripPrefix')
 
         # need to run the callback on the PoseRootUI setup
         self.__uiCB_managePoseRootMethod()
@@ -2626,6 +2655,7 @@ class AnimationUI(object):
         '''
         Internal UI call for CopyAttrs
         '''
+        # print 'MatchMethod : ', self.matchMethod
         if not len(cmds.ls(sl=True, l=True)) >= 2:
             log.warning('Please Select at least 2 nodes to Process!!')
             return
@@ -3181,9 +3211,9 @@ class AnimFunctions(object):
         if not matchMethod:
             matchMethod = self.matchMethod
 
-#         log.debug('CopyKey params : \n \
-# \tnodes=%s \t\n:time=%s \t\n: pasteKey=%s \t\n: attributes=%s \t\n: filterSettings=%s \t\n: matchMethod=%s \t\n: mergeLayers=%s \t\n: timeOffset=%s' \
-#                    % (nodes, time, pasteKey, attributes, filterSettings, matchMethod, mergeLayers, timeOffset))
+        log.debug('CopyKey params : \n \
+ \tnodes=%s \t\n:time=%s \t\n: pasteKey=%s \t\n: attributes=%s \t\n: filterSettings=%s \t\n: matchMethod=%s \t\n: mergeLayers=%s \t\n: timeOffset=%s' \
+                    % (nodes, time, pasteKey, attributes, filterSettings, matchMethod, mergeLayers, timeOffset))
 
         # Build up the node pairs to process
         nodeList = r9Core.processMatchedNodes(nodes,
@@ -3199,6 +3229,8 @@ class AnimFunctions(object):
                 with r9General.HIKContext([d for _, d in nodeList]):
                     for src, dest in nodeList:
                         try:
+                            log.debug('copyKeys : %s > %s' % (r9Core.nodeNameStrip(dest),
+                                                                    r9Core.nodeNameStrip(src)))
                             if attributes:
                                 # copy only specific attributes
                                 for attr in attributes:
@@ -3404,12 +3436,12 @@ class AnimFunctions(object):
                     for src, dest in nodeList.MatchedPairs:
                         if re.search(pNode, r9Core.nodeNameStrip(dest)):
                             self.nodesToSnap.append((src, dest))
-                skipAttrs = []  # reset as we need to now copy all attrs
+                skipAttrs = []  # reset as we need to now copy all attrs (mainly for sub nodes that aren't snapped)
             else:
                 self.nodesToSnap = nodeList.MatchedPairs
 
             # smartbake handling - accumulate key data per node
-            if smartbake:
+            if smartbake and time:
                 cutkeys = True
                 if not _smartBakeRef:
                     for node in self.nodesToSnap:
@@ -3493,6 +3525,7 @@ class AnimFunctions(object):
                                             timeEnabled=False,
                                             snapRotates=snapRotates,
                                             snapTranslates=snapTranslates)
+                        log.debug('Snapfrm : %s - %s : to : %s' % (r9Core.nodeNameStrip(src), dest, src))
                     if additionalCalls:
                         for func in additionalCalls:
                             log.debug('Additional Func Called : %s' % func)
@@ -3791,7 +3824,7 @@ class curveModifierContext(object):
     NOTE that this is optimized to run with a floatSlider and used in both interactive
     Randomizer and FilterCurves
     """
-    def __init__(self, initialUndo=False, undoFuncCache=[], undoDepth=1, processBlanks=False, reselectKeys=True):
+    def __init__(self, initialUndo=False, undoFuncCache=[], undoDepth=1, processBlanks=False, reselectKeys=True, manageCache=True):
         '''
         :param initialUndo: on first process whether undo on entry to the context manager
         :param undoFuncCache: functions to catch in the undo stack
@@ -3800,12 +3833,18 @@ class curveModifierContext(object):
             this a match and run the undo. Why, this is because it's bloody hard to get QT to register
             calls to the undo stack and that was blocking some of the ProPack functionality
         :param reselectKeys: if keys were selected on entry we reselect them based on their original timerange
+        :param manageCache: Maya 2019 and above, manage the cache mode, stopping the fill mode from being 'syncAsync',
+            this means that the cache is only filled on exit, if at all
         '''
         self.initialUndo = initialUndo
         self.undoFuncCache = undoFuncCache + ['curveModifierContext']
         self.undoDepth = undoDepth
         self.processBlanks = processBlanks
         self.reselectKeys = reselectKeys
+
+#         self.cacheMode = None
+#         if manageCache and r9Setup.mayaVersion() >= 2019:
+#             self.cacheMode = cmds.cacheEvaluator(query=True, cacheFillMode=True)
 
     def undoCall(self):
         for _ in range(1, self.undoDepth + 1):
@@ -3827,6 +3866,10 @@ class curveModifierContext(object):
             self.undoCall()
         cmds.undoInfo(openChunk=True, chunkName='curveModifierContext')  # enter and create a named chunk
 
+#         # manage the 2019 cache so we're not always filling it up on context drag
+#         if self.cacheMode:
+#             cmds.cacheEvaluator(cacheFillMode='syncOnly')
+
         self.range = None
         self.keysSelected = cmds.keyframe(q=True, n=True, sl=True)
 
@@ -3836,6 +3879,11 @@ class curveModifierContext(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if self.reselectKeys and self.keysSelected and self.range:
             cmds.selectKey(self.keysSelected, t=(self.range[0], self.range[-1]))
+
+#         if self.cacheMode:
+#             cmds.cacheEvaluator(cacheFillMode=self.cacheMode)
+#             print 'Cache Restored'
+
         cmds.undoInfo(closeChunk=True, chunkName='curveModifierContext')
         if exc_type:
             log.exception('%s : %s' % (exc_type, exc_value))
@@ -4909,9 +4957,11 @@ class MirrorSetup(object):
 
     def _showUI(self):
 
+        space = 10
+        size = (285, 490)
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title=LANGUAGE_MAP._Mirror_Setup_.title, s=False, widthHeight=(280, 410))
+        window = cmds.window(self.win, title=LANGUAGE_MAP._Mirror_Setup_.title, s=False, widthHeight=size)
         cmds.menuBarLayout()
         cmds.menu(l=LANGUAGE_MAP._Generic_.vimeo_menu)
         cmds.menuItem(l=LANGUAGE_MAP._Generic_.vimeo_help,
@@ -4919,23 +4969,30 @@ class MirrorSetup(object):
         cmds.menuItem(divider=True)
         cmds.menuItem(l=LANGUAGE_MAP._Generic_.contactme, c=lambda *args: (r9Setup.red9ContactInfo()))
         cmds.columnLayout(adjustableColumn=True, columnAttach=('both', 5))
-        cmds.separator(h=15, style='none')
-        cmds.text(l=LANGUAGE_MAP._Mirror_Setup_.side)
-        cmds.rowColumnLayout(nc=3, columnWidth=[(1, 90), (2, 90), (3, 90)])
+
+        # mirror side
+        cmds.separator(h=20, style='none')
+        cmds.text(l=LANGUAGE_MAP._Mirror_Setup_.side, fn='boldLabelFont')
+        cmds.separator(h=5, style='none')
+        cmds.rowColumnLayout(nc=3, columnWidth=[(1, 90), (2, 90), (3, 90)], columnSpacing=[(1, space)])
         self.uircbMirrorSide = cmds.radioCollection('mirrorSide')
         cmds.radioButton('Right', label=LANGUAGE_MAP._Generic_.right, cc=self.__uicb_setupIndex)
         cmds.radioButton('Centre', label=LANGUAGE_MAP._Generic_.centre, cc=self.__uicb_setupIndex)
         cmds.radioButton('Left', label=LANGUAGE_MAP._Generic_.left, cc=self.__uicb_setupIndex)
         cmds.setParent('..')
-        cmds.separator(h=15, style='in')
+
+        # mirror index
+        cmds.separator(h=20, style='in')
         cmds.rowColumnLayout(nc=2, columnWidth=[(1, 110), (2, 60)])
-        cmds.text(label=LANGUAGE_MAP._Mirror_Setup_.index)
+        cmds.text(label=LANGUAGE_MAP._Mirror_Setup_.index, fn='boldLabelFont')
         cmds.intField('ifg_mirrorIndex', v=1, min=1, w=50)
         cmds.setParent('..')
-        cmds.separator(h=15, style='in')
-        cmds.text(l=LANGUAGE_MAP._Mirror_Setup_.axis)
+
+        # Mirror axis
+        cmds.separator(h=20, style='in')
+        cmds.text(l=LANGUAGE_MAP._Mirror_Setup_.axis, fn='boldLabelFont')
         cmds.separator(h=5, style='none')
-        cmds.rowColumnLayout(nc=2, columnWidth=[(1, 130), (2, 130)])
+        cmds.rowColumnLayout(nc=2, columnWidth=[(1, 130), (2, 130)], columnSpacing=[(1, space)])
         cmds.checkBox('default', l=LANGUAGE_MAP._Mirror_Setup_.default_axis, v=True,
                       onc=lambda x: self.__uicb_setDefaults('default'),
                       ofc=lambda x: self.__uicb_setDefaults('custom'))
@@ -4946,15 +5003,29 @@ class MirrorSetup(object):
         cmds.setParent('..')
         cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(ann=LANGUAGE_MAP._Generic_.attrs, numberOfColumns=3,
-                                 columnWidth=[(1, 90), (2, 90), (3, 90)])
-        cmds.checkBox('translateX', l=LANGUAGE_MAP._Generic_.transX, v=False)
-        cmds.checkBox('translateY', l=LANGUAGE_MAP._Generic_.transY, v=False)
-        cmds.checkBox('translateZ', l=LANGUAGE_MAP._Generic_.transZ, v=False)
-        cmds.checkBox('rotateX', l=LANGUAGE_MAP._Generic_.rotX, v=False)
-        cmds.checkBox('rotateY', l=LANGUAGE_MAP._Generic_.rotY, v=False)
-        cmds.checkBox('rotateZ', l=LANGUAGE_MAP._Generic_.rotZ, v=False)
+                                 columnWidth=[(1, 90), (2, 90), (3, 90)], columnSpacing=[(1, space)])
+        cmds.checkBox('translateX', l='Trans X' , v=False)  # LANGUAGE_MAP._Generic_.transX
+        cmds.checkBox('translateY', l='Trans Y', v=False)  # LANGUAGE_MAP._Generic_.transY
+        cmds.checkBox('translateZ', l='Trans Z', v=False)  # LANGUAGE_MAP._Generic_.transZ
+        cmds.checkBox('rotateX', l='Rot X', v=False)  # LANGUAGE_MAP._Generic_.rotX
+        cmds.checkBox('rotateY', l='Rot Y', v=False)  # LANGUAGE_MAP._Generic_.rotY
+        cmds.checkBox('rotateZ', l='Rot Z', v=False)  # LANGUAGE_MAP._Generic_.rotZ
         cmds.setParent('..')
-        cmds.separator(h=15, style='in')
+
+        cmds.separator(h=5, style='none')
+        cmds.text(l='   '+LANGUAGE_MAP._Mirror_Setup_.custom_axis, al='left')
+        cmds.separator(h=5, style='none')
+        cmds.rowColumnLayout(numberOfColumns=2, columnWidth=[(1, 200), (2, 50)], columnSpacing=[(1, space)])
+        cmds.textField('customAxis', ann=LANGUAGE_MAP._Mirror_Setup_.custom_axis_ann, text="")
+        cmds.popupMenu()
+        cmds.menuItem(label=LANGUAGE_MAP._Mirror_Setup_.grab_channel_box, command=self.__get_channelbox_attrs)
+        cmds.button(label=LANGUAGE_MAP._Mirror_Setup_.channelbox,
+                    ann=LANGUAGE_MAP._Mirror_Setup_.custom_axis_ann,
+                    command=self.__get_channelbox_attrs)
+        cmds.setParent('..')
+
+        # commands
+        cmds.separator(h=20, style='in')
         cmds.button(label=LANGUAGE_MAP._Mirror_Setup_.refresh, bgc=r9Setup.red9ButtonBGC(1),
                      command=lambda *args: (self.__uicb_getMirrorIDsFromNode()))
         cmds.separator(h=15, style='none')
@@ -4968,11 +5039,12 @@ class MirrorSetup(object):
         cmds.button(label=LANGUAGE_MAP._Mirror_Setup_.delete, bgc=r9Setup.red9ButtonBGC(1),
                      command=lambda *args: (self.__deleteMarkers()))
         cmds.setParent('..')
-        cmds.separator(h=15, style='in')
-        cmds.rowColumnLayout(nc=2, columnWidth=[(1, 135), (2, 135)])
+        cmds.separator(h=20, style='in')
+        cmds.rowColumnLayout(nc=2, columnWidth=[(1, 135), (2, 135)], columnSpacing=[(1, space)])
         cmds.checkBox('mirrorSaveLoadHierarchy', l=LANGUAGE_MAP._Generic_.hierarchy, v=True)
         cmds.checkBox('mirrorClearCurrent', l=LANGUAGE_MAP._Mirror_Setup_.clear, v=True)
         cmds.setParent('..')
+        cmds.separator(h=5, style='none')
         cmds.rowColumnLayout(nc=2, columnWidth=[(1, 135), (2, 135)])
         cmds.button(label=LANGUAGE_MAP._Mirror_Setup_.save_configs, bgc=r9Setup.red9ButtonBGC(1),
                      ann=LANGUAGE_MAP._Mirror_Setup_.save_configs_ann,
@@ -4985,7 +5057,7 @@ class MirrorSetup(object):
                              c=r9Setup.red9ContactInfo, h=22, w=200)
         cmds.showWindow(window)
         self.__uicb_setDefaults('default')
-        cmds.window(self.win, e=True, widthHeight=(280, 410))
+        cmds.window(self.win, e=True, widthHeight=size)
         cmds.radioCollection('mirrorSide', e=True, select='Centre')
         self.__uicb_setupIndex()
 
@@ -5022,6 +5094,16 @@ class MirrorSetup(object):
                 log.debug('No MetaRig systems found to debug index lists from')
                 cmds.intField('ifg_mirrorIndex', e=True, v=1)
 
+    def __get_channelbox_attrs(self, *args):
+        '''
+        pull the selected channel box attrs back to the custom txt field
+        '''
+        attrs = getChannelBoxSelection()
+        if attrs:
+            cmds.textField('customAxis', e=True, text=','.join(attrs))
+        else:
+            log.warning('No attributes currently selected in the ChannelBox')
+
     def __uicb_getMirrorIDsFromNode(self):
         '''
         set the flags based on the given nodes mirror setup
@@ -5030,6 +5112,7 @@ class MirrorSetup(object):
         axis = None
         index = self.mirrorClass.getMirrorIndex(node)
         side = self.mirrorClass.getMirrorSide(node)
+        cmds.textField('customAxis', e=True, text='')
         cmds.checkBox('setDirectCopy', e=True, v=False)
         cmds.checkBox('default', e=True, v=False)
 
@@ -5046,19 +5129,27 @@ class MirrorSetup(object):
                 return
         if axis:
             self.__uicb_setDefaults('custom')
-            for a in axis:
+            for a in list(axis):
+                print 'MirroAxis : ', a
                 if a == 'translateX':
                     cmds.checkBox('translateX', e=True, v=True)
+                    axis.remove(a)
                 elif a == 'translateY':
                     cmds.checkBox('translateY', e=True, v=True)
+                    axis.remove(a)
                 elif a == 'translateZ':
                     cmds.checkBox('translateZ', e=True, v=True)
+                    axis.remove(a)
                 elif a == 'rotateX':
                     cmds.checkBox('rotateX', e=True, v=True)
+                    axis.remove(a)
                 elif a == 'rotateY':
                     cmds.checkBox('rotateY', e=True, v=True)
+                    axis.remove(a)
                 elif a == 'rotateZ':
                     cmds.checkBox('rotateZ', e=True, v=True)
+                    axis.remove(a)
+            cmds.textField('customAxis', e=True, text=','.join(axis))
         else:
             cmds.checkBox('default', e=True, v=True)
             self.__uicb_setDefaults('default')
@@ -5089,6 +5180,7 @@ class MirrorSetup(object):
         # now set
         if mode == 'default':
             cmds.checkBox('setDirectCopy', e=True, v=False)
+            cmds.textField('customAxis', e=True, text='')
             for axis in self.mirrorClass.defaultMirrorAxis:
                 if axis == 'translateX':
                     cmds.checkBox('translateX', e=True, v=True)
@@ -5107,12 +5199,14 @@ class MirrorSetup(object):
         '''
         note this is a string
         '''
-        if cmds.checkBox('default', q=True, v=True):
-            return None
-        elif cmds.checkBox('setDirectCopy', q=True, v=True):
-            return 'None'
+        if not cmds.textField('customAxis', q=True, text=True):
+            if cmds.checkBox('default', q=True, v=True):
+                return None
+            elif cmds.checkBox('setDirectCopy', q=True, v=True):
+                return 'None'
         else:
             axis = []
+            custom = []
             if cmds.checkBox('translateX', q=True, v=True):
                 axis.append('translateX')
             if cmds.checkBox('translateY', q=True, v=True):
@@ -5125,8 +5219,11 @@ class MirrorSetup(object):
                 axis.append('rotateY')
             if cmds.checkBox('rotateZ', q=True, v=True):
                 axis.append('rotateZ')
-            if axis:
-                return ','.join(axis)
+            if cmds.textField('customAxis', q=True, text=True):
+                for attr in cmds.textField('customAxis', q=True, text=True).split(','):
+                    custom.append(attr.strip())
+            if axis or custom:
+                return ','.join(list(set(axis + custom)))
             else:
                 return 'None'
 

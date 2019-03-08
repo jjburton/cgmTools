@@ -534,7 +534,7 @@ def uiBuild_cgmMenu( *args ):
     
     #>>LightStudio ----------------------------------------------------------------------
     #_layout = mc.menuItem(p=menu,l='LightStudio',subMenu = True, tearOff = True)
-    UICHUNKS.LIGHTSTUDIO.uiMenu_cgmLightStudio(menu)    
+    UICHUNKS.LIGHTLOOMLITE.uiMenu(menu)    
     
     #>>Mrs ----------------------------------------------------------------------
     _layout = mc.menuItem(p=menu,l='MRS',subMenu = True, tearOff = True)

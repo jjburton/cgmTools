@@ -1489,15 +1489,15 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         _str_func = 'cgmDynParentGroup.log_self'
         log.info("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
         print(self)
-        log.debug("dyMode: {0} | {1}".format(self.dynMode, d_DynParentGroupModeAttrs.get(self.dynMode)))            
-        log.debug("dynChild: {0}".format(self.getMessageAsMeta('dynChild')))
-        log.debug("dynFollow: {0}".format(self.getMessageAsMeta('dynFollow')))
+        log.info("dyMode: {0} | {1}".format(self.dynMode, d_DynParentGroupModeAttrs.get(self.dynMode)))            
+        log.info("dynChild: {0}".format(self.getMessageAsMeta('dynChild')))
+        log.info("dynFollow: {0}".format(self.getMessageAsMeta('dynFollow')))
         
-        log.debug("dynParents...")                    
+        log.info("dynParents...")                    
         for i,mParent in enumerate(self.msgList_get('dynParents')):
             log.info("    {0} : {1}".format(i,mParent))
             
-        log.debug("dynDrivers...")                    
+        log.info("dynDrivers...")                    
         for i,mDriver in enumerate(self.msgList_get('dynDrivers')):
             log.info("    {0} : {1}".format(i,mDriver))
         

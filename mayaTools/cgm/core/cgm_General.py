@@ -746,6 +746,23 @@ def returnCallerFunctionName():
         log.exception("Failed to inspect function name")
     return result
 
+def log_start(str_func,split='-',intCount = 80):
+    log.debug("|{0}| >> ...".format(str_func)+split*intCount)
+def log_sub(str_func,msg='break',split='_',intCount = 30):
+    log.debug("|{0}| >> {1} ".format(str_func,msg)+split*intCount)
+    
+def logString_start(str_func,split='-',intCount = 80):
+    if str_func:return "|{0}| >> ...".format(str_func)+split*intCount
+    return "...".format(str_func)+split*intCount
+
+def logString_sub(str_func,msg='break',split='_',intCount = 80):
+    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)+split*intCount
+    return "{0} ...".format(msg)+split*intCount
+
+def logString_msg(str_func,msg='break'):
+    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)
+    return "{0} ...".format(msg)
+    
 def log_info_dict(arg = None,tag = 'Stored Dict'):
     '''
     Log a dictionary.
@@ -969,8 +986,8 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
-            raise Exception,err
-        
+            #raise Exception,err
+CB = Callback
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
     """
     Function to call from a given module a function by string name with args and kws. 
@@ -1064,8 +1081,7 @@ def testException(message = 'cat'):
         raise Exception, message
     except Exception,err:
         cgmExceptCB(Exception,err,fncDat=vars())
-
-def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,**kws):
+def cgmExceptCB_BAK(etype = None, value = None, tb = None, detail=2, localDat = None, processed = False,tracebackCap=1,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
     
     if localDat is None:
@@ -1079,15 +1095,28 @@ def cgmExceptCB(etype = None, value = None, tb = None, detail=2, localDat = None
         try:db_file = tb.tb_frame.f_code.co_filename
         except:db_file = "<maya console>"
         print(_str_headerDiv + " Exception Log " + _str_headerDiv + _str_subLine)		
-	
-        for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
-            print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
-            print ' File "{1}", line {2}, in {3}\n'.format(*item),
-            for item in inspect.getinnerframes(tb):
-                print ' File "{1}", line {2}, in {3}\n'.format(*item)
-            if item[4] is not None:
-                for line in item[4]:
-                    print ' ' + line.lstrip()
+        
+        try:
+            for i,item in enumerate(reversed(inspect.getouterframes(tb.tb_frame)[1:])):
+                try:
+                    if i >= tracebackCap:
+                        break
+                    print("traceback frame[{0}]".format(i+1) + _str_subLine)		    
+                    print ' File "{1}", line {2}, in {3}\n'.format(*item),
+                    #for item in inspect.getinnerframes(tb):
+                        #print ' File "{1}", line {2}, in {3}\n'.format(*item)
+                    if item[4] is not None:
+                        for line in item[4]:
+                            try:
+                                print ' ' + line.lstrip()
+                            except Exception,err:
+                                print "Item [4] Failed: {0} | {1}".format(i,err)                            
+                except Exception,err:
+                    print "Failed: {0} | {1}".format(i,err)
+                    print item
+        except Exception,err:
+            print "Traceback Failed: {0}".format(err)
+                
     
     if value:
         print(_str_headerDiv + " Error log " + _str_headerDiv + _str_subLine)		        
@@ -1501,7 +1530,11 @@ def func_snapShot(dat = None):
     print("..." + _str_headerDiv)
     print _str_hardLine
     
-    
+def test_rawValueError(*args,**kws):
+    bye = 'fred'
+    _l = range(12)
+    raise ValueError,"Bob's not home"
+
 def testExceptionNested(*args,**kws):
     try:
         hi = 'mike'
@@ -1523,7 +1556,7 @@ def test_cgmExceptCB(*args,**kws):
         raise ValueError,"Bob's not home"
     except Exception,err:cgmExceptCB(Exception,err)
     
-def cgmException(etype = None, value = None, tb = None,msg=None):
+def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
     if tb is None: tb = sys.exc_info()[2]#...http://blog.dscpl.com.au/2015/03/generating-full-stack-traces-for.html
 
     try:db_file = tb.tb_frame.f_code.co_filename
@@ -1561,3 +1594,4 @@ def cgmException(etype = None, value = None, tb = None,msg=None):
             """
     if etype:raise etype,value,tb
 
+cgmExceptCB = cgmException

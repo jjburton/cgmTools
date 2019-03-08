@@ -335,283 +335,284 @@ class ui(cgmUI.cgmGUI):
         self.uiFunc_updateScrollAttrList()
         
     def uiFunc_updateScrollAttrList(self):
-        _str_func = 'uiFunc_updateScrollAttrList'          
-        self._l_attrsToLoad = []
-        _d_processed = {}
-        
-        if not self._ml_nodes:
-            return False      
-        
-        #for k in ui._checkBoxKeys:
-            #log.info("{0} : {1}".format(k, self._d_uiCheckBoxes[k].getValue()))
-        #['shared','keyable','transforms','user','other']
-        
-        _shared = self._d_uiCheckBoxes['shared'].getValue()
-        #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
-        _default = self._d_uiCheckBoxes['default'].getValue()
-        _user = self._d_uiCheckBoxes['user'].getValue()
-        _others = self._d_uiCheckBoxes['others'].getValue()
-        _sort = self._d_uiCheckBoxes['sort'].getValue()
-        
-        if _user:
-            self.row_move(edit =True, vis = True)
-        else:
-            self.row_move(edit = True, vis = False)
-        
-        #_transforms = self._d_uiCheckBoxes['trans'].getValue()        
-        #_other = self._d_uiCheckBoxes['other'].getValue()
-        
-        for mObj in self._ml_nodes:
-            _short = mObj.p_nameShort
-            _d_processed[_short] = []
-            _l_processed = _d_processed[_short] 
-            _is_transform = VALID.is_transform(_short)           
-            _l = mc.listAttr(_short, settable=True) or []
-            if _is_transform:
-                _l.extend(SHARED._d_attrCategoryLists['transform']) 
-            else:
-                _l.extend(mc.listAttr(_short, inUse=True) or [])
-            """if _default:
-                _l.extend( mc.listAttr(_short) or [])
-                #if VALID.getTransform(_short):
-                    #_l.extend(SHARED._d_attrCategoryLists['transform'])                
-            
-            #if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
-            
-            if _others:
-                _l.extend( mc.listAttr(_short, settable=True) or [])"""
-                
-                
-            _l = LISTS.get_noDuplicates(_l)
-
-            for a in _l:
-                try:
-                    if a.count('.')>0:
-                        continue
-                    _d = ATTR.validate_arg(_short,a)
-                    _dyn = ATTR.is_dynamic(_d)
-                    _hidden = ATTR.is_hidden(_d)
-                    
-                    if _default:
-                        if _is_transform:
-                            if not _hidden and not _dyn:
-                                _l_processed.append(a)
-                            if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
-                                _l_processed.append(a)
-                        else:
-                            if a not in ['isHistoricallyInteresting','nodeState','binMembership','caching','frozen']:
-                                _l_processed.append(a)
-                    if _user and _dyn:
-                        _l_processed.append(a)
-                    if _others and a not in _l_processed:
-                        _l_processed.append(a)
-                    """if _numeric:
-                        if ATTR.is_numeric(_d):
-                            _l_processed.append(a)
-                    else:
-                        _l_processed.append(a)"""
-                except Exception,err:
-                    log.warning("|{0}| >> Failed to process: {1} : {2} || err:{3}".format(_str_func, _short, a,err))
-
-        for a in ['ghostDriver','hyperLayout','attributeAliasList']:
-            if a in _l_processed:_l_processed.remove(a)
-        
-        
-        if _shared and len(self._ml_nodes)>1:
-            self._l_attrsToLoad = _d_processed[self._ml_nodes[0].p_nameShort]#...start with our first object
-            _l_good = []
-            for mObj in self._ml_nodes[1:]:
-                _l = _d_processed[mObj.p_nameShort]
-                for a in self._l_attrsToLoad:
-                    if a not in _l:
-                        log.debug("|{0}| >> '{1}' not shared. removing...".format(_str_func, a))                           
-                        #self._l_attrsToLoad.remove(a)
-                    else:
-                        _l_good.append(a)
-            self._l_attrsToLoad = LISTS.get_noDuplicates(_l_good)
-            
-        else:
-            for k,l in _d_processed.iteritems():
-                self._l_attrsToLoad.extend(l)
-                
-            self._l_attrsToLoad = LISTS.get_noDuplicates(self._l_attrsToLoad)
-        
-        if _sort:
-            self._l_attrsToLoad.sort()
-        
-        """for a in self._l_attrsToLoad:
-            log.info("|{0}| >> {1} : {2}".format(_str_func, _short, a))   
-        log.info(cgmGEN._str_subLine)"""
-
-        #...menu...
-        log.debug("|{0}| >> List....".format(_str_func,))                
-        self.uiScrollList_attr.clear()
-        _len = len(self._ml_nodes)
-        
-        if not self._l_attrsToLoad:
-            return False
-        
-        _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
         try:
-            for a in self._l_attrsToLoad:
-                
-                mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
-                
-                try:
-                    _short = self._ml_nodes[0].p_nameShort
-                    _d = ATTR.validate_arg(_short,a)
-                    
-                    _l_report = []
-                    
-                    _type = ATTR.get_type(_d)
-                    _type = SHARED._d_attrTypes_toShort.get(_type,_type)
-                    _user = False
-                    
-                    _l_flags = []
-                    
-                    if ATTR.is_dynamic(_d):
-                        _user = True
-                        _l_flags.append('u')                      
-                    
-                    _alias = ATTR.get_alias(_d)
-                    _nice = ATTR.get_nameNice(_d)
-                    _long = ATTR.get_nameLong(_d)
-                    
-                    _l_name = []
-                    _l_name.append(_long)
-                    
-                    if _alias:
-                        _l_name.append("--alias({0})".format(_alias) )
-                    if _user and _nice and _nice != _long:
-                        if _nice != ATTR.get_nameNice_string(_long):
-                            _l_name.append("--nice({0})".format(_nice))
-                    _l_name.append("--({0})--".format(_type) )
-                    
-                    _l_report.append("".join(_l_name))
-                    
-
-                        
-                    if ATTR.is_hidden(_d):
-                        _l_flags.append('h')
-                    else:
-                        _l_flags.append('v')                     
-                    
-                    if ATTR.is_keyable(_d):
-                        _l_flags.append('k')   
-                        
-                    if ATTR.is_locked(_d):
-                        _l_flags.append('l')
-                                               
-                    """if ATTR.is_readable(_d):
-                        _l_flags.append('R')
-                    if ATTR.is_writable(_d):
-                        _l_flags.append('W')"""
-                    if _l_flags:
-                        #_l_report.append("flg {0}".format(''.join(_l_flags)))
-                        _l_report.append(' '.join(_l_flags))
-                        
-                    if ATTR.get_driver(_d):
-                        if ATTR.is_keyed(_d):
-                            _l_report.append("<anim" )                        
-                        else:
-                            _l_report.append("<<<" )
-                    if ATTR.get_driven(_d):
-                        _l_report.append(">>>" )
-                        
-
-                    if ATTR.is_numeric(_d):
-                        _d_flags = ATTR.get_numericFlagsDict(_d)
-                        if _d_flags.get('default') not in [False,None]:
-                            _l_report.append("dv={0}".format(_d_flags.get('default')))
-                        if _d_flags.get('min') not in [False,None]:
-                            _l_report.append("m={0}".format(_d_flags.get('min'))) 
-                        if _d_flags.get('max') not in [False,None]:
-                            _l_report.append("M={0}".format(_d_flags.get('max')))     
-                        if _d_flags.get('softMin') not in [False,None]:
-                            _l_report.append("sm={0}".format(_d_flags.get('softMin')))
-                        if _d_flags.get('softMax') not in [False,None]:
-                            _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
-                        
-                    if _type == 'enum':
-                        _v = ATTR.get(_d)
-                        _options = ATTR.get_enum(_d).split(':')
-                        _options[_v] = "[ {0} ]".format(_options[_v])
-                        _v = (' , '.join(_options))
-                    else:
-                        _v = "{0}".format(ATTR.get(_d))
-                        for chk in [':']:
-                            if chk in _v:
-                                _v = 'NONDISPLAYABLE'
-                                continue
-                        if len(_v)> 20 and _type not in ['msg']:
-                            _v = _v[:20] + "...  "
-                    _l_report.append(_v)
-                        
-                    #_str = " -- ".join(_l_report)
-                    self.uiScrollList_attr.append(" // ".join(_l_report))
-                except Exception,err:
-                    log.info("|{0}| >> {1}.{2} | failed to query. Removing. err: {3}".format(_str_func, _short, a, err))  
-                    self._l_attrsToLoad.remove(a)
-                log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
-        except Exception,err:
-            try:cgmUI.doEndMayaProgressBar(_progressBar)
-            except:pass
-            raise Exception,err
-
-        #menu(edit=True,cc = uiAttrUpdate)
-        cgmUI.doEndMayaProgressBar(_progressBar)
-        
-        
-        #Reselect
-        if self._l_attrsSelected:
-            _indxs = []
-            for a in self._l_attrsSelected:
-                log.debug("|{0}| >> Selected? {1}".format(_str_func,a))                              
-                if a in self._l_attrsToLoad:
-                    self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
-                    
-                    
-                    
-        return False
-    
-        if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
-            if self.HideNonstandardOptionVar.value:
-                self._l_attrsToLoad.extend(self.SourceObject.transformAttrs)
-                self._l_attrsToLoad.extend(self.SourceObject.userAttrs)
-                self._l_attrsToLoad.extend(self.SourceObject.keyableAttrs)
-    
-                self._l_attrsToLoad = lists.returnListNoDuplicates(self._l_attrsToLoad)
-            else:
-                self._l_attrsToLoad.extend( mc.listAttr(self.SourceObject.nameLong) )
-    
-            if self.HideTransformsOptionVar.value:
-                for a in self.SourceObject.transformAttrs:
-                    if a in self._l_attrsToLoad:
-                        self._l_attrsToLoad.remove(a)
-    
-            if self.HideUserDefinedOptionVar.value:
-                for a in self.SourceObject.userAttrs:
-                    if a in self._l_attrsToLoad:
-                        self._l_attrsToLoad.remove(a)	
-    
-            if self.HideParentAttrsOptionVar.value:
-                for a in self._l_attrsToLoad:
-                    if (mc.attributeQuery(a, node = self.SourceObject.nameLong, listChildren=True)) is not None:
-                        self._l_attrsToLoad.remove(a)
-    
-            if self.HideCGMAttrsOptionVar.value:
-                buffer = []
-                for a in self._l_attrsToLoad:
-                    if 'cgm' not in a:
-                        buffer.append(a)
-                if buffer:
-                    self._l_attrsToLoad = buffer
-    
-        if self._l_attrsToLoad:	    
-            return True
-    
-        return False        
+            _str_func = 'uiFunc_updateScrollAttrList'          
+            self._l_attrsToLoad = []
+            _d_processed = {}
             
+            if not self._ml_nodes:
+                return False      
+            
+            #for k in ui._checkBoxKeys:
+                #log.info("{0} : {1}".format(k, self._d_uiCheckBoxes[k].getValue()))
+            #['shared','keyable','transforms','user','other']
+            
+            _shared = self._d_uiCheckBoxes['shared'].getValue()
+            #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
+            _default = self._d_uiCheckBoxes['default'].getValue()
+            _user = self._d_uiCheckBoxes['user'].getValue()
+            _others = self._d_uiCheckBoxes['others'].getValue()
+            _sort = self._d_uiCheckBoxes['sort'].getValue()
+            
+            if _user:
+                self.row_move(edit =True, vis = True)
+            else:
+                self.row_move(edit = True, vis = False)
+            
+            #_transforms = self._d_uiCheckBoxes['trans'].getValue()        
+            #_other = self._d_uiCheckBoxes['other'].getValue()
+            
+            for mObj in self._ml_nodes:
+                _short = mObj.p_nameShort
+                _d_processed[_short] = []
+                _l_processed = _d_processed[_short] 
+                _is_transform = VALID.is_transform(_short)           
+                _l = mc.listAttr(_short, settable=True) or []
+                if _is_transform:
+                    _l.extend(SHARED._d_attrCategoryLists['transform']) 
+                else:
+                    _l.extend(mc.listAttr(_short, inUse=True) or [])
+                """if _default:
+                    _l.extend( mc.listAttr(_short) or [])
+                    #if VALID.getTransform(_short):
+                        #_l.extend(SHARED._d_attrCategoryLists['transform'])                
+                
+                #if _user:_l.extend(mc.listAttr(_short, ud=True) or [])
+                
+                if _others:
+                    _l.extend( mc.listAttr(_short, settable=True) or [])"""
+                    
+                    
+                _l = LISTS.get_noDuplicates(_l)
+    
+                for a in _l:
+                    try:
+                        if a.count('.')>0:
+                            continue
+                        _d = ATTR.validate_arg(_short,a)
+                        _dyn = ATTR.is_dynamic(_d)
+                        _hidden = ATTR.is_hidden(_d)
+                        
+                        if _default:
+                            if _is_transform:
+                                if not _hidden and not _dyn:
+                                    _l_processed.append(a)
+                                if _d['attr'] in SHARED._d_attrCategoryLists['transform'] or _d['attr'] in ['translate','rotate','scale']:
+                                    _l_processed.append(a)
+                            else:
+                                if a not in ['isHistoricallyInteresting','nodeState','binMembership','caching','frozen']:
+                                    _l_processed.append(a)
+                        if _user and _dyn:
+                            _l_processed.append(a)
+                        if _others and a not in _l_processed:
+                            _l_processed.append(a)
+                        """if _numeric:
+                            if ATTR.is_numeric(_d):
+                                _l_processed.append(a)
+                        else:
+                            _l_processed.append(a)"""
+                    except Exception,err:
+                        log.warning("|{0}| >> Failed to process: {1} : {2} || err:{3}".format(_str_func, _short, a,err))
+    
+            for a in ['ghostDriver','hyperLayout','attributeAliasList']:
+                if a in _l_processed:_l_processed.remove(a)
+            
+            
+            if _shared and len(self._ml_nodes)>1:
+                self._l_attrsToLoad = _d_processed[self._ml_nodes[0].p_nameShort]#...start with our first object
+                _l_good = []
+                for mObj in self._ml_nodes[1:]:
+                    _l = _d_processed[mObj.p_nameShort]
+                    for a in self._l_attrsToLoad:
+                        if a not in _l:
+                            log.debug("|{0}| >> '{1}' not shared. removing...".format(_str_func, a))                           
+                            #self._l_attrsToLoad.remove(a)
+                        else:
+                            _l_good.append(a)
+                self._l_attrsToLoad = LISTS.get_noDuplicates(_l_good)
+                
+            else:
+                for k,l in _d_processed.iteritems():
+                    self._l_attrsToLoad.extend(l)
+                    
+                self._l_attrsToLoad = LISTS.get_noDuplicates(self._l_attrsToLoad)
+            
+            if _sort:
+                self._l_attrsToLoad.sort()
+            
+            """for a in self._l_attrsToLoad:
+                log.info("|{0}| >> {1} : {2}".format(_str_func, _short, a))   
+            log.info(cgmGEN._str_subLine)"""
+    
+            #...menu...
+            log.debug("|{0}| >> List....".format(_str_func,))                
+            self.uiScrollList_attr.clear()
+            _len = len(self._ml_nodes)
+            
+            if not self._l_attrsToLoad:
+                return False
+            
+            _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
+            try:
+                for a in self._l_attrsToLoad:
+                    
+                    mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
+                    
+                    try:
+                        _short = self._ml_nodes[0].p_nameShort
+                        _d = ATTR.validate_arg(_short,a)
+                        
+                        _l_report = []
+                        
+                        _type = ATTR.get_type(_d)
+                        _type = SHARED._d_attrTypes_toShort.get(_type,_type)
+                        _user = False
+                        
+                        _l_flags = []
+                        
+                        if ATTR.is_dynamic(_d):
+                            _user = True
+                            _l_flags.append('u')                      
+                        
+                        _alias = ATTR.get_alias(_d)
+                        _nice = ATTR.get_nameNice(_d)
+                        _long = ATTR.get_nameLong(_d)
+                        
+                        _l_name = []
+                        _l_name.append(_long)
+                        
+                        if _alias:
+                            _l_name.append("--alias({0})".format(_alias) )
+                        if _user and _nice and _nice != _long:
+                            if _nice != ATTR.get_nameNice_string(_long):
+                                _l_name.append("--nice({0})".format(_nice))
+                        _l_name.append("--({0})--".format(_type) )
+                        
+                        _l_report.append("".join(_l_name))
+                        
+    
+                            
+                        if ATTR.is_hidden(_d):
+                            _l_flags.append('h')
+                        else:
+                            _l_flags.append('v')                     
+                        
+                        if ATTR.is_keyable(_d):
+                            _l_flags.append('k')   
+                            
+                        if ATTR.is_locked(_d):
+                            _l_flags.append('l')
+                                                   
+                        """if ATTR.is_readable(_d):
+                            _l_flags.append('R')
+                        if ATTR.is_writable(_d):
+                            _l_flags.append('W')"""
+                        if _l_flags:
+                            #_l_report.append("flg {0}".format(''.join(_l_flags)))
+                            _l_report.append(' '.join(_l_flags))
+                            
+                        if ATTR.get_driver(_d):
+                            if ATTR.is_keyed(_d):
+                                _l_report.append("<anim" )                        
+                            else:
+                                _l_report.append("<<<" )
+                        if ATTR.get_driven(_d):
+                            _l_report.append(">>>" )
+                            
+    
+                        if ATTR.is_numeric(_d):
+                            _d_flags = ATTR.get_numericFlagsDict(_d)
+                            if _d_flags.get('default') not in [False,None]:
+                                _l_report.append("dv={0}".format(_d_flags.get('default')))
+                            if _d_flags.get('min') not in [False,None]:
+                                _l_report.append("m={0}".format(_d_flags.get('min'))) 
+                            if _d_flags.get('max') not in [False,None]:
+                                _l_report.append("M={0}".format(_d_flags.get('max')))     
+                            if _d_flags.get('softMin') not in [False,None]:
+                                _l_report.append("sm={0}".format(_d_flags.get('softMin')))
+                            if _d_flags.get('softMax') not in [False,None]:
+                                _l_report.append("sM={0}".format(_d_flags.get('softMax')))                                
+                            
+                        if _type == 'enum':
+                            _v = ATTR.get(_d)
+                            _options = ATTR.get_enum(_d).split(':')
+                            _options[_v] = "[ {0} ]".format(_options[_v])
+                            _v = (' , '.join(_options))
+                        else:
+                            _v = "{0}".format(ATTR.get(_d))
+                            for chk in [':']:
+                                if chk in _v:
+                                    _v = 'NONDISPLAYABLE'
+                                    continue
+                            if len(_v)> 20 and _type not in ['msg']:
+                                _v = _v[:20] + "...  "
+                        _l_report.append(_v)
+                            
+                        #_str = " -- ".join(_l_report)
+                        self.uiScrollList_attr.append(" // ".join(_l_report))
+                    except Exception,err:
+                        log.info("|{0}| >> {1}.{2} | failed to query. Removing. err: {3}".format(_str_func, _short, a, err))  
+                        self._l_attrsToLoad.remove(a)
+                    log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
+            except Exception,err:
+                try:cgmUI.doEndMayaProgressBar(_progressBar)
+                except:pass
+                raise Exception,err
+    
+            #menu(edit=True,cc = uiAttrUpdate)
+            cgmUI.doEndMayaProgressBar(_progressBar)
+            
+            
+            #Reselect
+            if self._l_attrsSelected:
+                _indxs = []
+                for a in self._l_attrsSelected:
+                    log.debug("|{0}| >> Selected? {1}".format(_str_func,a))                              
+                    if a in self._l_attrsToLoad:
+                        self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
+                        
+                        
+                        
+            return False
+            """
+            if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
+                if self.HideNonstandardOptionVar.value:
+                    self._l_attrsToLoad.extend(self.SourceObject.transformAttrs)
+                    self._l_attrsToLoad.extend(self.SourceObject.userAttrs)
+                    self._l_attrsToLoad.extend(self.SourceObject.keyableAttrs)
+        
+                    self._l_attrsToLoad = lists.returnListNoDuplicates(self._l_attrsToLoad)
+                else:
+                    self._l_attrsToLoad.extend( mc.listAttr(self.SourceObject.nameLong) )
+        
+                if self.HideTransformsOptionVar.value:
+                    for a in self.SourceObject.transformAttrs:
+                        if a in self._l_attrsToLoad:
+                            self._l_attrsToLoad.remove(a)
+        
+                if self.HideUserDefinedOptionVar.value:
+                    for a in self.SourceObject.userAttrs:
+                        if a in self._l_attrsToLoad:
+                            self._l_attrsToLoad.remove(a)	
+        
+                if self.HideParentAttrsOptionVar.value:
+                    for a in self._l_attrsToLoad:
+                        if (mc.attributeQuery(a, node = self.SourceObject.nameLong, listChildren=True)) is not None:
+                            self._l_attrsToLoad.remove(a)
+        
+                if self.HideCGMAttrsOptionVar.value:
+                    buffer = []
+                    for a in self._l_attrsToLoad:
+                        if 'cgm' not in a:
+                            buffer.append(a)
+                    if buffer:
+                        self._l_attrsToLoad = buffer
+            if self._l_attrsToLoad:	    
+                return True
+        
+            return False        """
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+
         
     def uiReport_objects(self):
         if self._d_attrs:

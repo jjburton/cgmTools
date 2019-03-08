@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -41,13 +41,18 @@ import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
 
-def reset_channels_fromMode(mode = 0,selectedChannels=None):
+def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
     """
     :mode
         0 - all
         1 - transformsOnly
         2 - keyableOnly
     """
+    if not nodes:
+        nodes = mc.ls(sl=True)
+        if not nodes:
+            return    
+         
     if mode == 0:
         _d = {'transformsOnly':False,
               'keyableOnly':False}
@@ -64,18 +69,20 @@ def reset_channels_fromMode(mode = 0,selectedChannels=None):
             log.debug("nope...")
             selectedChannels = False
     _d['selectedChannels'] = selectedChannels
+    _d['nodes'] = nodes
     reset_channels(**_d)
     
-def reset_channels(selectedChannels=False, transformsOnly=False, excludeChannels=None, keyableOnly=False):
+def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excludeChannels=None, keyableOnly=False):
     '''
     Modified from Morgan Loomis' great reset call to expand options...
     '''
     gChannelBoxName = mel.eval('$temp=$gChannelBoxName')
     _reset = {}
-
-    sel = mc.ls(sl=True)
-    if not sel:
-        return
+    
+    if not nodes:
+        nodes = mc.ls(sl=True)
+        if not nodes:
+            return
 
     if excludeChannels and not isinstance(excludeChannels, (list, tuple)):
         excludeChannels = [excludeChannels]
@@ -87,7 +94,7 @@ def reset_channels(selectedChannels=False, transformsOnly=False, excludeChannels
     l_trans = ['translateX','translateY','translateZ','rotateX','rotateY','rotateZ','scaleX','scaleY','scaleZ','tx','ty','yz','rx','ry','rz','sx','sy','sz']
 
 
-    for obj in sel:
+    for obj in nodes:
         mObj = r9Meta.MetaClass(obj)
 
         attrs = chans
@@ -541,6 +548,22 @@ def get_metaNodeSnapShot():
     #_res= [r9Meta.MetaClass(n) for n in SEARCH.get_nodeSnapShot()]
     #return cgmMeta.asMeta(SEARCH.get_nodeSnapShot())
     _res =  SEARCH.get_nodeSnapShot()
+    
+def get_nodeSnapShot(asMeta = 1):
+    _str_func = 'get_nodeSnapShot'
+    #return mc.ls(l=True,dag=True)    
+    _res = mc.ls(l=True)
+    if asMeta:
+        return cgmMeta.asMeta(_res)
+    return _res
+    
+def get_nodeSnapShotDifferential(l,asMeta=1):
+    l2 = get_nodeSnapShot(asMeta)
+    _res = []
+    for o in l2:
+        if o not in l:
+            _res.append(o)
+    return _res
 
 def check_nameMatches(self,mlControls,justReport = False):
     _str_func = 'check_nameMatches'
@@ -623,7 +646,7 @@ def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'm
 
     except Exception,err:
         #pprint.pprint(vars())
-        cgmGEN.cgmException(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         raise Exception,err
     
 def split_blends(driven1 = None,
@@ -855,4 +878,4 @@ def split_blends(driven1 = None,
         return d_dat
 
     except Exception,err:
-        cgmGEN.cgmException(Exception,err,msg=vars())    
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())    

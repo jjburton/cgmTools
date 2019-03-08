@@ -27,7 +27,7 @@ import Red9.core.Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 #NO LOC
-from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
@@ -44,6 +44,50 @@ reload(MATHUTILS)
 #from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
+def scale_to_axisSize(arg = None, size = None):
+    _str_func = 'scale_to_axisSize'
+    log.debug(cgmGEN.logString_start(_str_func))
+    _currentSize = get_axisSize(arg)
+    _currentScale = ATTR.get(arg,'scale')
+    _targetScale = []
+    for i,s in enumerate(size):
+        if s is not None:
+            v = (_currentScale[i] * s) / _currentSize[i]
+            _targetScale.append(v)
+        else:
+            _targetScale.append(_currentScale[i])
+    #log.info(_targetScale)
+    
+    for i,a in enumerate('xyz'):
+        if size[i]:
+            ATTR.set(arg,'s{0}'.format(a),_targetScale[i])
+
+def get_axisSize(arg):
+    try:
+        _str_func = 'get_axisSize'
+        bbSize = get_bb_size(arg)
+        
+        d_res = {'x':[],'y':[],'z':[]}
+        
+        _startPoint = POS.get(arg,'bb')
+        _res = []
+        for i,k in enumerate('xyz'):
+            log.debug("|{0}| >> On t: {1} | {2}".format(_str_func,arg,k))
+            
+            pos_pos = get_pos_by_axis_dist(arg,k+'+',bbSize[i]*1.5)
+            pos_neg = get_pos_by_axis_dist(arg,k+'-',bbSize[i]*1.5)
+            
+            pos1 = get_closest_point(pos_pos,arg)
+            pos2 = get_closest_point(pos_neg,arg)
+    
+            dist = get_distance_between_points(pos1[0],pos2[0])
+            _res.append(dist)
+            
+        return (_res)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+
 get_bb_size = POS.get_bb_size
 
 def get_bb_sizeOLD(arg = None, shapes = False, mode = None):
@@ -717,7 +761,7 @@ def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     
 
         return _res
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 def create_closest_point_node(source = None, targetSurface = None, singleReturn = False):
     """
@@ -834,7 +878,7 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
                 mc.delete(n, _locs[i])
         
         return _locs[_idx], _nodes[_idx], _shapes[_idx], _types[_idx]
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 
     
@@ -975,7 +1019,7 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
                 _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
         mc.delete([_loc],_created[0],_node)
         return _res
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
     _str_func = 'get_normalizedWeightsByDistance'

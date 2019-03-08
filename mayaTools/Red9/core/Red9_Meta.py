@@ -1648,12 +1648,16 @@ class MetaClass(object):
         object.__setattr__(self, '_forceAsMeta', False)  # force all getAttr calls to return mClass objects even for standard Maya nodes
 
         if not node:
+#             if not name:
+#                 name = self.__class__.__name__
+
             # no MayaNode passed in so make a fresh network node (default)
             if not nodeType == 'network' and nodeType not in RED9_META_NODETYPE_REGISTERY:
                 # raise IOError('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeMapping(nodeTypes=["%s"]) to do so before making this node' % (nodeType, nodeType))
                 log.debug('nodeType : "%s" : is NOT yet registered in the "RED9_META_NODETYPE_REGISTERY", please use r9Meta.registerMClassNodeMapping(nodeTypes=["%s"]) to do so before making this node' % (nodeType, nodeType))
-                if not name: name = nodeType
-            elif not name:
+                if not name:
+                    name = nodeType
+            if not name:
                 name = self.__class__.__name__
 
             # node = cmds.createNode(nodeType, name=name)
@@ -4150,8 +4154,9 @@ class MetaRig(MetaClass):
         self.animMap_postprocess(feedback=None, *args, **kws)
         log.warning('DEPRECATED Warning: "mRig.loadAnimation_postload_call" - Please use "mRig.animMap_postload_call" instead')
 
-    def loadAnimation(self, filepath, incRoots=True, useFilter=True, loadAsStored=True, loadFromFrm=0, loadFromTimecode=False, timecodeBinding=[None, None],
-                      referenceNode=None, manageRanges=1, manageFileName=True, keyStatics=False, blendRange=0, merge=False, matchMethod='stripPrefix', smartbake=False, *args, **kws):
+    def loadAnimation(self, filepath, incRoots=True, useFilter=True, loadAsStored=True, loadFromFrm=0, loadFromTimecode=False,
+                      timecodeBinding=[None, None], referenceNode=None, relativeRots='projected', relativeTrans='projected',
+                      manageRanges=1, manageFileName=True, keyStatics=False, blendRange=0, merge=False, matchMethod='metaData', smartbake=False, *args, **kws):
         '''
         : PRO_PACK :
             Binding of the animMap format for loading animation data from
@@ -4169,6 +4174,8 @@ class MetaRig(MetaClass):
         :param timecodeBinding: (frm, str('00:00:00:00'))  Tuple where the first arg is the frame at which the second arg's SMPTE timecode
             has been set as reference, basically we're saying that the timecode at frm is x
         :param referenceNode: load relative to the given node
+        :param relativeRots: 'projected' or 'absolute' - how to calculate the offset, default='projected'
+        :param relativeTrans: 'projected' or 'absolute' - how to calculate the offset, default='projected'
         :param manageRanges: valid values : 0=leave,  1=extend, 2=set the timeranges according to the anim data loaded
         :param manageFileName: if True and the current Maya scene has no filename other than a blank scene (ie freshly loaded rig)
             then we take the r9Anim's filename and rename the Maya scene accordingly
@@ -4242,6 +4249,8 @@ class MetaRig(MetaClass):
                                                loadFromTimecode=loadFromTimecode,
                                                timecodeBinding=timecodeBinding,
                                                referenceNode=referenceNode,
+                                               relativeRots=relativeRots,
+                                               relativeTrans=relativeTrans,
                                                manageRanges=manageRanges,
                                                manageFileName=manageFileName,
                                                keyStatics=keyStatics,

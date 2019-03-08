@@ -24,7 +24,7 @@ log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
-
+import maya.mel as MEL
 # From cgm ==============================================================
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.cgmPy import path_Utils as cgmPath
@@ -341,7 +341,29 @@ def import_file(mFile = None, namespace = None):
     kws = {}
     if namespace is not None:
         kws = {'namespace':namespace}
-    mc.file(mFile, i = True, pr = True, force = True,prompt = False,  gn = _name, gr = True, **kws) 
+        
+    if cgmGen.__mayaVersion__ == 11111:
+        if 'cat' == 'dog':
+            #file -import -type "mayaAscii"  -ignoreVersion -ra true -mergeNamespacesOnClash false -namespace "test" -options "v=0;"  -pr  -importFrameRate true  -importTimeRange "override" "D:/Dropbox/cgmMRS/maya/demo/mrsMakers_gettingStarted/sphere.ma";
+    
+            #_str =  'file -import -pr -prompt false -options "v=0;" -gn "{0}" -gr'.format(_name)
+            _str =  'file -import -ignoreVersion -ra true -mergeNamespacesOnClash false -pr -options "v=0;" -gn "{0}" -gr'.format(_name)
+            
+            if namespace is not None:
+                _str = _str + ' -namespace "{0}"'.format(namespace)
+            fileString = str(mFile)
+            l_fileString = list(fileString)
+            for i,v in enumerate(l_fileString):
+                if v == '\\':
+                    l_fileString[i] = '/'
+            _str = '{0} "{1}";'.format(_str,''.join(l_fileString))
+            log.warning("|{0}| >> 2018 import: {1}".format(_str_func,_str))
+            print _str
+            MEL.eval(_str)
+    #Do not use the prompt flag!
+    mc.file(mFile, i = True, pr = True, force = True,  gn = _name, gr = True, **kws) 
+            
+
     
     _l = mc.listRelatives (_name, children = True, type='transform',fullPath=True) or []
     _res = []
@@ -351,5 +373,4 @@ def import_file(mFile = None, namespace = None):
     mc.delete(_name)    
     return _res
     
-    
-    
+

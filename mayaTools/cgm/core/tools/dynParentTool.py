@@ -14,6 +14,7 @@ import copy
 import re
 import time
 import os
+import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -260,18 +261,20 @@ class ui(cgmUI.cgmGUI):
                     _l_report.append(mObj.p_nameBase)
                     
                 #if i == ATTR.get(self)
-                if _mode == 0:
-                    if self._mNode.space == i:
-                        _l_report.append('((Space))')
-                elif _mode == 1:
-                    if self._mNode.orientTo == i:
-                        _l_report.append('((Orient))')
-                else:
-                    if self._mNode.orientTo == i:
-                        _l_report.append('((Orient))')
-                    if self._mNode.follow == i:
-                        _l_report.append('((Follow))')
-
+                try:
+                    if _mode == 0:
+                        if self._mNode.space == i:
+                            _l_report.append('((Space))')
+                    elif _mode == 1:
+                        if self._mNode.orientTo == i:
+                            _l_report.append('((Orient))')
+                    else:
+                        if self._mNode.orientTo == i:
+                            _l_report.append('((Orient))')
+                        if self._mNode.follow == i:
+                            _l_report.append('((Follow))')
+                except Exception,err:
+                    log.warning(err)
                 if mObj.isReferenced():
                     _l_report.append("Referenced")
                 _str = " \ ".join(_l_report)
@@ -1078,10 +1081,10 @@ d_DynParentGroupModeAttrs = {0:['space'],
     else:
         return _dynChild.orientTo, _dynChild.follow
     
-    
+@cgmGEN.Timer
 def uiMenu_changeSpace(self, parent, showNoSel = False):
-    _str_func = 'uiMenu_changeSpace'
-    #uiMatch = mc.menuItem(p=parent, l='Match Mode ', subMenu=True)
+    _str_func='uiMenu_changeSpace'
+    log.debug(cgmGEN.logString_start(_str_func))
     
     __int_maxObjects = 10
     timeStart_objectList = time.clock()    
@@ -1090,145 +1093,238 @@ def uiMenu_changeSpace(self, parent, showNoSel = False):
     except:
         log.debug("|{0}| >> Generating new _ml_objList".format(_str_func))   
         _ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
-    try:self.d_objectsInfo
+    try:self.d_spaceSwitchObjectInfo
     except:
-        self.d_objectsInfo = {}
+        self.d_spaceSwitchObjectInfo = {}
         
     if not _ml_objList:
         if showNoSel:mUI.MelMenuItem( parent, l="Nothing Selected")    
         return
+        
     
     #>>  Individual objects....  ============================================================================
-    if _ml_objList:
-        self._d_mObjInfo = {}
-        #first we validate
-        #First we're gonna gather all of the data
-        #------------------------------------------------------
-        for i,mObj in enumerate(_ml_objList):
-            _short = mObj.mNode
-            if i >= __int_maxObjects:
-                log.warning("|{0}| >> More than {0} objects select, only loading first  for speed".format(_str_func, __int_maxObjects))                                
-                break
-            d_buffer = {}
-            
-            #>>> Space switching ------------------------------------------------------------------	
-            _dynParentGroup = ATTR.get_message(mObj.mNode,'dynParentGroup')
-            if _dynParentGroup:
-                i_dynParent = cgmMeta.validateObjArg(_dynParentGroup[0],'cgmDynParentGroup',True)
-                d_buffer['dynParent'] = {'mi_dynParent':i_dynParent,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
-                if i_dynParent:
-                    for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
-                        if mObj.hasAttr(a):
-                            d_buffer['dynParent']['attrs'].append(a)
-                            lBuffer_attrOptions = []
-                            #for i,o in enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum):
-                            for i,o in enumerate(ATTR.get_enumList(_short,a)):
-                                lBuffer_attrOptions.append(o)
-                            d_buffer['dynParent']['attrOptions'][a] = lBuffer_attrOptions
-            self._d_mObjInfo[mObj] = d_buffer
-
-
-        #=========================================================================================
-        #>> Find Common options ------------------------------------------------------------------
-        timeStart_commonOptions = time.clock()    
-        l_commonAttrs = []
-        d_commonOptions = {}
-        bool_firstFound = False
-        for mObj in self._d_mObjInfo.keys():
-            if 'dynParent' in self._d_mObjInfo[mObj].keys():
-                attrs = self._d_mObjInfo[mObj]['dynParent'].get('attrs') or []
-                attrOptions = self._d_mObjInfo[mObj]['dynParent'].get('attrOptions') or {}
-                if self._d_mObjInfo[mObj].get('dynParent'):
-                    if not l_commonAttrs and not bool_firstFound:
-                        log.debug('first found')
-                        l_commonAttrs = attrs
-                        state_firstFound = True
-                        d_commonOptions = attrOptions
-                    elif attrs:
-                        log.debug(attrs)
-                        for a in attrs:
-                            if a in l_commonAttrs:
-                                for option in d_commonOptions[a]:			
-                                    if option not in attrOptions[a]:
-                                        d_commonOptions[a].remove(option)
-
-        log.info("|{0}| >> Common Attrs: {1}".format(_str_func, l_commonAttrs))                
-        log.info("|{0}| >> Common Options: {1}".format(_str_func, d_commonOptions))    
-        log.info("|{0}| >> Common options build time: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
+    self.md_spaceSwitchDat = {}
+    #first we validate
+    #First we're gonna gather all of the data
+    #------------------------------------------------------
+    for i,mObj in enumerate(_ml_objList):
+        _short = mObj.mNode
+        if i >= __int_maxObjects:
+            log.warning("|{0}| >> More than {0} objects select, only loading first  for speed".format(_str_func, __int_maxObjects))                                
+            break
+        d_buffer = {}
         
+        #>>> Space switching ------------------------------------------------------------------	
+        mDynParentGroup = mObj.getMessageAsMeta('dynParentGroup')
+        if mDynParentGroup:
+            mDynParentGroup = cgmMeta.validateObjArg(mDynParentGroup,'cgmDynParentGroup',True)
+            d_buffer = {'mDynParent':mDynParentGroup,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
+            if mDynParentGroup:
+                for a in cgmRigMeta.d_DynParentGroupModeAttrs[mDynParentGroup.dynMode]:
+                    if mObj.hasAttr(a):
+                        d_buffer['attrs'].append(a)
+                        lBuffer_attrOptions = []
+                        for i,o in enumerate(ATTR.get_enumList(_short,a)):
+                            lBuffer_attrOptions.append(o)
+                        d_buffer['attrOptions'][a] = lBuffer_attrOptions
+        self.md_spaceSwitchDat[mObj] = d_buffer
+    
+    #=========================================================================================
+    log.debug(cgmGEN.logString_sub(None,'Common options...'))    
+    #>> Find Common options 
+    #timeStart_commonOptions = time.clock()
+    l_commonAttrs = []
+    d_commonOptions = {}
+    #bool_firstFound = False
+    for mObj in self.md_spaceSwitchDat.keys():
+        if self.md_spaceSwitchDat[mObj].get('mDynParent'):
+            attrs = self.md_spaceSwitchDat[mObj].get('attrs') or []
+            attrOptions = self.md_spaceSwitchDat[mObj].get('attrOptions') or {}
+            if self.md_spaceSwitchDat[mObj].get('mDynParent'):
+                if not l_commonAttrs:# and not bool_firstFound:
+                    l_commonAttrs = attrs
+                    state_firstFound = True
+                    d_commonOptions = attrOptions
+                elif attrs:
+                    log.debug(attrs)
+                    for a in attrs:
+                        if a in l_commonAttrs:
+                            for option in d_commonOptions[a]:			
+                                if option not in attrOptions[a]:
+                                    d_commonOptions[a].remove(option)
 
-        #>> Build ------------------------------------------------------------------
-        int_lenObjects = len(self._d_mObjInfo.keys())
-        _b_acted = False
+    if d_commonOptions:
+        log.debug("Common Attrs: {0}".format(l_commonAttrs))
+        log.debug("Common Options: {0}".format(d_commonOptions))    
+    #log.info("|{0}| >> Common options build time: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
+    
+
+    #>> Build ------------------------------------------------------------------
+    int_lenObjects = len(self.md_spaceSwitchDat.keys())
+    _b_acted = False
+    state_multiObject = False
+    use_parent = parent
+    iTmpObjectSub = parent
+    # Mutli
+    if int_lenObjects == 1:
+        #MelMenuItem(parent,l="-- Object --",en = False)	    					
         state_multiObject = False
-        use_parent = parent
+    elif l_commonAttrs:
+        #MelMenuItem(parent,l="-- Objects --",en = False)	    			
+        #iSubM_objects = mUI.MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
+        #iSubM_objects = mc.menuItem(p=parent,l="Multi  | [{0}]".format(int_lenObjects),subMenu = False)
         
-        # Mutli
-        if int_lenObjects == 1:
-            #MelMenuItem(parent,l="-- Object --",en = False)	    					
-            state_multiObject = False
-        elif l_commonAttrs:
-            #MelMenuItem(parent,l="-- Objects --",en = False)	    			
-            #iSubM_objects = mUI.MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
-            iSubM_objects = mc.menuItem(p=parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
-            
-            use_parent = iSubM_objects
-            state_multiObject = True		
-            if l_commonAttrs and [d_commonOptions.get(a) for a in l_commonAttrs]:
-                for atr in d_commonOptions.keys():
-                    #tmpMenu = mUI.MelMenuItem( parent, l="multi Change %s"%atr, subMenu=True)
-                    tmpMenu = mc.menuItem( p=parent, l="multi Change %s"%atr, subMenu=True)                    
-                    for i,o in enumerate(d_commonOptions.get(atr)):
-                        mc.menuItem(p=tmpMenu,l = "%s"%o,
-                                    c = cgmGEN.Callback(func_multiChangeDynParent,self._d_mObjInfo,atr,o))
+        #use_parent = iSubM_objects
+        state_multiObject = True
+        if l_commonAttrs and [d_commonOptions.get(a) for a in l_commonAttrs]:
+            for atr in d_commonOptions.keys():
+                #tmpMenu = mUI.MelMenuItem( parent, l="multi Change %s"%atr, subMenu=True)
+                tmpMenu = mc.menuItem( p=parent, l="multi Change %s"%atr, subMenu=True)                    
+                for i,o in enumerate(d_commonOptions.get(atr)):
+                    mc.menuItem(p=tmpMenu,l = "%s"%o,
+                                c = cgmGEN.Callback(func_process,self.md_spaceSwitchDat,atr,i))
+                                #c = cgmGEN.Callback(func_multiChangeDynParent,self.md_spaceSwitchDat,atr,o))
                 
-        # Individual ----------------------------------------------------------------------------
-        #log.debug("%s"%[k.getShortName() for k in self._d_mObjInfo.keys()])
-        for mObj in self._d_mObjInfo.keys():
-            _short = mObj.p_nameShort
-            d_buffer = self._d_mObjInfo.get(mObj) or False
-            if d_buffer:
-                if state_multiObject:
-                    #iTmpObjectSub = mUI.MelMenuItem(use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)
-                    pass
-                if d_buffer.get('dynParent'):
-                    _b_acted = True
-                    mi_dynParent = d_buffer['dynParent'].get('mi_dynParent')
-                    d_attrOptions = d_buffer['dynParent'].get('attrOptions') or {}			
-                    
-                    if d_attrOptions:
-                        mc.menuItem(p=parent,l="-- %s --"%_short,en = False)
-                        iTmpObjectSub = use_parent                    
-                    
-                    for a in d_attrOptions.keys():
-                        if mObj.hasAttr(a):
-                            lBuffer_attrOptions = []
-                            tmpMenu = mc.menuItem( p=iTmpObjectSub, l="Change %s"%a, subMenu=True)
-                            v = ATTR.get("%s.%s"%(_short,a))
-                            for i,o in enumerate(ATTR.get_enumList(_short,a)):#enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum)
-                                if i == v:b_enable = False
-                                else:b_enable = True
-                                mc.menuItem(p=tmpMenu,l = "%s"%o,en = b_enable,
-                                            c = cgmUI.Callback(mi_dynParent.doSwitchSpace,a,i))
-                else:
-                    log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
-                    
-        if not _b_acted:
-            if showNoSel:mUI.MelMenuItem( parent, l="Invalid Selection")    
-    log.debug("|{0}| >> Object list build: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_objectList)))    
+    # Individual ----------------------------------------------------------------------------
+    #log.debug("%s"%[k.getShortName() for k in self.md_spaceSwitchDat.keys()])
+    
+    for mObj,d_buffer in self.md_spaceSwitchDat.iteritems():
+        _short = mObj.p_nameShort
+        print d_buffer
+        #d_buffer = self.md_spaceSwitchDat.get(mObj) or False
+        if d_buffer:
+            if not state_multiObject:
+                mUI.MelMenuItem(use_parent,l=" %s  "%mObj.getBaseName(),en = False)
+                #pass
+            if d_buffer.get('mDynParent'):
+                _b_acted = True
+                mDynParent = d_buffer['mDynParent']
+                d_attrOptions = d_buffer.get('attrOptions') or {}			
+                
+                if state_multiObject and d_attrOptions:
+                    mc.menuItem(p=parent,l="-- %s --"%_short,en = True)
+                    iTmpObjectSub = use_parent                    
+                
+                for a in d_attrOptions.keys():
+                    if mObj.hasAttr(a):
+                        lBuffer_attrOptions = []
+                        tmpMenu = mc.menuItem( p=iTmpObjectSub, l="Change %s"%a, subMenu=True)
+                        v = ATTR.get("%s.%s"%(_short,a))
+                        for i,o in enumerate(ATTR.get_enumList(_short,a)):#enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum)
+                            #if i == v:b_enable = False
+                            #else:b_enable = True
+                            mc.menuItem(p=tmpMenu,l = o,en = True,
+                                        c = cgmGEN.Callback(func_process,self.md_spaceSwitchDat,a,i))
+                                        #c = cgmUI.Callback(mDynParent.doSwitchSpace,a,i))
+            else:
+                log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
+                
+    if not _b_acted:
+        if showNoSel:mUI.MelMenuItem( parent, l="Invalid Selection")    
 
-def func_multiChangeDynParent(_d_mObjInfo,attr,option):
+
+
+def func_process(md_spaceSwitchDat={},attr=None,option=None,**kws):
+    """
+    New call to work over time
+    """
+    _str_func='func_process'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    _contextTime = kws.get('contextTime',cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                          defaultValue = 'current').value)
+    _contextKeys = kws.get('contextKeys',cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                          defaultValue = 'each').value)
+    """try:var_mrsContextTime
+    except:var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                          defaultValue = 'current')
+    try:var_mrsContextKeys
+    except:var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                          defaultValue = 'each')"""
+    pprint.pprint([md_spaceSwitchDat,attr,option])
+    _frame = SEARCH.get_time()    
+    d_keys = {}
+    ml_objs = []
+    
+    for mObj,dat in md_spaceSwitchDat.iteritems():
+        if _contextTime == 'current':
+            if not d_keys.get(_frame):d_keys[_frame]=[]
+            d_keys[_frame].append(mObj)
+        else:
+            _keys = SEARCH.get_key_indices_from( mObj.mNode,mode = _contextTime)
+            ml_objs.append(mObj)
+            for k in _keys:
+                if not d_keys.get(k):
+                    d_keys[k]=[]
+                d_keys[k].append(mObj)
+        
+    if _contextKeys == 'combined':
+        log.debug(cgmGEN.logString_sub(_str_func,'Combining keys'))
+        for k in d_keys.keys():
+            d_keys[k]= ml_objs
+
+        if _contextTime in ['next','previous']:
+            log.debug(cgmGEN.logString_sub(_str_func,'Combined final cull | {0}'.format(_contextTime)))
+            if _contextTime== 'next':
+                _match = MATH.find_valueInList(_frame,d_keys.keys(),'next')
+            else:
+                _match = MATH.find_valueInList(_frame,d_keys.keys(),'previous')
+        d_keys = {_match:d_keys[_match]}
+    
+    _range = SEARCH.get_time('slider')
+    for k in d_keys.keys():
+        if k < _range[0] or k > _range[1]:
+            log.debug("Out of range: {0}".format(k))
+            d_keys.pop(k)    
+    
+    #==========================================================================================
+    log.info(cgmGEN.logString_sub(None,'Frame Processing...'))
+    
+    mc.undoInfo(openChunk=True,chunkName="undoCGMSpaceSwitch")    
+    _autoKey = mc.autoKeyframe(q=True,state=True)    
+    if _autoKey:mc.autoKeyframe(state=False)
+    _l_cBuffer = []
+    err=None
+    mc.refresh(su=1)
+    try:
+        for f,mObjs in d_keys.iteritems():
+            log.info(cgmGEN.logString_sub(None,'Key: {0}'.format(f),'_',40))
+            mc.currentTime(f,update=True)
+            for mObj in mObjs:
+                log.debug( md_spaceSwitchDat[mObj]['mDynParent'])
+                md_spaceSwitchDat[mObj]['mDynParent'].doSwitchSpace(attr,option)
+                mc.setKeyframe(mObj.mNode,time = f)
+            
+            
+    except Exception,err:
+        pprint.pprint(vars())
+        log.error(err)
+    finally:
+        mc.undoInfo(closeChunk=True)
+        mc.currentTime(_frame)
+        if _autoKey:mc.autoKeyframe(state=True)
+
+        if err:
+            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
+
+        mc.refresh(su=0)
+
+    
+
+
+
+def func_multiChangeDynParent(md_spaceSwitchDat,attr,option):
     """
     execute a command and let the menu know not do do the default button action but just kill the ui
     """	
-    cgmGEN.log_info_dict(_d_mObjInfo,"Data...")
-    l_objects = [i_o.getShortName() for i_o in _d_mObjInfo.keys()]
+    cgmGEN.log_info_dict(md_spaceSwitchDat,"Data...")
+    l_objects = [i_o.getShortName() for i_o in md_spaceSwitchDat.keys()]
     log.info("func_multiChangeDynParent>> attr: '%s' | option: '%s' | objects: %s"%(attr,option,l_objects))
     timeStart_tmp = time.clock()
-    for i_o in _d_mObjInfo.keys():
+    for i_o in md_spaceSwitchDat.keys():
         try:
-            mi_dynParent = _d_mObjInfo[i_o]['dynParent'].get('mi_dynParent')
-            mi_dynParent.doSwitchSpace(attr,option)
+            mDynParent = md_spaceSwitchDat[i_o]['dynParent'].get('mDynParent')
+            mDynParent.doSwitchSpace(attr,option)
         except Exception,error:
             log.error("func_multiChangeDynParent>> '%s' failed. | %s"%(i_o.getShortName(),error))    
 
@@ -1236,4 +1332,152 @@ def func_multiChangeDynParent(_d_mObjInfo,attr,option):
     mc.select(l_objects)
     
     
+
+
+
+def uiMenu_changeSpaceOverTime(self, parent, showNoSel = False):
+    _str_func = 'uiMenu_changeSpaceOverTime'
     
+    __int_maxObjects = 10
+    
+    try:_ml_objList = self._ml_objList
+    except:
+        log.debug("|{0}| >> Generating new _ml_objList".format(_str_func))   
+        _ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
+    try:self.d_spaceSwitchObjectInfo
+    except:
+        self.d_spaceSwitchObjectInfo = {}
+    if not _ml_objList:
+        if showNoSel:mUI.MelMenuItem( parent, l="Nothing Selected")    
+        return
+    
+    try:self.var_mrsContext
+    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+                                                      defaultValue = _l_contexts[0])
+    try:self.var_mrsContextTime
+    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                          defaultValue = 'current')
+    try:self.var_mrsContextKeys
+    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                          defaultValue = 'each')
+    
+    
+        
+    
+    #>>  Individual objects....  ============================================================================
+    self.md_spaceSwitchDat = {}
+    #first we validate
+    #First we're gonna gather all of the data
+    #------------------------------------------------------
+    for i,mObj in enumerate(_ml_objList):
+        _short = mObj.mNode
+        if i >= __int_maxObjects:
+            log.warning("|{0}| >> More than {0} objects select, only loading first  for speed".format(_str_func, __int_maxObjects))                                
+            break
+        d_buffer = {}
+        
+        #>>> Space switching ------------------------------------------------------------------	
+        _dynParentGroup = ATTR.get_message(mObj.mNode,'dynParentGroup')
+        if _dynParentGroup:
+            i_dynParent = cgmMeta.validateObjArg(_dynParentGroup[0],'cgmDynParentGroup',True)
+            d_buffer['dynParent'] = {'mDynParent':i_dynParent,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
+            if i_dynParent:
+                for a in cgmRigMeta.d_DynParentGroupModeAttrs[i_dynParent.dynMode]:
+                    if mObj.hasAttr(a):
+                        d_buffer['dynParent']['attrs'].append(a)
+                        lBuffer_attrOptions = []
+                        #for i,o in enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum):
+                        for i,o in enumerate(ATTR.get_enumList(_short,a)):
+                            lBuffer_attrOptions.append(o)
+                        d_buffer['dynParent']['attrOptions'][a] = lBuffer_attrOptions
+        self.md_spaceSwitchDat[mObj] = d_buffer
+
+
+    #=========================================================================================
+    #>> Find Common options ------------------------------------------------------------------
+    timeStart_commonOptions = time.clock()    
+    l_commonAttrs = []
+    d_commonOptions = {}
+    bool_firstFound = False
+    for mObj in self.md_spaceSwitchDat.keys():
+        if 'dynParent' in self.md_spaceSwitchDat[mObj].keys():
+            attrs = self.md_spaceSwitchDat[mObj]['dynParent'].get('attrs') or []
+            attrOptions = self.md_spaceSwitchDat[mObj]['dynParent'].get('attrOptions') or {}
+            if self.md_spaceSwitchDat[mObj].get('dynParent'):
+                if not l_commonAttrs and not bool_firstFound:
+                    log.debug('first found')
+                    l_commonAttrs = attrs
+                    state_firstFound = True
+                    d_commonOptions = attrOptions
+                elif attrs:
+                    log.debug(attrs)
+                    for a in attrs:
+                        if a in l_commonAttrs:
+                            for option in d_commonOptions[a]:			
+                                if option not in attrOptions[a]:
+                                    d_commonOptions[a].remove(option)
+
+    log.info("|{0}| >> Common Attrs: {1}".format(_str_func, l_commonAttrs))                
+    log.info("|{0}| >> Common Options: {1}".format(_str_func, d_commonOptions))    
+    log.info("|{0}| >> Common options build time: {1}".format(_str_func,  '%0.3f seconds  ' % (time.clock()-timeStart_commonOptions)))    
+    
+
+    #>> Build ------------------------------------------------------------------
+    int_lenObjects = len(self.md_spaceSwitchDat.keys())
+    _b_acted = False
+    state_multiObject = False
+    use_parent = parent
+    
+    # Mutli
+    if int_lenObjects == 1:
+        #MelMenuItem(parent,l="-- Object --",en = False)	    					
+        state_multiObject = False
+    elif l_commonAttrs:
+        #MelMenuItem(parent,l="-- Objects --",en = False)	    			
+        #iSubM_objects = mUI.MelMenuItem(parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
+        iSubM_objects = mc.menuItem(p=parent,l="Objects(%s)"%(int_lenObjects),subMenu = True)
+        
+        use_parent = iSubM_objects
+        state_multiObject = True		
+        if l_commonAttrs and [d_commonOptions.get(a) for a in l_commonAttrs]:
+            for atr in d_commonOptions.keys():
+                #tmpMenu = mUI.MelMenuItem( parent, l="multi Change %s"%atr, subMenu=True)
+                tmpMenu = mc.menuItem( p=parent, l="multi Change %s"%atr, subMenu=True)                    
+                for i,o in enumerate(d_commonOptions.get(atr)):
+                    mc.menuItem(p=tmpMenu,l = "%s"%o,
+                                c = cgmGEN.Callback(func_multiChangeDynParent,self.md_spaceSwitchDat,atr,o))
+            
+    # Individual ----------------------------------------------------------------------------
+    #log.debug("%s"%[k.getShortName() for k in self.md_spaceSwitchDat.keys()])
+    for mObj in self.md_spaceSwitchDat.keys():
+        _short = mObj.p_nameShort
+        d_buffer = self.md_spaceSwitchDat.get(mObj) or False
+        if d_buffer:
+            if state_multiObject:
+                #iTmpObjectSub = mUI.MelMenuItem(use_parent,l=" %s  "%mObj.getBaseName(),subMenu = True)
+                pass
+            if d_buffer.get('dynParent'):
+                _b_acted = True
+                mDynParent = d_buffer['dynParent'].get('mDynParent')
+                d_attrOptions = d_buffer['dynParent'].get('attrOptions') or {}			
+                
+                if d_attrOptions:
+                    mc.menuItem(p=parent,l="-- %s --"%_short,en = False)
+                    iTmpObjectSub = use_parent                    
+                
+                for a in d_attrOptions.keys():
+                    if mObj.hasAttr(a):
+                        lBuffer_attrOptions = []
+                        tmpMenu = mc.menuItem( p=iTmpObjectSub, l="Change %s"%a, subMenu=True)
+                        v = ATTR.get("%s.%s"%(_short,a))
+                        for i,o in enumerate(ATTR.get_enumList(_short,a)):#enumerate(cgmMeta.cgmAttr(mObj.mNode,a).p_enum)
+                            if i == v:b_enable = False
+                            else:b_enable = True
+                            mc.menuItem(p=tmpMenu,l = "%s"%o,en = b_enable,
+                                        c = cgmUI.Callback(mDynParent.doSwitchSpace,a,i))
+            else:
+                log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
+                
+    if not _b_acted:
+        if showNoSel:mUI.MelMenuItem( parent, l="Invalid Selection")    
+ 

@@ -153,7 +153,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
                 return EUCLID.Vector3(_res[0], _res[1], _res[2])
             return _res
         raise RuntimeError,"|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj)
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
     
 def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
     """
@@ -206,7 +206,7 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
                 log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
             
                 return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
-    except Exception,err:cgmGen.cgmException(Exception,err)
+    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
     
 def get_local(obj = None, asEuclid = False):
     """
@@ -430,7 +430,7 @@ def get_axisBox_size(arg = None, children = False, mode = None, asEuclid = False
             log.error("|{0}| >> Unknown mode. Returning default. {1} ".format(_str_func,mode))
         return _res            
     except Exception,err:
-        cgmGen.cgmException(Exception,err,msg=vars())
+        cgmGen.cgmExceptCB(Exception,err,msg=vars())
 
 def get_uv_position(mesh, uvValue,asEuclid = False):
     """

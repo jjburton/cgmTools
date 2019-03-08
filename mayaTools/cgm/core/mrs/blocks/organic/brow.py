@@ -525,7 +525,7 @@ def template(self):
 
         
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
 
 #=============================================================================================================
 #>> Prerig
@@ -983,7 +983,7 @@ def prerig(self):
     
     
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)
+        cgmGEN.cgmExceptCB(Exception,err)
         
 #=============================================================================================================
 #>> Skeleton
@@ -1057,6 +1057,7 @@ def skeleton_build(self, forceNew = True):
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
         mJnt.radius = _radius
+    for mJnt in ml_joints:mJnt.rotateOrder = 5
         
     return ml_joints    
     
@@ -1237,10 +1238,8 @@ d_rotateOrders = {}
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
 @cgmGEN.Timer
 def rig_prechecks(self):
-    _short = self.d_block['shortName']
     _str_func = 'rig_prechecks'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
+    log.debug(cgmGEN.logString_start(_str_func))
     
     mBlock = self.mBlock
     
@@ -1532,7 +1531,7 @@ def rig_shapes(self):
                 mJnt.radius = .00001                
         return
     except Exception,error:
-        cgmGEN.cgmException(Exception,error,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
 @cgmGEN.Timer
@@ -1642,7 +1641,7 @@ def rig_controls(self):
         mRigNull.faceSet.extend(ml_controlsAll)
         
     except Exception,error:
-        cgmGEN.cgmException(Exception,error,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
 @cgmGEN.Timer

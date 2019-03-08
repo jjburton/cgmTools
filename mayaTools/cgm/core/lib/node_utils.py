@@ -13,7 +13,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -314,8 +314,57 @@ def optimize(nodeTypes='multiplyDivide'):
     return len(l_new)
     
     
+
     
+def renderer_clean(check='Mayatomr',clean=False):
+    """
+    Hattip: https://forums.autodesk.com/t5/maya-shading-lighting-and/maya-2017-scene-error-warning-about-mental-ray-nodes/td-p/6627874
+    """
+    d_rendererNodes = {'turtle':['TurtleRenderOptions',
+                                 'TurtleUIOptions',
+                                 'TurtleBakeLayerManager',
+                                 'TurtleDefaultBakeLayer']}
+    _str_func = 'renderer_clean'
+    log.debug("|{0}| >> [{1}] | clean: {2}...".format(_str_func,check,clean))
     
+    if check in ['Mayatomr']:
+        l = mc.ls(type='unknown')
+        log.debug("|{0}| >> unknown nodes: {1}".format(_str_func,len(l)))
+        
+        for n in l:
+            try:
+                _test = mc.unknownNode(n, q=True,p=1)
+                if _test == check:
+                    log.debug("|{0}| >> matches: {1}".format(_str_func,n))
+                    if clean:
+                        mc.delete(n)
+            except:pass
+            
+        if check in mc.unknownPlugin(q=1,list=1):
+            log.debug("|{0}| >> Found: {1}".format(_str_func,check))
+            if clean:
+                log.debug("|{0}| >> Removing: {1}".format(_str_func,check))
+                mc.unknownPlugin(check,remove=1)
+    else:
+        l = d_rendererNodes.get(check.lower())
+        for n in l:
+            if mc.objExists(n):
+                log.debug("|{0}| >> matches: {1}".format(_str_func,n))
+                if clean:
+                    try:mc.delete(n)
+                    except Exception,err:
+                        log.debug("|{0}| >> Failed: {1} | {2}".format(_str_func,n,err))
+        """
+        for n in mc.ls():
+            if 'turtle' in n.lower():
+                for n in l:
+                    try:
+                        _test = mc.unknownNode(n, q=True,p=1)
+                        if _test == check:
+                            log.debug("|{0}| >> matches: {1}".format(_str_func,n))
+                            if clean:
+                                mc.delete(n)"""
+                
     
     
 
