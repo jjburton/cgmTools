@@ -446,7 +446,8 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'visMeasure':'bool',
                  'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
-                 'ikRollSetup':'attribute:control',                 
+                 'ikRollSetup':'attribute:control',
+                 'ikExtendSetup':'aim:full',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
@@ -2097,6 +2098,7 @@ def rig_dataBuffer(self):
         
         self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
+        self.str_ikExtendSetup = ATTR.get_enumValueString(mBlock.mNode,'ikExtendSetup')
         
         #Single chain ============================================================================
         self.b_singleChain = False
@@ -2366,7 +2368,7 @@ def rig_dataBuffer(self):
         if self.mToe:
             self.ml_fkShapeTargets.pop(-1)
                     
-        if str_ikEnd in ['tipCombo'] or self.b_leverEnd:
+        if str_ikEnd in ['tipCombo'] or self.b_leverEnd and self.str_ikExtendSetup not in ['aim']:
             log.debug("|{0}| >> Need Full IK chain...".format(_str_func))
             self.b_ikNeedFullChain = True
                 
@@ -5825,7 +5827,25 @@ def rig_frame(self):
                     mLocBase.doName()
                     mLocAim.doName()
                     
-                    mLocAim.p_parent = ml_ikFullChain[-1]
+                    if self.str_ikExtendSetup == 'aim':
+                        mLocAim.p_parent = mIKBallRotationControl.masterGroup
+                        
+                        mAimTarget = mIKControlBase
+  
+                        if self.d_module['direction'].lower() == 'left':
+                            v_aim = [0,0,1]
+                        else:
+                            v_aim = [0,0,-1]
+                            
+                        mc.aimConstraint(mAimTarget.mNode, mLocAim.mNode, maintainOffset = True,
+                                         aimVector = v_aim, upVector = [0,1,0], 
+                                         worldUpObject = mSpinGroupAdd.mNode,
+                                         worldUpType = 'objectrotation', 
+                                         worldUpVector = self.v_twistUp)
+                        
+                    else:
+                        mLocAim.p_parent = ml_ikFullChain[-1]
+                        
                     mLocBase.p_parent = mIKBallRotationControl.masterGroup
 
                     
