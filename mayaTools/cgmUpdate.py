@@ -28,6 +28,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+_test = 'MRSDEV'
 _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
 _pathPull =  "https://github.com/jjburton/cgmtools/get/"
 #_pathMount  = 'https://api.github.com/repos/jjburton/cgmTools/commits/'
