@@ -240,16 +240,15 @@ def unzip(zFile = zFile, deleteZip = True, cleanFirst = False, targetPath = None
         try:rmtree(_sep.join([_dir,_zipDir]))
         except Exception,err:log.debug("Remove unzip temp fail | {0}".format(err))
             
-        if deleteZip:
-            try:os.unlink(zFile)
-            except Exception,err:log.error("Delete zip fail | {0}".format(err))
-            
+
         
     except Exception, err:
         log.error("Zip exception: {0}".format(err))
     finally:
         if mayaMainProgressBar:mc.progressBar(mayaMainProgressBar, edit=True, endProgress=True)
-        
+        if deleteZip:
+            try:os.unlink(zFile)
+            except Exception,err:log.error("Delete zip fail | {0}".format(err))        
 
 def download(url='http://weknowyourdreams.com/images/mountain/mountain-03.jpg', mode = None):
     """
@@ -642,6 +641,9 @@ def ryan():
     
     except URLError, e:
         print 'It appears this is not working...URL or Timeout Error :(', e
+        
+
+
         
 
 

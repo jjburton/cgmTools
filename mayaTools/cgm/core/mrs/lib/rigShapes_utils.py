@@ -82,64 +82,40 @@ def ik_bankRollShapes(self):
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
         
+        ml_fkShapes = []
+        
         mBallFK = False
         mToeFK = False
         mToeIK = False
         mBallIK = False
-        
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        _minRot = -90,
+        _maxRot = 90
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=1)
         str_meshShape = mMesh_tmp.getShapes()[0]        
         
         if self.mPivotHelper:
             size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
         else:
-            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)        
+            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
+            
+        _d_cast = {'minRot':-90,'maxRot':90,'vectorOffset':_offset, 'closedCurve':False, 'maxDistance':size_pivotHelper[0]}
             
         reload(SHAPECASTER)
-        if self.mToe:
-            crv = SHAPECASTER.createMeshSliceCurve(
-                str_meshShape, self.mToe.mNode,
-                l_specifiedRotates = [-30,-15,0,15,30],
-                vectorOffset=_offset,closedCurve=False)    
-            """
-            crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
-                                             direction = _jointOrientation[0]+'+',
-                                             sizeMode = 'fixed',
-                                             size = size_pivotHelper[0])"""
-    
-            mHandleFactory.color(crv, controlType = 'main')                    
-            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
-            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)
-    
-            #ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
-    
-            if self.str_ikRollSetup == 'control':
-                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
-                mToeIK = self.mToe.doCreateAt(setClass=True)
-                CORERIG.shapeParent_in_place(mToeIK.mNode,crv, True, replaceShapes=True)
-                mRigNull.connectChildNode(mToeIK,'controlIKToe','rigNull')#Connect
-    
-                mToeIK.doCopyNameTagsFromObject(self.mToe.mNode, ignore = ['cgmType'])
-                mToeIK.doStore('cgmTypeModifier','ik')
-                mToeIK.doName()
-    
-                mToeIK.connectChildNode(self.mToe.fkJoint.blendJoint.mNode,'blendJoint')#Connect
-    
-    
+ 
         if self.mBall:    
-            crv = CURVES.create_controlCurve(self.mBall.mNode, shape='circle',
-                                             direction = _jointOrientation[0]+'+',
-                                             sizeMode = 'fixed',
-                                             size = size_pivotHelper[0])
-            mHandleFactory.color(crv, controlType = 'main')                                
+            crvBall = SHAPECASTER.createMeshSliceCurve(
+                str_meshShape, self.mBall.mNode,
+                **_d_cast)
+
+            
+            mHandleFactory.color(crvBall, controlType = 'sub')                                
             mBallFK = self.mBall.getMessageAsMeta('fkJoint')
-            CORERIG.shapeParent_in_place(mBallFK.mNode,crv, True, replaceShapes=True)            
-            #ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
+            CORERIG.shapeParent_in_place(mBallFK.mNode,crvBall, True, replaceShapes=True)            
     
             if self.str_ikRollSetup == 'control':
                 log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
                 mBallIK = self.mBall.doCreateAt(setClass=True)
-                CORERIG.shapeParent_in_place(mBallIK.mNode,crv, True, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mBallIK.mNode,crvBall, True, replaceShapes=True)
                 mRigNull.connectChildNode(mBallIK,'controlIKBall','rigNull')#Connect
     
                 mBallIK.doCopyNameTagsFromObject(self.mBall.mNode, ignore = ['cgmType'])
@@ -148,10 +124,84 @@ def ik_bankRollShapes(self):
     
                 mBallIK.connectChildNode(self.mBall.fkJoint.blendJoint.mNode,'blendJoint')#Connect
                 
-                log.debug(cgmGEN.logString_msg(_str_func,"Ball Ik control..."))
+                #Hinge ===================================================================
+                log.debug(cgmGEN.logString_msg(_str_func,"Ball Hinge Ik control..."))
+                #Need to make our cast locs
                 
+                mStart = mBallIK.doCreateAt(setClass=1)
+                mEnd = mBallIK.doCreateAt(setClass=1)
+                
+                pos1_start = self.mBall.getParent(asMeta=1).p_position
+                pos2_start = mEnd.p_position
+                vec_to_end = MATH.get_vector_of_two_points(pos1_start,pos2_start)
+                vec_to_start = MATH.get_vector_of_two_points(pos2_start,pos1_start)
+                
+                mStart.p_position = DIST.get_average_position([pos1_start,pos2_start])
+                mEnd.p_position = DIST.get_pos_by_vec_dist(pos2_start,vec_to_start,_offset*2)
+                
+                crv1 = SHAPECASTER.createMeshSliceCurve(
+                    str_meshShape,mStart.mNode,
+                    **_d_cast)
+                crv2 = SHAPECASTER.createMeshSliceCurve(
+                    str_meshShape,mEnd.mNode,
+                    **_d_cast)
+                
+                CURVES.join_shapes([crv1,crv2])
+                
+                mBallHingeIK = self.mBall.doCreateAt(setClass=True)
+                mRigNull.connectChildNode(mBallHingeIK,'controlIKBallHinge','rigNull')#Connect
+                mBallHingeIK.connectChildNode(self.mBall.fkJoint.blendJoint.mNode,'blendJoint')#Connect
+                
+                mHandleFactory.color(crv1, controlType = 'sub')
+                
+                CORERIG.shapeParent_in_place(mBallHingeIK.mNode,crv1, True,
+                                             replaceShapes=True)
+                
+                mBallHingeIK.doCopyNameTagsFromObject(self.mBall.mNode,
+                                                 ignore = ['cgmType'])
+                mBallHingeIK.doStore('cgmNameModifier','hinge')
+                mBallHingeIK.doStore('cgmTypeModifier','ik')
+                mBallHingeIK.doName()
+                
+                for mObj in mStart,mEnd:
+                    mObj.delete()
+                    
+                ml_fkShapes.append(cgmMeta.asMeta(crv1))
+            ml_fkShapes.append(cgmMeta.validateObjArg(crvBall,'cgmObject'))
+                    
+        if self.mToe:
+            crv = SHAPECASTER.createMeshSliceCurve(
+                str_meshShape, self.mToe.mNode,
+                **_d_cast)
+            
+            
+            """
+            crv = CURVES.create_controlCurve(self.mToe.mNode, shape='circle',
+                                             direction = _jointOrientation[0]+'+',
+                                             sizeMode = 'fixed',
+                                             size = size_pivotHelper[0])"""
+    
+            mHandleFactory.color(crv, controlType = 'sub')                    
+            mToeFK = self.mToe.getMessageAsMeta('fkJoint')
+            CORERIG.shapeParent_in_place(mToeFK.mNode,crv, True, replaceShapes=True)
+    
+            ml_fkShapes.append(cgmMeta.validateObjArg(crv,'cgmObject'))
+            
+    
+            if self.str_ikRollSetup == 'control':
+                log.debug(cgmGEN.logString_msg(_str_func,"Toe Ik control..."))
+                mToeIK = self.mToe.doCreateAt(setClass=True)
+                CORERIG.shapeParent_in_place(mToeIK.mNode,crv, True, replaceShapes=True)
+                mRigNull.connectChildNode(mToeIK,'controlIKToe','rigNull')#Connect
+    
+                mToeIK.doCopyNameTagsFromObject(self.mToe.mNode, ignore = ['cgmType'])
+                mToeIK.doStore('cgmTypeModifier','ik')
+                mToeIK.doName()
+    
+                mToeIK.connectChildNode(self.mToe.fkJoint.blendJoint.mNode,'blendJoint')#Connect    
+        
         mMesh_tmp.delete()
-      
+        return ml_fkShapes
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
 def ik_rp(self,mHandle = None,ml_targets = None):
@@ -508,10 +558,10 @@ def direct(self,ml_rigJoints = None):
             
         
         if len(ml_rigJoints) < 3:
-            _size_direct = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_rigJoints], average=True)        
-            d_direct = {'size':_size_direct/2}
+            #_size_direct = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_rigJoints], average=True)        
+            d_direct = {'size':_offset*2}
         else:
-            d_direct = {'size':None}
+            d_direct = {'size':_offset*2}
     
         ml_directShapes = self.atBuilderUtils('shapes_fromCast',
                                               ml_rigJoints,

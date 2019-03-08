@@ -1328,6 +1328,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if aimVector is None:
             aimVector = self.d_orientation['vectorAim']
         
+        def returnRes(res):
+            if mMesh_tmp:mMesh_tmp.delete()
+            return res
 
         #Get our prerig handles if none provided
         if mode not in ['singleCurve']:
@@ -2005,7 +2008,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         
                     ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
                     if len(ml_ikJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
+                        return returnRes(log.error("|{0}| >> Need at least two ik joints".format(_str_func)))
                     
                     vec_normal = MATH.get_vector_of_two_points(ml_ikJoints[-2].p_position,
                                                                ml_ikJoints[-1].p_position)
@@ -2160,7 +2163,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
         #str_tmpMesh = mMesh_tmp.mNode
         
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=1)
         str_meshShape = mMesh_tmp.getShapes()[0]
         
         """

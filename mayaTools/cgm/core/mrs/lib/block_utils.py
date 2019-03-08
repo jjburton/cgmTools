@@ -1015,10 +1015,62 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-def get_castMesh(self):
-    mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
-    mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
+def get_castMesh(self,extend=False):
+    _str_func =  'get_castMesh'
+    log.debug(cgmGEN.logString_start(_str_func))
+    ml_delete = []        
     
+    if extend:
+        log.debug(cgmGEN.logString_msg(_str_func,'extend'))
+        ml_formHandles = self.msgList_get('formHandles')
+        l_targets = []
+        for mHandle in ml_formHandles:
+            l_targets.append(mHandle.loftCurve.mNode)
+            ml_sub = mHandle.msgList_get('subShapers')
+            if ml_sub:
+                for mSub in ml_sub:
+                    l_targets.append(mSub.mNode)
+            if mHandle == ml_formHandles[-1]:
+                if mHandle.getMessage('pivotHelper') and self.blockProfile not in ['arm']:
+                    mPivotHelper = ml_formHandles[-1].pivotHelper
+                    log.debug("|{0}| >> foot ".format(_str_func))
+        
+        
+                    mBaseCrv = mPivotHelper.doDuplicate(po=False)
+                    mBaseCrv.parent = False
+                    mShape2 = False
+                    ml_delete.append(mBaseCrv)
+                
+                    for mChild in mBaseCrv.getChildren(asMeta=True):
+                        if mChild.cgmName == 'topLoft':
+                            mShape2 = mChild.doDuplicate(po=False)
+                            mShape2.parent = False
+                            l_targets.append(mShape2.mNode)
+                            ml_delete.append(mShape2)
+                            
+                        mChild.delete()
+        
+                    l_targets.append(mBaseCrv.mNode)
+                    #l_targets.reverse()
+                
+        #_mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
+        #                                   degree=1,divisions=3)
+        #print _mesh
+        #mCastMesh =  cgmMeta.validateObjArg(_mesh,'cgmObject')
+        
+        mMesh = create_prerigLoftMesh(
+            self,
+            l_targets,
+            None,
+            'numControls',                     
+            'loftSplit',
+            polyType='bezier',
+            justMesh = True,
+            baseName = self.cgmName)
+    else:
+        mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
+    mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
+        
     _rebuildState = mRebuildNode.rebuildType
     if _rebuildState != 5:
         mRebuildNode.rebuildType = 5
@@ -1026,6 +1078,13 @@ def get_castMesh(self):
     mCastMesh =  cgmMeta.validateObjArg(mMesh.mNode,'cgmObject').doDuplicate(po=False,ic=False)
     mRebuildNode.rebuildType = _rebuildState
     mCastMesh.parent=False
+    
+    if extend:
+        mMesh.delete()
+
+    for mObj in ml_delete:
+        mObj.delete()
+        
     return mCastMesh
 
     
@@ -1111,6 +1170,7 @@ def create_prerigLoftMesh(self, targets = None,
                           vAttr = 'loftSides',
                           degreeAttr = None,
                           polyType = 'mesh',
+                          justMesh = False,
                           baseName = 'test'):
     try:
         _str_func = 'create_prerigLoftMesh'
@@ -1170,7 +1230,8 @@ def create_prerigLoftMesh(self, targets = None,
         mLoftSurface.overrideEnabled = 1
         mLoftSurface.overrideDisplayType = 2
         
-        mLoftSurface.p_parent = mPrerigNull
+        if mPrerigNull:
+            mLoftSurface.p_parent = mPrerigNull
         mLoftSurface.resetAttrs()
     
         mLoftSurface.doStore('cgmName',self)
@@ -1243,14 +1304,15 @@ def create_prerigLoftMesh(self, targets = None,
             mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
             if _loftNode:
                 mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
-
-        for n in toName:
-            mObj = cgmMeta.validateObjArg(n)
-            mObj.doStore('cgmName',self)
-            mObj.doStore('cgmTypeModifier','prerigMesh')
-            mObj.doName()                        
-       
-        self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')
+                
+        if not justMesh:
+            for n in toName:
+                mObj = cgmMeta.validateObjArg(n)
+                mObj.doStore('cgmName',self)
+                mObj.doStore('cgmTypeModifier','prerigMesh')
+                mObj.doName()                        
+           
+            self.connectChildNode(mLoftSurface.mNode, 'prerigLoftMesh', 'block')
         
         return mLoftSurface
     except Exception,err:
