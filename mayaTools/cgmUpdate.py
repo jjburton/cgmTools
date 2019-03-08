@@ -27,6 +27,7 @@ import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+_test = 'MRS'
 
 _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
 _pathPull =  "https://github.com/jjburton/cgmtools/get/"
