@@ -28,7 +28,6 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-_test = 'MRSDEV'
 _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
 _pathPull =  "https://github.com/jjburton/cgmtools/get/"
 #_pathMount  = 'https://api.github.com/repos/jjburton/cgmTools/commits/'
@@ -136,13 +135,16 @@ def clean_install_path(path = None):
     
     for f in os.listdir(_path):
         if f in _l_to_clean:
-            _pathFile = _sep.join([_path,f])
-            log.debug("Cleaning: {0} >> {1} ...".format(f,_pathFile))
-            if '.' in f:
-                os.unlink(_pathFile)
-            else:
-                rmtree(_pathFile)
- 
+            try:
+                _pathFile = _sep.join([_path,f])
+                log.debug("Cleaning: {0} >> {1} ...".format(f,_pathFile))
+                if '.' in f:
+                    os.unlink(_pathFile)
+                else:
+                    rmtree(_pathFile)
+            except Exception,err:log.warning("Clean fail| {0} | {1}".format(f,err))
+                
+     
     
 #zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\stuff.zip'
 zFile = 'D:\\Dropbox\\My Documents\\maya\\2018\\scripts\\0c122db7cfd4d0269df8be1bf72269c4b86d3870.zip'
@@ -638,13 +640,4 @@ def ryan():
                     url =  "https://bitbucket.org/jjburton/cgmtools/get/" + commit['hash'] + ".zip"
                     file = webbrowser.open(url, new=0, autoraise=True)
                 if match == 'no' :
-                    print 'Please enter a number 1-10'
-    
-    except URLError, e:
-        print 'It appears this is not working...URL or Timeout Error :(', e
-        
-
-
-        
-
-
+                    print 'Please enter a numb'
