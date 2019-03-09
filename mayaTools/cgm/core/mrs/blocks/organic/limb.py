@@ -409,8 +409,6 @@ l_attrsStandard = ['side',
                    'baseDat',
                    'addCog',
                    'nameList',
-                   #'namesHandles',
-                   #'namesJoints',
                    'attachPoint',
                    'loftSides',
                    'loftDegree',
@@ -447,19 +445,33 @@ d_attrsToMake = {'visMeasure':'bool',
                  'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
                  'ikRollSetup':'attribute:control',
+                 
+                 'buildBall':'joint',
+                 'buildToe':'joint',
+                 'buildLeverBase':'none',
+                 'buildLeverEnd':'none',
+                 
+                 'nameLever':'string',
+                 'nameBall':'string',
+                 'nameToe':'string',
+                 
+                 'buildBall':'none:dag:joint',
+                 'buildToe':'none:dag:joint',
+                 'buildLeverBase':'none:dag:joint',
+                 'buildLeverEnd':'none:dag:joint',
+                 'proxyLoft':'default:toEnd',
+                 
                  'ikExtendSetup':'aim:full',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
                  'ikRPAim':'default:free',
-                 'buildLeverEnd':'bool',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
                  'ikEnd':'default:bank:foot:pad:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
                  #'ikBase':'none:fkRoot',
-                 'hasLeverJoint':'bool',
-                 'buildLeverBase':'bool',#...fkRoot is our clav like setup
+                 #'hasLeverJoint':'bool',
                  'hasEndJoint':'bool',
-                 'hasBallJoint':'bool',
+                 #'hasBallJoint':'bool',
                  #'ikEndIndex':'int',
                  'shapersAim':'toEnd:chain',
                  'loftSetup':'default:loftList',
@@ -478,9 +490,12 @@ d_defaultSettings = {'version':__version__,
                      'numControls': 3,
                      'loftSetup':0,
                      'loftShape':0,
-                     'buildLeverEnd':False,
+                     #'buildLeverEnd':False,
                      'ikOrientToWorld':True,
                      'numSubShapers':3,
+                     'nameLever':'clav',
+                     'nameBall':'ball',
+                     'nameToe':'toe',
                      'followParentBank':True,                     
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
@@ -1574,11 +1589,11 @@ def prerig(self):
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
         if _ikEnd not in ['bank']:
-            if self.hasBallJoint and mFootHelper:
+            if self.buildBall and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
                 ml_formHandles.append(mHelp)
                 ml_noParent.append(mHelp)
-            if self.hasEndJoint and mFootHelper:
+            if self.buildToe and mFootHelper:
                 mHelp = mFootHelper.pivotFront            
                 ml_formHandles.append(mHelp)
                 ml_noParent.append(mHelp)
@@ -1817,20 +1832,27 @@ def skeleton_build(self, forceNew = True):
         _d_base = self.atBlockUtils('skeleton_getNameDictBase')
         _l_names = ATTR.datList_get(self.mNode,'nameList')
         
+        if len(_l_names)>self.numControls:
+            raise ValueError,"Fix name list"
+        
+        pprint.pprint([_d_base,_l_names,ml_jointHelpers])
+        
         #Deal with Lever joint or not --------------------------------------------------
         _b_lever = False
         if self.buildLeverBase:
-            if not self.hasLeverJoint:
+            if self.buildLeverBase == 1:
+                log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
                 _l_names = _l_names[1:]
                 ml_jointHelpers = ml_jointHelpers[1:]
             else:
+                log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
         
         
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
         log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
         _int_rollStart = 0
-        if self.hasLeverJoint and self.buildLeverBase:
+        if self.buildLeverBase == 2:
             _int_rollStart = 1
         _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
         
@@ -1842,18 +1864,30 @@ def skeleton_build(self, forceNew = True):
         
     
         _d_base['cgmType'] = 'skinJoint'
+        _buildBall = self.buildBall
+        _buildToe = self.buildToe
         
         #Build our handle chain ======================================================
         l_pos = []
         
+        if _buildToe == 1:
+            ml_jointHelpers.pop(-1)
+        if _buildBall == 1:
+            ml_jointHelpers.pop(-1)
+        if not self.hasEndJoint:
+            ml_jointHelpers.pop(-1)
+                
+        pprint.pprint(ml_jointHelpers)
+        
+        """
         if self.buildLeverEnd:
-            if not self.hasEndJoint and not self.hasBallJoint:
+            if not self.hasEndJoint and not _buildBall:
                 if len(ml_jointHelpers) > (self.numControls + int(self.hasLeverJoint)):
                     log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
                     ml_jointHelpers = ml_jointHelpers[:-1]
-        elif not self.hasEndJoint and not self.hasBallJoint:
+        elif not self.hasEndJoint and _buildBall:
             log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
-            ml_jointHelpers = ml_jointHelpers[:-1]
+            ml_jointHelpers = ml_jointHelpers[:-1]"""
         
         for mObj in ml_jointHelpers:
             l_pos.append(mObj.p_position)
@@ -1867,11 +1901,6 @@ def skeleton_build(self, forceNew = True):
             ml_handleJoints[1].p_parent = False
             #Lever...
             mLever = ml_handleJoints[0]
-            #_const = mc.aimConstraint(ml_handleJoints[1].mNode, mLever.mNode, maintainOffset = False,
-            #                          aimVector = [0,0,1], upVector = [0,1,0], 
-            #                          worldUpType = 'Vector', 
-            #                          worldUpVector = self.baseUp)
-            #mc.delete()
             log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_jointHelpers[0]))                        
             _vec =  ml_jointHelpers[0].getAxisVector('y+')
             log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
@@ -1999,20 +2028,15 @@ def skeleton_build(self, forceNew = True):
                 mChild.parent = mEnd"""
         
         #End joint fix when not end joint is there...
+        
         if not self.hasEndJoint and not self.buildLeverEnd:
             mEnd = ml_joints[-1]        
             log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
             
-            if self.hasBallJoint:
+            if self.buildBall:
                 mEnd.doSnapTo(ml_prerigHandles[-1])
             else:
                 mEnd.doSnapTo(ml_prerigHandles[-2])
-            
-            """
-            SNAP.aim(mEnd.mNode,
-                     ml_formHandles[-1].mNode,
-                     'z+','y+','vector',
-                     ml_formHandles[-1].getAxisVector('y+'))"""
             JOINT.freezeOrientation(mEnd.mNode)
             
         for mJnt in ml_joints:mJnt.rotateOrder = 5
@@ -2133,11 +2157,14 @@ def rig_dataBuffer(self):
         self.b_leverJoint = False
         ml_formHandlesUse = copy.copy(ml_formHandles)
         ml_fkShapeHandles = copy.copy(ml_prerigHandles)
-        if mBlock.buildLeverBase:
+        _buildLeverBase = mBlock.buildLeverBase
+        self.b_needLever = False
+        if _buildLeverBase:
             _b_lever = True        
-            if mBlock.hasLeverJoint:
+            if _buildLeverBase == 2:
                 self.b_leverJoint = True
             else:
+                self.b_needLever = True
                 log.debug("|{0}| >> Need leverJoint | self.b_leverJoint ".format(_str_func))
             self.mRootFormHandle = ml_formHandles[1]
             ml_formHandlesUse = ml_formHandlesUse[1:]
@@ -2300,35 +2327,33 @@ def rig_dataBuffer(self):
         self.b_ikNeedFullChain = False
         l= []
         
+        _buildBall = mBlock.buildBall
+        _buildToe = mBlock.buildToe
+        
         str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
         log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
         
+        if _buildToe == 2:
+            self.mToe = self.ml_handleTargets.pop(-1)
+            log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))              
+            self.int_handleEndIdx -=1
+            
+        if _buildBall == 2:
+            self.mBall = self.ml_handleTargets.pop(-1)
+            log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))              
+            self.int_handleEndIdx -=1
+            
+            
         
         if self.b_leverEnd:
             self.int_handleEndIdx -=1
-            
-            if mBlock.hasBallJoint:
-                self.mBall = self.ml_handleTargets.pop(-1)
-                log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
-                self.int_handleEndIdx -=1            
         else:
             if not mBlock.ikEnd:
                 if mBlock.hasEndJoint:
                     self.int_handleEndIdx -=1
-                if mBlock.hasBallJoint:
-                    self.int_handleEndIdx -=1                
             elif str_ikEnd in ['foot','pad']:
                 log.debug(cgmGEN.logString_msg(_str_func,'foot/pad'))
                 
-                if mBlock.hasEndJoint:
-                    self.mToe = self.ml_handleTargets.pop(-1)
-                    log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
-                    self.int_handleEndIdx -=1
-                if mBlock.hasBallJoint:
-                    self.mBall = self.ml_handleTargets.pop(-1)
-                    log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
-                    self.int_handleEndIdx -=1
-                    
             elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
                 log.debug("|{0}| >> tip setup...".format(_str_func))        
                 if not mBlock.hasEndJoint:
@@ -7104,9 +7129,11 @@ def rig_pivotSetup(self):
                     mBallHingeControl = mRigNull.controlIKBallHinge
                     mBallHingeControl.masterGroup.p_parent = mParentUse
                     mBallControl.masterGroup.p_parent = mParentUse
+                    
                     #mBallIK.p_parent = mParentUse                    
                     mParentUse = mBallControl
                     mc.parentConstraint(mBallControl.mNode, mBallIK.mNode,maintainOffset = False)
+                    mc.pointConstraint( mBallHingeControl.mNode,mBallControl.masterGroup.mNode,maintainOffset = False)
                     
                     mPivotResultDriver.p_parent = mBallHingeControl
                     if mToeControl:
@@ -7736,11 +7763,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mEnd = False
         if _str_ikEnd in ['foot']:
             l= []
-            if mBlock.hasEndJoint:
+            if mBlock.buildToe == 2:
                 mToe = ml_rigJoints.pop(-1)
                 log.debug("|{0}| >> mToe: {1}".format(_str_func,mToe))
                 int_handleEndIdx -=1
-            if mBlock.hasBallJoint:
+            if mBlock.buildBall == 2:
                 mBall = ml_rigJoints.pop(-1)
                 log.debug("|{0}| >> mBall: {1}".format(_str_func,mBall))        
                 int_handleEndIdx -=1
@@ -7768,8 +7795,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         if mBlock.proxyGeoRoot:
             _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
             _ballBase=True
-            
-        if mBlock.buildLeverBase and not mBlock.hasLeverJoint:
+        
+        _extend = False
+        _proxyLoft = mBlock.getEnumValueString('proxyLoft')
+        if _proxyLoft == 'toEnd':
+            _extend = True
+
+        if mBlock.buildLeverBase < 2:
             _extendToStart = False
             
         """
@@ -7785,13 +7817,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                      ballBase = _ballBase,
                                                                      ballMode = _ballMode,
                                                                      reverseNormal=mBlock.loftReverseNormal,
+                                                                     extendCastSurface = _extend,
                                                                      extendToStart=_extendToStart),#_extendToStart),
                                                  'cgmObject')
         
-        fullCast = True
         
         #Proxyhelper-----------------------------------------------------------------------------------
-        if not fullCast:
+        if not _extend:
             if _str_rigSetup != 'digit':
                 log.debug("|{0}| >> proxyHelper... ".format(_str_func))
                 mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=1)

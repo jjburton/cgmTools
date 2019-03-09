@@ -1604,6 +1604,8 @@ class ui(cgmUI.cgmGUI):
                 _mBlock.p_blockParent = False
             elif _mode == 'toScriptEditor':
                 _mBlock.atUtils('to_scriptEditor')
+            elif _mode == 'toScriptEditorRigFactory':
+                _mBlock.atUtils('to_scriptEditor','rigFactory')
             else:
                 raise ValueError,"Mode not setup: {0}".format(_mode)
 
@@ -1991,10 +1993,7 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
                             label = "Select")
             
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Initialize the block as mBlock in the script editor',
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
-                            label = "To ScriptEditor")            
+
             #>>>Heirarchy ------------------------------------------------------------------------------------
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = "Parent")
@@ -2103,8 +2102,27 @@ class ui(cgmUI.cgmGUI):
                             label = "Duplicate",
                             ann = '[{0}] Duplicate the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))            
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))
             
+            mUI.MelMenuItemDiv(_popUp)
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor',
+                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
+                            label = "To ScriptEditor")
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor as a rigFactory',
+                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditorRigFactory'}),
+                            label = "To ScriptEditor as RigFac")
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = self._d_ui_annotations.get('step build'),
+                            c =cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                               'stepUI',
+                                               **{'updateUI':0,'mode':'stepBuild'}),
+                            label = "Step Build")             
+            
+
             return
             #>>Queries ---------------------------------------------------------------------------------------
             _queries = mUI.MelMenuItem(_popUp, subMenu = True,

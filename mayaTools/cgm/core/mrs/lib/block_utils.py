@@ -1025,7 +1025,17 @@ def get_castMesh(self,extend=False):
         ml_formHandles = self.msgList_get('formHandles')
         l_targets = []
         for mHandle in ml_formHandles:
-            l_targets.append(mHandle.loftCurve.mNode)
+            if mHandle == ml_formHandles[0]:
+                mLoft = mHandle.loftCurve
+                mStartCollapse = mLoft.doDuplicate(po=False)
+                mStartCollapse.scale = [.0001 for i in range(3)]
+                l_targets.append(mStartCollapse.mNode)
+                ml_delete.append(mStartCollapse)
+                l_targets.append(mLoft.mNode)
+                
+                
+            else:
+                l_targets.append(mHandle.loftCurve.mNode)
             ml_sub = mHandle.msgList_get('subShapers')
             if ml_sub:
                 for mSub in ml_sub:
@@ -1051,7 +1061,12 @@ def get_castMesh(self,extend=False):
                         mChild.delete()
         
                     l_targets.append(mBaseCrv.mNode)
-                    #l_targets.reverse()
+                    
+        mBaseCollapse = cgmMeta.asMeta(l_targets[-1]).doDuplicate(po=False)
+        mBaseCollapse.scale = [.0001 for i in range(3)]
+        l_targets.append(mBaseCollapse.mNode)
+        ml_delete.append(mBaseCollapse)
+        #l_targets.reverse()
                 
         #_mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
         #                                   degree=1,divisions=3)
@@ -6768,6 +6783,68 @@ def getState(self, asString = True, fastCheck=True):
     
     
 #Profile stuff ==============================================================================================
+def nameList_setUI(self,msg = None, nameList = 'nameList',checkAttr = 'numControls'):
+    """
+    """
+    try:
+        _str_func = 'nameList_setUI'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+    
+def nameList_validate(self,arg = None, nameList = 'nameList',checkAttr = 'numControls'):
+    """
+    """
+    try:
+        _str_func = 'nameList_validate'
+        log.debug(cgmGEN.logString_start(_str_func))
+
+        if arg is None:
+            arg = self.getMayaAttr('blockProfile')
+        log.debug("|{0}| >>  arg: {1}".format(_str_func,arg))
+        
+        mBlockModule = self.p_blockModule
+        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+        reload(mBlockModule)
+        l_nameList_current = self.datList_get('nameList')
+        log.debug("|{0}| >>  current: {1}".format(_str_func,l_nameList_current))
+        l_nameList = []
+        try:
+            l_nameList =  mBlockModule.d_block_profiles[arg]['nameList']
+            log.debug("|{0}| >>  Found on profile: {1}".format(_str_func,l_nameList))
+        except Exception,err:
+            try:
+                l_nameList =  mBlockModule.d_defaultSettings['nameList']
+                log.debug("|{0}| >>  Found on module: {1}".format(_str_func,l_nameList))
+            except Exception,err:
+                pass
+        
+        if not l_nameList:
+            return log.error("|{0}| >>  No nameList dat found: {1}".format(_str_func,arg))
+        
+        if l_nameList == l_nameList_current:
+            log.debug("|{0}| >>  Lists already match".format(_str_func,l_nameList))
+            return True
+            
+        if len(l_nameList) == len(l_nameList_current):
+            log.debug("|{0}| >>  Lists lengths match".format(_str_func,l_nameList))
+            for i,n in enumerate(l_nameList):
+                if n != l_nameList_current[i]:
+                    ATTR.datList_setByIndex(self.mNode, 'nameList', n, 'string',indices=i)
+        else:
+            if getState(self,False)>1:
+                return log.error("|{0}| >>  nameLists don't match and higher than form state. Please go to form state before resetting".format(_str_func,self.p_nameShort))
+            else:
+                self.datList_connect('nameList', l_nameList, mode='string')
+        log.debug("|{0}| >>  New: {1}".format(_str_func,self.datList_get('nameList')))
+        return l_nameList
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
+
 def nameList_resetToProfile(self,arg = None):
     try:
         _str_func = 'nameList_resetToProfile'
@@ -9116,10 +9193,15 @@ def update(self,force=False,stopState = 'define'):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
         
-def to_scriptEditor(self,string='mBlock'):
+def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRigFac'):
     try:
         _str_func = 'to_scriptEditor'
         log.debug(cgmGEN.logString_start(_str_func))
-        mel.eval('python "import cgm.core.cgm_Meta as cgmMeta;mBlock = cgmMeta.asMeta({0});"'.format("'{0}'".format(self.mNode)))
+        log.debug(cgmGEN.logString_msg(_str_func,"Mode: {0} | string: {1}".format(mode,blockString)))
+        
+        if mode == 'rigFactory':
+            mel.eval('python "import cgm.core.cgm_Meta as cgmMeta;{1} = cgmMeta.asMeta({0});{2} = {1}.asRigFactory()"'.format("'{0}'".format(self.mNode),blockString,facString))
+        else:
+            mel.eval('python "import cgm.core.cgm_Meta as cgmMeta;{1} = cgmMeta.asMeta({0});"'.format("'{0}'".format(self.mNode),blockString))
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

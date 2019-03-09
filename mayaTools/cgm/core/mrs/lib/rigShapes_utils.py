@@ -81,7 +81,7 @@ def ik_bankRollShapes(self):
         mHandleFactory = self.mHandleFactory
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
-        
+        ml_formHandles=self.ml_formHandles
         ml_fkShapes = []
         
         mBallFK = False

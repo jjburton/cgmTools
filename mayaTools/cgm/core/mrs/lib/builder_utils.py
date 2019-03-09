@@ -2129,6 +2129,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      ballMode = 'asdf',
                      ballPosition = 'joint',
                      reverseNormal=False,
+                     extendCastSurface = False,                     
                      extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
@@ -2163,7 +2164,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
         #str_tmpMesh = mMesh_tmp.mNode
         
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=1)
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=extendCastSurface)
         str_meshShape = mMesh_tmp.getShapes()[0]
         
         """
