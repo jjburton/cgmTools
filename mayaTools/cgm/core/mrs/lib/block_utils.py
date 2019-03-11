@@ -6782,65 +6782,120 @@ def getState(self, asString = True, fastCheck=True):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     
-#Profile stuff ==============================================================================================
-def nameList_setUI(self,msg = None, nameList = 'nameList',checkAttr = 'numControls'):
+#Profile stuff ==============================================================================================  
+def nameList_uiPrompt(self, nameList = 'nameList'):
     """
     """
     try:
-        _str_func = 'nameList_setUI'
+        _str_func = 'nameList_uiPrompt'
         log.debug(cgmGEN.logString_start(_str_func))
-        
-        
 
+        if not self.datList_exists(nameList):
+            log.info(cgmGEN.logString_msg(_str_func,"No nameList found | tag: {0}".format(nameList)))
+            return 
+
+        msg_base= "Edit nameList : {0} \n Please provide comma separated list".format(self.p_nameShort)
+        l_current = self.datList_get(nameList)
+
+        _d = {'title':"Edit nameList",
+              'm':msg_base,
+              'text':','.join(l_current),
+              'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':'text'}
+        
+        try:
+            l_profileList = self.p_blockModule.d_block_profiles[self.blockProfile]['nameList']
+            msg_full = _d['m']
+            msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
+            _d['m'] = msg_full
+            _d['button'] = ['OK','Use Profile','Cancel']
+        except:l_profileList = []            
+
+        result = mc.promptDialog(**_d)
+        
+        if result == 'OK':
+            _v =  mc.promptDialog(query=True, text=True)
+            l_new = _v.split(',')
+            len_new = len(l_new)
+            self.datList_connect('nameList',l_new)
+            log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(l_new)))
+            
+            return True
+        elif result == 'Use Profile':
+            log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
+            self.datList_connect('nameList',l_profileList)
+            return True
+        else:
+            log.warning(msg_base)
+            log.warning("Current: {0}".format(l_current))
+            return log.warning("|{0}| >> cancelled | {1}".format(_str_func, self))
+        
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
-    
-def nameList_validate(self,arg = None, nameList = 'nameList',checkAttr = 'numControls'):
+
+
+def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numControls'):
     """
     """
     try:
         _str_func = 'nameList_validate'
         log.debug(cgmGEN.logString_start(_str_func))
+        
+        if not self.datList_get(nameList):
+            log.info(cgmGEN.logString_msg(_str_func,"No nameList found | tag: {0}".format(nameList)))
+            return 
 
-        if arg is None:
-            arg = self.getMayaAttr('blockProfile')
-        log.debug("|{0}| >>  arg: {1}".format(_str_func,arg))
         
-        mBlockModule = self.p_blockModule
-        log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        reload(mBlockModule)
-        l_nameList_current = self.datList_get('nameList')
-        log.debug("|{0}| >>  current: {1}".format(_str_func,l_nameList_current))
-        l_nameList = []
-        try:
-            l_nameList =  mBlockModule.d_block_profiles[arg]['nameList']
-            log.debug("|{0}| >>  Found on profile: {1}".format(_str_func,l_nameList))
-        except Exception,err:
-            try:
-                l_nameList =  mBlockModule.d_defaultSettings['nameList']
-                log.debug("|{0}| >>  Found on module: {1}".format(_str_func,l_nameList))
-            except Exception,err:
-                pass
-        
-        if not l_nameList:
-            return log.error("|{0}| >>  No nameList dat found: {1}".format(_str_func,arg))
-        
-        if l_nameList == l_nameList_current:
-            log.debug("|{0}| >>  Lists already match".format(_str_func,l_nameList))
-            return True
+        if count is None:
+            len_needed = self.getMayaAttr(checkAttr)
+        else:len_needed = count
+        l_current = self.datList_get(nameList)
+        len_current = len(l_current)
+        if len_current < len_needed:
+            log.debug(cgmGEN.logString_sub(_str_func,'Getting via dialog'))
+            msg_base= "{2} \n nameList does not match num controls \n Current: {0} | Needed: {1}".format(len_current,len_needed,self.p_nameShort)
             
-        if len(l_nameList) == len(l_nameList_current):
-            log.debug("|{0}| >>  Lists lengths match".format(_str_func,l_nameList))
-            for i,n in enumerate(l_nameList):
-                if n != l_nameList_current[i]:
-                    ATTR.datList_setByIndex(self.mNode, 'nameList', n, 'string',indices=i)
-        else:
-            if getState(self,False)>1:
-                return log.error("|{0}| >>  nameLists don't match and higher than form state. Please go to form state before resetting".format(_str_func,self.p_nameShort))
+            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_base)
+            
+
+            _d = {'title':"Validate nameList",
+                  'm':msg_full,
+                  'text':','.join(l_current),
+                  'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':'text'}
+            
+            try:
+                l_profileList = self.p_blockModule.d_block_profiles[self.blockProfile]['nameList']
+                msg_full = _d['m']
+                msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
+                _d['m'] = msg_full
+                _d['button'] = ['OK','Use Profile','Cancel']
+            except:l_profileList = []            
+
+            result = mc.promptDialog(**_d)
+            
+            if result == 'OK':
+                _v =  mc.promptDialog(query=True, text=True)
+                l_new = _v.split(',')
+                len_new = len(l_new)
+                if len_new > len_needed:
+                    self.datList_connect('nameList',l_new)
+                    log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(l_new)))
+                    return True
+                else:
+                    log.warning(cgmGEN.logString_msg(_str_func,l_new))
+                    return log.error(cgmGEN.logString_msg(_str_func,
+                                                         'Input len: {0} != needed: {1}'.format(len_new,len_needed)))
+            elif result == 'Use Profile':
+                log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
+                self.datList_connect('nameList',l_profileList)
+                return True
             else:
-                self.datList_connect('nameList', l_nameList, mode='string')
-        log.debug("|{0}| >>  New: {1}".format(_str_func,self.datList_get('nameList')))
-        return l_nameList
+                log.warning(msg_base)
+                log.warning("Current: {0}".format(l_current))
+                
+                return log.warning("|{0}| >> cancelled | {1}".format(_str_func, self))
+            
+        #pprint.pprint(vars())
+        return True
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
@@ -6849,6 +6904,8 @@ def nameList_resetToProfile(self,arg = None):
     try:
         _str_func = 'nameList_resetToProfile'
         log.debug(cgmGEN.logString_start(_str_func))
+        
+
 
         if arg is None:
             arg = self.getMayaAttr('blockProfile')

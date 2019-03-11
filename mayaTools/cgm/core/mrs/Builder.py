@@ -1029,7 +1029,7 @@ class ui(cgmUI.cgmGUI):
                  },
                'blockDat':{'order':[]},
                'Names':{ 
-                   'divTags':['nameList | iter baseName'],
+                   'divTags':['nameList | edit'],
                    'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                             'atUtils','set_nameTag', **{})},
@@ -1041,10 +1041,14 @@ class ui(cgmUI.cgmGUI):
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                         'atUtils','nameList_resetToProfile',
                                                         **{})},
+                  'nameList | edit':{'ann':'Ui Prompt to edit nameList',
+                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                             'atUtils','nameList_uiPrompt',
+                                                             **{})},                  
                    'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                         'atUtils','set_nameListFromName',
-                                                        **{})}}                      }
+                                                        **{})}}}
         """
         mUI.MelMenuItem(_mMesh, l="Unified",
                         ann = "Create a unified unskinned puppet mesh from the active block's basis.",

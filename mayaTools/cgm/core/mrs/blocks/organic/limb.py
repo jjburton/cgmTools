@@ -451,10 +451,6 @@ d_attrsToMake = {'visMeasure':'bool',
                  'buildLeverBase':'none',
                  'buildLeverEnd':'none',
                  
-                 'nameLever':'string',
-                 'nameBall':'string',
-                 'nameToe':'string',
-                 
                  'buildBall':'none:dag:joint',
                  'buildToe':'none:dag:joint',
                  'buildLeverBase':'none:dag:joint',
@@ -1501,7 +1497,15 @@ def form(self):
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-
+def get_baseNameAttrs(self):
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+    _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
+    
+    if self.buildLeverBase:
+        _baseNameAttrs.insert(0,'nameLever')
+        _l_baseNames.instert(0,self.nameLever)
+    
+    return _l_baseNames, _baseNameAttrs
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
@@ -1517,7 +1521,7 @@ def prerig(self):
         _side = self.atUtils('get_side')        
         self.atUtils('module_verify')
     
-        #> Get our stored dat =====================================================================================
+        #> Get our stored dat =======================================================================
         mHandleFactory = self.asHandleFactory()
         
         _ikSetup = self.getEnumValueString('ikSetup')
@@ -1525,7 +1529,24 @@ def prerig(self):
     
         ml_formHandles = self.msgList_get('formHandles')
         
-        #Names dat.... -----------------------------------------------------------------
+        #Names... -----------------------------------------------------------------
+        int_namesToGet = self.numControls
+        for a in ['buildLeverBase','buildBall',"buildToe"]:
+            if self.getMayaAttr(a):
+                log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for: {0}".format(a)))
+                int_namesToGet+=1
+        
+        _res = self.atUtils('nameList_validate',int_namesToGet)
+        if not _res:
+            return _res
+        
+        _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')        
+        pprint.pprint(vars())
+        
+        
+        #Names dat OLD.... -----------------------------------------------------------------
+        """
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')        
         #b_iterNames = False
         if len(_l_baseNames) < len(ml_formHandles):
@@ -1537,8 +1558,9 @@ def prerig(self):
                 _l_baseNamesNEW.append("{0}_{1}".format(baseName,i))
             ATTR.datList_connect(self.mNode,'nameList',_l_baseNamesNEW)
             _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
-            
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')"""
+        
+        
             
         #Create some nulls Null  =========================================================================
         mPrerigNull = self.atUtils('stateNull_verify','prerig')
@@ -1832,8 +1854,6 @@ def skeleton_build(self, forceNew = True):
         _d_base = self.atBlockUtils('skeleton_getNameDictBase')
         _l_names = ATTR.datList_get(self.mNode,'nameList')
         
-        if len(_l_names)>self.numControls:
-            raise ValueError,"Fix name list"
         
         pprint.pprint([_d_base,_l_names,ml_jointHelpers])
         

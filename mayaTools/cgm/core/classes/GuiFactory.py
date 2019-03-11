@@ -1590,14 +1590,14 @@ def uiSection_help(parent):
                 c=lambda *a: cgmGEN.report_enviornment())
     
     
-def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None):
+def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None,style = 'text'):
     _str_func = 'uiPrompt_getValue'
     if title is None:
         _title = 'Need data...'
     else:_title = title
     
     
-    _d = {'title':_title, 'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel'}
+    _d = {'title':_title, 'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':style}
     if message is None:
         message = "Getting values is better with messages..."
         
