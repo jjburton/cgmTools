@@ -137,7 +137,8 @@ def ik_bankRollShapes(self):
                 vec_to_start = MATH.get_vector_of_two_points(pos2_start,pos1_start)
                 
                 mStart.p_position = DIST.get_average_position([pos1_start,pos2_start])
-                mEnd.p_position = DIST.get_pos_by_vec_dist(pos2_start,vec_to_start,_offset*2)
+                #DIST.get_pos_by_vec_dist(pos1_start,vec_to_end,_offset)#
+                mEnd.p_position = DIST.get_pos_by_vec_dist(pos2_start,vec_to_start,_offset)
                 
                 crv1 = SHAPECASTER.createMeshSliceCurve(
                     str_meshShape,mStart.mNode,

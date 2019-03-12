@@ -726,7 +726,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 log.debug("maxDistance: %s"%maxDistance)
                 
                 hit = RayCast.cast(mesh,mi_loc.mNode,aimAxis,
-                                   offsetMode='vector',offsetDistance=posOffset,
+                                   offsetMode='vector',offsetDistance=vectorOffset,
                                    maxDistance=maxDistance).get('hit')
                 if not hit:
                     log.debug(cgmGEN.logString_msg(_str_func,

@@ -321,7 +321,7 @@ def compare_attrs(source, targets, **kws):
     _source = NAMES.get_short(source)
     _l_targets = VALID.objStringList(targets)
 
-    log.info(cgmGen._str_hardLine)   
+    log.info(cgmGEN._str_hardLine)   
 
     for t in _l_targets:
         l_targetAttrs = mc.listAttr(t,**kws)
@@ -347,14 +347,14 @@ def compare_attrs(source, targets, **kws):
                 log.warning(error)	
                 log.warning("'%s.%s'couldn't query"%(_source,a))
         log.info("Matching attrs: {0} | Unmatching: {1}".format(len(_l_matching),len(_l_notMatching)))
-        log.info(cgmGen._str_subLine)
+        log.info(cgmGEN._str_subLine)
         for b in _l_notMatching:
             log.info("attr: {0}...".format(b[0]))
             log.info("source: {0}".format(b[1]))
             log.info("target: {0}".format(b[2]))
 
-        log.info("{0} >>".format(_t) + cgmGen._str_subLine)
-    log.info(cgmGen._str_hardLine)
+        log.info("{0} >>".format(_t) + cgmGEN._str_subLine)
+    log.info(cgmGEN._str_hardLine)
 
     return True    
 
@@ -435,7 +435,7 @@ def get(*a, **kws):
             return mc.getAttr(_combined, **kws)
     except Exception,err:
         if has_attr(*a):
-            cgmGen.cgmExceptCB(Exception,err)
+            cgmGEN.cgmExceptCB(Exception,err)
         return False
 def set_keyframe(node, attr = None, value = None, time = None):
     """   
@@ -1200,7 +1200,7 @@ def break_connection(*a):
     
         return False
     except Exception,err:
-        cgmGen.cgmExceptCB(Exception,err,msg=vars())
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 def disconnect(fromAttr,toAttr):
     """   
     Disconnects attributes. Handles locks on source or end
@@ -1365,7 +1365,7 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock
         if lock:
             set_lock(_node,_attr,lock)
         return _combined        
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 def get_standardFlagsDict(*a):
     """   
     Returns a diciontary of locked,keyable,locked states of an attribute. If
@@ -2394,7 +2394,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
             storeMsg(_messagedNode, _messagedExtra, _d, _d_dataAttr,dataKey)
             
         return True
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def convert_type(node = None, attr = None, attrType = None):
     """   
@@ -3241,7 +3241,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
         log.warning("|{0}| >> {1} is a {2} attr and not valid for copying".format(_str_func,_d['combined'],_d_sourceFlags['type']))
         return False   
 
-    #cgmGen.log_info_dict(_d_sourceFlags,_combined)
+    #cgmGEN.log_info_dict(_d_sourceFlags,_combined)
     
     _driver = get_driver(_d,skipConversionNodes=True)
     _driven = get_driven(_d,skipConversionNodes=True)
@@ -3256,7 +3256,7 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
     _targetExisted = False
     _relockSource = False    
     
-    #cgmGen.log_info_dict(_d_targetAttr)
+    #cgmGEN.log_info_dict(_d_targetAttr)
     if mc.objExists(_d_targetAttr['combined']):
         _targetExisted = True
         _d_targetFlags = get_standardFlagsDict(_d_targetAttr)
@@ -3427,7 +3427,7 @@ def store_info(node = None, attr = None, data = None, attrType = None, lock = Tr
             set_lock(node,attr,lock)
         return True
     except Exception,err:
-        raise cgmGen.cgmExceptCB(Exception,err)
+        raise cgmGEN.cgmExceptCB(Exception,err)
 def get_attrsByTypeDict(node,typeCheck = [],*a,**kws):
     """   
     Replacement for getAttr which get's message objects as well as parses double3 type 
@@ -3460,7 +3460,7 @@ def get_attrsByTypeDict(node,typeCheck = [],*a,**kws):
                         typeDict[typeBuffer] = [a]                    
             except:
                 pass
-    #cgmGen.print_dict(typeDict)
+    #cgmGEN.print_dict(typeDict)
     
     if typeDict: 
         for key in typeDict.keys():
@@ -3548,7 +3548,7 @@ def get_compatibilityDict(report = False):
             for a in _d[k]:
                 _d_attrsByType[k].append(a)
                 
-    if report:cgmGen.print_dict(_d_attrsByType,'Attr type by keys',_str_func)
+    if report:cgmGEN.print_dict(_d_attrsByType,'Attr type by keys',_str_func)
     
     for k in _d_attrsByType.keys():
         _d_compatible[k] = {'out':[],'in':[]}
@@ -3593,7 +3593,7 @@ def get_compatibilityDict(report = False):
         
     mc.delete(_l_created)
     
-    if report:cgmGen.print_dict(_d_compatible,'Compatible',_str_func)
+    if report:cgmGEN.print_dict(_d_compatible,'Compatible',_str_func)
     
     return _d_compatible
         

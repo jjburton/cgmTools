@@ -1316,6 +1316,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 str_aim = self.d_orientation['mOrientation'].p_out.p_string        
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
+        str_up = self.d_orientation['mOrientation'].p_up.p_string
             
         mRigNull = self.mRigNull
         ml_shapes = []
@@ -1559,7 +1560,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 elif mode == 'frameHandle':#================================================================
                     #if not mRigNull.msgList_get('fkJoints'):
                         #return log.error("|{0}| >> No fk joints found".format(_str_func))
-                    
+
                     #...Get our vectors...
                     """
                     l_vectors = []
@@ -1581,8 +1582,14 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
                         except:
-                            log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
-                            _v = l_failSafes[i]
+                            try:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | trying up".format(_str_func,i))
+                                _d = RAYS.cast(str_meshShape, _short, str_up)
+                                _v = _d['uvsRaw'][str_meshShape][0][0]  
+                                
+                            except:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                                _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
                     reload(SURF)
@@ -2129,7 +2136,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      ballMode = 'asdf',
                      ballPosition = 'joint',
                      reverseNormal=False,
-                     extendCastSurface = False,                     
+                     extendCastSurface = False,
+                     l_values = [],
                      extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
@@ -2147,7 +2155,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 aimVector = self.d_orientation['mOrientation'].p_outNegative.p_string
             else:
                 aimVector = self.d_orientation['mOrientation'].p_out.p_string
-                
+        aimAlternate = self.d_orientation['mOrientation'].p_up.p_string
             
         #Get our prerig handles if none provided
         if targets is None:
@@ -2216,11 +2224,17 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _d = RAYS.cast(str_meshShape,j,aimVector)
             l_pos.append(mTar.p_position)
             log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+            _v = None
             #cgmGEN.log_info_dict(_d,j)
             if not _d:
-                log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
-                _v = l_failSafes[i]
-            else:
+                _d_alt = RAYS.cast(str_meshShape,j,aimAlternate)
+                if not _d_alt:
+                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
+                    _v = l_failSafes[i]
+                else:
+                    _d = _d_alt
+                    
+            if _v is None:
                 if method == 'v':
                     _v = _d['uvsRaw'][str_meshShape][0][1]
                 else:

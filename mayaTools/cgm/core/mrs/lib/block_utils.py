@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -193,20 +193,36 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         _keys = _d.keys()
         _keys.sort()
         #for a,t in self._d_attrsToVerify.iteritems():
+        
+        def checkType(a,attrType):
+            try:
+                
+                if ATTR.has_attr(_short, a):
+                    _type = ATTR.get_type(_short,a)
+                    if _type != attrType:
+                        log.debug(cgmGEN.logString_msg(_str_func,'Attribute of wrong type | {0} | type: {1} | wanted: {2}'.format(a,_type,attrType)))
+                        ATTR.convert_type(_short,a,attrType)
+            except Exception,err:
+                log.error("Failed to convert 'Attribute of wrong type | {0} | type: {1} | wanted: {2} | err: {3}".format(a,_type,attrType,err))
+                
         for a in _keys:
             try:
                 v = d_defaultSettings.get(a,None)
                 t = _d[a]
-
-                log.debug("|{0}| Add attr >> '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
-
+                
+                log.debug("|{0}| '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
+                
                 if ':' in t:
+                    checkType(a,'enum')
+                    
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
                         strValue = ATTR.get_enumValueString(_short,a)
                         self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)
-                        if strValue and strValue in t:ATTR.set(_short,a,strValue)
+                        if strValue and strValue in t:
+                            try:ATTR.set(_short,a,strValue)
+                            except Exception,err:"...Failed to set old value: {0} | err: {1}".format(strValue,err)
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
                         mc.select(cl=True)
@@ -224,6 +240,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                             enum = 'off:on'
                         ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
                 elif t == 'float3':
+                    #checkType(a,'float3')
+                    
                     if not self.hasAttr(a):
                         ATTR.add(_short, a, attrType='float3', keyable = True)
                         if v:ATTR.set(_short,a,v)
@@ -238,8 +256,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                     else:
                         self.addAttr(a,initialValue = v, attrType = t,lock=_l, keyable = False)            
             except Exception,err:
-                log.error("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err)) 
-                _msg= ("|{0}| Add attr Failure >> '{1}' | defaultValue: {2} | err: {3}".format(_str_func,a,v,err))
+                _msg = "|{0}| Add attr Failure >> '{1}' | type: {4} | defaultValue: {2} | err: {3}".format(_str_func,a,v,err,_d.get(a))
+                log.error(_msg) 
                 if not forceReset:
                     cgmGEN.cgmExceptCB(Exception,err,msg=_msg)                    
 
@@ -8517,13 +8535,19 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
         if not ml_prerig:
             return log.error(cgmGEN.logString_msg(_str_func,'No prerigHandles found'))
         
-        ml_prerig = [mObj for mObj in ml_prerig if mObj.cgmType == 'blockHandle']
+        ml_preUse = []
+        for mObj in ml_prerig:
+            if mObj.cgmType in ['blockHandle','preHandle','blockHelper']:
+                ml_preUse.append(mObj)
+                
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
-        except:idx_start,idx_end = 0,len(ml_prerig)-1
+        except:
+            idx_start = 0
+            idx_end =len(ml_preUse)-1
             
-        mStart = ml_prerig[idx_start]
-        mEnd = ml_prerig[idx_end]
-        ml_toSnap = ml_prerig[idx_start:idx_end+1]
+        mStart = ml_preUse[idx_start]
+        mEnd = ml_preUse[idx_end]
+        ml_toSnap = ml_preUse[idx_start:idx_end+1]
         
         if not ml_toSnap:
             raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
