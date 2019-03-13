@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.03022019'
+__version__ = '1.03052019'
 _sidePadding = 25
 
 def check_cgm():
@@ -911,9 +911,9 @@ class ui(cgmUI.cgmGUI):
                                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                    'atUtils', 'define_set_baseSize',
                                                                    **{'updateUI':0})}},
-               'Template':{'Snap to RP':{'ann':'Snap handles to rp plane',
+               'Form':{'Snap to RP':{'ann':'Snap handles to rp plane',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                 'atUtils', 'handles_snapToRotatePlane','template',True,
+                                 'atUtils', 'handles_snapToRotatePlane','form',True,
                                  **{'updateUI':0})},},               
                'Prerig':{
                    'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
@@ -1029,7 +1029,7 @@ class ui(cgmUI.cgmGUI):
                  },
                'blockDat':{'order':[]},
                'Names':{ 
-                   'divTags':['nameList | iter baseName'],
+                   'divTags':['nameList | edit'],
                    'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                             'atUtils','set_nameTag', **{})},
@@ -1041,10 +1041,14 @@ class ui(cgmUI.cgmGUI):
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                         'atUtils','nameList_resetToProfile',
                                                         **{})},
+                  'nameList | edit':{'ann':'Ui Prompt to edit nameList',
+                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                             'atUtils','nameList_uiPrompt',
+                                                             **{})},                  
                    'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                         'atUtils','set_nameListFromName',
-                                                        **{})}}                      }
+                                                        **{})}}}
         """
         mUI.MelMenuItem(_mMesh, l="Unified",
                         ann = "Create a unified unskinned puppet mesh from the active block's basis.",
@@ -1071,7 +1075,7 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete'))        
         
         """
-        for state in ['define','template','prerig']:
+        for state in ['define','form','prerig']:
             d_s['blockDat']['order'].append('Load {0}'.format(state))
             d_s['blockDat']['Load {0}'.format(state)] = {
                 'ann':"Load {0} blockDat in context".format(state),
@@ -1082,7 +1086,7 @@ class ui(cgmUI.cgmGUI):
         
         l_keys = d_s.keys()
         l_keys.sort()
-        l_check = ['Define','Template','Prerig','Skeleton','Rig']
+        l_check = ['Define','Form','Prerig','Skeleton','Rig']
         l_check.reverse()
         for k in l_check:
             if k in l_keys:
@@ -1604,6 +1608,8 @@ class ui(cgmUI.cgmGUI):
                 _mBlock.p_blockParent = False
             elif _mode == 'toScriptEditor':
                 _mBlock.atUtils('to_scriptEditor')
+            elif _mode == 'toScriptEditorRigFactory':
+                _mBlock.atUtils('to_scriptEditor','rigFactory')
             else:
                 raise ValueError,"Mode not setup: {0}".format(_mode)
 
@@ -1611,9 +1617,11 @@ class ui(cgmUI.cgmGUI):
         self.uiUpdate_scrollList_blocks(_mBlock)
 
 
-    #@cgmGEN.Timer
+    @cgmGEN.Timer
     def uiFunc_contextBlockCall(self,*args,**kws):
         try:
+            mc.refresh(su=1)
+            
             def confirm(title,message,funcString):
                 result = mc.confirmDialog(title=title,
                                           message= message,
@@ -1809,6 +1817,8 @@ class ui(cgmUI.cgmGUI):
         finally:
             self.uiRow_progress(edit=1,vis=False)
             self.uiProgressText(edit=True,label='...')
+            mc.refresh(su=0)
+            
             #cgmUI.progressBar_end(self.uiPB_mrs)
     @cgmGEN.Timer
     def uiFunc_contextModuleCall(self,*args,**kws):
@@ -1818,6 +1828,7 @@ class ui(cgmUI.cgmGUI):
             _startMode = self.var_contextStartMode.value   
             _contextMode = self._l_contextModes[self.var_contextMode.value]
             ml_blocks = []
+            mc.refresh(su=1)
             
             if _startMode == 0 :#Active
                 mBlock = self._blockCurrent
@@ -1872,6 +1883,7 @@ class ui(cgmUI.cgmGUI):
             self.uiRow_progress(edit=1,vis=0)
             self.uiProgressText(edit=True,label='...')
             cgmUI.progressBar_end(self.uiPB_mrs)
+            mc.refresh(su=0)
             
     def uiFunc_contextPuppetCall(self,*args,**kws):
         _str_func = ''
@@ -1942,7 +1954,7 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return                
             
-            _blockState = _mBlock.p_blockState
+            #_blockState = _mBlock.p_blockState
             _short = _mBlock.p_nameShort
             if _mBlock.mNode == None:
                 log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
@@ -1985,10 +1997,7 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
                             label = "Select")
             
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Initialize the block as mBlock in the script editor',
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
-                            label = "To ScriptEditor")            
+
             #>>>Heirarchy ------------------------------------------------------------------------------------
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = "Parent")
@@ -2097,8 +2106,27 @@ class ui(cgmUI.cgmGUI):
                             label = "Duplicate",
                             ann = '[{0}] Duplicate the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))            
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))
             
+            mUI.MelMenuItemDiv(_popUp)
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor',
+                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
+                            label = "To ScriptEditor")
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor as a rigFactory',
+                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditorRigFactory'}),
+                            label = "To ScriptEditor as RigFac")
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = self._d_ui_annotations.get('step build'),
+                            c =cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                               'stepUI',
+                                               **{'updateUI':0,'mode':'stepBuild'}),
+                            label = "Step Build")             
+            
+
             return
             #>>Queries ---------------------------------------------------------------------------------------
             _queries = mUI.MelMenuItem(_popUp, subMenu = True,
@@ -2478,7 +2506,7 @@ class ui(cgmUI.cgmGUI):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
         
         
-        for state in ['define','template','prerig','skeleton',]:
+        for state in ['define','form','prerig','skeleton',]:
             mc.button(parent=_row,
                       l = state.capitalize(),
                       ut = 'cgmUITemplate',
@@ -2979,11 +3007,11 @@ class ui(cgmUI.cgmGUI):
         
         _column = self.uiFrame_shared
         
-        d_shared = {'templateNull':{},
+        d_shared = {'formNull':{},
                     'prerigNull':{}}
         
         l_settings = ['visibility']
-        l_locks = ['rigBlock','templateNull','prerigNull']
+        l_locks = ['rigBlock','formNull','prerigNull']
         l_enums = []
     
         for n in l_locks:
@@ -3122,7 +3150,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
         _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
         
-        for null in ['templateNull','prerigNull']:
+        for null in ['formNull','prerigNull']:
             #_str_null = mBlock.getMessage(null)
             #_nullShort = _str_null[0]
             mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
@@ -3180,7 +3208,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
         _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
         
-        for null in ['templateNull','prerigNull']:
+        for null in ['formNull','prerigNull']:
             _str_null = mBlock.getMessage(null)
             if _str_null:
                 _nullShort = _str_null[0]
@@ -3684,11 +3712,11 @@ class ui(cgmUI.cgmGUI):
                   align='center',
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{'forceNew':True}),
                   ann='[Define] - initial block state')
-        mc.button(l='<Templ>',
+        mc.button(l='<Form>',
                   bgc = SHARED._d_gui_state_colors.get('warning'),                  
                   height = 20,
                   align='center',                  
-                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','template',**{'forceNew':True}),
+                  c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','form',**{'forceNew':True}),
                   ann='[Template] - Shaping the proxy and initial look at settings')
                          
         mc.button(l='<Prerig>',

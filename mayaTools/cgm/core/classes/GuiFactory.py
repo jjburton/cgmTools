@@ -1587,4 +1587,30 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='Enviornment Info',
                 ann = "Get your maya/os enviorment info. Useful for bug reporting to tool makers",
-                c=lambda *a: cgmGEN.report_enviornment())     
+                c=lambda *a: cgmGEN.report_enviornment())
+    
+    
+def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None,style = 'text'):
+    _str_func = 'uiPrompt_getValue'
+    if title is None:
+        _title = 'Need data...'
+    else:_title = title
+    
+    
+    _d = {'title':_title, 'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':style}
+    if message is None:
+        message = "Getting values is better with messages..."
+        
+    _d['message'] = message
+    if text is not None:
+        _d['text'] = text
+        
+    result = mc.promptDialog(**_d)
+    
+    if result == 'OK':
+        _v =  mc.promptDialog(query=True, text=True)
+        
+        return _v
+    else:
+        log.info("|{0}| >> Gather value cancelled".format(_str_func))
+        return None     

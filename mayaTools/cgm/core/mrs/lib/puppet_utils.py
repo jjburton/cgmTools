@@ -295,7 +295,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                 mObj._verifyMirrorable()#...veryify the mirrorsetup
                 
                 #if str_mode == 'template':
-                #    if mObj.getMayaAttr('cgmType') in ['templateObject','templateOrientHelper','templateOrientRoot']:
+                #    if mObj.getMayaAttr('cgmType') in ['templateObject','formOrientHelper','formOrientRoot']:
                 #        mObj.mirrorAxis = 'translateX,translateZ,rotateZ'                                        
                 
                 

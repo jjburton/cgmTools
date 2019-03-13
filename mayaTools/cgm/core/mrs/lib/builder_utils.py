@@ -279,7 +279,7 @@ def gather_rigBlocks(progressBar=False):
                 mObj.parent = mGroup
                 ml_gathered.append(mObj)
                 
-            for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
+            for link in ['noTransFormNull','noTransDefineNull','noTransPrerigNull']:
                 try:
                     mLink = mObj.getMessageAsMeta(link)
                     if mLink and not mLink.parent:
@@ -458,7 +458,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
             ml_use = ml_handles
         else:
             ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
-            ml_templateHandles = self.mBlock.msgList_get('templateHandles')
+            ml_formHandles = self.mBlock.msgList_get('formHandles')
             
             int_count = self.mBlock.numControls
             ml_use = ml_prerigHandles[:int_count]
@@ -534,7 +534,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
         
         return pos_use
         
-        pos_mid = ml_templateHandles[mid].p_position
+        pos_mid = ml_formHandles[mid].p_position
     
     
         #Get our point for knee...
@@ -1316,6 +1316,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 str_aim = self.d_orientation['mOrientation'].p_out.p_string        
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
+        str_up = self.d_orientation['mOrientation'].p_up.p_string
             
         mRigNull = self.mRigNull
         ml_shapes = []
@@ -1328,6 +1329,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if aimVector is None:
             aimVector = self.d_orientation['vectorAim']
         
+        def returnRes(res):
+            if mMesh_tmp:mMesh_tmp.delete()
+            return res
 
         #Get our prerig handles if none provided
         if mode not in ['singleCurve']:
@@ -1556,7 +1560,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 elif mode == 'frameHandle':#================================================================
                     #if not mRigNull.msgList_get('fkJoints'):
                         #return log.error("|{0}| >> No fk joints found".format(_str_func))
-                    
+
                     #...Get our vectors...
                     """
                     l_vectors = []
@@ -1578,8 +1582,14 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
                         except:
-                            log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
-                            _v = l_failSafes[i]
+                            try:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | trying up".format(_str_func,i))
+                                _d = RAYS.cast(str_meshShape, _short, str_up)
+                                _v = _d['uvsRaw'][str_meshShape][0][0]  
+                                
+                            except:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                                _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
                     reload(SURF)
@@ -2005,7 +2015,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         
                     ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
                     if len(ml_ikJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
+                        return returnRes(log.error("|{0}| >> Need at least two ik joints".format(_str_func)))
                     
                     vec_normal = MATH.get_vector_of_two_points(ml_ikJoints[-2].p_position,
                                                                ml_ikJoints[-1].p_position)
@@ -2126,6 +2136,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      ballMode = 'asdf',
                      ballPosition = 'joint',
                      reverseNormal=False,
+                     extendCastSurface = False,
+                     l_values = [],
                      extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
@@ -2143,7 +2155,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 aimVector = self.d_orientation['mOrientation'].p_outNegative.p_string
             else:
                 aimVector = self.d_orientation['mOrientation'].p_out.p_string
-                
+        aimAlternate = self.d_orientation['mOrientation'].p_up.p_string
             
         #Get our prerig handles if none provided
         if targets is None:
@@ -2154,13 +2166,13 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
         
     
-        ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
+        ml_handles = self.mBlock.msgList_get('formHandles',asMeta = True)
         #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
         #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
         #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
         #str_tmpMesh = mMesh_tmp.mNode
         
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=extendCastSurface)
         str_meshShape = mMesh_tmp.getShapes()[0]
         
         """
@@ -2212,11 +2224,17 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _d = RAYS.cast(str_meshShape,j,aimVector)
             l_pos.append(mTar.p_position)
             log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+            _v = None
             #cgmGEN.log_info_dict(_d,j)
             if not _d:
-                log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
-                _v = l_failSafes[i]
-            else:
+                _d_alt = RAYS.cast(str_meshShape,j,aimAlternate)
+                if not _d_alt:
+                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
+                    _v = l_failSafes[i]
+                else:
+                    _d = _d_alt
+                    
+            if _v is None:
                 if method == 'v':
                     _v = _d['uvsRaw'][str_meshShape][0][1]
                 else:

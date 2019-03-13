@@ -56,8 +56,8 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.01302019'
-__autoTemplate__ = False
+__version__ = 'alpha.03052019'
+__autoForm__ = False
 __component__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
@@ -182,7 +182,7 @@ d_defaultSettings = {'version':__version__,
                      'proxyType':1}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
-d_wiring_template = {'msgLinks':['templateNull'],
+d_wiring_form = {'msgLinks':['formNull'],
                      }
 
 
@@ -342,6 +342,7 @@ def define(self):
 
         #Aim Controls ==================================================================
         _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
+              'start':{'color':'white'},
               'end':{'color':'blueBright','defaults':{'tz':1}},
               'up':{'color':'greenBright','defaults':{'ty':.5}},
               'lever':{'color':'purple','defaults':{'tz':-.25}}}
@@ -351,12 +352,14 @@ def define(self):
         md_vector = {}
         md_jointLabels = {}
     
-        _l_order = ['aim','end','up']
+        _l_order = ['aim','end','up','start']
         
         reload(self.UTILS)
         _resDefine = self.UTILS.create_defineHandles(self, _l_order,
                                                      _d, _size,
-                                                     rotVecControl=True,blockUpVector = _dBase['up'])
+                                                     rotVecControl=True,
+                                                     startScale=True,
+                                                     blockUpVector = _dBase['up'])
         
        
         
@@ -404,15 +407,15 @@ def define(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
-def templateDelete(self):
+def formDelete(self):
     try:
-        _str_func = 'templateDelete'
+        _str_func = 'formDelete'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
-        for k in ['end','rp','up','lever','aim']:
+        for k in ['end','rp','up','lever','aim','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
                 l_const = mHandle.getConstraintsTo()
@@ -440,16 +443,16 @@ def templateDelete(self):
             
         self.defineLoftMesh.v = True
         self.defineLoftMesh.template = False
-        mNoTransformNull = self.getMessageAsMeta('noTransTemplateNull')
+        mNoTransformNull = self.getMessageAsMeta('noTransFormNull')
         if mNoTransformNull:
             mNoTransformNull.delete()
         
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-def template(self):
+def form(self):
     try:
-        _str_func = 'template'        
+        _str_func = 'form'        
         _short = self.mNode
         _shape = self.getEnumValueString('basicShape')
         mHandleFactory = self.asHandleFactory(self)
@@ -488,13 +491,13 @@ def template(self):
                         ATTR.set(_short,str_attr,strValue)
 
         #Create temple Null  ==================================================================================
-        mTemplateNull = BLOCKUTILS.templateNull_verify(self)
+        mFormNull = BLOCKUTILS.formNull_verify(self)
         
         
         mGeoGroup = self.doCreateAt(setClass='cgmObject')
         mGeoGroup.rename("proxyGeo")
-        mGeoGroup.parent = mTemplateNull
-        #mGeoProxies.parent = mTemplateNull
+        mGeoGroup.parent = mFormNull
+        #mGeoProxies.parent = mFormNull
     
         #_bb = DIST.get_bb_size(self.mNode,True)
     
@@ -508,13 +511,13 @@ def template(self):
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
-        
+        mDefineStartObj = self.defineStartHelper
         _l_basePos = [self.p_position]
         
         md_vectorHandles = {}
         md_defineHandles = {}
-        #Template our vectors
-        for k in ['end','rp','up','aim']:
+        #Form our vectors
+        for k in ['end','rp','up','aim','start']:
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
             if mHandle:
                 log.debug("define vector: {0} | {1}".format(k,mHandle))            
@@ -525,6 +528,7 @@ def template(self):
             if mHandle:
                 log.debug("define handle: {0} | {1}".format(k,mHandle))                        
                 md_defineHandles[k] = mHandle
+                mHandle.v=False
                 if k in ['end']:
                     mHandle.template = True        
                 #if k in ['up']:
@@ -555,7 +559,7 @@ def template(self):
     
             pos_self = self.p_position
             pos_aim = DIST.get_pos_by_vec_dist(pos_self, _mVectorAim, 5)        
-            mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template')
+            mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form')
             
             _shaperAim = self.getEnumValueString('shaperAim')
             
@@ -599,13 +603,13 @@ def template(self):
         
         
             #if _loftSetup == 'default':
-            md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.template_segment(
+            md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.form_segment(
             self,
             aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             loftShape=_loftShape,l_basePos = _l_basePos, baseSize=_size_handle,
-            orientHelperPlug='orientHelper',templateAim =  self.getEnumValueString('shapersAim'),
+            orientHelperPlug='orientHelper',formAim =  self.getEnumValueString('shapersAim'),
             sizeWidth = _size_width, sizeLoft=_size_loft,side = _side,
-            mTemplateNull = mTemplateNull,mNoTransformNull = mNoTransformNull,
+            mFormNull = mFormNull,mNoTransformNull = mNoTransformNull,
             mDefineEndObj=mDefineEndObj)
             
             mOrientHelper = self.getMessageAsMeta('orientHelper')
@@ -613,7 +617,7 @@ def template(self):
             mUpTrans.p_parent = mOrientHelper.mNode                  
             
             #>>> Connections ================================================================================
-            self.msgList_connect('templateHandles',[mObj.mNode for mObj in ml_handles_chain])
+            self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
         
             #>>Loft Mesh ==================================================================================
             if self.numShapers:
@@ -626,7 +630,7 @@ def template(self):
         
             mMesh = self.atUtils('create_prerigLoftMesh',
                                  targets,
-                                 mTemplateNull,
+                                 mFormNull,
                                  'numShapers',                     
                                  'loftSplit',
                                  polyType='bezier',
@@ -644,8 +648,9 @@ def template(self):
         
             #Constrain the define end to the end of the template handles
             #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
+            #mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
             
+            self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
             
             #mc.pointConstraint(mUpTrans.mNode,
             #                   md_defineHandles['up'].mNode,
@@ -674,7 +679,7 @@ def template(self):
                                               sizeMode = 'fixed', size =_size)
         
             mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mHandle.p_parent = mTemplateNull
+            mHandle.p_parent = mFormNull
             _pos_mid = DIST.get_average_position(_l_basePos)
             if _shape in ['pyramid','semiSphere','circle','square']:
                 mHandle.p_position = _l_basePos[0]
@@ -695,7 +700,7 @@ def template(self):
         
             mHandleFactory.setHandle(mHandle)
         
-            #self.msgList_connect('templateHandles',[mHandle.mNode])
+            #self.msgList_connect('formHandles',[mHandle.mNode])
         
             #Proxy geo ==================================================================================
             _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+')
@@ -726,7 +731,7 @@ def template(self):
             mProxy.connectParentNode(self.mNode,'proxyHelper')        
             mProxy.connectParentNode(self.mNode,'handle','proxyHelper')        
             
-            self.msgList_connect('templateHandles',[mHandle.mNode,mProxy.mNode])
+            self.msgList_connect('formHandles',[mHandle.mNode,mProxy.mNode])
         
             attr = 'proxy'
             self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
@@ -746,8 +751,8 @@ def template(self):
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
         
-#def is_template(self):
-#    if self.getMessage('templateNull'):
+#def is_form(self):
+#    if self.getMessage('formNull'):
 #        return True
 #    return False
 
@@ -767,7 +772,7 @@ def prerig(self):
             
         self.atUtils('module_verify')
     
-        ml_templateHandles = self.msgList_get('templateHandles')
+        ml_formHandles = self.msgList_get('formHandles')
         
         _proxyShape = self.getEnumValueString('proxyShape')
         b_shapers = False
@@ -775,18 +780,18 @@ def prerig(self):
             log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
             mMain = self
             b_shapers = True
-            pos_shaperBase = ml_templateHandles[0].p_position
+            pos_shaperBase = ml_formHandles[0].p_position
         else:
-            mMain = ml_templateHandles[0]
+            mMain = ml_formHandles[0]
 
 
         mHandleFactory = self.asHandleFactory(mMain.mNode)
         
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
+        _size = DIST.get_bb_size(self.mNode,True,True)
         
         if self.hasJoint:
-            _size = DIST.get_bb_size(self.mNode,True,True)
             _sizeSub = _size * .2   
         
             log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
@@ -806,9 +811,10 @@ def prerig(self):
         #self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addPivot:
-            mPivot = mHandleFactory.addPivotSetupHelper()
+            mPivot = self.UTILS.pivotHelper_get(self,self,baseShape = 'square', baseSize=_size,loft=False)
+            #mHandleFactory.addPivotSetupHelper()
             mPivot.p_parent = mPrerigNull
-            ml_templateHandles[0].connectChildNode(mPivot,'pivotHelper')
+            ml_formHandles[0].connectChildNode(mPivot,'pivotHelper')
 
             if _shape in ['pyramid','semiSphere','circle','square']:
                 mPivot.p_position = self.p_position
@@ -827,8 +833,8 @@ def prerig(self):
             if b_shapers:mCog.p_position = pos_shaperBase
             
         if b_shapers:
-            mc.parentConstraint([ml_templateHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
-            mc.scaleConstraint([ml_templateHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+            mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+            mc.scaleConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
         else:
             mc.parentConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
             mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
@@ -840,14 +846,14 @@ def prerig(self):
 
 
 def prerigDelete(self):
-    #if self.getMessage('templateLoftMesh'):
-    #    mTemplateLoft = self.getMessage('templateLoftMesh',asMeta=True)[0]
-    #    for s in mTemplateLoft.getShapes(asMeta=True):
+    #if self.getMessage('formLoftMesh'):
+    #    mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
+    #    for s in mFormLoft.getShapes(asMeta=True):
     #        s.overrideDisplayType = 2     
     
     #if self.getMessage('noTransformNull'):
     #    mc.delete(self.getMessage('noTransformNull'))
-    #return BLOCKUTILS.prerig_delete(self,templateHandles=True)
+    #return BLOCKUTILS.prerig_delete(self,formHandles=True)
     return True
 
 #def is_prerig(self):
@@ -940,7 +946,7 @@ def skeleton_build(self, forceNew = True):
         else:
             return _bfr
         
-    ml_templateHandles = self.msgList_get('templateHandles')
+    ml_formHandles = self.msgList_get('formHandles')
     
     ml_jointHelpers = self.msgList_get('jointHelpers')
     mJoint = ml_jointHelpers[0].doCreateAt('joint')
@@ -1011,14 +1017,14 @@ def rig_dataBuffer(self):
         mModule = self.mModule
         mRigNull = self.mRigNull
         mPrerigNull = mBlock.prerigNull
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
-        self.ml_templateHandles=ml_templateHandles
+        ml_formHandles = mBlock.msgList_get('formHandles')
+        self.ml_formHandles=ml_formHandles
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
         
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
         
-        self.mRootTemplateHandle = ml_templateHandles[0]
+        self.mRootFormHandle = ml_formHandles[0]
         log.debug(cgmGEN._str_subLine)
         
         #Offset ============================================================================    
@@ -1093,8 +1099,8 @@ def rig_shapes(self):
     _start = time.clock()
     
     mBlock = self.mBlock
-    ml_templateHandles = mBlock.msgList_get('templateHandles')
-    mMainHandle = ml_templateHandles[0]
+    ml_formHandles = mBlock.msgList_get('formHandles')
+    mMainHandle = ml_formHandles[0]
     ml_jointHelpers = mBlock.msgList_get('jointHelpers')
     mHelper = ml_jointHelpers[0]
     mRigNull = self.mRigNull
@@ -1224,8 +1230,8 @@ def rig_controls(self):
         _start = time.clock()
       
         mBlock = self.mBlock
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
-        mMainHandle = ml_templateHandles[0]    
+        ml_formHandles = mBlock.msgList_get('formHandles')
+        mMainHandle = ml_formHandles[0]    
         mRigNull = self.mRigNull
         ml_controlsAll = []#we'll append to this list and connect them all at the end
         mRootParent = self.mDeformNull
@@ -1344,8 +1350,8 @@ def rig_frame(self):
         _start = time.clock()
         
         mBlock = self.mBlock
-        ml_templateHandles = mBlock.msgList_get('templateHandles')
-        mMainHandle = ml_templateHandles[0]            
+        ml_formHandles = mBlock.msgList_get('formHandles')
+        mMainHandle = ml_formHandles[0]            
         mRigNull = self.mRigNull
         mHandle = mRigNull.handle        
         log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
@@ -1564,7 +1570,7 @@ def rig_cleanUp(self):
     
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    mBlock.UTILS.set_blockNullFormState(mBlock)
     self.UTILS.rigNodes_store(self)
 
 
