@@ -65,6 +65,8 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
+from cgm.core.classes import GuiFactory as CGMUI
+
 reload(ATTR)
 #=============================================================================================================
 #>> Queries
@@ -1033,6 +1035,61 @@ def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
+
+def get_castSize(self, casters, castMesh = None, axis1 = 'x', axis2 = 'y',extend = False):
+    _str_func =  'get_castSize'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    
+    ml_casters = cgmMeta.validateObjListArg(casters,'cgmObject')
+    mMesh = None
+    if not castMesh:
+        mMesh = get_castMesh(self,extend)
+        _surf = mMesh.mNode
+        
+    else:
+        try:_surf = castMesh.mNode
+        except:_surf = castMesh
+        
+    l_x = []
+    l_y = []
+    _res = []
+    l_max = []
+    l_min = []
+    for mHandle in ml_casters:
+        _mNode = mHandle.mNode
+        try:xDist = RAYS.get_dist_from_cast_axis(_mNode,'x',shapes=_surf)
+        except:
+            xDist = None
+        try:yDist = RAYS.get_dist_from_cast_axis(_mNode,'y',shapes=_surf)
+        except:
+            yDist = None
+        
+        if xDist is None and yDist is None:
+            raise ValueError,"Cast fail"
+        if xDist is None:
+            xDist = yDist
+        if yDist is None:
+            yDist = xDist
+            
+        l_x.append(xDist)
+        l_y.append(yDist)
+    
+        l_box = [xDist,
+                 yDist,
+                 MATH.average(xDist,yDist)]
+        l_max.append(max(l_box))
+        l_min.append(min(l_box))
+        _res.append(l_box)
+        
+    if mMesh:
+        mMesh.delete()
+    return {'bb':_res,
+            'min':l_min,
+            'max':l_max,
+            axis1:l_x,
+            axis2:l_y}
+    
 def get_castMesh(self,extend=False):
     _str_func =  'get_castMesh'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -6279,7 +6336,11 @@ def rigDelete(self):
     
     mModuleTarget = self.moduleTarget
     mModuleTarget.rig_disconnect()
-    
+    """
+    CGMUI.(winName='Mesh Slice...', 
+                                statusMessage='Progress...', 
+                                startingProgress=1, 
+                                interruptableState=True)		    """
     
     if mModuleTarget:
         log.debug("|{0}| >> ModuleTarget: {1}".format(_str_func,mModuleTarget))

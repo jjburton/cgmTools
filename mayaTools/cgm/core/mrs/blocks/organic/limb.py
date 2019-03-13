@@ -3742,7 +3742,6 @@ def rig_shapes(self):
         _offset = self.v_offset
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
         
-
         
         log.debug("|{0}| >> Making fkShapeTargets ".format(_str_func))
         #This is from a bug that Benn reported where a prerig handle we had been using was rotated odd and throwing off the cast
@@ -3818,35 +3817,13 @@ def rig_shapes(self):
             else:
                 mLeverControlJoint = mLeverControlJoint
             log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
-    
-            dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
-                                                          ml_prerigHandles[1].p_position)
-            log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
-    
-            #Dup our rig joint and move it 
-            mDup = mLeverControlJoint.doDuplicate()
-            mDup.p_parent = mLeverControlJoint
-    
-            mDup.resetAttrs()
-            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
-    
-            mDup2 = mDup.doDuplicate()
-            ATTR.set(mDup2.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .25)
-    
-    
-            ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mDup2.mNode,
-                                                                       #ml_fkJoints[0].mNode],
-                                                                       mDup.mNode],
-                                                             aimVector= self.d_orientation['vectorOut'],
-                                                             offset=_offset,
-                                                             f_factor=0,
-                                                             mode = 'frameHandle')
-    
-            mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
-            CORERIG.shapeParent_in_place(mLeverControlFK.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+
+            mShape = RIGSHAPES.lever(self)
+ 
+            mHandleFactory.color(mShape.mNode, controlType = 'main')        
+            CORERIG.shapeParent_in_place(mLeverControlFK.mNode,mShape.mNode, False, replaceShapes=True)
             #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
     
-            mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])
     
             #limbRoot ------------------------------------------------------------------------------
             log.debug("|{0}| >> LimbRoot".format(_str_func))
@@ -3855,8 +3832,10 @@ def rig_shapes(self):
                 idx = 1
             mLimbRootHandle = ml_prerigHandles[idx]
             mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
-    
-            _size_root =  MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
+
+            _size_root = MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
+                        
+            #MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mLimbRootHandle)
     
@@ -4090,7 +4069,8 @@ def rig_shapes(self):
             if not self.b_singleChain:
                 #Mid IK...---------------------------------------------------------------------------------
                 log.debug("|{0}| >> midIK...".format(_str_func))
-                size_knee =  MATH.average(POS.get_bb_size(self.mMidFormHandle.mNode,True)) * .75
+                size_knee =   mBlock.UTILS.get_castSize(mBlock,self.mMidFormHandle)['max'][0]
+                #MATH.average(POS.get_bb_size(self.mMidFormHandle.mNode,True)) * .75
                 crv = CURVES.create_fromName('sphere',
                                               direction = 'z+',#_jointOrientation[0]+'+',
                                               size = size_knee)#max(size_knee) * 1.25)            
@@ -4115,6 +4095,8 @@ def rig_shapes(self):
             
             mIK_formHandle = self.mRootFormHandle
             #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
+            #bb_ik = mBlock.UTILS.get_castSize(mBlock,mIK_formHandle)['max'][0]
+
             bb_ik = POS.get_bb_size(mIK_formHandle.loftCurve.mNode,True,mode='maxFill')
             _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)#[v+_offset for v in bb_ik])
             #ATTR.set(_ik_shape,'scale', 1.5)

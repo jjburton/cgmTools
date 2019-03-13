@@ -630,7 +630,7 @@ def form(self):
         
         CORERIG.colorControl(mHeadHandle.mNode,_side,'main',transparent = True) 
         mBBHelper.v = False
-        #self.defineNull.template=True
+        #self.defineNull.template=True        
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
         v_baseSize = _bb_axisBox #SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
         #v_baseSize = DIST.get_bb_size(mBBHelper.mNode)
@@ -936,6 +936,42 @@ def prerig(self):
         
         #>>New handles =====================================================================================
         mHandleFactory = self.asHandleFactory(self.mNode)   
+        
+        #Settings Helper ====================================================================
+        mBBHelper = self.bbHelper
+        _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
+        
+        pos = mBBHelper.getPositionByAxisDistance('z+', _bb_axisBox[1] * .75)
+        vector = mBBHelper.getAxisVector('y+')
+        
+        newPos = DIST.get_pos_by_vec_dist(pos,vector, _bb_axisBox[1] * .5)
+    
+        settings = CURVES.create_fromName('gear', _bb_axisBox[1]/5,'x+')
+        
+        mSettingsShape = cgmMeta.validateObjArg(settings,'cgmObject')
+        mSettings = cgmMeta.validateObjArg(self.doCreateAt(),'cgmObject',setClass=True)
+        
+        mSettings.p_position = newPos
+        mSettingsShape.p_position = newPos
+        mSettings.p_parent = mPrerigNull
+        
+        ATTR.copy_to(self.mNode,'cgmName',mSettings.mNode,driven='target')
+        #mSettings.doStore('cgmName','head')
+        mSettings.doStore('cgmType','shapeHelper')
+        mSettings.doName()
+        #CORERIG.colorControl(mSettings.mNode,_side,'sub')
+        
+        SNAP.aim_atPoint(mSettingsShape.mNode,
+                         self.p_position,
+                         aimAxis='z+',
+                         mode = 'vector',
+                         vectorUp= self.getAxisVector('y+'))
+        
+        CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode,False)
+        mHandleFactory.color(mSettings.mNode,controlType='sub')
+        
+        self.connectChildNode(mSettings,'settingsHelper','block')#Connect
+        
         
         if not self.neckBuild:
             #Joint Helper ======================================================================================
@@ -1482,6 +1518,18 @@ def rig_dataBuffer(self):
         log.debug("|{0}| >> rotateOrder | self.ro_headLookAt: {1}".format(_str_func,self.ro_headLookAt))
     
         log.debug(cgmGEN._str_subLine)
+        
+        #mainRot axis =============================================================================
+        """For twist stuff"""
+        #_mainAxis = ATTR.get_enumValueString(mBlock.mNode,'mainRotAxis')
+        #_axis = ['aim','up','out']
+        #if _mainAxis == 'up':
+        #    _upAxis = 'out'
+        #else:
+        #    _upAxis = 'up'
+        
+        self.v_twistUp = self.d_orientation.get('vector{0}'.format('Out'))
+        log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))        
     
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -1867,6 +1915,15 @@ def rig_shapes(self):
                  """
             
             #Settings =================================================================================
+            mShape = mBlock.getMessageAsMeta('settingsHelper')
+            mSettings = mShape.doDuplicate(po=False)
+            mSettings.p_parent = False
+            ATTR.copy_to(_short_module,'cgmName',mSettings.mNode,driven='target')
+            #mSettings.doStore('cgmName','head')
+            mSettings.doStore('cgmTypeModifier','settings')
+            mSettings.doName()
+            #CORERIG.colorControl(mSettings.mNode,_side,'sub')            
+            """
             pos = mHeadHelper.getPositionByAxisDistance('z+', _size * .75)
             
             mTar = ml_rigJoints[-1]
@@ -1893,7 +1950,7 @@ def rig_shapes(self):
                              mode = 'vector',
                              vectorUp= mTar.getAxisVector(_jointOrientation[0]+'-'))
             
-            CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode,False)
+            CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode,False)"""
             mHandleFactory.color(mSettings.mNode,controlType='sub')
             
             self.mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
@@ -2677,7 +2734,7 @@ def rig_frame(self):
                                          upVector = self.d_orientation['vectorUp'],
                                          worldUpVector = self.d_orientation['vectorOut'],
                                          worldUpObject = mRoot.mNode,
-                                         worldUpType = 'objectRotation' )                        
+                                         worldUpType = 'objectRotation' )
                         
                         
                     else:
@@ -2877,6 +2934,66 @@ def rig_frame(self):
                         mIKBaseControl = mRigNull.controlIKBase
             
                         mIKBaseControl.masterGroup.parent = mIKGroup
+                        
+                        
+                    if mIKBaseControl:
+                        mBaseOrientGroup = cgmMeta.validateObjArg(mIKBaseControl.doGroup(True,False,asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
+                        ATTR.set(mBaseOrientGroup.mNode, 'rotateOrder', _jointOrientation)
+                    
+                        mLocBase = mIKBaseControl.doCreateAt()
+                        mLocAim = mIKBaseControl.doCreateAt()
+                        
+                    
+                        mLocAim.doStore('cgmType','aimDriver')
+                        mLocBase = mIKBaseControl.doCreateAt()
+                        mLocBase.doStore('cgmType','baseDriver')
+                        
+                        
+                        for mObj in mLocBase,mLocAim:
+                            mObj.doStore('cgmName',mIKBaseControl.mNode)                        
+                            mObj.doName()
+                    
+                        mLocAim.p_parent = mIKBaseControl.dynParentGroup
+                
+                        mAimTarget = mIKControl
+                        """
+                        _direction = self.d_module['direction'] or 'center'
+                        if _direction.lower() == 'left':
+                            v_aim = [0,0,1]
+                        else:
+                            v_aim = [0,0,-1]"""
+                
+                        mc.aimConstraint(mAimTarget.mNode, mLocAim.mNode, maintainOffset = True,
+                                         aimVector = [0,0,1], upVector = [0,1,0], 
+                                         worldUpObject = mIKBaseControl.dynParentGroup.mNode,
+                                         worldUpType = 'objectrotation', 
+                                         worldUpVector = self.v_twistUp)
+                    
+                    
+                        mLocBase.p_parent = mIKBaseControl.dynParentGroup
+                    
+                    
+                        const = mc.orientConstraint([mLocAim.mNode,mLocBase.mNode],
+                                                    mBaseOrientGroup.mNode, maintainOffset = True)[0]
+                    
+                        d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mIKBaseControl.mNode,
+                                                                              'aim'],
+                                                                             [mIKControl.mNode,'resRootFollow'],
+                                                                             [mIKControl.mNode,'resFullFollow'],
+                                                                             keyable=True)
+                    
+                        targetWeights = mc.orientConstraint(const,q=True,
+                                                            weightAliasList=True,
+                                                            maintainOffset=True)
+                    
+                        #Connect                                  
+                        d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                        d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                        d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                        d_blendReturn['d_result2']['mi_plug'].p_hidden = True                                            
+                        ATTR.set_default(mIKBaseControl.mNode, 'aim', 1.0)
+                        #mIKBaseControl.extendIK = 0.0
+                        mIKBaseControl.p_parent = mBaseOrientGroup
             
                     else:#Spin Group#========================================================================
                         log.debug("|{0}| >> spin setup...".format(_str_func))
@@ -3307,7 +3424,7 @@ def rig_cleanUp(self):
             
         for mHandle in ml_ikControls:
             log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
-            if b_ikOrientToWorld:BUILDERUTILS.control_convertToWorldIK(mHandle)
+            if b_ikOrientToWorld and mHandle != mControlIKBase:BUILDERUTILS.control_convertToWorldIK(mHandle)
             
             ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
             

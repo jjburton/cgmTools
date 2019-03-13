@@ -3220,12 +3220,13 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
     _toObject = toObject
     _toAttr = toAttr
     
-    if _toObject is None:
+    if not _toObject:
         log.debug("|{0}| >> No toObject specified. Using fromObject: {1}".format(_str_func,fromObject))
         _toObject = fromObject
-    if _toAttr is None:
+    if not _toAttr:
         log.debug("|{0}| >> No toAttr specified. Using fromAttr: {1}".format(_str_func,fromAttr))
         _toAttr = fromAttr
+        
     _d_targetAttr = validate_arg(_toObject,_toAttr)
     
     if _combined == _d_targetAttr['combined']:

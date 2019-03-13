@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -296,8 +296,9 @@ def rootOrCog(self,mHandle = None):
             mRoot = ml_joints[0].doCreateAt()
     
             #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_formHandles[0].mNode))
-            _size_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True,mode='max')
-            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('sphere', _size_root * 1.5),'cgmObject',setClass=True)
+            _bb_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True)
+            _size_root = MATH.average(_bb_root) * 1.25
+            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cubeOpen', _size_root * 1.5),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
     
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
@@ -608,6 +609,81 @@ def segment_handles(self,ml_handles = None):
                                          replaceShapes=True)
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+def lever(self,ml_handles = None):
+    try:
+        _str_func = 'lever'
+        log_start(_str_func)
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        ml_formHandles = self.ml_formHandles
+        #Get our curves...
+        ml_targets = []
+        for i,mHandle in enumerate(ml_formHandles[:2]):
+            ml_targets.append(mHandle.loftCurve)
+            if i:
+                continue
+            ml_sub = mHandle.msgList_get('subShapers')
+            if ml_sub:
+                for mSub in ml_sub:
+                    ml_targets.append(mSub)
+                    
+        
+        ml_new = []
+        for mTar in ml_targets:
+            mDup = mTar.doDuplicate(po=False)
+            DIST.offsetShape_byVector(mDup.mNode,_offset)
+            mDup.p_parent = False
+            ml_new.append(mDup)
+            
+        CURVES.join_shapes([mTar.mNode for mTar in ml_new],mode='even')
+        
+        return ml_new[0]
+        
+        mLeverControlJoint = mRigNull.getMessageAsMeta('leverDirect')
+        mLeverControlFK =  mRigNull.getMessageAsMeta('leverFK')
+        if not mLeverControlJoint:
+            mLeverControlJoint = mLeverControlFK
+        else:
+            mLeverControlJoint = mLeverControlJoint
+        log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
+    
+        dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
+                                                      ml_prerigHandles[1].p_position)
+        log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
+    
+        #Dup our rig joint and move it 
+        mDup = mLeverControlJoint.doDuplicate()
+        mDup.p_parent = mLeverControlJoint
+    
+        mDup.resetAttrs()
+        ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
+    
+        mDup2 = mDup.doDuplicate()
+        ATTR.set(mDup2.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .25)
+    
+    
+        ml_clavShapes = BUILDUTILS.shapes_fromCast(self, targets= [mDup2.mNode,
+                                                                   #ml_fkJoints[0].mNode],
+                                                                   mDup.mNode],
+                                                         aimVector= self.d_orientation['vectorOut'],
+                                                         offset=_offset,
+                                                         f_factor=0,
+                                                         mode = 'frameHandle')
+    
+        mHandleFactory.color(ml_clavShapes[0].mNode, controlType = 'main')        
+        CORERIG.shapeParent_in_place(mLeverControlFK.mNode,ml_clavShapes[0].mNode, True, replaceShapes=True)
+        #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
+    
+        mc.delete([mShape.mNode for mShape in ml_clavShapes] + [mDup.mNode,mDup2.mNode])        
+
+      
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+    
     
 def backup(self,ml_handles = None):
     try:
