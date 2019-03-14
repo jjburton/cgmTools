@@ -9347,3 +9347,19 @@ def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRi
             mel.eval('python "import cgm.core.cgm_Meta as cgmMeta;{1} = cgmMeta.asMeta({0});"'.format("'{0}'".format(self.mNode),blockString))
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+
+
+
+        
+def blockModule_setLogger(self,mode = 'debug'):
+    try:
+        _str_func = 'to_scriptEditor'
+        log.debug(cgmGEN.logString_start(_str_func))
+        mModule = self.p_blockModule
+        if mode == 'debug':
+            mModule.log.setLevel(mModule.logging.DEBUG)
+        else:
+            mModule.log.setLevel(mModule.logging.INFO)
+            
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)

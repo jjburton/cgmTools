@@ -2350,64 +2350,67 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                                 vec =MATH.get_vector_of_two_points(l_pos[i+1],l_pos[i])
                                 
                             log.debug("|{0}| >> Using last vector: {1}".format(_str_func,vec))
-                        p1 = l_pos[i]                    
+                        p1 = l_pos[i]
                         
+                    try:mc.delete(_planar)
+                    except:pass
+
                     p2 = l_pos[i-1]
                     pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     dClose = DIST.get_distance_between_points(p1,pClose)
                     d2 = DIST.get_distance_between_points(p1,p2)
                     
-                    #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
-                    #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
-    
-                    
-                    #vec = _resClosest['normal']
-                    
-                    """
-                    if uSet == l_sets[-1]:
-                        vec = MATH.get_vector_of_two_points(p1,p2)                    
-                    else:
-                        vec = MATH.get_vector_of_two_points(p1,l_pos[i-1])"""                
-                        #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
+                    if d2 > dClose:
+                        #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
+                        #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
+        
                         
-                    #dMax = min([dClose,_offset*10])
-                    dMax = (mc.arclen(root)/3.14)/3
-                    
-                    #dMax = dClose * .5#_offset *10
-                    pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
-                    pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .85)
-                    pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
-                    
-                    
-                    #DIST.offsetShape_byVector(root,-_offset)
-                    ATTR.set(root,'scale',.9)                                        
-                    mid1 = mc.duplicate(root)[0]
-                    ATTR.set(mid1,'scale',.7)
-                    mid2 = mc.duplicate(root)[0]
-                    ATTR.set(mid2,'scale',.5)                
-                    end = mc.duplicate(root)[0]
-                    ATTR.set(end,'scale',.1)
-                    
-                    #DIST.offsetShape_byVector(end,-_offset)
-                    
-                    TRANS.position_set(mid1,pSet1)
-                    TRANS.position_set(mid2,pSet2)
-                    TRANS.position_set(end,pSet3)
-                    
-                    #now loft new mesh...
-                    _loftTargets = [end,mid2,mid1,root]
-                    #if cgmGEN.__mayaVersion__ in [2018]:
-                        #_loftTargets.reverse()
+                        #vec = _resClosest['normal']
                         
-                    _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
-                                               degree=1,divisions=1)
-                    
-                    mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
-                    
-                    _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
-                    mc.delete([end,mid1,mid2,root])
-                    try:mc.delete(_planar)
-                    except:pass
+                        """
+                        if uSet == l_sets[-1]:
+                            vec = MATH.get_vector_of_two_points(p1,p2)                    
+                        else:
+                            vec = MATH.get_vector_of_two_points(p1,l_pos[i-1])"""                
+                            #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
+                            
+                        #dMax = min([dClose,_offset*10])
+                        dMax = (mc.arclen(root)/3.14)/3
+                        
+                        #dMax = dClose * .5#_offset *10
+                        pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
+                        pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .85)
+                        pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
+                        
+                        
+                        #DIST.offsetShape_byVector(root,-_offset)
+                        ATTR.set(root,'scale',.9)                                        
+                        mid1 = mc.duplicate(root)[0]
+                        ATTR.set(mid1,'scale',.7)
+                        mid2 = mc.duplicate(root)[0]
+                        ATTR.set(mid2,'scale',.5)                
+                        end = mc.duplicate(root)[0]
+                        ATTR.set(end,'scale',.1)
+                        
+                        #DIST.offsetShape_byVector(end,-_offset)
+                        
+                        TRANS.position_set(mid1,pSet1)
+                        TRANS.position_set(mid2,pSet2)
+                        TRANS.position_set(end,pSet3)
+                        
+                        #now loft new mesh...
+                        _loftTargets = [end,mid2,mid1,root]
+                        #if cgmGEN.__mayaVersion__ in [2018]:
+                            #_loftTargets.reverse()
+                            
+                        _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
+                                                   degree=1,divisions=1)
+                        
+                        mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
+                        
+                        _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
+                        mc.delete([end,mid1,mid2,root])
+
                 else:
                 
                     #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)

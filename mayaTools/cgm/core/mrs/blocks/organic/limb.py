@@ -22,6 +22,11 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+def echoLogger():
+    log.info('info')
+    log.debug('debug')
+    log.error('error')
+
 # From Maya =============================================================
 import maya.cmds as mc
 import maya.mel as mel    
@@ -1894,19 +1899,25 @@ def skeleton_build(self, forceNew = True):
         _d_base['cgmType'] = 'skinJoint'
         _buildBall = self.buildBall
         _buildToe = self.buildToe
+        _buildLeverEnd = self.buildLeverEnd
         
         #Build our handle chain ======================================================
         l_pos = []
+        _specialEndHandling = False
         
         if _buildToe == 1:
             ml_jointHelpers.pop(-1)
         if _buildBall == 1:
             ml_jointHelpers.pop(-1)
             
-        if not self.hasEndJoint:
-            if not _buildBall:
-                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-                ml_jointHelpers.pop(-1)
+        if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
+            log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))                                        
+            _specialEndHandling=True
+            
+            
+        if not _specialEndHandling and not self.hasEndJoint:
+            log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+            ml_jointHelpers.pop(-1)
                 
         pprint.pprint(ml_jointHelpers)
         
@@ -2151,9 +2162,11 @@ def rig_dataBuffer(self):
             #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
             
         
-        self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
-        self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
-        self.str_ikExtendSetup = ATTR.get_enumValueString(mBlock.mNode,'ikExtendSetup')
+        for k in ['rigSetup','ikRollSetup','ikExtendSetup','buildBall','buildLeverBase','buildLeverEnd','buildToe']:
+            self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
+        #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
+        #self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
+        #self.str_ikExtendSetup = ATTR.get_enumValueString(mBlock.mNode,'ikExtendSetup')
         
         #Single chain ============================================================================
         self.b_singleChain = False
@@ -5148,6 +5161,7 @@ def rig_segments(self):
             
             
             
+            
             if self.b_squashSetup:
                 log.debug("|{0}| >> Final squash stretch stuff...".format(_str_func))
                 
@@ -6955,7 +6969,9 @@ def rig_pivotSetup(self):
                                 front = 'front', back = 'back')#front, back to clear the toe, heel defaults
             
 
-            if self.str_ikRollSetup == 'control':
+            if self.str_ikRollSetup == 'control' and mBlock.buildBall:
+                log.debug(cgmGEN.logString_start(_str_func,'Control ball setup...'))
+                
                 mParentUse = mPivotResultDriver.p_parent
                 mToeControl = False
                 log.debug(cgmGEN.logString_sub(_str_func,'roll control setup'))
