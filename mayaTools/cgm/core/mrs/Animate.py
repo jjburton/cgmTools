@@ -1831,7 +1831,8 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
                         ls.extend(_l)
                         
                         for mPart in mPuppet.UTILS.modules_get(mPuppet):
-                            _l = [mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)]
+                            #_l = [mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)]
+                            _l = mPart.rigNull.moduleSet.getList()
                             ls.extend(_l)
                             addSourceControls(self,mPart,_l)
                             
@@ -2026,7 +2027,7 @@ def uiCB_contextualAction(self,**kws):
                 log.info("[{0}] : {1}".format(i,v))
             #pprint.pprint(self.d_puppetData['mModules'])
             log.debug(cgmGEN._str_subLine)
-            return endCall(self)
+            #return endCall(self)
         elif _mode == 'select':
             return  mc.select(_l_controls)
         elif _mode in ['selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']:
@@ -2131,8 +2132,7 @@ def uiCB_contextualAction(self,**kws):
     
             mc.select(l_sel)
             return        
-        
-    
+
     d_timeContext  = get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not d_timeContext[0]:
@@ -2241,6 +2241,7 @@ def uiCB_contextualAction(self,**kws):
                 if _keyResult:
                     for o in self.d_puppetData['sControls']:
                         mc.setKeyframe(o,time = f)
+                        
             if _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
                          'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
                 log.info("Context: {0} | Switch call".format(_context))
@@ -2257,10 +2258,11 @@ def uiCB_contextualAction(self,**kws):
                         mc.setKeyframe(o,time = f)
 
             else:
+                log.info("Processing parts...".format(_context))
+                
                 for mPart,controls in self.d_puppetData['partControls'].iteritems():
                     log.info(cgmGEN.logString_sub(None,'Part: {0}'.format(mPart),'_',40))
                     mc.progressBar(self.uiProgressBar,edit=True,maxValue = len(self.d_puppetData['partControls'].keys()),step = 1, vis=1)
-                    
 
                     if _mode in ['reset','resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
                         l_use = controls
@@ -2287,6 +2289,10 @@ def uiCB_contextualAction(self,**kws):
                                         return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
                                     
                         RIGGEN.reset_channels_fromMode(l_use,_resetMode)
+                        for c in controls:
+                            if SEARCH.get_key_indices_from(c):
+                                mc.setKeyframe(c,time = f)
+                                
                         
                     elif _mode in ['key','bdKey','reset','delete']:
                         mc.select(controls)
@@ -3890,9 +3896,9 @@ def get_contextualControls(self,mirrorQuery=False,**kws):
                     #for mPart in mPuppet.UTILS.modules_get(mPuppet):
                     #  ls.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart,'mirror')])            
                 for mPuppet in self.d_puppetData['mPuppets']:
-                    _l = [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet,walk=True)]
-                    ls.extend(_l)
-                    #ls.extend(mPuppet.puppetSet.getList())
+                    #_l = [mObj.mNode for mObj in mPuppet.UTILS.controls_get(mPuppet,walk=True)]
+                    #ls.extend(_l)
+                    ls.extend(mPuppet.puppetSet.getList())
                     #mPuppet.puppetSet.select()
                     #ls.extend(mc.ls(sl=True))
                     

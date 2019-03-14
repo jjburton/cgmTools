@@ -711,14 +711,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def getBlockModule(self,update = False):
         if self._blockModule and  update:
-            if self._blockModule:
+            if self._blockModule:                
                 return self._blockModule
             return get_blockModule(self.getMayaAttr('blockType'))
         blockType = self.getMayaAttr('blockType')
         blockModule = get_blockModule(blockType)
         if not blockModule:
             raise ValueError,"No blockModule found. blockType: {0}".format(self.blockType)
-        reload(blockModule)
         return blockModule
 
     try:p_blockModule = property(getBlockModule)
@@ -1265,6 +1264,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         #try:
         _blockModule = self.p_blockModule
+        reload(_blockModule)
         return getattr(_blockModule,func)(self,*args,**kws)            
         #return self.stringModuleCall(_blockModule,func,*args, **kws)
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
