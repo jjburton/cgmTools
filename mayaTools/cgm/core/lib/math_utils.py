@@ -842,5 +842,24 @@ def angleBetween(p1, p2, p3):
     
     return math.degrees(v1.angle(v2))
 
+def averageVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    return [average(a,b) for a,b in zip(v1,v2)]
+    #return sum((a*b) for a, b in zip(v1, v2))
+
+def dotproduct(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    return sum((a*b) for a, b in zip(v1, v2))
+
+def length(v):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.sqrt(dotproduct(v, v))
+
+def angleBetweenVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+
+
+
 
 

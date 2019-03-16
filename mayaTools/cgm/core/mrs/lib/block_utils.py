@@ -3969,8 +3969,9 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         _l_warnings = []
         
     if not ml_handles:
-        log.error("|{0}| >> No define handles found".format(_str_func))
+        log.error("|{0}| >> No {1} handles found".format(_str_func,state))
     else:
+        log.debug(cgmGEN.logString_sub(_str_func,"processing {0}".format(state)))        
         _posTempl = d_state.get('positions')
         _orientsTempl = d_state.get('orients')
         _scaleTempl = d_state.get('scales')
@@ -3982,8 +3983,12 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         if state == 'prerig':
             _jointHelpersPre = d_state.get('jointHelpers')
             
-        if len(ml_handles) < _len_posTempl:
-            _l_warnings.append("|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state))
+        if len(ml_handles) > _len_posTempl:
+            msg = "|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state)
+            if d_warnings:
+                _l_warnings.append(msg)
+            else:
+                log.warning(msg)
         else:
             for i_loop in range(3):
                 log.debug(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
@@ -6955,7 +6960,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 _v =  mc.promptDialog(query=True, text=True)
                 l_new = _v.split(',')
                 len_new = len(l_new)
-                if len_new > len_needed:
+                if len_new >= len_needed:
                     self.datList_connect('nameList',l_new)
                     log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(l_new)))
                     return True
@@ -7061,7 +7066,7 @@ def blockProfile_load(self, arg):
     #if not _d.get('blockProfile'):
     #    _d['blockProfile'] = arg
     
-    cgmGEN.func_snapShot(vars())
+    #cgmGEN.func_snapShot(vars())
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
     for a,v in _d.iteritems():
         try:
