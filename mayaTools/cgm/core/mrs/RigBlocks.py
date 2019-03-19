@@ -342,6 +342,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     if 'define' in _blockModule.__dict__.keys():
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                         _blockModule.define(self)
+                        
+                    self.doName()
                 
                 #Form -------------------------------------------------
                 if autoForm and _blockModule.__dict__.get('__autoForm__'):

@@ -2333,7 +2333,11 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 if ballMode == 'loft':
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
-                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
+                        #mc.select(cl=1)
+                        mc.refresh(su=0)
+                        
+                        log.debug("Planar curve from: {0}".format(_loftCurves[0]))
+                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0,tol = 10)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
                         vec = [-v for v in vecRaw]
                         log.debug("|{0}| >> vector: {1}".format(_str_func,vec))                                        

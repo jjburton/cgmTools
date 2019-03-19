@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.03052019'
+__version__ = '1.03182019'
 _sidePadding = 25
 
 def check_cgm():
@@ -3589,7 +3589,7 @@ class ui(cgmUI.cgmGUI):
         
         _RightColumn = mUI.MelFormLayout(_MainForm)
         _RightUpperColumn = mUI.MelColumn(_RightColumn)
-        _RightScroll = mUI.MelScrollLayout(_RightColumn,useTemplate = 'cgmUITemplate')
+        _RightScroll = mUI.MelScrollLayout(_RightColumn,useTemplate = 'cgmUITemplate',width=400)
         
 
         #=============================================================================================
@@ -3884,8 +3884,9 @@ class ui(cgmUI.cgmGUI):
 
                         ],
                   ac = [(_LeftColumn,"top",0,_row_report),
+                        (_LeftColumn,"right",0,_RightColumn),
                         (_RightColumn,"top",0,_row_report),
-                        (_RightColumn,"left",0,_LeftColumn),
+                        #(_RightColumn,"left",0,_LeftColumn),
                         
                         #(_RightColumn,"bottom",0,_row_cgm),
                         #(_LeftColumn,"bottom",0,_row_cgm),

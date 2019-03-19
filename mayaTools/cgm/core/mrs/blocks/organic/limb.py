@@ -137,7 +137,7 @@ d_build_profiles = {
 
 d_block_profiles = {
 'default':{},
-'digitgrade front':{
+'leg digitgrade front':{
     'addCog':False,
     'attachPoint':'end',
     'cgmName':'leg',
@@ -168,7 +168,7 @@ d_block_profiles = {
     'baseSize':[11.6,8,79],
     'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[1,0,0]},
     },
-'digitgrade rear':{
+'leg digitgrade rear':{
     'addCog':False,
     'attachPoint':'end',
     'cgmName':'leg',
@@ -200,7 +200,7 @@ d_block_profiles = {
     'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
     },
 
-'ungulate front':{
+'leg ungulate front':{
     'addCog':False,
     'attachPoint':'end',
     'cgmName':'leg',
@@ -231,7 +231,7 @@ d_block_profiles = {
     'baseSize':[11.6,8,79],
     'baseDat':{'rp':[0,0,-1],'up':[0,0,1],'lever':[1,0,0]},
     },
-'ungulate rear':{
+'leg ungulate rear':{
     'addCog':False,
     'attachPoint':'end',
     'cgmName':'leg',
@@ -263,42 +263,9 @@ d_block_profiles = {
     'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
     },
 
-'leg':{
-    'numSubShapers':2,
+'leg crab':{
     'addCog':False,
     'cgmName':'leg',
-    'loftShape':'circle',
-    'loftSetup':'default',
-    'settingsPlace':'end',
-    'settingsDirection':'down',
-    'ikSetup':'rp',
-    'ikEnd':'foot',
-    'ikRPAim':'default',    
-    'buildLeverEnd':False,
-    'numControls':3,
-    'numSubShapers':3,
-    'rigSetup':'default',
-    'mainRotAxis':'out',
-    'buildBaseLever':False,
-    'hasLeverJoint':False,
-    'nameList':['hip','knee','ankle','ball','toe'],
-    'baseAim':[0,-1,0],
-    'baseUp':[0,0,1],
-    'baseSize':[11.6,13,70],
-    'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},
-    
-    'ikRollSetup':'control',
-    'buildBall':'joint',
-    'buildToe':'joint',
-    'buildLeverBase':'none',
-    'buildLeverEnd':'none',
-    'loftList':['wideNeg','wideDown','circle'],
-    'loftShapeEnd':'wideUp',
-       },
-
-'crab':{
-    'addCog':False,
-    'cgmName':'crabLeg',
     'loftShape':'squircleDiamond',
     'loftSetup':'loftList',
     'settingsPlace':'end',
@@ -313,15 +280,88 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'buildBaseLever':False,
-    'hasLeverJoint':False,
-    'hasBallJoint':False,
-    'hasEndJoint':True,
     'nameList':['hip','knee','ankle','ball','toe'],
+    
+    'hasEndJoint':True,
+    'ikRollSetup':'control',
+    'buildBall':'none',
+    'buildToe':'none',
+    'buildLeverBase':'none',
+    'buildLeverEnd':'joint',
+    'loftList':['wideUp','squircleDiamond','wideUp','squircleDiamond','circle'],
+    'loftShapeEnd':'wideUp',
+    
     'baseAim':[-1,-1,0],
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
     'baseDat':{'rp':[1,-1,0],'up':[-1,0,0],'lever':[1,0,0]},
           },
+
+
+'leg plantigrade rear':{
+    'numSubShapers':2,
+    'addCog':False,
+    'cgmName':'leg',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'settingsDirection':'down',
+    'ikSetup':'rp',
+    'ikEnd':'foot',
+    'ikRPAim':'default',    
+    'numControls':3,
+    'numSubShapers':3,
+    'rigSetup':'default',
+    'mainRotAxis':'out',
+    'nameList':['hip','knee','ankle','ball','toe'],
+    
+    'hasEndJoint':True,
+    'ikRollSetup':'control',
+    'buildBall':'joint',
+    'buildToe':'joint',
+    'buildLeverBase':'none',
+    'buildLeverEnd':'none',
+    'loftList':['wideNeg','wideDown','circle'],
+    'loftShapeEnd':'wideUp',
+    
+    'baseAim':[0,-1,0],
+    'baseUp':[0,0,1],
+    #'baseSize':[11.6,13,70],
+    'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0], 'baseSize':[11.6,13,70]},    
+
+       },
+
+'leg unigrade':{
+    'numSubShapers':2,
+    'addCog':False,
+    'cgmName':'leg',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'settingsDirection':'down',
+    'ikSetup':'rp',
+    'ikRPAim':'default',    
+    'numControls':3,
+    'numSubShapers':3,
+    'rigSetup':'default',
+    'mainRotAxis':'out',
+    'nameList':['hip','knee','tip'],
+    
+    'ikEnd':'default',    
+    'hasEndJoint':True,
+    'ikRollSetup':'control',
+    'buildBall':'none',
+    'buildToe':'none',
+    'buildLeverBase':'none',
+    'buildLeverEnd':'none',
+    'loftList':['wideNeg','wideDown','squircle'],
+    'loftShapeEnd':'wideUp',
+    
+    'baseAim':[0,-1,0],
+    'baseUp':[0,0,1],
+    'baseSize':[11.6,13,70],
+    'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0]},    
+       },
 
 'arm':{
     'numSubShapers':2,
@@ -337,17 +377,160 @@ d_block_profiles = {
     'mainRotAxis':'up',
     'numControls':3,
     'ikRPAim':'free',
-    'buildLeverBase':True,
-    'hasLeverJoint':True,
-    'hasBallJoint':False,
-    'hasEndJoint':True,
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
+
+    'hasEndJoint':True,
+    'ikRollSetup':'control',
+    'buildBall':'none',
+    'buildToe':'none',
+    'buildLeverBase':'joint',
+    'buildLeverEnd':'none',
+    'loftList':['circle','widePos','squircle'],
+    'loftShapeEnd':'wideUp',
+    
     'baseAim':[-1,0,0],
     'baseSize':[14,9,76],
     'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
-    'loftList':['circle','widePos','squircle'],
+    
        },
+'finger':{'numSubShapers':2,
+          'addCog':False,
+          'attachPoint':'end',
+          'loftShape':'wideDown',
+          'loftSetup':'loftList',
+          'settingsPlace':'end',
+          'ikSetup':'rp',
+          'ikEnd':'tipBase',
+          'numControls':4,
+          'numRoll':0,
+          'ikRPAim':'default',              
+          'rigSetup':'digit',
+          'mainRotAxis':'out',                             
+          'offsetMode':'default',
+          'followParentBank':True,              
+          'nameList':['index'],
+          'scaleSetup':False,
+          
+          'hasEndJoint':True,
+          'ikRollSetup':'control',
+          'buildBall':'none',
+          'buildToe':'none',
+          'buildLeverBase':'joint',
+          'buildLeverEnd':'none',
+          'loftList':['wideDown','wideDown','wideDown','digit'],                            
+          'loftShapeEnd':'wideUp',
+          
+          
+          'baseAim':[0,0,1],
+          'baseUp':[0,1,0],
+          'baseSize':[3,2.5,13],
+          'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
+          },
+'toe':{'numSubShapers':1,
+       'addCog':False,
+       'attachPoint':'end',
+       'loftShape':'wideDown',
+       'loftSetup':'default',
+       'settingsPlace':'end',
+       'ikSetup':'rp',
+       'ikEnd':'tipBase',
+       'numControls':4,
+       'numRoll':0,
+       'ikRPAim':'default',
+       'rigSetup':'digit',
+       'mainRotAxis':'out',
+       'numSpacePivots':0,
+       'offsetMode':'default',
+       'followParentBank':True,           
+       'nameList':['index'],
+       'scaleSetup':False,
+       
+       'hasEndJoint':True,
+       'ikRollSetup':'control',
+       'buildBall':'none',
+       'buildToe':'none',
+       'buildLeverBase':'joint',
+       'buildLeverEnd':'none',
+       'loftList':['wideDown','wideDown','wideDown','digit'],                            
+       'loftShapeEnd':'wideUp',
+       
+       
+       'baseAim':[0,0,1],
+       'baseUp':[0,1,0],
+       'baseSize':[3,2.5,13],
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
+       },
+
+'thumb':{'numSubShapers':2,
+          'addCog':False,
+          'attachPoint':'end',
+          'loftShape':'wideDown',
+          'loftSetup':'loftList',
+          'settingsPlace':'end',
+          'ikSetup':'rp',
+          'ikEnd':'tipBase',
+          'numControls':4,
+          'numRoll':0,
+          'ikRPAim':'default',              
+          'rigSetup':'digit',
+          'mainRotAxis':'out',
+          'followParentBank':True,              
+          'offsetMode':'default',
+          'nameList':['thumb'],
+          'scaleSetup':False,
+          
+          'hasEndJoint':True,
+          'ikRollSetup':'control',
+          'buildBall':'none',
+          'buildToe':'none',
+          'buildLeverBase':'none',
+          'buildLeverEnd':'none',
+          'loftList':['wideNeg','wideDown','wideDown','digit'],              
+          'loftShapeEnd':'wideUp',
+          
+          'baseAim':[0,0,1],
+          'baseUp':[0,1,0],
+          'baseSize':[3,2.5,13],
+          'baseDat':{'lever':[1,0,-1],'rp':[-1,0,0],'up':[-1,0,0]},              
+          },    
+
+'nub':{'numSubShapers':2,
+       'addCog':False,
+       'attachPoint':'end',
+       'cgmName':'nub',
+       'loftShape':'wideDown',
+       'loftSetup':'default',
+       'settingsPlace':'end',
+       'ikSetup':'rp',
+       'ikEnd':'tipEnd',
+       'numControls':2,
+       'numRoll':0,
+       'ikRPAim':'default',
+       'rigSetup':'digit',
+       'mainRotAxis':'out',
+       'hasEndJoint':False,
+       'followParentBank':True,           
+       'nameList':['nub'],
+       'scaleSetup':False,
+       
+       
+       'hasEndJoint':True,
+       'ikRollSetup':'control',
+       'buildBall':'none',
+       'buildToe':'none',
+       'buildLeverBase':'none',
+       'buildLeverEnd':'none',
+       
+       'baseAim':[0,0,1],
+       'baseUp':[0,1,0],
+       'baseSize':[10,10,20],
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       },    
+
+   }
+
+d_placeHolder = {
 'wingBase':{'numSubShapers':2,
             'addCog':False,
             'attachPoint':'end',
@@ -370,119 +553,7 @@ d_block_profiles = {
             'baseAim':[-1,0,0],
             'baseSize':[14,9,76],
             'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
-            },
-'finger':{'numSubShapers':2,
-          'addCog':False,
-          'attachPoint':'end',
-          'loftShape':'wideDown',
-          'loftSetup':'loftList',
-          'loftList':['wideDown','wideDown','wideDown','digit'],                            
-          'settingsPlace':'end',
-          'ikSetup':'rp',
-          'ikEnd':'tipBase',
-          'numControls':4,
-          'numRoll':0,
-          'ikRPAim':'default',              
-          'rigSetup':'digit',
-          'mainRotAxis':'out',                             
-          'offsetMode':'default',
-          'buildLeverBase':True,
-          'hasLeverJoint':True,
-          'hasBallJoint':False,
-          'followParentBank':True,              
-          'hasEndJoint':True,
-          'nameList':['index'],
-          'scaleSetup':False,
-          'baseAim':[0,0,1],
-          'baseUp':[0,1,0],
-          'baseSize':[3,2.5,13],
-          'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
-          },
-'toe':{'numSubShapers':1,
-       'addCog':False,
-       'attachPoint':'end',
-       'loftShape':'wideDown',
-       'loftSetup':'default',
-       'settingsPlace':'end',
-       'ikSetup':'rp',
-       'ikEnd':'tipBase',
-       'numControls':4,
-       'numRoll':0,
-       'ikRPAim':'default',
-       'rigSetup':'digit',
-       'mainRotAxis':'out',
-       'numSpacePivots':0,
-       'offsetMode':'default',
-       'followParentBank':True,           
-       'buildLeverBase':False,
-       'hasLeverJoint':False,
-       'hasBallJoint':False,
-       'hasEndJoint':True,
-       'nameList':['index'],
-       'scaleSetup':False,
-       'baseAim':[0,0,1],
-       'baseUp':[0,1,0],
-       'baseSize':[3,2.5,13],
-       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
-       },
-
-'thumb':{'numSubShapers':2,
-          'addCog':False,
-          'attachPoint':'end',
-          'loftShape':'wideDown',
-          'loftSetup':'loftList',
-          'settingsPlace':'end',
-          'ikSetup':'rp',
-          'ikEnd':'tipBase',
-          'numControls':4,
-          'numRoll':0,
-          'ikRPAim':'default',              
-          'rigSetup':'digit',
-          'mainRotAxis':'out',
-          'followParentBank':True,              
-          'offsetMode':'default',
-          'buildLeverBase':False,
-          'hasLeverJoint':False,
-          'hasBallJoint':False,
-          'hasEndJoint':True,
-          'nameList':['thumb'],
-          'scaleSetup':False,
-          'baseAim':[1,0,0],
-          'baseUp':[0,1,0],
-          'baseSize':[3,2.5,13],
-          'loftList':['wideNeg','wideDown','wideDown','digit'],              
-          'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},              
-          },    
-
-'nub':{'numSubShapers':2,
-       'addCog':False,
-       'attachPoint':'end',
-       'cgmName':'nub',
-       'loftShape':'wideDown',
-       'loftSetup':'default',
-       'settingsPlace':'end',
-       'ikSetup':'rp',
-       'ikEnd':'tipEnd',
-       'numControls':2,
-       'numRoll':0,
-       'ikRPAim':'default',
-       'rigSetup':'digit',
-       'mainRotAxis':'out',
-       'hasEndJoint':False,
-       'followParentBank':True,           
-       'buildLeverBase':False,
-       'hasLeverJoint':False,
-       'hasLeverJoint':False,
-       'hasBallJoint':False,
-       'nameList':['nub'],
-       'scaleSetup':False,
-       'baseAim':[0,0,1],
-       'baseUp':[0,1,0],
-       'baseSize':[10,10,20],
-       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
-       },    
-
-   }
+            },}
 
 #>>>Attrs =====================================================================================================
 l_attrsStandard = ['side',
@@ -644,14 +715,11 @@ def define(self):
         if _shapes:
             log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
             mc.delete(_shapes)
-            defineNull = self.getMessage('defineNull')
-            #noTransform = self.getMessage('noTransDefineNull')
-            if defineNull:
-                log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
-                mc.delete(defineNull)
-            #if noTransform:
-            #    log.debug("|{0}| >>  Removing old defineNoTransformNull...".format(_str_func))
-            #    mc.delete(noTransform)
+            
+        defineNull = self.getMessage('defineNull')
+        if defineNull:
+            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+            mc.delete(defineNull)
             self.verify()
             
                 
@@ -721,6 +789,9 @@ def define(self):
         self.doConnectIn('baseSizeY',"{0}.height".format(_end))
         self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
         
+        _dat = self.baseDat
+        _dat['baseSize'] = self.baseSize
+        self.baseDat = _dat
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -754,7 +825,11 @@ def formDelete(self):
                     _end = mHandle.mNode
                     self.doConnectIn('baseSizeX',"{0}.width".format(_end))
                     self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                  
+                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                    
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat
                 
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
             if mHandle:
@@ -1697,7 +1772,7 @@ def prerig(self):
     
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
-        if _ikEnd not in ['bank']:
+        if _ikEnd not in []:
             if self.buildBall and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
                 ml_formHandles.append(mHelp)
@@ -2111,10 +2186,12 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> No extra ball/toe joints detected...".format(_str_func))
                 
             elif not self.buildLeverEnd:
+                cnt_lever = 0
+                if _b_lever:cnt_lever = 1
                 log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
-                _idx = (int(self.hasLeverJoint) + self.numControls) - 1
+                _idx = (cnt_lever + self.numControls) - 1
                 log.debug("|{0}| >> non quad end: {1}".format(_str_func,_idx))
-                try:mEnd = ml_handleJoints[(int(self.hasLeverJoint) + self.numControls) - 1]
+                try:mEnd = ml_handleJoints[(cnt_lever + self.numControls) - 1]
                 except:mEnd=False
                 
                 if mEnd:
@@ -2473,7 +2550,8 @@ def rig_dataBuffer(self):
         else:
             if not mBlock.ikEnd:
                 if mBlock.hasEndJoint:
-                    self.int_handleEndIdx -=1
+                    log.debug("|{0}| >> has EndJoint".format(_str_func))        
+                    #self.int_handleEndIdx -=1
             elif str_ikEnd in ['foot','pad']:
                 log.debug(cgmGEN.logString_msg(_str_func,'foot/pad'))
                 
@@ -2488,28 +2566,7 @@ def rig_dataBuffer(self):
                 elif str_ikEnd == 'tipBase':
                     self.int_handleEndIdx -=1
                     self.b_cullFKEnd = True            
-            """
-            if str_ikEnd in ['foot']:
-                if mBlock.hasEndJoint:
-                    self.mToe = self.ml_handleTargets.pop(-1)
-                    log.debug("|{0}| >> mToe: {1}".format(_str_func,self.mToe))
-                    self.int_handleEndIdx -=1
-                if mBlock.hasBallJoint:
-                    self.mBall = self.ml_handleTargets.pop(-1)
-                    log.debug("|{0}| >> mBall: {1}".format(_str_func,self.mBall))        
-                    self.int_handleEndIdx -=1
-                    
-            elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
-                log.debug("|{0}| >> tip setup...".format(_str_func))        
-                if not mBlock.hasEndJoint:
-                    if str_ikEnd == 'tipEnd':
-                        self.b_ikNeedEnd = True
-                        log.debug("|{0}| >> Need IK end joint".format(_str_func))
-                    elif str_ikEnd == 'tipBase':
-                        pass
-                elif str_ikEnd == 'tipBase':
-                    self.int_handleEndIdx -=1
-                    self.b_cullFKEnd = True"""
+
         
         if self.mBall:
             self.ml_fkShapeTargets.pop(-1)
@@ -2537,7 +2594,7 @@ def rig_dataBuffer(self):
                 mid=0
                 mMidHandle = ml_use[0]
             else:
-                mid = MATH.get_midIndex(len(ml_use))
+                mid = MATH.get_midIndex(len(ml_use)) 
                 mMidHandle = ml_use[mid]
             self.int_handleMidIdx = mid
         
@@ -2610,11 +2667,15 @@ def rig_dataBuffer(self):
         _axis = ['aim','up','out']
         if _mainAxis == 'up':
             _upAxis = 'out'
+            str_mainRotAxis = _str_orientation[1]
         else:
             _upAxis = 'up'
+            str_mainRotAxis = _str_orientation[2]
         
         self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
+        self.str_mainRotAxis = str_mainRotAxis
         log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))
+        log.debug("|{0}| >> Main axis | self.str_mainRotAxis: {1}".format(_str_func,self.str_mainRotAxis))
     
         log.debug(cgmGEN._str_subLine)    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -2793,13 +2854,23 @@ def rig_skeleton(self):
                 mOrientHelper = mBlock.orientHelper            
                 JOINT.orientChain(ml_ikJoints[-1:],
                                  relativeOrient=False,
-                                 worldUpAxis= mOrientHelper.getAxisVector('y+'))            
+                                 worldUpAxis= mOrientHelper.getAxisVector('y+'))
                 mRigNull.msgList_connect('ikJoints',ml_ikJoints)
             
-                
+            BLOCKUTILS.skeleton_pushSettings(ml_ikJoints,self.d_orientation['str'],
+                                             self.d_module['mirrorDirection'],
+                                             d_rotateOrders, {})
+            
             for i,mJnt in enumerate(ml_ikJoints):
                 if mJnt not in [ml_ikJoints[0],ml_ikJoints[-1]]:
-                    mJnt.preferredAngle = mJnt.jointOrient
+                    log.debug("|{0}| >> preferred angle settings: {1} ...".format(_str_func,mJnt.mNode))
+                    _jointOrient = mJnt.jointOrient
+                    if not MATH.is_vector_equivalent(_jointOrient,[0,0,0]):
+                        log.debug("|{0}| >> preferred angle: {1}".format(_str_func,_jointOrient))
+                        mJnt.preferredAngle = _jointOrient
+                    else:
+                        ATTR.set(mJnt.mNode,"preferredAngle{0}".format(self.str_mainRotAxis.capitalize()),10)
+                        
             
             """
             ml_blendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
@@ -2819,9 +2890,7 @@ def rig_skeleton(self):
             ml_jointsToHide.extend(ml_blendJoints)
             ml_parentJoints = ml_blendJoints
             
-            BLOCKUTILS.skeleton_pushSettings(ml_ikJoints,self.d_orientation['str'],
-                                             self.d_module['mirrorDirection'],
-                                             d_rotateOrders, d_preferredAngles)
+
             
     
             
@@ -5703,7 +5772,7 @@ def rig_frame(self):
                     ml_distHandlesNF[0].parent = mIKControlBase
                 
                 #>>> Fix our ik_handle twist at the end of all of the parenting
-                #IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
+                IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
                 if mIKControlEnd:
                     mIKEndDriver = mIKControlEnd
@@ -6516,7 +6585,6 @@ def rig_frameSingle(self):
                 
 
 
-                #IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
                 if mIKControlEnd:
                     mIKEndDriver = mIKControlEnd
@@ -6524,7 +6592,8 @@ def rig_frameSingle(self):
                     mIKEndDriver = mIKControl
                     
                 mc.orientConstraint([mIKEndDriver.mNode],
-                                    ml_ikJoints[self.int_handleEndIdx].mNode,
+                                    #ml_ikJoints[self.int_handleEndIdx].mNode,
+                                    ml_ikJoints[-1].mNode,                                    
                                     maintainOffset = True)
                 
                 if ml_end_children:

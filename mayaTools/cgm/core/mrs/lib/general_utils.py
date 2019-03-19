@@ -34,6 +34,7 @@ from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import GuiFactory as CGMUI
+import cgm.core.lib.string_utils as STR
 
 #from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -204,9 +205,18 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 _cgmName = mBlock.getMayaAttr('cgmName')
                 if _cgmName:
                     l_name.append(_cgmName)
+                    
+                
+                _blockProfile = mBlock.getMayaAttr('blockProfile')
+                if _blockProfile:
+                    if _cgmName in _blockProfile:
+                        _blockProfile = _blockProfile.replace(_cgmName,'')
+                    _blockProfile= STR.camelCase(_blockProfile)                    
+                    l_name.append(_blockProfile)
+                    
                 l_name.append( ATTR.get(_short,'blockType').capitalize() )
                 
-                _l_report.append(''.join(l_name))
+                _l_report.append(STR.camelCase(' '.join(l_name)))
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
                 if mBlock.getMayaAttr('isBlockFrame'):

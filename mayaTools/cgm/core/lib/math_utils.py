@@ -297,7 +297,7 @@ def is_even(f1):
 def get_midIndex(v):
     if is_even(v):
         return int(v/2)
-    return v/2 +1
+    return v/2 
 
 def is_float_equivalent(f1,f2,places=4):
     """
@@ -600,7 +600,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             return [maxValue for i in range(count)]
             
         
-        blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
+        blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
         
         if is_even(count):
             for i in range(idx_mid):

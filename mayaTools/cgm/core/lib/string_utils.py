@@ -1,12 +1,14 @@
 """
 ------------------------------------------
-math_utils: cgm.core.lib.string_utils
+string_utils: cgm.core.lib.string_utils
 Authors: David Bokser
 email: dbokser@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+import pprint
+import cgm.core.cgm_General as cgmGEN
 
 def levenshtein(s1, s2):
     '''algorithm taken from https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Python '''
@@ -31,3 +33,32 @@ def levenshtein(s1, s2):
 
 def capFirst(s1):
     return "{0}{1}".format(s1[0].capitalize(),s1[1:])
+
+
+def camelCase(arg = None):
+    """
+    """
+    _str_funcName = 'camelCase'
+    try:
+        l_split = arg.split(' ')
+        l_new = []
+        _first = False
+        #pprint.pprint(l_split)
+        if len(l_split) == 1:
+            for i,a in enumerate(l_split):
+                if a and len(a)>1:
+                    l_new.append(a[0].lower()+a[1:])
+        else:
+            for i,a in enumerate(l_split):
+                if a and len(a)>1:
+                    if not _first:
+                        l_new.append(a)
+                        _first = True
+                    else:
+                        l_new.append(a[0].capitalize()+a[1:])
+                
+        return ''.join(l_new)
+
+
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)

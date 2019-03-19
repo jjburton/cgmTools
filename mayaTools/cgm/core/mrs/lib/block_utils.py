@@ -65,8 +65,9 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
-from cgm.core.classes import GuiFactory as CGMUI
 
+from cgm.core.classes import GuiFactory as CGMUI
+reload(STR)
 reload(ATTR)
 #=============================================================================================================
 #>> Queries
@@ -375,6 +376,13 @@ def doName(self):
     for a in 'cgmName','baseName','puppetName',:
         if self.hasAttr(a):
             _d['cgmName'] = ATTR.get(_short,a)
+            continue
+            
+    if self.hasAttr('blockProfile'):
+        _blockProfile = self.blockProfile
+        if _d['cgmName'] in _blockProfile:
+            _blockProfile = _blockProfile.replace(_d['cgmName'],'')
+        _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
 
     _blockType = ATTR.get(_short,'blockType')
     _d['cgmType'] = _blockType + 'Block'
@@ -414,14 +422,7 @@ def doName(self):
         mPlug = self.getMessageAsMeta(plug)
         if mPlug:
             mPlug.doName()
-    """         
-    if self.getMessage('formNull'):
-        self.formNull.doName()
-    if self.getMessage('prerigNull'):
-        self.prerigNull.doName()
-    if self.getMessage('moduleTarget'):
-        self.moduleTarget.doName()
-    """
+
         
 def set_side(self,side=None):
     try:
@@ -6891,7 +6892,7 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
             msg_full = _d['m']
             msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
             _d['m'] = msg_full
-            _d['button'] = ['OK','Use Profile','Cancel']
+            _d['button'] = ['OK','Use Profile','Iterate Entry','Cancel']
         except:l_profileList = []            
 
         result = mc.promptDialog(**_d)
@@ -6908,6 +6909,15 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
             log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
             self.datList_connect('nameList',l_profileList)
             return True
+        elif result == 'Iterate Entry':
+            _v =  mc.promptDialog(query=True, text=True)
+            l_new = _v.split(',')
+            _name = l_new[0]
+            len_needed = len(l_current)
+            _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+            self.datList_connect('nameList',_l)
+            log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+            return
         else:
             log.warning(msg_base)
             log.warning("Current: {0}".format(l_current))
@@ -6951,7 +6961,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 msg_full = _d['m']
                 msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
                 _d['m'] = msg_full
-                _d['button'] = ['OK','Use Profile','Cancel']
+                _d['button'] = ['OK','Use Profile','Iterate Entry','Cancel']
             except:l_profileList = []            
 
             result = mc.promptDialog(**_d)
@@ -6972,6 +6982,16 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
                 self.datList_connect('nameList',l_profileList)
                 return True
+            elif result == 'Iterate Entry':
+                _v =  mc.promptDialog(query=True, text=True)
+                l_new = _v.split(',')
+                _name = l_new[0]
+                
+                _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+                log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+                
+                self.datList_connect('nameList',_l)
+                
             else:
                 log.warning(msg_base)
                 log.warning("Current: {0}".format(l_current))
@@ -7954,7 +7974,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             else:
                 _useSize = _sizeSub
             
-            str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
+            str_name = _dtmp.get('name') or "{0}_{1}".format(self.cgmName,k)
             _tagOnly = _dtmp.get('tagOnly',False)
             _pos = _dtmp.get('pos',False)
             mEnd = md_handles.get(_dtmp.get('endTag')) or md_handles.get('end')
@@ -7987,7 +8007,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mHandle.doStore('cgmName',k)
                 else:
                     mHandle.doStore('cgmName',self)
-                    mHandle.doStore('cgmTypeModifier',str_name)
+                    mHandle.doStore('cgmTypeModifier',k)
+                    
+                    #mHandle.doStore('cgmTypeModifier',str_name)
+                    #mHandle.doStore('cgmName',str_name)
+                    
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
@@ -8039,7 +8063,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mHandle.doStore('cgmName',k)
                 else:
                     mHandle.doStore('cgmName',self)
-                    mHandle.doStore('cgmTypeModifier',str_name)
+                    mHandle.doStore('cgmTypeModifier',k)
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
@@ -8485,19 +8509,26 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
 def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
     _str_func = 'define_set_baseSize'
     log.debug(cgmGEN.logString_start(_str_func))
-
     
-    if baseSize is None:
-        try:baseSize = self.baseSize
-        except:raise ValueError,"No baseSize offered or found"
-
     d_baseDat = {}
+    
     if self.hasAttr('baseDat'):
         d_baseDat = self.baseDat
         log.debug("|{0}| >>  Base dat found | {1}".format(_str_func,d_baseDat))        
 
+    
+    if baseSize is None:
+        try:
+            baseSize = d_baseDat['baseSize']
+            log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
+        except:
+            try:baseSize = self.baseSize
+            except:raise ValueError,"No baseSize offered or found"
+
+
     if not baseSize:
         return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
+    
     log.debug("|{0}| >>  baseSize: {1}".format(_str_func,baseSize))
     
     if baseAim is None:
@@ -8559,10 +8590,22 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
                     _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[2])
                 else:
                     _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[1])
+                    
                 if mHandle == mUp:
                     SNAP.aim_atPoint(mHandle.mNode,_pos,'y+')
                 else:
                     mHandle.p_position = _pos
+                    
+                if k == 'lever':
+                    log.debug("|{0}| >>  Aiming lever....".format(_str_func))
+                    
+                    _posAim = DIST.get_pos_by_vec_dist(_pos, TRANS.transformDirection(self.mNode,d_baseDat['up']),baseSize[2])
+                    _vecUp = MATH.get_vector_of_two_points(_pos,pos_self)
+                    SNAP.aim_atPoint(mHandle.mNode,_posAim,'y+',vectorUp=_vecUp)                    
+                    
+                    #_posAim = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,baseAim),baseSize[2])
+                    #SNAP.aim_atPoint(mHandle.mNode,_posAim,'z+',vectorUp=TRANS.transformDirection(self.mNode,d_baseDat['up']))
+                    
             else:
                 log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
     
