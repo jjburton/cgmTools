@@ -65,7 +65,7 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
-
+import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
 reload(STR)
 reload(ATTR)
@@ -7459,7 +7459,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             if proxy:
                 ml_mesh.extend(mBlock.verify_proxyMesh(puppetMeshMode=True))
             else:
-                ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin))
+                ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,))
             
             """
             if skin:
@@ -7535,7 +7535,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             
     
 
-def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHistory=False):
+def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNormal = None,
+                      deleteHistory=False,loftMode = 'evenCubic'):
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -7571,10 +7572,10 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
     mBlockModule = self.p_blockModule
     if mBlockModule.__dict__.has_key('create_simpleMesh'):
         log.debug("|{0}| >> BlockModule 'create_simpleMesh' call found...".format(_str_func))            
-        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent)
+        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent,deleteHistory=deleteHistory)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory)
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -7592,27 +7593,34 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
         
 
             log.debug("|{0}| >> skinning..".format(_str_func))
-            l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
+            #l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
                 mMesh.p_parent = mParent
+                
+                MRSPOST.skin_mesh(mMesh,ml_moduleJoints)
+                
+                """
                 #mMesh.doCopyPivot(mGeoGroup.mNode)
-                skin = mc.skinCluster (l_joints,
-                                       mMesh.mNode,
-                                       tsb=True,
-                                       bm=1,
-                                       maximumInfluences = 2,
-                                       normalizeWeights = 1,dropoffRate=10.0)
-                """ 
-                skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
-                                       mMesh.mNode,
-                                       tsb=True,
-                                       bm=0,
-                                       wd=0,
-                                       heatmapFalloff = 1.0,
-                                       maximumInfluences = 2,
-                                       normalizeWeights = 1, dropoffRate=10)"""
-                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))
+                try:
+                    skin = mc.skinCluster (l_joints,
+                                           mMesh.mNode,
+                                           tsb=True,
+                                           bm=2,
+                                           wd=0,
+                                           heatmapFalloff = 1,
+                                           maximumInfluences = 2,
+                                           normalizeWeights = 1, dropoffRate=5)
+                except Exception,err:
+                    log.warning("|{0}| >> heat map fail: {1}.. | {2}".format(_str_func,format(self.mNode),err))
+                    skin = mc.skinCluster (l_joints,
+                                           mMesh.mNode,
+                                           tsb=True,
+                                           bm=0,
+                                           maximumInfluences = 2,
+                                           wd=0,
+                                           normalizeWeights = 1,dropoffRate=10)
+                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))"""
             
             #Reparent
             for i,mJnt in enumerate(ml_moduleJoints):
@@ -7623,8 +7631,8 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
     return ml_mesh
             
 
-def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,
-                          deleteHistory = True,divisions=None):
+def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,uniform = False,
+                          reverseNormal = None,deleteHistory = True,divisions=None, loftMode = None,flipUV = False):
     """
     form
     0 - count
@@ -7649,10 +7657,15 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         if degree ==1:
             form = 3
     if vSplit == None:
-        vSplit = self.loftSides
+        vSplit = self.loftSplit#-1
     if uSplit == None:
-        uSplit = self.loftSplit-1
+        uSplit = self.loftSides
         
+    if reverseNormal is None:
+        reverseNormal = self.loftReverseNormal
+        #except:pass
+        
+    log.debug(cgmGEN.logString_sub(_str_func,"Gather loft curves"))
     for mHandle in ml_formHandles:
         if mHandle.getMessage('loftCurve'):
             ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
@@ -7678,17 +7691,78 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
                 ml_loftCurves.append(mShape2)
                 ml_delete.append(mShape2)                
             mChild.delete()
-            
         ml_loftCurves.append(mBaseCrv)
+        
+    """
+    if cap:
+        log.debug(cgmGEN.logString_sub(_str_func,"cap"))        
+        ml_use = copy.copy(ml_loftCurves)
+        for i,mLoft in enumerate([ml_loftCurves[0],ml_loftCurves[-1]]):
+            log.debug(cgmGEN.logString_msg(_str_func,"duping: {0}".format(mLoft.mNode)))
+            
+            mStartCollapse = mLoft.doDuplicate(po=False)
+            mStartCollapse.p_parent = False
+            mStartCollapse.scale = [.0001 for i in range(3)]
+            if mLoft == ml_loftCurves[0]:
+                ml_use.insert(0,mStartCollapse)
+            else:
+                ml_use.append(mStartCollapse)
+            ml_delete.append(mStartCollapse)
+        ml_loftCurves = ml_use"""
+        
+    log.debug(cgmGEN.logString_sub(_str_func,"Build"))
+    pprint.pprint(vars())
     
-    reload(BUILDUTILS)
+    _d = {'uSplit':uSplit,
+          'vSplit':vSplit,
+          'cap' : cap,
+          'form':form,
+          'uniform':uniform,
+          'deleteHistory':deleteHistory,
+          'merge':deleteHistory,
+          'reverseNormal':reverseNormal,
+          'degree':degree}
+    
+    if loftMode:
+        if loftMode in ['evenCubic','evenLinear']:
+            d_tess = {'format':2,#General
+                      'polygonType':1,#'quads',
+                      'uType':3,
+                      'vType':1,
+                      'uNumber':1}
+            _d['d_tess'] = d_tess
+            if loftMode == 'evenCubic':
+                _d['degree'] = 3
+                _d['uniform'] = True
+                d_tess['vNumber'] = (4 + vSplit + (len(ml_loftCurves)) * vSplit)*2
+                #..attempting to fix inconsistency in which is u and which is v
+                #d_tess['vNumber'] = d_tess['uNumber']
+                #d_tess['vType'] = 1
+            else:
+                _d['degree'] = 1
+                d_tess['uNumber'] = (vSplit + (len(ml_loftCurves)) * vSplit)
+                
+            if flipUV:
+                log.warning(cgmGEN.logString_msg(_str_func,"FLIPPING UV"))
+                
+                dTmp = {}
+                for i,k in enumerate(['u','v']):
+                    for k2 in 'Type','Number':
+                        if i:
+                            dTmp['u'+k2] = d_tess['v'+k2]
+                        else:
+                            dTmp['v'+k2] = d_tess['u'+k2]
+                d_tess.update(dTmp)
+                            
+                
+        elif loftMode == 'default':
+            pass
+                
+
+    #pprint.pprint(vars())
+    
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
-                                       uSplit=uSplit,
-                                       vSplit=vSplit,
-                                       cap = cap,
-                                       form=form,
-                                       deleteHistory=deleteHistory,
-                                       degree=degree)
+                                      **_d)
     
     """
     if form in [1,2]:
@@ -8661,7 +8735,7 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
         if not ml_toSnap:
             raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
         
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
     except Exception,err:

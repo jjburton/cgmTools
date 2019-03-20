@@ -62,7 +62,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-
+import cgm.core.mrs.lib.post_utils as MRSPOST
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
     reload(m)
     
@@ -3713,7 +3713,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         _str_func = 'create_simpleMesh'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
-        
+        pprint.pprint(vars())
         if skin:
             mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
             if not mModuleTarget:
@@ -3749,7 +3749,13 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
     
         if self.neckBuild:#...Neck =====================================================================
             log.debug("|{0}| >> neckBuild...".format(_str_func))    
-            ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,2,1,deleteHistory=deleteHistory,cap=cap)
+            ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,None,None,
+                                                           deleteHistory=deleteHistory,
+                                                           cap=cap,
+                                                           flipUV=True, #WHY??!!!!
+                                                           loftMode='evenCubic')
+            
+            
             ml_headStuff.extend(ml_neckMesh)
             if parent:
                 for mObj in ml_neckMesh:
@@ -3757,13 +3763,15 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                     #if skin:mObj.doCopyPivot(parent)
             
             if skin:
-                for mMesh in ml_neckMesh:                    
+                for mMesh in ml_neckMesh:
+                    MRSPOST.skin_mesh(mMesh,ml_moduleJoints)
+                    """
                     mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
                                     mMesh.mNode,
                                     tsb=True,
                                     bm=1,
                                     maximumInfluences = 3,
-                                    normalizeWeights = 1, dropoffRate=10)
+                                    normalizeWeights = 1, dropoffRate=2)"""
         if skin:
             _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
             _mesh = mc.rename(_res[0],'{0}_0_geo'.format(self.p_nameBase))
@@ -3773,10 +3781,12 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 mMesh.dagLock(False)
                 mMesh.p_parent = parent
             
-        else:
+        elif deleteHistory != False:
             _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
             _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
-        CORERIG.color_mesh(_mesh,'puppetmesh')        
+            CORERIG.color_mesh(_mesh,'puppetmesh')        
+        else:
+            return
         
         for mObj in ml_headStuff:
             try:mObj.delete()
