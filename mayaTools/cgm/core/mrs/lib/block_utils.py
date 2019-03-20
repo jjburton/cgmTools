@@ -6220,7 +6220,9 @@ def skeleton(self):
     for c in ['skeleton_build','build_skeleton']:
         if c in mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
-            self.atBlockModule(c)
+            if not self.atBlockModule(c):
+                self.blockState = 'prerig'#...yes now in this state
+                return False
 
     self.blockState = 'skeleton'#...yes now in this state
     return True
@@ -6878,21 +6880,31 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
         if not self.datList_exists(nameList):
             log.info(cgmGEN.logString_msg(_str_func,"No nameList found | tag: {0}".format(nameList)))
             return 
-
-        msg_base= "Edit nameList : {0} \n Please provide comma separated list".format(self.p_nameShort)
+        
         l_current = self.datList_get(nameList)
+        len_needed = len(l_current)
+        if len_needed == 1:
+            try:len_needed = self.numControls
+            except:pass
+        
+        msg_base= "Edit nameList : {0} \n Please provide comma separated list |  Estimate: {1}".format(self.p_nameShort,len_needed)
+        
 
+            
         _d = {'title':"Edit nameList",
               'm':msg_base,
               'text':','.join(l_current),
               'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':'text'}
         
+        _cgmName = self.getMayaAttr('cgmName')
         try:
             l_profileList = self.p_blockModule.d_block_profiles[self.blockProfile]['nameList']
             msg_full = _d['m']
             msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
+            
+            msg_full = msg_full + '\n cgmName: {0}'.format(_cgmName)
             _d['m'] = msg_full
-            _d['button'] = ['OK','Use Profile','Iterate Entry','Cancel']
+            _d['button'] = ['OK','Use Profile','Iter Entry','Iter cgmName','Cancel']
         except:l_profileList = []            
 
         result = mc.promptDialog(**_d)
@@ -6909,15 +6921,20 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
             log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
             self.datList_connect('nameList',l_profileList)
             return True
-        elif result == 'Iterate Entry':
+        elif result == 'Iter Entry':
             _v =  mc.promptDialog(query=True, text=True)
             l_new = _v.split(',')
             _name = l_new[0]
-            len_needed = len(l_current)
             _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
             self.datList_connect('nameList',_l)
             log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
             return
+        elif result == 'Iter cgmName':
+            _name = _cgmName
+            _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+            self.datList_connect('nameList',_l)
+            log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+            return        
         else:
             log.warning(msg_base)
             log.warning("Current: {0}".format(l_current))
@@ -6948,7 +6965,10 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
             log.debug(cgmGEN.logString_sub(_str_func,'Getting via dialog'))
             msg_base= "{2} \n nameList does not match num controls \n Current: {0} | Needed: {1}".format(len_current,len_needed,self.p_nameShort)
             
-            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_base)
+            _cgmName = self.getMayaAttr('cgmName')
+            msg_full = msg_base + '\n cgmName: {0}'.format(_cgmName)
+            
+            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_full)
             
 
             _d = {'title':"Validate nameList",
@@ -6961,7 +6981,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 msg_full = _d['m']
                 msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
                 _d['m'] = msg_full
-                _d['button'] = ['OK','Use Profile','Iterate Entry','Cancel']
+                _d['button'] = ['OK','Use Profile','Iter Entry','Iter cgmName','Cancel']
             except:l_profileList = []            
 
             result = mc.promptDialog(**_d)
@@ -6982,7 +7002,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
                 self.datList_connect('nameList',l_profileList)
                 return True
-            elif result == 'Iterate Entry':
+            elif result == 'Iter Entry':
                 _v =  mc.promptDialog(query=True, text=True)
                 l_new = _v.split(',')
                 _name = l_new[0]
@@ -6991,7 +7011,12 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
                 
                 self.datList_connect('nameList',_l)
-                
+            elif result == 'Iter cgmName':
+                _name = _cgmName
+                _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+                self.datList_connect('nameList',_l)
+                log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+                return        
             else:
                 log.warning(msg_base)
                 log.warning("Current: {0}".format(l_current))

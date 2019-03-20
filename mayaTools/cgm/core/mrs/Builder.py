@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.03182019'
+__version__ = '1.03202019'
 _sidePadding = 25
 
 def check_cgm():
@@ -2079,6 +2079,14 @@ class ui(cgmUI.cgmGUI):
                             label ='Set Name',
                             ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
                             c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
+            
+            mUI.MelMenuItem(_popUp,
+                            label ='Edit NameList',
+                            ann = 'Ui Prompt to edit nameList',
+                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                         'atUtils','nameList_uiPrompt',
+                                                                         **{}))
+            
             #...side ----------------------------------------------------------------------------------------
             sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = 'Set side')
@@ -2087,7 +2095,7 @@ class ui(cgmUI.cgmGUI):
                 mUI.MelMenuItem(sub_side,
                                 label = side,
                                 ann = 'Specify the side for the current block to : {0}'.format(side),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',i))
+                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',side))
             #...position ------------------------------------------------------------------------------
             #none:upper:lower:front:back:top:bottom
             sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
@@ -2096,7 +2104,8 @@ class ui(cgmUI.cgmGUI):
                 mUI.MelMenuItem(sub_position,
                                 label = position,
                                 ann = 'Specify the position for the current block to : {0}'.format(position),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',i))
+                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',position))
+                
             
             mUI.MelMenuItemDiv(_popUp)
             
