@@ -862,7 +862,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     #tess method - general, uType 1, vType 2+ joint count
     
     int_count = len(targets)
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     #>>Body -----------------------------------------------------------------
     _ss = 1
     if degree == 1:
@@ -877,6 +877,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
     
+    
     if cap:
         log.debug(cgmGEN.logString_sub(_str_func,"cap"))
         l_use = copy.copy(targets)
@@ -887,31 +888,79 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
             for mChild in mStartCollapse.getChildren(asMeta=1):
                 mChild.delete()
             mStartCollapse.p_parent = False
-            
+            mMidCollapse = mStartCollapse.doDuplicate(po=False)
             mEndCollapse = mStartCollapse.doDuplicate(po=False)
             #pos_bb = TRANS.bbCenter_get(mEndCollapse.mNode)
             #for ep in mc.ls("{0}.ep[*]".format(mEndCollapse.getShapes()[0]),flatten=True):
                 #POS.set(ep,pos_bb)
             mEndCollapse.scale = 0,0,0
+            mMidCollapse.scale = [v * .2 for v in mMidCollapse.scale]
             mStartCollapse.scale = [v * .8 for v in mStartCollapse.scale]
             
             
             if loft == targets[0]:
                 l_use.insert(0,mStartCollapse.mNode)
+                l_use.insert(0,mMidCollapse.mNode)
                 l_use.insert(0,mEndCollapse.mNode)                
                 
             else:
                 l_use.append(mStartCollapse.mNode)
+                l_use.append(mMidCollapse.mNode)                
                 l_use.append(mEndCollapse.mNode)
                 
             ml_delete.append(mStartCollapse)
+            ml_delete.append(mMidCollapse)            
             ml_delete.append(mEndCollapse)
             
         targets = l_use        
     
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss,uniform=uniform,
-                        autoReverse=True, reverseSurfaceNormals=reverseNormal )
+    targets.reverse()
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 0, ss=_ss,uniform=uniform,
+                        autoReverse=True, reverseSurfaceNormals=False )
+    
+    
+    #Check if we need to reverse our surface u/v ===========================================================
+    log.debug(cgmGEN.logString_sub(_str_func,"Surface loft and check for need to reverse"))
+    
+    mSurf = cgmMeta.asMeta(_res_body[0])
+    str_meshShape = mSurf.getShapes()[0]
+    
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    useU = MATH.average(minU,maxU)
+    
+    _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,useU), ch = 0, rn = 0, local = 0)[0]
+    mCrv = cgmMeta.asMeta(_crv)
+    l_cvsRes = mc.ls("{0}.cv[*]".format(mCrv.getShapes()[0]),flatten=True)
+    p1 = POS.get(l_cvsRes[0])
+    p2 = POS.get(l_cvsRes[1])
+    
+    vec_Mid = MATH.get_vector_of_two_points(p1, p2)
+    
+    l_pos = []
+    for crv in l_use[0],l_use[-1]:
+        mCrv = cgmMeta.asMeta(crv)
+        l_cvsRes = mc.ls("{0}.cv[*]".format(mCrv.getShapes()[0]),flatten=True)
+        l_pos.append(POS.get(l_cvsRes[0]))
+    
+    vec_startEnd = MATH.get_vector_of_two_points(l_pos[0], l_pos[1])
+    
+    vec_cross = MATH.dotproduct(vec_Mid, vec_startEnd)
+        
+    vec_angle = MATH.angleBetweenVectors(vec_startEnd,vec_Mid)
+    #pprint.pprint(vars())
+    
+    if MATH.is_float_equivalent(vec_cross,0.00000,1):
+        mc.reverseSurface(mSurf.mNode, d=2,ch=1,rpo=1)
+        
+    mc.delete(_crv)
+    _res_body = mc.nurbsToPoly(mSurf.mNode,mnd=1,ch=1,f=2,pt= 1,pc=200,
+                               chr=0.9,ft =0.01,mel=0.001,d =0.1,ut =1,
+                               un =3,vt =1,vn =3,uch =0,ucr =0,
+                               cht =0.2,es =0,ntr =0,mrt =0,uss =1)
 
+
+    
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
@@ -952,7 +1001,8 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         #mc.polyNormal(_res_body[0],nm=0)           
     
     if deleteHistory:
-        mc.delete(_res_body[0], ch=True)        
+        mc.delete(_res_body[0], ch=True)
+        mSurf.delete()
         for mObj in ml_delete:
             mObj.delete()
             
