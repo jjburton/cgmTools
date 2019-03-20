@@ -7752,14 +7752,14 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         if loftMode in ['evenCubic','evenLinear']:
             d_tess = {'format':2,#General
                       'polygonType':1,#'quads',
-                      'uType':3,
-                      'vType':1,
-                      'uNumber':1}
+                      'vType':3,
+                      'uType':1,
+                      'vNumber':1}
             _d['d_tess'] = d_tess
             if loftMode == 'evenCubic':
                 _d['degree'] = 3
                 _d['uniform'] = True
-                d_tess['vNumber'] = (4 + vSplit + (len(ml_loftCurves)) * vSplit)*2
+                d_tess['uNumber'] = (4 + vSplit + (len(ml_loftCurves)) * vSplit)*2
                 #..attempting to fix inconsistency in which is u and which is v
                 #d_tess['vNumber'] = d_tess['uNumber']
                 #d_tess['vType'] = 1
@@ -7769,7 +7769,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
                 
             if flipUV:
                 log.warning(cgmGEN.logString_msg(_str_func,"FLIPPING UV"))
-                
+                """
                 dTmp = {}
                 for i,k in enumerate(['u','v']):
                     for k2 in 'Type','Number':
@@ -7777,7 +7777,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
                             dTmp['u'+k2] = d_tess['v'+k2]
                         else:
                             dTmp['v'+k2] = d_tess['u'+k2]
-                d_tess.update(dTmp)
+                d_tess.update(dTmp)"""
                             
                 
         elif loftMode == 'default':
@@ -9366,7 +9366,7 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
                          None]
                 #TRANS.scale_to_size(_mNode,l_box)
                 DIST.scale_to_axisSize(_mNode,l_box)
-                pprint.pprint(l_box)
+                #pprint.pprint(l_box)
             except Exception,err:
                 log.error("Form Handle failed to scale: {0}".format(mHandle))
                 log.error(err)
