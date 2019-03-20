@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.03052019'
+__version__ = '1.03202019'
 _sidePadding = 25
 
 def check_cgm():
@@ -978,7 +978,9 @@ class ui(cgmUI.cgmGUI):
                                                        **{'updateUI':0})}},
 
                'Geo':{
-                   'order':['Block Mesh','Block Loft','Puppet Mesh',
+                   'order':['Block Mesh','Block Loft | Default',
+                            'Block Loft | Even',
+                            'Puppet Mesh',
                             'Unified','Unified [Skinned]',
                             'Parts Mesh','Parts Mesh [Skinned]',
                             'Proxy Mesh [Parented]','Delete',
@@ -988,11 +990,16 @@ class ui(cgmUI.cgmGUI):
                    'Block Mesh':{'ann':'Generate Simple mesh',
                                'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
                                                 'atUtils','create_simpleMesh',
-                                                **{'connect':False,'updateUI':0})},
-                   'Block Loft':{'ann':'Generate Simple mesh with history to weak the loft manually',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':1})},
+                   'Block Loft | Default':{'ann':'Generate Simple mesh with history to tweak the loft manually',
                                'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
                                                 'atUtils','create_simpleMesh',
                                                 **{'connect':False,'updateUI':0,'deleteHistory':0})},
+                   'Block Loft | Even':{'ann':'Generate Simple mesh with history to tweak the loft manually',
+                                 'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                  'atUtils','create_simpleMesh',
+                                                  **{'connect':False,'updateUI':0,'deleteHistory':0,
+                                                     'loftMode':'evenCubic'})},                   
                    'Unified':{'ann':"Create a unified unskinned puppet mesh from the active block's basis.",
                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
                                                **{'unified':True,'skin':False})},
@@ -2072,6 +2079,14 @@ class ui(cgmUI.cgmGUI):
                             label ='Set Name',
                             ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
                             c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
+            
+            mUI.MelMenuItem(_popUp,
+                            label ='Edit NameList',
+                            ann = 'Ui Prompt to edit nameList',
+                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                         'atUtils','nameList_uiPrompt',
+                                                                         **{}))
+            
             #...side ----------------------------------------------------------------------------------------
             sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
                                        label = 'Set side')
@@ -2080,7 +2095,7 @@ class ui(cgmUI.cgmGUI):
                 mUI.MelMenuItem(sub_side,
                                 label = side,
                                 ann = 'Specify the side for the current block to : {0}'.format(side),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',i))
+                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',side))
             #...position ------------------------------------------------------------------------------
             #none:upper:lower:front:back:top:bottom
             sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
@@ -2089,7 +2104,8 @@ class ui(cgmUI.cgmGUI):
                 mUI.MelMenuItem(sub_position,
                                 label = position,
                                 ann = 'Specify the position for the current block to : {0}'.format(position),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',i))
+                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',position))
+                
             
             mUI.MelMenuItemDiv(_popUp)
             
@@ -3589,7 +3605,7 @@ class ui(cgmUI.cgmGUI):
         
         _RightColumn = mUI.MelFormLayout(_MainForm)
         _RightUpperColumn = mUI.MelColumn(_RightColumn)
-        _RightScroll = mUI.MelScrollLayout(_RightColumn,useTemplate = 'cgmUITemplate')
+        _RightScroll = mUI.MelScrollLayout(_RightColumn,useTemplate = 'cgmUITemplate',width=400)
         
 
         #=============================================================================================
@@ -3884,8 +3900,9 @@ class ui(cgmUI.cgmGUI):
 
                         ],
                   ac = [(_LeftColumn,"top",0,_row_report),
+                        (_LeftColumn,"right",0,_RightColumn),
                         (_RightColumn,"top",0,_row_report),
-                        (_RightColumn,"left",0,_LeftColumn),
+                        #(_RightColumn,"left",0,_LeftColumn),
                         
                         #(_RightColumn,"bottom",0,_row_cgm),
                         #(_LeftColumn,"bottom",0,_row_cgm),

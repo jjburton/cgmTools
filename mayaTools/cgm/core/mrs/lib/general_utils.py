@@ -34,6 +34,7 @@ from cgm.core.mrs.lib import shared_dat as BLOCKSHARED
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import GuiFactory as CGMUI
+import cgm.core.lib.string_utils as STR
 
 #from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -113,6 +114,8 @@ def get_scene_block_heirarchy(asMeta = True):
 _d_scrollList_shorts = {'left':'L',
                         'right':'R',
                         'center':'C',
+                        'rear':'REAR',
+                        'back':'BCK',
                         'front':'FRNT',
                         'define':'def',
                         'form':'frm',
@@ -179,6 +182,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 
                 _len = len(_l_parents)
                 
+                
                 if _len:
                     s_start = ' '*_len +' '
                 else:
@@ -188,25 +192,37 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     s_start = s_start + " "            
                 else:
                     #s_start = s_start + '-[{0}] '.format(counter-1)
-                    s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
-                    
-                
-                if mBlock.getMayaAttr('position'):
-                    _v = mBlock.getMayaAttr('position')
-                    if _v.lower() not in ['','none']:
-                        _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                    #s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
+                    s_start = s_start + ' ' + ' '*(counter-1) + ' '
                     
                 if mBlock.getMayaAttr('side'):
                     _v = mBlock.getEnumValueString('side')
                     _l_report.append( _d_scrollList_shorts.get(_v,_v))
                     
+                if mBlock.getMayaAttr('position'):
+                    _v = mBlock.getMayaAttr('position')
+                    if _v.lower() not in ['','none']:
+                        _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                        
+                                            
                 l_name = []
-                _cgmName = mBlock.getMayaAttr('cgmName')
-                if _cgmName:
-                    l_name.append(_cgmName)
-                l_name.append( ATTR.get(_short,'blockType').capitalize() )
                 
-                _l_report.append(''.join(l_name))
+                #l_name.append( ATTR.get(_short,'blockType').capitalize() )
+                _blockProfile = mBlock.getMayaAttr('blockProfile')
+                _cgmName = mBlock.getMayaAttr('cgmName')
+                l_name.append(_cgmName)
+                
+                if _blockProfile:
+                    if _cgmName in _blockProfile:
+                        _blockProfile = _blockProfile.replace(_cgmName,'')
+                    _blockProfile= STR.camelCase(_blockProfile)                    
+                    l_name.append(_blockProfile)
+
+
+                _l_report.append(STR.camelCase(' '.join(l_name)))
+                
+                _l_report.append(ATTR.get(_short,'blockType').capitalize())
+                
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
                 if mBlock.getMayaAttr('isBlockFrame'):
@@ -225,7 +241,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     _l_report.append("Referenced")
                     
         
-                _str = s_start + " - ".join(_l_report)
+                _str = s_start + "--".join(_l_report)
                 log.debug(_str + "   >> " + mBlock.mNode)
                 #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
                 stringList.append(_str)        

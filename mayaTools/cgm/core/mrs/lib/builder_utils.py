@@ -832,7 +832,8 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     return _l_new
 
 def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit=0, divisions = None,
-                    cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True,deleteHistory =True ):
+                    d_tess = None,uniform=False,reverseNormal=False,
+                    cap = True, merge = True,form = 1,planar=False,deleteHistory =True ):
     """
     Create lofted mesh from target curves.
 
@@ -841,6 +842,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         name(str) | Base name for created objects
         degree(int) | degree of surface
         divisions(int) | how many splits in the created mesh
+        d_tess(dict) | override for tesselate logic
         cap(bool) | whether to cap the top and bottom
         merge(bool) | whether to merge the caps to the base mesh
 
@@ -848,7 +850,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         created(list)
     """    
     _str_func = 'create_loftMesh'
-    
+    ml_delete= []
     if targets == None:
         targets = mc.ls(sl=True)
     if not targets:
@@ -860,7 +862,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     #tess method - general, uType 1, vType 2+ joint count
     
     int_count = len(targets)
-    
+    pprint.pprint(vars())
     #>>Body -----------------------------------------------------------------
     _ss = 1
     if degree == 1:
@@ -868,17 +870,52 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         _ss = vSplit
     else:
         _loftDegree = 3
-        
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss,
-                        autoReverse=True,
-                        reverseSurfaceNormals=False )
+
+    log.debug(cgmGEN.logString_sub(_str_func,"Loft"))
+    
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
+    
+    if cap:
+        log.debug(cgmGEN.logString_sub(_str_func,"cap"))
+        l_use = copy.copy(targets)
+        for i,loft in enumerate([targets[0],targets[-1]]):
+            log.debug(cgmGEN.logString_msg(_str_func,"duping: {0}".format(loft)))
+            mLoft = cgmMeta.asMeta(loft)
+            mStartCollapse = mLoft.doDuplicate(po=False)
+            for mChild in mStartCollapse.getChildren(asMeta=1):
+                mChild.delete()
+            mStartCollapse.p_parent = False
+            
+            mEndCollapse = mStartCollapse.doDuplicate(po=False)
+            #pos_bb = TRANS.bbCenter_get(mEndCollapse.mNode)
+            #for ep in mc.ls("{0}.ep[*]".format(mEndCollapse.getShapes()[0]),flatten=True):
+                #POS.set(ep,pos_bb)
+            mEndCollapse.scale = 0,0,0
+            mStartCollapse.scale = [v * .8 for v in mStartCollapse.scale]
+            
+            
+            if loft == targets[0]:
+                l_use.insert(0,mStartCollapse.mNode)
+                l_use.insert(0,mEndCollapse.mNode)                
+                
+            else:
+                l_use.append(mStartCollapse.mNode)
+                l_use.append(mEndCollapse.mNode)
+                
+            ml_delete.append(mStartCollapse)
+            ml_delete.append(mEndCollapse)
+            
+        targets = l_use        
+    
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss,uniform=uniform,
+                        autoReverse=True, reverseSurfaceNormals=reverseNormal )
 
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
+    log.debug(cgmGEN.logString_sub(_str_func,"set values"))        
 
     if degree == 1:
         if form == 2:
@@ -897,6 +934,9 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
               'vNumber':1+vSplit,
               'uNumber': points+(uSplit*points)}
         
+    if d_tess:
+        _d.update(d_tess)
+        
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
@@ -907,12 +947,21 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
         #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
 
-    if form == 2:
-        mc.polyNormal(_res_body[0],nm=0)           
+    #if form == 2:
+        #log.debug(cgmGEN.logString_msg(_str_func,"normal"))        
+        #mc.polyNormal(_res_body[0],nm=0)           
     
-    if not deleteHistory:
-        return _res_body[0]
-    if merge:
+    if deleteHistory:
+        mc.delete(_res_body[0], ch=True)        
+        for mObj in ml_delete:
+            mObj.delete()
+            
+    #if not deleteHistory:
+        #return _res_body[0]
+    
+    if cap and merge:
+        log.debug(cgmGEN.logString_sub(_str_func,"merge"))        
+        
         #Get our merge distance
         l_cvPoints = []
         for p in l_cvs:
@@ -923,42 +972,64 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     
         f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .001        
         
-        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )    
+        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
+        mc.select(cl=1)
+    """
+    if merge:
+        log.debug(cgmGEN.logString_sub(_str_func,"merge"))        
         
-    if cap:
-        mc.polyCloseBorder(_res_body[0] )
-        """
-        _l_combine = [_res_body[0]]
+        #Get our merge distance
+        l_cvPoints = []
+        for p in l_cvs:
+            l_cvPoints.append(POS.get(p))
+        l_dist = []    
+        for i,p in enumerate(l_cvPoints[:-1]):
+            l_dist.append(DIST.get_distance_between_points(p,l_cvPoints[i+1]))
+    
+        f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .001        
         
-        #>>Top bottom -----------------------------------------------------------------
-        for i,crv in enumerate([targets[0],targets[-1]]):
-            _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=.01,rn=0)
-            log.debug(_res)
-            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-            _tessellate = _inputs[0]        
-            _d = {'format':1,#Fit
-                  'polygonType':1,#'quads',
-                  #'vNumber':1,
-                  #'uNumber':1
-                  }
-            for a,v in _d.iteritems():
-                ATTR.set(_tessellate,a,v)
-            _l_combine.append(_res[0])
+        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
+        """    
         
-        #_res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
-        """
+    #if cap:
+        #log.debug(cgmGEN.logString_sub(_str_func,"cap"))
         
-        if merge:
-            mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
-            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
-        _res = _res_body
-    else:
-        _res = _res_body
+        
+        #mc.polyCloseBorder(_res_body[0] )
+        #_res = [_res_body[0]]
+        
+    """
+    _l_combine = [_res_body[0]]
+    
+    #>>Top bottom -----------------------------------------------------------------
+    for i,crv in enumerate([targets[0],targets[-1]]):
+        _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=10,rn=0)
+        log.debug(_res)
+        _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
+        _tessellate = _inputs[0]        
+        _d = {'format':1,#Fit
+              'polygonType':1,#'quads',
+              #'vNumber':1,
+              #'uNumber':1
+              }
+        for a,v in _d.iteritems():
+            ATTR.set(_tessellate,a,v)
+        _l_combine.append(_res[0])
+    
+    _res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
+
+    if merge:
+        mc.polyMergeVertex(_res[0], d= f_mergeDist, ch = 0, am = 1 )
+        #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;"""
+        
+    #else:
+    _res = _res_body
     
     #if degree == 1:
         #mc.polyNormal(_res_body[0],nm=0)
     
     if planar:
+        log.debug(cgmGEN.logString_sub(_str_func,"planar"))                
         mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)#THIS WILL MAKE GEO SMOOTH
         #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
        # mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
@@ -2333,7 +2404,11 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 if ballMode == 'loft':
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
-                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
+                        #mc.select(cl=1)
+                        mc.refresh(su=0)
+                        
+                        log.debug("Planar curve from: {0}".format(_loftCurves[0]))
+                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0,tol = 10)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
                         vec = [-v for v in vecRaw]
                         log.debug("|{0}| >> vector: {1}".format(_str_func,vec))                                        

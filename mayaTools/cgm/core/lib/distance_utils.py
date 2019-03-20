@@ -491,6 +491,7 @@ def get_distance_between_points(point1,point2):
         distance(float)
     """       
     return sqrt( pow(point1[0]-point2[0], 2) + pow(point1[1]-point2[1], 2) + pow(point1[2]-point2[2], 2) )
+get_between_points = get_distance_between_points
 
 def get_average_position(posList):
     """

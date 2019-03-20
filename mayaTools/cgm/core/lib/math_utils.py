@@ -297,7 +297,7 @@ def is_even(f1):
 def get_midIndex(v):
     if is_even(v):
         return int(v/2)
-    return v/2 +1
+    return v/2 
 
 def is_float_equivalent(f1,f2,places=4):
     """
@@ -600,7 +600,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             return [maxValue for i in range(count)]
             
         
-        blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
+        blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
         
         if is_even(count):
             for i in range(idx_mid):
@@ -841,6 +841,25 @@ def angleBetween(p1, p2, p3):
     v2 = (p3 - p2).normalized()
     
     return math.degrees(v1.angle(v2))
+
+def averageVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    return [average(a,b) for a,b in zip(v1,v2)]
+    #return sum((a*b) for a, b in zip(v1, v2))
+
+def dotproduct(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    return sum((a*b) for a, b in zip(v1, v2))
+
+def length(v):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.sqrt(dotproduct(v, v))
+
+def angleBetweenVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+
+
 
 
 

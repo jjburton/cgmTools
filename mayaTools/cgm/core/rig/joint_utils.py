@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -175,7 +175,7 @@ def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
 @cgmGEN.Timer
 def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], relativeOrient = True,
-                progressBar = None,
+                progressBar = None,axisBackup = 'x+',
                 baseName = None, asMeta = True):
                 
     """
@@ -218,9 +218,38 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
             log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
             mDup = mJnt.doDuplicate(parentOnly = True)
             mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
+            b_rotFix = False
             
             if relativeOrient and mParent:
-                _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)            
+                p_child = _d_children[mJnt][0].p_position
+                p_me = mJnt.p_position
+                _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)
+                _vecToChild = MATH.get_vector_of_two_points(p_me, p_child)
+                
+                _angleVec = MATH.angleBetweenVectors(_axisWorldUp,_vecToChild)
+                
+                if _angleVec < 10.0:
+                    p_parent = mParent.p_position                    
+                    _angle = MATH.angleBetween(p_child,p_me,p_parent)
+                    
+                    log.warning(cgmGEN.logString_msg(_str_func,"{0} | dangerous angles vec: {1} | basis: {2} ".format(mJnt.mNode,_angleVec,_angle)))
+                    log.info(cgmGEN.logString_msg(_str_func,"prefix: {0} ".format(_axisWorldUp)))
+                    
+                    _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisBackup)
+                    #v = MATH.transform_direction(
+
+                    b_rotFix = True
+                    """
+                    if _angleVec < 1.0:
+                        _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToChild)
+                        _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                        log.warning(cgmGEN.logString_msg(_str_func,"To child | postfix: {0} ".format(_axisWorldUp)))
+                        
+                    else:
+                        _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)                        
+                        _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToParent)
+                        _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                        log.warning(cgmGEN.logString_msg(_str_func,"To parent | postfix: {0} ".format(_axisWorldUp)))"""
             else:
                 _axisWorldUp = worldUpAxis
     
@@ -228,6 +257,15 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                      mAxis_aim.p_vector,mAxis_up.p_vector,
                      'vector',_axisWorldUp)
             
+            if b_rotFix:
+                pass
+                """
+                a = 'r{0}'.format(axisAim[0])
+                v = ATTR.get(mDup.mNode,a)                
+                log.warning(cgmGEN.logString_msg(_str_func,"{0} | rotFix | a: {1} | v: {2}".format(mJnt.mNode,a,v)))
+
+                ATTR.set(mDup.mNode,a,90)"""
+                
             mJnt.rotate = 0,0,0
             mJnt.jointOrient = mDup.rotate
             mDup.delete()

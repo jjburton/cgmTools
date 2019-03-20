@@ -65,8 +65,9 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
+import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
-
+reload(STR)
 reload(ATTR)
 #=============================================================================================================
 #>> Queries
@@ -375,6 +376,13 @@ def doName(self):
     for a in 'cgmName','baseName','puppetName',:
         if self.hasAttr(a):
             _d['cgmName'] = ATTR.get(_short,a)
+            continue
+            
+    if self.hasAttr('blockProfile'):
+        _blockProfile = self.blockProfile
+        if _d['cgmName'] in _blockProfile:
+            _blockProfile = _blockProfile.replace(_d['cgmName'],'')
+        _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
 
     _blockType = ATTR.get(_short,'blockType')
     _d['cgmType'] = _blockType + 'Block'
@@ -414,14 +422,7 @@ def doName(self):
         mPlug = self.getMessageAsMeta(plug)
         if mPlug:
             mPlug.doName()
-    """         
-    if self.getMessage('formNull'):
-        self.formNull.doName()
-    if self.getMessage('prerigNull'):
-        self.prerigNull.doName()
-    if self.getMessage('moduleTarget'):
-        self.moduleTarget.doName()
-    """
+
         
 def set_side(self,side=None):
     try:
@@ -3969,8 +3970,9 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         _l_warnings = []
         
     if not ml_handles:
-        log.error("|{0}| >> No define handles found".format(_str_func))
+        log.error("|{0}| >> No {1} handles found".format(_str_func,state))
     else:
+        log.debug(cgmGEN.logString_sub(_str_func,"processing {0}".format(state)))        
         _posTempl = d_state.get('positions')
         _orientsTempl = d_state.get('orients')
         _scaleTempl = d_state.get('scales')
@@ -3982,8 +3984,12 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         if state == 'prerig':
             _jointHelpersPre = d_state.get('jointHelpers')
             
-        if len(ml_handles) < _len_posTempl:
-            _l_warnings.append("|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state))
+        if len(ml_handles) > _len_posTempl:
+            msg = "|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state)
+            if d_warnings:
+                _l_warnings.append(msg)
+            else:
+                log.warning(msg)
         else:
             for i_loop in range(3):
                 log.debug(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
@@ -6214,7 +6220,9 @@ def skeleton(self):
     for c in ['skeleton_build','build_skeleton']:
         if c in mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
-            self.atBlockModule(c)
+            if not self.atBlockModule(c):
+                self.blockState = 'prerig'#...yes now in this state
+                return False
 
     self.blockState = 'skeleton'#...yes now in this state
     return True
@@ -6872,21 +6880,31 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
         if not self.datList_exists(nameList):
             log.info(cgmGEN.logString_msg(_str_func,"No nameList found | tag: {0}".format(nameList)))
             return 
-
-        msg_base= "Edit nameList : {0} \n Please provide comma separated list".format(self.p_nameShort)
+        
         l_current = self.datList_get(nameList)
+        len_needed = len(l_current)
+        if len_needed == 1:
+            try:len_needed = self.numControls
+            except:pass
+        
+        msg_base= "Edit nameList : {0} \n Please provide comma separated list |  Estimate: {1}".format(self.p_nameShort,len_needed)
+        
 
+            
         _d = {'title':"Edit nameList",
               'm':msg_base,
               'text':','.join(l_current),
               'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':'text'}
         
+        _cgmName = self.getMayaAttr('cgmName')
         try:
             l_profileList = self.p_blockModule.d_block_profiles[self.blockProfile]['nameList']
             msg_full = _d['m']
             msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
+            
+            msg_full = msg_full + '\n cgmName: {0}'.format(_cgmName)
             _d['m'] = msg_full
-            _d['button'] = ['OK','Use Profile','Cancel']
+            _d['button'] = ['OK','Use Profile','Iter Entry','Iter cgmName','Cancel']
         except:l_profileList = []            
 
         result = mc.promptDialog(**_d)
@@ -6903,6 +6921,20 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
             log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
             self.datList_connect('nameList',l_profileList)
             return True
+        elif result == 'Iter Entry':
+            _v =  mc.promptDialog(query=True, text=True)
+            l_new = _v.split(',')
+            _name = l_new[0]
+            _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+            self.datList_connect('nameList',_l)
+            log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+            return
+        elif result == 'Iter cgmName':
+            _name = _cgmName
+            _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+            self.datList_connect('nameList',_l)
+            log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+            return        
         else:
             log.warning(msg_base)
             log.warning("Current: {0}".format(l_current))
@@ -6933,7 +6965,10 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
             log.debug(cgmGEN.logString_sub(_str_func,'Getting via dialog'))
             msg_base= "{2} \n nameList does not match num controls \n Current: {0} | Needed: {1}".format(len_current,len_needed,self.p_nameShort)
             
-            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_base)
+            _cgmName = self.getMayaAttr('cgmName')
+            msg_full = msg_base + '\n cgmName: {0}'.format(_cgmName)
+            
+            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_full)
             
 
             _d = {'title':"Validate nameList",
@@ -6946,7 +6981,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 msg_full = _d['m']
                 msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
                 _d['m'] = msg_full
-                _d['button'] = ['OK','Use Profile','Cancel']
+                _d['button'] = ['OK','Use Profile','Iter Entry','Iter cgmName','Cancel']
             except:l_profileList = []            
 
             result = mc.promptDialog(**_d)
@@ -6955,7 +6990,7 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 _v =  mc.promptDialog(query=True, text=True)
                 l_new = _v.split(',')
                 len_new = len(l_new)
-                if len_new > len_needed:
+                if len_new >= len_needed:
                     self.datList_connect('nameList',l_new)
                     log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(l_new)))
                     return True
@@ -6967,6 +7002,21 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
                 self.datList_connect('nameList',l_profileList)
                 return True
+            elif result == 'Iter Entry':
+                _v =  mc.promptDialog(query=True, text=True)
+                l_new = _v.split(',')
+                _name = l_new[0]
+                
+                _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+                log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+                
+                self.datList_connect('nameList',_l)
+            elif result == 'Iter cgmName':
+                _name = _cgmName
+                _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
+                self.datList_connect('nameList',_l)
+                log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+                return        
             else:
                 log.warning(msg_base)
                 log.warning("Current: {0}".format(l_current))
@@ -7061,7 +7111,7 @@ def blockProfile_load(self, arg):
     #if not _d.get('blockProfile'):
     #    _d['blockProfile'] = arg
     
-    cgmGEN.func_snapShot(vars())
+    #cgmGEN.func_snapShot(vars())
     log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
     for a,v in _d.iteritems():
         try:
@@ -7434,7 +7484,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             if proxy:
                 ml_mesh.extend(mBlock.verify_proxyMesh(puppetMeshMode=True))
             else:
-                ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin))
+                ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,))
             
             """
             if skin:
@@ -7510,7 +7560,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             
     
 
-def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHistory=False):
+def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNormal = None,
+                      deleteHistory=False,loftMode = 'evenCubic'):
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -7546,10 +7597,10 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
     mBlockModule = self.p_blockModule
     if mBlockModule.__dict__.has_key('create_simpleMesh'):
         log.debug("|{0}| >> BlockModule 'create_simpleMesh' call found...".format(_str_func))            
-        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent)
+        ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent,deleteHistory=deleteHistory)
     
     else:#Create ======================================================================================
-        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory)
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -7567,27 +7618,34 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
         
 
             log.debug("|{0}| >> skinning..".format(_str_func))
-            l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
+            #l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
                 mMesh.p_parent = mParent
+                
+                MRSPOST.skin_mesh(mMesh,ml_moduleJoints)
+                
+                """
                 #mMesh.doCopyPivot(mGeoGroup.mNode)
-                skin = mc.skinCluster (l_joints,
-                                       mMesh.mNode,
-                                       tsb=True,
-                                       bm=1,
-                                       maximumInfluences = 2,
-                                       normalizeWeights = 1,dropoffRate=10.0)
-                """ 
-                skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
-                                       mMesh.mNode,
-                                       tsb=True,
-                                       bm=0,
-                                       wd=0,
-                                       heatmapFalloff = 1.0,
-                                       maximumInfluences = 2,
-                                       normalizeWeights = 1, dropoffRate=10)"""
-                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))
+                try:
+                    skin = mc.skinCluster (l_joints,
+                                           mMesh.mNode,
+                                           tsb=True,
+                                           bm=2,
+                                           wd=0,
+                                           heatmapFalloff = 1,
+                                           maximumInfluences = 2,
+                                           normalizeWeights = 1, dropoffRate=5)
+                except Exception,err:
+                    log.warning("|{0}| >> heat map fail: {1}.. | {2}".format(_str_func,format(self.mNode),err))
+                    skin = mc.skinCluster (l_joints,
+                                           mMesh.mNode,
+                                           tsb=True,
+                                           bm=0,
+                                           maximumInfluences = 2,
+                                           wd=0,
+                                           normalizeWeights = 1,dropoffRate=10)
+                skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))"""
             
             #Reparent
             for i,mJnt in enumerate(ml_moduleJoints):
@@ -7598,8 +7656,8 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,deleteHis
     return ml_mesh
             
 
-def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,
-                          deleteHistory = True,divisions=None):
+def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,uniform = False,
+                          reverseNormal = None,deleteHistory = True,divisions=None, loftMode = None,flipUV = False):
     """
     form
     0 - count
@@ -7624,10 +7682,15 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         if degree ==1:
             form = 3
     if vSplit == None:
-        vSplit = self.loftSides
+        vSplit = self.loftSplit#-1
     if uSplit == None:
-        uSplit = self.loftSplit-1
+        uSplit = self.loftSides
         
+    if reverseNormal is None:
+        reverseNormal = self.loftReverseNormal
+        #except:pass
+        
+    log.debug(cgmGEN.logString_sub(_str_func,"Gather loft curves"))
     for mHandle in ml_formHandles:
         if mHandle.getMessage('loftCurve'):
             ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
@@ -7653,17 +7716,78 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
                 ml_loftCurves.append(mShape2)
                 ml_delete.append(mShape2)                
             mChild.delete()
-            
         ml_loftCurves.append(mBaseCrv)
+        
+    """
+    if cap:
+        log.debug(cgmGEN.logString_sub(_str_func,"cap"))        
+        ml_use = copy.copy(ml_loftCurves)
+        for i,mLoft in enumerate([ml_loftCurves[0],ml_loftCurves[-1]]):
+            log.debug(cgmGEN.logString_msg(_str_func,"duping: {0}".format(mLoft.mNode)))
+            
+            mStartCollapse = mLoft.doDuplicate(po=False)
+            mStartCollapse.p_parent = False
+            mStartCollapse.scale = [.0001 for i in range(3)]
+            if mLoft == ml_loftCurves[0]:
+                ml_use.insert(0,mStartCollapse)
+            else:
+                ml_use.append(mStartCollapse)
+            ml_delete.append(mStartCollapse)
+        ml_loftCurves = ml_use"""
+        
+    log.debug(cgmGEN.logString_sub(_str_func,"Build"))
+    pprint.pprint(vars())
     
-    reload(BUILDUTILS)
+    _d = {'uSplit':uSplit,
+          'vSplit':vSplit,
+          'cap' : cap,
+          'form':form,
+          'uniform':uniform,
+          'deleteHistory':deleteHistory,
+          'merge':deleteHistory,
+          'reverseNormal':reverseNormal,
+          'degree':degree}
+    
+    if loftMode:
+        if loftMode in ['evenCubic','evenLinear']:
+            d_tess = {'format':2,#General
+                      'polygonType':1,#'quads',
+                      'uType':3,
+                      'vType':1,
+                      'uNumber':1}
+            _d['d_tess'] = d_tess
+            if loftMode == 'evenCubic':
+                _d['degree'] = 3
+                _d['uniform'] = True
+                d_tess['vNumber'] = (4 + vSplit + (len(ml_loftCurves)) * vSplit)*2
+                #..attempting to fix inconsistency in which is u and which is v
+                #d_tess['vNumber'] = d_tess['uNumber']
+                #d_tess['vType'] = 1
+            else:
+                _d['degree'] = 1
+                d_tess['uNumber'] = (vSplit + (len(ml_loftCurves)) * vSplit)
+                
+            if flipUV:
+                log.warning(cgmGEN.logString_msg(_str_func,"FLIPPING UV"))
+                
+                dTmp = {}
+                for i,k in enumerate(['u','v']):
+                    for k2 in 'Type','Number':
+                        if i:
+                            dTmp['u'+k2] = d_tess['v'+k2]
+                        else:
+                            dTmp['v'+k2] = d_tess['u'+k2]
+                d_tess.update(dTmp)
+                            
+                
+        elif loftMode == 'default':
+            pass
+                
+
+    #pprint.pprint(vars())
+    
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
-                                       uSplit=uSplit,
-                                       vSplit=vSplit,
-                                       cap = cap,
-                                       form=form,
-                                       deleteHistory=deleteHistory,
-                                       degree=degree)
+                                      **_d)
     
     """
     if form in [1,2]:
@@ -7949,7 +8073,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             else:
                 _useSize = _sizeSub
             
-            str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
+            str_name = _dtmp.get('name') or "{0}_{1}".format(self.cgmName,k)
             _tagOnly = _dtmp.get('tagOnly',False)
             _pos = _dtmp.get('pos',False)
             mEnd = md_handles.get(_dtmp.get('endTag')) or md_handles.get('end')
@@ -7982,7 +8106,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mHandle.doStore('cgmName',k)
                 else:
                     mHandle.doStore('cgmName',self)
-                    mHandle.doStore('cgmTypeModifier',str_name)
+                    mHandle.doStore('cgmTypeModifier',k)
+                    
+                    #mHandle.doStore('cgmTypeModifier',str_name)
+                    #mHandle.doStore('cgmName',str_name)
+                    
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
@@ -8034,7 +8162,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mHandle.doStore('cgmName',k)
                 else:
                     mHandle.doStore('cgmName',self)
-                    mHandle.doStore('cgmTypeModifier',str_name)
+                    mHandle.doStore('cgmTypeModifier',k)
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
@@ -8480,19 +8608,26 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
 def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
     _str_func = 'define_set_baseSize'
     log.debug(cgmGEN.logString_start(_str_func))
-
     
-    if baseSize is None:
-        try:baseSize = self.baseSize
-        except:raise ValueError,"No baseSize offered or found"
-
     d_baseDat = {}
+    
     if self.hasAttr('baseDat'):
         d_baseDat = self.baseDat
         log.debug("|{0}| >>  Base dat found | {1}".format(_str_func,d_baseDat))        
 
+    
+    if baseSize is None:
+        try:
+            baseSize = d_baseDat['baseSize']
+            log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
+        except:
+            try:baseSize = self.baseSize
+            except:raise ValueError,"No baseSize offered or found"
+
+
     if not baseSize:
         return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
+    
     log.debug("|{0}| >>  baseSize: {1}".format(_str_func,baseSize))
     
     if baseAim is None:
@@ -8554,10 +8689,22 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
                     _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[2])
                 else:
                     _pos = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,vec),baseSize[1])
+                    
                 if mHandle == mUp:
                     SNAP.aim_atPoint(mHandle.mNode,_pos,'y+')
                 else:
                     mHandle.p_position = _pos
+                    
+                if k == 'lever':
+                    log.debug("|{0}| >>  Aiming lever....".format(_str_func))
+                    
+                    _posAim = DIST.get_pos_by_vec_dist(_pos, TRANS.transformDirection(self.mNode,d_baseDat['up']),baseSize[2])
+                    _vecUp = MATH.get_vector_of_two_points(_pos,pos_self)
+                    SNAP.aim_atPoint(mHandle.mNode,_posAim,'y+',vectorUp=_vecUp)                    
+                    
+                    #_posAim = DIST.get_pos_by_vec_dist(pos_self, TRANS.transformDirection(self.mNode,baseAim),baseSize[2])
+                    #SNAP.aim_atPoint(mHandle.mNode,_posAim,'z+',vectorUp=TRANS.transformDirection(self.mNode,d_baseDat['up']))
+                    
             else:
                 log.debug("|{0}| >>  Missing: {1}".format(_str_func,k))
     
@@ -8613,7 +8760,7 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
         if not ml_toSnap:
             raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
         
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         return ARRANGE.alongLine([mObj.mNode for mObj in ml_toSnap],mode,curve,spans)
     except Exception,err:

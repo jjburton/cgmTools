@@ -500,25 +500,34 @@ def settings(self,settingsPlace = None,ml_targets = None):
                 settingsPlace = 'start'
             
         if settingsPlace in ['start','end']:
-            _settingsSize = _offset * 2
+            #_settingsSize = _offset * 2
+            mMesh_tmp =  mBlock.atUtils('get_castMesh')
+            str_meshShape = mMesh_tmp.getShapes()[0]
+            
             if settingsPlace == 'start':
                 _mTar = ml_targets[0]
             else:
-                _mTar = ml_targets[self.int_handleEndIdx]
+                _mTar = ml_targets[self.int_handleEndIdx]            
+            
+            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
+            
+            str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
+            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
+            
+            
 
+            #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]
+            #_settingsSize = MATH.average(_settingsSize,(_offset * 2))
+            _settingsSize = DIST.get_between_points(pos,newPos)
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
 
             mSettingsShape.doSnapTo(_mTar.mNode)
-            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
-            str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
 
-            mMesh_tmp =  mBlock.atUtils('get_castMesh')
-            str_meshShape = mMesh_tmp.getShapes()[0]        
-            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
             #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
-            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 2.0)
 
             mSettingsShape.p_position = newPos
             mMesh_tmp.delete()
