@@ -54,8 +54,10 @@ from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 import cgm.core.tools.lib.annotations as TOOLANNO
-import cgm.core.tools.updateTool as CGMUPDATE
+import cgmUpdate as CGMUPDATE
 reload(CGMUPDATE)
+#import cgm.core.tools.updateTool as CGMUPDATE
+#reload(CGMUPDATE)
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
@@ -80,9 +82,36 @@ _2016 = False
 if cgmGEN.__mayaVersion__ >=2016:
     _2016 = True
     
+def uiSection_git(parent):
+    _str_func = 'uiSection_git'  
+    
+    l_branches = 'stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV'
+    
+    _git = mc.menuItem(parent = parent,subMenu=True,
+                       l='Pull',
+                       ann = "Grab various builds")
+    for branch in l_branches:
+        mc.menuItem(parent = _git,
+                    l=branch,
+                    ann = "Grab branch: {0}".format(branch),
+                    c= cgmGEN.Callback(CGMUPDATE.here,branch))
+        
+    _dat = mc.menuItem(parent = parent,subMenu=True,
+                           l='Report',
+                           ann = "Grab various build dat")
+    for branch in l_branches:
+        mc.menuItem(parent = _dat,
+                    l=branch,
+                    ann = "Grab branch dat: {0}".format(branch),
+                    #c=lambda *a: CGMUPDATE.get_dat(branch,10,reportMode=True))
+                    c= cgmGEN.Callback(CGMUPDATE.get_dat,branch,reportMode=True))        
+    
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
     
+
+    
+    """
     mc.menuItem(parent = parent,
                     l='Check for updates',
                     ann = "Check your local cgm branch for updates...",
@@ -90,7 +119,7 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='cgmUpdateTool',
                 ann = "Get Tool Updates",
-                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
+                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))"""
     
     mc.menuItem(parent = parent,
                 l='CGM Docs',
