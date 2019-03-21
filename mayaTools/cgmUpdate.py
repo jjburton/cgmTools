@@ -92,7 +92,7 @@ def get_install_path(confirm = False,branch=_defaultBranch):
     
     if confirm:
         _dat = get_dat(branch,1)
-        _msg = 'Would you like to install cgmTools here: \n [ {0} ] \n \n Branch: {1} | Last Updated: {2} | commit msg ...\n {3} \n {4} \n {5}'.format(_path,branch,_dat[0]['date'],'-'*100, _dat[0]['msg'],'-'*100)
+        _msg = 'Would you like to install cgmTools here: \n [ {0} ] \n  {1} \n Branch: {2} || Last Updated: {3} \n {4} \n {5}'.format(_path,'-'*100,branch,_dat[0]['date'], _dat[0]['msg'],'-'*100)
         if _warn:
             _msg = _msg + "\n {0}".format(_warn)
         _res_confirm = mc.confirmDialog(title="Install cgmTools",
@@ -418,6 +418,7 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
         for idx,d in enumerate(stable):
             if i >= limit:
                 break
+            print '-'*100
             
             #pprint.pprint(d)
             _dCommit = d['commit']
@@ -427,7 +428,7 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
             
             try:
                 _tmp = datetime.datetime.strptime( _dateRaw[:-1], "%Y-%m-%dT%H:%M:%S")
-                _date = _tmp.strftime("%m.%d.%Y || %H:%M:%S").__str__()                
+                _date = _tmp.strftime("%m.%d.%Y - %H:%M:%S").__str__()                
             except:_date = _dateRaw
             
             _l_res.append({'hash':_hash,
@@ -442,7 +443,6 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
                                                   ))
             print _msg
             #print '...' + "{0}{1}".format(_pathMain,_hash)
-            print '-'*100
 
             i+=1
             
