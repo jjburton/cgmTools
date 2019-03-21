@@ -26,7 +26,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 _test = 'MRS'
 
 _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
@@ -59,6 +59,7 @@ def get_install_path(confirm = False,branch=_defaultBranch):
     _str_func = 'get_install_path'
     
     _path = False
+    _warn = None
 
     try:
         #First we'll see if we have cgm installed...
@@ -74,10 +75,9 @@ def get_install_path(confirm = False,branch=_defaultBranch):
         _path = os.path.abspath(__file__)        
         _path = _sep.join(__file__.split(_sep)[:-1])
         _path = os.path.abspath(_path)
-        _warn = ''
         for check in ['repos','mayaTools']:
             if check in _path:
-                _warn = "Please don't install to your repos. Found check: '{0}' | path: {1}".format(check,_path)
+                _warn = " WARNING: Please don't install to your repos!Found check kw: '{0}' \n path: {1}".format(check,_path)
                 log.warning(_warn)
                 break
                 #_path = False
@@ -91,8 +91,12 @@ def get_install_path(confirm = False,branch=_defaultBranch):
             log.debug("|{0}| >> paths match.".format(_str_func))
     
     if confirm:
+        _dat = get_dat(branch,1)
+        _msg = 'Would you like to install cgmTools here: \n [ {0} ] \n \n Branch: {1} | Last Updated: {2} | commit msg ...\n {3} \n {4} \n {5}'.format(_path,branch,_dat[0]['date'],'-'*100, _dat[0]['msg'],'-'*100)
+        if _warn:
+            _msg = _msg + "\n {0}".format(_warn)
         _res_confirm = mc.confirmDialog(title="Install cgmTools",
-                                        message='Welcome to the stand alone cgm installer. Would you like to install your tools here: \n {0} \n \n {1} \n Branch: {2}'.format(_path,_warn,branch),
+                                        message = _msg,
                                         messageAlign='center',
                                         button=['OK', 'Pick New','Cancel'],
                                         defaultButton='OK',
@@ -380,13 +384,14 @@ def get_build_bit(branch = _defaultBranch, idx = 0, mode = None):
     _zip = download(url)
     return _zip
 
-def get_dat(branch = 'master', limit = 3, update = False):
+def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
     """
     
     """
     """branch = raw_input("Enter the name of the Branch ('Master' or 'Stable') to see a summary of last 10 commits: ")"""
     _str_func = 'get_dat'
-    log.debug("|{0}| >> Branch: {1}".format(_str_func,branch))
+    print '='*100            
+    print("|{0}| >> Branch: {1}".format(_str_func,branch))
     
     global CGM_BUILDS_DAT
     #pprint.pprint(CGM_BUILDS_DAT)
@@ -402,7 +407,7 @@ def get_dat(branch = 'master', limit = 3, update = False):
     route = 'https://api.github.com/repos/jjburton/cgmTools/commits?sha=' + branch
     
     #request = Request(route)
-    log.debug("|{0}| >> Route: {1}".format(_str_func,route))
+    print("|{0}| >> Route: {1}".format(_str_func,route))
     
     try:
         response = urlopen(route)
@@ -420,28 +425,36 @@ def get_dat(branch = 'master', limit = 3, update = False):
             _msg = _dCommit['message']
             _dateRaw= _dCommit['committer']['date']
             
-            try:_date = datetime.datetime.strptime( _dateRaw[:-6], "%Y-%m-%dT%H:%M:%S").__str__()
+            try:
+                _tmp = datetime.datetime.strptime( _dateRaw[:-1], "%Y-%m-%dT%H:%M:%S")
+                _date = _tmp.strftime("%m.%d.%Y || %H:%M:%S").__str__()                
             except:_date = _dateRaw
             
             _l_res.append({'hash':_hash,
                            'msg': _msg,
                            'date':_date,
+                           'dateRaw':_dateRaw,
                            'url':d['html_url'],
                            'dateRaw':_dateRaw})
-            log.debug("{0} | {1}{2} | date: {3} |msg: {4}".format(idx,
-                                                                  _pathMain,
-                                                                  _hash,
-                                                                  _date,
-                                                                  _msg,
-                                                                  ))            
+            print("{0} | {1} ...".format(idx,
+                                                  _date,
+                                                  _msg,
+                                                  ))
+            print _msg
+            #print '...' + "{0}{1}".format(_pathMain,_hash)
+            print '-'*100
 
             i+=1
             
-        _len = len(stable)
-        log.debug("|{0}| >> List of {1}".format(_str_func,_len))
+        #_len = len(stable)
+        #log.debug("|{0}| >> Showing {1} of {2}".format(_str_func,limit,_len))
         
-        pprint.pprint(_l_res)
+        #pprint.pprint(_l_res)
         CGM_BUILDS_DAT[branch] = _l_res
+        print '='*100        
+        
+        if reportMode:
+            return        
         return _l_res 
 
     except URLError, e:

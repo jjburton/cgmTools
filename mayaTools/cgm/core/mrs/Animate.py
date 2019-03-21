@@ -857,7 +857,8 @@ class ui(cgmUI.cgmGUI):
 
     def _uiCB_gridResize(self, *args):
         if r9Setup.mayaVersion() >= 2010:
-            cells = int(mc.scrollLayout(self.cgmUIglPoseScroll, q=True, w=True) / mc.gridLayout(self.cgmUIglPoses, q=True, cw=True))
+            cells = (int(mc.scrollLayout(self.cgmUIglPoseScroll, q=True, w=True) / mc.gridLayout(self.cgmUIglPoses, q=True, cw=True))) or 1
+
             mc.gridLayout(self.cgmUIglPoses, e=True, nc=cells)
         else:
             log.debug('this call FAILS in 2009???')
