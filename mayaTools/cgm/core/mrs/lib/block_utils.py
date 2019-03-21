@@ -351,7 +351,6 @@ def doName(self):
     _str_func = '[{0}] doName'.format(_short)
     log.debug(cgmGEN.logString_start(_str_func))
 
-    
     _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
     _direction = self.getEnumValueString('side')
@@ -1228,8 +1227,8 @@ def create_defineLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
-    
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'sub',transparent = True)
+        #self.asHandleFactory().color(mLoftSurface.mNode,_sice)
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
@@ -3312,7 +3311,7 @@ def blockMirror_create(self, forceNew = False):
             
         log.debug("|{0}| >>  blockParent....".format(_str_func))
         mBlockParent = self.p_blockParent
-        if mBlockParent.getMessage('blockMirror'):
+        if mBlockParent and mBlockParent.getMessage('blockMirror'):
             mBlockParent = mBlockParent.blockMirror
             log.debug("|{0}| >>  blockParent has blockMirror: {1}".format(_str_func,mBlockParent))
             
@@ -7114,9 +7113,15 @@ def blockProfile_load(self, arg):
     #    _d['blockProfile'] = arg
     
     #cgmGEN.func_snapShot(vars())
-    log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
+    log.debug("|{0}| >>  {1}...".format(_str_func,arg))
+    _l_badAttrs = ['side']
     for a,v in _d.iteritems():
         try:
+            if a in _l_badAttrs:
+                print('!'*100)
+                print(cgmGEN.logString_msg(_str_func, 'REMOVE {0} from {1} | {2}'.format(a,arg,mBlockModule.__name__)))
+                print('!'*100)                
+                continue
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
             _typeDat = type(v)
