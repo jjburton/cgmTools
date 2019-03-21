@@ -7846,6 +7846,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                      extendCastSurface = _extend,
                                                                      extendToStart=False),#_extendToStart),
                                                  'cgmObject')
+        
+        
         #if ml_clav:
             #ml_segProxy = [ml_clav[0]] + ml_segProxy
         

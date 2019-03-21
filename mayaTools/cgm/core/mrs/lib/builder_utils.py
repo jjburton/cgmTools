@@ -890,14 +890,17 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
             mStartCollapse.p_parent = False
             mMidCollapse = mStartCollapse.doDuplicate(po=False)
             mEndCollapse = mStartCollapse.doDuplicate(po=False)
-            #pos_bb = TRANS.bbCenter_get(mEndCollapse.mNode)
-            #for ep in mc.ls("{0}.ep[*]".format(mEndCollapse.getShapes()[0]),flatten=True):
-                #POS.set(ep,pos_bb)
-            mEndCollapse.scale = 0,0,0
-            mMidCollapse.scale = [v * .2 for v in mMidCollapse.scale]
-            mStartCollapse.scale = [v * .8 for v in mStartCollapse.scale]
+            pos_bb = TRANS.bbCenter_get(mEndCollapse.mNode)
             
-            
+                
+            for ep in mc.ls("{0}.ep[*]".format(mEndCollapse.getShapes()[0]),flatten=True):
+                POS.set(ep,pos_bb)
+                
+            DIST.offsetShape_byVector(mStartCollapse.mNode,origin= pos_bb,
+                                      factor = -.2, offsetMode = 'vectorScale')
+            DIST.offsetShape_byVector(mMidCollapse.mNode,origin= pos_bb,
+                                      factor = -.8, offsetMode = 'vectorScale')
+
             if loft == targets[0]:
                 l_use.insert(0,mStartCollapse.mNode)
                 l_use.insert(0,mMidCollapse.mNode)
@@ -2371,6 +2374,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             l_uValues.append(maxU)
             _b_singleMode = True
             
+        log.debug("|{0}| >> uValues: {1} ...".format(_str_func,l_uValues))
+
         for i,v in enumerate(l_uValues):
             _l = [v]
             
@@ -2389,8 +2394,15 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 
             if i == 0 and extendToStart:
                 _l.insert(0,minU)
+            """
+            for ii,v2 in enumerate(_l):
+                if ii:
+                    if _l[ii-1] - v2 < 1:
+                        _l.remove(v2)"""
                 
             l_sets.append(_l)
+            log.debug("|{0}| >> uSet [{1}] : {2} ...".format(_str_func,i,_l))
+            
     
             
             #>>For each v value, make a new curve ---------------------------------------------------------
@@ -2405,13 +2417,14 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 
             #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
             #                                    ch = 0, rn = 0, local = 0)[0]
-    
+        
         l_newCurves = []
         d_curves = {}
         def getCurve(uValue,l_curves):
             _crv = d_curves.get(uValue)
             if _crv:return _crv
             _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,uValue,method), ch = 0, rn = 0, local = 0)[0]
+            _crv = mc.rename(_crv,"u{0}_crv".format(uValue))
             d_curves[uValue] = _crv
             log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
             l_curves.append(_crv)
@@ -2440,6 +2453,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
             
             _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+            
             log.debug("|{0}| >> mesh created...".format(_str_func))                            
             CORERIG.match_transform(_mesh,ml_targets[i])
             if reverseNormal:
@@ -2576,6 +2590,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     
                     _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
                     
+            
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
                 

@@ -434,7 +434,7 @@ def set_vectorOffset(obj = None, origin = None, distance = 0, vector = None, mod
     POS.set(obj,newPos)
     return newPos
 
-def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv', vector = None, mode = 'origin'):
+def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv', vector = None, mode = 'origin',factor = .5, offsetMode = 'fixed'):
     """
     Attempt for more consistency 
     
@@ -473,9 +473,17 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         _l_source = mc.ls("{0}.{1}[*]".format(s,component),flatten=True,long=True)
         
         for ii,c in enumerate(_l_source):
-            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
-            set_vectorOffset(c,_origin,distance,vector,mode=mode)
-
+            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))
+            if offsetMode == 'fixed':
+                set_vectorOffset(c,_origin,distance,vector,mode=mode)
+            else:
+                pMe = POS.get(c)
+                _vec = MATHUTILS.get_vector_of_two_points(_origin,pMe)
+                d = get_distance_between_points(_origin,pMe)
+                newPos = get_pos_by_vec_dist(POS.get(c),_vec,d*factor)
+                POS.set(c,newPos)
+                
+                
         
     return True
 
