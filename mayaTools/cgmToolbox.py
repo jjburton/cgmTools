@@ -473,7 +473,7 @@ def loadCGMPlugin( pluginName ):
             maya.OpenMaya.MGlobal.displayError( 'Failed to load cgmMirror.py plugin - is it in your plugin path?' )
 
 
-from cgm.core.tools.lib import tool_chunks as UICHUNKS
+import cgm.core.tools.lib.tool_chunks as UICHUNKS
 reload(UICHUNKS)
 #@cgmGen.Timer
 def uiBuild_cgmMenu( *args ):
@@ -481,7 +481,7 @@ def uiBuild_cgmMenu( *args ):
     menu = maya._cgmMenu
     menu.clear()
     reload(UICHUNKS)
-    #log.info("|{0}| >> building...".format(_str_func))        
+    log.info("|{0}| >> building...".format(_str_func))        
     
     """
     _l_sel = mc.ls(sl=True)
@@ -547,6 +547,11 @@ def uiBuild_cgmMenu( *args ):
     #>>dev ----------------------------------------------------------------------
     _dev = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_dev(_dev)
+    
+    #>>Help ----------------------------------------------------------------------
+    _git = mc.menuItem(p=menu,l='Git',subMenu = True, tearOff = True)
+    #cgmUI.uiSection_help(_help)
+    UICHUNKS.uiSection_git(_git)    
 
     #>>Help ----------------------------------------------------------------------
     _help = mc.menuItem(p=menu,l='Help',subMenu = True, tearOff = True)
