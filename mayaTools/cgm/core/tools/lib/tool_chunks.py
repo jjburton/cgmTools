@@ -104,7 +104,7 @@ def uiSection_git(parent):
                     l=branch,
                     ann = "Grab branch dat: {0}".format(branch),
                     #c=lambda *a: CGMUPDATE.get_dat(branch,10,reportMode=True))
-                    c= cgmGEN.Callback(CGMUPDATE.get_dat,branch,10))        
+                    c= cgmGEN.Callback(CGMUPDATE.get_dat,branch,10,True))        
     
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
