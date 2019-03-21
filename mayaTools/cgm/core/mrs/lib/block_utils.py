@@ -1337,7 +1337,9 @@ def create_prerigLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        #CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        mHandleFactory = self.asHandleFactory()
+        mHandleFactory.color(mLoftSurface.mNode,_side,'sub',transparent=True)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
@@ -9283,9 +9285,8 @@ def pivotHelper_get(self,mHandle=None,
                 #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
                 #Color our stuff...
-                mHandleFactory.color(mLoftSurface.mNode,transparent=True)
+                mHandleFactory.color(mLoftSurface.mNode,_side,'sub',transparent=True)
                 #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-    
                 mLoftSurface.inheritsTransform = 0
                 for s in mLoftSurface.getShapes(asMeta=True):
                     s.overrideDisplayType = 2   

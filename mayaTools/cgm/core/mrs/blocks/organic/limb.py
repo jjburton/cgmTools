@@ -1577,6 +1577,7 @@ def form(self):
         #for t in targets:
             #ATTR.set(t,'v',0)
         mNoTransformNull.v = False
+        #mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
         
   
         mPivotHelper= False
