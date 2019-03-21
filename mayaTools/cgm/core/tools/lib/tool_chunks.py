@@ -104,7 +104,7 @@ def uiSection_git(parent):
                     l=branch,
                     ann = "Grab branch dat: {0}".format(branch),
                     #c=lambda *a: CGMUPDATE.get_dat(branch,10,reportMode=True))
-                    c= cgmGEN.Callback(CGMUPDATE.get_dat,branch,10))        
+                    c= cgmGEN.Callback(CGMUPDATE.get_dat,branch,reportMode=True))        
     
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
@@ -129,11 +129,11 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='Report issue',
                 ann = "Load a browser page to report a bug",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/issues/new"))    
+                c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools/issues/new"))    
     mc.menuItem(parent = parent,
                 l='Get Builds',
                 ann = "Get the latest builds of cgmTools from bitBucket",
-                c=lambda *a: webbrowser.open("https://bitbucket.org/jjburton/cgmtools/downloads/?tab=branches")) 
+                c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools")) 
     _vids = mc.menuItem(parent = parent,subMenu = True,
                         l='Videos')
     
