@@ -3700,7 +3700,13 @@ def baseSize_get(self):
 
 
 def defineSize_get(self):
-    _str_func = 'defineSize_get'            
+    _str_func = 'defineSize_get'
+    try:_baseDat = self.baseDat
+    except:_baseDat = {}
+    
+    #if _baseDat.get('baseSize'):
+    #    _baseSize =  _baseDat.get('baseSize')
+    #else:
     _baseSize = self.baseSize
     if _baseSize:
         log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
@@ -9397,7 +9403,35 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
   
 
 
-
+def blockProfile_valid(self,update= False):
+    try:
+        _str_func = 'blockProfile_valid'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        mBlockModule = self.getBlockModule()
+        _ver_module = mBlockModule.__version__
+        
+        _blockProfile = self.getMayaAttr('blockProfile')
+        _d_profiles = mBlockModule.__dict__.get('d_block_profiles',{})
+        _typeDict=  _d_profiles.get(_blockProfile,{})
+        if _blockProfile and not _typeDict:
+            print(cgmGEN._str_subLine)
+            log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
+            pprint.pprint(_d_profiles.keys())
+            print(cgmGEN._str_subLine)
+            return False
+        
+        if update:
+            log.info(cgmGEN.logString_sub(_str_func,"Update..."))            
+            verify_blockAttrs(self,queryMode=False)
+            blockProfile_load(self,_blockProfile)
+            
+        print("[{0}] Profile checks {1}".format(self.p_nameShort, _blockProfile))            
+        return _typeDict   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)    
+    
+    
 def is_current(self):
     try:
         _str_func = 'is_current'
@@ -9502,8 +9536,6 @@ def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRi
         cgmGEN.cgmExceptCB(Exception,err)
 
 
-
-        
 def blockModule_setLogger(self,mode = 'debug'):
     try:
         _str_func = 'to_scriptEditor'
@@ -9514,5 +9546,74 @@ def blockModule_setLogger(self,mode = 'debug'):
         else:
             mModule.log.setLevel(mModule.logging.INFO)
             
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
+        
+def blockScale_bake(self,force=False):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'bake_blockScale'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        if self.p_parent:
+            return log.error(cgmGEN.logString_msg(_str_func, "Can't bake parented blocks, please unparent"))
+        
+        _blockScale = self.blockScale
+        
+        if MATH.is_float_equivalent(_blockScale,1):
+            log.debug(cgmGEN.logString_msg(_str_func, 'Already 1.0'))
+            return True
+        
+        _factor = 1.0/_blockScale
+        
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)
+        md_dat = {}
+        
+        log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
+        #First Loop gateher
+        for i,mCtrl in enumerate(ml_ctrls):
+            _str = mCtrl.p_nameShort
+            _d = {'str':_str}
+            
+            if not ATTR.is_locked(_str,'translate'):
+                _d['pos']=mCtrl.p_position
+                
+            for a in ['sx','sy','sz']:
+                if not ATTR.is_locked(_str,a):
+                    v = ATTR.get(_str,a)
+                    if not MATH.is_float_equivalent(1.0,v):
+                        _d[a] = v * _blockScale
+                    
+            md_dat[i] = _d
+            
+        log.debug(cgmGEN.logString_msg(_str_func, 'Setting intiial'))
+        ATTR.set(self.mNode,'blockScale',1.0)
+        """
+        blockDat_save(self)
+        blockDat_load(self,redefine=True)                
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)        
+        """
+        
+        for ii in range(3):#3 loop to account for parentage
+            log.debug(cgmGEN.logString_sub(_str_func, 'Push: {0}'.format(ii)))
+
+                
+            for i,mCtrl in enumerate(ml_ctrls):
+                _d = md_dat[i]
+                log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
+                _pos = _d.get('pos')
+                if _pos:mCtrl.p_position = _pos
+                for a in ['sx','sy','sz']:
+                    if _d.get(a):
+                        ATTR.set(_d['str'],a,_d[a])
+        
+        
+        
+        
+        #pprint.pprint(vars())
+        return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

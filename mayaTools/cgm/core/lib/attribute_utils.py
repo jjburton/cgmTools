@@ -2574,7 +2574,8 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
             log.error("|{0}| >> {1} || err: {2}".format(_str_func,_d['combined'],err))
         finally:
             mc.undoInfo(cck=True)
-            mc.undo()
+            try:mc.undo()
+            except:pass
             if _lock:
                 set_lock(_d,True)            
             
