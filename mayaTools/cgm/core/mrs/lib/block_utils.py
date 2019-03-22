@@ -351,7 +351,6 @@ def doName(self):
     _str_func = '[{0}] doName'.format(_short)
     log.debug(cgmGEN.logString_start(_str_func))
 
-    
     _d = NAMETOOLS.returnObjectGeneratedNameDict(_short)
 
     _direction = self.getEnumValueString('side')
@@ -1228,8 +1227,8 @@ def create_defineLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
-    
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'sub',transparent = True)
+        #self.asHandleFactory().color(mLoftSurface.mNode,_sice)
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
@@ -1337,7 +1336,9 @@ def create_prerigLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        #CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        mHandleFactory = self.asHandleFactory()
+        mHandleFactory.color(mLoftSurface.mNode,_side,'sub',transparent=True)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
@@ -3310,7 +3311,7 @@ def blockMirror_create(self, forceNew = False):
             
         log.debug("|{0}| >>  blockParent....".format(_str_func))
         mBlockParent = self.p_blockParent
-        if mBlockParent.getMessage('blockMirror'):
+        if mBlockParent and mBlockParent.getMessage('blockMirror'):
             mBlockParent = mBlockParent.blockMirror
             log.debug("|{0}| >>  blockParent has blockMirror: {1}".format(_str_func,mBlockParent))
             
@@ -3699,7 +3700,13 @@ def baseSize_get(self):
 
 
 def defineSize_get(self):
-    _str_func = 'defineSize_get'            
+    _str_func = 'defineSize_get'
+    try:_baseDat = self.baseDat
+    except:_baseDat = {}
+    
+    #if _baseDat.get('baseSize'):
+    #    _baseSize =  _baseDat.get('baseSize')
+    #else:
     _baseSize = self.baseSize
     if _baseSize:
         log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
@@ -7112,9 +7119,15 @@ def blockProfile_load(self, arg):
     #    _d['blockProfile'] = arg
     
     #cgmGEN.func_snapShot(vars())
-    log.debug("|{0}| >>  {1}...".format(_str_func,arg))    
+    log.debug("|{0}| >>  {1}...".format(_str_func,arg))
+    _l_badAttrs = ['side']
     for a,v in _d.iteritems():
         try:
+            if a in _l_badAttrs:
+                print('!'*100)
+                print(cgmGEN.logString_msg(_str_func, 'REMOVE {0} from {1} | {2}'.format(a,arg,mBlockModule.__name__)))
+                print('!'*100)                
+                continue
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
             _typeDat = type(v)
@@ -9283,9 +9296,8 @@ def pivotHelper_get(self,mHandle=None,
                 #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
                 #Color our stuff...
-                mHandleFactory.color(mLoftSurface.mNode,transparent=True)
+                mHandleFactory.color(mLoftSurface.mNode,_side,'sub',transparent=True)
                 #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-    
                 mLoftSurface.inheritsTransform = 0
                 for s in mLoftSurface.getShapes(asMeta=True):
                     s.overrideDisplayType = 2   
@@ -9391,7 +9403,35 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
   
 
 
-
+def blockProfile_valid(self,update= False):
+    try:
+        _str_func = 'blockProfile_valid'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        mBlockModule = self.getBlockModule()
+        _ver_module = mBlockModule.__version__
+        
+        _blockProfile = self.getMayaAttr('blockProfile')
+        _d_profiles = mBlockModule.__dict__.get('d_block_profiles',{})
+        _typeDict=  _d_profiles.get(_blockProfile,{})
+        if _blockProfile and not _typeDict:
+            print(cgmGEN._str_subLine)
+            log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
+            pprint.pprint(_d_profiles.keys())
+            print(cgmGEN._str_subLine)
+            return False
+        
+        if update:
+            log.info(cgmGEN.logString_sub(_str_func,"Update..."))            
+            verify_blockAttrs(self,queryMode=False)
+            blockProfile_load(self,_blockProfile)
+            
+        print("[{0}] Profile checks {1}".format(self.p_nameShort, _blockProfile))            
+        return _typeDict   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)    
+    
+    
 def is_current(self):
     try:
         _str_func = 'is_current'
@@ -9496,8 +9536,6 @@ def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRi
         cgmGEN.cgmExceptCB(Exception,err)
 
 
-
-        
 def blockModule_setLogger(self,mode = 'debug'):
     try:
         _str_func = 'to_scriptEditor'
@@ -9508,5 +9546,74 @@ def blockModule_setLogger(self,mode = 'debug'):
         else:
             mModule.log.setLevel(mModule.logging.INFO)
             
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
+        
+def blockScale_bake(self,force=False):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'bake_blockScale'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        if self.p_parent:
+            return log.error(cgmGEN.logString_msg(_str_func, "Can't bake parented blocks, please unparent"))
+        
+        _blockScale = self.blockScale
+        
+        if MATH.is_float_equivalent(_blockScale,1):
+            log.debug(cgmGEN.logString_msg(_str_func, 'Already 1.0'))
+            return True
+        
+        _factor = 1.0/_blockScale
+        
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)
+        md_dat = {}
+        
+        log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
+        #First Loop gateher
+        for i,mCtrl in enumerate(ml_ctrls):
+            _str = mCtrl.p_nameShort
+            _d = {'str':_str}
+            
+            if not ATTR.is_locked(_str,'translate'):
+                _d['pos']=mCtrl.p_position
+                
+            for a in ['sx','sy','sz']:
+                if not ATTR.is_locked(_str,a):
+                    v = ATTR.get(_str,a)
+                    if not MATH.is_float_equivalent(1.0,v):
+                        _d[a] = v * _blockScale
+                    
+            md_dat[i] = _d
+            
+        log.debug(cgmGEN.logString_msg(_str_func, 'Setting intiial'))
+        ATTR.set(self.mNode,'blockScale',1.0)
+        """
+        blockDat_save(self)
+        blockDat_load(self,redefine=True)                
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)        
+        """
+        
+        for ii in range(3):#3 loop to account for parentage
+            log.debug(cgmGEN.logString_sub(_str_func, 'Push: {0}'.format(ii)))
+
+                
+            for i,mCtrl in enumerate(ml_ctrls):
+                _d = md_dat[i]
+                log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
+                _pos = _d.get('pos')
+                if _pos:mCtrl.p_position = _pos
+                for a in ['sx','sy','sz']:
+                    if _d.get(a):
+                        ATTR.set(_d['str'],a,_d[a])
+        
+        
+        
+        
+        #pprint.pprint(vars())
+        return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

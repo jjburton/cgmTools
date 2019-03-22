@@ -140,7 +140,6 @@ class ui(cgmUI.cgmGUI):
         try:self.var_mrsContextTime
         except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                           defaultValue = 'current')
-        
         try:self.var_mrsContextKeys
         except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')
@@ -2188,7 +2187,8 @@ def uiCB_contextualAction(self,**kws):
     try:
         for i,f in enumerate(_keys):
             log.info(cgmGEN.logString_sub(None,'Key: {0}'.format(f),'_',40))
-            mc.progressBar(self.uiProgressBar,edit=True,maxValue = _int_keys,progress = i, vis=1)
+            try:mc.progressBar(self.uiProgressBar,edit=True,maxValue = _int_keys,progress = i, vis=1)
+            except:pass
             
             mc.currentTime(f,update=True)
             
@@ -2262,8 +2262,11 @@ def uiCB_contextualAction(self,**kws):
                 
                 for mPart,controls in self.d_puppetData['partControls'].iteritems():
                     log.info(cgmGEN.logString_sub(None,'Part: {0}'.format(mPart),'_',40))
-                    mc.progressBar(self.uiProgressBar,edit=True,maxValue = len(self.d_puppetData['partControls'].keys()),step = 1, vis=1)
-
+                    try:
+                        mc.progressBar(self.uiProgressBar,edit=True,
+                                       maxValue = len(self.d_puppetData['partControls'].keys()),step = 1, vis=1)
+                    except:pass
+                    
                     if _mode in ['reset','resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
                         l_use = controls
                         if _context != 'control':
@@ -2365,7 +2368,8 @@ def uiCB_contextualAction(self,**kws):
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
             
         mc.refresh(su=0)
-        cgmUI.progressBar_end(self.uiProgressBar)
+        try:cgmUI.progressBar_end(self.uiProgressBar)
+        except:pass
         return endCall(self)            
         
         
@@ -4573,8 +4577,21 @@ def mmUI_lower(self,parent):
     #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
     
+    try:self.var_mrsContext
+    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+                                                      defaultValue = _l_contexts[0])
+    try:self.var_mrsContextTime
+    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                      defaultValue = 'current')
+    try:self.var_mrsContextKeys
+    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                      defaultValue = 'each')    
+    
+    
     #Change space menu
     DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
+    
+    
     
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)

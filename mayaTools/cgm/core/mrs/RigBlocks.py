@@ -419,6 +419,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             _side = side
             try:
                 if _side is not None and self._callKWS.get('side'):
+                    log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
                     _side = self._callKWS.get('side')
             except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
 

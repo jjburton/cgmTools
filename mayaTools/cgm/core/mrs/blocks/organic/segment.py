@@ -644,7 +644,6 @@ def form(self):
                              baseName = self.cgmName )
         mMesh.connectParentNode(self.mNode,'handle','proxyHelper')
         self.msgList_connect('proxyMeshGeo',[mMesh])
-        mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
     
         mNoTransformNull.v = False
     
@@ -1706,7 +1705,8 @@ def rig_controls(self):
     
             mObj = d_buffer['mObj']
             ATTR.set_hidden(mObj.mNode,'radius',True)
-                
+            if mBlock.ikSetup:
+                self.atUtils('get_switchTarget', mObj, mObj.getMessage('blendJoint'))                
         
         #ControlIK ========================================================================================
         mControlIK = False
