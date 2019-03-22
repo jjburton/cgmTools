@@ -315,7 +315,7 @@ _d_shapeLibrary = {'circle':['circleX','circleY','circleZ','circle'],
                                   'circleArrow1Interior','circleArrow2Axis']                 
                    }
 
-def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = True):
+def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = True, bakeScale = False):
     """ 
     Get curve from a predefined set
 
@@ -817,22 +817,28 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
         _res = SHAPES.combine(_l_res)
         
     if size is not None:
+        _sizeUse = size
+            
         if cgmValid.isListArg(size):
             TRANS.scale_to_boundingBox(_res,size)
+            for a in 'xyz':
+                v = ATTR.get(_res,'s{0}'.format(a))
+                if MATH.is_float_equivalent(v,0):
+                    ATTR.set(_res,'s{0}'.format(a),1.0)
         else:
             if absoluteSize:
                 _f_current = DIST.get_bb_size(_res,True,True)
                 multiplier = size/_f_current
-                mc.scale(multiplier,multiplier,multiplier, _res,relative = True)
-                
+                mc.scale(multiplier,multiplier,multiplier, _res,relative = True,os=True)
             else:
                 mc.scale(size,size,size,_res,os=True)
-        mc.makeIdentity(_res, apply=True,s=1)    
+        if bakeScale:
+            mc.makeIdentity(_res, apply=True,s=1)    
 
     _d_directionRotates = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
     _r_factor = _d_directionRotates.get(direction)
     mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res, ws=True)
-    mc.makeIdentity(_res, apply=True,r =1, n= 1)
+    mc.makeIdentity(_res, apply=True,r =1, n= 1,s=0)
 
     return _res
 
@@ -910,7 +916,7 @@ def join_shapes(targets = None, component = 'ep',mode='all'):
         
                 _l = d_compPos[_key]
                 _l.append(POS.get(comp))
-    pprint.pprint(d_compPos)
+    #pprint.pprint(d_compPos)
     _cnt = 0
     for k,points in d_compPos.iteritems():
         l_use = []        
@@ -944,7 +950,9 @@ def controlCurve_update(target = None):
 
     
 def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
-                        sizeMode = 'guess',size = 1, sizeMulti = None, direction = 'z+'):
+                        sizeMode = 'fixed',size = 1, sizeMulti = None,
+                        bakeScale = True,
+                        direction = 'z+'):
     """ 
     Get curve from a predefined set
 
@@ -957,6 +965,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
             fixed
             cast - NOT IMPLEMENTED
         size(float)
+        sizeRelative(bool) - whether to create at 1.0 and scale from that
         sizeMulti(float/None) - Multiplier for detected size
         direction(str) - Direction the curve should face
 
@@ -985,8 +994,10 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         else:
             _size = size
         
-        #Create shape        
-        _curveShape = create_fromName(shape,size = _size,direction=direction)
+        #pprint.pprint(vars())
+        #Create shape
+        _curveShape = create_fromName(shape,size = _size, direction=direction, bakeScale=bakeScale)
+            
         if t:
             _curveShape = mc.rename(_curveShape,"{0}_crv".format(NAMES.get_base(t)))
             SNAP.go(_curveShape,t,True,True,True,True)

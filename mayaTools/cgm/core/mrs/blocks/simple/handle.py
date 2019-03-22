@@ -366,6 +366,7 @@ def define(self):
         #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
         
         self.UTILS.define_set_baseSize(self)
+        
         md_vector = _resDefine['md_vector']
         md_handles = _resDefine['md_handles']
         
@@ -428,12 +429,17 @@ def formDelete(self):
                         if not mc.ls(c,type='aimConstraint'):
                             mc.delete(c)
                     mHandle.p_position = pos
+                    
                 if k == 'end':
                     _end = mHandle.mNode
                     self.doConnectIn('baseSizeX',"{0}.width".format(_end))
                     self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
-                        
+                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat
+                    
                 mHandle.v = True
                 mHandle.template = False
                 
@@ -506,9 +512,9 @@ def form(self):
 
         #BaseDat ==================================================================================
         self.defineLoftMesh.v = 0
-        mRootUpHelper = self.vectorUpHelper    
+        mRootUpHelper = self.defineUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)    
+        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
         mDefineStartObj = self.defineStartHelper
@@ -676,6 +682,7 @@ def form(self):
         
             _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
                                               direction = _shapeDirection,
+                                              bakeScale=False,
                                               sizeMode = 'fixed', size =_size)
         
             mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
@@ -689,7 +696,7 @@ def form(self):
             #if _shape in ['circle']:
             #    SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "z+",'y-','vector', _mVectorUp)
             #else:
-            SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "y",'z-','vector', _mVectorUp)
+            SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)
         
             mHandle.doStore('cgmNameModifier','main')
             mHandle.doStore('cgmType','handle')
@@ -703,7 +710,8 @@ def form(self):
             #self.msgList_connect('formHandles',[mHandle.mNode])
         
             #Proxy geo ==================================================================================
-            _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+')
+            reload(CORERIG)
+            _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+',bakeScale=False)
             mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
             
             mProxy.doSnapTo(mHandle.mNode)

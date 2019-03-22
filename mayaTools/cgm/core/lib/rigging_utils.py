@@ -563,7 +563,7 @@ _d_proxyCreate = {'cube':'nurbsCube',
                   'cone':'cone',
                   'torus':'torus'}
 
-def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=True):
+def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=True, bakeScale = True):
     try:
         #cube:sphere:cylinder:cone:torus
         _str_func = 'create_proxyGeo'
@@ -579,13 +579,19 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
         
         
         if proxyShape in ['cube']:
-            _kws['width'] = size[0]
+            _kws['width'] = 1.0#size[0]
             _kws['ch'] = False
         if proxyShape in ['cylinder','sphere','cone','cylinder','torus']:
-            _kws['radius'] =  max(size)/2.0
+            _kws['radius'] =  1.0#max(size)/2.0
             _kws['axis'] = VALID.simpleAxis(direction).p_vector
 
         _res = _call(**_kws )
+        
+        if proxyShape == 'cube':
+            _children = TRANS.children_get(_res[0])
+            for i,c in enumerate(_children):
+                _children[i] = TRANS.parent_set(c,False)
+            combineShapes(_children + [_res[0]],keepSource=False,replaceShapes=False)        
         
         if size is not None:
             if VALID.isListArg(size):
@@ -598,7 +604,8 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
                     
                 else:
                     mc.scale(size,size,size,_res[0],os=True)
-            #mc.makeIdentity(_res[0], apply=True,s=1)    
+            if bakeScale:
+                mc.makeIdentity(_res[0], apply=True,s=1)    
         """
         if proxyShape == 'cube':
             _d_directionXRotates = {'x+':[0,0,0],'x-':[0,180,0],'y+':[0,0,90],'y-':[0,0,-90],'z+':[0,-90,0],'z-':[0,90,0]}
@@ -606,11 +613,7 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
             mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res[0], ws=True)"""
             #mc.makeIdentity(_res[0], apply=True,r =1, n= 1)        
         
-        if proxyShape == 'cube':
-            _children = TRANS.children_get(_res[0])
-            for i,c in enumerate(_children):
-                _children[i] = TRANS.parent_set(c,False)
-            combineShapes(_children + [_res[0]],keepSource=False,replaceShapes=False)
+
         
         return _res
     except Exception,err:

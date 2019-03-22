@@ -5504,10 +5504,14 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     _str_func = 'form_segment'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
     _short = self.p_nameShort    
-    _size_handle = baseSize
-    _size_loft = sizeLoft
-    _side = side
+    #_size_handle = baseSize
+    #_size_loft = sizeLoft
     _size_width = sizeWidth
+    
+    _size_handle = 1.0
+    _size_loft = 1.0
+    
+    _side = side
     _loftShape = loftShape
     _l_basePos = l_basePos
     md_handles = {}
@@ -8101,6 +8105,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 if k == 'rp':_rotSize = [.105,.105,.6]                    
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
+                                              bakeScale = True,
                                               direction = 'y+', size = _rotSize)                
                 #_crv = CORERIG.create_at(create='curveLinear', 
                 #                         l_pos=[[0,0,0],[0,1.25,0]], 
@@ -8158,6 +8163,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 else:
                     _shape = 'sphere'
                 _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
+                                              bakeScale = 1,                                              
                                               direction = 'z+', size = _useSize)
                 #CORERIG.shapeParent_in_place(_crv,_circle,False)
             
@@ -8222,6 +8228,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         
             if k == 'lever':#Arrow ---------------------------------------------
                 _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                bakeScale = 1,                                                
                                                 direction = 'y+', size = _size)
                 CORERIG.override_color(_arrow, _dtmp['color'])
             
@@ -8268,6 +8275,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 elif k in ['start']:pass                
                 else:                
                     _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
+                                                    bakeScale = 1,
                                                     direction = 'z+', size = _sizeSub)
                     CORERIG.override_color(_arrow, _dtmp['color'])
                 
@@ -9584,8 +9592,8 @@ def blockScale_bake(self,force=False):
             for a in ['sx','sy','sz']:
                 if not ATTR.is_locked(_str,a):
                     v = ATTR.get(_str,a)
-                    if not MATH.is_float_equivalent(1.0,v):
-                        _d[a] = v * _blockScale
+                    #if not MATH.is_float_equivalent(1.0,v):
+                    _d[a] = v * _blockScale
                     
             md_dat[i] = _d
             
@@ -9611,9 +9619,39 @@ def blockScale_bake(self,force=False):
                         ATTR.set(_d['str'],a,_d[a])
         
         
+        #Fix the root shape
+        #if not ATTR.is_connected(self.mNode,'baseSize'):
+            #log.info(cgmGEN.logString_sub(_str_func, 'Base size buffer'))
+            
+        rootShape_update(self)
+        
+        pprint.pprint(vars())
+        return True   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
         
         
-        #pprint.pprint(vars())
+        
+def rootShape_update(self):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'rootShape_update'
+        log.debug(cgmGEN.logString_start(_str_func))
+
+        _size = defineSize_get(self)
+    
+        #_sizeSub = _size / 2.0
+        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
+        _crv = CURVES.create_fromName(name='locatorForm',
+                                      direction = 'z+', size = _size * 2.0)
+    
+        SNAP.go(_crv,self.mNode,)
+        CORERIG.override_color(_crv, 'white')
+        CORERIG.shapeParent_in_place(self.mNode,_crv,False,True)
+        self.addAttr('cgmColorLock',True,lock=True,hidden=True)          
+        
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

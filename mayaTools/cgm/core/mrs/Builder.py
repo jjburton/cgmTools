@@ -838,9 +838,14 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_block.clear()   
         _menu = self.uiMenu_block
         d_s = {'Set Side':{},
-               'Utilities':{'Verify':{'ann':'Check if the block is current (DEV)',
+               'Utilities':{
+                   'Verify':{'ann':'Check if the block is current (DEV)',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                      'verify',
+                                                     **{'updateUI':0})},
+                   'Root Shape | Update':{'ann':'Update the rootShapes of the blocks in context',
+                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'atUtils','rootShape_update',
                                                      **{'updateUI':0})},                   
                    'Block Current?':{'ann':'Check if the block is current (DEV)',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
@@ -2583,14 +2588,22 @@ class ui(cgmUI.cgmGUI):
                                       'verify',
                                       **{'updateUI':0}),
                   ann = 'Verify conextual blocks')
-        
+        """
         mc.button(parent=_row,
                   l = 'Recolor',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','color',
                                       **{'updateUI':0}),
-                  ann = 'Recolor conextual blocks')
+                  ann = 'Recolor conextual blocks')"""
+        
+        mc.button(parent=_row,
+                  l = 'bakeScale',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','blockScale_bake',
+                                      **{'updateUI':0}),
+                  ann = 'Bake the Scale down so the rigBlock is 1.0')
         
         mc.button(parent=_row,
                   l = 'Duplicate',
