@@ -675,7 +675,7 @@ def form(self):
             if _shape in ['circle','square']:
                 _size = [v for v in self.baseSize[:-1]] + [None]
                 _shapeDirection = 'y+'
-            elif _shape in ['pyramid','semiSphere']:
+            elif _shape in ['pyramid','semiSphere','sphere']:
                 _size =  [_size_width,_size_height,_size_length]
             else:
                 _size =  [_size_width,_size_length,_size_height]

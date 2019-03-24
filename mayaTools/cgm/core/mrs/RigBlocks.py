@@ -1696,6 +1696,7 @@ class handleFactory(object):
                     pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                        direction = upAxis,
                                                        sizeMode = 'fixed',
+                                                       bakeScale = False,
                                                        size = _sizeSub)
                     mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                     mPivot.addAttr('cgmName',_strPivot)
@@ -1709,6 +1710,7 @@ class handleFactory(object):
                     _inverse = mAxis.inverse.p_string
                     pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
                                                        direction = _inverse,
+                                                       bakeScale = False,
                                                        sizeMode = 'fixed', size = _sizeSub)
                     mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                     mPivot.addAttr('cgmName',_strPivot)
@@ -1723,6 +1725,7 @@ class handleFactory(object):
                     if not mPivotRootHandle:
                         pivotHandle = CURVES.create_controlCurve(mHandle.mNode, shape=_baseShape,
                                                                  direction = upAxis,
+                                                                 bakeScale = False,
                                                                  sizeMode = 'fixed', size = _size * 1.1)
                         mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
                         mPivotRootHandle.addAttr('cgmName','base')
@@ -1802,6 +1805,7 @@ class handleFactory(object):
                 pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
                                                          shape=_baseShape,
                                                          direction = 'y-',
+                                                         bakeScale = False,
                                                          sizeMode = 'fixed',
                                                          size = _size)
                 mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
@@ -1846,6 +1850,7 @@ class handleFactory(object):
                     if _strPivot == 'center':
                         pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                            direction = upAxis,
+                                                           bakeScale = False,
                                                            sizeMode = 'fixed',
                                                            size = _sizeSub)
                         mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
@@ -1863,6 +1868,7 @@ class handleFactory(object):
                         _inverse = mAxis.inverse.p_string
                         pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
                                                            direction = _inverse,
+                                                           bakeScale = False,
                                                            sizeMode = 'fixed', size = _sizeSub)
                         mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                         mPivot.addAttr('cgmName',_strName)
@@ -2028,6 +2034,7 @@ class handleFactory(object):
             lidHandleShape = CURVES.create_controlCurve(mBlock.mNode,
                                                         'loftCircle',
                                                         direction = 'z+',
+                                                        bakeScale = False,
                                                         size = _size)
             POS.set(lidHandleShape,p_push )
             if mBlock.getMessage('rootHelper'):
@@ -2161,7 +2168,7 @@ class handleFactory(object):
 
 
         #helper ======================================================================================
-        _curve = CURVES.create_controlCurve(mHandle.mNode,'arrowsScaleOut',  direction= shapeDirection, sizeMode = 'fixed', size = _sizeSub)
+        _curve = CURVES.create_controlCurve(mHandle.mNode,'arrowsScaleOut',  direction= shapeDirection, sizeMode = 'fixed', bakeScale = False,size = _sizeSub)
         mCurve = cgmMeta.validateObjArg(_curve, mType = 'cgmObject',setClass=True)
 
         if mHandle.hasAttr('cgmName'):
@@ -2239,7 +2246,7 @@ class handleFactory(object):
                 mAxis = VALID.simpleAxis(axis)
                 _inverse = mAxis.inverse.p_string
                 shape = CURVES.create_controlCurve(mHandle.mNode, shape='pyramid',
-                                                   direction = axis,
+                                                   direction = axis,bakeScale = False,
                                                    sizeMode = 'fixed', size = [_sizeArrow,_sizeArrow,_sizeArrow])
                 mShape = cgmMeta.validateObjArg(shape,'cgmObject',setClass=True)
                 _pos = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size)
@@ -2332,7 +2339,7 @@ class handleFactory(object):
             _size = MATH.average(_baseSize[:1])
 
             #Orientation helper ======================================================================================
-            _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .75)
+            _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', bakeScale = False,size = _size * .75)
             mCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
 
 
@@ -2415,7 +2422,7 @@ class handleFactory(object):
 
 
             #helper ======================================================================================
-            _str_curve = CURVES.create_controlCurve(mHandle.mNode, baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
+            _str_curve = CURVES.create_controlCurve(mHandle.mNode, baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size,bakeScale = False)
 
             mCurve = cgmMeta.validateObjArg(_str_curve, mType = 'cgmObject',setClass=True)
 
@@ -2491,7 +2498,7 @@ class handleFactory(object):
 
             #Joint helper ======================================================================================
             #jack
-            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
+            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size,bakeScale = False)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
 
             if mHandle.hasAttr('cgmName'):

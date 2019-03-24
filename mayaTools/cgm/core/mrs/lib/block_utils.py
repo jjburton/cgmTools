@@ -9177,6 +9177,7 @@ def pivotHelper_get(self,mHandle=None,
                                                  shape=_baseShape,
                                                  direction = 'y-',
                                                  sizeMode = 'fixed',
+                                                 bakeScale = False,
                                                  size = _size)
         mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
         mPivotRootHandle.addAttr('cgmName','base')
@@ -9217,6 +9218,7 @@ def pivotHelper_get(self,mHandle=None,
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                    direction = upAxis,
                                                    sizeMode = 'fixed',
+                                                   bakeScale = False,
                                                    size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)
@@ -9233,6 +9235,7 @@ def pivotHelper_get(self,mHandle=None,
                 _inverse = mAxis.inverse.p_string
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
                                                    direction = _inverse,
+                                                   bakeScale = False,
                                                    sizeMode = 'fixed', size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)
@@ -9558,7 +9561,7 @@ def blockModule_setLogger(self,mode = 'debug'):
         cgmGEN.cgmExceptCB(Exception,err)
         
         
-def blockScale_bake(self,force=False):
+def blockScale_bake(self,force=False,sizeMethod = 'axisSize'):
     """
     Bring a rigBlock to current settings - check attributes, reset baseDat
     """
@@ -9594,6 +9597,10 @@ def blockScale_bake(self,force=False):
                     v = ATTR.get(_str,a)
                     #if not MATH.is_float_equivalent(1.0,v):
                     _d[a] = v * _blockScale
+                    if not _d.get('axisSize'):
+                        _d['axisSize'] = DIST.get_axisSize(_str)
+                    if not _d.get('bbSize'):
+                        _d['bbSize'] = TRANS.bbSize_get(_str)
                     
             md_dat[i] = _d
             
@@ -9614,18 +9621,32 @@ def blockScale_bake(self,force=False):
                 log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
                 _pos = _d.get('pos')
                 if _pos:mCtrl.p_position = _pos
-                for a in ['sx','sy','sz']:
-                    if _d.get(a):
-                        ATTR.set(_d['str'],a,_d[a])
-        
-        
+                
+                if ii == 0:
+                    for a in ['sx','sy','sz']:
+                        if _d.get(a):
+                            ATTR.set(_d['str'],a,_d[a])
+                    
+                    if sizeMethod == 'axisSize':
+                        if _d.get('axisSize'):
+                            try:
+                                DIST.scale_to_axisSize(_d['str'],_d['axisSize'])
+                            except Exception,err:
+                                log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                    else:
+                        if _d.get('bbSize'):
+                            try:
+                                reload(TRANS)
+                                TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
+                            except Exception,err:
+                                log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))        
         #Fix the root shape
         #if not ATTR.is_connected(self.mNode,'baseSize'):
             #log.info(cgmGEN.logString_sub(_str_func, 'Base size buffer'))
             
         rootShape_update(self)
         
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -9645,7 +9666,7 @@ def rootShape_update(self):
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
+                                      direction = 'z+', size = _size)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')

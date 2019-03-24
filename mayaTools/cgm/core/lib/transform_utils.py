@@ -514,7 +514,7 @@ def scale_to_size(node = None, size = 1.0, mode = 'bb'):
     mc.scale(multiplier,multiplier,multiplier, node, relative = True)
     #mc.makeIdentity(node,apply=True,scale=True)   
     
-def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True):
+def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
     """
     Scale an object to a bounding box size
     
@@ -526,8 +526,8 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True):
         None
     """
     _str_func = 'orient_set'
-    
-    mc.makeIdentity(node, apply =True, scale = True)    
+    if freeze:
+        mc.makeIdentity(node, apply =True, scale = True)    
     _bb_current = DIST.get_bb_size(node,shapes)
     _l_scale = []
     for i,v in enumerate(_bb_current):
