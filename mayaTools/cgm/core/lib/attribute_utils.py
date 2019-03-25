@@ -1053,6 +1053,9 @@ def is_keyable(*a):
     _d = validate_arg(*a) 
 
     try:
+        _children = get_children(_d)
+        if _children:
+            return [mc.getAttr("{0}.{1}".format(_d['node'],a),keyable=True) for a in _children ]
         return mc.getAttr(_d['combined'],keyable=True) 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
@@ -1072,6 +1075,12 @@ def is_locked(*a):
     _d = validate_arg(*a) 
 
     try:
+        _children = get_children(_d)
+        if _children:
+            _l =  [mc.getAttr("{0}.{1}".format(_d['node'],a),lock=True) for a in _children ]
+            for v in _l:
+                if v:return True
+        return False        
         return mc.getAttr(_d['combined'],lock=True) 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
@@ -1110,7 +1119,12 @@ def is_connected(*a):
     """ 
     _str_func = 'is_connected'
     _d = validate_arg(*a) 
-
+    _children = get_children(_d)    
+    if _children:
+        _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        for v in _l:
+            if v:return True
+        return False
     if mc.connectionInfo(_d['combined'], isDestination=True):return True
     return False
 

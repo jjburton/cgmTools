@@ -151,7 +151,7 @@ def to_ground(obj=None):
     p_pivot[1] = p_pivot[1] - p_bottom[1] 
     POS.set(_obj,p_pivot)
     
-def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = False):
+def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = True):
     """
     Aim functionality.
     
@@ -166,6 +166,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             'matrix' -- use Bokser's fancy method
             'vector' -- maya standard with vector up axis
             'object' -- maya standard with object
+        ignoreAimAttrs(bool) -- whether to ignore the aim attribute on the control or look for them
 
     :returns
         success(bool)
