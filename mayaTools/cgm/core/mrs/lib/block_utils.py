@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -5103,6 +5103,7 @@ def controls_mirror(blockSource, blockMirror = None,
                     log.debug(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
                 except:
                     log.debug(" {0} >> No match".format(mObj.p_nameBase))
+                    
 
         #Control sets ===================================================================================
         log.debug(cgmGEN.logString_sub(_str_func, 'Data buffer'))
@@ -5199,6 +5200,36 @@ def controls_mirror(blockSource, blockMirror = None,
                 _dat['aim'] = reflectAim
                 
             #Scale ---------------------------------------------------------------------------------
+            _noParent = False
+            if ATTR.is_locked(str_obj,'translate'):
+                _noParent = True
+                _lock_scale = False
+                _scale_good = []
+                for a in 'xyz':
+                    if ATTR.is_locked(str_obj,'s{0}'.format(a)):
+                        _lock_scale = True
+                    else:
+                        _scale_good.append(a)
+                        
+                if _lock_scale:
+                    _scale = {}
+                    log.debug("|{0}| >> lock scale detected...".format(_str_func))
+                    for a in _scale_good:
+                        _scale[a] = ATTR.get(str_obj,'s{0}'.format(a))
+                    if _scale:
+                        log.debug("|{0}| >> lock scale detected. Good: {1} | fixed: {2}".format(_str_func, _scale_good, _scale))
+                        
+                        _dat['simpleScale'] = _scale
+                    else:
+                        _dat['simpleScale'] = False
+                else:
+                    _dat['scale'] = mObj.scale
+                    log.debug("|{0}| >> scale: {1}".format(_str_func, _dat['scale']))
+            else:
+                _dat['scale'] = mc.xform(str_obj,q=True, scale = 1, worldSpace = True, absolute = True)
+            _dat['noParent'] = _noParent
+
+            """
             _lock_scale = False
             _scale_good = []
             for a in 'xyz':
@@ -5220,7 +5251,7 @@ def controls_mirror(blockSource, blockMirror = None,
                     _dat['simpleScale'] = False
             else:
                 _dat['scale'] = mObj.scale
-                log.debug("|{0}| >> scale: {1}".format(_str_func, _dat['scale']))
+                log.debug("|{0}| >> scale: {1}".format(_str_func, _dat['scale']))"""
                 
             """
              _worldScale = _d.get('worldScale')
@@ -5305,6 +5336,9 @@ def controls_mirror(blockSource, blockMirror = None,
             
         #pprint.pprint(l_dat)
         
+        pprint.pprint(vars())
+        return
+
         log.debug(cgmGEN._str_subLine)            
         log.debug("|{0}| >> remap pass values...".format(_str_func))
         md_remap = {}
@@ -5396,7 +5430,17 @@ def controls_mirror(blockSource, blockMirror = None,
                                 ATTR.set(mLoftCurve.mNode,a,d)
                             
                     #Scale -----------------------------------------------------------------------
-                    if _dat.has_key('simpleScale'):
+                    _noParent = _dat.get('noParent')
+                    if _noParent is not True:
+                        mParent = mObj.p_parent
+                        if mParent:
+                            mObj.p_parent = False
+                            
+                        mc.xform(mObj.mNode, scale = _dat['scale'], worldSpace = True, absolute = True)
+
+                        mObj.p_parent = mParent
+
+                    elif _dat.has_key('simpleScale'):
                         _scale = _dat.get('simpleScale')
                         if _scale != False:
                             log.debug("|{0}| >> Simple scale mObj: {1} | {2}".format(_str_func,
@@ -9729,6 +9773,30 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
                     mc.xform(mCtrl.mNode, scale = _worldScale, worldSpace = True, absolute = True)
                     
                     if mParent:mCtrl.p_parent = mParent
+                else:
+                    if not ATTR.is_locked(mCtrl.mNode,'scale'):
+                        """
+                        _worldScale = _d.get('factorScale')
+                        if _worldScale:
+                            mc.xform(_str, scale = _worldScale, worldSpace = True, )#absolute = True
+                            
+                            for a in ['sx','sy','sz']:
+                                if _d.get(a):
+                                    ATTR.set(_d['str'],a,_d[a])"""
+                        
+                        if sizeMethod == 'axisSize':
+                            if _d.get('axisSize'):
+                                try:
+                                    DIST.scale_to_axisSize(_d['str'],_d['axisSize'])
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                        elif sizeMethod in ['bb','bbSize']:
+                            if _d.get('bbSize'):
+                                try:
+                                    reload(TRANS)
+                                    TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
                 """
                 if ii == 0:
                     _worldScale = _d.get('factorScale')
