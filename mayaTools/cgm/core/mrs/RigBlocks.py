@@ -2460,7 +2460,12 @@ class handleFactory(object):
     
         mJointLabel.p_parent = mHandle
         mJointLabel.resetAttrs()
-    
+        mParent = mJointLabel.getParent(asMeta=1)
+        if mParent != mHandle and not mc.listAttr(mParent.mNode,ud=True):
+            mParent.doName("{0}_zeroGroup".format(mHandle.p_nameBase))
+            mParent.resetAttrs()
+            mParent.dagLock()
+            
         mJointLabel.radius = 0
         mJointLabel.side = 0
         mJointLabel.type = 18

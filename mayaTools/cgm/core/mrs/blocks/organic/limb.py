@@ -897,7 +897,9 @@ def form(self):
                                                                                          _v_range))
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = DIST.get_distance_between_points(self.p_position, _end)
-        _size_handle = _size_width * 1.25
+        #_size_handle = _size_width * 1.25
+        _size_handle = 1.0
+        
         #self.baseSize = [_size_width,_size_height,_size_length]
         _l_basePos.append(_end)
         log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
@@ -990,7 +992,7 @@ def form(self):
             mHandleFactory.setHandle(mHandle.mNode)
             #mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
-            mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_l_loftShapes[iUse], _size_width, shapeDirection = 'z+',rebuildHandle = False)
+            mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_l_loftShapes[iUse], 1.0, shapeDirection = 'z+',rebuildHandle = False)
             mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
             
             mHandleFactory.color(mHandle.mNode)            
@@ -1065,7 +1067,7 @@ def form(self):
             
             mHandleFactory.setHandle(mHandle.mNode)
             mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget(self.getEnumValueString('loftShapeStart'),#_loftShape,
-                                                                 _size_width,
+                                                                 1.0,
                                                                  shapeDirection = 'z+',rebuildHandle = False)
             #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
             print md_handles['lever']
@@ -1140,7 +1142,7 @@ def form(self):
                 
                 mHandleFactory.setHandle(mHandle.mNode)
                 mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_l_loftShapes[i+1],
-                                                                _size_width,
+                                                                1.0,
                                                                 shapeDirection = 'z+',rebuildHandle = False)
                 mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
                 ml_midLoftHandles.append(mLoftCurve)
@@ -1591,15 +1593,17 @@ def form(self):
                          _size_width,
                          _size_width]
             
+            bb_endSize = TRANS.bbSize_get(mEndHandle.mNode,True,mode='max')
+            
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
-                mFoot = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle,loft=False)
+                mFoot = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=False)
                 mFoot.p_parent = mFormNull
                 
                 #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mFormNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
-                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_handle,loft=True)
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=True)
                 mFoot.p_parent = mFormNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
@@ -1705,7 +1709,6 @@ def prerig(self):
         
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')#...get em back
         _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')        
-        pprint.pprint(vars())
         
         
         #Names dat OLD.... -----------------------------------------------------------------
@@ -1905,6 +1908,8 @@ def prerig(self):
         #Name Handles...
         for mHandle in ml_handles:
             #Joint Label ---------------------------------------------------------------------------
+            mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
+            """
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
             #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
         
@@ -1924,7 +1929,7 @@ def prerig(self):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2    
+            mJointLabel.overrideDisplayType = 2  """  
         
         self.msgList_connect('jointHelpers',jointHelpers)
         
