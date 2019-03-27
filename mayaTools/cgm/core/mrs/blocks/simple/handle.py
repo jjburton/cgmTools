@@ -379,9 +379,15 @@ def define(self):
         md_vector['aim'].p_parent = mAimGroup
         
         _end = md_handles['end'].mNode
-        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
+        
+        self.UTILS.rootShape_update(self)        
+        _dat = self.baseDat
+        _dat['baseSize'] = self.baseSize
+        self.baseDat = _dat
+        
+        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
     
         #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
         #mLeverGroup.p_parent = mDefineNull
@@ -431,14 +437,19 @@ def formDelete(self):
                     mHandle.p_position = pos
                     
                 if k == 'end':
-                    _end = mHandle.mNode
-                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
-                
+                    #_end = mHandle.mNode
+                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                    _end = mHandle.mNode                    
+                    _baseSize = []
+                    for a in 'width','height','length':
+                        _baseSize.append(ATTR.get(_end,a))
+                    self.baseSize = _baseSize
                     _dat = self.baseDat
                     _dat['baseSize'] = self.baseSize
                     self.baseDat = _dat
+                
                     
                 mHandle.v = True
                 mHandle.template = False

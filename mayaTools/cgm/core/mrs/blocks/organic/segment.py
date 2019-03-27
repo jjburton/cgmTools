@@ -432,15 +432,15 @@ def define(self):
         
         
         _size = self.atUtils('defineSize_get')
-        
+        """
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,hidden=True)
+        self.addAttr('cgmColorLock',True,lock=True,hidden=True)"""
+        
         mDefineNull = self.atUtils('stateNull_verify','define')
         mHandleFactory = self.asHandleFactory()
         
@@ -472,9 +472,14 @@ def define(self):
         #Rotate Plane ======================================================================
         self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
         _end = md_handles['end'].mNode
-        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        
+        self.UTILS.rootShape_update(self)        
+        _dat = self.baseDat
+        _dat['baseSize'] = self.baseSize
+        self.baseDat = _dat
         
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -505,10 +510,17 @@ def formDelete(self):
                             mc.delete(c)
                     mHandle.p_position = pos
                 if k == 'end':
-                    _end = mHandle.mNode
-                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
+                    _end = mHandle.mNode                    
+                    _baseSize = []
+                    for a in 'width','height','length':
+                        _baseSize.append(ATTR.get(_end,a))
+                    self.baseSize = _baseSize
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat
+                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
         
                 mHandle.v = True
                 mHandle.template = False        
@@ -559,9 +571,6 @@ def form(self):
         _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
         #self.baseSize = [_size_width,_size_height,_size_length]
-        
-        for a in 'XYZ':
-            ATTR.break_connection(self.mNode,'baseSize'+a)
             
         _size_handle = _size_width * 1.25
         _size_loft = MATH.get_greatest(_size_width,_size_height)

@@ -1080,7 +1080,7 @@ def is_locked(*a):
             _l =  [mc.getAttr("{0}.{1}".format(_d['node'],a),lock=True) for a in _children ]
             for v in _l:
                 if v:return True
-        return False        
+            return False        
         return mc.getAttr(_d['combined'],lock=True) 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))

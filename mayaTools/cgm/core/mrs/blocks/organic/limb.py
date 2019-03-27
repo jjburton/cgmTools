@@ -37,7 +37,6 @@ from Red9.core import Red9_Meta as r9Meta
 
 import cgm.core.cgm_General as cgmGEN
 
-from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 
 import cgm.core.cgmPy.os_Utils as cgmOS
 import cgm.core.cgmPy.path_Utils as cgmPATH
@@ -46,6 +45,7 @@ path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 #reload(MODULECONTROL)
+
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
@@ -724,17 +724,19 @@ def define(self):
             
                 
         _size = self.atUtils('defineSize_get')
-            
+        
         #_sizeSub = _size / 2.0
-        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
+        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))
+        """
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size * 2.0)
         
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,hidden=1)
+        self.addAttr('cgmColorLock',True,lock=True,hidden=1)"""
+        
+        mHandleFactory = self.asHandleFactory()        
         mDefineNull = self.atUtils('stateNull_verify','define')
         
         #mNoTransformNull = self.atUtils('noTransformNull_verify','define')
@@ -785,10 +787,13 @@ def define(self):
         #Rotate Plane ======================================================================
         self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
         _end = md_handles['end'].mNode
-        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
         
+        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        
+        
+        self.UTILS.rootShape_update(self)        
         _dat = self.baseDat
         _dat['baseSize'] = self.baseSize
         self.baseDat = _dat
@@ -822,11 +827,14 @@ def formDelete(self):
                 mHandle.template = False
                 
                 if k == 'end':
-                    _end = mHandle.mNode
-                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
-                    
+                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                    _end = mHandle.mNode                    
+                    _baseSize = []
+                    for a in 'width','height','length':
+                        _baseSize.append(ATTR.get(_end,a))
+                    self.baseSize = _baseSize
                     _dat = self.baseDat
                     _dat['baseSize'] = self.baseSize
                     self.baseDat = _dat
@@ -867,7 +875,6 @@ def form(self):
         _ikEnd = self.getEnumValueString('ikEnd')
         _loftSetup = self.getEnumValueString('loftSetup')
                 
-        for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
             
         #Get base dat =====================================================================================    
         log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
@@ -925,6 +932,7 @@ def form(self):
         #Our main rigBlock shape ...
         mHandleFactory = self.asHandleFactory()
         
+        #Loft List Validation ===============================================================================
         int_handles = self.numControls
         _loftShape = self.getEnumValueString('loftShape')
         if _loftSetup == 'loftList':
@@ -1816,7 +1824,7 @@ def prerig(self):
         
         mDefineEndObj = self.defineEndHelper    
         _size_width = mDefineEndObj.width#...x width
-        _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
+        _sizeUse1 = _size_width/ 6.0 #self.atUtils('get_shapeOffset')
         _sizeUse2 = self.atUtils('get_shapeOffset') * 2
         _sizeUse = min([_sizeUse1,_sizeUse2])
         mPivotHelper = ml_formHandles[-1].getMessageAsMeta('pivotHelper')

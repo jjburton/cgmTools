@@ -392,6 +392,11 @@ def define(self):
         ATTR.set_min(_short, 'neckControls', 1)
         ATTR.set_min(_short, 'loftSides', 3)
         ATTR.set_min(_short, 'loftSplit', 1)
+        ATTR.set_min(_short, 'neckShapers', 2)
+        
+        ATTR.set_alias(_short,'sy','blockScale')    
+        self.setAttrFlags(attrs=['sx','sz','sz'])
+        self.doConnectOut('sy',['sx','sz'])            
         
         for a in _l_hiddenAttrs:
             if ATTR.has_attr(_short,a):
@@ -410,15 +415,17 @@ def define(self):
         
         _size = self.atUtils('defineSize_get')
         #_sizeSub = _size / 2.0
-        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
+        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))
+        """
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size * 2.0)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,visible=False)
+        self.addAttr('cgmColorLock',True,lock=True,visible=False)"""
+        
+        mHandleFactory = self.asHandleFactory()        
         mDefineNull = self.atUtils('stateNull_verify','define')
         
         
@@ -491,6 +498,11 @@ def define(self):
         self.doConnectIn('neckSizeY',"{0}.height".format(_end))
         self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
         
+        self.UTILS.rootShape_update(self)        
+        _dat = self.baseDat
+        _dat['baseSize'] = self.baseSize
+        self.baseDat = _dat        
+        
         self.msgList_append('defineHandles', mBBShape)
         
         return    
@@ -538,8 +550,16 @@ def formDelete(self):
                     _end = mHandle.mNode
                     self.doConnectIn('neckSizeX',"{0}.width".format(_end))
                     self.doConnectIn('neckSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('neckSizeZ',"{0}.length".format(_end))                    
-                    
+                    self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
+                    """
+                    _end = mHandle.mNode
+                    _neckSize = []
+                    for a in 'width','height','length':
+                        _neckSize.append(ATTR.get(_end,a))
+                    self.neckSize = _neckSize
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat"""
 
                 
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
@@ -747,8 +767,8 @@ def form(self):
             
             int_handles = self.neckShapers
             _loftShape = self.getEnumValueString('loftShape')
-            if _loftSetup == 'loftList':
-                self.UTILS.verify_loftList(self,int_handles)                    
+            #if _loftSetup == 'loftList':
+            self.UTILS.verify_loftList(self,int_handles)                    
             
             #Get base dat =============================================================================
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)

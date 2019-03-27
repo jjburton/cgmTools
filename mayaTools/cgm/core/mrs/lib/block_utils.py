@@ -3700,13 +3700,17 @@ def baseSize_get(self):
     return _baseSize
 
 
-def defineSize_get(self):
+def defineSize_get(self,resetBase=False):
     _str_func = 'defineSize_get'
     try:_baseDat = self.baseDat
     except:_baseDat = {}
     
-    #if _baseDat.get('baseSize'):
-    #    _baseSize =  _baseDat.get('baseSize')
+    """
+    if _baseDat.get('baseSize'):
+        _size = _baseDat.get('baseSize')
+        if resetBase:self.baseSize = _size
+        return MATH.average(_size[:-2])/2.0"""
+
     #else:
     _baseSize = self.baseSize
     if _baseSize:
@@ -8755,10 +8759,12 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     
     if baseSize is None:
         try:
-            baseSize = d_baseDat['baseSize']
-            log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
+            baseSize = self.baseSize
+            log.debug("|{0}| >>  baseSize found in on asset: {1}".format(_str_func,baseSize))
         except:
-            try:baseSize = self.baseSize
+            try:
+                baseSize = d_baseDat['baseSize']
+                log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
             except:raise ValueError,"No baseSize offered or found"
 
 
