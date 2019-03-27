@@ -8254,7 +8254,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 mHandle.doStore('handleTag',k,attrType='string')
                 mHandle.doStore('handleType','vector')            
                 
-                SNAP.aim_atPoint(mEnd.p_position, 'z+')
+                SNAP.aim_atPoint(mHandle.mNode,mEnd.p_position, 'z+')
             
                 #mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
                                  #aimVector = [0,0,1], upVector = [0,0,0], 
@@ -9845,7 +9845,9 @@ def rootShape_update(self):
     try:
         _str_func = 'rootShape_update'
         log.debug(cgmGEN.logString_start(_str_func))
-
+        
+        if self.blockType in ['master']:
+            return True
         _size = defineSize_get(self)
     
         #_sizeSub = _size / 2.0

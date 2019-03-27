@@ -69,7 +69,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.03202019'
+__version__ = '1.03262019'
 _sidePadding = 25
 
 def check_cgm():

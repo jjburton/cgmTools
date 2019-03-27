@@ -76,7 +76,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03052019'
+__version__ = 'alpha.03272019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -890,6 +890,8 @@ def prerig(self):
         self.atUtils('prerigHandles_getNameDat',True)
         
         for mHandle in ml_handles:
+            mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
+            """
             #Joint Label ---------------------------------------------------------------------------
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
             #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
@@ -910,7 +912,7 @@ def prerig(self):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2
+            mJointLabel.overrideDisplayType = 2"""
         
 
         
