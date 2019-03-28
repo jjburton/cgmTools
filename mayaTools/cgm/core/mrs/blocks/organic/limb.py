@@ -907,7 +907,7 @@ def form(self):
         #_size_handle = _size_width * 1.25
         _size_handle = 1.0
         
-        #self.baseSize = [_size_width,_size_height,_size_length]
+        self.baseSize = [_size_width,_size_height,_size_length]
         _l_basePos.append(_end)
         log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
         

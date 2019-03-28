@@ -570,7 +570,7 @@ def form(self):
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        #self.baseSize = [_size_width,_size_height,_size_length]
+        self.baseSize = [_size_width,_size_height,_size_length]
             
         _size_handle = _size_width * 1.25
         _size_loft = MATH.get_greatest(_size_width,_size_height)

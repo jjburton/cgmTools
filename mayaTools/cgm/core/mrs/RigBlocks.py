@@ -2335,11 +2335,14 @@ class handleFactory(object):
             _bfr = mHandle.getMessage('orientHelper')
             if _bfr:
                 mc.delete(_bfr)
-
+            
+            #if baseSize is None:
             _size = MATH.average(_baseSize[:1])
-
+            #else:
+            #    _size = baseSize
+                
             #Orientation helper ======================================================================================
-            _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', bakeScale = False,size = _size * .75)
+            _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', bakeScale = True,size = _size * .75)
             mCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
 
 
