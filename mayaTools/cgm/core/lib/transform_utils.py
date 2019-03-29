@@ -1055,9 +1055,9 @@ def transformDirection(node = None, v = None):
     transform_matrix.o = v.z
 
     scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
+    scale_matrix.a = 1 #s.x
+    scale_matrix.f = 1 #s.y
+    scale_matrix.k = 1 #s.z
     scale_matrix.p = 1
 
     result_matrix = transform_matrix * current_matrix * scale_matrix
