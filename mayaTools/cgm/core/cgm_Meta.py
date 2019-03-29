@@ -3001,7 +3001,9 @@ class cgmObject(cgmNode):
     
     #...vectors
     def getAxisVector(self,*a,**kws):
-        return TRANS.vector_byAxis(self.mNode, *a,**kws)     
+        return TRANS.vector_byAxis(self.mNode, *a,**kws)
+    def createVectorLine(self,*a,**kws):
+        return TRANS.create_vectorCurveFromObj(self.mNode, *a,**kws)
     def getPositionByAxisDistance(self,*a,**kws):
         reload(TRANS)
         return TRANS.position_getByAxisDistance(self.mNode, *a,**kws)    

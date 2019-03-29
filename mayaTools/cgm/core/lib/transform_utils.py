@@ -1304,4 +1304,8 @@ def group_me(obj = None,
 
 
 
+def create_vectorCurveFromObj(obj = None, vector = 'z+',distance=1,asEuclid = False):
+    try:_vec = transformDirection(obj,vector)
+    except:_vec= MATH.get_obj_vector(obj,vector,True)
+    return DIST.create_vectorCurve(POS.get(obj),_vec,distance, "{0}_{1}_vecLine".format(NAME.get_base(obj),vector))
 

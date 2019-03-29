@@ -5195,8 +5195,11 @@ def controls_mirror(blockSource, blockMirror = None,
                 else:
                     _dat['simpleRot'] = False
             else:
-                reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
-                reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
+                reflectAim = mObj.getAxisVector('z+',asEuclid=True).reflect( reflectionVector)
+                reflectUp  = mObj.getAxisVector('y+',asEuclid=True).reflect( reflectionVector)
+                
+                #reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
+                #reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )                
                 #reflectUp = MATH.get_obj_vector(mObj.mNode,'y+')
                 
                 reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 10)
@@ -5206,7 +5209,7 @@ def controls_mirror(blockSource, blockMirror = None,
                 _dat['up'] = reflectUp
                 _dat['aim'] = reflectAim
                 
-                DIST.create_vectorCurve(posNew, reflectUp, 1.0, "{0}_up".format(_dat['baseName']))
+                #DIST.create_vectorCurve(posNew, reflectUp, 20, "{0}_up".format(_dat['baseName']))
                 
             #Scale ---------------------------------------------------------------------------------
             _noParent = False
@@ -5345,8 +5348,8 @@ def controls_mirror(blockSource, blockMirror = None,
             
         #pprint.pprint(l_dat)
         
-        pprint.pprint(vars())
-        return
+        #pprint.pprint(vars())
+        #return
 
         log.debug(cgmGEN._str_subLine)            
         log.debug("|{0}| >> remap pass values...".format(_str_func))
