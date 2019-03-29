@@ -618,7 +618,8 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
         return _res
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    
+
+
 def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName = 'created'):
     """
     Create a null matching a given obj

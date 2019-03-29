@@ -1041,6 +1041,7 @@ def skeleton_build(self, forceNew = True):
     
         mOrientHelper = ml_formHandles[0].orientHelper
         
+        reload(JOINT)
         ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
         
             

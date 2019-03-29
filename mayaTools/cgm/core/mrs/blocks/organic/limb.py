@@ -658,7 +658,7 @@ d_defaultSettings = {'version':__version__,
                      'loftList':['square','circle','square'],
                      'loftShapeStart':'squareRoundUp',
                      'loftShapeEnd':'wideUp',
-                     'loftReverseNormal':True,
+                     'loftReverseNormal':False,
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'linear',
@@ -7899,7 +7899,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                         mChild.delete()
                             
                     l_targets.append(mBaseCrv.mNode)
-                    l_targets.reverse()
+                    #l_targets.reverse()
                     
                     _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
                                                        degree=1,divisions=3)

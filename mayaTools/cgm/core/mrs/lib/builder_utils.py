@@ -2469,7 +2469,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
                         #mc.select(cl=1)
-                        mc.refresh(su=0)
+                        #mc.refresh(su=0)
                         
                         log.debug("Planar curve from: {0}".format(_loftCurves[0]))
                         _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0,tol = 10)[0]
@@ -2514,7 +2514,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                             #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
                             
                         #dMax = min([dClose,_offset*10])
-                        dMax = (mc.arclen(root)/3.14)/3
+                        dMax = (mc.arclen(root)/3.14)/4
                         
                         #dMax = dClose * .5#_offset *10
                         pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
@@ -2539,15 +2539,28 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         
                         #now loft new mesh...
                         _loftTargets = [end,mid2,mid1,root]
+                        #_loftTargets.reverse()
                         #if cgmGEN.__mayaVersion__ in [2018]:
                             #_loftTargets.reverse()
+                            
+                        mc.delete(_mesh)#...we're going to replace our mesh
+                        
+                        _mesh = create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                                    
+                        log.debug("|{0}| >> mesh created...".format(_str_func))                            
+                        CORERIG.match_transform(_mesh,ml_targets[i])
+                        if reverseNormal:
+                            mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+                            
+                        """
+                        
                             
                         _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
                                                    degree=1,divisions=1)
                         
                         mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
                         
-                        _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
+                        _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
                         mc.delete([end,mid1,mid2,root])
 
                 else:

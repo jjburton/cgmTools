@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -5023,8 +5023,9 @@ def controls_mirror(blockSource, blockMirror = None,
                     mirrorLofts = True):
     try:
         _short = blockSource.p_nameShort        
-        _str_func = '[{0}] controls_mirror'.format(_short)
-        log.debug(cgmGEN.logString_start(_str_func, 'baseSize buffer. Not connected'))
+        _str_func = 'controls_mirror'
+        
+        log.debug(cgmGEN.logString_start(_str_func, _short))
 
         md_sourceAll = {}
         md_targetAll = {}
@@ -5101,14 +5102,14 @@ def controls_mirror(blockSource, blockMirror = None,
         int_lenTarget = len(ml_targetControls)
         int_lenSource = len(ml_controls)
 
-        if int_lenTarget!=int_lenSource:
-            for i,mObj in enumerate(ml_controls):
-                try:
-                    log.debug(" {0} >> {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
-                except:
-                    log.debug(" {0} >> No match".format(mObj.p_nameBase))
+        #if int_lenTarget!=int_lenSource:
+        for i,mObj in enumerate(ml_controls):
+            try:
+                log.debug(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+            except:
+                log.debug(" {0} > !! > No match".format(mObj.p_nameBase))
                     
-
+        #return
         #Control sets ===================================================================================
         log.debug(cgmGEN.logString_sub(_str_func, 'Data buffer'))
 
@@ -5143,7 +5144,8 @@ def controls_mirror(blockSource, blockMirror = None,
         l_dat.append({'pos':posNew,'aimPoint':reflectAimPoint,'up':reflectUp,'aim':reflectAim,'scale':mRoot.scale})
         
         #pprint.pprint(l_dat)
-        
+        #return
+    
         #Other controls ------------------------------------------------------------------------
         #rootReflectionVector = TRANS.transformDirection(_short,reflectionVector).normalized()
         #log.debug("|{0}| >> reg Reflect: {1}".format(_str_func,rootReflectionVector))
@@ -5167,6 +5169,7 @@ def controls_mirror(blockSource, blockMirror = None,
             #mObj.p_positionEuclid = posNew
             
             _dat['pos'] = posNew
+            _dat['baseName'] = mObj.p_nameBase
             
             #Reflect/Orient ---------------------------------------------------------------------------------
             '''If we have locked rotates we can't reflect properly and instead do a attr check'''
@@ -5202,6 +5205,8 @@ def controls_mirror(blockSource, blockMirror = None,
                 _dat['aimPoint']=reflectAimPoint
                 _dat['up'] = reflectUp
                 _dat['aim'] = reflectAim
+                
+                DIST.create_vectorCurve(posNew, reflectUp, 1.0, "{0}_up".format(_dat['baseName']))
                 
             #Scale ---------------------------------------------------------------------------------
             _noParent = False
@@ -5340,8 +5345,8 @@ def controls_mirror(blockSource, blockMirror = None,
             
         #pprint.pprint(l_dat)
         
-        #pprint.pprint(vars())
-        #return
+        pprint.pprint(vars())
+        return
 
         log.debug(cgmGEN._str_subLine)            
         log.debug("|{0}| >> remap pass values...".format(_str_func))
@@ -7142,12 +7147,13 @@ def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numC
                 log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
                 
                 self.datList_connect('nameList',_l)
+                return True
             elif result == 'Iter cgmName':
                 _name = _cgmName
                 _l = ["{0}_{1}".format(_name,i) for i in range(len_needed)]
                 self.datList_connect('nameList',_l)
                 log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
-                return        
+                return True
             else:
                 log.warning(msg_base)
                 log.warning("Current: {0}".format(l_current))

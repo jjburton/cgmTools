@@ -720,6 +720,10 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         
     return _pos, _l_res_distances[_idx], _shapes[_idx]
 
+def create_vectorCurve(pos=[0,0,0],vector=[0,1,0],distance=1,name='vectorCurve'):
+    l_pos = [pos,get_pos_by_vec_dist(pos,vector,distance)]
+    return mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True, name = name)
+    
 def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     """
     Get the the closest return based on a source and target and variable modes

@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -192,102 +192,108 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
         if baseName:raise NotImplementedError,"Remove these calls"
         
         def orientJoint(mJnt):
-            if mJnt not in ml_cull:
-                log.debug("|{0}| >> Aready done: {1}".format(_str_func,mJnt.mNode))                     
-                return 
-            
-            log.debug("|{0}| >> Orienting: {1}".format(_str_func,mJnt.mNode))
-            mParent = _d_parents[mJnt]
-            if mParent and mParent in ml_cull:
-                return
-                log.debug("|{0}| >> Orienting parent: {1}".format(_str_func,mParent.mNode))         
-                orientJoint(mParent)
+            try:
+                if mJnt not in ml_cull:
+                    log.debug("|{0}| >> Aready done: {1}".format(_str_func,mJnt.mNode))                     
+                    return 
                 
-            if mJnt in ml_world:
-                log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode))
-                try:
-                    axisWorldOrient = SHARED._d_axisToJointOrient[str_aim][str_up]
-                except Exception,err:
-                    log.error("{0}>> World axis query. {1} | {2}".format(_str_func, str_aim, str_up))
-                    raise Exception,err
-                
-                log.debug("|{0}| >> World joint: {1} | {2}".format(_str_func,mJnt.mNode, axisWorldOrient))
-                mJnt.rotate = 0,0,0
-                mJnt.jointOrient = axisWorldOrient[0],axisWorldOrient[1],axisWorldOrient[2]
-                
-            elif mJnt not in ml_ends:
-                log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
-                mDup = mJnt.doDuplicate(parentOnly = True)
-                mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
-                b_rotFix = False
-                
-                if relativeOrient and mParent:
-                    p_child = _d_children[mJnt][0].p_position
-                    p_me = mJnt.p_position
-                    p_parent = mParent.p_position                                    
+                log.debug("|{0}| >> Orienting: {1}".format(_str_func,mJnt.mNode))
+                mParent = _d_parents[mJnt]
+                if mParent and mParent in ml_cull:
+                    return
+                    log.debug("|{0}| >> Orienting parent: {1}".format(_str_func,mParent.mNode))         
+                    orientJoint(mParent)
                     
-                    _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)
-                    _vecToChild = MATH.get_vector_of_two_points(p_child, p_me)
-                    _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)
+                if mJnt in ml_world:
+                    log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode))
+                    try:
+                        axisWorldOrient = SHARED._d_axisToJointOrient[str_aim][str_up]
+                    except Exception,err:
+                        log.error("{0}>> World axis query. {1} | {2}".format(_str_func, str_aim, str_up))
+                        raise Exception,err
                     
-                    _angleVec = MATH.angleBetweenVectors(_axisWorldUp,_vecToChild)
-                    _angle = MATH.angleBetween(p_child,p_me,p_parent)
-                    _cross = MATH.dotproduct(_vecToChild,_vecToParent)
+                    log.debug("|{0}| >> World joint: {1} | {2}".format(_str_func,mJnt.mNode, axisWorldOrient))
+                    mJnt.rotate = 0,0,0
+                    mJnt.jointOrient = axisWorldOrient[0],axisWorldOrient[1],axisWorldOrient[2]
                     
-                    #pprint.pprint(vars())
+                elif mJnt not in ml_ends:
+                    log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
+                    mDup = mJnt.doDuplicate(parentOnly = True)
+                    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
+                    b_rotFix = False
                     
-                    #log.info(cgmGEN.logString_msg(_str_func,"{0} | vec: {1} | angle: {2} | cross: {3}".format(mJnt.mNode,_angleVec,_angle,_cross)))
-                    
-                    if _angle > 70:
-                        log.warning(cgmGEN.logString_msg(_str_func,"{0} | dangerous angles vec: {1} | angle: {2} ".format(mJnt.mNode,_angleVec,_angle)))
-                        #log.info(cgmGEN.logString_msg(_str_func,"dangerous cross: {0} ".format(_cross)))
+                    if relativeOrient and mParent:
+                        p_child = _d_children[mJnt][0].p_position
+                        p_me = mJnt.p_position
+                        p_parent = mParent.p_position                                    
                         
-                        #_axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisBackup)
+                        _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)
+                        _vecToChild = MATH.get_vector_of_two_points(p_child, p_me)
+                        _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)
+                        _vecFromParent = MATH.get_vector_of_two_points(p_parent, p_me)
                         
-                        if _cross < 0:
-                            _axisWorldUp = [-1*v for v in _vecToParent]
-                        else:
-                            pass
-                            #_axisWorldUp = _vecToParent
-                            #_axisWorldUp = _lastVecUp
-                        #v = MATH.transform_direction(
-        
-                        b_rotFix = True
-                        """
-                        if _angleVec < 1.0:
-                            _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToChild)
-                            _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
-                            log.warning(cgmGEN.logString_msg(_str_func,"To child | postfix: {0} ".format(_axisWorldUp)))
+                        _angleVec = MATH.angleBetweenVectors(_axisWorldUp,_vecToChild)
+                        #_angle = MATH.angleBetweenVectors(_vecFromParent,_vecToChild)
+                        _angle = MATH.angleBetween(p_child,p_me,p_parent)
+                        #except:_angle = 0
+                        _cross = MATH.dotproduct(_vecToChild,_vecToParent)
+                        
+                        #pprint.pprint(vars())
+                        
+                        log.info(cgmGEN.logString_msg(_str_func,"{0} | vec: {1} | angle: {2} | cross: {3}".format(mJnt.mNode,_angleVec,_angle,_cross)))
+                        
+                        if _angle > 70:
+                            log.warning(cgmGEN.logString_msg(_str_func,"{0} | dangerous angles vec: {1} | angle: {2} ".format(mJnt.mNode,_angleVec,_angle)))
+                            #log.info(cgmGEN.logString_msg(_str_func,"dangerous cross: {0} ".format(_cross)))
                             
-                        else:
-                            _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)                        
-                            _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToParent)
-                            _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
-                            log.warning(cgmGEN.logString_msg(_str_func,"To parent | postfix: {0} ".format(_axisWorldUp)))"""
-                else:
-                    _axisWorldUp = worldUpAxis
+                            #_axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisBackup)
+                            
+                            if _cross < 0:
+                                _axisWorldUp = [-1*v for v in _vecToParent]
+                            else:
+                                pass
+                                #_axisWorldUp = _vecToParent
+                                #_axisWorldUp = _lastVecUp
+                            #v = MATH.transform_direction(
+            
+                            b_rotFix = True
+                            """
+                            if _angleVec < 1.0:
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToChild)
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                                log.warning(cgmGEN.logString_msg(_str_func,"To child | postfix: {0} ".format(_axisWorldUp)))
+                                
+                            else:
+                                _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)                        
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToParent)
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                                log.warning(cgmGEN.logString_msg(_str_func,"To parent | postfix: {0} ".format(_axisWorldUp)))"""
+                    else:
+                        _axisWorldUp = worldUpAxis
+                        
+                    mDup.rotateOrder = 0
+                    SNAP.aim(mDup.mNode,_d_children[mJnt][0].mNode,
+                             mAxis_aim.p_vector,mAxis_up.p_vector,
+                             'vector',_axisWorldUp)
                     
-                mDup.rotateOrder = 0
-                SNAP.aim(mDup.mNode,_d_children[mJnt][0].mNode,
-                         mAxis_aim.p_vector,mAxis_up.p_vector,
-                         'vector',_axisWorldUp)
-                
-                if b_rotFix:
-                    pass
-                    """
-                    a = 'r{0}'.format(axisAim[0])
-                    v = ATTR.get(mDup.mNode,a)                
-                    log.warning(cgmGEN.logString_msg(_str_func,"{0} | rotFix | a: {1} | v: {2}".format(mJnt.mNode,a,v)))
-        
-                    ATTR.set(mDup.mNode,a,90)"""
+                    if b_rotFix:
+                        pass
+                        """
+                        a = 'r{0}'.format(axisAim[0])
+                        v = ATTR.get(mDup.mNode,a)                
+                        log.warning(cgmGEN.logString_msg(_str_func,"{0} | rotFix | a: {1} | v: {2}".format(mJnt.mNode,a,v)))
+            
+                        ATTR.set(mDup.mNode,a,90)"""
+                        
+                    mJnt.rotate = 0,0,0
+                    mJnt.jointOrient = mDup.p_orient
+                    mDup.delete()
                     
-                mJnt.rotate = 0,0,0
-                mJnt.jointOrient = mDup.p_orient
-                mDup.delete()
+                if mJnt in ml_cull:ml_cull.remove(mJnt)
+                return
+            except Exception,err:
+                cgmGEN.cgmException(Exception,err)
                 
-            if mJnt in ml_cull:ml_cull.remove(mJnt)
-            return
-        
         def reparent(progressBar=None):
             log.debug("|{0}| >> reparent...".format(_str_func))
             
@@ -367,7 +373,8 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                     _go = False
                     #cgmUI.progressBar_end(progressBar)
                     reparent()                
-                    return False
+                    #return False
+                    cgmGEN.cgmException(Exception,err)
                 
         reparent(progressBar)
         return
