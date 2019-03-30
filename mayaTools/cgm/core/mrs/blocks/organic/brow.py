@@ -1737,7 +1737,7 @@ def rig_frame(self):
         
         
         
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
 
     return
 

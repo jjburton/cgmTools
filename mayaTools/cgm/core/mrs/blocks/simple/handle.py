@@ -1133,7 +1133,7 @@ def rig_shapes(self):
     mBlock_upVector = mBlock.getAxisVector('y+')
     _offset = self.v_offset
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
 
     #Control ----------------------------------------------------------------------------------

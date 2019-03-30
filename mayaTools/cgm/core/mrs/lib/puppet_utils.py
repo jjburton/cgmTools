@@ -1246,7 +1246,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
 
     if ml_objs and keys is None and not ignore:        
         log.debug("|{0}| >> remaining... ".format(_str_func))
-        pprint.pprint( ml_objs)
+        #pprint.pprint( ml_objs)
         raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
 

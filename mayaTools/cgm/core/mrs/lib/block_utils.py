@@ -25,7 +25,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -5197,9 +5197,9 @@ def controls_mirror(blockSource, blockMirror = None,
             else:
                 reflectAim = mObj.getAxisVector('z+',asEuclid=True).reflect( reflectionVector)
                 reflectUp  = mObj.getAxisVector('y+',asEuclid=True).reflect( reflectionVector)
-                
                 #reflectAim = mObj.getTransformDirection( MATH.Vector3(0,0,1)).reflect( reflectionVector )
-                #reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )                
+                #reflectUp  = mObj.getTransformDirection( MATH.Vector3(0,1,0)).reflect( reflectionVector )
+                
                 #reflectUp = MATH.get_obj_vector(mObj.mNode,'y+')
                 
                 reflectAimPoint = DIST.get_pos_by_vec_dist(posNew, [reflectAim.x,reflectAim.y,reflectAim.z], 10)
@@ -7882,7 +7882,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         ml_loftCurves = ml_use"""
         
     log.debug(cgmGEN.logString_sub(_str_func,"Build"))
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     _d = {'uSplit':uSplit,
           'vSplit':vSplit,
@@ -9840,7 +9840,7 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
             #log.info(cgmGEN.logString_sub(_str_func, 'Base size buffer'))
             
         rootShape_update(self)
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

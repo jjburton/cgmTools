@@ -507,7 +507,7 @@ def createJoints(self, mode = 'each'):
         
     log.info("|{0}| >> mode: {1}".format(_str_func,mode))        
     mc.select(cl=True)
-    pprint.pprint(_sel)
+    #pprint.pprint(_sel)
     
     if mode == 'curve':
         for o in _sel:
@@ -567,7 +567,7 @@ def orientJoints(self):
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
     
-    pprint.pprint(_sel)
+    #pprint.pprint(_sel)
     
     JOINTS.orientChain(_sel,axisAim=_d['aim'],
                        axisUp=_d['up'],

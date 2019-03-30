@@ -558,7 +558,7 @@ def find_valueInList(v,l,mode='near'):
         _l.append(_diff)
         _d[_diff] = v1
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     if mode in ['near','previous','next']:return _d[min(_l)]
     elif mode == 'far':return _d[max(_l)]
 

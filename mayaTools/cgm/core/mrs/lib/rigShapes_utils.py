@@ -250,6 +250,46 @@ def ik_segMid(self,mHandle = None):
         self.mHandleFactory.color(mHandle.mNode, controlType = 'sub')
         return mHandle
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+def limbRoot(self):
+    try:
+        _str_func = 'limbRoot'
+        log_start(_str_func)
+        ml_fkJoints = self.ml_fkJoints
+        _short_module = self.mModule.mNode
+        mHandleFactory = self.mHandleFactory
+        
+        #limbRoot ------------------------------------------------------------------------------
+        log.debug("|{0}| >> LimbRoot".format(_str_func))
+        idx = 0
+        #if self.b_lever:
+        #    idx = 1
+
+        
+        mLimbRootHandle = self.ml_prerigHandles[idx]
+        mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
+
+        _size_root = MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
+                    
+        #MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
+        mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
+        mRootCrv.doSnapTo(ml_fkJoints[0])#mLimbRootHandle
+
+        #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+
+        CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
+
+        for a in 'cgmName','cgmDirection','cgmModifier':
+            if ATTR.get(_short_module,a):
+                ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+
+        mLimbRoot.doStore('cgmTypeModifier','limbRoot')
+        mLimbRoot.doName()
+
+        mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
+        self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')        
+
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 def rootOrCog(self,mHandle = None):
     try:
@@ -297,7 +337,7 @@ def rootOrCog(self,mHandle = None):
     
             #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_formHandles[0].mNode))
             _bb_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True)
-            _size_root = MATH.average(_bb_root) * 1.25
+            _size_root = MATH.average(_bb_root)
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cubeOpen', _size_root * 1.5),'cgmObject',setClass=True)
             mRootCrv.doSnapTo(mRootHandle)
     
@@ -313,7 +353,7 @@ def rootOrCog(self,mHandle = None):
     
             self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect        
        
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 
 def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkShapes = None,
@@ -521,7 +561,9 @@ def settings(self,settingsPlace = None,ml_targets = None):
 
             #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]
             #_settingsSize = MATH.average(_settingsSize,(_offset * 2))
-            _settingsSize = DIST.get_between_points(pos,newPos)
+            #_settingsSize = DIST.get_between_points(pos,newPos)
+            _settingsSize = _offset * 2
+            
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
 
@@ -570,9 +612,9 @@ def direct(self,ml_rigJoints = None):
         
         if len(ml_rigJoints) < 3:
             #_size_direct = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_rigJoints], average=True)        
-            d_direct = {'size':_offset*2}
+            d_direct = {'size':_offset}
         else:
-            d_direct = {'size':_offset*2}
+            d_direct = {'size':_offset}
     
         ml_directShapes = self.atBuilderUtils('shapes_fromCast',
                                               ml_rigJoints,
@@ -619,7 +661,7 @@ def segment_handles(self,ml_handles = None):
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
-def lever(self,ml_handles = None):
+def leverBAK(self,ml_handles = None):
     try:
         _str_func = 'lever'
         log_start(_str_func)
@@ -629,6 +671,7 @@ def lever(self,ml_handles = None):
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
         ml_formHandles = self.ml_formHandles
+        
         #Get our curves...
         ml_targets = []
         for i,mHandle in enumerate(ml_formHandles[:2]):
@@ -640,7 +683,6 @@ def lever(self,ml_handles = None):
                 for mSub in ml_sub:
                     ml_targets.append(mSub)
                     
-        
         ml_new = []
         for mTar in ml_targets:
             mDup = mTar.doDuplicate(po=False)
@@ -692,7 +734,102 @@ def lever(self,ml_handles = None):
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
-    
+def lever(self,ball = False):
+    try:
+        _str_func = 'lever_digit'
+        log_start(_str_func)
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        ml_formHandles = self.ml_formHandles
+        ml_prerigHandles = self.ml_prerigHandles
+        mHandleFactory = self.mHandleFactory
+        
+        
+        #Meat ==============================================================
+        mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
+        mLeverFK = mRigNull.getMessageAsMeta('leverFK')
+        
+        mLeverControlCast = mLeverDirect
+        if not mLeverControlCast:
+            mLeverControlCast = mLeverFK
+        
+        
+        log.debug("|{0}| >> mLeverControlCast: {1}".format(_str_func,mLeverControlCast))
+        
+        dist_lever = DIST.get_distance_between_points(ml_prerigHandles[0].p_position,
+                                                      ml_prerigHandles[1].p_position)
+        log.debug("|{0}| >> Lever dist: {1}".format(_str_func,dist_lever))
+
+        #Dup our rig joint and move it 
+        mDup = mLeverControlCast.doDuplicate(po=True)
+        mDup.p_parent = mLeverControlCast
+        mDup.resetAttrs()
+        ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .5)
+
+        l_lolis = []
+        l_starts = []
+        
+        _mTar = mDup
+        
+        if ball:
+            #Loli ===============================================================
+            mDefineLeverObj = mBlock.defineLeverHelper
+            _mVectorLeverUp = MATH.get_obj_vector(mDefineLeverObj.mNode,'y+',asEuclid=True)
+            #mOrientHelper = mBlock.orientHelper
+            #_mVectorLeverUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
+            
+            mMesh_tmp =  mBlock.atUtils('get_castMesh')
+            str_meshShape = mMesh_tmp.getShapes()[0]
+            pos = RAYS.cast(str_meshShape,
+                            startPoint=_mTar.p_position,
+                            vector=_mVectorLeverUp).get('near')
+            
+            #pos = RAYS.get_cast_pos(_mTar.mNode,_mVectorLeverUp,shapes = str_meshShape)
+            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
+            
+            ball = CURVES.create_fromName('sphere',_offset * 2)
+            mBall = cgmMeta.cgmObject(ball)
+            mBall.p_position = newPos
+            
+            SNAP.aim_atPoint(mBall.mNode,
+                             _mTar.p_position,
+                             aimAxis=_jointOrientation[0]+'+',
+                             mode = 'vector',
+                             vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))                
+            
+            line = mc.curve (d=1, ep = [pos,newPos], os=True)
+            l_lolis.extend([ball,line])        
+            ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
+            CORERIG.shapeParent_in_place(mLeverFK.mNode,l_lolis,False)
+            mMesh_tmp.delete()
+
+        #Main clav section ========================================
+        ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
+                                                   targets= [mLeverControlCast.mNode,
+                                                              mDup.mNode],
+                                                         aimVector= self.d_orientation['vectorOut'],
+                                                         connectionPoints = 5,
+                                                         f_factor=0,
+                                                         offset=_offset,
+                                                         mode = 'frameHandle')
+        mHandleFactory.color(mLeverFK.mNode, controlType = 'sub')
+        
+        CORERIG.shapeParent_in_place(mLeverFK.mNode,
+                                     ml_clavShapes[0].mNode,
+                                     False,replaceShapes=False)            
+        mDup.delete()
+        for mShape in ml_clavShapes:
+            try:mShape.delete()
+            except:pass
+        
+
+      
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
 def backup(self,ml_handles = None):
     try:

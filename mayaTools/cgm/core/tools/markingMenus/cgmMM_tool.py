@@ -2097,7 +2097,7 @@ def ui_CallAndKill(func, *a, **kws ):
     except Exception,err:
         log.info("Failed...")
         print Exception
-        pprint.pprint(err)
+        #pprint.pprint(err)
 
 class mmCallback(object):
     '''

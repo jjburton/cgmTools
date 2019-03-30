@@ -202,7 +202,7 @@ def getChildren(uiElement):
         if  uiElement in c.split('|') and not str(c).endswith(uiElement):
             l_.append(c)  
             
-    pprint.pprint(l_)    
+    #pprint.pprint(l_)    
     return l_
                 
 def killChildren(uiElement):

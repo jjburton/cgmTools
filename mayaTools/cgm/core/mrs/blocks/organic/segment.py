@@ -784,7 +784,7 @@ def prerig(self):
             l_clusters.append(_res)
             ATTR.set(_res[1],'visibility',False)
         
-        pprint.pprint(l_clusters)
+        #pprint.pprint(l_clusters)
         
         mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
         
@@ -1173,7 +1173,7 @@ def rig_dataBuffer(self):
         self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
         
         log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
-        pprint.pprint(self.d_squashStretch)
+        #pprint.pprint(self.d_squashStretch)
         
         #Check for mid control and even handle count to see if w need an extra curve
         if mBlock.segmentMidIKControl:
@@ -1182,7 +1182,7 @@ def rig_dataBuffer(self):
                 
         if self.d_squashStretchIK:
             log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
-            pprint.pprint(self.d_squashStretchIK)
+            #pprint.pprint(self.d_squashStretchIK)
         
         
         if not self.b_scaleSetup:
@@ -1364,7 +1364,7 @@ def rig_skeleton(self):
         
         log.debug("|{0}| >> rig chain...".format(_str_func))              
         ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=True)
-        pprint.pprint(ml_rigJoints)
+        #pprint.pprint(ml_rigJoints)
         
         #...fk chain -------------------------------------------------------------------------------------
         log.debug("|{0}| >> fk_chain".format(_str_func))
@@ -2573,7 +2573,7 @@ def rig_cleanUp(self):
         ml_targetDynParents.extend(mRoot.msgList_get('spacePivots',asMeta = True))
     
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
-        pprint.pprint(ml_targetDynParents)
+        #pprint.pprint(ml_targetDynParents)
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
@@ -2641,7 +2641,7 @@ def rig_cleanUp(self):
                 mDynGroup.dynFollow.p_parent = self.mConstrainNull
                 
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         log.debug(cgmGEN._str_subLine)
                   
         
@@ -2683,7 +2683,7 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
         
@@ -2780,7 +2780,7 @@ def rig_cleanUp(self):
                 mDynGroup.dynFollow.p_parent = mRoot    
             
             log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
         #Settings =================================================================================

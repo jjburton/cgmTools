@@ -1477,7 +1477,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             self.verifyParentDriver(o)
         
         #i_child.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         #Verify constraints   
         log.debug("|{0}| >> Constraints... ".format(_str_func))            

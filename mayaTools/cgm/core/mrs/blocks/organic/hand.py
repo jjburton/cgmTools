@@ -866,7 +866,7 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
                 else:
                     ml_uValues = CURVES.getUSplitList(md_curves['base'].mNode,int_fingers,False,returnU=True)
                     ml_uValues = MATH.normalizeList(ml_uValues)
-                pprint.pprint(ml_uValues)
+                #pprint.pprint(ml_uValues)
                 
                 log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
                 ATTR.datList_connect(self.mNode,'paramDigitStart',ml_uValues)
@@ -1305,7 +1305,7 @@ def verify_subBlocks(self,forceNew=True):
                     
                     
                 self.msgList_connect('fingerBlocks',ml_fingerBlocks,connectBack='blockFrame')
-                pprint.pprint(md_fingerDat)
+                #pprint.pprint(md_fingerDat)
                 
         
         #Thumbs ---------------------------------------------------------------------
@@ -1368,7 +1368,7 @@ def verify_subBlocks(self,forceNew=True):
                     #mUpHandle = self.getMessageAsMeta('defineThumbUp{0}Helper'.format(s_tag))
                     #if not mUpHandle:raise ValueError,"Didn't find up"                             
             
-                    pprint.pprint(vars())
+                    #pprint.pprint(vars())
                     
                     #size ========================================================================
                     log.debug(cgmGEN.logString_msg(_str_func,'thumb {0} | initial size'.format(a)))
@@ -1458,7 +1458,7 @@ def subBlock_align(self,mBlockArg  = None, formScale = True, ml_drivers = None, 
                 
                         
         #Process =============================================================================
-        pprint.pprint(md_blocks)
+        #pprint.pprint(md_blocks)
         
         for k,dSet in md_blocks.iteritems():
             if dSet:
@@ -1717,7 +1717,7 @@ def verify_subBlocksBAK(self,forceNew=True):
             else:
                 ml_uValues = CURVES.getUSplitList(md_curves['base'].mNode,int_fingers,False,returnU=True)
                 ml_uValues = MATH.normalizeList(ml_uValues)
-            pprint.pprint(ml_uValues)
+            #pprint.pprint(ml_uValues)
             
             log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
             ATTR.datList_connect(self.mNode,'paramDigit',ml_uValues)
@@ -1753,8 +1753,8 @@ def verify_subBlocksBAK(self,forceNew=True):
                 self.msgList_connect('finger{0}Drivers'.format(STR.capFirst(k)), ml)
                 md_driverLists[k] = ml
                 
-            pprint.pprint(md_curves)        
-            pprint.pprint(md_drivers)
+            #pprint.pprint(md_curves)        
+            #pprint.pprint(md_drivers)
             
             
             log.debug(cgmGEN.logString_msg(_str_func,'scale...'))

@@ -188,7 +188,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_switch.clear()
         
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
-        pprint.pprint(self._ml_objList)
+        #pprint.pprint(self._ml_objList)
         DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
 
     def buildMenu_first(self):
@@ -466,7 +466,7 @@ class ui(cgmUI.cgmGUI):
         else:
             self.posePathProject = self.posePath
             
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         self.cgmUIField_subPath.setValue('')
         #self._uiCB_pathSwitchInternals()
         
@@ -964,7 +964,7 @@ class ui(cgmUI.cgmGUI):
         # posenodes = []
         uiCB_contextualAction(self,**{'mode':'select'})
         _sel = mc.ls(sl=1)
-        pprint.pprint(_sel)        
+        #pprint.pprint(_sel)        
         
         return _sel
         

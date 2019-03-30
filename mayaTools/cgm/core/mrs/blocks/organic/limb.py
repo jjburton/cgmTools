@@ -2031,7 +2031,7 @@ def skeleton_build(self, forceNew = True):
         _l_names = ATTR.datList_get(self.mNode,'nameList')
         
         
-        pprint.pprint([_d_base,_l_names,ml_jointHelpers])
+        #pprint.pprint([_d_base,_l_names,ml_jointHelpers])
         
         #Deal with Lever joint or not --------------------------------------------------
         _b_lever = False
@@ -2082,7 +2082,7 @@ def skeleton_build(self, forceNew = True):
             log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
             ml_jointHelpers.pop(-1)
                 
-        pprint.pprint(ml_jointHelpers)
+        #pprint.pprint(ml_jointHelpers)
         
         """
         if self.buildLeverEnd:
@@ -2461,11 +2461,11 @@ def rig_dataBuffer(self):
             
         
         log.debug("|{0}| >> self.md_roll...".format(_str_func))    
-        pprint.pprint(self.md_roll)
+        #pprint.pprint(self.md_roll)
         log.debug(cgmGEN._str_subLine)
         
         log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
-        pprint.pprint(self.ml_segHandles)
+        #pprint.pprint(self.ml_segHandles)
         log.debug(cgmGEN._str_subLine)
         
         #Squash stretch logic  =================================================================================
@@ -2503,7 +2503,7 @@ def rig_dataBuffer(self):
             self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
             
             log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
-            pprint.pprint(self.d_squashStretch)
+            #pprint.pprint(self.d_squashStretch)
             
             #Check for mid control and even handle count to see if w need an extra curve
             if mBlock.segmentMidIKControl:
@@ -2512,7 +2512,7 @@ def rig_dataBuffer(self):
                     
             if self.d_squashStretchIK:
                 log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
-                pprint.pprint(self.d_squashStretchIK)
+                #pprint.pprint(self.d_squashStretchIK)
             
             
             if not self.b_scaleSetup:
@@ -2639,6 +2639,9 @@ def rig_dataBuffer(self):
         
         #Offset ============================================================================    
         self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        if self.str_rigSetup == 'digit':
+            self.v_offset = self.v_offset * .5
+
         """
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         if not mBlock.offsetMode:
@@ -3928,9 +3931,8 @@ def rig_shapes(self):
 
         if str_rigSetup == 'digit':
             str_profile = mBlock.blockProfile#ATTR.get_enumValueString(_short,'blockProfile')
-            if str_profile in ['finger','thumb','toe'] and not self.b_singleChain:
-                return rig_digitShapes(self)
-            _offset = _offset/2.0
+            #if str_profile in ['finger','thumb','toe'] and not self.b_singleChain:
+                #return rig_digitShapes(self)
             
         
         mRigNull = self.mRigNull
@@ -3943,6 +3945,7 @@ def rig_shapes(self):
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+        self.ml_fkJoints = ml_fkJoints
         
         ml_fkCastTargets = self.mRigNull.msgList_get('fkAttachJoints')
         if not ml_fkCastTargets:
@@ -3981,27 +3984,35 @@ def rig_shapes(self):
         
         #Lever =============================================================================
         if self.b_lever:
-            log.debug("|{0}| >> Lever...".format(_str_func))
-            mLeverControlJoint = mRigNull.getMessageAsMeta('leverDirect')
-            mLeverControlFK =  mRigNull.getMessageAsMeta('leverFK')
-            if not mLeverControlJoint:
-                mLeverControlJoint = mLeverControlFK
-            else:
-                mLeverControlJoint = mLeverControlJoint
-            log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
+            log.debug(cgmGEN.logString_sub(_str_func, 'lever'))
+            
+            _ball = False
+            if str_rigSetup == 'digit':
+                _ball = True
+                #RIGSHAPES.lever_digit(self)
+                
+            #mLeverControlJoint = mRigNull.getMessageAsMeta('leverDirect')
+            #mLeverControlFK =  mRigNull.getMessageAsMeta('leverFK')
+            #if not mLeverControlJoint:
+            #    mLeverControlJoint = mLeverControlFK
+            #else:
+            #    mLeverControlJoint = mLeverControlJoint
+            #log.debug("|{0}| >> mLeverControlJoint: {1}".format(_str_func,mLeverControlJoint))            
 
-            mShape = RIGSHAPES.lever(self)
- 
-            mHandleFactory.color(mShape.mNode, controlType = 'main')        
-            CORERIG.shapeParent_in_place(mLeverControlFK.mNode,mShape.mNode, False, replaceShapes=True)
+            mShape = RIGSHAPES.lever(self,ball=_ball)
+     
+                #mHandleFactory.color(mShape.mNode, controlType = 'main')        
+            #CORERIG.shapeParent_in_place(mLeverControlFK.mNode,mShape.mNode, False, replaceShapes=True)
             #CORERIG.shapeParent_in_place(mLeverFKJnt.mNode,ml_clavShapes[0].mNode, False, replaceShapes=True)
-    
-    
+            
+            
             #limbRoot ------------------------------------------------------------------------------
-            log.debug("|{0}| >> LimbRoot".format(_str_func))
+            RIGSHAPES.limbRoot(self)
+            
+            """log.debug("|{0}| >> LimbRoot".format(_str_func))
             idx = 0
-            if self.b_lever:
-                idx = 1
+            #if self.b_lever:
+            #    idx = 1
             mLimbRootHandle = ml_prerigHandles[idx]
             mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
 
@@ -4009,7 +4020,7 @@ def rig_shapes(self):
                         
             #MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
-            mRootCrv.doSnapTo(mLimbRootHandle)
+            mRootCrv.doSnapTo(ml_fkJoints[0])#mLimbRootHandle
     
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
     
@@ -4024,11 +4035,11 @@ def rig_shapes(self):
     
             mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
             self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect            
-    
+            """
             log.debug(cgmGEN._str_subLine)
 
 
-
+        
         
         if self.md_roll:#Segment stuff ===================================================================
             log.debug("|{0}| >> Checking for mid handles...".format(_str_func))
@@ -4145,10 +4156,7 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
                 #CORERIG.match_transform(mIKShape.mNode, self.ml_handleTargets[self.int_handleEndIdx].mNode)
-                
-                
-                    
-                    
+
             elif str_ikEnd in ['tipCombo']:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> tipCombo IK shape...".format(_str_func))                
                 mIKFormHandle = ml_formHandles[-1]
@@ -4187,24 +4195,60 @@ def rig_shapes(self):
             
                 self.mRigNull.connectChildNode(mIKEndCrv,'controlIKEnd','rigNull')#Connect                                        #Connect                        
             else:
-                _ikDefault = True
-                log.debug("|{0}| >> default IK shape...".format(_str_func))                
-                mIKFormHandle = ml_formHandles[-1]
-                #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
-                bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
-                
-                _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
-                #ATTR.set(_ik_shape,'scale', 1.5)
-                
-                mIKCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
-                
-                if not self.b_singleChain:
-                    if mBlock.buildLeverEnd:
-                        mIKCrv.doSnapTo(self.ml_handleTargets[-1].mNode)
+                ml_curves = []
+                if str_rigSetup == 'digit':
+                    log.debug(cgmGEN.logString_msg(_str_func, 'digit ik end'))
+                    if str_ikEnd == 'tipBase':
+                        mIKCrv = self.ml_handleTargets[self.int_handleEndIdx].doCreateAt()
                     else:
-                        mIKCrv.doSnapTo(self.ml_handleTargets[self.int_handleEndIdx].mNode)
+                        mIKCrv = self.ml_handleTargets[-1].doCreateAt()
+                        if self.b_ikNeedEnd:
+                            SNAP.go(mIKCrv.mNode,
+                                    ml_prerigHandles[-1].jointHelper,
+                                    rotation = False)
+                    
+                    if str_ikEnd == 'default':
+                        mIKFormHandle = ml_formHandles[-1]
+                        #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                        bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
+                        
+                        _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                        #ATTR.set(_ik_shape,'scale', 1.5)
+                        
+                        mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                        mIKShape.doSnapTo(mIKCrv)
+                        CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
+    
+                        
+                    else:
+                        for mObj in ml_formHandles[-2:]:
+                            mCrv = mObj.loftCurve.doDuplicate(po=False,ic=False)
+                            DIST.offsetShape_byVector(mCrv.mNode,_offset, mCrv.p_position,component='cv')
+                            mCrv.p_parent=False
+                            for mShape in mCrv.getShapes(asMeta=True):
+                                mShape.overrideDisplayType = False
+                            CORERIG.shapeParent_in_place(mIKCrv.mNode, mCrv.mNode, False)
+                            #ml_curves.append(mCrv)
+                        
                 else:
-                    mIKCrv.doSnapTo(ml_prerigHandles[-1].mNode)
+                    log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                    _ikDefault = True
+                    mIKFormHandle = ml_formHandles[-1]
+                    #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
+                    bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
+                    
+                    _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                    #ATTR.set(_ik_shape,'scale', 1.5)
+                    
+                    mIKCrv = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
+                    
+                    if not self.b_singleChain:
+                        if mBlock.buildLeverEnd:
+                            mIKCrv.doSnapTo(self.ml_handleTargets[-1].mNode)
+                        else:
+                            mIKCrv.doSnapTo(self.ml_handleTargets[self.int_handleEndIdx].mNode)
+                    else:
+                        mIKCrv.doSnapTo(ml_prerigHandles[-1].mNode)
 
             mHandleFactory.color(mIKCrv.mNode, controlType = 'main',transparent=True)
             mIKCrv.doCopyNameTagsFromObject(ml_fkJoints[self.int_handleEndBaseIdx].mNode,
@@ -4241,7 +4285,7 @@ def rig_shapes(self):
             if not self.b_singleChain:
                 #Mid IK...---------------------------------------------------------------------------------
                 log.debug("|{0}| >> midIK...".format(_str_func))
-                size_knee = _offset * 10
+                size_knee = _offset * 5
                 #size_knee =   mBlock.UTILS.get_castSize(mBlock,self.mMidFormHandle)['max'][0]
                 #MATH.average(POS.get_bb_size(self.mMidFormHandle.mNode,True)) * .75
                 crv = CURVES.create_fromName('sphere',
@@ -5621,7 +5665,7 @@ def rig_frame(self):
                         s_targetBack = s_rootTarget
                         #ml_handleParents[i].mNode
                     
-                    pprint.pprint([s_targetForward,s_targetBack])
+                    #pprint.pprint([s_targetForward,s_targetBack])
                     mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
                     
                     mHandle.parent = False
@@ -6431,7 +6475,7 @@ def rig_frameSingle(self):
                         s_targetBack = s_rootTarget
                         #ml_handleParents[i].mNode
                     
-                    pprint.pprint([s_targetForward,s_targetBack])
+                    #pprint.pprint([s_targetForward,s_targetBack])
                     mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
                     
                     mHandle.parent = False
@@ -6743,7 +6787,7 @@ def rig_blendFrame(self):
             """
             
     
-            pprint.pprint(vars())
+            #pprint.pprint(vars())
             
     
             log.debug(cgmGEN._str_subLine)    
@@ -6909,7 +6953,7 @@ def rig_pivotSetup(self):
         
                 ml_followParentBankJoints[-1].p_parent = mChain2Base
                 ml_chain2 = [mChain2Base, ml_followParentBankJoints[-1]]
-                pprint.pprint(vars())
+                #pprint.pprint(vars())
         
                 #Make our fk chain -----------------------------------------------------
                 mFKAim_base = ml_followParentBankJoints[0].doDuplicate(po=True)
@@ -7108,7 +7152,7 @@ def rig_pivotSetup(self):
                 for mObj in mBallPivotJoint,mBallWiggleJoint:
                     if mObj:
                         mObj.radius = 0
-                pprint.pprint(vars())
+                #pprint.pprint(vars())
     
             else:
                 _mode = 'default'
@@ -7422,7 +7466,7 @@ def rig_cleanUp(self):
         ml_targetDynParents.extend(self.ml_dynEndParents)
     
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
-        pprint.pprint(ml_targetDynParents)
+        #pprint.pprint(ml_targetDynParents)
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
@@ -7477,7 +7521,7 @@ def rig_cleanUp(self):
                     ATTR.set_default(mHandle.mNode,'space','puppet')
             
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         
         log.debug(cgmGEN._str_subLine)
                   
@@ -7522,7 +7566,7 @@ def rig_cleanUp(self):
                 #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)
         
         if mIKControlEnd:
@@ -7615,7 +7659,7 @@ def rig_cleanUp(self):
                     ATTR.set_default(mObj.mNode,'orientTo',2)
             
             log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
     
@@ -8276,7 +8320,7 @@ def snapBall(self,driven = 'L_ball_blend_frame',
         #for a in 'xyz':
             #d_targetDat['v'].append(MATH.get_obj_vector(target, "{0}+".format(a)))
         
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         _d  = {'matchObj' : None,
                'matchAttr' : None,

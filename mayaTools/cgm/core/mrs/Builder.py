@@ -1884,7 +1884,7 @@ class ui(cgmUI.cgmGUI):
                 
             self.uiRow_progress(edit=1,vis=1)
             ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
-            pprint.pprint(ml_context)
+            #pprint.pprint(ml_context)
             #Now parse to sets of data
             if args[0] == 'select':
                 #log.info('select...')

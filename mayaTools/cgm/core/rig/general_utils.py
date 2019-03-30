@@ -686,8 +686,8 @@ def split_blends(driven1 = None,
                                                         mayaType=['joint'], noneValid = False)
 
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
-        pprint.pprint(d_dat[1]['driven'])
-        pprint.pprint(d_dat[2]['driven'])
+        #pprint.pprint(d_dat[1]['driven'])
+        #pprint.pprint(d_dat[2]['driven'])
 
         if buildNetwork:
             log.debug("|{0}| >> buildNetwork | building driver attrs...".format(_str_func))                            
@@ -866,7 +866,7 @@ def split_blends(driven1 = None,
                                          itt=inTangent,ott=outTangent,                                         
                                          driverValue = dat['distMidOn'][i],value = 1.0)
 
-        pprint.pprint(d_dat)
+        #pprint.pprint(d_dat)
         #return d_dat
 
         for idx,dat in d_dat.iteritems():

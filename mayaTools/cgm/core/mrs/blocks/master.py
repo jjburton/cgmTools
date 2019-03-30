@@ -194,7 +194,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
@@ -227,7 +227,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)

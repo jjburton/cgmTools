@@ -795,7 +795,7 @@ def skeleton_build(self, forceNew = True):
     
     _d_base = self.atBlockUtils('skeleton_getNameDictBase')
     _d_base['cgmType'] = 'skinJoint'    
-    pprint.pprint( _d_base )
+    #pprint.pprint( _d_base )
     
     #..name --------------------------------------
     def name(mJnt,d):
@@ -1199,7 +1199,7 @@ def rig_skeleton(self):
             
             mLidRig.p_parent = mLidBlend
             
-        pprint.pprint(self.d_lidData)
+        #pprint.pprint(self.d_lidData)
     log.debug(cgmGEN._str_subLine)
     
     
@@ -1564,7 +1564,7 @@ def rig_frame(self):
     
     ml_joints = [mJointFK,mJointIK,mBlendJoint,mSettings,mDirect]
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     log.debug("|{0}| >> Adding to attach driver...".format(_str_func))
     self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode    
@@ -2149,7 +2149,7 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
             
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         
         log.debug(cgmGEN._str_subLine)
 

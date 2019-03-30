@@ -1241,7 +1241,7 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,**kws):
     try:var_mrsContextKeys
     except:var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')"""
-    pprint.pprint([md_spaceSwitchDat,attr,option])
+    #pprint.pprint([md_spaceSwitchDat,attr,option])
     _frame = SEARCH.get_time()    
     d_keys = {}
     ml_objs = []

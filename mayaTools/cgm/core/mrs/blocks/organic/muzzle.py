@@ -720,7 +720,7 @@ def form(self):
         for mObj in self.msgList_get('defineCurves'):
             md_dCurves[mObj.handleTag] = mObj
             mObj.template=1
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         #
         d_pairs = {}
@@ -2851,7 +2851,7 @@ def skeleton_build(self, forceNew = True):
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
     
-    pprint.pprint(ml_joints)
+    #pprint.pprint(ml_joints)
 
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
@@ -3263,7 +3263,7 @@ def rig_skeleton(self):
         try:mJnt.drawStyle =2
         except:mJnt.radius = .00001
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     #...connect... 
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     return
