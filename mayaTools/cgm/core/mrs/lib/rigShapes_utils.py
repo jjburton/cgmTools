@@ -817,8 +817,8 @@ def lever(self,ball = False):
                                                          f_factor=0,
                                                          offset=_offset,
                                                          mode = 'frameHandle')
-        mHandleFactory.color(mLeverFK.mNode, controlType = 'sub')
         
+        mHandleFactory.color(mLeverFK.mNode, controlType = 'sub')
         CORERIG.shapeParent_in_place(mLeverFK.mNode,
                                      ml_clavShapes[0].mNode,
                                      False,replaceShapes=False)            

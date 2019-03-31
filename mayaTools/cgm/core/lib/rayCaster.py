@@ -110,7 +110,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
                     shapes.append(o)                
                 else:
                     shapes.extend(TRANS.shapes_get(o,True))
-
+                
         mAxis = VALID.simpleAxis(axis)
         posBase = POS.get(obj)
 

@@ -1347,17 +1347,23 @@ def create_prerigLoftMesh(self, targets = None,
         
         log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
         if polyType in ['bezier','noMult']:
+            
             _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],
                                                                      self.getMayaAttrString('loftDegree','short'))
-            NODEFACTORY.argsToNodes(_arg).doBuild()            
+            NODEFACTORY.argsToNodes(_arg).doBuild()
             ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeU".format(_rebuildNode))
-            ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
+            if polyType == 'bezier':
+                ATTR.set(_rebuildNode,'degreeV',1)
+                ATTR.set(_rebuildNode,'keepControlPoints',1)
+            else:
+                ATTR.connect("{0}.out_degreeBez".format(targets[0]), "{0}.degreeV".format(_rebuildNode))
             
-        _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
-                                                              self.getMayaAttrString('loftDegree','short'))
-
-        NODEFACTORY.argsToNodes(_arg).doBuild()            
-        ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
+            _arg = "{0}.out_degreePre = if {1} == 0:1 else 3".format(targets[0],
+                                                                  self.getMayaAttrString('loftDegree','short'))
+            
+        if polyType in ['noMult']:
+            NODEFACTORY.argsToNodes(_arg).doBuild()            
+            ATTR.connect("{0}.out_degreePre".format(targets[0]), "{0}.degree".format(_loftNode))    
         
         toName = []
         if polyType == 'mesh':
