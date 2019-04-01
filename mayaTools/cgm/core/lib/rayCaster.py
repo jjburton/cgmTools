@@ -190,7 +190,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+#@cgmGEN.Timer
 def cast(mesh = None, obj = None, axis = 'z+',
          startPoint = None, vector = None,
          maxDistance = 1000, firstHit = True,

@@ -36,6 +36,7 @@ from Red9.core import Red9_Meta as r9Meta
 #r9Meta.cleanCache()#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import cgm.core.cgm_General as cgmGEN
+import cgm.core.lib.geo_Utils as GEO
 
 
 import cgm.core.cgmPy.os_Utils as cgmOS
@@ -77,7 +78,7 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
-for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
+for m in RIGSHAPES,CURVES,BUILDUTILS,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
     reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 #reload(CURVES)
@@ -7773,7 +7774,7 @@ def rigDelete2(self):
         raise cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
     
-
+@cgmGEN.Timer
 def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
@@ -7899,7 +7900,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                      ml_casters,
                                                                      ballBase = _ballBase,
                                                                      ballMode = _ballMode,
-                                                                     reverseNormal=mBlock.loftReverseNormal,
+                                                                     reverseNormal=0,#mBlock.loftReverseNormal,
                                                                      extendCastSurface = _extend,
                                                                      extendToStart=False),#_extendToStart),
                                                  'cgmObject')
@@ -7947,9 +7948,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     
                     _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
                                                        degree=1,divisions=3)
-                    if mBlock.loftReverseNormal:
-                        mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
-                        
+                    #if mBlock.loftReverseNormal:
+                        #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+                    
                     
                     _l_combine = []
                     """
@@ -8015,6 +8016,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                         _mesh = mc.polyUnite([mHeelMesh.mNode,_sphere[0]], ch=False )[0]
                         
                         mMeshHeel = cgmMeta.validateObjArg(_mesh)
+                        
                         ml_segProxy.append(mMeshHeel)
                         
                         
@@ -8091,7 +8093,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 for mShape in ml_rigJoints[i].getShapes(asMeta=True):
                     #mShape.overrideEnabled = 0
                     mShape.overrideDisplayType = 0
-                    ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))    
+                    ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+                    
         for mProxy in ml_segProxy:
             CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
             

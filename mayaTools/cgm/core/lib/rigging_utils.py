@@ -297,7 +297,8 @@ def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFi
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+@cgmGEN.Timer
+def shapeParent_in_placeBAK(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
 
@@ -419,6 +420,87 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     return True
+
+@cgmGEN.Timer
+def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+    """
+    Shape parent a curve in place to a obj transform
+
+    :parameters:
+        obj(str): Object to modify
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
+
+    :returns
+        success(bool)
+    """
+    
+    _str_func = 'shapeParent_in_place'
+    
+    l_source = VALID.listArg(shapeSource)
+    obj = VALID.mNodeString(obj)
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
+        if _l_objShapes:
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
+    mc.select (cl=True)
+    #mc.refresh()    
+    for c in l_source:
+        try:
+            _shapeCheck = SEARCH.is_shape(c)
+            #if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
+            #    raise ValueError,"Has no shapes"
+            #if coreNames.get_long(obj) == coreNames.get_long(c):
+                #raise ValueError,"Cannot parentShape self"
+            #l_startShapes = mc.listRelatives (obj, f= True,shapes=True, fullPath = True)
+ 
+            if _shapeCheck:
+                _dup_curve = duplicate_shape(c)[0]
+                _dupBase = duplicate_shape(c)[0]
+                
+                log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                                        
+            else:
+                log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
+                _dup_curve =  mc.duplicate(c,po=False)
+                for child in TRANS.children_get(_dup_curve,True):
+                    mc.delete(child)
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                    
+                _dupBase = mc.duplicate(_dup_curve,po=False)
+            
+                #matrix_a = mc.xform( obj,q=True,m=True, ws=True )
+                #mc.xform(_dup_curve, m=matrix_a,ws=True,p=True)
+                #mc.makeIdentity(_dup_curve,apply=True,translate =True, rotate = True, scale=True)
+            l_dupShapes = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
+            l_baseShapes = mc.listRelatives (_dupBase, f= True,shapes=True, fullPath = True)
+                
+            for i,s in enumerate(l_dupShapes):
+                try:
+                    newShape = mc.parent (s,obj,add=True,shape=True)
+                    node= mc.blendShape(l_baseShapes[i],newShape[0], origin ='world')
+                    mc.blendShape(node, edit=True, w=[(0,1.0)])
+                except:pass
+                #mc.delete(l_baseShapes[i])
+                #mc.delete(node)
+
+            mc.delete(_dup_curve,_dupBase)
+            mc.delete(obj,ch=True)
+            if not keepSource:
+                mc.delete(c)
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
+    return True
+
 
 def create_axisProxy(obj=None):
     """

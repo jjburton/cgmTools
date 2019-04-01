@@ -1091,6 +1091,7 @@ def get_castSize(self, casters, castMesh = None, axis1 = 'x', axis2 = 'y',extend
             axis1:l_x,
             axis2:l_y}
     
+@cgmGEN.Timer
 def get_castMesh(self,extend=False):
     _str_func =  'get_castMesh'
     log.debug(cgmGEN.logString_start(_str_func))
