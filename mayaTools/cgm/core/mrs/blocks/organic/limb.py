@@ -7780,19 +7780,22 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     Build our proxyMesh
     """
     try:
-        _short = self.d_block['shortName']
+        _short = self.p_nameShort
         _str_func = '[{0}] > build_proxyMesh'.format(_short)
         log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
       
         _start = time.clock()
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
+        mBlock = self
+        mModule = self.moduleTarget
+        mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
-        mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-        
+        mPuppet = self.atUtils('get_puppet')
+        mMaster = mPuppet.masterControl
+        mPuppetSettings = mMaster.controlSettings
+        str_partName = mModule.get_partNameBase()
         directProxy = mBlock.proxyDirect
         
-        _side = BLOCKUTILS.get_side(self.mBlock)
+        _side = BLOCKUTILS.get_side(self)
         ml_proxy = []
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
@@ -7896,13 +7899,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             
             
-        ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                     ml_casters,
-                                                                     ballBase = _ballBase,
-                                                                     ballMode = _ballMode,
-                                                                     reverseNormal=0,#mBlock.loftReverseNormal,
-                                                                     extendCastSurface = _extend,
-                                                                     extendToStart=False),#_extendToStart),
+        ml_segProxy = cgmMeta.validateObjListArg(mBlock.atUtils('mesh_proxyCreate',
+                                                                ml_casters,
+                                                                ballBase = _ballBase,
+                                                                ballMode = _ballMode,
+                                                                reverseNormal=0,#mBlock.loftReverseNormal,
+                                                                extendCastSurface = _extend,
+                                                                extendToStart=False),#_extendToStart),
                                                  'cgmObject')
         
         
@@ -8060,7 +8063,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
         if directProxy:
             log.debug("|{0}| >> directProxy... ".format(_str_func))
-            _settings = self.mRigNull.settings.mNode
+            _settings = mRigNull.settings.mNode
             
         if puppetMeshMode:
             log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
@@ -8069,7 +8072,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             for i,mGeo in enumerate(ml_segProxy):
                 log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
                 mGeo.parent = ml_moduleJoints[i]
-                mGeo.doStore('cgmName',self.d_module['partName'])
+                mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()        
@@ -8081,7 +8084,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             log.debug("{0} : {1}".format(mGeo, ml_rigJoints[i]))
             mGeo.parent = ml_rigJoints[i]
             #ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
-            mGeo.doStore('cgmName',self.d_module['partName'])
+            mGeo.doStore('cgmName',str_partName)
             
             mGeo.addAttr('cgmIterator',i+1)
             mGeo.addAttr('cgmType','proxyGeo')

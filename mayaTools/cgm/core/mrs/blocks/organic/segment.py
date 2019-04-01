@@ -2864,20 +2864,23 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     Build our proxyMesh
     """
     try:
-        _short = self.d_block['shortName']
+        _short = self.p_nameShort
         _str_func = '[{0}] > build_proxyMesh'.format(_short)
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug(self)
-        
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
+        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    
+        _start = time.clock()
+        mBlock = self
+        mModule = self.moduleTarget
+        mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
-        mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-        mPuppet = self.d_module['mPuppet']
+        mPuppet = self.atUtils('get_puppet')
+        mMaster = mPuppet.masterControl
+        mPuppetSettings = mMaster.controlSettings
+        str_partName = mModule.get_partNameBase()
         
         directProxy = mBlock.proxyDirect
         
-        _side = BLOCKUTILS.get_side(self.mBlock)
+        _side = BLOCKUTILS.get_side(self)
         ml_proxy = []
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
@@ -2923,18 +2926,17 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
         if _blockProfile in ['wingBase']:
             _ballBase = False"""
             
-        ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                     ml_rigJoints,
-                                                                     firstToStart=True,
-                                                                     ballBase = _ballBase,
-                                                                     ballMode = _ballMode,
-                                                                     reverseNormal=0,#mBlock.loftReverseNormal,
-                                                                     extendToStart=_extendToStart),
+        ml_segProxy = cgmMeta.validateObjListArg(self.atUtils('mesh_proxyCreate',
+                                                              ml_rigJoints,
+                                                              firstToStart=True,
+                                                              ballBase = _ballBase,
+                                                              ballMode = _ballMode,
+                                                              extendToStart=_extendToStart),
                                                  'cgmObject')    
         
         
         if directProxy:
-            _settings = self.mRigNull.settings.mNode
+            _settings = mRigNull.settings.mNode
             log.debug("|{0}| >> directProxy... ".format(_str_func))    
         
         if puppetMeshMode:
@@ -2944,7 +2946,7 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
             for i,mGeo in enumerate(ml_segProxy):
                 log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
                 mGeo.parent = ml_moduleJoints[i]
-                mGeo.doStore('cgmName',self.d_module['partName'])
+                mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()

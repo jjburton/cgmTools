@@ -1374,8 +1374,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.error("|{0}| >> [{1}] Block module lacks 'build_proxyMesh' call.".format(_str_func, self.blockType))                        
             return False
         
-        mRigFac = rigFactory(self, autoBuild = False)
-        return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        return self.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        #mRigFac = rigFactory(self, autoBuild = False)
+        #return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
     
 
 class handleFactory(object):
