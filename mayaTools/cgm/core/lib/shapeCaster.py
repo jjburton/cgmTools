@@ -605,10 +605,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
 
     #>>> Info #================================================================
-    guiFactory.doProgressWindow(winName='Mesh Slice...', 
-                                statusMessage='Progress...', 
-                                startingProgress=1, 
-                                interruptableState=True)		
+    #guiFactory.doProgressWindow(winName='Mesh Slice...', 
+    #                            statusMessage='Progress...', 
+    #                            startingProgress=1, 
+    #                            interruptableState=True)		
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
     l_pos = []
@@ -706,9 +706,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         #================================================================
         l_hits = []
         for i,rotateValue in enumerate(l_rotateSettings):
-            guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
-                                              len(l_rotateSettings), 
-                                              reportItem=False)	    
+            #guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
+            #                                  len(l_rotateSettings), 
+            #                                  reportItem=False)	    
             d_castReturn = {}
             hit = False
             
@@ -770,7 +770,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
  
         mc.delete(mi_loc.getParents()[-1])#delete top group
         log.debug("pos list: %s"%l_pos)    
-        guiFactory.doCloseProgressWindow()
+        #guiFactory.doCloseProgressWindow()
 
     except Exception,error:
         pprint.pprint(vars())

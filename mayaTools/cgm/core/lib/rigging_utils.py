@@ -422,6 +422,77 @@ def shapeParent_in_placeBAK(obj, shapeSource, keepSource = True, replaceShapes =
     return True
 
 @cgmGEN.Timer
+def shapeParent_in_place_matrix(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+    """
+    Shape parent a curve in place to a obj transform
+
+    :parameters:
+        obj(str): Object to modify
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
+
+    :returns
+        success(bool)
+    """
+    
+    _str_func = 'shapeParent_in_place'
+    
+    l_source = VALID.listArg(shapeSource)
+    obj = VALID.mNodeString(obj)
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
+        if _l_objShapes:
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
+    mc.select (cl=True)
+    #mc.refresh()
+    matrix_me = TRANS.worldMatrix_get(obj)
+    pprint.pprint(matrix_me)
+    for c in l_source:
+        try:
+            _shapeCheck = SEARCH.is_shape(c)
+            if _shapeCheck:
+                _dupBase = duplicate_shape(c)[0]
+                log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                                        
+            else:
+                log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
+                _dupBase = mc.duplicate(c,po=False)[0]
+                for child in TRANS.children_get(_dupBase,True):
+                    mc.delete(child)
+                if snapFirst:
+                    SNAP.go(_dupBase,obj)
+                
+            mc.makeIdentity(_dupBase, apply=True,  scale=True)#translate=True, rotate=True,
+            #TRANS.pivots_zeroTransform(_dupBase)
+            matrix_tar = TRANS.worldMatrix_get(_dupBase)
+            matrix_res = []
+            for i,v in enumerate(matrix_tar):
+                matrix_res.append(v * (matrix_me[i]*-1))
+
+            mc.xform( _dupBase,m=matrix_res, ws=True,p=True)
+
+            l_baseShapes = mc.listRelatives (_dupBase, f= True,shapes=True, fullPath = True)
+            for i,s in enumerate(l_baseShapes):
+                mc.parent (s,obj,add=True,shape=True)
+
+            #mc.delete(_dupBase)
+            #mc.delete(obj,ch=True)
+            if not keepSource:
+                mc.delete(c)
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
+    return True
+
+
+#@cgmGEN.Timer
 def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
@@ -470,9 +541,10 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
                                         
             else:
                 log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
-                _dup_curve =  mc.duplicate(c,po=False)
+                _dup_curve =  mc.duplicate(c,po=False,rc=True)[0]
                 for child in TRANS.children_get(_dup_curve,True):
-                    mc.delete(child)
+                    try:mc.delete(child)
+                    except:pass
                 if snapFirst:
                     SNAP.go(_dup_curve,obj)
                     

@@ -138,7 +138,7 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
     
     cvStarts = [int(cv.split('[')[-1].split(']')[0]) for cv in l_cvs]
     cvEnds = [int(cv.split('[')[-2].split(']')[0]) for cv in l_cvs]
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     cvStarts = LISTS.get_noDuplicates(cvStarts)
     cvEnds = LISTS.get_noDuplicates(cvEnds)

@@ -3970,6 +3970,7 @@ def rig_shapes(self):
         
         ml_joints = self.d_joints['ml_moduleJoints']
         
+        
         #Our base size will be the average of the bounding box sans the largest
         #_bbSize = TRANS.bbSize_get(mBlock.getMessage('prerigLoftMesh')[0],shapes=True)
         #_bbSize.remove(max(_bbSize))
@@ -4090,7 +4091,7 @@ def rig_shapes(self):
                     mShape2 = mIKShape.doDuplicate(po=False)
                     mShape2.p_position = mShape2.getPositionByAxisDistance('y+',_offset/2)
                     
-                CURVES.join_shapes([mIKShape.mNode,mShape2.mNode])
+                CURVES.connect([mIKShape.mNode,mShape2.mNode],5)
                 #mShape2.delete()
                 #CORERIG.shapeParent_in_place(mIKShape.mNode, mShape2.mNode, False)
                 

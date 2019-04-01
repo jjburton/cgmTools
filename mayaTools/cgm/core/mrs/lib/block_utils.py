@@ -71,6 +71,7 @@ from cgm.core.classes import GuiFactory as CGMUI
 reload(STR)
 reload(ATTR)
 reload(SNAP)
+reload(CORERIG)
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -3389,24 +3390,14 @@ def blockMirror_create(self, forceNew = False):
                 _subShapers[str(i)]['r'][ii] = l_r
                 _subShapers[str(i)]['r'][ii] = l_t"""
             
-        
-        #if blockDat['ud'].get('cgmDirection'):
-            #blockDat['ud']['cgmDirection'] = _side
-        #blockDat_load(mMirror, blockDat, mirror = False)
-       
-            
+
         self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect
         mMirror.p_blockParent = mBlockParent
         
-        
         blockDat_load(mMirror,useMirror=True,redefine=True)
-        return
-        #mMirror.loadBlockDat(blockDat)
         controls_mirror(self,mMirror)
-        
-        #blockMirror_settings(self,mMirror)
         return mMirror
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
     
 def blockMirror_go(self, mode = 'push',autoCreate = False):
     """
@@ -3511,6 +3502,10 @@ def blockMirror_settings(blockSource, blockMirror = None,
                     for arg in err.args:
                         log.error(arg)
                         
+        #nameList 
+        _nameList = ATTR.datList_get(mSource.mNode,'nameList')
+        ATTR.datList_connect(mTarget.mNode, 'nameList', _nameList)
+        
         #loftList
         _loftList = ATTR.datList_get(mSource.mNode,'loftList','enum',enum=True)
         log.debug("|{0}| >> loftList pre : {1}".format(_str_func,_loftList))
@@ -10076,8 +10071,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             return _crv
 
         _degree = 1
-        if self.loftDegree:
-            _degree = 3
+        #if self.loftDegree:
+        #    _degree = 3
 
         #>>Reloft those sets of curves and cap them ------------------------------------------------------------
         log.debug("|{0}| >> Create new mesh objs.".format(_str_func))

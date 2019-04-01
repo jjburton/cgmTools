@@ -98,16 +98,34 @@ def ik_bankRollShapes(self):
         else:
             size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
             
-        _d_cast = {'minRot':-90,'maxRot':90,'vectorOffset':_offset, 'closedCurve':False, 'maxDistance':size_pivotHelper[0]}
+        _d_cast = {'vectorOffset':_offset,
+                   'points':15,
+                   #'minRot':-90,'maxRot':90,
+                   'closedCurve':False, 'maxDistance':size_pivotHelper[0]*4}
             
-        reload(SHAPECASTER)
+        #reload(SHAPECASTER)
  
         if self.mBall:    
             crvBall = SHAPECASTER.createMeshSliceCurve(
                 str_meshShape, self.mBall.mNode,
                 **_d_cast)
 
-            
+            if not self.mToe:
+                pos = RAYS.get_cast_pos(self.mBall.mNode,shapes=mMesh_tmp.mNode)
+                pos_me = self.mBall.p_position
+                dist = DIST.get_distance_between_points(pos,pos_me)/2
+                pos_end = DIST.get_pos_by_vec_dist(pos_me, [0,0,1],dist)
+                
+                mDup = self.mBall.doDuplicate(po=True)
+                mDup.p_position = pos_end
+                
+                crvBall2 = SHAPECASTER.createMeshSliceCurve(
+                                str_meshShape, mDup.mNode,
+                                **_d_cast)     
+                
+                CURVES.connect([crvBall,crvBall2],7)
+                mDup.delete()
+                
             mHandleFactory.color(crvBall, controlType = 'sub')                                
             mBallFK = self.mBall.getMessageAsMeta('fkJoint')
             CORERIG.shapeParent_in_place(mBallFK.mNode,crvBall, True, replaceShapes=True)            
@@ -147,7 +165,7 @@ def ik_bankRollShapes(self):
                     str_meshShape,mEnd.mNode,
                     **_d_cast)
                 
-                CURVES.join_shapes([crv1,crv2])
+                CURVES.connect([crv1,crv2],7)
                 
                 mBallHingeIK = self.mBall.doCreateAt(setClass=True)
                 mRigNull.connectChildNode(mBallHingeIK,'controlIKBallHinge','rigNull')#Connect
@@ -690,7 +708,7 @@ def leverBAK(self,ml_handles = None):
             mDup.p_parent = False
             ml_new.append(mDup)
             
-        CURVES.join_shapes([mTar.mNode for mTar in ml_new],mode='even')
+        CURVES.connect([mTar.mNode for mTar in ml_new],mode='even')
         
         return ml_new[0]
         

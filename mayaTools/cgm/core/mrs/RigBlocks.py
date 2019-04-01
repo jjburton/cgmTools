@@ -1629,7 +1629,7 @@ class handleFactory(object):
         if baseShape == 'self':
             _crv = mc.duplicate( self._mTransform.getShapes()[0])[0]
         else:
-            _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+            _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection, baseSize=1.0)
             TRANS.snap(_crv, self._mTransform.mNode) 
             
         mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
@@ -2082,6 +2082,7 @@ class handleFactory(object):
                 
                 handle = CURVES.create_fromName('cubeOpen',
                                                 direction = 'z+',
+                                                baseSize=1.0,
                                                 size = _sizeSub*3)
                 
                 mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
@@ -2117,7 +2118,8 @@ class handleFactory(object):
                                     
                     handle = CURVES.create_fromName('cube',
                                                     direction = 'z+',
-                                                    size = _sizeSub * 2)
+                                                    size = _sizeSub * 2,
+                                                    baseSize=1.0)
                     
                     mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
                     mHandle.doSnapTo(_short)                
@@ -2746,7 +2748,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
         _baseSize = self.baseSize
 
         _baseShape = self.getMayaAttr('baseShape') 
-        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection, baseSize=1.0)
         TRANS.snap(_crv, self.mNode) 
         mCrv = cgmMeta.validateObjArg(_crv)
 
@@ -5775,7 +5777,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 else:font = 'arial'
                 
             #>>> Main shape ----------------------------------------------------------------------
-            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1)    
+            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1, baseSize=1.0)    
             TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
         
             mHandleFactory.color(_crv,'center','sub',transparent = False)
