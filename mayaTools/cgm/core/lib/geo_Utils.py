@@ -37,7 +37,7 @@ from cgm.core.lib import search_utils as SEARCH
 import re
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.math_utils as MATH
-import cgm.core.lib.locator_utils as LOC
+#import cgm.core.lib.locator_utils as LOC
 
 from cgm.lib import search
 from cgm.lib import distance
@@ -1675,8 +1675,8 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
                                 DIST.create_vectorCurve(pos,_vec ,10)
                                 pprint.pprint(d)
                                 pprint.pprint(_hits_use)
-                                for i,h in enumerate(_hits_use):
-                                    LOC.create(position=h,name='hit_{0}'.format(i))
+                                #for i,h in enumerate(_hits_use):
+                                #    LOC.create(position=h,name='hit_{0}'.format(i))
                 else:
                     if len(_hits)>1:
                         if DIST.get_distance_between_points(pos,_hits[1]) > .02:
