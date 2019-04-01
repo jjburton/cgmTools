@@ -57,6 +57,8 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.lib.string_utils as STRING
+reload(STRING)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
@@ -2317,7 +2319,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         if uKnot < maxU:
                             _l.append(uKnot)
                     elif uKnot < l_uValues[i+1]:
-                        if (l_uValues[i+1] - uKnot < .1):
+                        if (l_uValues[i+1] - uKnot < .01):
                             l_uValues[i] = uKnot
                             v=uKnot
                         else:
@@ -2340,16 +2342,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             log.debug("|{0}| >> uSet [{1}] : {2} ...".format(_str_func,i,_l))
             
         
-        l_newCurves = []
+        l_created = []
         d_curves = {}
-        def getCurve(uValue,l_curves):
+        def getCurve(uValue):
             _crv = d_curves.get(uValue)
             if _crv:return _crv
             _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,uValue,method), ch = 0, rn = 0, local = 0)[0]
-            _crv = mc.rename(_crv,"u{0}_crv".format(uValue))
+            _crv = mc.rename(_crv,"u{0}_crv".format(str(uValue)))
             d_curves[uValue] = _crv
             log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
-            l_curves.append(_crv)
+            l_created.append(_crv)
             return _crv
         
         _degree = 1
@@ -2365,23 +2367,10 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 log.debug("|{0}| >> SINGLE MODE".format(_str_func))                
                 break
             
-            log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
-            """
-            if i == 0 and str_start:
-                _pair = [str_start,c,l_newCurves[i+1]]
-            else:
-                _pair = [c,l_newCurves[i+1]]"""
-            
-            _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
-            
-            _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
-            
-            
-            log.debug("|{0}| >> mesh created...".format(_str_func))                            
-            CORERIG.match_transform(_mesh,ml_targets[i])
-            
-            #if reverseNormal:
-                #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+            log.info("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+
+            _loftCurves = [getCurve(uValue) for uValue in uSet]
+            _mesh = None
             
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))
@@ -2467,7 +2456,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         #if cgmGEN.__mayaVersion__ in [2018]:
                             #_loftTargets.reverse()
                             
-                        mc.delete(_mesh)#...we're going to replace our mesh
+                        #mc.delete(_mesh)#...we're going to replace our mesh
                         
                         _mesh = create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
                                     
@@ -2486,9 +2475,12 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
                         
                         _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
-                        mc.delete([end,mid1,mid2,root])
+                        mc.delete([end,mid1,mid2])
+                    mc.delete(root)
 
                 else:
+                    _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                    log.debug("|{0}| >> mesh created...".format(_str_func))                            
                 
                     #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
                     if ballPosition == 'joint':
@@ -2527,20 +2519,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
                     
                     _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
+
+            if not _mesh:
+                _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                log.debug("|{0}| >> mesh created...".format(_str_func))                                            
             for s in TRANS.shapes_get(_mesh):
                 GEO.normalCheck(s)
                         
-                    
-            
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
-                
+            log.info(_mesh)
             CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
-            log.debug("|{0}| >> ball done...".format(_str_func))                
-        
+
         #...clean up 
-        mc.delete(l_newCurves)# + [str_tmpMesh]
+        mc.delete(l_created)# + [str_tmpMesh]
         mMesh_tmp.delete()
         
         if str_start:
