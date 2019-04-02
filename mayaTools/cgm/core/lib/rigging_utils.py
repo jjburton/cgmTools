@@ -560,10 +560,16 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             for ii,s in enumerate(l_dupShapes):
                 log.debug("|{0}|  >> blendshaping [{1}] | {2} | {3}".format(_str_func,i,ii,s))                                  
                 newShape = mc.parent (s,obj,add=True,shape=True)
-                node= mc.blendShape(l_baseShapes[ii],newShape[0], origin ='world')
-                mc.blendShape(node, edit=True, w=[(0,1.0)])
-                l_nodes.extend(node)
-                mc.delete(newShape,ch=True)
+                try:node= mc.blendShape(l_baseShapes[ii],newShape[0], origin ='world')
+                except:
+                    node = None
+                    log.error("|{0}|  >> FAILED to blendshape [{1}] | {2} | {3}".format(_str_func,i,ii,l_baseShapes[ii]))
+                    shapeParent_in_placeBAK(obj,l_baseShapes[ii],False,False)
+                if node:
+                    mc.blendShape(node, edit=True, w=[(0,1.0)])
+                    l_nodes.extend(node)
+                    mc.delete(newShape,ch=True)                    
+
                 #mc.delete(l_baseShapes[i])
                 #mc.delete(node)
 

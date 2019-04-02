@@ -400,7 +400,7 @@ d_block_profiles = {
           'attachPoint':'end',
           'loftShape':'wideDown',
           'loftSetup':'loftList',
-          'settingsPlace':'end',
+          'settingsPlace':'start',
           'ikSetup':'rp',
           'ikEnd':'tipBase',
           'numControls':4,
@@ -468,7 +468,7 @@ d_block_profiles = {
           'attachPoint':'end',
           'loftShape':'wideDown',
           'loftSetup':'loftList',
-          'settingsPlace':'end',
+          'settingsPlace':'start',
           'ikSetup':'rp',
           'ikEnd':'tipBase',
           'numControls':4,
@@ -7805,6 +7805,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         if not ml_rigJoints:
             raise ValueError,"No rigJoints connected"
         
+        pprint.pprint(ml_rigJoints)
+        
+        
         #>> If proxyMesh there, delete -------------------------------------------------------------------------- 
         if puppetMeshMode:
             _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
@@ -7843,11 +7846,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mBall = ml_rigJoints.pop(-1)
                 log.debug("|{0}| >> mBall: {1}".format(_str_func,mBall))        
                 int_handleEndIdx -=1
+                pprint.pprint(ml_rigJoints)
             
             if mBall or mToe:
                 mEnd = ml_rigJoints.pop(-1)
                 log.debug("|{0}| >> mEnd: {1}".format(_str_func,mEnd))        
                 int_handleEndIdx -=1
+                pprint.pprint(ml_rigJoints)
+                
         elif _str_rigSetup == 'digit':
             if mBlock.hasEndJoint:
                 mEnd = ml_rigJoints.pop(-1)
@@ -7859,6 +7865,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         log.debug("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
                                                        ml_rigJoints[int_handleEndIdx]))                
             
+        
         # Create ---------------------------------------------------------------------------
         _extendToStart = True
         _blockProfile = mBlock.blockProfile
