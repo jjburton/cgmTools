@@ -339,8 +339,11 @@ def headGeo_replace(self,arg = None):
     #Clean
     ml_current = self.msgList_get('headMeshProxy')
     for mObj in ml_current:
-        mObj.delete()
-    self.msgList_purge('headMeshProxy')
+        if mObj not in ml_stuff:
+            mObj.p_parent = False
+        
+    try:self.msgList_purge('headMeshProxy')
+    except:pass
     
     headGeo_add(self,ml_stuff)
     

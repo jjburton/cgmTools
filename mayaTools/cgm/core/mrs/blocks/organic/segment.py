@@ -2505,7 +2505,7 @@ def rig_matchSetup(self):
 def rig_cleanUp(self):
     try:
         _short = self.d_block['shortName']
-        _str_func = 'rig_neckSegment'
+        _str_func = 'rig_cleanUp'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug(self)
         

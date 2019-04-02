@@ -319,7 +319,7 @@ d_block_profiles = {
     'hasEndJoint':True,
     'ikRollSetup':'control',
     'buildBall':'joint',
-    'buildToe':'joint',
+    'buildToe':'none',
     'buildLeverBase':'none',
     'buildLeverEnd':'none',
     'loftList':['wideNeg','wideDown','circle'],

@@ -1935,7 +1935,10 @@ def get_children(*a):
     """ 
     _str_func = 'get_children'
     _d = validate_arg(*a) 
-
+    
+    if '[' in _d['attr']:
+        return False
+    
     try:return mc.attributeQuery(_d['attr'], node = _d['node'], listChildren=True) or [] 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
