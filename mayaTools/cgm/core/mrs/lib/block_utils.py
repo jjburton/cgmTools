@@ -9619,7 +9619,11 @@ def update(self,force=False,stopState = 'define'):
         log.debug(cgmGEN.logString_sub(_str_func,"Checking blockProfile"))
         mBlockModule = self.p_blockModule
         _blockProfile = self.getMayaAttr('blockProfile')
-        _d_profiles = mBlockModule.d_block_profiles
+        _d_profiles = {}        
+        try:_d_profiles = mBlockModule.d_block_profiles
+        except:
+            log.error(cgmGEN.logString_msg(_str_func,'No d_block_profile_found'))
+            
         _typeDict=  _d_profiles.get(_blockProfile,{})
         if _blockProfile and not _typeDict:
             log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
