@@ -139,7 +139,7 @@ def createFollicleOnMesh(targetSurface, name = 'follicle'):
 
 
     _shape = l_shapes[0]
-    log.info("_shape: {0}".format(_shape))
+    log.debug("_shape: {0}".format(_shape))
     _type = VALID.get_mayaType(_shape)    
     
     #objType = search.returnObjectType(mesh)

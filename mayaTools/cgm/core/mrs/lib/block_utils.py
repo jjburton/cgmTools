@@ -856,13 +856,15 @@ def prerig_handlesLock(self, lock=None):
                 mLoc = mHandle.getMessageAsMeta('lockLoc')
                 if mLoc:
                     mLoc.delete()
-                    
                 mLoc = mHandle.doLoc()
                 mLoc.p_parent = mPrerigNull
                 mc.parentConstraint([mLoc.mNode],mHandle.mNode)
                 mHandle.connectChildNode(mLoc.mNode,'lockLoc')
         else:
-            for mHandle in ml_prerigHandles:            
+            for mHandle in ml_prerigHandles:
+                _const = mHandle.getConstraintsTo()
+                if _const:
+                    mc.delete(_const)
                 mLoc = mHandle.getMessageAsMeta('lockLoc')
                 if mLoc:
                     mLoc.delete()
