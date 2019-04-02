@@ -1203,7 +1203,7 @@ def create_defineLoftMesh(self, targets = None,
         
         
                 
-        _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=0)
+        _res_body = mc.loft(targets, o = True, d = 1, po = 3, c = False,autoReverse=0,ch=True)
         mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
         _loftNode = _res_body[1]
         _inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)

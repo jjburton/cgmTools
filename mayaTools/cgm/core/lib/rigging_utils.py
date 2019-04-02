@@ -13,7 +13,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -522,8 +522,9 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
     
     mc.select (cl=True)
     #mc.refresh()    
-    for c in l_source:
+    for i,c in enumerate(l_source):
         try:
+            l_nodes = []
             _shapeCheck = SEARCH.is_shape(c)
             #if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
             #    raise ValueError,"Has no shapes"
@@ -543,8 +544,8 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
                 log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
                 _dup_curve =  mc.duplicate(c,po=False,rc=True)[0]
                 for child in TRANS.children_get(_dup_curve,True):
-                    try:mc.delete(child)
-                    except:pass
+                    log.debug("|{0}|  >> Removing child: {1}".format(_str_func,child))
+                    mc.delete(child)
                 if snapFirst:
                     SNAP.go(_dup_curve,obj)
                     
@@ -556,17 +557,26 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
             l_dupShapes = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
             l_baseShapes = mc.listRelatives (_dupBase, f= True,shapes=True, fullPath = True)
                 
-            for i,s in enumerate(l_dupShapes):
-                try:
-                    newShape = mc.parent (s,obj,add=True,shape=True)
-                    node= mc.blendShape(l_baseShapes[i],newShape[0], origin ='world')
-                    mc.blendShape(node, edit=True, w=[(0,1.0)])
-                except:pass
+            for ii,s in enumerate(l_dupShapes):
+                log.debug("|{0}|  >> blendshaping [{1}] | {2} | {3}".format(_str_func,i,ii,s))                                  
+                newShape = mc.parent (s,obj,add=True,shape=True)
+                node= mc.blendShape(l_baseShapes[ii],newShape[0], origin ='world')
+                mc.blendShape(node, edit=True, w=[(0,1.0)])
+                l_nodes.extend(node)
+                mc.delete(newShape,ch=True)
                 #mc.delete(l_baseShapes[i])
                 #mc.delete(node)
 
             mc.delete(_dup_curve,_dupBase)
-            mc.delete(obj,ch=True)
+            #mc.delete(l_nodes)
+            #mc.delete(obj,ch=True)#...can't do this. Breaks other bits
+            """
+            for n in l_nodes:
+                for plug in ATTR.get_driven(n,'outputGeometry') or []:
+                    log.debug("|{0}|  >> Removing plug: {1}".format(_str_func,child))
+                    ATTR.break_connection(plug)
+                mc.delete(n)"""
+            
             if not keepSource:
                 mc.delete(c)
         except Exception,err:
