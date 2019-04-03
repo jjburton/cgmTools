@@ -2273,8 +2273,8 @@ def rig_prechecks(self):
         
         mBlock = self.mBlock
         
-        if not mBlock.ikSetup:
-            self.l_precheckErrors.append('Must have ikSetup currently')
+        #if not mBlock.ikSetup:
+        #    self.l_precheckErrors.append('Must have ikSetup currently')
             
         if mBlock.buildLeverEnd and mBlock.numControls < 4:
             self.l_precheckErrors.append('Quad Setup needs at least 4 controls')
