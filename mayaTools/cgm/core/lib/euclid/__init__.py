@@ -575,8 +575,12 @@ class Vector3:
 
     def angle(self, other):
         """Return the angle to the vector other"""
-        return math.acos(self.dot(other) / (self.magnitude()*other.magnitude()))
-
+        try:return math.acos(self.dot(other) / (self.magnitude()*other.magnitude()))
+        except Exception,err:
+            #if self.cross(other) == (0.0,0.0,0.0):
+            return 0.0
+            raise Exception,err
+        
     def project(self, other):
         """Return one vector projected on the vector other"""
         n = other.normalized()
