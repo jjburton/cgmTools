@@ -6318,13 +6318,14 @@ def rig_frameSingle(self):
 
         #Changing targets - these change based on how the setup rolls through
         #mIKHandleDriver = mIKControl#...this will change with pivot
-        mIKControl = mRigNull.controlIK                
-        mIKHandleDriver = mIKControl
-        mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
-        
-        if mIKControlEnd:
-            log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
-            mIKHandleDriver = mIKControlEnd
+        if mBlock.ikSetup:
+            mIKControl = mRigNull.controlIK                
+            mIKHandleDriver = mIKControl
+            mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
+            
+            if mIKControlEnd:
+                log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
+                mIKHandleDriver = mIKControlEnd
             
         #Pivot Driver =======================================================================================
         mPivotHolderHandle = ml_formHandles[-1]
@@ -6686,9 +6687,10 @@ def rig_frameSingle(self):
             if ml_ikFullChain:
                 ml_ikFullChain[0].p_parent = mRoot
             
-            ml_ikJoints[0].parent = mIKGroup            
-            if mIKControlBase:
-                mc.pointConstraint(mIKControlBase.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
+            if mBlock.ikSetup:
+                ml_ikJoints[0].parent = mIKGroup            
+                if mIKControlBase:
+                    mc.pointConstraint(mIKControlBase.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
             
         #cgmGEN.func_snapShot(vars())
         return    
