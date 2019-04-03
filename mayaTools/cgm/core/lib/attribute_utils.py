@@ -1311,7 +1311,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
     return True
 
 
-def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock = None,*a, **kws):
+def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock = None,convert=False,*a, **kws):
     """   
     Breaks connections on an attribute. Handles locks on source or end
 
@@ -1336,13 +1336,25 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock
         _combined = _d['combined']
         _node = _d['node']
         _attr = _d['attr']
-        if mc.objExists(_combined):
-            raise ValueError,"{0} already exists.".format(_combined)
-    
-        _type = validate_attrTypeName(attrType)
-
         
-        assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
+        _type = validate_attrTypeName(attrType)
+        if not _type:
+            raise ValueError,"'{0}' is not a valid attribute type for creation.".format(attrType)
+        if mc.objExists(_combined):
+            currentType = get_type(_d)
+            currentValid = validate_attrTypeName(currentType)
+            if not currentValid == _type:
+                if convert:
+                    convert_type(_node,_attr,_type)
+                else:
+                    raise ValueError,"{0} already exists. Wrong type [{1}] != [{2}]. No convert flag".format(_combined,currentValid,_type)
+                
+                if value is not None:
+                    set(_node,_attr,value=value)
+                if lock:
+                    set_lock(_node,_attr,lock)
+            return _combined
+
     
         if _type == 'string':
             mc.addAttr (_node, ln = _attr, dt = 'string',*a, **kws)
