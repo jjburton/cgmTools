@@ -572,7 +572,7 @@ def define(self):
         if c in mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
             self.atBlockModule(c)
-
+            
     self.blockState = 'define'#...yes now in this state
     return True
     
@@ -6575,6 +6575,8 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
     #try:
     _str_func = 'changeState'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    
+    mc.select(cl=True)
     
     if self.isReferenced():
         raise ValueError,"Referenced node. Cannot verify"
