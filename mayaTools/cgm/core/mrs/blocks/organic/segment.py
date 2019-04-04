@@ -1490,7 +1490,7 @@ def rig_skeleton(self):
         if self.d_module['mirrorDirection'] == 'Left':
             log.debug("|{0}| >> Mirror direction ...".format(_str_func))
             ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
-            ml_jointsToConnect.extend(ml_fkAttachJoints)
+            ml_jointsToHide.extend(ml_fkAttachJoints)
            
         
         #...joint hide -----------------------------------------------------------------------------------

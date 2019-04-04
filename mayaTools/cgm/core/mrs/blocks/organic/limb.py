@@ -3177,7 +3177,7 @@ def rig_skeleton(self):
         if self.d_module['mirrorDirection'] == 'Left':
             log.debug("|{0}| >> Mirror direction ...".format(_str_func))
             ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
-            ml_jointsToConnect.extend(ml_fkAttachJoints)
+            ml_jointsToHide.extend(ml_fkAttachJoints)#...make sure to do this to other modules. settings get hidden on left side modules otherwise
             
             """
             ml_fkAttachJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_fkJoints,
@@ -3234,10 +3234,8 @@ def rig_skeleton(self):
             
         #...joint hide -----------------------------------------------------------------------------------
         for mJnt in ml_jointsToHide:
-            try:
-                mJnt.drawStyle =2
-            except:
-                mJnt.radius = .00001
+            try:mJnt.drawStyle =2
+            except:mJnt.radius = .00001
                 
         #...connect... 
         self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
@@ -3950,7 +3948,7 @@ def rig_shapes(self):
             
         
         mRigNull = self.mRigNull
-        
+
         ml_formHandles = mBlock.msgList_get('formHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
         ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
@@ -3964,6 +3962,11 @@ def rig_shapes(self):
         ml_fkCastTargets = self.mRigNull.msgList_get('fkAttachJoints')
         if not ml_fkCastTargets:
             ml_fkCastTargets = copy.copy(ml_fkJoints)
+            
+        if ml_blendJoints:
+            ml_targets = ml_blendJoints
+        else:
+            ml_targets = ml_fkCastTargets        
             
         #mIKEnd = ml_prerigHandleTargets[-1]
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
@@ -4023,38 +4026,10 @@ def rig_shapes(self):
             
             #limbRoot ------------------------------------------------------------------------------
             RIGSHAPES.limbRoot(self)
-            
-            """log.debug("|{0}| >> LimbRoot".format(_str_func))
-            idx = 0
-            #if self.b_lever:
-            #    idx = 1
-            mLimbRootHandle = ml_prerigHandles[idx]
-            mLimbRoot = ml_fkJoints[0].rigJoint.doCreateAt()
 
-            _size_root = MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
-                        
-            #MATH.average(POS.get_bb_size(self.mRootFormHandle.mNode))
-            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', _size_root),'cgmObject',setClass=True)
-            mRootCrv.doSnapTo(ml_fkJoints[0])#mLimbRootHandle
-    
-            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
-    
-            CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
-    
-            for a in 'cgmName','cgmDirection','cgmModifier':
-                if ATTR.get(_short_module,a):
-                    ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
-    
-            mLimbRoot.doStore('cgmTypeModifier','limbRoot')
-            mLimbRoot.doName()
-    
-            mHandleFactory.color(mLimbRoot.mNode, controlType = 'sub')
-            self.mRigNull.connectChildNode(mLimbRoot,'limbRoot','rigNull')#Connect            
-            """
             log.debug(cgmGEN._str_subLine)
 
 
-        
         
         if self.md_roll:#Segment stuff ===================================================================
             log.debug("|{0}| >> Checking for mid handles...".format(_str_func))
@@ -4076,8 +4051,7 @@ def rig_shapes(self):
             
             log.debug(cgmGEN._str_subLine)
                 
-            
-        
+ 
         
         #IK End ================================================================================
         if mBlock.ikSetup:
@@ -4377,11 +4351,7 @@ def rig_shapes(self):
         
         mRoot = RIGSHAPES.rootOrCog(self)
         
-        
-        if ml_blendJoints:
-            ml_targets = ml_blendJoints
-        else:
-            ml_targets = ml_fkCastTargets        
+
         mSettings = RIGSHAPES.settings(self,mBlock.getEnumValueString('settingsPlace'),ml_targets)
             
  
