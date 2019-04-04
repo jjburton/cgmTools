@@ -5492,13 +5492,259 @@ def controlsRig_reset(self):
 
 
 _d_attrStateMasks = {0:[],
-                     1:['basicShape',],
-                     2:['baseSizeX','baseSizeY','baseSizeZ','blockProfile',
+                     1:['baseSizeX','baseSizeY','baseSizeZ','basicShape',
+                        'axisAimX','axisAimY','axisAimZ',],
+                     2:['blockProfile',
                         'blockScale','proxyShape','shapeDirection'],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
-def uiQuery_getStateAttrs(self,mode = None):
+_d_attrStateVisOn = {0:[],
+                     1:['attachPoint','addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
+                     2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
+                        'mainRotAxis','hasEndJoint',
+                        'ribbonAim','ribbonParam','rigSetup','scaleSetup',
+                        'segmentMidIKControl','settingsDirection','settingsPlace',
+                        'spaceSwitch_fk','ribbonConnectBy',
+                        'numRoll','rollCount'],
+                     3:['spaceSwitch_direct','squash','squashExtraControl',
+                        'squashFactorMax','squashFactorMin','squashMeasure',
+                        'offsetMode','proxyDirect',
+                        'numSpacePivots'],
+                     4:['proxyLoft','proxyGeoRoot']}
+_d_attrStateVisOff = {0:[],
+                     1:['baseSizeX','baseSizeY','baseSizeZ','basicShape',
+                        'axisAimX','axisAimY','axisAimZ',],
+                     2:['blockProfile',
+                        'blockScale','proxyShape','shapeDirection','numShapers',
+                        'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
+                        'numControls'],
+                     3:['attachPoint','addAim','addCog','addPivot','addScalePivot',
+                        'hasJoint','side','position','numRoll','rollCount'],
+                     4:['hasEndJoint','numJoints',
+                        'ikEnd','ikBase','ikSetup','ikOrientToWorld',
+                        'mainRotAxis','hasEndJoint',
+                        'ribbonAim','ribbonParam','rigSetup','scaleSetup',
+                        'segmentMidIKControl','settingsDirection','settingsPlace',
+                        'numSpacePivots',
+                        'spaceSwitch_direct','squash','squashExtraControl',
+                        'squashFactorMax','squashFactorMin','squashMeasure',
+                        'offsetMode',
+                        'ribbonConnectBy',
+                        'spaceSwitch_fk']}
+
+def attrMask_getBaseMask(self):
+    _str_func = ' attrMask_getBaseMask'
+    log.debug(cgmGEN.logString_start(_str_func)) 
+    _short = self.mNode
+    
+    l_hidden = []
+    l_keyable = []
+    for a in self.getAttrs(ud=True):
+        _type = ATTR.get_type(_short,a)
+        if _type in ['message','string']:
+            continue
+        
+        if ATTR.is_hidden(_short,a):
+            l_hidden.append(a)
+        if ATTR.is_keyable(_short,a):
+            l_keyable.append(a)
+            
+    _baseDat = self.baseDat or {}
+    
+            
+    _baseDat['aHidden'] = l_hidden
+    _baseDat['aKeyable'] = l_keyable
+    
+    self.baseDat = _baseDat
+    pprint.pprint(_baseDat)
+    return True
+    
+def attrMask_set(self,mode=None,clear=False):
+    _str_func = ' attrMask_set'
+    log.debug(cgmGEN.logString_start(_str_func))    
+
+    _short = self.mNode
+    _baseDat = self.baseDat or {}
+    l_hidden = _baseDat['aHidden']
+    l_keyable =_baseDat['aKeyable']
+    
+    for a in self.getAttrs(ud=True):
+        if a in l_hidden:
+            log.debug(cgmGEN.logString_msg(_str_func,'Hiding | {0}'.format(a)))                
+            ATTR.set_hidden(_short,a,1)
+        else:
+            ATTR.set_hidden(_short,a,0)
+            log.debug(cgmGEN.logString_msg(_str_func,'showing | {0}'.format(a)))
+            
+        if a in l_keyable:
+            log.debug(cgmGEN.logString_msg(_str_func,'keyable |{0}'.format(a)))
+            ATTR.set_keyable(_short,a,1)
+        else:
+            log.debug(cgmGEN.logString_msg(_str_func,'not keyable | {0}'.format(a)))
+            ATTR.set_keyable(_short,a,0)
+    if clear: return
+    else:
+        _state = 1
+        l_attrs = get_stateChannelBoxAttrs(self,mode)
+        
+        l_baseHidden = self.baseDat['aHidden']
+    
+        for a in self.getAttrs(ud=True):
+            if a not in l_attrs:
+                if a in l_baseHidden:
+                    continue
+                if not ATTR.is_hidden(_short,a):
+                    if not ATTR.get_children(_short,a):
+                        log.debug(cgmGEN.logString_msg(_str_func,'Set {0} | {1}'.format(bool(_state),a)))
+                        ATTR.set_hidden(_short,a,_state)
+    
+def get_stateChannelBoxAttrs(self,mode = None,report=False):
+    try:
+        _str_func = ' get_stateChannelBoxAttrs'
+        log.debug(cgmGEN.logString_start(_str_func))
+
+        _short = self.mNode
+        
+        if mode is None:
+            _intState = self.getState(False)
+        else:
+            _intState = mode
+        log.debug("|{0}| >> state: {1}".format(_str_func,_intState))
+        
+        mBlockModule = self.p_blockModule
+        reload(mBlockModule)
+        
+        def updateDictLists(d1,d2):
+            for k,l in d1.iteritems():
+                _dat = d2.get(k)
+                if _dat:
+                    l.extend(_dat)
+                    d1[k] = l
+        try:
+            d_attrsFromModule = mBlockModule._d_attrStateMasks
+            log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule attrStateMask dat'))
+        except:d_attrsFromModule={}
+        try:
+            d_attrsOnFromModule = mBlockModule._d_attrStateOn
+            log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule _d_attrStateOn dat'))
+        except:d_attrsOnFromModule={}
+        try:
+            d_attrsOffFromModule = mBlockModule._d_attrStateOff
+            log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule _d_attrStateOff dat'))
+        except:d_attrsOffFromModule={}
+        
+        __d_attrStateVisOn = copy.copy(_d_attrStateVisOn)
+        updateDictLists(__d_attrStateVisOn,d_attrsOnFromModule)
+        
+        __d_attrStateVisOff = copy.copy(_d_attrStateVisOff)
+        updateDictLists(__d_attrStateVisOff,d_attrsOffFromModule)
+        
+        
+        #First pass...
+        l_attrs = []
+        for a in self.getAttrs(ud=True):
+            _type = ATTR.get_type(_short,a)
+            if ATTR.is_keyable(_short,a):
+                l_attrs.append(a)
+            elif not ATTR.is_hidden(_short,a):
+                l_attrs.append(a)
+            elif _type in ['string','enum']:
+                if '_' in a and not a.endswith('dict'):
+                    l_attrs.append(a)
+                elif a.startswith('name'):
+                    l_attrs.append(a)
+            if _type in ['float3','message']:
+                l_attrs.remove(a)
+        
+        for a in ['blockScale']:
+            if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
+                l_attrs.append(unicode(a))
+                
+        #Make sure no core stuff sneaked through
+        _baseDat = self.baseDat or {}
+        l_hidden = _baseDat['aHidden']
+        for a in l_hidden:
+            try:l_attrs.remove(a)
+            except:pass
+            
+        for a in ['mClass','mNodeID','mClassGrp','blockType','baseDat','blockMirror','blockDat',
+                  'blockParent','blockState','cgmDirection','cgmPosition','moduleTarget','side']:
+            try:l_attrs.remove(a)
+            except:pass            
+        
+        #Process dicts ======================================================
+        d_mask = copy.copy(_d_attrStateMasks)
+        d_mask.update(d_attrsFromModule)
+        l_neverOn = []
+        d_attrOn = {}
+        d_attrOnCheck = {}
+        
+        for i,l in __d_attrStateVisOn.iteritems():
+            d_attrOn[i] = []
+            for a in l_attrs:
+                for a2 in l:
+                    if a2 == a:
+                        d_attrOn[i].append(a)
+                        d_attrOnCheck[a] = i
+                        log.debug(cgmGEN.logString_msg(_str_func,'on [{0}] | {1}'.format(i,a)))                
+                        
+                    elif a.startswith(a2):
+                        d_attrOn[i].append(a)
+                        d_attrOnCheck[a] = i
+                        log.debug(cgmGEN.logString_msg(_str_func,'on [{0}] | {1}'.format(i,a)))                
+        
+        for a in l_attrs:
+            if d_attrOnCheck.get(a) is None:
+                d_attrOn[0].append(a)
+                    
+        d_attrOff = {}
+        for i,l in __d_attrStateVisOff.iteritems():
+            log.debug(cgmGEN.logString_msg(_str_func,'Off check [{0}] | {1}'.format(i,l)))                
+            
+            d_attrOff[i] = []
+            for a in l_attrs:
+                for a2 in l:
+                    if a2 == a:
+                        d_attrOff[i].append(a)
+                    elif a.startswith(a2):
+                        d_attrOff[i].append(a)
+
+                    
+                    #d_attrOff[a] = i
+                    
+        #pprint.pprint(d_attrOn)
+        #pprint.pprint(d_attrOff)
+        
+        #Build our list =============================================
+        l_use = []
+        l_removed = []
+        for i in range(0,_intState+1):        
+            l_use.extend(d_attrOn[i])
+            log.debug(cgmGEN.logString_msg(_str_func,'adding [{0}]'.format(i)))                
+            #pprint.pprint(d_attrOn[i])
+            
+        for i  in range(0,_intState+1):
+            _off = d_attrOff[i]
+            for a in _off:
+                if ATTR.datList_exists(_short,a):
+                    for a2 in ATTR.datList_getAttrs(_short,a):
+                        if a2 in l_use:
+                            l_use.remove(a2)
+                            l_removed.append(a2)
+                if a in l_use:
+                    log.debug(cgmGEN.logString_msg(_str_func,'Hiding | {0}'.format(a)))                
+                    l_use.remove(a)
+                    l_removed.append(a)
+        l_use.sort()
+        
+
+        if report:
+            pprint.pprint(l_use)
+        return l_use
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
+def uiQuery_getStateAttrs(self,mode = None,report=True):
     try:
         _str_func = ' uiQuery_getStateAttrs'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -5515,15 +5761,15 @@ def uiQuery_getStateAttrs(self,mode = None):
         l_attrs = []
         for a in self.getAttrs(ud=True):
             _type = ATTR.get_type(_short,a)
-            if not ATTR.is_hidden(_short,a) or ATTR.is_keyable(_short,a):
+            if ATTR.is_keyable(_short,a):
+                l_attrs.append(a)
+            elif not ATTR.is_hidden(_short,a):
                 l_attrs.append(a)
             elif _type in ['string']:
                 if '_' in a and not a.endswith('dict'):
                     l_attrs.append(a)
                 elif a.startswith('name'):
                     l_attrs.append(a)
-            #elif a in ['puppetName','cgmName']:
-            #    _l_attrs.append(a)
             if _type in ['float3']:
                 l_attrs.remove(a)
         
@@ -5559,9 +5805,9 @@ def uiQuery_getStateAttrs(self,mode = None):
                     l_attrs.remove(a)
                     
         l_attrs.sort()
+        if report:
+            pprint.pprint(l_attrs)
         return l_attrs
-
-     
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 #=============================================================================================================

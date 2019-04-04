@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 def echoLogger():
     log.info('info')
@@ -570,7 +570,6 @@ l_attrsStandard = ['side',
                    'loftList',
                    'loftSplit',
                    'loftShape',
-                   'loftReverseNormal',
                    'ikSetup',
                    'scaleSetup',
                    'numControls',
@@ -686,6 +685,19 @@ _l_hiddenAttrs = ['baseAim','baseSize','baseUp']
 #d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 #d_rotationOrders = {'head':'yxz'}
 
+_d_attrStateOn = {0:['buildLeverBase'],
+                  1:[],
+                  2:['ikExtendSetup','ikRPAim','ikRollSetup',
+                     'buildBall','buildLeverEnd','buildToe','followParentBank'],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:['ikExtendSetup','ikRPAim','ikRollSetup',
+                     'buildBall','buildLeverBase','buildLeverEnd','buildToe','followParentBank']}
 
 #=============================================================================================================
 #>> Define
@@ -7857,8 +7869,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 pprint.pprint(ml_rigJoints)
                 
         elif _str_rigSetup == 'digit':
-            if mBlock.hasEndJoint:
-                mEnd = ml_rigJoints.pop(-1)
+            pass
+            #if mBlock.hasEndJoint:
+                #mEnd = ml_rigJoints.pop(-1)
+                #log.debug("|{0}| >> digit end: {1}".format(_str_func,mEnd))                        
+                
         else:
             mEnd = ml_rigJoints[-1]
                 

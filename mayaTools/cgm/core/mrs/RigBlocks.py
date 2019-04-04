@@ -343,6 +343,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                         _blockModule.define(self)
                         
+                    try:BLOCKUTILS.attrMask_getBaseMask(self)
+                    except Exception,err:
+                        log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
+                        
+                        
                     self.doName()
                 
                 #Form -------------------------------------------------

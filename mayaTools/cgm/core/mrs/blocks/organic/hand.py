@@ -68,6 +68,18 @@ __baseSize__ = 10,10,10
 __l_rigBuildOrder__ = []
 __blockFrame__ = True
 
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
+
 #>>>Profiles ===================================================================================================
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},

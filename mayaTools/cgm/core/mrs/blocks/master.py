@@ -62,6 +62,7 @@ d_build_profiles = {'unityLow':{'addMotionJoint':True},
 l_attrsStandard = ['addMotionJoint',
                    'moduleTarget',
                    'baseSize',
+                   'baseDat',
                    'controlOffset',
                    'numSpacePivots']
 
@@ -78,6 +79,22 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
+_d_attrStateMasks = {0:[],
+                     1:[],
+                     2:[],
+                     3:['addMotionJoint'],
+                     4:[]}
+
+_d_attrStateOn = {0:[],
+                  1:['hasJoint'],
+                  2:['rotPivotPlace','basicShape'],
+                  3:[],
+                  4:[]}
+_d_attrStateOff = {0:[],
+                  1:['baseSize'],
+                  2:[],
+                  3:['addMotionJoint'],
+                  4:[]}
 
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format

@@ -99,6 +99,17 @@ d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull'],
 d_wiring_form = {'msgLinks':['formNull','prerigLoftMesh','noTransFormNull'],
                      'msgLists':['formHandles']}
 
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numJoints':3,
@@ -295,7 +306,6 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftList',                   
                    'loftSplit',
-                   'loftReverseNormal',                   
                    'loftShape',
                    'ikSetup',
                    'ikBase',

@@ -96,6 +96,18 @@ d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      'msgLists':['formHandles']}
 
+_d_attrStateOn = {0:[],
+                  1:['headRotate'],
+                  2:['headAim'],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
+
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'neckJoints':1,
@@ -172,7 +184,6 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftSplit',
                    'loftShape',
-                   'loftReverseNormal',                   
                    'loftList',
                    'ribbonParam',
                    #'ikSetup',
@@ -1289,6 +1300,7 @@ def skeleton_build(self, forceNew = True):
         #cgmMeta.cgmObject().getAxisVector
         #CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
         p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
+        
         TRANS.aim_atPoint(mHead_jnt.mNode,
                           p_orientAxis,
                           'y-', 'z+', 'vector',
@@ -1300,6 +1312,7 @@ def skeleton_build(self, forceNew = True):
                           vectorUp=mHeadHelper.getAxisVector('y+'))    
         """
         #LOC.create(position=p_orientAxis)
+        
         JOINT.freezeOrientation(mHead_jnt.mNode)
         
         #...name ----------------------------------------------------------------------------

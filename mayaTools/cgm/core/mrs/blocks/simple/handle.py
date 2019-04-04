@@ -146,7 +146,6 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'loftShape',
                    'loftDegree',
-                   'loftReverseNormal',                   
                    'loftList',
                    'spaceSwitch_direct',
                    #'buildProfile',
@@ -184,7 +183,11 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
                      }
-
+_d_attrStateOn = {0:[],
+                  1:['hasJoint'],
+                  2:['rotPivotPlace','basicShape'],
+                  3:[],
+                  4:[]}
 
 #=============================================================================================================
 #>> UI
