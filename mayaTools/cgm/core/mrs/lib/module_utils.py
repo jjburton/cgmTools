@@ -606,7 +606,7 @@ def skeleton_connectToParent(self):
             ml_moduleJoints[0].p_parent = mTargetJoint
     return True
 
-def get_attachPoint(self, mode = 'end',noneValid = True):
+def get_attachPoint(self, mode = 'end',idx = None, noneValid = True):
     _str_func = 'get_attachPoint'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
@@ -624,7 +624,10 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        if mode == 'index':
+            l_msgLinks = ['moduleJoints']
+        else:
+            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -648,6 +651,8 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
             jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
             mTarget = cgmMeta.asMeta(jnt)
+        elif mode == 'index':
+            mTarget = ml_targetJoints[idx]        
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:
@@ -655,7 +660,7 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             raise ValueError,_msg
         return mTarget
     
-def get_driverPoint(self, mode = 'end',noneValid = True):
+def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
     """
     Get the main driver point for a 
     """
@@ -679,7 +684,13 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
-        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        
+        if mode == 'index':
+            l_msgLinks = ['moduleJoints']
+        else:
+            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
+        
+
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -701,7 +712,9 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         elif mode == 'closest':
             ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
             jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
-            mTarget = cgmMeta.asMeta(jnt)        
+            mTarget = cgmMeta.asMeta(jnt)
+        elif mode == 'index':
+            mTarget = ml_targetJoints[idx]         
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:

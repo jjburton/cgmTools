@@ -2819,6 +2819,9 @@ def skeleton_connectToParent(self):
             elif _attachPoint == 'closest':
                 jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
                 mTargetJoint = cgmMeta.asMeta(jnt)
+            elif _attachPoint == 'index':
+                idx = self.attachIndex
+                mTargetJoint = ml_targetJoints[idx]
             else:
                 raise ValueError,"Not done with {0}".format(_attachPoint)
             ml_moduleJoints[0].p_parent = mTargetJoint

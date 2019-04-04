@@ -4954,8 +4954,11 @@ class rigFactory(object):
         _mi_moduleParent = self.d_module['mModuleParent']
         _ml_skinJoints = self.d_joints['ml_skinJoints']
         
+        try:_attachIdx = self.mBlock.attachIndex
+        except:_attachIdx = None
+
         _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
-        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )        
+        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint,idx=_attachIdx )        
 
         if not self.mModule.getMessage('deformNull'):
             if self.d_block['b_faceBlock']:
