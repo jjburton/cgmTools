@@ -8123,9 +8123,6 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
     if uSplit == None:
         uSplit = self.loftSides
         
-    if reverseNormal is None:
-        reverseNormal = self.loftReverseNormal
-        #except:pass
         
     log.debug(cgmGEN.logString_sub(_str_func,"Gather loft curves"))
     for mHandle in ml_formHandles:
