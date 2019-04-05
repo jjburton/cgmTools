@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BUILDERUTILS'
+
 import random
 import re
 import copy

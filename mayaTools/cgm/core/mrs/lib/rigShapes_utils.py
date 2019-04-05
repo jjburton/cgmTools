@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'RIGSHAPES'
+
 # From Python =============================================================
 import copy
 import re

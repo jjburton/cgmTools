@@ -9,6 +9,9 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'LIMB'
+
+
 # From Python =============================================================
 import copy
 import re
@@ -879,11 +882,10 @@ def form(self):
         log.debug("{0}".format(self))
         
         
-        
-        ATTR.datList_connect(self.mNode, 'rollCount', [self.numRoll for i in range(self.numControls - 1)])
-        l_rollattrs = ATTR.datList_getAttrs(self.mNode,'rollCount')
-        for a in l_rollattrs:
-            ATTR.set_standardFlags(self.mNode, l_rollattrs, lock=False,visible=True,keyable=True)
+        #ATTR.datList_connect(self.mNode, 'rollCount', [self.numRoll for i in range(self.numControls - 1)])
+        #l_rollattrs = ATTR.datList_getAttrs(self.mNode,'rollCount')
+        #for a in l_rollattrs:
+        #    ATTR.set_standardFlags(self.mNode, l_rollattrs, lock=False,visible=True,keyable=True)
         
         #Initial checks =====================================================================================
         log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)
@@ -1082,7 +1084,7 @@ def form(self):
         log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
         
         if _b_lever:
-            crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
+            crv = CURVES.create_fromName('sphere2', _size_width, direction = 'y+',baseSize=1)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             md_handles['lever'] = mHandle
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -1093,7 +1095,6 @@ def form(self):
             _short = mHandle.mNode
             mHandle.p_parent = mFormNull
             mHandle.resetAttrs()
-            print md_handles['lever']
             mHandle.p_position = pos_lever
             
             mHandleFactory.setHandle(mHandle.mNode)
@@ -1101,7 +1102,6 @@ def form(self):
                                                                  1.0,
                                                                  shapeDirection = 'z+',rebuildHandle = False)
             #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
-            print md_handles['lever']
         
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master')
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
@@ -1120,7 +1120,6 @@ def form(self):
                              worldUpObject = mDefineLeverObj.mNode,
                              worldUpType = 'objectrotation', 
                              worldUpVector = [0,1,0])"""
-            print md_handles['lever']            
         
         
         
@@ -1688,6 +1687,11 @@ def form(self):
             #    mPivotHelper.p_position = mEndHandle.getPositionByAxisDistance('y-',_size_height)
 
         self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
+        pprint.pprint(ml_handles_chain)
+        if _b_lever:
+            md_handles['lever'].scaleX = md_handles['start'].scaleX
+            md_handles['lever'].scaleY = md_handles['start'].scaleY
+            md_handles['lever'].scaleZ = md_handles['start'].scaleY
                 
         self.blockState = 'form'#...buffer
     
@@ -1707,13 +1711,35 @@ def get_baseNameAttrs(self):
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,
+                label = "LIMB")    
+    mc.menuItem(ann = '[{0}] Edit rollCount'.format(_short),
+                c = cgmGEN.Callback(uiCall_edit_rollCount,self),
+                label = "Edit rollCount")
+
+def uiCall_edit_rollCount(self):
+    if not self.atUtils('datList_validate',datList='rollCount',
+                        count=self.numControls - 1,
+                        defaultAttr='numRoll',forceEdit=1):
+        return False
+    return True
+
 def prerig(self):
     try:
         _str_func = 'prerig'
     
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
-        #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))   
+        #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))
+        
+        l_rolls = [self.numRoll for i in xrange(self.numControls-1)]
+        self.datList_connect('rollCount',l_rolls)
+
+        
         
         _short = self.p_nameShort
         _side = self.atUtils('get_side')        
@@ -2016,6 +2042,9 @@ def skeleton_build(self, forceNew = True):
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
         ml_joints = []
+        
+        if not self.atUtils('datList_validate',datList='rollCount',count=self.numControls - 1,defaultAttr='numRoll',forceEdit=0):
+            return False                
         
         mPrerigNull = self.prerigNull
         self.atUtils('module_verify')

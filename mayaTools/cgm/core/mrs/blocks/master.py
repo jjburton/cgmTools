@@ -48,6 +48,8 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = '1.04042019'
+__MAYALOCAL = 'MASTER'
+
 
 __autoForm__ = True
 __menuVisible__ = True

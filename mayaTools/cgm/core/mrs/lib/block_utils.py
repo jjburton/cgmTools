@@ -10,6 +10,8 @@ Website : http://www.cgmonks.com
 These are functions with self assumed to be a cgmRigBlock
 ================================================================
 """
+__MAYALOCAL = 'BLOCKUTILS'
+
 import random
 import re
 import copy
@@ -5519,14 +5521,14 @@ _d_attrStateMasks = {0:[],
                      4:[]}
 
 _d_attrStateVisOn = {0:['blockState'],
-                     1:['attachPoint','attachIndex',
+                     1:['attachPoint','attachIndex','numRoll',
                         'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
                      2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
                         'mainRotAxis','hasEndJoint',
                         'ribbonAim','ribbonParam','rigSetup','scaleSetup',
                         'segmentMidIKControl','settingsDirection','settingsPlace',
                         'spaceSwitch_fk','ribbonConnectBy',
-                        'numRoll','rollCount'],
+                        'rollCount'],
                      3:['spaceSwitch_direct','squash','squashExtraControl',
                         'squashFactorMax','squashFactorMin','squashMeasure',
                         'offsetMode','proxyDirect',
@@ -5536,11 +5538,11 @@ _d_attrStateVisOff = {0:[],
                      1:['baseSizeX','baseSizeY','baseSizeZ','basicShape',
                         'axisAimX','axisAimY','axisAimZ',],
                      2:['blockProfile',
-                        'blockScale','proxyShape','shapeDirection','numShapers',
+                        'blockScale','proxyShape','numRoll','shapeDirection','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         'numControls'],
                      3:['attachPoint','attachIndex','addAim','addCog','addPivot','addScalePivot',
-                        'hasJoint','side','position','numRoll','rollCount'],
+                        'hasJoint','side','position','rollCount'],
                      4:['hasEndJoint','numJoints',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
                         'mainRotAxis','hasEndJoint',
@@ -7300,6 +7302,103 @@ def getState(self, asString = True, fastCheck=True):
     
     
 #Profile stuff ==============================================================================================  
+def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numControls',
+                     defaultAttr = 'numRoll',
+                     default= 3, datType = int, forceEdit=False):
+    """
+    """
+    try:
+        _str_func = 'datList_validate | {0}'.format(datList)
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        if not self.datList_get(datList):
+            log.info(cgmGEN.logString_msg(_str_func,"No datList found | tag: {0}".format(datList)))
+            return 
+
+        if count is None:
+            len_needed = self.getMayaAttr(checkAttr)
+        else:len_needed = count
+        l_current = self.datList_get(datList)
+        len_current = len(l_current)
+        
+        if defaultAttr is not None:
+            _default = self.getMayaAttr(defaultAttr)
+            if _default:
+                default = _default
+        
+        if len_current < len_needed or forceEdit:
+            log.debug(cgmGEN.logString_sub(_str_func,'Getting via dialog'))
+            msg_base = ''
+            if len_current < len_needed:
+                msg_base= msg_base + "{2} \n datList does not match num needed \n"
+                
+            msg_base = msg_base + "Current: {0} | Needed: {1}".format(len_current,len_needed,self.p_nameShort)
+            
+
+            msg_full = msg_base + '\n Default: {0}'.format(default)
+            
+            msg_full = " {0} \n Please provide correct number in comma separated list".format(msg_full)
+            
+
+            _d = {'title':"Validate [{0}]".format(datList),
+                  'm':msg_full,
+                  'text':','.join(str(v) for v in l_current),
+                  'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':'text'}
+            
+            try:
+                #l_profileList = self.p_blockModule.d_block_profiles[self.blockProfile][datList]
+                #msg_full = _d['m']
+                #msg_full = msg_full + '\n ProfileList: {0}'.format(','.join(l_profileList))
+                #_d['m'] = msg_full
+                _d['button'] = ['OK','Iter Entry','Iter Default','Cancel']
+            except:l_profileList = []            
+
+            result = mc.promptDialog(**_d)
+            
+            if result == 'OK':
+                _v =  mc.promptDialog(query=True, text=True)
+                l_new = _v.split(',')
+                l_new = [datType(v) for v in l_new]
+                len_new = len(l_new)
+                if len_new >= len_needed or forceEdit:
+                    self.datList_connect(datList,[datType(v) for v in l_new],)
+                    log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(l_new)))
+                    return True
+                else:
+                    log.warning(cgmGEN.logString_msg(_str_func,l_new))
+                    return log.error(cgmGEN.logString_msg(_str_func,
+                                                         'Input len: {0} != needed: {1}'.format(len_new,len_needed)))
+            elif result == 'Use Profile':
+                log.warning(cgmGEN.logString_msg(_str_func,"Using Profile"))
+                self.datList_connect(datList,[datType(v) for v in l_profileList],)
+                return True
+            elif result == 'Iter Entry':
+                _v =  mc.promptDialog(query=True, text=True)
+                l_new = _v.split(',')
+                _value = l_new[0]
+                _l = [datType(_value) for i in range(len_needed)]
+                log.info(cgmGEN.logString_msg(_str_func,'Setting to: {0}'.format(_l)))            
+                self.datList_connect(datList,_l)
+                return True
+            elif result == 'Iter Default':
+                _l = [datType(default) for i in range(len_needed)]
+                log.info(cgmGEN.logString_msg(_str_func,'Using default: {1} | Setting to: {0}'.format(_l,default)))
+                self.datList_connect(datList,_l)
+                
+                return True
+            else:
+                log.warning(msg_base)
+                log.warning("Current: {0}".format(l_current))
+                
+                return log.warning("|{0}| >> cancelled | {1}".format(_str_func, self))
+            
+        #pprint.pprint(vars())
+        return True
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
+
+
 def nameList_uiPrompt(self, nameList = 'nameList'):
     """
     """
@@ -9792,38 +9891,48 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
         
         l_x = []
         l_y = []
-
+        
+        #Need fail safes
+        mDefineEndObj = self.defineEndHelper
+        mDefineStartObj = self.defineStartHelper
+        
+        size_base = DIST.get_axisSize(mDefineStartObj.mNode)
+        
         for mHandle in ml_handles:
             log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
 
             try:
                 _mNode = mHandle.mNode
-                xDist = RAYS.get_dist_from_cast_axis(_mNode,'x',shapes=_surf)
-                yDist = RAYS.get_dist_from_cast_axis(_mNode,'y',shapes=_surf)
+                try:xDist = RAYS.get_dist_from_cast_axis(_mNode,'x',shapes=_surf)
+                except:xDist = size_base[0]
+                
+                try:yDist = RAYS.get_dist_from_cast_axis(_mNode,'y',shapes=_surf)
+                except:yDist = size_base[1]
+                
                 l_x.append(xDist)
                 l_y.append(yDist)
 
                 l_box = [xDist,
                          yDist,
                          None]
-                #TRANS.scale_to_size(_mNode,l_box)
+                #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)
                 DIST.scale_to_axisSize(_mNode,l_box)
                 #pprint.pprint(l_box)
             except Exception,err:
                 log.error("Form Handle failed to scale: {0}".format(mHandle))
                 log.error(err)
-
-
-                """
-                DIST.scale_to_axisSize(ml_lofts[0].mNode,
-                                       [l_x[0],
-                                        l_y[0],
-                                        None])
-                _size = DIST.get_axisSize(ml_profiles[-1].mNode)
-                DIST.scale_to_axisSize(ml_lofts[-1].mNode,
-                                       [_size[0],
-                                        _size[1],
-                                None])"""
+    
+        cgmGEN.func_snapShot(vars())
+        """
+        DIST.scale_to_axisSize(ml_lofts[0].mNode,
+                               [l_x[0],
+                                l_y[0],
+                                None])
+        _size = DIST.get_axisSize(ml_profiles[-1].mNode)
+        DIST.scale_to_axisSize(ml_lofts[-1].mNode,
+                               [_size[0],
+                                _size[1],
+                        None])"""
             
         
     except Exception,err:

@@ -48,7 +48,7 @@ import maya.mel as mel
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 _l_core_order = ['cgm_General',
                  'cgm_Meta',
