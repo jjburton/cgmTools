@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'NODES'
+
 # From Python =============================================================
 import copy
 import re

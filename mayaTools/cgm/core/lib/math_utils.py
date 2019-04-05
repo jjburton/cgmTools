@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'MATH'
+
 # From Python =============================================================
 import pprint
 import copy

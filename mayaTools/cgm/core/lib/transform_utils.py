@@ -8,6 +8,7 @@ Website : http://www.cgmonks.com
 
 Unified location for transform calls. metanode instances may by passed
 """
+__MAYALOCAL = 'TRANS'
 
 # From Python =============================================================
 import copy

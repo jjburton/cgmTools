@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
+__MAYALOCAL = 'cgmGEN'
+
 import maya.cmds as mc
 import maya.mel as mel
 import maya.utils as mUtils

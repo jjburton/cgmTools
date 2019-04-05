@@ -5,6 +5,8 @@ www.cgmonks.com
 
 Refactoring attribte calls to core.
 """
+__MAYALOCAL = 'ATTR'
+
 # From Python =============================================================
 import copy
 import re

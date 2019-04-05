@@ -44,10 +44,6 @@ import cgm.core.lib.position_utils as POS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.annotations as TOOLANNO
 
-reload(POS)
-reload(UICHUNKS)
-reload(CURVES)
-reload(JOINTS)
 #>>> Root settings =============================================================
 __version__ = '0.10162017'
 __toolname__ ='cgmJointTools'

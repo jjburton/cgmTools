@@ -10,6 +10,8 @@ ACKNOWLEDGEMENTS:
    
 ================================================================
 """
+__MAYALOCAL = 'SELECT'
+
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI

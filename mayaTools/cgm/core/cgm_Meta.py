@@ -11,6 +11,7 @@ This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
 ================================================================
 """
+__MAYALOCAL = 'cgmMeta'
 
 import maya.cmds as mc
 import maya.mel as mel

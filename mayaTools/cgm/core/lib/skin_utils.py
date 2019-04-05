@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'SKIN'
+
 # From Python =============================================================
 import copy
 import re

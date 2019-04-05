@@ -7,6 +7,7 @@ www.cgmonks.com
 # From Python =============================================================
 #import copy
 #import re
+__MAYALOCAL = 'LOC'
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging

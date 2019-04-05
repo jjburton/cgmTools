@@ -7,6 +7,9 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'DIST'
+
+
 # From Python =============================================================
 import copy
 import re

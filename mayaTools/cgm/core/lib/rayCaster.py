@@ -10,6 +10,9 @@ ACKNOWLEDGEMENTS:
    Samaneh Momtazmand -- r&d for casting with surfaces
 ================================================================
 """
+__MAYALOCAL = 'RAYS'
+
+
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI

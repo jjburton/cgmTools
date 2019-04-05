@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'STRING'
+
 import pprint
 import cgm.core.cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid

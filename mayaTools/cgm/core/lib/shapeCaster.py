@@ -2,6 +2,8 @@
 Module for building controls for cgmModules
 
 """
+__MAYALOCAL = 'SHAPECAST'
+
 # From Python =============================================================
 import copy
 import re
