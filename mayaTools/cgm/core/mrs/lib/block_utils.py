@@ -566,7 +566,7 @@ def define(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state != 'define':
         raise ValueError,"[{0}] is not in define form. state: {1}".format(self.mNode, _str_state)
@@ -581,7 +581,7 @@ def define(self):
             log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
             self.atBlockModule(c)
             
-    try:BLOCKUTILS.attrMask_getBaseMask(self)
+    try:attrMask_getBaseMask(self)
     except Exception,err:
         log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
 
@@ -5633,7 +5633,7 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
         _short = self.mNode
         
         if mode is None:
-            _intState = self.getState(False)
+            _intState = self.blockState
         else:
             _intState = mode
         log.debug("|{0}| >> state: {1}".format(_str_func,_intState))
