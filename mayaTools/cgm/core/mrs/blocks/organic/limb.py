@@ -707,7 +707,7 @@ _d_attrStateOff = {0:[],
 
 d_attrProfileMask = {'arm':['buildBall','buildLeverEnd','buildToe']}
 
-for k in ['finger','thumb','toe']:
+for k in ['finger','thumb','toe','nub']:
     d_attrProfileMask[k] = d_attrProfileMask['arm']
 
 #=============================================================================================================

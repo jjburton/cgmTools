@@ -781,6 +781,16 @@ def form(self):
             NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
             NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
                     
+                    
+            _baseDat = self.baseDat
+            try:_baseDat['aHidden']
+            except:_baseDat['aHidden']=[]
+            
+            for a in 'Vis','Lock':
+                ATTR.set_hidden(_short,"{0}{1}".format(attr,a),True)
+                ATTR.set_lock(_short,"{0}{1}".format(attr,a),True)
+                _baseDat['aHidden'].append("{0}{1}".format(attr,a))
+            self.baseDat = _baseDat
             #mProxy.resetAttrs()
             
             mGeoGroup.overrideEnabled = 1
@@ -790,7 +800,7 @@ def form(self):
                 str_shape = mShape.mNode
                 mShape.overrideEnabled = 0
                 ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
-                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )        
+                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
         

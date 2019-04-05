@@ -575,7 +575,7 @@ def settings(self,settingsPlace = None,ml_targets = None):
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
             
-            LOC.create(position=pos)
+            #LOC.create(position=pos)
             
 
             #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]

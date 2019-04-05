@@ -5673,7 +5673,6 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
         __d_attrStateVisOff = copy.copy(_d_attrStateVisOff)
         updateDictLists(__d_attrStateVisOff,d_attrsOffFromModule)
         
-        
         #First pass...
         l_attrs = []
         for a in self.getAttrs(ud=True):
@@ -5702,7 +5701,8 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
             try:l_attrs.remove(a)
             except:pass
             
-        for a in ['mClass','mNodeID','mClassGrp','blockType','baseDat','blockMirror','blockDat',
+        for a in ['mClass','mNodeID','mClassGrp','blockType','blockProfile','buildProfile',
+                  'baseDat','blockMirror','blockDat','version',
                   'blockParent','cgmDirection','cgmPosition','moduleTarget','side']:
             try:l_attrs.remove(a)
             except:pass            
@@ -6599,7 +6599,7 @@ def prerigDelete(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state != 'prerig':
         raise ValueError,"[{0}] is not in prerig state. state: {1}".format(self.mNode, _str_state)

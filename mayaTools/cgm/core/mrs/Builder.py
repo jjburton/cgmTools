@@ -699,7 +699,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
         self.uiMenu_profile = mUI.MelMenu( l='Profile', pmc=self.buildMenu_profile)                
         #self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
-        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block,pmo=0)        
+        self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block,pmo=1)        
         self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True)
         self.uiMenu_add = mUI.MelMenu( l='Add', pmc=self.buildMenu_add) 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True)
@@ -1891,7 +1891,8 @@ class ui(cgmUI.cgmGUI):
                 if b_changeState and not b_devMode:
                     mBlock.atUtils('attrMask_set',mode=None)
                     
-                
+            if _mActiveBlock and b_changeState:
+                self.uiUpdate_blockDat()
                 
             #if _updateUI:
                 #self.uiUpdate_scrollList_blocks()
@@ -3221,12 +3222,14 @@ class ui(cgmUI.cgmGUI):
         
 
         #Attrs... ------------------------------------------------------------------------
-        _l_attrs = self._blockCurrent.atUtils('uiQuery_getStateAttrs',_intState)
+        _l_attrs = self._blockCurrent.atUtils('get_stateChannelBoxAttrs',_intState)
     
         self._d_attrFields = {}
         _l_attrs.sort()
         for a in _l_attrs:
             try:
+                if a in ['blockState']:
+                    continue
                 _type = ATTR.get_type(_short,a)
                 log.debug("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
                 _hlayout = mUI.MelHSingleStretchLayout(self.uiFrame_blockSettings,padding = 5)
