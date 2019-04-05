@@ -346,8 +346,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     try:BLOCKUTILS.attrMask_getBaseMask(self)
                     except Exception,err:
                         log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
-                        
-                        
+
                     self.doName()
                 
                 #Form -------------------------------------------------
@@ -373,9 +372,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     #self.atUtils('doSize', _sizeMode, postState = _postState )                
 
         except Exception,err:
-            pprint.pprint(vars())
+            #pprint.pprint(vars())
             log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
-            
+            cgmGEN.cgmException(Exception,err)
             #cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
@@ -623,7 +622,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _short = self.p_nameShort        
         _str_func = '[{0}] getBlockDat_formControls'.format(_short)
 
-        _blockState_int = self.getState(False)
+        _blockState_int = self.blockState
 
         if not _blockState_int:
             raise ValueError,'[{0}] not formd yet'.format(_short)
@@ -737,75 +736,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Carry from Bokser stuff...
         """
         return BLOCKUTILS.blockDat_get(self,report)
-        try:
-            _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
-            _ml_controls = self.getControls(True)
-            _short = self.p_nameShort
-            _blockState_int = self.getState(False)
-            #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
-            _d = {#"name":_short, 
-                  "blockType":self.blockType,
-                  "blockState":self.p_blockState,
-                  "baseName":self.getMayaAttr('baseName'), 
-                  #"part":self.part,
-                  ##"blockPosition":self.getEnumValueString('position'),
-                  ##"blockDirection":self.getEnumValueString('side'),
-                  ###"attachPoint":self.getEnumValueString('attachPoint'),
-                  #"_rig":self._rig.name if self._rig else None, 
-                  #"_form":self._form.name if self._form else None, 
-                  #"_controls":self._controls.name if self._controls else None, 
-                  #"_attach":self._attach.name if self._attach else None, 
-                  #"_noTouch":self._noTouch.name if self._noTouch else None, 
-                  #"controls":[mObj.mNode for mObj in _ml_controls],
-                  "positions":[mObj.p_position for mObj in _ml_controls],
-                  "orientations":[mObj.p_orient for mObj in _ml_controls],
-                  "scale":[mObj.scale for mObj in _ml_controls],
-                  "isSkeletonized":self.isSkeletonized(),
-                  #...these will be indexed against the number of handles
-                  #"formPositions":[x.name for x in self.formPositions or []], 
-                  #"formOrientation":[x.name for x in self.formOrientation or []], 
-                  #"formNodes":[x.name for x in self.formNodes or []], 
-                  #"controls":[x.name for x in self.controls or []], 
-                  #"rigJoints":[x.name for x in self.rigJoints or []], 
-                  #"skinJoints":[x.name for x in self.skinJoints or []], 
-                  #"ikJoints":[x.name for x in self.ikJoints or []], 
-                  #"fkJoints":[x.name for x in self.fkJoints or []], 
-                  #"ikControls":[x.name for x in self.ikControls or []], 
-                  #"fkControls":[x.name for x in self.fkControls or []], 
-                  #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
-                  #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
-                  #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
-                  #"attachPoints":[x.name for x in self.attachPoints or []],
-                  "version":self.version, 
-                  "ud":{}
-                  }   
 
-            if self.getShapes():
-                _d["size"] = POS.get_axisBox_size(self.mNode,False),
-            else:
-                _d['size'] = self.baseSize
-
-            if _blockState_int >= 1:
-                _d['form'] = self.getBlockDat_formControls()
-
-            if _blockState_int >= 2:
-                _d['prerig'] = self.getBlockDat_prerigControls() 
-
-            for a in self.getAttrs(ud=True):
-                if a not in _l_udMask:
-                    _type = ATTR.get_type(_short,a)
-                    if _type in ['message']:
-                        continue
-                    elif _type == 'enum':
-                        _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
-                    else:
-                        _d['ud'][a] = ATTR.get(_short,a)
-
-            if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
-            return _d
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-            
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat(False)
 
@@ -1008,46 +939,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def getState(self, asString = True):
         return self.atUtils('getState',asString)
-        _str_func = '[{0}] getState'.format(self.p_nameShort)
-        #if asString:
-        #    return self.blockState
-        #return BLOCKSHARE._l_blockStates.index(self.blockState)
-        _blockModule = get_blockModule(self.blockType)
-        _goodState = False
-        _l_blockStates = BLOCKSHARE._l_blockStates
-
-        _state = self.blockState
-        if _state not in BLOCKSHARE._l_blockStates:
-            log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
-            _state = _state.split('>')[0]
-            self.blockState = _state
-            self.changeState(_state),#rebuild=True)
-
-        if _state == 'define':
-            _goodState = 'define'
-        else:
-            _call = getattr(_blockModule,'is_{0}'.format(_state))
-            if _call and _call(self):
-                log.debug("|{0}| >> blockModule test...".format(_str_func))     
-                _goodState = _state  
-            else:
-                _idx = _l_blockStates.index(_state) - 1
-                log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
-                while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
-                    log.debug("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
-                    _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
-                    #self.changeState(_l_blockStates[_idx])
-                    _idx -= 1
-                _goodState = _l_blockStates[_idx]
-
-
-        if _goodState != self.blockState:
-            log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
-            self.blockState = _goodState
-
-        if asString:
-            return _goodState
-        return _l_blockStates.index(_goodState)
+        
 
     def changeState(self, *args,**kws):
         _res = self.atUtils('changeState',*args,**kws)
@@ -1146,8 +1038,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if mirrorBlock:
                 print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
                 
-                _blockState = rootBlock.getState(False)
-                _mirrorState = mirrorBlock.getState(False)
+                _blockState = rootBlock.blockState
+                _mirrorState = mirrorBlock.blockState
                 if _blockState > _mirrorState or _blockState < _mirrorState:
                     print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
                 else:
@@ -3298,16 +3190,17 @@ class factory(object):
 
         _str_func = '[{0}] factory.form'.format(_mBlock.p_nameBase)
 
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
+        
 
-        if _mBlock.blockState != 'define':
+        if _str_state != 'define':
             raise ValueError,"{0} is not in define state. state: {1}".format(_str_func, _str_state)
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'define>form'#...buffering that we're in process
+        #_mBlock.blockState = 'define>form'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
@@ -3333,9 +3226,9 @@ class factory(object):
         _str_func = '[{0}] factory.formDelete'.format(_mBlock.p_nameBase)
 
 
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'form':
+        if _str_state != 'form':
             log.error("{0} is not in form state. state: {1}".format(_str_func, _str_state))
 
 
@@ -3343,7 +3236,7 @@ class factory(object):
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'form>define'        
+        #_mBlock.blockState = 'form>define'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
@@ -3386,7 +3279,7 @@ class factory(object):
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'form>prerig'#...buffering that we're in process
+        #_mBlock.blockState = 'form>prerig'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
@@ -3406,9 +3299,9 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.prerigDelete'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'prerig':
+        if _str_state != 'prerig':
             raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)
 
 
@@ -3442,17 +3335,17 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.rig'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
 
-        if _mBlock.blockState != 'prerig':
+        if _str_state != 'prerig':
             raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)      
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'prerig>rig'#...buffering that we're in process
+        #_mBlock.blockState = 'prerig>rig'#...buffering that we're in process
         _BlockModule= _mBlock.p_blockModule
 
 
@@ -3471,12 +3364,12 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.rigDelete'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'rig':
+        if _str_state != 'rig':
             raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
 
-        _mBlock.blockState = 'rig>prerig'        
+        #_mBlock.blockState = 'rig>prerig'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False

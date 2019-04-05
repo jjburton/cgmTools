@@ -72,7 +72,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -108,7 +108,27 @@ _d_attrStateOff = {0:[],
                    3:[],
                    4:[]}
 
-#>>>Profiles =====================================================================================================
+#=============================================================================================================
+#>> AttrMask 
+#=============================================================================================================
+_d_attrStateOn = {0:[],
+                  1:['hasJoint'],
+                  2:['rotPivotPlace','basicShape'],
+                  3:[],
+                  4:[]}
+
+d_attrProfileMask = {'box':['loftDegree','loftList','loftSetup','loftShape','loftSides','loftSplit',
+                            'neckBuild','neckControls','neckDirection','neckIK',
+                            'neckJoints','neckShapers','neckSubShapers',
+                            'proxyGeoRoot','ribbonAim','ribbonConnectBy','ribbonParam',
+                            'segmentMidIKControl',]}
+
+for k in ['simple']:
+    d_attrProfileMask[k] = d_attrProfileMask['box']
+
+#=============================================================================================================
+#>> Profiles 
+#=============================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'neckJoints':1,
                            'neckControls':1,
@@ -134,6 +154,7 @@ d_block_profiles = {
            'baseUp':[0,0,-1],
            'baseSize':[22,22,22],
            'loftShape':'square',
+           'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},           
            },
     'simple':{'neckShapers':3,
               'cgmName':'head',              
@@ -168,17 +189,16 @@ d_block_profiles = {
                  'baseDat':{'rp':[0,0,-1],'up':[0,0,-1],'end':[0,-1,0]},
                   },}
 
-
-#>>>Attrs =====================================================================================================
-#_l_coreNames = ['head']
-
+#=============================================================================================================
+#>>>Attrs 
+#=============================================================================================================
 l_attrsStandard = ['side',
                    'position',
                    #'baseUp',
                    #'baseAim',
                    #'hasRootJoint',
-                   'baseDat',
                    'attachPoint',
+                   'attachIndex',
                    'nameList',
                    'loftSides',
                    'loftDegree',
@@ -403,6 +423,10 @@ def define(self):
         
         _short = self.mNode
         
+        for a in 'baseAim','baseSize','baseUp':
+            if ATTR.has_attr(_short,a):
+                ATTR.set_hidden(_short,a,True)            
+        
         ATTR.set_min(_short, 'neckControls', 1)
         ATTR.set_min(_short, 'loftSides', 3)
         ATTR.set_min(_short, 'loftSplit', 1)
@@ -479,11 +503,12 @@ def define(self):
             d['vectorLine'] = False
     
         _l_order = ['aim','end','start','up','rp']
-    
-    
+        
+        _baseDat = self.baseDat or {}
+        
         _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
                                                      rotVecControl=True,
-                                                     blockUpVector = self.baseDat['up'],
+                                                     blockUpVector = _baseDat.get('up',[0,1,0]),
                                                      startScale=True,)
                                                      #vectorScaleAttr='neckSize')
         self.UTILS.define_set_baseSize(self)
@@ -503,6 +528,7 @@ def define(self):
     
         md_handles['end'].p_parent = mNeckGroup
         md_handles['start'].p_parent = mNeckGroup
+        md_handles['rp'].p_parent = mNeckGroup        
         self.defineLoftMesh.p_parent = mNeckGroup
         self.defineLoftMesh.resetAttrs()
         mRotatePlane.p_parent = mNeckGroup

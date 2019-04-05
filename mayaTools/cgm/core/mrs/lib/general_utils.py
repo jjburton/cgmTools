@@ -228,7 +228,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 if mBlock.getMayaAttr('isBlockFrame'):
                     _l_report.append("[FRAME]")
                 else:
-                    _blockState = _d_scrollList_shorts.get(mBlock.blockState,mBlock.blockState)
+                    _state = mBlock.getEnumValueString('blockState')
+                    _blockState = _d_scrollList_shorts.get(_state,_state)
                     _l_report.append("[{0}]".format(_blockState.upper()))
                 
                 """

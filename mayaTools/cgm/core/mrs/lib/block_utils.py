@@ -206,8 +206,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 if ATTR.has_attr(_short, a):
                     _type = ATTR.get_type(_short,a)
                     if _type != attrType:
+                        v = ATTR.get(_short,a)
                         log.debug(cgmGEN.logString_msg(_str_func,'Attribute of wrong type | {0} | type: {1} | wanted: {2}'.format(a,_type,attrType)))
                         ATTR.convert_type(_short,a,attrType)
+                        return v
             except Exception,err:
                 log.error("Failed to convert 'Attribute of wrong type | {0} | type: {1} | wanted: {2} | err: {3}".format(a,_type,attrType,err))
                 
@@ -219,14 +221,17 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 log.debug("|{0}| '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
                 
                 if ':' in t:
-                    checkType(a,'enum')
+                    v = checkType(a,'enum')
                     
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
                         strValue = ATTR.get_enumValueString(_short,a)
                         self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)
-                        if strValue and strValue in t:
+                        if v != None:
+                            try:ATTR.set(_short,a,v)
+                            except Exception,err:"...Failed to set old value: {0} | err: {1}".format(v,err)
+                        elif strValue and strValue in t:
                             try:ATTR.set(_short,a,strValue)
                             except Exception,err:"...Failed to set old value: {0} | err: {1}".format(strValue,err)
                 elif t == 'stringDatList':
@@ -266,7 +271,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 log.error(_msg) 
                 if not forceReset:
                     cgmGEN.cgmExceptCB(Exception,err,msg=_msg)                    
-
+        
+        for a in ['blockState']:
+            ATTR.set_lock(_short,a,True)
+            
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -573,6 +581,10 @@ def define(self):
             log.debug("|{0}| >> BlockModule {1} call found...".format(_str_func,c))            
             self.atBlockModule(c)
             
+    try:BLOCKUTILS.attrMask_getBaseMask(self)
+    except Exception,err:
+        log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
+
     self.blockState = 'define'#...yes now in this state
     return True
     
@@ -1756,9 +1768,9 @@ def rigDeleteBAK(self,msgLinks = []):
         if self.isReferenced():
             raise ValueError,"Referenced node."
         
-        _str_state = self.blockState
+        _str_state =  _mBlock.getEnumValueString('blockState')
     
-        if self.blockState != 'rig':
+        if _str_state != 'rig':
             raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
     
         #self.blockState = 'rig>prerig'        
@@ -3143,68 +3155,71 @@ def prerig_getHandleTargets(self):
 #=============================================================================================================
 #>> blockParent
 #=============================================================================================================
-def blockParent_set(self, parent = False, attachPoint = None):        
-    _str_func = 'blockParent_set'
-    log.debug(cgmGEN.logString_start(_str_func))
-
+def blockParent_set(self, parent = False, attachPoint = None):
+    try:
+        _str_func = 'blockParent_set'
+        log.debug(cgmGEN.logString_start(_str_func))
     
-    mParent_current =  self.blockParent
-    if self.blockState == 'rig':
-        raise ValueError,"Cannot change the block parent of a rigged rigBlock. State: {0} | rigBlock: {1}".format(self.blockState,self)
-    
-    if not parent:
-        self.blockParent = False
-        if self.p_blockParent != False:
-            self.p_parent = False
-            
-        if self.getMessage('moduleTarget'):
-            #log.debug("|{0}| >>  parent false. clearing moduleTarget".format(_str_func,self))
-            self.moduleTarget.p_parent = False
-            
-    else:
-        mParent = cgmMeta.validateObjArg(parent,'cgmRigBlock',noneValid=True)
-        if not mParent:
-            raise ValueError,"Invalid blockParent. Not a cgmRigBlock. parent: {0}".format( cgmMeta.asMeta(parent))
         
-        if parent == self:
-            raise ValueError, "Cannot blockParent to self"
-
-        #if parent.getMessage('blockParent') and parent.blockParent == self:
-            #raise ValueError, "Cannot blockParent to block whose parent is self"
-
-        self.connectParentNode(parent, 'blockParent')
-
-        if self.p_blockParent != False:
-            self.p_parent = False
-
-        #if attachPoint:
-            #self.p_parent = attachPoint
-        #else:
-            #self.p_parent = parent
-
-        #_parent = VALID.mNodeString(parent)
-        #mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
-        #mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
+        mParent_current =  self.blockParent
+        _str_state = self.getEnumValueString('blockState')
+        if _str_state == 'rig':
+            raise ValueError,"Cannot change the block parent of a rigged rigBlock. State: {0} | rigBlock: {1}".format(_str_state,self)
         
-        #Module parent wiring ----------------------------------------------------
-        if mParent.getMessage('moduleTarget'):
-            mParentModuleTarget = mParent.moduleTarget
-            log.debug("|{0}| >>  mParent has moduleTarget: {1}".format(_str_func,mParentModuleTarget))            
+        if not parent:
+            self.blockParent = False
+            if self.p_blockParent != False:
+                self.p_parent = False
+                
             if self.getMessage('moduleTarget'):
-                mModuleTarget = self.moduleTarget
-                log.debug("|{0}| >>  parent true. setting moduleTarget module parent".format(_str_func,self))
-                if mParent.blockType == 'master':
-                    log.debug("|{0}| >>  master parent. Trying to connect to modulePuppet".format(_str_func))
-                    mModuleTarget.modulePuppet = mParentModuleTarget
-                else:
-                    log.debug("|{0}| >>  Setting moduleParent".format(_str_func))                    
-                    self.atRigModule('set_parentModule',mParentModuleTarget)
-                    
-        #blockProfile ----------------------------------------------------
-        if mParent.hasAttr('buildProfile'):
-            log.debug("|{0}| >>  buildProfile_load...".format(_str_func))
-            self.atUtils('buildProfile_load', mParent.getMayaAttr('buildProfile'))
+                #log.debug("|{0}| >>  parent false. clearing moduleTarget".format(_str_func,self))
+                self.moduleTarget.p_parent = False
+                
+        else:
+            mParent = cgmMeta.validateObjArg(parent,'cgmRigBlock',noneValid=True)
+            if not mParent:
+                raise ValueError,"Invalid blockParent. Not a cgmRigBlock. parent: {0}".format( cgmMeta.asMeta(parent))
             
+            if parent == self:
+                raise ValueError, "Cannot blockParent to self"
+    
+            #if parent.getMessage('blockParent') and parent.blockParent == self:
+                #raise ValueError, "Cannot blockParent to block whose parent is self"
+    
+            self.connectParentNode(parent, 'blockParent')
+    
+            if self.p_blockParent != False:
+                self.p_parent = False
+    
+            #if attachPoint:
+                #self.p_parent = attachPoint
+            #else:
+                #self.p_parent = parent
+    
+            #_parent = VALID.mNodeString(parent)
+            #mc.parentConstraint([_parent], self.mNode, maintainOffset = True)
+            #mc.scaleConstraint([_parent], self.mNode, maintainOffset = True)
+            
+            #Module parent wiring ----------------------------------------------------
+            if mParent.getMessage('moduleTarget'):
+                mParentModuleTarget = mParent.moduleTarget
+                log.debug("|{0}| >>  mParent has moduleTarget: {1}".format(_str_func,mParentModuleTarget))            
+                if self.getMessage('moduleTarget'):
+                    mModuleTarget = self.moduleTarget
+                    log.debug("|{0}| >>  parent true. setting moduleTarget module parent".format(_str_func,self))
+                    if mParent.blockType == 'master':
+                        log.debug("|{0}| >>  master parent. Trying to connect to modulePuppet".format(_str_func))
+                        mModuleTarget.modulePuppet = mParentModuleTarget
+                    else:
+                        log.debug("|{0}| >>  Setting moduleParent".format(_str_func))                    
+                        self.atRigModule('set_parentModule',mParentModuleTarget)
+                        
+            #blockProfile ----------------------------------------------------
+            if mParent.hasAttr('buildProfile'):
+                log.debug("|{0}| >>  buildProfile_load...".format(_str_func))
+                self.atUtils('buildProfile_load', mParent.getMayaAttr('buildProfile'))
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 
 #=============================================================================================================
@@ -3365,7 +3380,8 @@ def blockMirror_create(self, forceNew = False):
         blockMirror_settings(self,mMirror)
         mMirror.saveBlockDat()
         _d = mMirror.blockDat
-        _d['blockState']=self.blockState
+        _d['blockState']=self.getEnumValueString('blockState')
+
         mMirror.blockDat = _d
         
         """
@@ -3599,8 +3615,8 @@ def mirror_blockDat(self = None, mirrorBlock = None, reflectionVector = MATH.Vec
         if mirrorBlock:
             print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
 
-            _blockState = rootBlock.getState(False)
-            _mirrorState = mirrorBlock.getState(False)
+            _blockState = rootBlock.blockState
+            _mirrorState = mirrorBlock.blockState
             if _blockState > _mirrorState or _blockState < _mirrorState:
                 print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
             else:
@@ -3757,13 +3773,13 @@ def blockDat_get(self,report = True):
         #_ml_controls = self.getControls(True,True)
         _ml_controls = []
         _short = self.p_nameShort
-        _blockState_int = self.getState(False)
+        _blockState_int = self.blockState
         
         #self.baseSize = baseSize_get(self)
         #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
         _d = {#"name":_short, 
               "blockType":self.blockType,
-              "blockState":self.p_blockState,
+              "blockState":self.getEnumValueString('blockState'),
               "baseName":self.getMayaAttr('cgmName'), 
               'position':self.p_position,
               'baseSize':self.getState(False),
@@ -3867,7 +3883,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     if _mode_str not in _modeToState.keys():
         raise ValueError,"Unknown mode: {0}".format(_mode_str)
     
-    _blockState_int = self.getState(False)
+    _blockState_int = self.blockState
     
     if not _blockState_int >= _modeToState[_mode_str]:
         raise ValueError,'[{0}] not {1} yet. State: {2}'.format(_short,_mode_str,_blockState_int)
@@ -5502,8 +5518,9 @@ _d_attrStateMasks = {0:[],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
-_d_attrStateVisOn = {0:[],
-                     1:['attachPoint','addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
+_d_attrStateVisOn = {0:['blockState'],
+                     1:['attachPoint','attachIndex',
+                        'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
                      2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
                         'mainRotAxis','hasEndJoint',
                         'ribbonAim','ribbonParam','rigSetup','scaleSetup',
@@ -5522,7 +5539,7 @@ _d_attrStateVisOff = {0:[],
                         'blockScale','proxyShape','shapeDirection','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         'numControls'],
-                     3:['attachPoint','addAim','addCog','addPivot','addScalePivot',
+                     3:['attachPoint','attachIndex','addAim','addCog','addPivot','addScalePivot',
                         'hasJoint','side','position','numRoll','rollCount'],
                      4:['hasEndJoint','numJoints',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
@@ -5569,8 +5586,14 @@ def attrMask_set(self,mode=None,clear=False):
 
     _short = self.mNode
     _baseDat = self.baseDat or {}
-    l_hidden = _baseDat['aHidden']
-    l_keyable =_baseDat['aKeyable']
+    l_hidden = _baseDat.get('aHidden',[])
+    l_keyable =_baseDat.get('aKeyable',[])
+    
+    if not l_hidden and not l_keyable:
+        return log.warning(cgmGEN.logString_msg(_str_func,"[{0}] Necessary baseDat not found. This block needs to be rebuilt to enable".format(_short)))
+    
+    if mode is None:
+        mode = self.blockState
     
     for a in self.getAttrs(ud=True):
         if a in l_hidden:
@@ -5637,6 +5660,13 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
             log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule _d_attrStateOff dat'))
         except:d_attrsOffFromModule={}
         
+        try:
+            l_blockTypeMask = mBlockModule.d_attrProfileMask[self.blockProfile]
+            log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule l_blockTypeMask'))
+            pprint.pprint(l_blockTypeMask)
+        except:l_blockTypeMask=[]        
+        
+        
         __d_attrStateVisOn = copy.copy(_d_attrStateVisOn)
         updateDictLists(__d_attrStateVisOn,d_attrsOnFromModule)
         
@@ -5657,22 +5687,23 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
                     l_attrs.append(a)
                 elif a.startswith('name'):
                     l_attrs.append(a)
+                    
             if _type in ['float3','message']:
-                l_attrs.remove(a)
-        
+                try:l_attrs.remove(a)
+                except:pass
         for a in ['blockScale']:
             if ATTR.has_attr(_short,a) and ATTR.is_keyable(_short,a):
                 l_attrs.append(unicode(a))
                 
         #Make sure no core stuff sneaked through
         _baseDat = self.baseDat or {}
-        l_hidden = _baseDat['aHidden']
+        l_hidden = _baseDat.get('aHidden',[])
         for a in l_hidden:
             try:l_attrs.remove(a)
             except:pass
             
         for a in ['mClass','mNodeID','mClassGrp','blockType','baseDat','blockMirror','blockDat',
-                  'blockParent','blockState','cgmDirection','cgmPosition','moduleTarget','side']:
+                  'blockParent','cgmDirection','cgmPosition','moduleTarget','side']:
             try:l_attrs.remove(a)
             except:pass            
         
@@ -5729,6 +5760,8 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
             
         for i  in range(0,_intState+1):
             _off = d_attrOff[i]
+            if not i and l_blockTypeMask:
+                _off.extend(l_blockTypeMask)
             for a in _off:
                 if ATTR.datList_exists(_short,a):
                     for a2 in ATTR.datList_getAttrs(_short,a):
@@ -5739,6 +5772,8 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
                     log.debug(cgmGEN.logString_msg(_str_func,'Hiding | {0}'.format(a)))                
                     l_use.remove(a)
                     l_removed.append(a)
+                    
+
         l_use.sort()
         
 
@@ -5823,7 +5858,7 @@ def formDelete(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     #if _str_state != 'form':
         #raise ValueError,"[{0}] is not in form state. state: {1}".format(self.mNode, _str_state)
@@ -5831,7 +5866,7 @@ def formDelete(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'form>define'#...buffering that we're in process
+    #self.blockState = 'form>define'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
     l_blockModuleKeys = mBlockModule.__dict__.keys()
@@ -6501,7 +6536,7 @@ def form(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state == 'form':
         log.debug("|{0}| >> Already in form state...".format(_str_func))                    
@@ -6512,7 +6547,7 @@ def form(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'define>form'#...buffering that we're in process
+    #self.blockState = 'define>form'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
 
@@ -6533,7 +6568,7 @@ def prerig(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state == 'prerig':
         log.debug("|{0}| >> Already in prerig state...".format(_str_func))                    
@@ -6544,7 +6579,7 @@ def prerig(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'form>prerig'#...buffering that we're in process
+    #self.blockState = 'form>prerig'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
 
@@ -6572,7 +6607,7 @@ def prerigDelete(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'prerig>form'#...buffering that we're in process
+    #self.blockState = 'prerig>form'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
     l_blockModuleKeys = mBlockModule.__dict__.keys()
@@ -6595,7 +6630,7 @@ def skeleton(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state == 'skeleton':
         log.debug("|{0}| >> Already in skeleton state...".format(_str_func))                    
@@ -6606,7 +6641,7 @@ def skeleton(self):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'prerig>skeleton'#...buffering that we're in process
+    #self.blockState = 'prerig>skeleton'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
     
@@ -6627,7 +6662,7 @@ def skeleton_delete(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state != 'skeleton':
         raise ValueError,"[{0}] is not in skeleton state. state: {1}".format(self.mNode, _str_state)
@@ -6639,7 +6674,7 @@ def skeleton_delete(self):
         self.blockState = 'prerig'#...yes now in this state
         
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'skeleton>prerig'#...buffering that we're in process
+    #self.blockState = 'skeleton>prerig'#...buffering that we're in process
 
     mBlockModule = self.p_blockModule
     l_blockModuleKeys = mBlockModule.__dict__.keys()
@@ -6688,7 +6723,7 @@ def rig(self,**kws):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state == 'rig':
         log.debug("|{0}| >> Already in rig state...".format(_str_func))                    
@@ -6699,7 +6734,7 @@ def rig(self,**kws):
     #>>>Children ------------------------------------------------------------------------------------
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'skeleton>rig'#...buffering that we're in process
+    #self.blockState = 'skeleton>rig'#...buffering that we're in process
     if not 'autoBuild' in kws.keys():
         kws['autoBuild'] = True
     
@@ -6726,14 +6761,14 @@ def rigDelete(self):
     if self.isReferenced():
         raise ValueError,"|{0}| >> referenced node: {1}".format(_str_func,self.mNode)
 
-    _str_state = self.blockState
+    _str_state = self.getEnumValueString('blockState')
     
     if _str_state != 'rig':
         raise ValueError,"[{0}] is not in rig state. state: {1}".format(self.mNode, _str_state)
 
 
     #>>>Meat ------------------------------------------------------------------------------------
-    self.blockState = 'rig>skeleton'#...buffering that we're in process
+    #self.blockState = 'rig>skeleton'#...buffering that we're in process
     
     mModuleTarget = self.moduleTarget
     mModuleTarget.rig_disconnect()
@@ -7204,8 +7239,8 @@ def getState(self, asString = True, fastCheck=True):
         
         def returnRes(arg):
             if asString:
-                return arg
-            return _l_blockStates.index(arg)
+                return self.getEnumValueString('blockState')
+            return self.blockState
         
         _str_func = 'getState'
         log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
@@ -7217,7 +7252,7 @@ def getState(self, asString = True, fastCheck=True):
         _blockModule = self.p_blockModule
         _goodState = False
     
-        _state = self.blockState
+        _state = self.getEnumValueString('blockState')
         if _state not in BLOCKSHARE._l_blockStates:
             log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
             _state = _state.split('>')[0]
@@ -7252,7 +7287,7 @@ def getState(self, asString = True, fastCheck=True):
                 _goodState = _l_blockStates[_idx]
     
     
-        if _goodState != self.blockState:
+        if _goodState != self.getEnumValueString('blockState'):
             log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
             self.blockState = _goodState
             
@@ -7571,7 +7606,7 @@ def buildProfile_load(self, arg):
         else:
             _d_block = _d_block.get('default')
     
-    cgmGEN.func_snapShot(vars())
+    #cgmGEN.func_snapShot(vars())
 
     _d.update(_d_block)
 
@@ -7590,10 +7625,10 @@ def buildProfile_load(self, arg):
             
     #if not _d.get('buildProfile'):
     #    _d['buildProfile'] = arg
-        
-    if self.blockState not in ['define','form','prerig']:
+    _state = self.getEnumValueString('blockState')
+    if _state not in ['define','form','prerig']:
         log.error(cgmGEN._str_subLine)
-        return log.error("|{0}| >>  [FAILED] Block: {1} | profile: {2} | Can't load in state: {3}".format(_str_func,_short,arg,self.blockState))
+        return log.error("|{0}| >>  [FAILED] Block: {1} | profile: {2} | Can't load in state: {3}".format(_str_func,_short,arg,_state))
     
     log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
     for a,v in _d.iteritems():

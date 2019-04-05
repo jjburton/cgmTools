@@ -60,7 +60,7 @@ reload(RAYS)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __component__ = False
 __menuVisible__ = True
@@ -115,7 +115,6 @@ l_attrsStandard = [
 'side',
 'position',
 'attachPoint',
-#'baseDat',
 'blockProfile',
 'moduleTarget']
 

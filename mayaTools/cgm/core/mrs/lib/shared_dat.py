@@ -17,8 +17,9 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'cgmName':'string',
                 'cgmDirection':'string',
                 'cgmPosition':'string',
-                'blockState':'string',
-                'blockDat':'string',#...for pickle? 
+                'blockState':'define:form:prerig:skeleton:rig',
+                'blockDat':'string',#...for pickle?
+                'baseDat':'string',
                 'blockParent':'messageSimple',
                 'blockMirror':'messageSimple'}
 d_defaultAttrSettings = {'blockState':'define'}
@@ -74,9 +75,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'baseUp':'float3',
                    'baseAim':'float3',
                    'basePoint':'float3',
-                   'baseDat':'string',
                    'blockProfile':'string',
-                   
+                   'nowState':'define:form:prerig:skeleton:rig',
                    'controlOffset':'float',
                    'basicShape':'circle:square:pyramid:semiSphere:sphere:cube',
                    'proxyShape':'cube:sphere:cylinder:cone:torus',

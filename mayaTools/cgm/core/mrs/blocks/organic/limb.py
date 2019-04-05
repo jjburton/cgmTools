@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def echoLogger():
     log.info('info')
@@ -92,7 +92,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -561,7 +561,6 @@ l_attrsStandard = ['side',
                    'position',
                    #'baseUp',
                    'baseAim',
-                   'baseDat',
                    'addCog',
                    'nameList',
                    'attachPoint',
@@ -686,19 +685,30 @@ _l_hiddenAttrs = ['baseAim','baseSize','baseUp']
 #d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 #d_rotationOrders = {'head':'yxz'}
 
+
+
+#=============================================================================================================
+#>> AttrMask 
+#=============================================================================================================
 _d_attrStateOn = {0:['buildLeverBase'],
-                  1:[],
+                  1:['buildBall','buildLeverEnd','buildToe'],
                   2:['ikExtendSetup','ikRPAim','ikRollSetup',
-                     'buildBall','buildLeverEnd','buildToe','followParentBank'],
+                    'followParentBank'],
                   3:[],
                   4:[]}
 
 _d_attrStateOff = {0:[],
-                  1:[],
-                  2:[],
-                  3:[],
-                  4:['ikExtendSetup','ikRPAim','ikRollSetup',
-                     'buildBall','buildLeverBase','buildLeverEnd','buildToe','followParentBank']}
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:['ikExtendSetup','ikRPAim','ikRollSetup',
+                      'buildBall','buildLeverBase','buildLeverEnd','buildToe','followParentBank']}
+
+
+d_attrProfileMask = {'arm':['buildBall','buildLeverEnd','buildToe']}
+
+for k in ['finger','thumb','toe']:
+    d_attrProfileMask[k] = d_attrProfileMask['arm']
 
 #=============================================================================================================
 #>> Define

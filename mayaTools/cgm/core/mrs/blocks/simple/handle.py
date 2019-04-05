@@ -56,7 +56,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __component__ = True
 __menuVisible__ = True
@@ -68,7 +68,10 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_frame',
                        'rig_cleanUp']
 
-#>>>Profiles =====================================================================================================
+#=============================================================================================================
+#>> Profiles 
+#=============================================================================================================
+
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
@@ -127,14 +130,18 @@ d_block_profiles = {
                 'loftList':['circle','square','wideDown','wideUp']
                 },}
 
-#>>>Attrs ========================================================================================================
+#=============================================================================================================
+#>> Attrs 
+#=============================================================================================================
+
 l_attrsStandard = ['side',
                    'position',
                    'hasJoint',
                    'basicShape',
                    'attachPoint',
+                   'attachIndex',
+                   'blockState_BUFFER',
                    'addAim',
-                   'baseDat',
                    'addPivot',
                    'addCog',
                    'addScalePivot',
@@ -180,14 +187,28 @@ d_defaultSettings = {'version':__version__,
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
                      'proxyType':1}
 
+#=============================================================================================================
+#>> Wiring 
+#=============================================================================================================
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
                      }
+
+#=============================================================================================================
+#>> AttrMask 
+#=============================================================================================================
 _d_attrStateOn = {0:[],
                   1:['hasJoint'],
                   2:['rotPivotPlace','basicShape'],
                   3:[],
                   4:[]}
+
+d_attrProfileMask = {'box':['proxyShape','loftList','shapersAim','loftSetup',
+                            'loftShape','numSubShapers','numShapers'],
+                     'shaperList':['proxyShape','basicShape'],
+                     'shaperes':['proxyShape','basicShape']}
+for k in 'sphere','cone':
+    d_attrProfileMask[k] = d_attrProfileMask['box']
 
 #=============================================================================================================
 #>> UI
@@ -1671,15 +1692,22 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     """
     Build our proxyMesh
     """
-    _short = self.d_block['shortName']
+    _short = self.p_nameShort
     _str_func = '[{0}] > build_proxyMesh'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
+
     
-    mBlock = self.mBlock
-    mRigNull = self.mRigNull
-    mHandle = mRigNull.handle
+    mBlock = self
+    mModule = self.moduleTarget    
+    
+    mRigNull = mModule.rigNull
     mSettings = mRigNull.settings
+    mPuppet = self.atUtils('get_puppet')
+    mMaster = mPuppet.masterControl
+    mPuppetSettings = mMaster.controlSettings
+    str_partName = mModule.get_partNameBase()
+    mHandle = mRigNull.handle
     
     
     #>> If proxyMesh there, delete ----------------------------------------------------------------------------------- 
@@ -1724,8 +1752,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     
     
     #Connect to setup ------------------------------------------------------------------------------------
-    mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-    _side = BLOCKUTILS.get_side(self.mBlock)
+    _side = BLOCKUTILS.get_side(self)
     
     if puppetMeshMode:
         log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))

@@ -47,7 +47,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 
 __autoForm__ = True
 __menuVisible__ = True
@@ -62,7 +62,6 @@ d_build_profiles = {'unityLow':{'addMotionJoint':True},
 l_attrsStandard = ['addMotionJoint',
                    'moduleTarget',
                    'baseSize',
-                   'baseDat',
                    'controlOffset',
                    'numSpacePivots']
 

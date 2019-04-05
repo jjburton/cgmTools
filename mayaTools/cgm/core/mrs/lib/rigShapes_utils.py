@@ -20,7 +20,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -575,6 +575,7 @@ def settings(self,settingsPlace = None,ml_targets = None):
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
             
+            LOC.create(position=pos)
             
 
             #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]
@@ -585,29 +586,34 @@ def settings(self,settingsPlace = None,ml_targets = None):
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
 
+            
             mSettingsShape.doSnapTo(_mTar.mNode)
-
+            
             #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-
+            
             mSettingsShape.p_position = newPos
             mMesh_tmp.delete()
-
+            
             SNAP.aim_atPoint(mSettingsShape.mNode,
                              _mTar.p_position,
                              aimAxis=_jointOrientation[0]+'+',
                              mode = 'vector',
                              vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
-
+            
             mSettingsShape.parent = _mTar
             mSettings = mSettingsShape
+            
             CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
-
+            
             ATTR.copy_to(self.d_module['partName'],'cgmName',mSettings.mNode,driven='target')
 
             mSettings.doStore('cgmTypeModifier','settings')
             mSettings.doName()
             self.mHandleFactory.color(mSettings.mNode, controlType = 'sub')
             mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
+            
+            #cgmGEN.func_snapShot(vars())
+            #mSettings.select()
         else:
             raise ValueError,"Unknown settingsPlace: {1}".format(settingsPlace)
         

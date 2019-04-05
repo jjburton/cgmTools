@@ -76,7 +76,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04022019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -297,7 +297,6 @@ l_attrsStandard = ['side',
                    'position',
                    'baseUp',
                    'baseAim',
-                   'baseDat',
                    'addCog',
                    #'hasRootJoint',
                    'nameList',
