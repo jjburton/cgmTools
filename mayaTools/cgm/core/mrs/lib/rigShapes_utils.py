@@ -60,6 +60,7 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
+reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 
@@ -92,22 +93,27 @@ def ik_bankRollShapes(self):
         mBallIK = False
         _minRot = -90,
         _maxRot = 90
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=1)
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',pivotEnd=1)
         str_meshShape = mMesh_tmp.getShapes()[0]        
         
-        if self.mPivotHelper:
-            size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
-        else:
-            size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
+        #if self.mPivotHelper:
+        #    size_pivotHelper = POS.get_bb_size(self.mPivotHelper.mNode)
+        #else:
+        #    size_pivotHelper = POS.get_bb_size(ml_formHandles[-1].mNode)
+
             
+        #reload(SHAPECASTER)
         _d_cast = {'vectorOffset':_offset,
                    'points':15,
                    #'minRot':-90,'maxRot':90,
-                   'closedCurve':False, 'maxDistance':size_pivotHelper[0]*4}
+                   'closedCurve':False}
+        _max = None
+        if self.mBall:
+            _max = RAYS.get_dist_from_cast_axis(self.mBall.mNode,
+                                                self.d_orientation['str'][2],
+                                                shapes=str_meshShape)
+            _d_cast['maxDistance'] = _max
             
-        #reload(SHAPECASTER)
- 
-        if self.mBall:    
             crvBall = SHAPECASTER.createMeshSliceCurve(
                 str_meshShape, self.mBall.mNode,
                 **_d_cast)
@@ -191,6 +197,10 @@ def ik_bankRollShapes(self):
             ml_fkShapes.append(cgmMeta.validateObjArg(crvBall,'cgmObject'))
                     
         if self.mToe:
+            if not _max:
+                _max = RAYS.get_dist_from_cast_axis(self.mToe.mNode,self.d_orientation['str'][2],shapes=str_meshShape)
+            _d_cast['maxDistance'] = _max
+            
             crv = SHAPECASTER.createMeshSliceCurve(
                 str_meshShape, self.mToe.mNode,
                 **_d_cast)

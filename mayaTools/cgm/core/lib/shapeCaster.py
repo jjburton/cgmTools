@@ -734,6 +734,12 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                     log.debug(cgmGEN.logString_msg(_str_func,
                                                    "No hit, alternate method | {0}".format(rotateValue)))
                     hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                
+                if hit:
+                    if DIST.get_distance_between_points(pos_base,hit)>maxDistance:
+                        log.debug("Max distance exceeded. Using alternative")
+                        hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                        
                     
                 #d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, #maxDistance = maxDistance, firstHit=False) or {}
                # d_hitReturnFromValue[rotateValue] = d_castReturn	
@@ -747,23 +753,6 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 l_pos.append(hit)
                 if markHits:
                     LOC.create(position=hit,name="cast_rot{0}_loc".format(rotateValue))
-                """if closestInRange:
-		    try:
-			d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance) or {}
-		    except StandardError,error:
-			log.error("createMeshSliceCurve >> closestInRange error : %s"%error)
-			return False
-		    log.debug("closest in range castReturn: %s"%d_castReturn)		
-		    d_hitReturnFromValue[rotateValue] = d_castReturn	
-		    log.debug("From %s: %s" %(rotateValue,d_castReturn))
-
-		else:
-		    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, singleReturn=False) or {}
-		    log.debug("castReturn: %s"%d_castReturn)
-		    if d_castReturn.get('hits'):
-			closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
-			d_castReturn['hit'] = closestPoint
-			log.debug("From %s: %s" %(rotateValue,d_castReturn))"""
 
                 d_rawHitFromValue[rotateValue] = hit
 

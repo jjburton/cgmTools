@@ -1110,11 +1110,46 @@ def get_castSize(self, casters, castMesh = None, axis1 = 'x', axis2 = 'y',extend
             axis2:l_y}
     
 @cgmGEN.Timer
-def get_castMesh(self,extend=False):
+def get_castMesh(self,extend=False,pivotEnd=False):
     _str_func =  'get_castMesh'
     log.debug(cgmGEN.logString_start(_str_func))
     ml_delete = []        
     
+    if pivotEnd:
+        #New override to make just a foot for casting
+        l_targets = []
+        ml_formHandles = self.msgList_get('formHandles')
+        mHandle = ml_formHandles[-1]
+        l_targets.append(mHandle.loftCurve.mNode)
+        
+        if mHandle.getMessage('pivotHelper'):
+            mPivotHelper = ml_formHandles[-1].pivotHelper
+            log.debug("|{0}| >> foot ".format(_str_func))
+
+
+            mBaseCrv = mPivotHelper.doDuplicate(po=False)
+            mBaseCrv.parent = False
+            mShape2 = False
+            ml_delete.append(mBaseCrv)
+        
+            for mChild in mBaseCrv.getChildren(asMeta=True):
+                if mChild.cgmName == 'topLoft':
+                    mShape2 = mChild.doDuplicate(po=False)
+                    mShape2.parent = False
+                    l_targets.append(mShape2.mNode)
+                    ml_delete.append(mShape2)
+                mChild.delete()
+
+            l_targets.append(mBaseCrv.mNode)        
+        
+        mesh = BUILDUTILS.create_loftMesh(l_targets, 
+                                          name="{0}_pivotEnd_castMesh".format(self.p_nameBase),
+                                          degree=1,divisions=1)
+        
+        for mObj in ml_delete:
+            mObj.delete()
+        return cgmMeta.asMeta(mesh)
+        
     if extend:
         log.debug(cgmGEN.logString_msg(_str_func,'extend'))
         ml_formHandles = self.msgList_get('formHandles')
@@ -1179,6 +1214,7 @@ def get_castMesh(self,extend=False):
             baseName = self.cgmName)
     else:
         mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
+        
     mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
         
     _rebuildState = mRebuildNode.rebuildType
