@@ -2431,7 +2431,9 @@ class handleFactory(object):
             mJointCurve.setAttrFlags(lockChannels)
 
             if loftHelper:#...loft curve -------------------------------------------------------------------------------------
-                mLoft = self.buildBaseShape('square',_size*.5,'z+')
+                #mLoft = self.buildBaseShape('square',_size*.5,'z+')
+                _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+                mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
                 mLoft.doStore('cgmName',mJointCurve)
                 mLoft.doStore('cgmType','loftCurve')
                 mLoft.doName()
