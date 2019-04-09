@@ -52,6 +52,22 @@ from cgm.core.lib import attribute_utils as ATTR
 #from cgm.core.cgmPy import path_Utils as PATH
 #from cgm.core.cgmPy import os_Utils as cgmOS
 
+def verify_sceneBlocks():
+    """
+    Gather all rig blocks data in scene
+
+    :parameters:
+
+    :returns
+        metalist(list)
+    """
+    _str_func = 'verify_sceneBlocks'
+    
+    for mBlock in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network']):
+        mBlock.atUtils('verify_blockAttrs',queryMode=False)
+        
+        
+
 def validate_stateArg(stateArg = None,):
     """
     returns [stateIndex,stateName]  

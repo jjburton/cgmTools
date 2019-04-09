@@ -1755,7 +1755,7 @@ class ui(cgmUI.cgmGUI):
             #else:
                 #raise ValueError,"Mode not setup: {0}".format(_mode)            
             b_devMode = False
-            
+            b_dupMode = False
             b_changeState = False
             b_rootMode = False
             if args[0] == 'changeState':
@@ -1773,6 +1773,9 @@ class ui(cgmUI.cgmGUI):
                     kws['forceNew'] = self.var_contextForceMode.value
             elif args[0] == 'stepUI':
                 _contextMode = 'self'
+            elif args[0] == 'duplicate':
+                if _contextMode in ['below','root','scene']:
+                    b_dupMode = True
             
             try:
                 if args[1] in ['puppetMesh_create','puppetMesh_delete']:
@@ -1872,6 +1875,10 @@ class ui(cgmUI.cgmGUI):
             if int_len == 1:
                 i_add = 1
                 
+            ml_res = []
+            md_dat = {}
+            md_datRev = {}
+            
             for i,mBlock in enumerate(ml_context):
                 _short = mBlock.p_nameShort
                 _call = str(args[0])
@@ -1886,6 +1893,11 @@ class ui(cgmUI.cgmGUI):
                 #                      progress=i+i_add, vis=True)
                 log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
+                ml_res.append(res)
+                
+                if b_dupMode:
+                    md_dat[res] = mBlock
+                    md_datRev[mBlock] = res
                 log.debug("|{0}| >> res: {1}".format(_str_func,res))
                 
                 if b_changeState and not b_devMode:
@@ -1893,6 +1905,24 @@ class ui(cgmUI.cgmGUI):
                     
             if _mActiveBlock and b_changeState:
                 self.uiUpdate_blockDat()
+                
+            if b_dupMode and len(ml_res) > 1:
+                log.info(cgmGEN.logString_msg(_str_func,"mDup post process..."))
+                #pprint.pprint(md_datRev)
+                #pprint.pprint(md_dat)
+                
+                for mDup in ml_res[1:]:
+                    log.info(cgmGEN.logString_sub(_str_func,"mDup | {0}".format(mDup)))                    
+                    mBlock = md_dat[mDup]
+                    mParent = mBlock.p_blockParent
+                    if mParent:
+                        log.info(cgmGEN.logString_msg(_str_func,"mParent | {0}".format(mParent)))
+                        mTargetParent = md_datRev.get(mParent,mParent)
+                        mDup.p_blockParent = mTargetParent
+                        log.info(cgmGEN.logString_msg(_str_func,"mTargetParent | {0}".format(mTargetParent)))
+                        
+                    
+                    
                 
             #if _updateUI:
                 #self.uiUpdate_scrollList_blocks()
@@ -2211,7 +2241,7 @@ class ui(cgmUI.cgmGUI):
                             label = "Duplicate",
                             ann = '[{0}] Duplicate the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))
+                            c=uiCallback_withUpdate(self,_mBlock,'duplicate'))
             
             mUI.MelMenuItemDiv(_popUp)
             
@@ -2561,7 +2591,7 @@ class ui(cgmUI.cgmGUI):
                   l = 'Duplicate',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                      'atUtils','duplicate',
+                                      'duplicate',
                                       **{'updateUI':1}),
                   ann = 'Duplicate conextual blocks')
         
@@ -3289,13 +3319,16 @@ class ui(cgmUI.cgmGUI):
             except Exception,err:
                 log.info("Attr {0} failed. err: {1}".format(a,err))
                 
-        
+    
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Call Size",
                          c=lambda *a: RIGBLOCKS.get_callSize('selection' ) )
         mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
                          c=lambda *a: self.uiFunc_contextBlockCall('VISUALIZEHEIRARCHY') )
+        mUI.MelMenuItem( self.uiMenu_help, l="Reverify Scene Blocks",
+                         c=lambda *a: BLOCKGEN.verify_sceneBlocks() )        
+        
         
         
         

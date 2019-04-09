@@ -699,7 +699,7 @@ import cgm.core.tests.cgmTests as CGMTEST
 #reload(CGMTEST)
 
 def loadLocalPython():
-    mel.eval('python("import cgm.core.cgm_Meta as cgmMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;")')
+    mel.eval('python("import cgm.core.cgm_Meta as cgmMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;import pprint;")')
     
 def reloadCore():
     mel.eval('python("import cgm.core;cgm.core._reload();")')

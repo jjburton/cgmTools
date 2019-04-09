@@ -3275,7 +3275,7 @@ def duplicate2(self):
         return mDup
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-def duplicate(self, uiPrompt = True, forceNew = False):
+def duplicate(self, uiPrompt = True):
     """
     Call to duplicate a block module and load data
     """
@@ -3964,9 +3964,12 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
             if mLoftCurve.v:
                 _d = {}
                 _rot = mLoftCurve.rotate
+                _orient = mLoftCurve.p_orient
                 _trans = mLoftCurve.translate
                 _scale = mLoftCurve.scale
                 _p = mLoftCurve.p_position
+                
+                _d['bb'] = TRANS.bbSize_get(mLoftCurve.mNode)
                 
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
@@ -3988,7 +3991,8 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                   'o':[mObj.p_orient for mObj in ml_subShapers],
                   'r':[mObj.rotate for mObj in ml_subShapers],
                   't':[mObj.translate for mObj in ml_subShapers],
-                  's':[mObj.scale for mObj in ml_subShapers]}            
+                  's':[mObj.scale for mObj in ml_subShapers],
+                  'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_subShapers]}            
             if _d:
                 _d_subShapers[i] = _d            
         
@@ -3999,7 +4003,8 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
             #_l_jointHelpers.append(False)
     _d = {'positions':[mObj.p_position for mObj in ml_handles],
           'orients':[mObj.p_orient for mObj in ml_handles],
-          'scales':[mObj.scale for mObj in ml_handles]}
+          'scales':[mObj.scale for mObj in ml_handles],
+          'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_handles]}
     
     if _d_orientHelpers:
         _d['orientHelpers'] =_d_jointHelpers
@@ -5020,32 +5025,38 @@ def get_blockDagNodes(self):
         return ml_controls
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
-def controls_get(self,define = False, form = False, prerig= False):
+
+def controls_get(self,define = False, form = False, prerig= False, asDict =False):
     try:
         _short = self.p_nameShort        
         _str_func = '[{0}] controls_get'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         
-        def addMObj(mObj):
+        def addMObj(mObj,datType=None):
             log.debug("|{0}| >> Storing: {1} ".format(_str_func,mObj))
             if mObj in ml_controls:
                 log.debug("|{0}| >> Already stored: {1} ".format(_str_func,mObj))                    
                 return
+            
+            if not md_controls.get(datType):md_controls[datType] = []
+            
             ml_controls.append(mObj)
+            md_controls[datType].append(mObj)
             if mObj.getMessage('orientHelper'):
                 log.debug("|{0}| >> ... has orient helper".format(_str_func))
-                addMObj(mObj.orientHelper)
+                addMObj(mObj.orientHelper,datType)
             if mObj.getMessage('jointHelper'):
                 log.debug("|{0}| >> has joint helper...".format(_str_func))
-                addMObj(mObj.jointHelper)
+                addMObj(mObj.jointHelper,datType)
         
-        def addPivotHelper(mPivotHelper):
+        def addPivotHelper(mPivotHelper,datType):
             addMObj(mPivotHelper)
             for mChild in mPivotHelper.getChildren(asMeta=True):
                 if mChild.getMayaAttr('cgmType') == 'pivotHelper':
-                    addMObj(mChild)
+                    addMObj(mChild,datType)
             
         ml_controls = []
+        md_controls = {}
         
         #if self.getMessage('orientHelper'):
             #ml_controls.append(self.orientHelper)
@@ -5054,15 +5065,15 @@ def controls_get(self,define = False, form = False, prerig= False):
             if ml_handles:
                 log.debug("|{0}| >> define dat found...".format(_str_func))            
                 for mObj in ml_handles:
-                    addMObj(mObj)
+                    addMObj(mObj,'define')
             
         if form:
             log.debug("|{0}| >> form pass...".format(_str_func))            
             ml_handles = self.msgList_get('formHandles',asMeta = True)
             for mObj in ml_handles:
-                addMObj(mObj)
+                addMObj(mObj,'form')
             for mObj in ml_handles:#.second loop to push this tothe back
-                if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper)
+                if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper,'form')
                 
         if prerig:
             log.debug("|{0}| >> Prerig pass...".format(_str_func))                        
@@ -5071,10 +5082,12 @@ def controls_get(self,define = False, form = False, prerig= False):
             if ml_jointHandles:
                 ml_handles.extend(ml_jointHandles)
             for mObj in ml_handles:
-                addMObj(mObj)
+                addMObj(mObj,'prerig')
             for mObj in ml_handles:#.second loop to push this tothe back
-                if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper)
-
+                if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper,'prerig')
+        
+        if asDict:
+            return md_controls
         return ml_controls
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -5577,9 +5590,9 @@ _d_attrStateVisOff = {0:[],
                         'blockScale','proxyShape','numRoll','shapeDirection','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         'numControls'],
-                     3:['attachPoint','attachIndex','addAim','addCog','addPivot','addScalePivot',
+                     3:['addAim','addCog','addPivot','addScalePivot',
                         'hasJoint','side','position','rollCount'],
-                     4:['hasEndJoint','numJoints',
+                     4:['hasEndJoint','numJoints','attachPoint','attachIndex',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
                         'mainRotAxis','hasEndJoint',
                         'ribbonAim','ribbonParam','rigSetup','scaleSetup',
@@ -6007,7 +6020,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         #pprint.pprint(vars())
         for i,n in enumerate(['start','end']):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-            mHandle = mHandleFactory.buildBaseShape('cubeOpen',baseSize = _size_handle, shapeDirection = 'z+')
+            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
             mHandle.p_parent = mFormNull
         
             mHandle.resetAttrs()
@@ -6044,6 +6057,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed',setClass='cgmObject')
             mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
             mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
+            #mc.scaleConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=True)
         
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
         
@@ -9951,6 +9965,8 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
                 l_box = [xDist,
                          yDist,
                          None]
+                if mHandle in [ml_handles[0],ml_handles[-1]]:
+                    l_box[2] = MATH.average(xDist,yDist)
                 #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)
                 DIST.scale_to_axisSize(_mNode,l_box)
                 #pprint.pprint(l_box)
@@ -9958,7 +9974,10 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
                 log.error("Form Handle failed to scale: {0}".format(mHandle))
                 log.error(err)
     
-        cgmGEN.func_snapShot(vars())
+        #cgmGEN.func_snapShot(vars())
+        
+
+        
         """
         DIST.scale_to_axisSize(ml_lofts[0].mNode,
                                [l_x[0],
@@ -10067,10 +10086,7 @@ def update(self,force=False,stopState = 'define'):
         if _baseDat:
             log.debug(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
             self.baseDat = _baseDat
- 
-            
         blockDat_save(self)
-        
         _dat = self.blockDat
         
         for k in ['baseAim','baseSize']:
@@ -10085,6 +10101,7 @@ def update(self,force=False,stopState = 'define'):
             _dat['blockState'] = stopState
         self.blockDat = _dat
         
+        md_dat = snapShot_get(self)        
         
         blockDat_load(self,redefine=True)
         
@@ -10692,3 +10709,456 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         return l_new
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
+def snapShot_controls_get(self,blockMirror=False,define=True,form=True,prerig=True):
+    """
+    Get a snap shot of all of the controls of a rigBlock
+    """
+    try:
+        _str_func = 'snapShot_controls_get'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        
+        ml_check = []
+        md_sourceAll = {}
+        md_targetAll = {}
+        ml_sourceCheck = []
+        ml_targetCheck = []
+        
+        #Control sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, 'control sets...'))
+        
+        def add_mSet(mSet,ml_check,md_sourceAll,name='base'):
+            ml_use = []
+            for mObj in mSet:
+                if mObj not in ml_check:
+                    log.debug(cgmGEN.logString_msg(_str_func, '{1} | Add: {0}'.format(mObj,name)))
+                    ml_check.append(mObj)
+                    ml_use.append(mObj)
+                else:
+                    log.debug(cgmGEN.logString_msg(_str_func, '{1} | Removing: {0}'.format(mObj,name)))
+            md_sourceAll[name] = ml_use
+            return ml_use
+
+        add_mSet([self],ml_sourceCheck,md_sourceAll,'base')
+        if blockMirror:
+            add_mSet([blockMirror],ml_targetCheck,md_targetAll,'base')
+
+        if define:
+            add_mSet(controls_get(self,define=True),ml_sourceCheck,md_sourceAll,'define')
+            if blockMirror:
+                ml_use = add_mSet(controls_get(blockMirror,define=True),ml_targetCheck,md_targetAll,'define')
+                if not ml_use:
+                    log.warning(cgmGEN.logString_msg(_str_func, "No [define] dat found on target. removing"))
+                    md_sourceAll.pop('define')
+                    md_targetAll.pop('define')
+
+        if form:
+            add_mSet(controls_get(self,form=True),ml_sourceCheck,md_sourceAll,'form')
+            if blockMirror:
+                ml_use = add_mSet(controls_get(blockMirror,form=True),ml_targetCheck,md_targetAll,'form')
+                if not ml_use:
+                    log.warning(cgmGEN.logString_msg(_str_func, "No [form] dat found on target. removing"))
+                    md_sourceAll.pop('form')
+                    md_targetAll.pop('form')
+
+        if prerig:
+            add_mSet(controls_get(self,prerig=True),ml_sourceCheck,md_sourceAll,'prerig')
+            if blockMirror:
+                ml_use = add_mSet(controls_get(blockMirror,prerig=True),ml_targetCheck,md_targetAll,'prerig')
+                if not ml_use:
+                    log.warning(cgmGEN.logString_msg(_str_func, "No [prerig] dat found on target. removing"))
+                    md_sourceAll.pop('prerig')
+                    md_targetAll.pop('prerig')
+
+        if not blockMirror:
+            md_targetAll = copy.copy(md_sourceAll)
+
+        #Shuffle sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, 'Shuffle sets'))
+        ml_controls = []
+        for k in 'base','define','form','prerig':
+            dat = md_sourceAll.get(k)
+            if dat:
+                ml_controls.extend(dat)
+
+        if blockMirror is None:
+            log.debug("|{0}| >> Self mirror....".format(_str_func))
+            ml_targetControls = ml_controls
+        else:
+            ml_targetControls = []
+            for k in 'base','define','form','prerig':
+                dat = md_targetAll.get(k)
+                if dat:
+                    ml_targetControls.extend(dat)            
+            
+        int_lenTarget = len(ml_targetControls)
+        int_lenSource = len(ml_controls)
+
+        for i,mObj in enumerate(ml_controls):
+            try:
+                log.debug(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+            except:
+                log.debug(" {0} > !! > No match".format(mObj.p_nameBase))        
+                
+        if blockMirror:
+            return ml_controls,md_sourceAll,ml_targetControls,md_targetAll
+        return ml_controls,md_sourceAll
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
+def snapShot_get(self):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'snapShot_get'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+
+        _blockScale = self.blockScale
+                
+        
+        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True)
+        md_dat = {}
+        
+        md_ctrls['base']=[self]
+        
+        log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
+        
+        for datSet,dat in md_ctrls.iteritems():
+            md_dat[datSet] = {}
+            _progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(dat))
+            
+            for i,mCtrl in enumerate(dat):
+                _str = mCtrl.p_nameShort
+                _d = {'str':_str,
+                      'mObj':mCtrl,
+                      'nameBase':mCtrl.p_nameBase,
+                      'cgmTags':mCtrl.getNameDict()}
+                
+                _strStatus = "{0} | {1} ".format(_str_func,_str)
+                log.debug(cgmGEN.logString_sub(_str_func,_str))
+                CGMUI.progressBar_set(_progressBar,step=1,
+                                      status = _strStatus)                
+                
+                if not ATTR.is_locked(_str,'translate'):
+                    _d['pos']=mCtrl.p_position
+                
+                if not ATTR.is_locked(_str,'rotate'):
+                    _d['orient']=mCtrl.p_orient
+                
+                    
+                _d['lossyScale'] = TRANS.scaleLossy_get(_str)
+                _d['worldScale'] = mc.xform(_str, q=True, scale = True, worldSpace = True, absolute = True)
+                
+                _d['noParent'] = False
+                if ATTR.is_locked(_str,'translate'):
+                    _d['noParent'] = True
+                
+                
+                for a in ['sx','sy','sz']:
+                    if not ATTR.is_locked(_str,a):
+                        v = ATTR.get(_str,a)
+                        #if not MATH.is_float_equivalent(1.0,v):
+                        _d[a] = v 
+                        if not _d.get('axisSize'):
+                            _d['axisSize'] = DIST.get_axisSize(_str)
+                        if not _d.get('bbSize'):
+                            _d['bbSize'] = TRANS.bbSize_get(_str)
+                        
+                md_dat[datSet][i] = _d
+
+        #pprint.pprint(md_dat)
+        self.__snapShotDat = md_dat
+        return md_dat   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+    finally:
+        CGMUI.doEndMayaProgressBar()
+        
+def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'snapShot_set'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        
+        if md_dat is None:
+            md_dat = self.__snapShotDat
+            
+
+
+        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True)
+        md_ctrls['base']=[self]
+        
+        log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
+        #_progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(ml_ctrls))
+        _state = self.getEnumValueString('blockState')
+        
+        md_missing = []
+        
+        def matchControl(mDat,idx,datSet):
+            def match(mObj):
+                mDat['mCtrl'] = mObj
+                ml_matched.append(mObj)
+                ml_unmatched.remove(mObj)
+                return mObj
+            
+            if datSet == 'base':
+                return self
+            
+            mCtrl = mDat.get('mObj')
+            
+            if mCtrl.mNode:
+                return mCtrl
+            #Str check
+            mCandidate = cgmMeta.validateObjArg(mDat['str'],noneValid=True)
+            if mCandidate:
+                log.info(cgmGEN.logString_msg(_str_func, "Str Validated | {0} == {1}".format(mDat['nameBase'],mCandidate)))
+                return match(mCandidate)
+            
+            for mObj in md_ctrls[datSet]:
+                if mObj.getNameDict() == mDat['cgmTags']:
+                    log.info(cgmGEN.logString_msg(_str_func, "cgmTag Validated | {0}".format(mDat['cgmTags'])))
+                    return match(mObj)
+            
+            try:
+                log.info(cgmGEN.logString_msg(_str_func, "Index Validated | {0}".format(idx)))
+                mObj =  match(md_ctrls[datSet][idx])
+                return mObj
+            except:pass
+            log.error(cgmGEN.logString_msg(_str_func, "Missing: {0}".format(mDat['nameBase'])))
+            md_missing.append(mDat)
+            return False
+                
+        for datSet in 'base','define','form','prerig':
+            mDatSet = md_dat[datSet]
+            log.info(cgmGEN.logString_msg(_str_func, "{0}...".format(datSet)))
+            ml_matched = []
+            ml_unmatched = copy.copy(md_ctrls[datSet])
+            
+            
+            
+            for ii in range(3):#3 loop to account for parentage
+                log.info(cgmGEN.logString_sub(_str_func, 'Push: {0}'.format(ii)))
+                for i,mDat in mDatSet.iteritems():
+                    log.info(cgmGEN.logString_msg(_str_func, "{0} | {1} | {2}".format(i,mDat['nameBase'],mDat)))
+                    
+                    if not ii:
+                        mCtrl = matchControl(mDat,i,datSet)
+
+                    mCtrl = mDat.get('mCtrl')
+                    if not mCtrl:
+                        log.error(cgmGEN.logString_msg(_str_func, "Missing: {0}".format(mDat['nameBase'])))
+                        continue                    
+
+                    _d = mDat
+                    log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
+                    
+                    _pos = _d.get('pos')
+                    _noParent = _d['noParent']
+                    if _pos:mCtrl.p_position = _pos
+                    
+                    _orient = _d.get('orient')
+                    if _orient:
+                        mCtrl.p_orient = _orient
+
+                    #_worldScale = _d.get('worldScale')
+                    #if _worldScale and _noParent is not True:
+                    #    mParent = mCtrl.p_parent
+                    #    if mParent:
+                    #        mCtrl.p_parent = False
+                    #    mc.xform(mCtrl.mNode, scale = _worldScale, worldSpace = True, absolute = True)
+                        
+                    #    if mParent:mCtrl.p_parent = mParent
+                    #else:
+                    if not ATTR.is_locked(mCtrl.mNode,'scale'):
+                        if sizeMethod == 'axisSize':
+                            if _d.get('axisSize'):
+                                try:
+                                    DIST.scale_to_axisSize(_d['str'],_d['axisSize'])
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                        elif sizeMethod in ['bb','bbSize']:
+                            if _d.get('bbSize'):
+                                try:
+                                    reload(TRANS)
+                                    TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+            if _state == datSet:
+                break
+            if ml_unmatched:
+                log.warning(cgmGEN._str_subLine)
+                log.info(cgmGEN.logString_msg(_str_func, "{0} | Unmatched...".format(datSet)))
+                pprint.pprint(ml_unmatched)
+                log.warning(cgmGEN._str_subLine)
+
+
+            
+        #rootShape_update(self)
+        #pprint.pprint(vars())
+        return True           
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+    finally:
+        CGMUI.doEndMayaProgressBar()
+        
+
+def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'bake_blockScale'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        
+        if self.p_parent:
+            return log.error(cgmGEN.logString_msg(_str_func, "Can't bake parented blocks, please unparent"))
+        
+        _blockScale = self.blockScale
+        
+        if MATH.is_float_equivalent(_blockScale,1):
+            log.debug(cgmGEN.logString_msg(_str_func, 'Already 1.0'))
+            return True
+        
+        if self.hasAttr('baseSize'):
+            _baseSize = True
+            for a in 'xyz':
+                if ATTR.is_connected(str_self,'baseSize'+a.capitalize()):
+                    _baseSize=False
+                    break
+            if _baseSize:
+                log.info(cgmGEN.logString_msg(_str_func, 'baseSize buffer. Not connected'))
+                self.baseSize = baseSize_get(self)
+                        
+        _factor = 1.0/_blockScale
+        
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)
+        md_dat = {}
+        
+        log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
+        #First Loop gateher
+        for i,mCtrl in enumerate(ml_ctrls):
+            _str = mCtrl.p_nameShort
+            _d = {'str':_str}
+            
+            if not ATTR.is_locked(_str,'translate'):
+                _d['pos']=mCtrl.p_position
+                
+            _d['lossyScale'] = TRANS.scaleLossy_get(_str)
+            _d['worldScale'] = mc.xform(_str, q=True, scale = True, worldSpace = True, absolute = True)
+            _d['factorScale'] = [v*_factor for v in _d['worldScale']]
+            
+            _d['noParent'] = False
+            if ATTR.is_locked(_str,'translate'):
+                _d['noParent'] = True
+            
+            
+            for a in ['sx','sy','sz']:
+                if not ATTR.is_locked(_str,a):
+                    v = ATTR.get(_str,a)
+                    #if not MATH.is_float_equivalent(1.0,v):
+                    _d[a] = v * _blockScale
+                    if not _d.get('axisSize'):
+                        _d['axisSize'] = DIST.get_axisSize(_str)
+                    if not _d.get('bbSize'):
+                        _d['bbSize'] = TRANS.bbSize_get(_str)
+                    
+            md_dat[i] = _d
+            
+        
+        #pprint.pprint(md_dat)
+        #return
+        log.debug(cgmGEN.logString_msg(_str_func, 'Setting intiial'))
+        ATTR.set(self.mNode,'blockScale',1.0)
+        """
+        blockDat_save(self)
+        blockDat_load(self,redefine=True)                
+        ml_ctrls = controls_get(self, define=True, form=True, prerig=True)        
+        """
+        
+        for ii in range(3):#3 loop to account for parentage
+            log.debug(cgmGEN.logString_sub(_str_func, 'Push: {0}'.format(ii)))
+
+            for i,mCtrl in enumerate(ml_ctrls):
+                _d = md_dat[i]
+                log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
+                _pos = _d.get('pos')
+                _noParent = _d['noParent']
+                
+                if _pos:mCtrl.p_position = _pos
+                
+                
+                _worldScale = _d.get('worldScale')
+                if _worldScale and _noParent is not True:
+                    mParent = mCtrl.p_parent
+                    if mParent:
+                        mCtrl.p_parent = False
+                        
+                    #mc.xform(mCtrl.mNode, scale = _worldScale, objectSpace = True, absolute = True)
+                    mc.xform(mCtrl.mNode, scale = _worldScale, worldSpace = True, absolute = True)
+                    
+                    if mParent:mCtrl.p_parent = mParent
+                else:
+                    if not ATTR.is_locked(mCtrl.mNode,'scale'):
+                        """
+                        _worldScale = _d.get('factorScale')
+                        if _worldScale:
+                            mc.xform(_str, scale = _worldScale, worldSpace = True, )#absolute = True
+                            
+                            for a in ['sx','sy','sz']:
+                                if _d.get(a):
+                                    ATTR.set(_d['str'],a,_d[a])"""
+                        
+                        if sizeMethod == 'axisSize':
+                            if _d.get('axisSize'):
+                                try:
+                                    DIST.scale_to_axisSize(_d['str'],_d['axisSize'])
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                        elif sizeMethod in ['bb','bbSize']:
+                            if _d.get('bbSize'):
+                                try:
+                                    reload(TRANS)
+                                    TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                """
+                if ii == 0:
+                    _worldScale = _d.get('factorScale')
+                    if _worldScale:
+                        mc.xform(_str, scale = _worldScale, worldSpace = True, )#absolute = True
+                        
+                        for a in ['sx','sy','sz']:
+                            if _d.get(a):
+                                ATTR.set(_d['str'],a,_d[a])
+                        
+                        if sizeMethod == 'axisSize':
+                            if _d.get('axisSize'):
+                                try:
+                                    DIST.scale_to_axisSize(_d['str'],_d['axisSize'])
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                        elif sizeMethod in ['bb','bbSize']:
+                            if _d.get('bbSize'):
+                                try:
+                                    reload(TRANS)
+                                    TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
+                                except Exception,err:
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))"""        
+        #Fix the root shape
+        #if not ATTR.is_connected(self.mNode,'baseSize'):
+            #log.info(cgmGEN.logString_sub(_str_func, 'Base size buffer'))
+            
+        rootShape_update(self)
+        #pprint.pprint(vars())
+        return True   
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)

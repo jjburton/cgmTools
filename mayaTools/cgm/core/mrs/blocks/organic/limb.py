@@ -1010,7 +1010,7 @@ def form(self):
             log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
             iUse = 0
             if i:iUse = -1
-            mHandle = mHandleFactory.buildBaseShape('cubeOpen',baseSize = _size_handle, shapeDirection = 'z+')
+            mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
             mHandle.p_parent = mFormNull
             
             mHandle.resetAttrs()
@@ -1043,6 +1043,7 @@ def form(self):
                 mTransformedGroup = mLoftCurve.doGroup(True,True,asMeta=True,typeModifier = 'transformed',setClass='cgmObject')
             mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
             mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
+            #mc.scaleConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=True)
             
             mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
             

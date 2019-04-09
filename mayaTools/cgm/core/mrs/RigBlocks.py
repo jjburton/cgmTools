@@ -1004,6 +1004,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def delete(self):
         BLOCKUTILS.delete(self)
         
+    def duplicate(self,uiPrompt=True):
+        return BLOCKUTILS.duplicate(self,uiPrompt)
+        
     def puppetMesh_create(self,*args,**kws):
         reload(BLOCKUTILS)
         return BLOCKUTILS.puppetMesh_create(self,*args,**kws)

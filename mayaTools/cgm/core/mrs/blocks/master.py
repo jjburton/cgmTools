@@ -92,8 +92,8 @@ _d_attrStateOn = {0:[],
                   3:[],
                   4:[]}
 _d_attrStateOff = {0:[],
-                  1:['baseSize'],
-                  2:[],
+                  1:[],
+                  2:['baseSize'],
                   3:['addMotionJoint'],
                   4:[]}
 

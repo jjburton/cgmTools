@@ -535,6 +535,7 @@ def formDelete(self):
         
                 mHandle.v = True
                 mHandle.template = False        
+        self.defineLoftMesh.v = True
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
