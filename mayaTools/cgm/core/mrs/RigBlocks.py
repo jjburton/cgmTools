@@ -731,7 +731,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
     except Exception,err:
         log.error("Failed to load block module. Check it. {0}".format(self))        
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    def getBlockDat(self,report = True):
+        
+    def getBlockDat(self,report = False):
         """
         Carry from Bokser stuff...
         """

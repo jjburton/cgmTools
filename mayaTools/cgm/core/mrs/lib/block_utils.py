@@ -3838,13 +3838,13 @@ def blockDat_get(self,report = True):
         if self.getMessage('orientHelper'):
             _d['rootOrientHelper'] = self.orientHelper.rotate
         
-        _d['define'] = blockDat_getControlDat(self,'define')#self.getBlockDat_formControls()
+        _d['define'] = blockDat_getControlDat(self,'define',report)#self.getBlockDat_formControls()
         
         if _blockState_int >= 1:
-            _d['form'] = blockDat_getControlDat(self,'form')#self.getBlockDat_formControls()
+            _d['form'] = blockDat_getControlDat(self,'form',report)#self.getBlockDat_formControls()
 
         if _blockState_int >= 2:
-            _d['prerig'] = blockDat_getControlDat(self,'prerig')#self.getBlockDat_prerigControls() 
+            _d['prerig'] = blockDat_getControlDat(self,'prerig',report)#self.getBlockDat_prerigControls() 
 
         for a in self.getAttrs(ud=True):
             if a not in _l_udMask:
