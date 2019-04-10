@@ -18,6 +18,7 @@ import os
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
+import Red9.core.Red9_CoreUtils as r9Core
 
 #========================================================================
 import logging
@@ -69,7 +70,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 #>>> Root settings =============================================================
-__version__ = '1.04042019'
+__version__ = '1.04092019'
 _sidePadding = 25
 
 def check_cgm():
@@ -694,6 +695,8 @@ class ui(cgmUI.cgmGUI):
             
             self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
             
+            self.uiUpdate_sceneBlocks()
+
             
     def build_menus(self):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
@@ -1565,6 +1568,9 @@ class ui(cgmUI.cgmGUI):
     def uiUpdate_building(self):
         _str_func = 'uiUpdate_building'   
         
+        
+        
+        self.uiUpdate_sceneBlocks()
         self.uiUpdate_scrollList_blocks()
         
         
@@ -3364,15 +3370,26 @@ class ui(cgmUI.cgmGUI):
         for o in self._l_toEnable:
             o(e=True, en=False)        
         
-    
+    def uiUpdate_sceneBlocks(self):
+        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
+        
+        self.__ml_blocks = _ml
+        self.__l_strings = _l_strings
+
     def uiUpdate_scrollList_blocks(self, select = None):
         _str_func = 'uiUpdate_scrollList_blocks'          
         self.uiScrollList_blocks.clear()
         
-        _ml = []
-        _l_strings = []
         
-        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
+        searchFilter=self.cgmUIField_filterBlocks.getValue()
+        #log.info(cgmGEN.logString_msg(_str_func, 'SearchFilter: {0}'.format(searchFilter)))
+        
+        _ml_use = []
+        
+        #_ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
+        _ml = copy.copy(self.__ml_blocks)
+        _l_strings = copy.copy(self.__l_strings)
+        
         
         """
         for i,s in enumerate(_l_strings):
@@ -3390,22 +3407,26 @@ class ui(cgmUI.cgmGUI):
             return False      
 
         #...menu...
-        _progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
+        #_progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
         
         try:
-            for i,strEntry in enumerate(_l_strings):
+            for i,strEntry in enumerate(r9Core.filterListByString(_l_strings, searchFilter, matchcase=True)):
+            #for i,strEntry in enumerate(_l_strings):
                 self.uiScrollList_blocks.append(strEntry)
-
+                idx= _l_strings.index(strEntry)
+                _ml_use.append(_ml[idx])
         except Exception,err:
             try:
                 log.error("|{0}| >> err: {1}".format(_str_func, err))  
                 for a in err:
                     log.error(a)
-                cgmUI.doEndMayaProgressBar(_progressBar)
+                #cgmUI.doEndMayaProgressBar(_progressBar)
             except:
                 raise Exception,err
+            
+        self._ml_blocks = _ml_use
 
-        cgmUI.doEndMayaProgressBar(_progressBar) 
+        #cgmUI.doEndMayaProgressBar(_progressBar) 
         
         if select:
             if select in self._ml_blocks:
@@ -3585,6 +3606,15 @@ class ui(cgmUI.cgmGUI):
         #>> Left Column
         #============================================================
         _LeftColumn = mUI.MelFormLayout(_MainForm)
+        _textField = mUI.MelTextField(_LeftColumn,
+                                      ann='Testing',
+                                      w=50,
+                                      en=True,
+                                      text = '')
+        self.cgmUIField_filterBlocks = _textField
+        self.cgmUIField_filterBlocks(edit=True,
+                                     tcc = lambda *a: self.uiUpdate_scrollList_blocks())
+        
         _scrollList = mUI.MelObjectScrollList(_LeftColumn, ut='cgmUISubTemplate',
                                               allowMultiSelection=True,en=True,
                                               dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
@@ -3605,7 +3635,9 @@ class ui(cgmUI.cgmGUI):
                                           'Force the scroll list to update')
         
         _LeftColumn(edit = True,
-                    af = [(_scrollList,"top",0),
+                    af = [(_textField,"top",0),
+                          (_textField,"left",0),
+                          (_textField,"right",0),                          
                           (_scrollList,"left",0),
                           (_scrollList,"right",0),
                           
@@ -3614,10 +3646,12 @@ class ui(cgmUI.cgmGUI):
                           (button_refresh,"bottom",0),
 
                           ],
-                    ac = [(_scrollList,"bottom",0,button_refresh),
+                    ac = [(_scrollList,"top",0,_textField),
+                          (_scrollList,"bottom",0,button_refresh),
                           
                          ],
-                    attachNone = [(button_refresh,'top')])#(_row_cgm,"top")	          
+                    attachNone = [(_textField,'bottom'),
+                                  (button_refresh,'top')])#(_row_cgm,"top")	          
   
         
         
