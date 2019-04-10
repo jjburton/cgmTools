@@ -615,18 +615,19 @@ def settings(self,settingsPlace = None,ml_targets = None):
             
             mSettingsShape.parent = _mTar
             
-            mSettings = _mTar.doCreateAt(setClass='cgmObject')
-            mSettings.p_position = newPos
-            mSettings.p_parent = _mTar
+            #mSettings = _mTar.doCreateAt(setClass='cgmObject')
+            #mSettings.p_position = newPos
+            #mSettings.p_parent = _mTar
             #mSettings.rotateOrder = _mTar.rotateOrder
             #mSettings.p_orient = _mTar.p_orient
             #mSettings.rotateAxis = mSettings.p_orient
             #mSettings.rotate = 0,0,0
             
-            CORERIG.shapeParent_in_place(mSettings,mSettingsShape.mNode,False)
+            #CORERIG.shapeParent_in_place(mSettings,mSettingsShape.mNode,False)
             
-            #mSettings = mSettingsShape
-            #CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            mSettings = mSettingsShape
+            reload(CORERIG)
+            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
             ATTR.copy_to(self.d_module['partName'],'cgmName',mSettings.mNode,driven='target')
 

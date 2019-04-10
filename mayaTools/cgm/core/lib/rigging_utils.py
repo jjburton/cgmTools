@@ -130,10 +130,11 @@ def match_orientation(obj = None, source = None,
     log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
-        _dup = mc.duplicate(obj, parentOnly = True)[0]
-        log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
+        _dup = mc.duplicate(obj, parentOnly = False)[0]
+        #log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
         for s in _l_shapes:
-            shapeParent_in_place(_dup,s,keepSource=False)        
+            mc.delete(s)
+            #shapeParent_in_place(_dup,s,keepSource=False)        
         
     #The meat of it...
     _restorePivotRP = False

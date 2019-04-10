@@ -206,6 +206,7 @@ d_block_profiles = {
             'squashFactorMin':.25,
             'ribbonAim':'stable',
             'shapersAim':'chain',
+            'settingsPlace':'end',            
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
             'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,1]},

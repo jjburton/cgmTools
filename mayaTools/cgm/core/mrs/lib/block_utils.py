@@ -225,19 +225,26 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 log.debug("|{0}| '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
                 
                 if ':' in t:
-                    v = checkType(a,'enum')
+                    v2 = None
+                    v2 = checkType(a,'enum')
                     
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
-                        strValue = ATTR.get_enumValueString(_short,a)
+                        _enum = ATTR.get_enum(_short,a)
+                        strValue = None
+                        if _enum != t:
+                            strValue = ATTR.get_enumValueString(_short,a)
+                        
                         self.addAttr(a,initialValue = v, attrType = 'enum', enumName= t, keyable = False)
-                        if v != None:
-                            try:ATTR.set(_short,a,v)
-                            except Exception,err:"...Failed to set old value: {0} | err: {1}".format(v,err)
-                        elif strValue and strValue in t:
+                        
+                        if strValue and strValue in t:
                             try:ATTR.set(_short,a,strValue)
                             except Exception,err:"...Failed to set old value: {0} | err: {1}".format(strValue,err)
+                        elif v2 != None:
+                            try:ATTR.set(_short,a,v)
+                            except Exception,err:"...Failed to set old value: {0} | err: {1}".format(v,err)
+
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
                         mc.select(cl=True)
