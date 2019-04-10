@@ -617,6 +617,7 @@ def settings(self,settingsPlace = None,ml_targets = None):
             
             mSettings = _mTar.doCreateAt(setClass='cgmObject')
             mSettings.p_position = newPos
+            mSettings.p_parent = _mTar
             #mSettings.rotateOrder = _mTar.rotateOrder
             #mSettings.p_orient = _mTar.p_orient
             #mSettings.rotateAxis = mSettings.p_orient
