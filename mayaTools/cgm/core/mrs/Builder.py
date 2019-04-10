@@ -3410,7 +3410,7 @@ class ui(cgmUI.cgmGUI):
         #_progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
         
         try:
-            for i,strEntry in enumerate(r9Core.filterListByString(_l_strings, searchFilter, matchcase=True)):
+            for i,strEntry in enumerate(r9Core.filterListByString(_l_strings, searchFilter, matchcase=False)):
             #for i,strEntry in enumerate(_l_strings):
                 self.uiScrollList_blocks.append(strEntry)
                 idx= _l_strings.index(strEntry)
