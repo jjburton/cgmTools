@@ -4038,7 +4038,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     if report:cgmGEN.walk_dat(_d,'[{0}] form blockDat'.format(self.p_nameShort))
     return _d
 
-def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, overrideMode = None, mainHandleNormalizeScale = True):
+def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, overrideMode = None, mainHandleNormalizeScale = False):
     _str_func = 'blockDat_load_state'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -4072,9 +4072,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
         _l_warnings = d_warnings[state]
     else:
         _l_warnings = []
-        
 
-        
     if not ml_handles:
         log.error("|{0}| >> No {1} handles found".format(_str_func,state))
     else:
@@ -4192,13 +4190,14 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                             ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                             
                         if _noScale != True:
-                            if _scaleMode == 'bb':
-                                try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
-                                except Exception,err:
-                                    log.error(err)
-                                    TRANS.scale_to_boundingBox_relative(mLoftCurve.mNode,_bb,freeze=False)
-                            else:
-                                ATTR.set(mLoftCurve.mNode,'scale',_s)
+                            if _s != None:
+                                if _scaleMode == 'bb':
+                                    try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
+                                    except Exception,err:
+                                        log.error(err)
+                                        TRANS.scale_to_boundingBox_relative(mLoftCurve.mNode,_bb,freeze=False)
+                                else:
+                                    ATTR.set(mLoftCurve.mNode,'scale',_s)
                                 
                         if _p:
                             mLoftCurve.p_position = _p

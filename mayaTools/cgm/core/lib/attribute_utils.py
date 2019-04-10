@@ -524,83 +524,86 @@ def set(node, attr = None, value = None, lock = False,**kws):
     :returns
         value(s)
     """ 
-    _str_func = 'set'
-    
-    if '.' in node or issubclass(type(node),dict):
-        _d = validate_arg(node)
-        if value == None and attr is not None:
-            value = attr
-    else:
-        _d = validate_arg(node,attr)  
-    
-    _combined = _d['combined']
-    _obj = _d['node']
-    _attr = _d['attr']
-    _wasLocked = False
-
-    log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
-    if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
-
-    _aType =  mc.getAttr(_combined,type=True)
-    _validType = validate_attrTypeName(_aType)
-    
-    
-    if is_locked(_combined):
-        _wasLocked = True
-        mc.setAttr(_combined,lock=False)    
-
-    #CONNECTED!!!
-    if not is_keyed(_d):
-        if break_connection(_d):
-            log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
-            
-    _current = get(_combined)
-    if _current == value:
-        log.debug("|{0}| >> Already has value: {1}".format(_str_func,_combined))
-        if _wasLocked:set_lock(_d,True)
-        return 
-    
-    _children = get_children(_d)
-    if _children:
-        if VALID.isListArg(value):
-            if len(_children) != len(value):
-                raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
-        else:
-            value = [value for i in range(len(_children))]
-        for i,c in enumerate(_children):
-            mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
-    elif _validType == 'long':
-        mc.setAttr(_combined,int(float(value)), **kws)
-    elif _validType == 'string':
-        mc.setAttr(_combined,str(value),type = 'string', **kws)
-    elif _validType == 'double':
-        mc.setAttr(_combined,float(value), **kws)
-    elif _validType == 'message':
-        set_message(_obj, _attr, value)
-    elif _validType == 'enum':
-        _l = get_enum(_d).split(':')        
-        if VALID.stringArg(value) and ':' in value:
-            #if len(_l) != len(value.split(':')):
-                #raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
-            mc.addAttr(_combined, edit=True, en = value, **kws)              
-        else:
-            _l = get_enum(_d).split(':')
-            
-            if value in _l:
-                mc.setAttr(_combined, _l.index(value), **kws)
-            elif value is not None and value <= len(_l):
-                mc.setAttr(_combined, value, **kws)  
-            else:
-                mc.setAttr(_combined,value, **kws)
+    try:
+        _str_func = 'set'
         
-    else:
-        mc.setAttr(_combined,value, **kws)
-
-    if _wasLocked or lock:
-        mc.setAttr(_combined,lock=True)    
-
-    return
-
+        if '.' in node or issubclass(type(node),dict):
+            _d = validate_arg(node)
+            if value == None and attr is not None:
+                value = attr
+        else:
+            _d = validate_arg(node,attr)  
+        
+        _combined = _d['combined']
+        _obj = _d['node']
+        _attr = _d['attr']
+        _wasLocked = False
+    
+        log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
+        if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
+    
+        _aType =  mc.getAttr(_combined,type=True)
+        _validType = validate_attrTypeName(_aType)
+        
+        
+        if is_locked(_combined):
+            _wasLocked = True
+            mc.setAttr(_combined,lock=False)    
+    
+        #CONNECTED!!!
+        if not is_keyed(_d):
+            if break_connection(_d):
+                log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+                
+        _current = get(_combined)
+        if _current == value:
+            log.debug("|{0}| >> Already has value: {1}".format(_str_func,_combined))
+            if _wasLocked:set_lock(_d,True)
+            return 
+        
+        _children = get_children(_d)
+        if _children:
+            if VALID.isListArg(value):
+                if len(_children) != len(value):
+                    raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
+            else:
+                value = [value for i in range(len(_children))]
+            for i,c in enumerate(_children):
+                mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
+        elif _validType == 'long':
+            mc.setAttr(_combined,int(float(value)), **kws)
+        elif _validType == 'string':
+            mc.setAttr(_combined,str(value),type = 'string', **kws)
+        elif _validType == 'double':
+            mc.setAttr(_combined,float(value), **kws)
+        elif _validType == 'message':
+            set_message(_obj, _attr, value)
+        elif _validType == 'enum':
+            _l = get_enum(_d).split(':')        
+            if VALID.stringArg(value) and ':' in value:
+                #if len(_l) != len(value.split(':')):
+                    #raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
+                mc.addAttr(_combined, edit=True, en = value, **kws)              
+            else:
+                _l = get_enum(_d).split(':')
+                
+                if value in _l:
+                    mc.setAttr(_combined, _l.index(value), **kws)
+                elif value is not None and value <= len(_l):
+                    mc.setAttr(_combined, value, **kws)  
+                else:
+                    mc.setAttr(_combined,value, **kws)
+            
+        else:
+            mc.setAttr(_combined,value, **kws)
+    
+        if _wasLocked or lock:
+            mc.setAttr(_combined,lock=True)    
+    
+        return
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def set_lock(node, attr = None, arg = None):
     """   
     Set the lock status of an attribute

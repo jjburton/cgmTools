@@ -45,7 +45,7 @@ import cgm.core.lib.geo_Utils as GEO
 import cgm.core.cgmPy.os_Utils as cgmOS
 import cgm.core.cgmPy.path_Utils as cgmPATH
 import cgm.core.mrs.assets as MRSASSETS
-path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
+#path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 #reload(MODULECONTROL)

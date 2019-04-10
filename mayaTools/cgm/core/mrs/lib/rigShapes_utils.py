@@ -644,14 +644,14 @@ def settings(self,settingsPlace = None,ml_targets = None):
         return mSettings
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
-def direct(self,ml_rigJoints = None):
+def direct(self,ml_rigJoints = None, mult = 2.0):
     try:
         _str_func = 'direct'
         log_start(_str_func)
         
         mBlock = self.mBlock
         mRigNull = self.mRigNull
-        _offset = self.v_offset
+        _offset = self.v_offset * mult
         _jointOrientation = self.d_orientation['str']        
         
         if not ml_rigJoints:

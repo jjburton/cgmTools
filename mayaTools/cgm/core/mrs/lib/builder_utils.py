@@ -2031,18 +2031,20 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         dist = offset * 5
                         pos_obj = mObj.p_position
+                        crvBase = CURVES.create_fromName(name='semiSphere',
+                                                     direction = 'z+',
+                                                     size = offset * 1.5)
+                        
                         for i,axis in enumerate([str_orientation[1], str_orientation[2]]):
                             for ii,d in enumerate(['+','-']):
                                 
-                                if 'limbSegmentHandleBack' and i == 0 and ii == 1:
+                                if mode =='limbSegmentHandleBack' and i == 0 and ii == 1:
                                     continue
                                 p = SNAPCALLS.get_special_pos([mObj.mNode,
                                                                str_meshShape],
                                                               'cast',axis+d)
 
-                                crv = CURVES.create_fromName(name='semiSphere',
-                                                             direction = 'z+',
-                                                             size = offset)
+                                crv = mc.duplicate(crvBase)[0]
                                 l_shapes.append(crv)
                                 mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
                                 
@@ -2057,7 +2059,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 mCrv.p_position = p_use
                                 
                                 SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
-                                
+                        mc.delete(crvBase)
                                 
 
                         for crv in l_shapes[1:]:
