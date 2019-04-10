@@ -1145,8 +1145,12 @@ def rig_dataBuffer(self):
         
         if mBlock.numJoints == 4 and mBlock.numControls == 3:
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
-            mBlock.segmentMidIKControl = 0    
-        
+            mBlock.segmentMidIKControl = 0
+            
+        #Vector ====================================================================================
+        self.mVec_up = mBlock.atUtils('prerig_get_upVector')
+        log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
+
         #Initial option checks ============================================================================    
         #if mBlock.scaleSetup:
             #raise NotImplementedError,"Haven't setup scale yet."
@@ -1450,7 +1454,7 @@ def rig_skeleton(self):
                 #DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,ml_rigJoints[-1].p_position])
             
                 SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
-                         mBlock.orientHelper.getAxisVector('y+'))
+                         self.mVec_up)
                 reload(JOINT)
                 JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')

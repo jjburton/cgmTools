@@ -1565,8 +1565,8 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.buildMenu_add,True))
         log.info("Add menu rebuilt")
 
-    def uiUpdate_building(self):
-        _str_func = 'uiUpdate_building'   
+    def uiUpdate_scrollList_full(self):
+        _str_func = 'uiUpdate_scrollList_full'   
         
         
         
@@ -1606,7 +1606,7 @@ class ui(cgmUI.cgmGUI):
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
-        self.uiUpdate_building()
+        self.uiUpdate_scrollList_full()
         #self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
         
         if  not self.var_mrsDevMode.value:
@@ -1633,7 +1633,7 @@ class ui(cgmUI.cgmGUI):
             return False
         log.info("|{0}| >> mMirror: {1}.".format(_str_func,mMirror.mNode))        
         
-        self.uiUpdate_building()
+        self.uiUpdate_scrollList_full()
         _idx = self._ml_blocks.index(mMirror)
         self.uiFunc_block_setActive(_idx)
         self.uiScrollList_blocks.selectByIdx(_idx)
@@ -1944,7 +1944,7 @@ class ui(cgmUI.cgmGUI):
                 #self.uiUpdate_scrollList_blocks()
                 
             if _updateUI:
-                self.uiUpdate_scrollList_blocks()
+                self.uiUpdate_scrollList_full()
                 
             if args[0] not in ['delete'] and _startMode != 0:
                 #ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
@@ -3355,7 +3355,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
         mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
-                         c=lambda *a: self.uiUpdate_building() )
+                         c=lambda *a: self.uiUpdate_scrollList_full() )
         
  
     def uiFunc_clear_loaded(self):
@@ -3631,7 +3631,7 @@ class ui(cgmUI.cgmGUI):
         self._l_toEnable.append(self.uiScrollList_blocks)
         
         button_refresh = CGMUI.add_Button(_LeftColumn,'Refresh',
-                                          lambda *a: self.uiUpdate_building(),
+                                          lambda *a: self.uiUpdate_scrollList_full(),
                                           'Force the scroll list to update')
         
         _LeftColumn(edit = True,
@@ -3963,7 +3963,7 @@ class ui(cgmUI.cgmGUI):
                        ],
                   attachNone = [])#(_row_cgm,"top")	  
         
-        self.uiUpdate_building()        
+        self.uiUpdate_scrollList_full()        
         
         
     def build_layoutWrapperOLD(self,parent):
@@ -4047,7 +4047,7 @@ class ui(cgmUI.cgmGUI):
                        ],
                   attachNone = [(_row_cgm,"top")])	        
         
-        self.uiUpdate_building()
+        self.uiUpdate_scrollList_full()
         
         #_sel = mc.ls(sl=True)
         #if _sel:
@@ -4135,8 +4135,8 @@ class uiCallback_withUpdate(object):
             log.debug("|{0}| resetting active block".format('uiCallback_withUpdate'))            
             self._ui.uiFunc_block_setActive()
         else:
-            self._ui.uiUpdate_building()
-        self._ui.uiUpdate_building()
+            self._ui.uiUpdate_scrollList_full()
+        self._ui.uiUpdate_scrollList_full()
         
         
         

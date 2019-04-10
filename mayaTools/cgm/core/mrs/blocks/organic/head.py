@@ -1387,9 +1387,10 @@ def skeleton_build(self, forceNew = True):
                 
                 _d = self.atBlockUtils('skeleton_getCreateDict', self.neckJoints +1)
                 
-                mOrientHelper = self.orientNeckHelper
                 
-                ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
+                mVec_up = mBlock.atUtils('prerig_get_upVector')
+                
+                ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mVec_up)
                 
                 for i,mJnt in enumerate(ml_joints):
                     #mJnt.rename(_l_namesToUse[i])
@@ -1479,6 +1480,9 @@ def rig_dataBuffer(self):
         
         self.mRootFormHandle = ml_formHandles[0]
         
+        #Vector ====================================================================================
+        self.mVec_up = mBlock.atUtils('prerig_get_upVector')
+        log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
         
         #Offset ============================================================================
         self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
@@ -1650,7 +1654,8 @@ def rig_skeleton(self):
             #mOrientHelper = ml_formHandles[1].orientHelper
             mOrientHelper =mBlock.orientHelper
             
-            vec_chainUp =mOrientHelper.getAxisVector('y+')
+            vec_chainUp = self.mVec_up
+
             
             #return mOrientHelper.getAxisVector('y+')
             ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk',

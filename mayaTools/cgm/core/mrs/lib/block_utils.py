@@ -1495,6 +1495,10 @@ def create_simpleFormLoftMesh(self, targets = None,
     try:
         _str_func = 'create_prerigLoftMesh'
         log.debug(cgmGEN.logString_start(_str_func))
+        
+        if self.getMayaAttr('isBlockFrame'):
+            log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
+            return                    
 
         _short = self.mNode
         _side = 'center'
@@ -5676,7 +5680,7 @@ def controlsRig_reset(self):
 
 
 _d_attrStateMasks = {0:[],
-                     1:['baseSizeX','baseSizeY','baseSizeZ','basicShape',
+                     1:['basicShape',
                         'axisAimX','axisAimY','axisAimZ',],
                      2:['blockProfile',
                         'blockScale','proxyShape','shapeDirection'],
@@ -5698,9 +5702,9 @@ _d_attrStateVisOn = {0:['blockState'],
                         'numSpacePivots'],
                      4:['proxyLoft','proxyGeoRoot']}
 _d_attrStateVisOff = {0:[],
-                     1:['baseSizeX','baseSizeY','baseSizeZ','basicShape',
+                     1:['basicShape',
                         'axisAimX','axisAimY','axisAimZ',],
-                     2:['blockProfile',
+                     2:['blockProfile','baseSizeX','baseSizeY','baseSizeZ',
                         'blockScale','proxyShape','numRoll','shapeDirection','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         'numControls'],
@@ -8182,9 +8186,12 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
             
             if proxy:
-                ml_mesh.extend(mBlock.verify_proxyMesh(puppetMeshMode=True))
+                _res = mBlock.verify_proxyMesh(puppetMeshMode=True)
+                if _res:ml_mesh.extend(_res)
+                
             else:
-                ml_mesh.extend(create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,))
+                _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
+                if _res:ml_mesh.extend(_res)
             
             """
             if skin:
@@ -8268,6 +8275,10 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
     _str_func = 'create_simpleMesh'
     log.debug("|{0}| >>  forceNew: {1} | skin: {2} ".format(_str_func,forceNew,skin)+ '-'*80)
     log.debug("{0}".format(self))
+    
+    if self.getMayaAttr('isBlockFrame'):
+        log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
+        return                
     
     mParent = False
     #Check for existance of mesh ========================================================================
@@ -8369,7 +8380,10 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
     _str_func = 'create_simpleLoftMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
-
+    
+    if self.getMayaAttr('isBlockFrame'):
+        log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
+        return            
 
     mBlockModule = self.p_blockModule
 
@@ -9641,7 +9655,12 @@ def prerig_get_upVector(self, markPos = False):
     log.debug(cgmGEN.logString_start(_str_func))
 
     mVectorRP = self.getMessageAsMeta('vectorRpHelper')
-    mOrient = self.getMessageAsMeta('orientHelper')
+    
+    _blockType = self.blockType
+    _tag_orient = 'orientHelper'
+    if _blockType in ['head']:
+        _tag_orient = 'orientNeckHelper'
+    mOrient = self.getMessageAsMeta(_tag_orient)
     
     if not mVectorRP:
         return log.error(cgmGEN.logString_start(_str_func,"No vector rp.") )
@@ -9668,7 +9687,7 @@ def prerig_get_upVector(self, markPos = False):
                 
     if markPos:
         pos_use = mVectorRP.p_position
-        size = TRANS.bbSize_get(mOrient.mNode,mode='max')
+        size = TRANS.bbSize_get(mVectorRP.mNode,mode='max') * 2
         crv = DIST.create_vectorCurve(pos_use,closestVector,
                                       size,name='{0}_upVector'.format(self.p_nameBase))
         TRANS.rotatePivot_set(crv,pos_use)
@@ -10545,6 +10564,11 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         _str_func = 'mesh_proxyCreate'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
+        
+        if self.getMayaAttr('isBlockFrame'):
+            log.debug(cgmGEN.logString_sub(_str_func,'blockFrame bypass'))
+            return            
+        
 
         mRigNull = self.moduleTarget.rigNull
         ml_shapes = []

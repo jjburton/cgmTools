@@ -102,12 +102,13 @@ _d_attrStateOff = {0:[],
 #cgmRigamathig
 
 def uiBuilderMenu(self,parent = None):
-    uiMenu = mc.menuItem( parent = parent, l='Master:', subMenu=True)
     _short = self.p_nameShort
     
-    mc.menuItem(uiMenu,
-                ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),                                                    
-                c = cgmGEN.Callback(resize_masterShape,self),
+    mc.menuItem(en=False,
+                label = "Master")        
+    
+    mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
+                c = cgmGEN.Callback(resize_masterShape,self,**{'resize':1}),
                 label = "Resize")            
     
 #=============================================================================================================

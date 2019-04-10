@@ -2378,6 +2378,7 @@ def rig_dataBuffer(self):
         self.b_leverEnd = mBlock.buildLeverEnd
         log.debug("|{0}| >> Quad | self.b_leverEnd: {1} ".format(_str_func,self.b_leverEnd))
         
+        #Vector ====================================================================================
         self.mVec_up = mBlock.atUtils('prerig_get_upVector')
         log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
 

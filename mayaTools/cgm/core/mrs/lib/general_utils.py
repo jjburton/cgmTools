@@ -133,6 +133,8 @@ _d_scrollList_shorts = {'left':'L',
                         'right':'R',
                         'center':'C',
                         'rear':'REAR',
+                        'upper':'UPR',
+                        'lower':'LWR',
                         'back':'BCK',
                         'front':'FRNT',
                         'define':'def',
@@ -226,20 +228,11 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 l_name = []
                 
                 #l_name.append( ATTR.get(_short,'blockType').capitalize() )
-                _blockProfile = mBlock.getMayaAttr('blockProfile')
                 _cgmName = mBlock.getMayaAttr('cgmName')
                 l_name.append(_cgmName)
-                
-                if _blockProfile:
-                    if _cgmName in _blockProfile:
-                        _blockProfile = _blockProfile.replace(_cgmName,'')
-                    _blockProfile= STR.camelCase(_blockProfile)                    
-                    l_name.append(_blockProfile)
 
-
-                _l_report.append(STR.camelCase(' '.join(l_name)))
-                
-                _l_report.append(ATTR.get(_short,'blockType').capitalize())
+                #_l_report.append(STR.camelCase(' '.join(l_name)))
+                _l_report.append(' - '.join(l_name))
                 
                     
                 #_l_report.append(ATTR.get(_short,'blockState'))
@@ -259,8 +252,24 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 if mBlock.isReferenced():
                     _l_report.append("Referenced")
                     
-        
                 _str = s_start + "--".join(_l_report)
+                
+                """
+                #Block dat
+                l_block = []
+                _blockProfile = mBlock.getMayaAttr('blockProfile')
+                l_block.append(ATTR.get(_short,'blockType').capitalize())
+                
+                if _blockProfile:
+                    if _cgmName in _blockProfile:
+                        _blockProfile = _blockProfile.replace(_cgmName,'')
+                    _blockProfile= STR.camelCase(_blockProfile)                    
+                    l_block.append(_blockProfile)
+                    
+                _str = _str + ('      [{0}]'.format("-".join(l_block)))"""
+                
+                    
+        
                 log.debug(_str + "   >> " + mBlock.mNode)
                 #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
                 stringList.append(_str)        
