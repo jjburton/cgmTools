@@ -596,7 +596,8 @@ def settings(self,settingsPlace = None,ml_targets = None):
             _settingsSize = _offset * 2
             
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
-                                                                           '{0}+'.format(_jointOrientation[2])),'cgmObject',setClass=True)
+                                                                           '{0}+'.format(_jointOrientation[2]),
+                                                                           baseSize=1.0),'cgmObject',setClass=True)
 
             
             mSettingsShape.doSnapTo(_mTar.mNode)
@@ -613,9 +614,18 @@ def settings(self,settingsPlace = None,ml_targets = None):
                              vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
             
             mSettingsShape.parent = _mTar
-            mSettings = mSettingsShape
             
-            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            mSettings = _mTar.doCreateAt(setClass='cgmObject')
+            mSettings.p_position = newPos
+            #mSettings.rotateOrder = _mTar.rotateOrder
+            #mSettings.p_orient = _mTar.p_orient
+            #mSettings.rotateAxis = mSettings.p_orient
+            #mSettings.rotate = 0,0,0
+            
+            CORERIG.shapeParent_in_place(mSettings,mSettingsShape.mNode,False)
+            
+            #mSettings = mSettingsShape
+            #CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
             ATTR.copy_to(self.d_module['partName'],'cgmName',mSettings.mNode,driven='target')
 

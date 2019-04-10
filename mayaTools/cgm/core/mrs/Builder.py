@@ -873,6 +873,10 @@ class ui(cgmUI.cgmGUI):
                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                            'atUtils','update',
                                                            **{'updateUI':1,'reverseContext':False})},
+                  'Block Rebuild':{'ann':'[DEV] Rebuild a block. In testing',
+                                                      'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                             'atUtils','update',True,None,
+                                                                            **{'updateUI':1,'reverseContext':False})},                  
                   'blockModule | debug':{'ann':'Set the blockModule to debug',
                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                          'atUtils','blockModule_setLogger',
@@ -951,10 +955,14 @@ class ui(cgmUI.cgmGUI):
                                  'atUtils', 'handles_snapToRotatePlane','form',True,
                                  **{'updateUI':0})},},               
                'Prerig':{
-                   'RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
+                   'Visualize | RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                 'atUtils', 'prerig_get_rpBasePos',
                                 **{'markPos':1,'updateUI':0})},
+                   'Visualize | Up Vector':{'ann':'Create a curve showing what the assumed rp up vector is',
+                                         'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                            'atUtils', 'prerig_get_upVector',
+                                            **{'markPos':1,'updateUI':0})},                   
                    'Snap RP to Orient':{'ann':'Snap rp hanlde to orient vector',
                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                    'atUtils', 'prerig_snapRPtoOrientHelper',
@@ -974,7 +982,9 @@ class ui(cgmUI.cgmGUI):
                                    'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                    'atUtils', 'prerig_handlesLock',False,
                                    **{'updateUI':0})},
-                   'divTags':['Handles | Lock','Query Indices'],                   
+                   'divTags':['Handles | Lock','Query Indices',
+                              'Visualize | RP Pos',
+                              ],                   
                    'Arrange | Linear Spaced':{'ann':'Unlock the prerig handles',
                                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                              'atUtils', 'prerig_handlesLayout','spaced','linear',
@@ -1894,7 +1904,7 @@ class ui(cgmUI.cgmGUI):
                 log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
                 ml_res.append(res)
-                
+                if res:log.info("{0} : {1}".format(i,res))
                 if b_dupMode:
                     md_dat[res] = mBlock
                     md_datRev[mBlock] = res

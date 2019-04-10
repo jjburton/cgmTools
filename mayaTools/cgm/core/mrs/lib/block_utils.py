@@ -39,6 +39,8 @@ from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core import cgm_RigMeta as RIGMETA
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.lib.arrange_utils as ARRANGE
+import cgm.core.lib.euclid as EUCLID
+
 reload(ARRANGE)
 import cgm.core.lib.geo_Utils as GEO
 from cgm.core.lib import curve_Utils as CURVES
@@ -3949,13 +3951,9 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
         _str_short = mObj.mNode
         log.debug("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
         if mObj.getMessage('orientHelper'):
-            #_l_orientHelpers.append(mObj.orientHelper.rotate)
             _d_orientHelpers[i] = mObj.orientHelper.rotate
-        #else:
-            #_l_orientHelpers.append(False)
 
         if mObj.getMessage('jointHelper'):
-            #_l_jointHelpers.append(mObj.jointHelper.translate)
             _d_jointHelpers[i] = mObj.jointHelper.translate
             
         mLoftCurve = mObj.getMessageAsMeta('loftCurve')
@@ -3970,6 +3968,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                 _p = mLoftCurve.p_position
                 
                 _d['bb'] = TRANS.bbSize_get(mLoftCurve.mNode)
+                _d['ab'] = DIST.get_axisSize(mLoftCurve.mNode)
                 
                 if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
@@ -3992,6 +3991,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                   'r':[mObj.rotate for mObj in ml_subShapers],
                   't':[mObj.translate for mObj in ml_subShapers],
                   's':[mObj.scale for mObj in ml_subShapers],
+                  'ab':[DIST.get_axisSize(mObj.mNode) for mObj in ml_subShapers],                             
                   'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_subShapers]}            
             if _d:
                 _d_subShapers[i] = _d            
@@ -4004,6 +4004,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     _d = {'positions':[mObj.p_position for mObj in ml_handles],
           'orients':[mObj.p_orient for mObj in ml_handles],
           'scales':[mObj.scale for mObj in ml_handles],
+          'names':[mObj.p_nameBase for mObj in ml_handles],
           'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_handles]}
     
     if _d_orientHelpers:
@@ -4026,9 +4027,22 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     if report:cgmGEN.walk_dat(_d,'[{0}] form blockDat'.format(self.p_nameShort))
     return _d
 
-def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
+def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, overrideMode = None, mainHandleNormalizeScale = True):
     _str_func = 'blockDat_load_state'
     log.debug(cgmGEN.logString_start(_str_func))
+    
+    _noScale = False
+    _scaleMode = None
+    if overrideMode:
+        if overrideMode == 'update':
+            if state not in ['form',1]:
+                _noScale = True
+                mainHandleNormalizeScale = False
+            else:
+                mainHandleNormalizeScale = True
+                _scaleMode = 'bb'
+    
+    #pprint.pprint([mainHandleNormalizeScale,_noScale,_scaleMode])    
     
     if not blockDat:
         log.debug(cgmGEN.logString_msg(_str_func,"No blockDat, using self"))
@@ -4039,7 +4053,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         log.error(cgmGEN.logString_msg(_str_func,"No {0} data found in blockDat".format(state)))
         return False
     
-    ml_handles = self.atUtils('controls_get',**{state:True})
+    ml_handles = controls_get(self,**{state:True})
     
     if d_warnings:
         if not d_warnings.get(state):
@@ -4048,6 +4062,8 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
     else:
         _l_warnings = []
         
+
+        
     if not ml_handles:
         log.error("|{0}| >> No {1} handles found".format(_str_func,state))
     else:
@@ -4055,6 +4071,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         _posTempl = d_state.get('positions')
         _orientsTempl = d_state.get('orients')
         _scaleTempl = d_state.get('scales')
+        _bbTempl = d_state.get('bb')
         _jointHelpers = d_state.get('jointHelpers')
         _loftCurves = d_state.get('loftCurves',{})
         _subShapers = d_state.get('subShapers',{})
@@ -4063,86 +4080,165 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None):
         if state == 'prerig':
             _jointHelpersPre = d_state.get('jointHelpers')
             
+        md_match = {}
+        for i,mHandle in enumerate(ml_handles):
+            md_match[i] = mHandle
+            
         if len(ml_handles) > _len_posTempl:
+            msg = "|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}. Attempting to match".format(_str_func,len( ml_handles),_len_posTempl,state)
+            log.warning(msg)
+            
+            _names = d_state['names']
+            for i,name in enumerate(_names):
+                for mHandle in ml_handles:
+                    if mHandle.p_nameShort == name:
+                        md_match[i] = mHandle
+                if not md_match.get(i):
+                    log.warning(cgmGEN.logString_msg(_str_func, "Couldn't find: {0} | {1}".format(i,name)))
+                    
+                                            
+            
+            """
             msg = "|{0}| >> {3} handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( ml_handles),_len_posTempl,state)
             if d_warnings:
                 _l_warnings.append(msg)
             else:
-                log.warning(msg)
-        else:
-            for i_loop in range(3):
-                log.debug(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
-                for i,mObj in enumerate(ml_handles):
-                    log.debug(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
-                    
-                    _handleType = mObj.getMayaAttr('handleType')
-                    if _handleType == 'vector':
-                        try:
-                            mObj.p_orient = _orientsTempl[i]
-                            continue
-                        except Exception,err:
-                            _l_warnings.append('{0}...'.format(mObj.p_nameShort))
-                            _l_warnings.append('Couldnt set vector handle orient | {0}'.format(err))
-                    
-                    if i > _len_posTempl-1:
-                        _l_warnings.append("No data for: {0}".format(mObj))
-                        continue
-                    
-                    mObj.p_position = _posTempl[i]
-                    if not ATTR.is_locked(mObj.mNode,'rotate'):
+                log.warning(msg)"""
+            
+        #pprint.pprint(md_match)
+        
+        for i_loop in range(3):
+            log.debug(cgmGEN.logString_sub(_str_func,"Loop: {0}".format(i_loop)))
+            for i,mObj in md_match.iteritems():
+                if not i_loop:log.info(cgmGEN.logString_msg(_str_func,"Handle: {0}".format(mObj)))
+                
+                _handleType = mObj.getMayaAttr('handleType')
+                if _handleType == 'vector':
+                    try:
                         mObj.p_orient = _orientsTempl[i]
-                        
-                    _tmp_short = mObj.mNode
-                    for ii,v in enumerate(_scaleTempl[i]):
-                        _a = 's'+'xyz'[ii]
-                        if not mObj.isAttrConnected(_a):
-                            ATTR.set(_tmp_short,_a,v)
-                        else:
-                            log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))
-                    if _jointHelpers and _jointHelpers.get(i):
-                        mObj.jointHelper.translate = _jointHelpers[i]
+                        continue
+                    except Exception,err:
+                        _l_warnings.append('{0}...'.format(mObj.p_nameShort))
+                        _l_warnings.append('Couldnt set vector handle orient | {0}'.format(err))
+                
+                if i > _len_posTempl-1:
+                    _l_warnings.append("No data for: {0}".format(mObj))
+                    continue
+                
+                mObj.p_position = _posTempl[i]
+                if not ATTR.is_locked(mObj.mNode,'rotate'):
+                    mObj.p_orient = _orientsTempl[i]
                     
-                    _d_loft = _loftCurves.get(str(i))
-                    if _d_loft:
-                        if i_loop:
-                            log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                _tmp_short = mObj.mNode
+                
+                if _noScale != True:
+                    _cgmType = mObj.getMayaAttr('cgmType')
+                    if mainHandleNormalizeScale and _cgmType in ['blockHandle']:
+                        _average = MATH.average(_bbTempl[i]) * .5
+                        mc.scale(_average,_average,_average, _tmp_short, absolute = True)
                         
-                            mLoftCurve = mObj.loftCurve
-                            _rot = _d_loft.get('r')
-                            _s = _d_loft.get('s')
-                            _t = _d_loft.get('t')
-                            if _rot:
-                                ATTR.set(mLoftCurve.mNode,'rotate',_rot)
-                            if _s:
-                                ATTR.set(mLoftCurve.mNode,'scale',_s)
-                            if _t:
-                                ATTR.set(mLoftCurve.mNode,'translate',_t)
+                        #TRANS.scale_to_boundingBox(_tmp_short,[_bbTempl[i][0],
+                        #                                       _average,
+                        #                                       _bbTempl[i][2]],freeze=False)
+                    else:
+                        _noBB = False
+                        _normalizeUp = False
+                        if _cgmType in ['pivotHelper']:
+                            if  mObj.getMayaAttr('cgmName') not in ['base','top']:
+                                _noBB = True
+                            else:
+                                _normalizeUp = True
                                 
-                    if _jointHelpersPre and _jointHelpersPre.get(i):
-                        mObj.jointHelper.translate = _jointHelpersPre[i]                    
+                        if _scaleMode == 'bb' and _noBB != True:
+                            TRANS.scale_to_boundingBox_relative(_tmp_short,_bbTempl[i],freeze=False)
+                        else:
+                            for ii,v in enumerate(_scaleTempl[i]):
+                                _a = 's'+'xyz'[ii]
+                                if not mObj.isAttrConnected(_a):
+                                    ATTR.set(_tmp_short,_a,v)
+                                else:
+                                    log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))
+                        if _normalizeUp:
+                            mObj.sy = 1
                             
-                for i,d_sub in _subShapers.iteritems():
-                    ml_subs = ml_handles[int(i)].msgList_get('subShapers')
-                    log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
-                    if not ml_subs:
-                        raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
-                    _t = d_sub.get('t')
-                    _r = d_sub.get('r')
-                    _s = d_sub.get('s')
-                    _p = d_sub.get('p')
-                    _len_p = len(_p)
-                    for ii,mObj in enumerate(ml_subs):
-                        if ii > _len_p-1:
-                            _l_warnings.append("No data for sub {0} on {1}".format(ii,mObj))
-                            mObj.p_position = _p[ii-1]
-                            #ATTR.set(mObj.mNode,'t',_t[ii])
-                            ATTR.set(mObj.mNode,'r',_r[ii-1])
-                            ATTR.set(mObj.mNode,'s',_s[ii-1])                             
-                            continue                            
-                        mObj.p_position = _p[ii]
+                #Secondary stuff
+                if _jointHelpers and _jointHelpers.get(i):
+                    mObj.jointHelper.translate = _jointHelpers[i]
+                
+                _d_loft = _loftCurves.get(str(i))
+                if _d_loft:
+                    if i_loop:
+                        log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
+                    
+                        mLoftCurve = mObj.loftCurve
+                        _rot = _d_loft.get('r')
+                        _s = _d_loft.get('s')
+                        _t = _d_loft.get('t')
+                        _bb = _d_loft.get('bb')
+                        _ab = _d_loft.get('ab')
+                        _p = _d_loft.get('p')
+                        if _rot:
+                            ATTR.set(mLoftCurve.mNode,'rotate',_rot)
+                            
+                        if _noScale != True:
+                            if _scaleMode == 'bb':
+                                try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
+                                except Exception,err:
+                                    log.error(err)
+                                    TRANS.scale_to_boundingBox_relative(mLoftCurve.mNode,_bb,freeze=False)
+                            else:
+                                ATTR.set(mLoftCurve.mNode,'scale',_s)
+                                
+                        if _p:
+                            mLoftCurve.p_position = _p
+                        #if _t:
+                            #ATTR.set(mLoftCurve.mNode,'translate',_t)
+                            
+                if _jointHelpersPre and _jointHelpersPre.get(i):
+                    mObj.jointHelper.translate = _jointHelpersPre[i]                    
+                        
+            for i,d_sub in _subShapers.iteritems():
+                ml_subs = ml_handles[int(i)].msgList_get('subShapers')
+                log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                if not ml_subs:
+                    raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                _t = d_sub.get('t')
+                _r = d_sub.get('r')
+                _s = d_sub.get('s')
+                _p = d_sub.get('p')
+                _bb = d_sub.get('bb')
+                _ab = d_sub.get('ab')
+                
+                _len_p = len(_p)
+                for ii,mObj in enumerate(ml_subs):
+                    if ii > _len_p-1:
+                        _l_warnings.append("No data for sub {0} on {1}".format(ii,mObj))
+                        #mObj.p_position = _p[ii-1]
                         #ATTR.set(mObj.mNode,'t',_t[ii])
-                        ATTR.set(mObj.mNode,'r',_r[ii])
-                        ATTR.set(mObj.mNode,'s',_s[ii])        
+                        ATTR.set(mObj.mNode,'r',_r[ii-1])
+                        
+                        if _noScale != True:
+                            if _scaleMode == 'bb':
+                                try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii-1],skip=2)
+                                except Exception,err:
+                                    log.error(err)                                
+                                    TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii-1],freeze=False)
+                            else:
+                                ATTR.set(mObj.mNode,'s',_s[ii-1])
+                        
+                        continue                            
+                    mObj.p_position = _p[ii]
+                    #ATTR.set(mObj.mNode,'t',_t[ii])
+                    ATTR.set(mObj.mNode,'r',_r[ii])
+                    
+                    if _noScale != True:
+                        if _scaleMode == 'bb':
+                            try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii],skip=2)
+                            except Exception,err:
+                                log.error(err)
+                                TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii],freeze=False)
+                        else:
+                            ATTR.set(mObj.mNode,'s',_s[ii])        
 
 @cgmGEN.Timer
 def blockDat_load(self, blockDat = None,
@@ -4150,6 +4246,7 @@ def blockDat_load(self, blockDat = None,
                   settingsOnly = False,
                   autoPush = True,
                   currentOnly=False,
+                  overrideMode = None,
                   redefine=False):
     """
     redefine - When duplicating, sometimes we need to redfine after data load
@@ -4268,7 +4365,7 @@ def blockDat_load(self, blockDat = None,
             log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
             controls_mirror(mMirror,self,define=True)
         else:
-            blockDat_load_state(self,'define',blockDat,_d_warnings)
+            blockDat_load_state(self,'define',blockDat,_d_warnings,overrideMode=overrideMode)
         
         #>>Form Controls ====================================================================================
         log.debug(cgmGEN.logString_sub(_str_func,'form'))
@@ -4299,7 +4396,7 @@ def blockDat_load(self, blockDat = None,
                 else:
                     _d_warnings['form']=["Missing orient Helper. Data found."]
                 
-            blockDat_load_state(self,'form',blockDat,_d_warnings)
+            blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
            
         
         #Prerig ==============================================================================================
@@ -4318,7 +4415,7 @@ def blockDat_load(self, blockDat = None,
             log.debug("|{0}| >> mMirror prerig pull...".format(_str_func))            
             self.UTILS.controls_mirror(mMirror,self,form=False,prerig=True)
         else:
-            blockDat_load_state(self,'prerig',blockDat,_d_warnings)
+            blockDat_load_state(self,'prerig',blockDat,_d_warnings,overrideMode,overrideMode)
             
         if _d_warnings:
             for k,d in _d_warnings.iteritems():
@@ -5026,7 +5123,7 @@ def get_blockDagNodes(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
-def controls_get(self,define = False, form = False, prerig= False, asDict =False):
+def controls_get(self,define = False, form = False, prerig= False, asDict =False, getExtra=False):
     try:
         _short = self.p_nameShort        
         _str_func = '[{0}] controls_get'.format(_short)
@@ -5048,6 +5145,16 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
             if mObj.getMessage('jointHelper'):
                 log.debug("|{0}| >> has joint helper...".format(_str_func))
                 addMObj(mObj.jointHelper,datType)
+                
+            if getExtra:
+                mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+                if mLoftCurve:addMObj(mLoftCurve,datType)
+                
+                ml_subShapers = mObj.msgList_get('subShapers')
+                if ml_subShapers:
+                    for mSub in ml_subShapers:
+                        addMObj(mSub,datType)
+                
         
         def addPivotHelper(mPivotHelper,datType):
             addMObj(mPivotHelper)
@@ -9520,6 +9627,50 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     if cleanUp:
         mc.delete(_res_body + l_crvs)
         
+def prerig_get_upVector(self, markPos = False):
+    """
+    """
+    _str_func = 'prerig_get_upVector'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+    mOrient = self.getMessageAsMeta('orientHelper')
+    
+    if not mVectorRP:
+        return log.error(cgmGEN.logString_start(_str_func,"No vector rp.") )
+    if not mOrient:
+        raise log.error( cgmGEN.logString_start(_str_func,"No mOrient.") )
+    
+    rpVectorX = mVectorRP.getTransformDirection(EUCLID.Vector3(1,0,0)).normalized()
+    rpVectorY = mVectorRP.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
+    rpVectorZ = mVectorRP.getTransformDirection(EUCLID.Vector3(0,0,1)).normalized()
+    
+    upOrientVectorY = mOrient.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
+    
+    closestDot = -1.0
+    closestVector = rpVectorY
+    
+    for v in [rpVectorX, rpVectorY, rpVectorZ]:
+        dot = upOrientVectorY.dot(v)
+        if( abs(dot) > closestDot):
+            closestDot = abs(dot)
+            if dot < 0:
+                closestVector = -v
+            else:
+                closestVector = v
+                
+    if markPos:
+        pos_use = mVectorRP.p_position
+        size = TRANS.bbSize_get(mOrient.mNode,mode='max')
+        crv = DIST.create_vectorCurve(pos_use,closestVector,
+                                      size,name='{0}_upVector'.format(self.p_nameBase))
+        TRANS.rotatePivot_set(crv,pos_use)
+        CORERIG.override_color(crv,'white')
+
+    
+    return closestVector
+
+    
 
 def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle=False):
     """
@@ -9701,6 +9852,7 @@ def pivotHelper_get(self,mHandle=None,
                     setAttrs = {},
                     side = None,
                     loft = True,
+                    mParent = False,
                     forceNew=False):
     try:
         _str_func = 'addPivotSetupHelper'
@@ -9770,7 +9922,13 @@ def pivotHelper_get(self,mHandle=None,
             mTopLoft.addAttr('cgmType','pivotHelper')            
             mTopLoft.doName()
                 
-            mTopLoft.parent = mPivotRootHandle
+            mTopLoft.parent = mParent
+            mTrack = mTopLoft.doCreateAt(setClass='cgmObject')
+            mTrack.p_parent = mPivotRootHandle
+            mGroup = mTopLoft.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
+            
+
 
         #_axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
         #SNAP.go(_axisBox,mHandle.mNode)
@@ -9791,7 +9949,12 @@ def pivotHelper_get(self,mHandle=None,
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)
                 ml_pivots.append(mPivot)
-                mPivot.p_parent = mPivotRootHandle
+                mPivot.p_parent = mParent
+                
+                mTrack = mPivot.doCreateAt(setClass='cgmObject')
+                mTrack.p_parent = mPivotRootHandle
+                mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)                
 
                 mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
 
@@ -9807,9 +9970,8 @@ def pivotHelper_get(self,mHandle=None,
                                                    sizeMode = 'fixed', size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)
-                mPivot.p_parent = mPivotRootHandle
+                
 
-                mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
 
                 #mPivot.p_position = DIST.get_pos_by_axis_dist(mHandle.mNode,mAxis.p_string, _size)
                 mPivot.p_position = DIST.get_closest_point(DIST.get_pos_by_axis_dist(mHandle.mNode,mAxis.p_string, _size),
@@ -9818,6 +9980,15 @@ def pivotHelper_get(self,mHandle=None,
                 #SNAPCALLS.get_special_pos()
                 #mPivot.p_position = #SNAPCALLS.get_special_pos(mPivotRootHandle.p_nameLong,'axisBox',mAxis.p_string,True)
                 #SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
+                
+                mPivot.p_parent = mParent
+            
+                mTrack = mPivot.doCreateAt(setClass='cgmObject')
+                mTrack.p_parent = mPivotRootHandle
+                mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+                mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
+                
+                mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect                    
 
                 ml_pivots.append(mPivot)
 
@@ -9833,8 +10004,8 @@ def pivotHelper_get(self,mHandle=None,
 
         #mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
 
-        for mPivot in ml_pivots:#Unparent for loft
-            mPivot.p_parent = False
+        #for mPivot in ml_pivots:#Unparent for loft
+            #mPivot.p_parent = False
             
         if loft:
             if mHandle.getMessage('loftCurve'):
@@ -9890,7 +10061,7 @@ def pivotHelper_get(self,mHandle=None,
             #CORERIG.colorControl(mPivot.mNode,_side,'sub') 
             mHandleFactory.color(mPivot.mNode,_side,'sub')
 
-            mPivot.parent = mPivotRootHandle
+            #mPivot.parent = mPivotRootHandle
 
             #if mPivot.cgmName in ['ball','left','right']:
                 #mPivot.tz = .5
@@ -10101,9 +10272,8 @@ def update(self,force=False,stopState = 'define'):
             _dat['blockState'] = stopState
         self.blockDat = _dat
         
-        md_dat = snapShot_get(self)        
         
-        blockDat_load(self,redefine=True)
+        blockDat_load(self,redefine=True,overrideMode='update')
         
         try:self.doStore('version', mBlockModule.__version__, 'string',lock=True)
         except Exception,err:
@@ -10117,6 +10287,7 @@ def update(self,force=False,stopState = 'define'):
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
         
 def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRigFac'):
     try:
@@ -10820,7 +10991,7 @@ def snapShot_get(self):
         _blockScale = self.blockScale
                 
         
-        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True)
+        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True,getExtra=0)
         md_dat = {}
         
         md_ctrls['base']=[self]
@@ -10878,7 +11049,7 @@ def snapShot_get(self):
     finally:
         CGMUI.doEndMayaProgressBar()
         
-def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
+def snapShot_set(self, md_dat = None, sizeMethod = 'bb', mainHandleNormalizeScale=True):
     """
     Bring a rigBlock to current settings - check attributes, reset baseDat
     """
@@ -10892,7 +11063,7 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
             
 
 
-        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True)
+        md_ctrls = controls_get(self, define=True, form=True, prerig=True,asDict=True,getExtra=0)
         md_ctrls['base']=[self]
         
         log.debug(cgmGEN.logString_sub(_str_func, 'Gather Dat'))
@@ -10904,6 +11075,8 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
         def matchControl(mDat,idx,datSet):
             def match(mObj):
                 mDat['mCtrl'] = mObj
+                mDat['strNew'] = mObj.mNode
+                #md_dat[datSet][idx] = mDat#...force back
                 ml_matched.append(mObj)
                 ml_unmatched.remove(mObj)
                 return mObj
@@ -10912,9 +11085,9 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
                 return self
             
             mCtrl = mDat.get('mObj')
-            
             if mCtrl.mNode:
-                return mCtrl
+                return match(mCtrl)
+            
             #Str check
             mCandidate = cgmMeta.validateObjArg(mDat['str'],noneValid=True)
             if mCandidate:
@@ -10929,53 +11102,62 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
             try:
                 log.info(cgmGEN.logString_msg(_str_func, "Index Validated | {0}".format(idx)))
                 mObj =  match(md_ctrls[datSet][idx])
-                return mObj
+                return match(mObj)
             except:pass
+            
             log.error(cgmGEN.logString_msg(_str_func, "Missing: {0}".format(mDat['nameBase'])))
             md_missing.append(mDat)
             return False
-                
+        
         for datSet in 'base','define','form','prerig':
             mDatSet = md_dat[datSet]
             log.info(cgmGEN.logString_msg(_str_func, "{0}...".format(datSet)))
             ml_matched = []
             ml_unmatched = copy.copy(md_ctrls[datSet])
             
-            
-            
             for ii in range(3):#3 loop to account for parentage
                 log.info(cgmGEN.logString_sub(_str_func, 'Push: {0}'.format(ii)))
-                for i,mDat in mDatSet.iteritems():
-                    log.info(cgmGEN.logString_msg(_str_func, "{0} | {1} | {2}".format(i,mDat['nameBase'],mDat)))
-                    
-                    if not ii:
-                        mCtrl = matchControl(mDat,i,datSet)
+                for i,mDat in mDatSet.iteritems():                    
 
                     mCtrl = mDat.get('mCtrl')
                     if not mCtrl:
-                        log.error(cgmGEN.logString_msg(_str_func, "Missing: {0}".format(mDat['nameBase'])))
-                        continue                    
-
-                    _d = mDat
-                    log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(_d['str'],_d)))
-                    
-                    _pos = _d.get('pos')
-                    _noParent = _d['noParent']
-                    if _pos:mCtrl.p_position = _pos
-                    
-                    _orient = _d.get('orient')
-                    if _orient:
-                        mCtrl.p_orient = _orient
-
-                    #_worldScale = _d.get('worldScale')
-                    #if _worldScale and _noParent is not True:
-                    #    mParent = mCtrl.p_parent
-                    #    if mParent:
-                    #        mCtrl.p_parent = False
-                    #    mc.xform(mCtrl.mNode, scale = _worldScale, worldSpace = True, absolute = True)
+                        mCtrl = matchControl(mDat,i,datSet)
                         
-                    #    if mParent:mCtrl.p_parent = mParent
-                    #else:
+                    if not mCtrl:
+                        log.error(cgmGEN.logString_msg(_str_func, "Missing: {0} | pass: {1}".format(mDat['nameBase'], ii)))
+                        continue
+                    
+                    str_short = mCtrl.mNode#mDat['strNew']
+                    log.info(cgmGEN.logString_msg(_str_func, "{0} | {1} | {2}".format(i,str_short,mDat)))
+                    
+                    _d = mDat
+                    log.debug(cgmGEN.logString_msg(_str_func, "{0} | {1}".format(str_short,_d)))
+                    
+                    #Scale...
+                    if datSet != 'base':
+                        _bb = mDat.get('bbSize')
+                        _scaleDone = False
+
+                        if _bb:
+                            if mainHandleNormalizeScale and mCtrl.getMayaAttr('cgmType') in ['blockHandle']:
+                                _average = MATH.average(_bb)
+                                mc.scale(_average,_average,_average, str_short, absolute = True)
+                                _scaleDone = True
+                                #TRANS.scale_to_boundingBox(str_short,[_average,_average,_average],freeze=False)
+                        
+                        if not _scaleDone:
+                            if sizeMethod == 'bb' and _bb:
+                                TRANS.scale_to_boundingBox_relative(str_short,_bb,freeze=False)
+                            else:
+                                for ii,a in enumerate('xyz'):
+                                    _a = 's'+ a
+                                    _v = mDat.get(_a)
+                                    if not mCtrl.isAttrConnected(_a) and _v:
+                                        ATTR.set(str_short,_a,_v)
+                                    else:
+                                        log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))                    
+                    
+                    """
                     if not ATTR.is_locked(mCtrl.mNode,'scale'):
                         if sizeMethod == 'axisSize':
                             if _d.get('axisSize'):
@@ -10989,7 +11171,32 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'axisSize'):
                                     reload(TRANS)
                                     TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
                                 except Exception,err:
-                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))
+                                    log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))"""                    
+                    
+                    
+                    
+                    #Other...
+                    
+                    _pos = _d.get('pos')
+                    _noParent = _d['noParent']
+                    if _pos:
+                        try:mCtrl.p_position = _pos
+                        except:pass
+                        
+                    _orient = _d.get('orient')
+                    if _orient:
+                        mCtrl.p_orient = _orient
+
+                    #_worldScale = _d.get('worldScale')
+                    #if _worldScale and _noParent is not True:
+                    #    mParent = mCtrl.p_parent
+                    #    if mParent:
+                    #        mCtrl.p_parent = False
+                    #    mc.xform(mCtrl.mNode, scale = _worldScale, worldSpace = True, absolute = True)
+                        
+                    #    if mParent:mCtrl.p_parent = mParent
+                    #else:
+
             if _state == datSet:
                 break
             if ml_unmatched:

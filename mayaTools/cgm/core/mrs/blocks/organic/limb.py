@@ -1628,14 +1628,14 @@ def form(self):
             
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
-                mFoot = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=False)
-                mFoot.p_parent = mFormNull
+                mFoot = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=False, mParent = mFormNull)
+                #mFoot.p_parent = mFormNull
                 
                 #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mFormNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
-                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=True)
-                mFoot.p_parent = mFormNull
+                mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=True, mParent = mFormNull)
+                #mFoot.p_parent = mFormNull
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
                 mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+',baseSize=_bankSize)
@@ -2151,10 +2151,13 @@ def skeleton_build(self, forceNew = True):
             l_pos.append(mObj.p_position)
                 
         mOrientHelper = self.orientHelper
-        ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
-                                            worldUpAxis= mOrientHelper.getAxisVector('y+'), orient= False)
         
-        _d_orient = {'worldUpAxis':mOrientHelper.getAxisVector('y+'),
+        mVecUp = self.atUtils('prerig_get_upVector')
+        #mOrientHelper.getAxisVector('y+')
+        ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
+                                            worldUpAxis= mVecUp, orient= False)
+        
+        _d_orient = {'worldUpAxis':mVecUp,
                      'relativeOrient':False}
         if _b_lever:
             log.debug("|{0}| >> lever...".format(_str_func))            
@@ -2374,6 +2377,10 @@ def rig_dataBuffer(self):
         self.mPivotHelper = False
         self.b_leverEnd = mBlock.buildLeverEnd
         log.debug("|{0}| >> Quad | self.b_leverEnd: {1} ".format(_str_func,self.b_leverEnd))
+        
+        self.mVec_up = mBlock.atUtils('prerig_get_upVector')
+        log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
+
         
         #Initial option checks ============================================================================    
         #if mBlock.scaleSetup:
@@ -2839,7 +2846,7 @@ def rig_skeleton(self):
                 mLever.p_position = ml_jointHelpers[0].p_position
                 
                 SNAP.aim(mLever.mNode, ml_fkJoints[0].mNode, 'z+','y+','vector',
-                         mBlock.orientHelper.getAxisVector('y+'))
+                         self.mVec_up)
                 reload(JOINT)
                 JOINT.freezeOrientation(mLever.mNode)
                 mRigNull.connectChildNode(mLever,'leverFK','rigNull')
@@ -2868,7 +2875,7 @@ def rig_skeleton(self):
             mFollowEnd.p_parent = mFollowMid
             
             JOINT.orientChain([mFollowBase.mNode, mFollowMid, mFollowEnd.mNode],
-                              worldUpAxis=mBlock.orientHelper.getAxisVector('y+'))
+                              worldUpAxis=self.mVec_up)
             
             l_tags = ['start','mid','end']
             for i,mJnt in enumerate([mFollowBase,mFollowMid,mFollowEnd]):
@@ -2924,7 +2931,7 @@ def rig_skeleton(self):
                 mOrientHelper = mBlock.orientHelper            
                 JOINT.orientChain(ml_ikJoints[-1:],
                                  relativeOrient=False,
-                                 worldUpAxis= mOrientHelper.getAxisVector('y+'))
+                                 worldUpAxis= self.mVec_up)
                 mRigNull.msgList_connect('ikJoints',ml_ikJoints)
             
             BLOCKUTILS.skeleton_pushSettings(ml_ikJoints,self.d_orientation['str'],
@@ -3125,7 +3132,7 @@ def rig_skeleton(self):
                                                                    ml_set[-1].p_position])
                 
                     SNAP.aim(mMidIK.mNode, ml_set[-1].mNode, 'z+','y+','vector',
-                             mBlock.orientHelper.getAxisVector('y+'))
+                             self.mVec_up)
                     
                     JOINT.freezeOrientation(mMidIK.mNode)
                     
@@ -4005,7 +4012,11 @@ def rig_shapes(self):
         if ml_blendJoints:
             ml_targets = ml_blendJoints
         else:
-            ml_targets = ml_fkCastTargets        
+            ml_targets = ml_fkCastTargets
+            
+        
+        #mSettings = RIGSHAPES.settings(self,mBlock.getEnumValueString('settingsPlace'),ml_targets)
+        #return
             
         #mIKEnd = ml_prerigHandleTargets[-1]
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
@@ -5856,6 +5867,7 @@ def rig_frame(self):
                 #>>> Fix our ik_handle twist at the end of all of the parenting
                 IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
+                
                 if mIKControlEnd:
                     mIKEndDriver = mIKControlEnd
                 else:
@@ -6990,7 +7002,7 @@ def rig_pivotSetup(self):
                 mFKAim_base.p_parent = mLimbRoot
         
                 JOINT.orientChain(ml_fkAimJoints,
-                                  worldUpAxis=mBlock.orientHelper.getAxisVector('y+'))
+                                  worldUpAxis=self.mVec_up)
         
                 for i,mJnt in enumerate(ml_fkAimJoints):
                     mJnt.rename('{0}_bank_fkDriver_{1}'.format(self.d_module['partName'],i))
@@ -8389,11 +8401,14 @@ def get_handleIndices(self):
         log.debug("|{0}| >> IK End: {1}".format(_str_func,format(str_ikEnd)))
         
 
+        #if self.buildLeverEnd:
+        #    idx_end -=1
         if str_ikEnd in ['foot']:
             if self.hasBallJoint:
                 idx_end -=1
             if self.hasEndJoint:
                 idx_end -=1
+                
         elif str_ikEnd in ['tipEnd','tipBase','tipCombo']:
             log.debug("|{0}| >> tip setup...".format(_str_func))        
             if str_ikEnd == 'tipEnd':

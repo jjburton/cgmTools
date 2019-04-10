@@ -47,13 +47,16 @@ reload(MATHUTILS)
 #from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
-def scale_to_axisSize(arg = None, size = None):
+def scale_to_axisSize(arg = None, size = None, skip = None):
     _str_func = 'scale_to_axisSize'
     log.debug(cgmGEN.logString_start(_str_func))
     _currentSize = get_axisSize(arg)
     _currentScale = ATTR.get(arg,'scale')
+    _skip = VALID.listArg(skip)
     _targetScale = []
     for i,s in enumerate(size):
+        if skip and i in _skip:
+            _targetScale.append(_currentScale[i])
         if s is not None:
             v = (_currentScale[i] * s) / _currentSize[i]
             _targetScale.append(v)

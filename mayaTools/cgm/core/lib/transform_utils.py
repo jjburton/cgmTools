@@ -526,7 +526,7 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
     :returns
         None
     """
-    _str_func = 'orient_set'
+    _str_func = 'scale_to_boundingBox'
     if freeze:
         mc.makeIdentity(node, apply =True, scale = True)    
     _bb_current = DIST.get_bb_size(node,shapes)
@@ -541,7 +541,34 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
     #mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, absolute = True)
     mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
     
+def scale_to_boundingBox_relative(node = None, box = [1,1,1],shapes=True,freeze=False):
+    """
+    Scale an object to a bounding box size
     
+    :parameters:
+        node(str): node to modify
+        box(double3): Box to scale to
+
+    :returns
+        None
+    """
+    _str_func = 'scale_to_boundingBox_relative'
+    if freeze:
+        mc.makeIdentity(node, apply =True, scale = True)    
+    _bb_current = DIST.get_bb_size(node,shapes)
+    _l_scale = []
+    for i,v in enumerate(_bb_current):
+        v_b = box[i]
+        if v_b is None:
+            _l_scale.append( v )            
+        else:
+            try:_l_scale.append( box[i]/v )
+            except:
+                print 'fail'
+                _l_scale.append( v ) 
+    
+    mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, relative = True)
+    #mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
     
 def scaleLocal_get(node=None, asEuclid = False):
     """

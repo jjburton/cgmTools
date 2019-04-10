@@ -1054,7 +1054,9 @@ def skeleton_build(self, forceNew = True):
         mOrientHelper = ml_formHandles[0].orientHelper
         
         reload(JOINT)
-        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
+        mVecUp = self.atUtils('prerig_get_upVector')
+        
+        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
         
             
         _l_names = self.atUtils('skeleton_getNameDicts',False)
