@@ -4219,47 +4219,51 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                     mObj.jointHelper.translate = _jointHelpersPre[i]                    
                         
             for i,d_sub in _subShapers.iteritems():
-                ml_subs = ml_handles[int(i)].msgList_get('subShapers')
-                log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
-                if not ml_subs:
-                    raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
-                _t = d_sub.get('t')
-                _r = d_sub.get('r')
-                _s = d_sub.get('s')
-                _p = d_sub.get('p')
-                _bb = d_sub.get('bb')
-                _ab = d_sub.get('ab')
-                
-                _len_p = len(_p)
-                for ii,mObj in enumerate(ml_subs):
-                    if ii > _len_p-1:
-                        _l_warnings.append("No data for sub {0} on {1}".format(ii,mObj))
-                        #mObj.p_position = _p[ii-1]
+                try:
+                    ml_subs = ml_handles[int(i)].msgList_get('subShapers')
+                    log.debug ("|{0}| >> subShapers: {1}".format(_str_func,i))
+                    if not ml_subs:
+                        raise ValueError,"Failed to find subShaper: {0} | {1}".format(i,d_sub)
+                    _t = d_sub.get('t')
+                    _r = d_sub.get('r')
+                    _s = d_sub.get('s')
+                    _p = d_sub.get('p')
+                    _bb = d_sub.get('bb')
+                    _ab = d_sub.get('ab')
+                    
+                    _len_p = len(_p)
+                    for ii,mObj in enumerate(ml_subs):
+                        if ii > _len_p-1:
+                            _l_warnings.append("No data for sub {0} on {1}".format(ii,mObj))
+                            #mObj.p_position = _p[ii-1]
+                            #ATTR.set(mObj.mNode,'t',_t[ii])
+                            ATTR.set(mObj.mNode,'r',_r[ii-1])
+                            
+                            if _noScale != True:
+                                if _scaleMode == 'bb':
+                                    try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii-1],skip=2)
+                                    except Exception,err:
+                                        log.error(err)                                
+                                        TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii-1],freeze=False)
+                                else:
+                                    ATTR.set(mObj.mNode,'s',_s[ii-1])
+                            
+                            continue                            
+                        mObj.p_position = _p[ii]
                         #ATTR.set(mObj.mNode,'t',_t[ii])
-                        ATTR.set(mObj.mNode,'r',_r[ii-1])
+                        ATTR.set(mObj.mNode,'r',_r[ii])
                         
                         if _noScale != True:
                             if _scaleMode == 'bb':
-                                try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii-1],skip=2)
+                                try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii],skip=2)
                                 except Exception,err:
-                                    log.error(err)                                
-                                    TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii-1],freeze=False)
+                                    log.error(err)
+                                    TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii],freeze=False)
                             else:
-                                ATTR.set(mObj.mNode,'s',_s[ii-1])
-                        
-                        continue                            
-                    mObj.p_position = _p[ii]
-                    #ATTR.set(mObj.mNode,'t',_t[ii])
-                    ATTR.set(mObj.mNode,'r',_r[ii])
-                    
-                    if _noScale != True:
-                        if _scaleMode == 'bb':
-                            try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii],skip=2)
-                            except Exception,err:
-                                log.error(err)
-                                TRANS.scale_to_boundingBox_relative(mObj.mNode,_bb[ii],freeze=False)
-                        else:
-                            ATTR.set(mObj.mNode,'s',_s[ii])        
+                                ATTR.set(mObj.mNode,'s',_s[ii])
+                except Exception,err:
+                    log.error(cgmGEN.logString_msg(_str_func,"subShapers: {0} | {1}".format(i,err)))
+                    pprint.pprint(d_sub)
 
 @cgmGEN.Timer
 def blockDat_load(self, blockDat = None,
