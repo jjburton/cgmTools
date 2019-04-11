@@ -785,9 +785,7 @@ def prerig(self):
         mTrackCurve.rename(self.cgmName + 'prerigTrack_crv')
         mTrackCurve.parent = mNoTransformNull
         
-        
-        #mPrerigNull.connectChildNode('prerigTrackCurve',mTrackCurve.mNode,)
-        
+                
         l_clusters = []
         #_l_clusterParents = [mStartHandle,mEndHandle]
         for i,cv in enumerate(mTrackCurve.getComponents('cv')):
@@ -796,9 +794,7 @@ def prerig(self):
             TRANS.parent_set( _res[1], ml_formHandles[i].getMessage('loftCurve')[0])
             l_clusters.append(_res)
             ATTR.set(_res[1],'visibility',False)
-        
-        #pprint.pprint(l_clusters)
-        
+                
         mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
         
         """

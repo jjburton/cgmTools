@@ -1140,14 +1140,20 @@ def get_castMesh(self,extend=False,pivotEnd=False):
             mBaseCrv.parent = False
             mShape2 = False
             ml_delete.append(mBaseCrv)
-        
-            for mChild in mBaseCrv.getChildren(asMeta=True):
-                if mChild.cgmName == 'topLoft':
-                    mShape2 = mChild.doDuplicate(po=False)
-                    mShape2.parent = False
-                    l_targets.append(mShape2.mNode)
-                    ml_delete.append(mShape2)
-                mChild.delete()
+            
+            mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+            if mTopLoft:
+                mShape2 = mTopLoft.doDuplicate(po=False)
+            else:
+                for mChild in mBaseCrv.getChildren(asMeta=True):
+                    if mChild.cgmName == 'topLoft':
+                        mShape2 = mChild.doDuplicate(po=False)
+                    mChild.delete()
+            
+            if mShape2:
+                mShape2.parent = False
+                l_targets.append(mShape2.mNode)
+                ml_delete.append(mShape2)                
 
             l_targets.append(mBaseCrv.mNode)        
         
@@ -1190,14 +1196,19 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                     mShape2 = False
                     ml_delete.append(mBaseCrv)
                 
-                    for mChild in mBaseCrv.getChildren(asMeta=True):
-                        if mChild.cgmName == 'topLoft':
-                            mShape2 = mChild.doDuplicate(po=False)
-                            mShape2.parent = False
-                            l_targets.append(mShape2.mNode)
-                            ml_delete.append(mShape2)
-                            
-                        mChild.delete()
+                    mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+                    if mTopLoft:
+                        mShape2 = mTopLoft.doDuplicate(po=False)
+                    else:
+                        for mChild in mBaseCrv.getChildren(asMeta=True):
+                            if mChild.cgmName == 'topLoft':
+                                mShape2 = mChild.doDuplicate(po=False)
+                            mChild.delete()
+                    
+                    if mShape2:
+                        mShape2.parent = False
+                        l_targets.append(mShape2.mNode)
+                        ml_delete.append(mShape2)                
         
                     l_targets.append(mBaseCrv.mNode)
                     
@@ -5168,9 +5179,13 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
         
         def addPivotHelper(mPivotHelper,datType):
             addMObj(mPivotHelper)
-            for mChild in mPivotHelper.getChildren(asMeta=True):
-                if mChild.getMayaAttr('cgmType') == 'pivotHelper':
-                    addMObj(mChild,datType)
+            for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
+                mPivot = mPivotHelper.getMessageAsMeta(a)
+                if mPivot:
+                    addMObj(mPivot,datType)
+            #for mChild in mPivotHelper.getChildren(asMeta=True):
+                #if mChild.getMayaAttr('cgmType') == 'pivotHelper':
+                    #addMObj(mChild,datType)
             
         ml_controls = []
         md_controls = {}
@@ -5297,9 +5312,9 @@ def controls_mirror(blockSource, blockMirror = None,
         #if int_lenTarget!=int_lenSource:
         for i,mObj in enumerate(ml_controls):
             try:
-                log.debug(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+                log.info(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
             except:
-                log.debug(" {0} > !! > No match".format(mObj.p_nameBase))
+                log.info(" {0} > !! > No match".format(mObj.p_nameBase))
                     
         #return
         #Control sets ===================================================================================
@@ -5706,9 +5721,9 @@ _d_attrStateVisOff = {0:[],
                      2:['blockProfile','baseSizeX','baseSizeY','baseSizeZ',
                         'blockScale','proxyShape','numRoll','shapeDirection','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
-                        'numControls'],
+                        ],
                      3:['addAim','addCog','addPivot','addScalePivot',
-                        'hasJoint','side','position','rollCount'],
+                        'hasJoint','side','position','rollCount','numControls'],
                      4:['hasEndJoint','numJoints','attachPoint','attachIndex',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
                         'mainRotAxis','hasEndJoint',
@@ -8028,13 +8043,19 @@ def get_loftCurves(self):
         mBaseCrv = mPivotHelper.doDuplicate(po=False)
         mBaseCrv.parent = False
         mShape2 = False
-    
+        
+        mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+        if mTopLoft:
+            mShape2 = mTopLoft.doDuplicate(po=False)
+            mShape2.parent = False
+            ml_loftCurves.append(mShape2)
+        """
         for mChild in mBaseCrv.getChildren(asMeta=True):
             if mChild.cgmName == 'topLoft':
                 mShape2 = mChild.doDuplicate(po=False)
                 mShape2.parent = False
                 ml_loftCurves.append(mShape2)
-            mChild.delete()
+            mChild.delete()"""
             
         ml_loftCurves.append(mBaseCrv)
     """
@@ -8419,13 +8440,20 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         mBaseCrv.parent = False
         mShape2 = False
         ml_delete.append(mBaseCrv)
+        
+        mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+        if mTopLoft:
+            mShape2 = mTopLoft.doDuplicate(po=False)        
+            ml_loftCurves.append(mShape2)
+            ml_delete.append(mShape2)
+        """
         for mChild in mBaseCrv.getChildren(asMeta=True):
             if mChild.cgmName == 'topLoft':
                 mShape2 = mChild.doDuplicate(po=False)
                 mShape2.parent = False
                 ml_loftCurves.append(mShape2)
                 ml_delete.append(mShape2)                
-            mChild.delete()
+            mChild.delete()"""
         ml_loftCurves.append(mBaseCrv)
         
     """
@@ -9900,7 +9928,7 @@ def pivotHelper_get(self,mHandle=None,
             _side = side
 
         ml_pivots = []
-        mPivotRootHandle = False
+        mPivotRootHandle = mParent
         self_pos = mHandle.p_position
         self_upVector = mHandle.getAxisVector(upAxis)
 
@@ -9952,6 +9980,7 @@ def pivotHelper_get(self,mHandle=None,
             mTrack.p_parent = mPivotRootHandle
             mGroup = mTopLoft.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
+            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect                    
             
 
 
@@ -10037,13 +10066,13 @@ def pivotHelper_get(self,mHandle=None,
                 log.debug("|{0}| >> LoftSetup...".format(_str_func))
     
                 #Fix the aim on the foot
-                mTopLoft.parent = False
+                #mTopLoft.parent = False
     
                 l_footTargets = [mHandle.loftCurve.mNode, mTopLoft.mNode,mPivotRootHandle.mNode]
     
                 _res_body = mc.loft(l_footTargets, o = True, d = 3, po = 0,reverseSurfaceNormals=True)
     
-                mTopLoft.parent = mPivotRootHandle
+                #mTopLoft.parent = mPivotRootHandle
     
                 _loftNode = _res_body[1]
                 mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        

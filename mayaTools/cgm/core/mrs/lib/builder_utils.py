@@ -2033,8 +2033,11 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         pos_obj = mObj.p_position
                         crvBase = CURVES.create_fromName(name='semiSphere',
                                                      direction = 'z+',
-                                                     size = offset * 1.5)
+                                                     size = offset)
                         
+                        
+                        l_pos = []
+                        l_dist = []
                         for i,axis in enumerate([str_orientation[1], str_orientation[2]]):
                             for ii,d in enumerate(['+','-']):
                                 
@@ -2043,22 +2046,37 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 p = SNAPCALLS.get_special_pos([mObj.mNode,
                                                                str_meshShape],
                                                               'cast',axis+d)
-
-                                crv = mc.duplicate(crvBase)[0]
-                                l_shapes.append(crv)
-                                mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
                                 
                                 if not p:
                                     p = DIST.get_pos_by_axis_dist(mObj.mNode, axis+d, dist)
-                                    
-                                dist = DIST.get_distance_between_points(p, pos_obj)
+                                l_pos.append(p)
+                                l_dist.append( DIST.get_distance_between_points(p, pos_obj) )
                                 
-                                vec_tmp = MATH.get_vector_of_two_points(pos_obj,p)
-                                p_use = DIST.get_pos_by_vec_dist(pos_obj,vec_tmp, dist+offset)
                                 
-                                mCrv.p_position = p_use
-                                
-                                SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
+                        #After we get the pos we're going to see if we have any weird ones....
+                        pprint.pprint(l_dist)
+                        l_posUse = []
+                        l_distUse = []
+                        _max = max(l_dist)
+                        _distCheck = MATH.average([v for v in l_dist if v is not _max]) * 2.0
+                        
+                        
+                        for i,p in enumerate(l_pos):
+                            dist = l_dist[i]
+                            if dist > _distCheck:
+                                continue
+
+                            crv = mc.duplicate(crvBase)[0]
+                            l_shapes.append(crv)                                
+                            
+                            vec_tmp = MATH.get_vector_of_two_points(pos_obj,p)
+
+                            p_use = DIST.get_pos_by_vec_dist(pos_obj,vec_tmp, dist+offset)
+                            mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
+                            
+                            mCrv.p_position = p_use
+                            
+                            SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
                         mc.delete(crvBase)
                                 
 

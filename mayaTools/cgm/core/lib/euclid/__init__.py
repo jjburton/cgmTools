@@ -540,6 +540,10 @@ class Vector3:
         return max(min(self.x * other.x + \
                self.y * other.y + \
                self.z * other.z, 1.0), -1.0)
+    
+    def add(self, other):
+        assert isinstance(other,Vector3)
+        return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def cross(self, other):
         assert isinstance(other, Vector3)

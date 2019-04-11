@@ -152,6 +152,7 @@ d_block_profiles = {
     'ikSetup':'rp',
     'ikEnd':'pad',
     'numControls':4,
+    'numShapers':4,
     'numSubShapers':4,
     'ikRPAim':'default',
     'rigSetup':'default',
@@ -183,6 +184,7 @@ d_block_profiles = {
     'ikSetup':'rp',
     'ikEnd':'pad',
     'numControls':4,
+    'numShapers':4,    
     'numSubShapers':4,
     'ikRPAim':'default',
     'rigSetup':'default',
@@ -214,7 +216,8 @@ d_block_profiles = {
     'settingsDirection':'down',
     'ikSetup':'rp',
     'ikEnd':'pad',
-    'numControls':4,
+    'numControls':4,    
+    'numShapers':4,    
     'numSubShapers':4,
     'ikRPAim':'default',
     'rigSetup':'default',
@@ -246,6 +249,7 @@ d_block_profiles = {
     'ikSetup':'rp',
     'ikEnd':'pad',
     'numControls':4,
+    'numShapers':4,    
     'numSubShapers':4,
     'ikRPAim':'default',
     'rigSetup':'default',
@@ -279,6 +283,7 @@ d_block_profiles = {
     'settingsDirection':'up',
     'ikEnd':'bank',
     'numControls':4,
+    'numShapers':4,    
     'numSubShapers':3,
     'ikRPAim':'default',
     'rigSetup':'default',
@@ -314,6 +319,7 @@ d_block_profiles = {
     'ikEnd':'foot',
     'ikRPAim':'default',    
     'numControls':3,
+    'numShapers':3,    
     'numSubShapers':3,
     'rigSetup':'default',
     'mainRotAxis':'out',
@@ -346,6 +352,7 @@ d_block_profiles = {
     'ikSetup':'rp',
     'ikRPAim':'default',    
     'numControls':3,
+    'numShapers':3,    
     'numSubShapers':3,
     'rigSetup':'default',
     'mainRotAxis':'out',
@@ -380,6 +387,7 @@ d_block_profiles = {
     'numSubShapers':3,
     'mainRotAxis':'up',
     'numControls':3,
+    'numShapers':3,    
     'ikRPAim':'free',
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
@@ -407,6 +415,7 @@ d_block_profiles = {
           'ikSetup':'rp',
           'ikEnd':'tipBase',
           'numControls':4,
+          'numShapers':4,          
           'numRoll':0,
           'ikRPAim':'default',              
           'rigSetup':'digit',
@@ -440,6 +449,7 @@ d_block_profiles = {
        'ikSetup':'rp',
        'ikEnd':'tipBase',
        'numControls':4,
+       'numShapers':4,       
        'numRoll':0,
        'ikRPAim':'default',
        'rigSetup':'digit',
@@ -475,6 +485,7 @@ d_block_profiles = {
           'ikSetup':'rp',
           'ikEnd':'tipBase',
           'numControls':4,
+          'numShapers':4,          
           'numRoll':0,
           'ikRPAim':'default',              
           'rigSetup':'digit',
@@ -509,6 +520,7 @@ d_block_profiles = {
        'ikSetup':'rp',
        'ikEnd':'tipEnd',
        'numControls':2,
+       'numShapers':2,       
        'numRoll':0,
        'ikRPAim':'default',
        'rigSetup':'digit',
@@ -547,6 +559,7 @@ d_placeHolder = {
             'numSubShapers':3,
             'mainRotAxis':'up',
             'numControls':3,
+            'numShapers':3,            
             'ikRPAim':'free',
             'buildLeverBase':True,
             'hasLeverJoint':True,
@@ -576,6 +589,7 @@ l_attrsStandard = ['side',
                    'ikSetup',
                    'scaleSetup',
                    'numControls',
+                   'numShapers',
                    'numRoll',
                    'offsetMode',
                    'settingsDirection',
@@ -638,6 +652,7 @@ d_attrsToMake = {'visMeasure':'bool',
 d_defaultSettings = {'version':__version__,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      'numControls': 3,
+                     'numShapers':3,                     
                      'loftSetup':0,
                      'loftShape':0,
                      'ikOrientToWorld':True,
@@ -728,6 +743,7 @@ def define(self):
                 ATTR.set_hidden(_short,a,True)
         
         ATTR.set_min(_short, 'numControls', 2)
+        ATTR.set_min(_short, 'numShapers', 2)        
         ATTR.set_min(_short, 'numRoll', 0)
         ATTR.set_min(_short, 'loftSides', 3)
         ATTR.set_min(_short, 'loftSplit', 1)
@@ -958,7 +974,7 @@ def form(self):
         mHandleFactory = self.asHandleFactory()
         
         #Loft List Validation ===============================================================================
-        int_handles = self.numControls
+        int_handles = self.numShapers
         _loftShape = self.getEnumValueString('loftShape')
         if _loftSetup == 'loftList':
             self.UTILS.verify_loftList(self,int_handles)        
@@ -1124,7 +1140,7 @@ def form(self):
         
         
         
-        if self.numControls > 2:
+        if self.numShapers > 2:
             log.debug("|{0}| >> more handles necessary...".format(_str_func)) 
             #Mid Track curve ============================================================================
             log.debug("|{0}| >> TrackCrv...".format(_str_func)) 
@@ -1145,7 +1161,7 @@ def form(self):
                 l_scales.append(mHandle.scale)
                 mHandle.scale = 1,1,1
         
-            _l_posMid = CURVES.returnSplitCurveList(mMidTrackCurve.mNode,self.numControls,markPoints = False)
+            _l_posMid = CURVES.returnSplitCurveList(mMidTrackCurve.mNode,self.numShapers,markPoints = False)
             #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
         
         
@@ -1603,7 +1619,7 @@ def form(self):
         self.atUtils('create_prerigLoftMesh',
                      targets,
                      mFormNull,
-                     'numControls',                     
+                     'numShapers',                     
                      'loftSplit',
                      polyType='bezier',
                      baseName = self.cgmName )
@@ -1629,13 +1645,14 @@ def form(self):
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
                 mFoot = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=False, mParent = mFormNull)
-                #mFoot.p_parent = mFormNull
+                mFoot.p_parent = mFormNull
                 
                 #mHandleFactory.addPivotSetupHelper(baseShape = _shapeEnd, baseSize = _bankSize).p_parent = mFormNull
             elif _ikEnd in ['foot','pad']:
                 log.debug("|{0}| >> foot setup".format(_str_func)) 
                 mFoot,mFootLoftTop = self.UTILS.pivotHelper_get(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=True, mParent = mFormNull)
-                #mFoot.p_parent = mFormNull
+                mFoot.p_parent = mFormNull
+                
             elif _ikEnd == 'proxy':
                 log.debug("|{0}| >> proxy setup".format(_str_func)) 
                 mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+',baseSize=_bankSize)
@@ -1799,16 +1816,12 @@ def prerig(self):
         mStartHandle = ml_formHandles[0]    
         mEndHandle = ml_formHandles[-1]    
         mOrientHelper = self.orientHelper
-        #Because Maya doesn't eval correctly all the time...
-        #_orient = mOrientHelper.rotate
-        #mOrientHelper.rotate = [1+v for v in _orient]
-        #mOrientHelper.rotate = _orient
+
         
         ml_handles = []
         ml_jointHandles = []        
         
-        _size = MATH.average(POS.get_bb_size(mStartHandle.mNode,True,'maxFill'))#(mHandleFactory.get_axisBox_size(mStartHandle.mNode))
-        #DIST.get_bb_size(mStartHandle.loftCurve.mNode,True)[0]    
+        _size = MATH.average(POS.get_bb_size(mStartHandle.mNode,True,'maxFill')) 
         _sizeSub = _size * .33    
         _vec_root_up = mOrientHelper.getAxisVector('y+')
         
@@ -1821,10 +1834,56 @@ def prerig(self):
         _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
         
         _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
-        _mVectorUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
+        _mVectorUp =  self.atUtils('prerig_get_upVector')
+        #MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
         
         #_mVectorUp = _mVectorAim.up()
         _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]
+        
+        ml_prerigTrackers = [] 
+        
+        ml_formHandlesCurveTargets = copy.copy(ml_formHandles)
+        if self.buildLeverBase:
+            ml_formHandlesCurveTargets.pop(0)
+            ml_prerigTrackers.append(ml_formHandles[0])#...add our lever 
+            
+        #Track curve ============================================================================
+        log.debug("|{0}| >> TrackCrv...".format(_str_func)+'-'*40) 
+    
+        _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_formHandlesCurveTargets])
+        mTrackCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
+        mTrackCurve.rename(self.cgmName + 'prerigTrack_crv')
+        mTrackCurve.parent = mNoTransformNull
+    
+    
+        l_clusters = []
+        #_l_clusterParents = [mStartHandle,mEndHandle]
+        for i,cv in enumerate(mTrackCurve.getComponents('cv')):
+            _res = mc.cluster(cv,
+                              n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandlesCurveTargets[i].p_nameBase,i))
+            #_res = mc.cluster(cv)
+            TRANS.parent_set( _res[1], ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0])
+            l_clusters.append(_res)
+            ATTR.set(_res[1],'visibility',False)
+    
+        #mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+
+        #CURVES.getUSplitList
+        _l_pos = CURVES.getUSplitList(mTrackCurve.mNode,self.numControls,markPoints = 0)
+        for pos in _l_pos:
+            ml_prerigTrackers.append(pos)
+        #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
+    
+        #_sizeUse = self.atUtils('get_shapeOffset')
+        mDefineEndObj = self.defineEndHelper    
+        _size_width = mDefineEndObj.width#...x width        
+        _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
+        _sizeUse2 = self.atUtils('get_shapeOffset') * 2
+        _sizeUse = min([_sizeUse1,_sizeUse2])
+        
+        
+
+        
         
         #Foot helper ============================================================================
         mFootHelper = False
@@ -1837,11 +1896,13 @@ def prerig(self):
         if _ikEnd not in []:
             if self.buildBall and mFootHelper:
                 mHelp = mFootHelper.pivotCenter
-                ml_formHandles.append(mHelp)
+                #ml_formHandles.append(mHelp)
+                ml_prerigTrackers.append(mHelp)
                 ml_noParent.append(mHelp)
             if self.buildToe and mFootHelper:
                 mHelp = mFootHelper.pivotFront            
-                ml_formHandles.append(mHelp)
+                #ml_formHandles.append(mHelp)
+                ml_prerigTrackers.append(mHelp)
                 ml_noParent.append(mHelp)
             
         #Finger Tip ============================================================================
@@ -1864,7 +1925,16 @@ def prerig(self):
             mHandleFactory.setHandle(mEndHandle.mNode)
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
                 
-        #return 
+        l_posUse = []
+        for item in ml_prerigTrackers:
+            try:l_posUse.append(item.p_position)
+            except:l_posUse.append(item)
+            
+        log.info(cgmGEN.logString_msg(_str_func,'prerigTrackers: '))
+        pprint.pprint(ml_prerigTrackers)
+        pprint.pprint(l_posUse)
+        
+         
         #Sub handles... ------------------------------------------------------------------------------------
         log.debug("|{0}| >> PreRig Handle creation...".format(_str_func))
         ml_aimGroups = []
@@ -1877,15 +1947,24 @@ def prerig(self):
         _sizeUse1 = _size_width/ 6.0 #self.atUtils('get_shapeOffset')
         _sizeUse2 = self.atUtils('get_shapeOffset') * 2
         _sizeUse = min([_sizeUse1,_sizeUse2])
+        
         mPivotHelper = ml_formHandles[-1].getMessageAsMeta('pivotHelper')
-        for i,mFormHandle in enumerate(ml_formHandles):
+        
+        for i,mFormHandle in enumerate(ml_prerigTrackers):
             log.debug("|{0}| >> prerig handle cnt: {1} | {2}".format(_str_func,i,mFormHandle))
             if mFormHandle == mPivotHelper:
                 log.debug("|{0}| >> pivotHelper. Skipping".format(_str_func,i))
-                continue        
-            _HandleSnapTo = mFormHandle.mNode
+                continue
             
-            if mFormHandle == mEndHandle:
+            pos = l_posUse[i]
+            
+            try:
+                mFormHandle.mNode
+                b_curveAttach = False
+            except:
+                b_curveAttach = True
+            
+            if mFormHandle == ml_prerigTrackers[-1]:
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
@@ -1899,6 +1978,7 @@ def prerig(self):
             else:
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+                
             _short = mHandle.mNode
             
             #if b_iterNames:
@@ -1912,14 +1992,23 @@ def prerig(self):
             for k,v in _nameDict.iteritems():
                 if v:
                     ATTR.copy_to(self.mNode,k,_short, k, driven='target')
+                    
             mHandle.doName()
             ml_handles.append(mHandle)
             
-            mHandle.doSnapTo(_HandleSnapTo)
+            mHandle.p_position = pos
+            
+            if pos == l_posUse[-1]:
+                SNAP.aim_atPoint(mHandle.mNode,l_posUse[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
+            else:
+                SNAP.aim_atPoint(mHandle.mNode,l_posUse[i+1], mode = 'vector',vectorUp=_worldUpVector)
+            
+            
+            
             mHandle.p_parent = mPrerigNull
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
-            if mFormHandle == mEndHandle and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
+            if mFormHandle == ml_prerigTrackers[-1] and _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
                 log.debug("|{0}| >> end handle aim: {1}".format(_str_func,mEndHandle))
                 
                 #_size_width = mDefineEndObj.width#...x width
@@ -1927,8 +2016,11 @@ def prerig(self):
             
             ml_aimGroups.append(mGroup)
             
-            if mFormHandle not in ml_noParent:
-                mc.parentConstraint(_HandleSnapTo, mGroup.mNode, maintainOffset=True)
+            if b_curveAttach:
+                _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mTrackCurve.mNode, 'conPoint')
+                TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)                
+            elif mFormHandle not in ml_noParent:
+                mc.parentConstraint(mFormHandle.mNode, mGroup.mNode, maintainOffset=True)
             elif mFootHelper:
                 mc.parentConstraint(mFootHelper.mNode, mGroup.mNode, maintainOffset=True)
                 
@@ -1939,15 +2031,16 @@ def prerig(self):
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
             mHandleFactory.color(mHandle.mNode,controlType='sub')
         
-            mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
+            try:mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
+            except:pass
             
         self.msgList_connect('prerigHandles', ml_handles)
-        
+                
         #ml_handles[0].connectChildNode(mOrientHelper.mNode,'orientHelper')      
         
         #This breaks the naming
         #self.UTILS.prerigHandles_getNameDat(self,True)
-                                 
+
         #Joint placer loft....
         for i,mObj in enumerate(ml_handles[:-1]):
             mLoft = mObj.jointHelper.loftCurve
@@ -4042,6 +4135,7 @@ def rig_shapes(self):
         #_bbSize = TRANS.bbSize_get(mBlock.getMessage('prerigLoftMesh')[0],shapes=True)
         #_bbSize.remove(max(_bbSize))
         #_size = MATH.average(_bbSize)
+        
 
         #Pivots =======================================================================================
         mPivotHolderHandle = ml_formHandles[-1]
@@ -4116,12 +4210,15 @@ def rig_shapes(self):
                 mIKShape = mPivotHelper.doDuplicate(po=False)
                 mIKShape.parent = False
                 #mc.makeIdentity(mIKShape.mNode,apply=True,translate =False, rotate = False, scale=True)
-                for mChild in mIKShape.getChildren(asMeta=True):
-                    if mChild.cgmName == 'topLoft':
-                        mShape2 = mChild.doDuplicate(po=False)
-                        DIST.offsetShape_byVector(mShape2.mNode,_offset,origin=mShape2.p_position,component='cv')
-    
-                    mChild.delete()
+                mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+                if mTopLoft:
+                    mShape2 = mTopLoft.doDuplicate(po=False)
+                    DIST.offsetShape_byVector(mShape2.mNode,_offset,origin=mShape2.p_position,component='cv')                    
+                #for mChild in mIKShape.getChildren(asMeta=True):
+                    #if mChild.getMayaAttr('cgmName') == 'topLoft':
+                        #mShape2 = mChild.doDuplicate(po=False)
+                        #DIST.offsetShape_byVector(mShape2.mNode,_offset,origin=mShape2.p_position,component='cv')
+                    #mChild.delete()
     
                 DIST.offsetShape_byVector(mIKShape.mNode,_offset,origin=mIKShape.p_position,component='cv')
                 
@@ -7986,13 +8083,16 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mBaseCrv = mPivotHelper.doDuplicate(po=False)
                     mBaseCrv.parent = False
                     mShape2 = False
-                    
+                    mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+                    if mTopLoft:
+                        mShape2 = mTopLoft.doDuplicate(po=False)
+                    """
                     for mChild in mBaseCrv.getChildren(asMeta=True):
                         if mChild.cgmName == 'topLoft':
                             mShape2 = mChild.doDuplicate(po=False)
                             mShape2.parent = False
                             l_targets.append(mShape2.mNode)
-                        mChild.delete()
+                        mChild.delete()"""
                             
                     l_targets.append(mBaseCrv.mNode)
                     #l_targets.reverse()
