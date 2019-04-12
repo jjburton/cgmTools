@@ -141,7 +141,7 @@ _d_scrollList_shorts = {'left':'L',
                         'form':'frm',
                         'prerig':'pre',
                         'skeleton':'skl'}
-def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None):
+def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None, showSide = True):
     '''
     Log a dictionary.
 
@@ -184,7 +184,6 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
         for KmNode in l_mNodeKeys:
             l_keys.append( d_idx_to_keys[ d_keys_to_idx[KmNode]] )
             
-        
         counter+=1
         
         for k in l_keys:
@@ -215,9 +214,10 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     #s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
                     s_start = s_start + ' ' + ' '*(counter-1) + ' '
                     
-                if mBlock.getMayaAttr('side'):
-                    _v = mBlock.getEnumValueString('side')
-                    _l_report.append( _d_scrollList_shorts.get(_v,_v))
+                if showSide:
+                    if mBlock.getMayaAttr('side'):
+                        _v = mBlock.getEnumValueString('side')
+                        _l_report.append( _d_scrollList_shorts.get(_v,_v))
                     
                 if mBlock.getMayaAttr('position'):
                     _v = mBlock.getMayaAttr('position')
@@ -266,7 +266,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     _blockProfile= STR.camelCase(_blockProfile)                    
                     l_block.append(_blockProfile)
                     
-                _str = _str + ('      [{0}]'.format("-".join(l_block)))"""
+                _str = _str + ('{0}'.format("-".join(l_block)))"""
                 
                     
         
@@ -277,7 +277,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
          
                 buffer = arg[k]
                 if buffer:
-                    get_uiScollList_dat(buffer,k,counter,blockList,stringList)   
+                    get_uiScollList_dat(buffer,k,counter,blockList,stringList,showSide)   
                     
         
                     """if counter == 0:

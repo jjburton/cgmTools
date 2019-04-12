@@ -1308,7 +1308,7 @@ class MelTextScrollList(BaseMelWidget):
 	NOTE: you probably want to use the MelObjectScrollList instead!
 	'''
 
-	WIDGET_CMD = cmd.textScrollList
+	WIDGET_CMD = cmd.iconTextScrollList#cmd.textScrollList
 	KWARG_CHANGE_CB_NAME = 'sc'
 
 	ALLOW_MULTI_SELECTION = False

@@ -69,6 +69,13 @@ _d_blockTypes = {}
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
+d_state_colors = {'define':[1,.3,.3],
+                  'form':[1,.5,0],
+                  'prerig':[1,.9,0],
+                  'skeleton':[0,.7,.7],
+                  'rig':[.310,1,0],
+                  }
+
 #>>> Root settings =============================================================
 __version__ = '1.04092019'
 _sidePadding = 25
@@ -1713,7 +1720,7 @@ class ui(cgmUI.cgmGUI):
                     raise ValueError,"Mode not setup: {0}".format(_mode)
     
                     
-            self.uiUpdate_scrollList_blocks(_mBlock)
+            self.uiUpdate_scrollList_full(_mBlock)
         except Exception,err:
             cgmGEN.cgmException(Exception,err)
 
@@ -3371,10 +3378,24 @@ class ui(cgmUI.cgmGUI):
             o(e=True, en=False)        
         
     def uiUpdate_sceneBlocks(self):
-        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat()
+        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat(showSide=1)
         
         self.__ml_blocks = _ml
         self.__l_strings = _l_strings
+        
+        self.__l_itc = []
+        
+        d_colors = {'left':[.5,.5,1],
+                    'right':[.8,.5,.5],
+                    'center':[.8,.8,0]}
+        
+        
+
+                           
+        for mBlock in _ml:
+            _arg = mBlock.getEnumValueString('blockState')#atUtils('get_side')
+            _color = d_colors.get(_arg,d_colors['center'])
+            self.__l_itc.append(_color)
 
     def uiUpdate_scrollList_blocks(self, select = None):
         _str_func = 'uiUpdate_scrollList_blocks'          
@@ -3408,13 +3429,19 @@ class ui(cgmUI.cgmGUI):
 
         #...menu...
         #_progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
-        
+
         try:
             for i,strEntry in enumerate(r9Core.filterListByString(_l_strings, searchFilter, matchcase=False)):
             #for i,strEntry in enumerate(_l_strings):
                 self.uiScrollList_blocks.append(strEntry)
-                idx= _l_strings.index(strEntry)
+                idx = _l_strings.index(strEntry)
                 _ml_use.append(_ml[idx])
+                
+                #_side = _ml[idx].getEnumValueString('side')#atUtils('get_side')
+                #_color = self.__l_itc[idx]
+                _color = d_state_colors.get(_ml[idx].getEnumValueString('blockState'))
+                self.uiScrollList_blocks(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
+
         except Exception,err:
             try:
                 log.error("|{0}| >> err: {1}".format(_str_func, err))  
@@ -3609,19 +3636,24 @@ class ui(cgmUI.cgmGUI):
         _textField = mUI.MelTextField(_LeftColumn,
                                       ann='Testing',
                                       w=50,
+                                      bgc = [1,1,1],
                                       en=True,
                                       text = '')
         self.cgmUIField_filterBlocks = _textField
         self.cgmUIField_filterBlocks(edit=True,
                                      tcc = lambda *a: self.uiUpdate_scrollList_blocks())
         
-        _scrollList = mUI.MelObjectScrollList(_LeftColumn, ut='cgmUISubTemplate',
+        _scrollList = mUI.MelTextScrollList(_LeftColumn, ut='cgmUISubTemplate',
                                               allowMultiSelection=True,en=True,
+                                              ebg=0,
+                                              bgc = [.2,.2,.2],
+                                              hlc = [.5,.5,.5],
                                               dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
                                               #dcc = cgmGEN.Callback(self._blockCurrent.select()),
                                               #dcc = self.uiFunc_block_select_dcc,
                                               selectCommand = self.uiScrollList_block_select,
-                                              w = 200)
+                                              w = 50)
+        #_scrollList(edit=True, hlc = SHARED._d_gui_state_colors.get('warning'))
         #dcc = self.uiFunc_dc_fromList,
         #selectCommand = self.uiFunc_selectParent_inList)
     
@@ -3783,34 +3815,34 @@ class ui(cgmUI.cgmGUI):
         CGMUI.add_LineSubBreak()
         _row_push = mUI.MelHLayout(_RightUpperColumn,ut='cgmUISubTemplate',padding = 2)
         mc.button(l='Define>',
-                  bgc = SHARED._d_gui_state_colors.get('warning'),
+                  bgc = d_state_colors['define'],#SHARED._d_gui_state_colors.get('warning'),
                   height = 20,
                   align='center',
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','define',**{'forceNew':True}),
                   ann='[Define] - initial block state')
         mc.button(l='<Form>',
-                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  bgc = d_state_colors['form'],              
                   height = 20,
                   align='center',                  
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','form',**{'forceNew':True}),
                   ann='[Template] - Shaping the proxy and initial look at settings')
                          
         mc.button(l='<Prerig>',
-                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  bgc = d_state_colors['prerig'],                  
                   height = 20,
                   align='center',
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','prerig',**{'forceNew':True}),
                   ann='[Prerig] - More refinded placement and setup before rig process')
 
         mc.button(l='<Joint>',
-                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  bgc = d_state_colors['skeleton'],                  
                   height = 20,
                   align='center',                  
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','skeleton',**{'forceNew':True}),
                   ann='[Joint] - Build skeleton if necessary')
 
         mc.button(l='<Rig',
-                  bgc = SHARED._d_gui_state_colors.get('warning'),                  
+                  bgc = d_state_colors['rig'],                  
                   height = 20,
                   align='center',                  
                   c=cgmGEN.Callback(self.uiFunc_contextBlockCall,'changeState','rig',**{'forceNew':True}),
