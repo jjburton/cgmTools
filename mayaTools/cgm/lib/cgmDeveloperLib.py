@@ -49,11 +49,11 @@ def connectToWing():
    RETURNS:
    Nothing
    """
-   import wingdbstub
-   if wingdbstub.debugger != None:
-      wingdbstub.debugger.StopDebug()
+   import cgm.core.lib.wing.wingdbstub as WING
+   if WING.debugger != None:
+      WING.debugger.StopDebug()
       import time; time.sleep(1)
-      wingdbstub.debugger.StartDebug()
+      WING.debugger.StartDebug()
       print 'Connected to WingIDE' 
    else:
       print 'Could not connect to WingIDE'
