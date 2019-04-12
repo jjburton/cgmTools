@@ -229,7 +229,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 
                 #l_name.append( ATTR.get(_short,'blockType').capitalize() )
                 _cgmName = mBlock.getMayaAttr('cgmName')
-                l_name.append(_cgmName)
+                l_name.append('"{0}"'.format(_cgmName))
 
                 #_l_report.append(STR.camelCase(' '.join(l_name)))
                 _l_report.append(' - '.join(l_name))
@@ -252,9 +252,9 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 if mBlock.isReferenced():
                     _l_report.append("Referenced")
                     
-                _str = s_start + "--".join(_l_report)
+                _str = s_start + " | ".join(_l_report)
                 
-                """
+                
                 #Block dat
                 l_block = []
                 _blockProfile = mBlock.getMayaAttr('blockProfile')
@@ -266,7 +266,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     _blockProfile= STR.camelCase(_blockProfile)                    
                     l_block.append(_blockProfile)
                     
-                _str = _str + ('{0}'.format("-".join(l_block)))"""
+                _str = _str + (' - [{0}]'.format("-".join(l_block)))
                 
                     
         
