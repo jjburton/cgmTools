@@ -2430,7 +2430,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-def convert_type(node = None, attr = None, attrType = None):
+def convert_type(node = None, attr = None, attrType = None, enum = None):
     """   
      Attempts to convert an existing attrType from one type to another. 
      Enum's are stored to strings as 'option1;option2'.
@@ -2492,7 +2492,9 @@ def convert_type(node = None, attr = None, attrType = None):
     #Rebuild -----------------------------------------------------------   
     
     if _attrType == 'enum':
-        if _data:
+        if enum:
+            _enum = enum
+        elif _data:
             if VALID.stringArg(_data):
                 for o in [":",",",";"]:
                     if o in _data:

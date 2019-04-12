@@ -204,9 +204,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         _keys.sort()
         #for a,t in self._d_attrsToVerify.iteritems():
         
-        def checkType(a,attrType):
+        def checkType(a,attrType,enum=None):
             try:
-                
                 if ATTR.has_attr(_short, a):
                     _type = ATTR.get_type(_short,a)
                     if _type != attrType:
@@ -224,15 +223,22 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 
                 log.debug("|{0}| '{1}' | defaultValue: {2} | type: {3} ".format(_str_func,a,v,t)) 
                 
-                if ':' in t:
-                    v2 = None
-                    v2 = checkType(a,'enum')
-                    
+                if ':' in t:                    
                     if forceReset:
                         self.addAttr(a, v, attrType = 'enum', enumName= t, keyable = False)		                        
                     else:
-                        _enum = ATTR.get_enum(_short,a)
                         strValue = None
+                        _converted = False
+                        
+                        if self.hasAttr(a):
+                            _type = ATTR.get_type(_short,a)
+                            if _type != 'enum':
+                                _use = ATTR.get(_short,a)
+                                log.debug(cgmGEN.logString_msg(_str_func,'Attribute of wrong type | {0} | type: {1} | wanted: {2}'.format(a,_type,'enum')))
+                                ATTR.convert_type(_short,a,'enum',t)
+                                self.addAttr(a,value = _use, attrType = 'enum', enumName= t, keyable = False)
+                            
+                        _enum = ATTR.get_enum(_short,a)
                         if _enum != t:
                             strValue = ATTR.get_enumValueString(_short,a)
                         
@@ -241,9 +247,6 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                         if strValue and strValue in t:
                             try:ATTR.set(_short,a,strValue)
                             except Exception,err:"...Failed to set old value: {0} | err: {1}".format(strValue,err)
-                        elif v2 != None:
-                            try:ATTR.set(_short,a,v)
-                            except Exception,err:"...Failed to set old value: {0} | err: {1}".format(v,err)
 
                 elif t == 'stringDatList':
                     if forceReset or not ATTR.datList_exists(_short,a,mode='string'):
@@ -4382,7 +4385,8 @@ def blockDat_load(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'define'))
         
         if redefine:
-            changeState(self,'define',forceNew=True,rebuildFrom='define')
+            changeState(self,'define',forceNew=True)
+            changeState(self,'define',forceNew=True)            
             _current_state_idx = 0
             _current_state = 'define'
             
@@ -5183,7 +5187,7 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
         
         def addPivotHelper(mPivotHelper,datType):
             addMObj(mPivotHelper)
-            for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
+            for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter','topLoft']:
                 mPivot = mPivotHelper.getMessageAsMeta(a)
                 if mPivot:
                     addMObj(mPivot,datType)
@@ -5316,9 +5320,9 @@ def controls_mirror(blockSource, blockMirror = None,
         #if int_lenTarget!=int_lenSource:
         for i,mObj in enumerate(ml_controls):
             try:
-                log.info(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
+                log.debug(" {0} > = > {1}".format(mObj.p_nameBase, ml_targetControls[i].p_nameBase))
             except:
-                log.info(" {0} > !! > No match".format(mObj.p_nameBase))
+                log.debug(" {0} > !! > No match".format(mObj.p_nameBase))
                     
         #return
         #Control sets ===================================================================================
@@ -5764,7 +5768,7 @@ def attrMask_getBaseMask(self):
     _baseDat['aKeyable'] = l_keyable
     
     self.baseDat = _baseDat
-    pprint.pprint(_baseDat)
+    #pprint.pprint(_baseDat)
     return True
     
 def attrMask_set(self,mode=None,clear=False):
@@ -5850,7 +5854,7 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
         try:
             l_blockTypeMask = mBlockModule.d_attrProfileMask[self.blockProfile]
             log.debug(cgmGEN.logString_msg(_str_func,'Found blockModule l_blockTypeMask'))
-            pprint.pprint(l_blockTypeMask)
+            #pprint.pprint(l_blockTypeMask)
         except:l_blockTypeMask=[]        
         
         
