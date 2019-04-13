@@ -4086,16 +4086,10 @@ class BlockScrollList(mUI.BaseMelWidget):
         _str_func = 'rebuild'
         log.debug(cgmGEN.logString_start(_str_func))
         self.b_selCommandOn = False
-        
         ml_sel = self.getSelectedBlocks()
-        print '...'
-        #selCmd = self(q=True, sc=True)
-        #print selCmd
-        #self(e=True,sc= lambda *a:pprint.pprint(''))
         self( e=True, ra=True )
         self.b_selCommandOn = True
         
-        print '...'
         self._items = []
         self._ml_scene = []
         self._ml_loaded = []
