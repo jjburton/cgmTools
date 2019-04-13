@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BUILDER'
+
 import random
 import re
 import copy
@@ -702,8 +704,6 @@ class ui(cgmUI.cgmGUI):
             
             self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
             
-            self.uiUpdate_sceneBlocks()
-
             
     def build_menus(self):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
@@ -1572,16 +1572,7 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.buildMenu_add,True))
         log.info("Add menu rebuilt")
 
-    def uiUpdate_scrollList_full(self):
-        _str_func = 'uiUpdate_scrollList_full'   
-        
-        
-        
-        self.uiUpdate_sceneBlocks()
-        self.uiUpdate_scrollList_blocks()
-        
-        
-            
+
     def uiFunc_block_create(self, blockType = None, blockProfile = None):
         _str_func = 'uiFunc_block_create'
         
@@ -1613,8 +1604,11 @@ class ui(cgmUI.cgmGUI):
         
         log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
         
-        self.uiUpdate_scrollList_full()
+        #self.uiUpdate_scrollList_full()
         #self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
+        
+        self.uiScrollList_blocks.rebuild()
+        self.uiScrollList_blocks.selectByBlock(_mBlock)
         
         if  not self.var_mrsDevMode.value:
             _mBlock.atUtils('attrMask_set',mode=None)        
@@ -1640,10 +1634,12 @@ class ui(cgmUI.cgmGUI):
             return False
         log.info("|{0}| >> mMirror: {1}.".format(_str_func,mMirror.mNode))        
         
+        """
         self.uiUpdate_scrollList_full()
         _idx = self._ml_blocks.index(mMirror)
+        
         self.uiFunc_block_setActive(_idx)
-        self.uiScrollList_blocks.selectByIdx(_idx)
+        self.uiScrollList_blocks.selectByIdx(_idx)"""
         
     def uiFunc_activeBlockCall(self,func,*args,**kws):          
         _str_func = 'uiFunc_activeBlockCall'
@@ -1658,43 +1654,18 @@ class ui(cgmUI.cgmGUI):
         else:
             return log.error("|{0}| >> No active block detected".format(_str_func))
         return getattr(_mActiveBlock,func)(*args,**kws)
-    
-    def get_activeBlock(self):
-        _str_func = 'get_activeBlock'        
-        _indices = self.uiScrollList_blocks.getSelectedIdxs()        
-        if not _indices:
-            log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-            return False
-        
-        if not self._ml_blocks:
-            log.error("|{0}| >> No blocks detected".format(_str_func))
-            return False            
-        
-        _index = int(str(_indices[0]).split('L')[0])
-        return self._ml_blocks[_index]
-        
         
     def uiFunc_blockManange_fromScrollList(self,**kws):
         try:
             _str_func = 'uiFunc_blockManange_fromScrollList'
-            _indices = self.uiScrollList_blocks.getSelectedIdxs()
             
             _mode = kws.get('mode',None)
             _fromPrompt = None
-            
-            if not _indices:
-                log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-                return False
-            
-            if not self._ml_blocks:
-                log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
-                return False            
-            
-            _index = int(str(_indices[0]).split('L')[0])
-            try:_mBlock = self._ml_blocks[_index]
+
+            try:_mBlock = self.uiScrollList_blocks.getSelectedBlocks()[0]
             except Exception,err:
                 print err                                                        
-                return log.error("|{0}| >> Faild to get _mBlock".format(_str_func))
+                return log.error("|{0}| >> Failed to get _mBlock".format(_str_func))
             log.info(_mBlock)
             
             _mActiveBlock = self._blockCurrent
@@ -1718,9 +1689,9 @@ class ui(cgmUI.cgmGUI):
                     _mBlock.atUtils('to_scriptEditor','rigFactory')
                 else:
                     raise ValueError,"Mode not setup: {0}".format(_mode)
-    
-                    
-            self.uiUpdate_scrollList_full(_mBlock)
+                
+            self.uiScrollList_blocks.rebuild()
+            #mc.evalDeferred('self.uiScrollList_blocks.rebuild()',lp=True)
         except Exception,err:
             cgmGEN.cgmException(Exception,err)
 
@@ -1843,17 +1814,7 @@ class ui(cgmUI.cgmGUI):
                 
             else:
                 log.debug("|{0}| >> start: {1}".format(_str_func,_startMode))
-                _indices = self.uiScrollList_blocks.getSelectedIdxs()
-                if not _indices:
-                    log.error("|{0}| >> Nothing selected".format(_str_func))
-                    return False    
-                if not self._ml_blocks:
-                    log.error("|{0}| >> No blocks detected".format(_str_func))
-                    return False    
-
-                for i in _indices:
-                    ml_blocks.append( self._ml_blocks[int(str(i).split('L')[0])])
-                    
+                ml_blocks = self.uiScrollList_blocks.getSelectedBlocks()
                 if not ml_blocks:
                     log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
                     return False
@@ -1917,11 +1878,12 @@ class ui(cgmUI.cgmGUI):
                 log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
                 ml_res.append(res)
-                if res:log.info("{0} : {1}".format(i,res))
+                if res:
+                    log.info("[{0}] ...".format(mBlock.p_nameShort,res))
+                    pprint.pprint(res)
                 if b_dupMode:
                     md_dat[res] = mBlock
                     md_datRev[mBlock] = res
-                log.debug("|{0}| >> res: {1}".format(_str_func,res))
                 
                 if b_changeState and not b_devMode:
                     mBlock.atUtils('attrMask_set',mode=None)
@@ -1944,19 +1906,15 @@ class ui(cgmUI.cgmGUI):
                         mDup.p_blockParent = mTargetParent
                         log.info(cgmGEN.logString_msg(_str_func,"mTargetParent | {0}".format(mTargetParent)))
                         
-                    
-                    
-                
-            #if _updateUI:
-                #self.uiUpdate_scrollList_blocks()
+
                 
             if _updateUI:
-                self.uiUpdate_scrollList_full()
+                self.uiScrollList_blocks.rebuild()
                 
             if args[0] not in ['delete'] and _startMode != 0:
                 #ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
-                self.uiScrollList_blocks.selectByIdx(_indices[0])                
-                
+                #self.uiScrollList_blocks.selectByIdx(_indices[0])                
+                pass
             if _sel:
                 try:mc.select(_sel)
                 except:pass
@@ -1989,16 +1947,7 @@ class ui(cgmUI.cgmGUI):
                 ml_blocks = [mBlock]
                 
             else:
-                _indices = self.uiScrollList_blocks.getSelectedIdxs()
-                if not _indices:
-                    log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-                    return False    
-                if not self._ml_blocks:
-                    log.error("|{0}| >> No blocks detected".format(_str_func))                                                        
-                    return False   
-                
-                for i in _indices:
-                    ml_blocks.append( self._ml_blocks[int(str(i).split('L')[0])])
+                ml_blocks = self.uiScrollList_blocks.getSelectedBlocks()
                     
                 if not ml_blocks:
                     log.error("|{0}| >> Failed to query indices: {1}".format(_str_func,_indices))
@@ -2045,18 +1994,9 @@ class ui(cgmUI.cgmGUI):
                 log.error("|{0}| >> No Active block".format(_str_func))
                 return False
         else:
-            _indices = self.uiScrollList_blocks.getSelectedIdxs()
-            if not _indices:
-                log.error("|{0}| >> Nothing selected".format(_str_func))                                                        
-                return False    
-            if not self._ml_blocks:
-                log.error("|{0}| >> No blocks detected".format(_str_func))
-                return False    
-            
-            _index = int(str(_indices[0]).split('L')[0])
-            try:mBlock = self._ml_blocks[_index]   
+            try:mBlock = self.uiScrollList_blocks.getSelectedBlocks()[0]
             except:
-                log.error("|{0}| >> Failed to query index: {1}".format(_str_func,_index))                                                        
+                log.error("|{0}| >> Failed to query BLock".format(_str_func))                                                        
                 return False
             
         mPuppet = mBlock.atUtils('get_puppet')
@@ -2067,11 +2007,6 @@ class ui(cgmUI.cgmGUI):
             return ui_post(mPuppet)
         return mPuppet.atUtils(*args,**kws)
         
-        return
-        RIGBLOCKS.contextual_module_method_call(mBlock,_contextMode,*args,**kws)
-        if _updateUI:
-            self.uiUpdate_scrollList_blocks(mBlock)
-            self.uiUpdate_blockDat()
             
             
     def uiFunc_block_select_dcc(self,*args,**kws):
@@ -2081,37 +2016,22 @@ class ui(cgmUI.cgmGUI):
     def uiScrollList_block_select(self): 
         try:
             _str_func = 'uiScrollList_block_select'  
-    
+            log.debug(cgmGEN.logString_start(_str_func))
+
             if self.uiPopUpMenu_blocks:
                 self.uiPopUpMenu_blocks.clear()
                 self.uiPopUpMenu_blocks.delete()
-                self.uiPopUpMenu_blocks = None        
-    
-            _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
-            _ml = self.get_blockList()
+                self.uiPopUpMenu_blocks = None
+        
+            ml_block = self.uiScrollList_blocks.getSelectedBlocks()
+            if not ml_block:
+                log.warning("|{0}| >> Nothing selected".format(_str_func))
+                return False
             
-            if not _indices or not _ml:
-                self.uiUpdate_scrollList_blocks()
-                return
-            
-            if len(_indices) > 1:
-                return
-            
-            _index = int(str(_indices[0]).split('L')[0])
-            try:_mBlock = _ml[_index]
-            except:
-                log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
-                self.uiUpdate_scrollList_blocks()
-                return                
+            _mBlock = ml_block[0]
             
             _short = _mBlock.p_nameShort
-            if _mBlock.mNode == None:
-                log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, _index))                        
-                self.uiUpdate_scrollList_blocks()
-                return
-            
-            #self.uiFunc_block_setActive(mBlock=_mBlock)
-            
+
             _mActiveBlock = self._blockCurrent
             _str_activeBlock = False
             if _mActiveBlock:
@@ -2128,7 +2048,6 @@ class ui(cgmUI.cgmGUI):
             
             mBlockModule = _mBlock.p_blockModule
             reload(mBlockModule)
-            
             if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
                 mBlockModule.uiBuilderMenu(_mBlock,_popUp)
                 #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
@@ -2146,21 +2065,22 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
                             label = "Select")
             
-
+            
             #>>>Heirarchy ------------------------------------------------------------------------------------
             _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = "Parent")
-            
 
-            
             mUI.MelMenuItem(_menu_parent,
                             en = _b_active,
                             ann = 'Set parent block to active block: {0}'.format(_str_activeBlock),
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'setParentToActive'}),
+                            #c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'setParentToActive'}),
+                            c= lambda *a:self.uiFunc_blockManange_fromScrollList(**{'mode':'setParentToActive'}),
                             label = "To active")
             mUI.MelMenuItem(_menu_parent,
                             ann = 'Clear parent block',
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
+                            #c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
+                            c= lambda *a:self.uiFunc_blockManange_fromScrollList(**{'mode':'clearParentBlock'}),
+                            
                             label = "Clear")
             
             #>>Mirror ----------------------------------------------------------------------------------------
@@ -2268,14 +2188,23 @@ class ui(cgmUI.cgmGUI):
             
             mUI.MelMenuItemDiv(_popUp)
             
+            
             mUI.MelMenuItem(_popUp,
                             ann = 'Initialize the block as mBlock in the script editor',
                             c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
                             label = "To ScriptEditor")
+            
             mUI.MelMenuItem(_popUp,
                             ann = 'Initialize the block as mBlock in the script editor as a rigFactory',
                             c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditorRigFactory'}),
                             label = "To ScriptEditor as RigFac")
+            """
+            mUI.MelMenuItem(_popUp,
+                            ann = 'Initialize the block as mBlock in the script editor',
+                            c =cgmGEN.Callback(self.uiScrollList_blocks.func_byBlock,
+                                               'atUtils','to_scriptEditor',
+                                               **{'updateUI':0}),
+                            label = "To ScriptEditor")"""
             
             mUI.MelMenuItem(_popUp,
                             ann = self._d_ui_annotations.get('step build'),
@@ -2315,11 +2244,7 @@ class ui(cgmUI.cgmGUI):
         try:
             _str_func = 'uiFunc_block_setActive'
             
-            _ml = self.get_blockList()
-            if not _ml:
-                self.uiFunc_block_clearActive()
-                return
-            
+
             """
             try:_blockCurrent = self._blockCurrent
             except:
@@ -2327,47 +2252,38 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_scrollList_blocks()
                 return"""
             
-            _idx_current = None
-            if self._blockCurrent and self._blockCurrent.mNode and self._blockCurrent in _ml:
-                _idx_current = _ml.index(self._blockCurrent)
-    
-            log.debug("|{0}| >> Current: {1}".format(_str_func, _idx_current))    
+            ml_sel = self.uiScrollList_blocks.getSelectedBlocks()
+            ml_sceneBlocks = self.uiScrollList_blocks._ml_loaded
+            mBlockUse = None
             
-            if index is not None:
-                if index in self._ml_blocks:
-                    index = self._ml_blocks.index(index)
-                if index not in range(len(_ml)):
+            if mBlock:
+                if mBlock not in ml_sceneBlocks:
+                    return log.error(cgmGEN.logString_msg(_str_func, "mBlock not found in scene: {0}".format(mBlock)))
+                mBlockUse = mBlock
+
+            
+            elif index is not None:
+                if index in ml_sceneBlocks:
+                    #index = ml_sceneBlocks.index(index)
+                    mBlockUse = index
+                elif index not in range(len(ml_sceneBlocks)):
                     log.warning("|{0}| >> Invalid index: {1}".format(_str_func, index))    
                     return
-            elif mBlock:
-                if mBlock in self._ml_blocks:
-                    index = self._ml_blocks.index(mBlock)
                 else:
-                    raise ValueError,"mBlock not found in list: {0}".format(mBlock)
-            else:
-                _indices = self.uiScrollList_blocks.getSelectedIdxs() or []
-                log.debug("|{0}| >> indices: {1}".format(_str_func, _indices))    
-            
-                if not _indices:
-                    log.warning("|{0}| >> Nothing selected".format(_str_func))                    
-                    
-                    if _idx_current is not None:
-                        log.debug("|{0}| >> Using Current: {1}".format(_str_func, _idx_current))                        
-                        index = _idx_current
+                    mBlock = ml_sceneBlocks[index]
+            elif ml_sel:
+                mBlockUse = ml_sel[0]
+            elif self._blockCurrent and self._blockCurrent.mNode and self._blockCurrent in ml_sceneBlocks:
+                #_idx_current = _ml.index(self._blockCurrent)
+                mBlockUse = self._blockCurrent
+                log.debug("|{0}| >> Using Current".format(_str_func))    
                 
-                if not index:
-                    #index = _indices[0]
-                    index = int(str(_indices[0]).split('L')[0])
                     
+            if not mBlockUse:
+                return log.error(cgmGEN.logString_msg(_str_func, "Found no block to make active".format(mBlock)))
             
-            if _ml[index].mNode == None:
-                log.warning("|{0}| >> Index failed to query: {1}. Reloading list....".format(_str_func, index))            
-                self.uiUpdate_scrollList_blocks()                    
-                return
-            
-            log.info("|{0}| >> To set: {1}".format(_str_func, _ml[index].mNode))
-            self._blockFactory.set_rigBlock( _ml[index] )
-            self._blockCurrent = _ml[index]
+            log.info("|{0}| >> To set: {1}".format(_str_func, mBlockUse.mNode))
+            self._blockCurrent = mBlockUse
             _short = self._blockCurrent.p_nameShort
             
             #>>>Inspector ===================================================================================
@@ -3362,7 +3278,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   
         mUI.MelMenuItem( self.uiMenu_help, l="Update Display",
-                         c=lambda *a: self.uiUpdate_scrollList_full() )
+                         c=lambda *a:self.uiScrollList_blocks.rebuild())
         
  
     def uiFunc_clear_loaded(self):
@@ -3376,29 +3292,30 @@ class ui(cgmUI.cgmGUI):
         
         for o in self._l_toEnable:
             o(e=True, en=False)        
-        
+    """
     def uiUpdate_sceneBlocks(self):
         _ml,_l_strings = BLOCKGEN.get_uiScollList_dat(showSide=1)
         
         self.__ml_blocks = _ml
         self.__l_strings = _l_strings
-        
         self.__l_itc = []
         
         d_colors = {'left':[.5,.5,1],
                     'right':[.8,.5,.5],
                     'center':[.8,.8,0]}
-        
-        
 
-                           
         for mBlock in _ml:
             _arg = mBlock.getEnumValueString('blockState')#atUtils('get_side')
             _color = d_colors.get(_arg,d_colors['center'])
             self.__l_itc.append(_color)
 
     def uiUpdate_scrollList_blocks(self, select = None):
-        _str_func = 'uiUpdate_scrollList_blocks'          
+        _str_func = 'uiUpdate_scrollList_blocks'
+        #if self.uiPopUpMenu_blocks:
+        #    self.uiPopUpMenu_blocks.clear()
+        #    self.uiPopUpMenu_blocks.delete()
+        #    self.uiPopUpMenu_blocks = None
+            
         self.uiScrollList_blocks.clear()
         
         
@@ -3411,24 +3328,12 @@ class ui(cgmUI.cgmGUI):
         _ml = copy.copy(self.__ml_blocks)
         _l_strings = copy.copy(self.__l_strings)
         
-        
-        """
-        for i,s in enumerate(_l_strings):
-            log.debug("|{0}| >> {1} : {2}".format(_str_func,_ml[i].mNode,s)) 
-        """
-        #_ml = BLOCKGEN.get_from_scene()
-        
-        self._ml_blocks = _ml
-        
         _len = len(_ml)
-        
         if not _ml:
             log.warning("|{0}| >> No blocks found in scene.".format(_str_func)) 
             self.uiFunc_block_clearActive()
             return False      
 
-        #...menu...
-        #_progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
 
         try:
             for i,strEntry in enumerate(r9Core.filterListByString(_l_strings, searchFilter, matchcase=False)):
@@ -3440,8 +3345,9 @@ class ui(cgmUI.cgmGUI):
                 #_side = _ml[idx].getEnumValueString('side')#atUtils('get_side')
                 #_color = self.__l_itc[idx]
                 _color = d_state_colors.get(_ml[idx].getEnumValueString('blockState'))
-                self.uiScrollList_blocks(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
-
+                try:self.uiScrollList_blocks(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
+                except:pass
+                
         except Exception,err:
             try:
                 log.error("|{0}| >> err: {1}".format(_str_func, err))  
@@ -3454,10 +3360,10 @@ class ui(cgmUI.cgmGUI):
         self._ml_blocks = _ml_use
 
         #cgmUI.doEndMayaProgressBar(_progressBar) 
-        
+        return
         if select:
             if select in self._ml_blocks:
-                self.uiScrollList_blocks.selectByIdx(self._ml_blocks.index(select))
+                self.uiScrollList_blocks.selectByIdx(self._ml_blocks.index(select))"""
                 
     def uiUpdate_context(self,var=None,value=None):
         if var:
@@ -3640,30 +3546,29 @@ class ui(cgmUI.cgmGUI):
                                       en=True,
                                       text = '')
         self.cgmUIField_filterBlocks = _textField
-        self.cgmUIField_filterBlocks(edit=True,
-                                     tcc = lambda *a: self.uiUpdate_scrollList_blocks())
+
         
-        _scrollList = mUI.MelTextScrollList(_LeftColumn, ut='cgmUISubTemplate',
-                                              allowMultiSelection=True,en=True,
-                                              ebg=0,
-                                              bgc = [.2,.2,.2],
-                                              hlc = [.5,.5,.5],
-                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
-                                              #dcc = cgmGEN.Callback(self._blockCurrent.select()),
-                                              #dcc = self.uiFunc_block_select_dcc,
-                                              selectCommand = self.uiScrollList_block_select,
-                                              w = 50)
-        #_scrollList(edit=True, hlc = SHARED._d_gui_state_colors.get('warning'))
-        #dcc = self.uiFunc_dc_fromList,
-        #selectCommand = self.uiFunc_selectParent_inList)
-    
-                                    #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
+        _scrollList = BlockScrollList(_LeftColumn, ut='cgmUISubTemplate',
+                                      allowMultiSelection=True,en=True,
+                                      ebg=0,
+                                      bgc = [.2,.2,.2],
+                                      dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
+                                      w = 50)
+        try:_scrollList(edit=True,hlc = [.5,.5,.5])
+        except:pass
+        
+        #_scrollList(e=True,selectCommand = lambda *a:self.uiScrollList_block_select())
+        _scrollList.cmd_select = lambda *a:self.uiScrollList_block_select()
+        
+        _scrollList.set_filterObj(self.cgmUIField_filterBlocks)
+        self.cgmUIField_filterBlocks(edit=True,
+                                     tcc = lambda *a: self.uiScrollList_blocks.update_display())
         
         self.uiScrollList_blocks = _scrollList
         self._l_toEnable.append(self.uiScrollList_blocks)
         
         button_refresh = CGMUI.add_Button(_LeftColumn,'Refresh',
-                                          lambda *a: self.uiUpdate_scrollList_full(),
+                                          lambda *a:self.uiScrollList_blocks.rebuild(),
                                           'Force the scroll list to update')
         
         _LeftColumn(edit = True,
@@ -3995,101 +3900,10 @@ class ui(cgmUI.cgmGUI):
                        ],
                   attachNone = [])#(_row_cgm,"top")	  
         
-        self.uiUpdate_scrollList_full()        
+        self.uiScrollList_blocks.rebuild()        
         
         
-    def build_layoutWrapperOLD(self,parent):
-        _str_func = 'build_layoutWrapper'
-        self._d_uiCheckBoxes = {}
-        
-        _MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
-        
-        #_header_top = cgmUI.add_Header('cgmDynParentGroup',overrideUpper=True)     
-        _row_report = mUI.MelHLayout(_MainForm ,ut='cgmUIInstructionsTemplate',h=20)
-        self.uiField_report = mUI.MelLabel(_row_report,
-                                           bgc = SHARED._d_gui_state_colors.get('help'),
-                                           label = '...',
-                                           h=20)
-        _row_report.layout()         
-        
-        #_LeftColumn = mUI.MelColumn(_MainForm,ut='cgmUISubTemplate',w=100)
-        #cgmUI.add_Header('Blocks',overrideUpper=True)  
-        
-        _LeftColumn = mUI.MelObjectScrollList(_MainForm, #ut='cgmUISubTemplate',
-                                              allowMultiSelection=False,en=True,
-                                              dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
-                                              selectCommand = self.uiScrollList_block_select,
-                                              w = 200)
-        #dcc = self.uiFunc_dc_fromList,
-        #selectCommand = self.uiFunc_selectParent_inList)
     
-                                    #dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
-        
-        self.uiScrollList_blocks = _LeftColumn
-        self._l_toEnable.append(self.uiScrollList_blocks)        
-        
-        
-        _RightColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUITemplate')
-        
-        cgmUI.add_Header('Inspector',overrideUpper=True)
-        """
-        self.uiField_inspector= mUI.MelLabel(_RightColumn,
-                                             bgc = SHARED._d_gui_state_colors.get('help'),
-                                             label = '...',
-                                             h=20) """
-        
-        
-        _frame_attr = mUI.MelFrameLayout(_RightColumn,label = 'Attr',vis=True,
-                                        collapse=self.var_attrFrameCollapse.value,
-                                        collapsable=True,
-                                        enable=True,
-                                        useTemplate = 'cgmUIHeaderTemplate',
-                                        expandCommand = lambda:self.var_attrFrameCollapse.setValue(0),
-                                        collapseCommand = lambda:self.var_attrFrameCollapse.setValue(1)
-                                        )	
-        _frame_attr_inside = mUI.MelColumnLayout(_frame_attr,useTemplate = 'cgmUISubTemplate')     
-        CGMUI.add_Button(_frame_attr_inside)
-        
-        #>>>CGM Row
-        _row_cgm = cgmUI.add_cgmFooter(_MainForm)
-        
-               
-        #>>> Layout form ---------------------------------------------------------------------------------------
-        _MainForm(edit = True,
-                  af = [(_row_report,"top",0),
-                        (_row_report,"left",0),
-                        (_row_report,"right",0),
-                        
-                        (_LeftColumn,"left",0),
-                        (_RightColumn,"right",0),                        
-                       
-                        (_row_cgm,"left",0),
-                        (_row_cgm,"right",0),                        
-                        (_row_cgm,"bottom",0),
-
-                        ],
-                  ac = [(_LeftColumn,"top",0,_row_report),
-                        (_RightColumn,"top",0,_row_report),
-                        (_RightColumn,"left",0,_LeftColumn),
-                        
-                        (_RightColumn,"bottom",0,_row_cgm),
-                        (_LeftColumn,"bottom",0,_row_cgm),
-
-                        
-                       ],
-                  attachNone = [(_row_cgm,"top")])	        
-        
-        self.uiUpdate_scrollList_full()
-        
-        #_sel = mc.ls(sl=True)
-        #if _sel:
-            #self.uiFunc_load_selected()                
-
-        return
-
-
-            
-
 def uiOptionMenu_blockSizeMode(self, parent, callback = cgmGEN.Callback):
     uiMenu = mc.menuItem( parent = parent, l='Create Mode:', subMenu=True)
     
@@ -4159,16 +3973,227 @@ class uiCallback_withUpdate(object):
                 log.debug("kws: {0}".format(self._kwargs))
             for a in err.args:
                 log.debug(a)
-                
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
             raise Exception,err
         
-        if self._mBlock == self._ui._blockCurrent:
-            log.debug("|{0}| resetting active block".format('uiCallback_withUpdate'))            
-            self._ui.uiFunc_block_setActive()
-        else:
-            self._ui.uiUpdate_scrollList_full()
-        self._ui.uiUpdate_scrollList_full()
+        #if self._mBlock == self._ui._blockCurrent:
+            #log.debug("|{0}| resetting active block".format('uiCallback_withUpdate'))            
+            #self._ui.uiFunc_block_setActive()
+        #self._ui.uiScrollList_blocks.rebuild()
         
         
+class BlockScrollList(mUI.BaseMelWidget):
+    '''
+    NOTE: you probably want to use the MelObjectScrollList instead!
+    '''
+    WIDGET_CMD = mc.iconTextScrollList
+    KWARG_CHANGE_CB_NAME = 'sc'
+
+    ALLOW_MULTI_SELECTION = True
+    def __new__( cls, parent, *a, **kw ):
+        if 'ams' not in kw and 'allowMultiSelection' not in kw:
+            kw[ 'ams' ] = cls.ALLOW_MULTI_SELECTION
+        return mUI.BaseMelWidget.__new__( cls, parent, *a, **kw )
+    
+    def __init__( self, parent, *a, **kw ):
+        mUI.BaseMelWidget.__init__( self, parent, *a, **kw )
+        self._appendCB = None
+        self._items = []
+        self._ml_scene = []
+        self._ml_loaded = []
+        self._l_strings = []
+        self._l_itc = []
+        self.filterField = None
+        self.b_selCommandOn = True
+        self.rebuild()
+        self.cmd_select = None
+        self(e=True, sc = self.selCommand)
         
+    def __getitem__( self, idx ):
+        return self.getItems()[ idx ]
+
+    def setItems( self, items ):
+        self.clear()
+        for i in items:
+            self.append( i )
+    def getItems( self ):
+        return self._items
+        
+    def getSelectedItems( self ):
+        return self( q=True, si=True ) or []
+        
+    def getSelectedIdxs( self ):
+        return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
+        
+    def selectByIdx( self, idx ):
+        self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
+
+    def selectByValue( self, value):
+        self( e=True, selectItem=value )
+        
+    def selectByBlock(self,Block):
+        if Block in self._ml_loaded:
+            self.selectByIdx(self._ml_loaded.index(Block))
+            
+    def getSelectedBlocks( self):
+        _indicesRaw = self.getSelectedIdxs()
+        if not _indicesRaw:
+            log.debug("Nothing selected")
+            return False
+        _indices = []
+        for i in _indicesRaw:
+            _indices.append(int(str(i).split('L')[0]))
+        return [self._ml_loaded[i] for i in _indices]
+
+    def append( self, item ):
+        self( e=True, append=item )
+        self._items.append(item)
+        
+    def appendItems( self, items ):
+        for i in items: self.append( i )
+        
+    #def removeByIdx( self, idx ):
+        #self( e=True, removeIndexedItem=idx+1 )
+    #def removeByValue( self, value ):
+        #self( e=True, removeItem=value )
+    #def removeSelectedItems( self ):
+        #for idx in self.getSelectedIdxs():
+            #self.removeByIdx( idx )
+        
+    def allowMultiSelect( self, state ):
+        self( e=True, ams=state )
+    
+    def report(self):
+        log.info("Scene: "+cgmGEN._str_subLine)
+        for i,mObj in enumerate(self._ml_scene):
+            print ("{0} | {1} | {2}".format(i,self._l_strings[i],mObj))
+            
+        log.info("Loaded "+cgmGEN._str_subLine)
+        for i,mObj in enumerate(self._ml_loaded):
+            print("{0} | {1}".format(i, mObj))
+            
+        pprint.pprint(self._ml_scene)
+        
+    def set_selCallBack(self,func,*args,**kws):
+        self.selCommand = func
+        self.selArgs = args
+        self.selkws = kws
+    
+    def selCommand(self):
+        if self.b_selCommandOn and self.cmd_select:
+            return self.cmd_select()
+        return False
+    def rebuild( self ):
+        _str_func = 'rebuild'
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.b_selCommandOn = False
+        
+        ml_sel = self.getSelectedBlocks()
+        print '...'
+        #selCmd = self(q=True, sc=True)
+        #print selCmd
+        #self(e=True,sc= lambda *a:pprint.pprint(''))
+        self( e=True, ra=True )
+        self.b_selCommandOn = True
+        
+        print '...'
+        self._items = []
+        self._ml_scene = []
+        self._ml_loaded = []
+        self._l_strings = []
+        self._l_str_loaded = []
+        self._l_itc = []
+        
+        #...
+        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat(showSide=1)
+        
+        self._ml_scene = _ml
+        self._l_strings = _l_strings
+        self._l_itc = []
+        
+        d_colors = {'left':[.5,.5,1],
+                    'right':[.8,.5,.5],
+                    'center':[.8,.8,0]}
+
+        for mBlock in _ml:
+            _arg = mBlock.getEnumValueString('blockState')
+            _color = d_colors.get(_arg,d_colors['center'])
+            self._l_itc.append(_color)            
+        
+        self.update_display()
+        
+        #if ml_sel:
+            #try:self.selectByBlock(ml_sel[0])
+            #except Exception,err:
+                #print err        
+
+    def clear( self ):
+        self( e=True, ra=True )
+        self._l_str_loaded = []
+        self._ml_loaded = []
+        
+    def clearSelection( self,):
+        self( e=True, deselectAll=True )
+    def set_filterObj(self,obj=None):
+        self.filterField = obj
+
+    def update_display(self,searchFilter='',matchCase = False):
+        _str_func = 'update_display'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        l_items = self.getSelectedItems()
+        
+        if self.filterField is not None:
+            searchFilter = self.filterField.getValue()
+        
+        self.clear()
+        try:
+            for i,strEntry in enumerate(r9Core.filterListByString(self._l_strings,
+                                                                  searchFilter,
+                                                                  matchcase=matchCase)):
+                if strEntry in self._l_str_loaded:
+                    log.warning("Duplicate string")
+                    continue
+                self.append(strEntry)
+                self._l_str_loaded.append(strEntry)
+                idx = self._l_strings.index(strEntry)
+                _mBlock = self._ml_scene[idx]
+                self._ml_loaded.append(_mBlock)
+                _color = d_state_colors.get(_mBlock.getEnumValueString('blockState'))
+                try:self(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
+                except:pass
+
+        except Exception,err:
+            log.error("|{0}| >> err: {1}".format(_str_func, err))  
+            for a in err:
+                log.error(a)
+        
+        #if l_items:
+            #try:self.selectByValue(l_items)
+            #except Exception,err:
+                #print err
+    
+    def func_byBlock(self,func,*args,**kws):
+        try:
+            for mBlock in self.getSelectedBlocks():
+                try:
+                    res = func( *args, **kws )
+                except Exception,err:
+                    try:log.debug("Func: {0}".format(_func.__name__))
+                    except:log.debug("Func: {0}".format(_func))
+      
+                    if args:
+                        log.debug("args: {0}".format(args))
+                    if kws:
+                        log.debug("kws: {0}".format(kws))
+                    for a in err.args:
+                        log.debug(a)
+                    raise Exception,err
+        except:pass
+        finally:
+            self.rebuild()
+            
+    def selectCallBack(self,func=None,*args,**kws):
+        print self.getSelectedBlocks()
+            
+    
+    

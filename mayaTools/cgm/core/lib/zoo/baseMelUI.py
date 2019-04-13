@@ -1301,21 +1301,20 @@ class MelFloatSlider(_BaseSlider):
 
 class MelIntSlider(_BaseSlider):
     WIDGET_CMD = cmd.intSlider
-import cgm.core.cgm_General as cgmGEN
+    
 class MelIconScrollList(BaseMelWidget):
     '''
     NOTE: you probably want to use the MelObjectScrollList instead!
     '''
     WIDGET_CMD = cmd.iconTextScrollList
-    
     KWARG_CHANGE_CB_NAME = 'sc'
 
     ALLOW_MULTI_SELECTION = False
     def __new__( cls, parent, *a, **kw ):
         if 'ams' not in kw and 'allowMultiSelection' not in kw:
             kw[ 'ams' ] = cls.ALLOW_MULTI_SELECTION
-
         return BaseMelWidget.__new__( cls, parent, *a, **kw )
+    
     def __init__( self, parent, *a, **kw ):
         BaseMelWidget.__init__( self, parent, *a, **kw )
         self._appendCB = None
@@ -1338,48 +1337,38 @@ class MelIconScrollList(BaseMelWidget):
     #def setAppendCB( self, cb ):
         #self._appendCB = cb
     def getSelectedItems( self ):
-        try:return self( q=True, si=True ) or []
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        return self( q=True, si=True ) or []
         
     def getSelectedIdxs( self ):
-        try:return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
         
     def selectByIdx( self, idx ):
-        try:self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
 
     def attemptToSelect( self, idx):
         '''
         attempts to select the item at index idx - if the specific index doesn't exist,
         it tries to select the closest item to the given index
         '''
-        try:
-            if len( self ) == 0:
-                return
-    
-            if idx >= len( self ):
-                idx = len( self ) - 1  #set to the end most item
-    
-            if idx < 0:
-                idx = 0
-            self.selectByIdx( idx )
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        if len( self ) == 0:
+            return
+
+        if idx >= len( self ):
+            idx = len( self ) - 1  #set to the end most item
+
+        if idx < 0:
+            idx = 0
+        self.selectByIdx( idx )
         
     def selectByValue( self, value):
-        try:self( e=True, selectItem=value )
-        except Exception,err:cgmGEN.cgmException(Exception,err)        
+        self( e=True, selectItem=value )
 
     def append( self, item ):
-        try:
-            self( e=True, append=item )
-            self._items.append(item)
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        self( e=True, append=item )
+        self._items.append(item)
         
     def appendItems( self, items ):
-        try:
-            for i in items: self.append( i )
-        except Exception,err:cgmGEN.cgmException(Exception,err)
+        for i in items: self.append( i )
         
     #def removeByIdx( self, idx ):
         #self( e=True, removeIndexedItem=idx+1 )
@@ -1389,15 +1378,12 @@ class MelIconScrollList(BaseMelWidget):
         #for idx in self.getSelectedIdxs():
             #self.removeByIdx( idx )
     def allowMultiSelect( self, state ):
-        try:self( e=True, ams=state )
-        except Exception,err:cgmGEN.cgmException(Exception,err)        
+        self( e=True, ams=state )
     def clear( self ):
         self( e=True, ra=True )
         self._items = []
     def clearSelection( self,):
-        try:self( e=True, deselectAll=True )
-        except Exception,err:cgmGEN.cgmException(Exception,err)
-        
+        self( e=True, deselectAll=True )
 
     """        
     def moveSelectedItemsUp( self, count=1 ):

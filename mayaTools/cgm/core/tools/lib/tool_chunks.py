@@ -693,6 +693,7 @@ def uiSection_hotkeys(parent):
 
 from cgm.lib import optionVars
 from cgm.core.lib.wing import mayaWingServer as mWingServer
+reload(mWingServer)
 from cgm.core.tools.lib import cgmDeveloperLib
 reload(cgmDeveloperLib)
 from cgm.core.tests import cgmMeta_test as testCGM
