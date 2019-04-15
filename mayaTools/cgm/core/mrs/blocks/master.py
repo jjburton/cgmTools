@@ -36,7 +36,8 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
-
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+reload(BLOCKSHAPES)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
@@ -381,15 +382,13 @@ def prerig(self):
         mPrerigNull = self.atBlockUtils('prerigNull_verify')
         mHandleFactory = self.asHandleFactory(self.mNode)
         ml_handles = [self.mNode]
+        offset = self.controlOffset 
         
         #Helpers=====================================================================================
         self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addMotionJoint:
-            mMotionJoint = mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d', shapeDirection = 'y-')
-            mShape = mMotionJoint.doDuplicate(po=False)
-            SNAP.to_ground(mShape.mNode)
-            CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
+            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=offset * 4.0)
             mMotionJoint.p_parent = mPrerigNull
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
