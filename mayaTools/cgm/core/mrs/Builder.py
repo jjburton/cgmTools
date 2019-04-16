@@ -4162,7 +4162,8 @@ class BlockScrollList(mUI.BaseMelWidget):
             _color = d_state_colors.get(_arg,d_colors['center'])
             self._l_itc.append(_color)            
             self._d_itc[mBlock] = _color
-            _str_base = mBlock.UTILS.get_uiString(mBlock)
+            try:_str_base = mBlock.UTILS.get_uiString(mBlock)
+            except:_str_base = 'FAIL | {0}'.format(mBlock.mNode)
             _pre = _l_strings[i]
             self._l_strings.append(getString(_pre,_str_base))
             

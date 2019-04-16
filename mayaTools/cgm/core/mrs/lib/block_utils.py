@@ -174,7 +174,9 @@ def get_uiString(self,showSide=True):
         return _str
         
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)
+        log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
+        log.error(err)
+        return self.mNode
 
 
 def get_sideMirror(self):
