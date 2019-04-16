@@ -79,6 +79,21 @@ reload(CORERIG)
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
+def example(self):
+    """
+    Get a snap shot of all of the controls of a rigBlock
+    """
+    try:
+        _str_func = 'snapShot_controls_get'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        
+        #Control sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, '...'))
+        return 'This does nothing'
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
 def get_side(self):
     _side = 'center' 
     if self.getMayaAttr('side'):
@@ -87,6 +102,79 @@ def get_side(self):
 
 def reorder_udAttrs(self):
     ATTR.reorder_ud(self.mNode)
+    
+def get_uiString(self,showSide=True):
+    """
+    Get a snap shot of all of the controls of a rigBlock
+    """
+    try:
+        _str_func = 'snapShot_controls_get'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        _d_scrollList_shorts = BLOCKGEN._d_scrollList_shorts
+        _l_report = []
+        
+        #Control sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, '...'))
+        
+        if showSide:
+            if self.getMayaAttr('side'):
+                _v = self.getEnumValueString('side')
+                _l_report.append( _d_scrollList_shorts.get(_v,_v))
+            
+        if self.getMayaAttr('position'):
+            _v = self.getMayaAttr('position')
+            if _v.lower() not in ['','none']:
+                _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                
+                                    
+        l_name = []
+        
+        #l_name.append( ATTR.get(_short,'blockType').capitalize() )
+        _cgmName = self.getMayaAttr('cgmName')
+        l_name.append('"{0}"'.format(_cgmName))
+
+        #_l_report.append(STR.camelCase(' '.join(l_name)))
+        _l_report.append(' - '.join(l_name))
+        
+            
+        #_l_report.append(ATTR.get(_short,'blockState'))
+        if self.getMayaAttr('isBlockFrame'):
+            _l_report.append("[FRAME]")
+        else:
+            _state = self.getEnumValueString('blockState')
+            _blockState = _d_scrollList_shorts.get(_state,_state)
+            _l_report.append("[{0}]".format(_blockState.upper()))
+        
+        """
+        if mObj.hasAttr('baseName'):
+            _l_report.append(mObj.baseName)                
+        else:
+            _l_report.append(mObj.p_nameBase)"""                
+    
+        if self.isReferenced():
+            _l_report.append("Referenced")
+            
+        _str = " | ".join(_l_report)
+        
+        
+        #Block dat
+        l_block = []
+        _blockProfile = self.getMayaAttr('blockProfile')
+        l_block.append(ATTR.get(str_self,'blockType').capitalize())
+        
+        if _blockProfile:
+            if _cgmName in _blockProfile:
+                _blockProfile = _blockProfile.replace(_cgmName,'')
+            _blockProfile= STR.camelCase(_blockProfile)                    
+            l_block.append(_blockProfile)
+            
+        _str = _str + (' - [{0}]'.format("-".join(l_block)))        
+        
+        return _str
+        
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
 
 
 def get_sideMirror(self):

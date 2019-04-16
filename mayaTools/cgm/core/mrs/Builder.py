@@ -2054,7 +2054,6 @@ class ui(cgmUI.cgmGUI):
             #>>>Special menu ---------------------------------------------------------------------------------------
             
             mBlockModule = _mBlock.getBlockModule()
-            reload(mBlockModule)
             if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
                 mBlockModule.uiBuilderMenu(_mBlock,_popUp)
                 #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
@@ -4141,21 +4140,31 @@ class BlockScrollList(mUI.BaseMelWidget):
         self._l_itc = []
         self._d_itc  = {}
         #...
-        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat(showSide=1)
+        _ml,_l_strings = BLOCKGEN.get_uiScollList_dat(showSide=1,presOnly=1)
         
         self._ml_scene = _ml
-        self._l_strings = _l_strings
         self._l_itc = []
         
         d_colors = {'left':[.5,.5,1],
                     'right':[.8,.5,.5],
                     'center':[.8,.8,0]}
-
-        for mBlock in _ml:
+        
+        def getString(pre,string):
+            i = 1
+            _check = ''.join([pre,string])
+            while _check in self._l_strings and i < 100:
+                _check = ''.join([pre,string,' | NAMEMATCH [{0}]'.format(i)])
+                i +=1
+            return _check
+        
+        for i,mBlock in enumerate(_ml):
             _arg = mBlock.getEnumValueString('blockState')
             _color = d_state_colors.get(_arg,d_colors['center'])
             self._l_itc.append(_color)            
             self._d_itc[mBlock] = _color
+            _str_base = mBlock.UTILS.get_uiString(mBlock)
+            _pre = _l_strings[i]
+            self._l_strings.append(getString(_pre,_str_base))
             
         self.update_display()
         

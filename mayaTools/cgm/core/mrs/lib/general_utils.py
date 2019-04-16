@@ -141,7 +141,7 @@ _d_scrollList_shorts = {'left':'L',
                         'form':'frm',
                         'prerig':'pre',
                         'skeleton':'skl'}
-def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None, showSide = True):
+def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None, showSide = True, presOnly = False):
     '''
     Log a dictionary.
 
@@ -213,62 +213,65 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     #s_start = s_start + '-[{0}] '.format(counter-1)
                     #s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
                     s_start = s_start + ' ' + ' '*(counter-1) + ' '
-                    
-                if showSide:
-                    if mBlock.getMayaAttr('side'):
-                        _v = mBlock.getEnumValueString('side')
-                        _l_report.append( _d_scrollList_shorts.get(_v,_v))
-                    
-                if mBlock.getMayaAttr('position'):
-                    _v = mBlock.getMayaAttr('position')
-                    if _v.lower() not in ['','none']:
-                        _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                
+                if presOnly:
+                    _str = copy.copy(s_start)
+                else:
+                    if showSide:
+                        if mBlock.getMayaAttr('side'):
+                            _v = mBlock.getEnumValueString('side')
+                            _l_report.append( _d_scrollList_shorts.get(_v,_v))
                         
-                                            
-                l_name = []
-                
-                #l_name.append( ATTR.get(_short,'blockType').capitalize() )
-                _cgmName = mBlock.getMayaAttr('cgmName')
-                l_name.append('"{0}"'.format(_cgmName))
-
-                #_l_report.append(STR.camelCase(' '.join(l_name)))
-                _l_report.append(' - '.join(l_name))
-                
+                    if mBlock.getMayaAttr('position'):
+                        _v = mBlock.getMayaAttr('position')
+                        if _v.lower() not in ['','none']:
+                            _l_report.append( _d_scrollList_shorts.get(_v,_v) )
+                            
+                                                
+                    l_name = []
                     
-                #_l_report.append(ATTR.get(_short,'blockState'))
-                if mBlock.getMayaAttr('isBlockFrame'):
-                    _l_report.append("[FRAME]")
-                else:
-                    _state = mBlock.getEnumValueString('blockState')
-                    _blockState = _d_scrollList_shorts.get(_state,_state)
-                    _l_report.append("[{0}]".format(_blockState.upper()))
-                
-                """
-                if mObj.hasAttr('baseName'):
-                    _l_report.append(mObj.baseName)                
-                else:
-                    _l_report.append(mObj.p_nameBase)"""                
-            
-                if mBlock.isReferenced():
-                    _l_report.append("Referenced")
+                    #l_name.append( ATTR.get(_short,'blockType').capitalize() )
+                    _cgmName = mBlock.getMayaAttr('cgmName')
+                    l_name.append('"{0}"'.format(_cgmName))
+    
+                    #_l_report.append(STR.camelCase(' '.join(l_name)))
+                    _l_report.append(' - '.join(l_name))
                     
-                _str = s_start + " | ".join(_l_report)
-                
-                
-                #Block dat
-                l_block = []
-                _blockProfile = mBlock.getMayaAttr('blockProfile')
-                l_block.append(ATTR.get(_short,'blockType').capitalize())
-                
-                if _blockProfile:
-                    if _cgmName in _blockProfile:
-                        _blockProfile = _blockProfile.replace(_cgmName,'')
-                    _blockProfile= STR.camelCase(_blockProfile)                    
-                    l_block.append(_blockProfile)
+                        
+                    #_l_report.append(ATTR.get(_short,'blockState'))
+                    if mBlock.getMayaAttr('isBlockFrame'):
+                        _l_report.append("[FRAME]")
+                    else:
+                        _state = mBlock.getEnumValueString('blockState')
+                        _blockState = _d_scrollList_shorts.get(_state,_state)
+                        _l_report.append("[{0}]".format(_blockState.upper()))
                     
-                _str = _str + (' - [{0}]'.format("-".join(l_block)))
+                    """
+                    if mObj.hasAttr('baseName'):
+                        _l_report.append(mObj.baseName)                
+                    else:
+                        _l_report.append(mObj.p_nameBase)"""                
                 
+                    if mBlock.isReferenced():
+                        _l_report.append("Referenced")
+                        
+                    _str = s_start + " | ".join(_l_report)
                     
+                    
+                    #Block dat
+                    l_block = []
+                    _blockProfile = mBlock.getMayaAttr('blockProfile')
+                    l_block.append(ATTR.get(_short,'blockType').capitalize())
+                    
+                    if _blockProfile:
+                        if _cgmName in _blockProfile:
+                            _blockProfile = _blockProfile.replace(_cgmName,'')
+                        _blockProfile= STR.camelCase(_blockProfile)                    
+                        l_block.append(_blockProfile)
+                        
+                    _str = _str + (' - [{0}]'.format("-".join(l_block)))
+                    
+                        
         
                 log.debug(_str + "   >> " + mBlock.mNode)
                 #log.debug("|{0}| >> str: {1}".format(_str_func, _str))      
@@ -277,7 +280,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
          
                 buffer = arg[k]
                 if buffer:
-                    get_uiScollList_dat(buffer,k,counter,blockList,stringList,showSide)   
+                    get_uiScollList_dat(buffer,k,counter,blockList,stringList,showSide,presOnly)   
                     
         
                     """if counter == 0:
