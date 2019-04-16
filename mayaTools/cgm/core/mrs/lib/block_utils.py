@@ -1131,8 +1131,17 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         #New override to make just a foot for casting
         l_targets = []
         ml_formHandles = self.msgList_get('formHandles')
+        
+        mHandleLast = ml_formHandles[-2]
+        l_targets.append(mHandleLast.loftCurve.mNode)        
+        ml_sub = mHandleLast.msgList_get('subShapers')
+        if ml_sub:
+            for mSub in ml_sub:
+                l_targets.append(mSub.mNode)
+        
         mHandle = ml_formHandles[-1]
         l_targets.append(mHandle.loftCurve.mNode)
+        
         
         if mHandle.getMessage('pivotHelper'):
             mPivotHelper = ml_formHandles[-1].pivotHelper
@@ -1147,11 +1156,6 @@ def get_castMesh(self,extend=False,pivotEnd=False):
             mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
             if mTopLoft:
                 mShape2 = mTopLoft.doDuplicate(po=False)
-            else:
-                for mChild in mBaseCrv.getChildren(asMeta=True):
-                    if mChild.cgmName == 'topLoft':
-                        mShape2 = mChild.doDuplicate(po=False)
-                    mChild.delete()
             
             if mShape2:
                 mShape2.parent = False
@@ -1202,11 +1206,6 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                     mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
                     if mTopLoft:
                         mShape2 = mTopLoft.doDuplicate(po=False)
-                    else:
-                        for mChild in mBaseCrv.getChildren(asMeta=True):
-                            if mChild.cgmName == 'topLoft':
-                                mShape2 = mChild.doDuplicate(po=False)
-                            mChild.delete()
                     
                     if mShape2:
                         mShape2.parent = False
@@ -6990,19 +6989,28 @@ def rigDelete(self):
             mFaceSet = mRigNull.getMessageAsMeta('faceSet')
             
             #Rig nodes....
-            ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
-            for mNode in ml_rigNodes:
-                if mNode in [mModuleTarget,mRigNull,mFaceSet]:
-                    continue
-                if mNode in ml_blockControls:
-                    log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))
-                    continue
-                try:
-                    log.debug("|{0}| >> deleting: {1}".format(_str_func,mNode))                     
-                    mNode.delete()
-                except:pass
-                    #log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
             
+            ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
+            _progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(ml_rigNodes))
+            
+            try:
+                for mNode in ml_rigNodes:
+                    if mNode in [mModuleTarget,mRigNull,mFaceSet]:
+                        continue
+                    if mNode in ml_blockControls:
+                        log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))
+                        continue
+                    _str = "|{0}| >> deleting: {1}".format(_str_func,mNode)
+                    CGMUI.progressBar_set(_progressBar,step=1,
+                                          status = _str)                
+                    try:
+                        log.debug(_str)                     
+                        mNode.delete()
+                    except:pass
+                        #log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
+            except:pass
+            finally:
+                CGMUI.doEndMayaProgressBar()                
             mRigNull.rigNodes = []
             """
             #Deform null
@@ -9702,6 +9710,8 @@ def prerig_get_upVector(self, markPos = False):
     if not mOrient:
         raise log.error( cgmGEN.logString_start(_str_func,"No mOrient.") )
     
+    
+    
     rpVectorX = mVectorRP.getTransformDirection(EUCLID.Vector3(1,0,0)).normalized()
     rpVectorY = mVectorRP.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
     rpVectorZ = mVectorRP.getTransformDirection(EUCLID.Vector3(0,0,1)).normalized()
@@ -9719,6 +9729,21 @@ def prerig_get_upVector(self, markPos = False):
                 closestVector = -v
             else:
                 closestVector = v
+                
+    #Now that we have our main up vector, we need to aim at
+    ml_prerig = self.msgList_get('prerigHandles')
+    if ml_prerig:
+        log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+        
+        try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+        except:idx_start,idx_end = 0,len(ml_handles)-1
+
+        mLoc = self.doLoc()
+        SNAP.aim_atPoint(mLoc.mNode,ml_prerig[idx_end].p_position,vectorUp=closestVector)
+        
+        closestVector =  mLoc.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
+        mLoc.delete()
+        
                 
     if markPos:
         pos_use = mVectorRP.p_position
@@ -9901,258 +9926,6 @@ def focus(self,arg=True,mode='vis',ml_focus = None):
 
             
         #cgmGEN.func_snapShot(vars())
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-        
-        
-        
-def pivotHelper_get(self,mHandle=None, 
-                    baseShape=None,
-                    baseSize = None,
-                    upAxis = 'y+',
-                    setAttrs = {},
-                    side = None,
-                    loft = True,
-                    mParent = False,
-                    forceNew=False):
-    try:
-        _str_func = 'addPivotSetupHelper'
-        mBuffer = mHandle.getMessageAsMeta('pivotHelper')
-        if mBuffer:
-            if forceNew:
-                mBuffer.delete()
-            else:
-                return mBuffer
-            
-        #_bbsize = POS.get_axisBox_size(mHandle.mNode,False)
-        #_size = MATH.average(_bbsize)
-        _size = baseSize
-        _sizeSub = _size * .2        
-        mHandleFactory = self.asHandleFactory()
-        
-        if side == None:
-            _side = self.UTILS.get_side(self)
-        else:
-            _side = side
-
-        ml_pivots = []
-        mPivotRootHandle = mParent
-        self_pos = mHandle.p_position
-        self_upVector = mHandle.getAxisVector(upAxis)
-
-        d_pivotDirections = {'back':'z-',
-                             'front':'z+',
-                             'left':'x+',
-                             'right':'x-'}
-
-        d_altName = {'back':'heel',
-                     'front':'toe',
-                     'center':'ball'}
-
-        mAxis = VALID.simpleAxis(d_pivotDirections['front'])
-
-        _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
-        _baseSize = baseSize
-        #Main Handle -----------------------------------------------------------------------------
-        pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
-                                                 shape=_baseShape,
-                                                 direction = 'y-',
-                                                 sizeMode = 'fixed',
-                                                 bakeScale = False,
-                                                 size = _size)
-        mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-        mPivotRootHandle.addAttr('cgmName','base')
-        mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-        mPivotRootHandle.doName()
-
-        mPivotRootHandle.p_position = self_pos
-        mHandleFactory.color(mPivotRootHandle.mNode,_side,'sub')
-
-        mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-
-        if mHandle.hasAttr('addPivot'):
-            mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-
-        self.msgList_append('prerigHandles',mPivotRootHandle)
-
-        #Top loft ----------------------------------------------------------------
-        mTopLoft = False
-        if loft:
-            mTopLoft = mPivotRootHandle.doDuplicate(po=False)
-            mTopLoft.addAttr('cgmName','topLoft')
-            mTopLoft.addAttr('cgmType','pivotHelper')            
-            mTopLoft.doName()
-                
-            mTopLoft.parent = mParent
-            mTrack = mTopLoft.doCreateAt(setClass='cgmObject')
-            mTrack.p_parent = mPivotRootHandle
-            mGroup = mTopLoft.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-            mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
-            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect                    
-            
-
-
-        #_axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
-        #SNAP.go(_axisBox,mHandle.mNode)
-            #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
-
-        #Sub pivots =============================================================================
-        for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
-            _strPivot = a.split('pivot')[-1]
-            _strPivot = _strPivot[0].lower() + _strPivot[1:]
-            _strName = d_altName.get(_strPivot,_strPivot)
-            log.debug("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
-            if _strPivot == 'center':
-                pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
-                                                   direction = upAxis,
-                                                   sizeMode = 'fixed',
-                                                   bakeScale = False,
-                                                   size = _sizeSub)
-                mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                mPivot.addAttr('cgmName',_strName)
-                ml_pivots.append(mPivot)
-                mPivot.p_parent = mParent
-                
-                mTrack = mPivot.doCreateAt(setClass='cgmObject')
-                mTrack.p_parent = mPivotRootHandle
-                mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-                mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)                
-
-                mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
-
-                #mPivot.p_position = p_ballPush
-            else:
-
-
-                mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
-                _inverse = mAxis.inverse.p_string
-                pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
-                                                   direction = _inverse,
-                                                   bakeScale = False,
-                                                   sizeMode = 'fixed', size = _sizeSub)
-                mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                mPivot.addAttr('cgmName',_strName)
-                
-
-
-                #mPivot.p_position = DIST.get_pos_by_axis_dist(mHandle.mNode,mAxis.p_string, _size)
-                mPivot.p_position = DIST.get_closest_point(DIST.get_pos_by_axis_dist(mHandle.mNode,mAxis.p_string, _size),
-                                                           mPivotRootHandle.mNode)[0]
-                #SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
-                #SNAPCALLS.get_special_pos()
-                #mPivot.p_position = #SNAPCALLS.get_special_pos(mPivotRootHandle.p_nameLong,'axisBox',mAxis.p_string,True)
-                #SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
-                
-                mPivot.p_parent = mParent
-            
-                mTrack = mPivot.doCreateAt(setClass='cgmObject')
-                mTrack.p_parent = mPivotRootHandle
-                mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-                mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
-                
-                mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect                    
-
-                ml_pivots.append(mPivot)
-
-                #if _strPivot in ['left','right']:
-                    #mPivot.p_position = p_ballPush
-                    #mPivot.tz = .75
-
-        #Clean up Pivot root after all else --------------------------------------------------
-        #mAxis = VALID.simpleAxis(d_pivotDirections['back'])
-        #p_Base = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,
-        #                                   d_pivotDirections['back'],
-        #                                   _size/4 )
-
-        #mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
-
-        #for mPivot in ml_pivots:#Unparent for loft
-            #mPivot.p_parent = False
-            
-        if loft:
-            if mHandle.getMessage('loftCurve'):
-                log.debug("|{0}| >> LoftSetup...".format(_str_func))
-    
-                #Fix the aim on the foot
-                #mTopLoft.parent = False
-    
-                l_footTargets = [mHandle.loftCurve.mNode, mTopLoft.mNode,mPivotRootHandle.mNode]
-    
-                _res_body = mc.loft(l_footTargets, o = True, d = 3, po = 0,reverseSurfaceNormals=True)
-    
-                #mTopLoft.parent = mPivotRootHandle
-    
-                _loftNode = _res_body[1]
-                mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
-    
-    
-                mLoftSurface.overrideEnabled = 1
-                mLoftSurface.overrideDisplayType = 2
-                #...this used to be {1} + 1. may need to revisit for head/neck
-    
-                mLoftSurface.parent = self.formNull
-    
-                #mLoft.p_parent = mFormNull
-                mLoftSurface.resetAttrs()
-    
-                ATTR.set(_loftNode,'degree',1)    
-    
-                mLoftSurface.doStore('cgmName',self)
-                mLoftSurface.doStore('cgmType','footApprox')
-                mLoftSurface.doName()
-    
-    
-                #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
-                #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
-    
-                #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
-    
-                #Color our stuff...
-                mHandleFactory.color(mLoftSurface.mNode,_side,'sub',transparent=True)
-                #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-                mLoftSurface.inheritsTransform = 0
-                for s in mLoftSurface.getShapes(asMeta=True):
-                    s.overrideDisplayType = 2   
-    
-                self.connectChildNode(mLoftSurface.mNode, 'formFootMesh', 'block')
-
-        for mPivot in ml_pivots:
-            mPivot.addAttr('cgmType','pivotHelper')            
-            mPivot.doName()
-
-            #CORERIG.colorControl(mPivot.mNode,_side,'sub') 
-            mHandleFactory.color(mPivot.mNode,_side,'sub')
-
-            #mPivot.parent = mPivotRootHandle
-
-            #if mPivot.cgmName in ['ball','left','right']:
-                #mPivot.tz = .5
-
-            #mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
-            self.msgList_append('prerigHandles',mPivot)
-
-
-
-        #if mHandle.getShapes():
-        #    SNAPCALLS.snap(mPivotRootHandle.mNode,mHandle.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
-        #    mTopLoft.ty = 1
-
-        #if _axisBox:
-        #    mc.delete(_axisBox)
-
-        #log.debug(_bbsize)
-        #TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
-        #mPivotRootHandle.scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2]
-        #mc.xform(mPivotRootHandle.mNode,
-            #scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2],
-            #worldSpace = True, absolute = True)
-        
-        if mTopLoft:
-            mTopLoft.p_position = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,'y+', MATH.average(_size)*.1)
-            
-            return mPivotRootHandle,mTopLoft
-        return mPivotRootHandle
-        
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         

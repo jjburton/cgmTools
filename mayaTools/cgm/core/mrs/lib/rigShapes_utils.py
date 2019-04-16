@@ -582,7 +582,11 @@ def settings(self,settingsPlace = None,ml_targets = None):
             d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
             
             str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
+            
             pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+            if not pos:
+                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_offset * 5)
             #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)

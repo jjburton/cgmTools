@@ -731,7 +731,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     try:p_blockModule = property(getBlockModule)
     except Exception,err:
         log.error("Failed to load block module. Check it. {0}".format(self))        
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        log.error(err)
         
     def getBlockDat(self,report = False):
         """
