@@ -46,6 +46,7 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.rig.joint_utils as JOINTS
@@ -866,7 +867,7 @@ def prerig(self):
         #self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addPivot:
-            mPivot = self.UTILS.pivotHelper_get(self,self,baseShape = 'square', baseSize=_size,loft=False)
+            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size,loft=False)
             #mHandleFactory.addPivotSetupHelper()
             mPivot.p_parent = mPrerigNull
             ml_formHandles[0].connectChildNode(mPivot,'pivotHelper')

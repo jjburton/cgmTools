@@ -359,7 +359,7 @@ class handleFactory(object):
             _baseShape = 'square'
             
         if baseSize is not None:
-            _baseSize = baseSize or 1.0
+            _baseSize = get_sizeVector(baseSize)
         elif self._mTransform.getShapes():
             _baseSize = POS.get_axisBox_size(self._mTransform.mNode,False)
         elif self.mBlock and self.mBlock.hasAttr('baseSize'):

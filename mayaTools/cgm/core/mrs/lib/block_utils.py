@@ -108,7 +108,7 @@ def get_uiString(self,showSide=True):
     Get a snap shot of all of the controls of a rigBlock
     """
     try:
-        _str_func = 'snapShot_controls_get'
+        _str_func = 'get_uiString'
         log.debug(cgmGEN.logString_start(_str_func))
         str_self = self.mNode
         _d_scrollList_shorts = BLOCKGEN._d_scrollList_shorts

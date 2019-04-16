@@ -55,7 +55,7 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
-
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.rayCaster as RAYS
