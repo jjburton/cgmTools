@@ -1899,7 +1899,7 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
-        if not self.buildBall or not self.buildToe:
+        if not self.buildBall:
             if self.buildEnd:
                 log.info(cgmGEN.logString_msg(_str_func,'adding end'))                
                 _count +=1 
