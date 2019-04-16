@@ -3549,7 +3549,7 @@ class ui(cgmUI.cgmGUI):
         _textField = mUI.MelTextField(_LeftColumn,
                                       ann='Filter blocks',
                                       w=50,
-                                      bgc = [.5,.5,.5],
+                                      bgc = [.3,.3,.3],
                                       en=True,
                                       text = '')
         self.cgmUIField_filterBlocks = _textField

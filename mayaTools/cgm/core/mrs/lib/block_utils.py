@@ -9824,7 +9824,7 @@ def prerig_get_upVector(self, markPos = False):
         log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
         
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
-        except:idx_start,idx_end = 0,len(ml_handles)-1
+        except:idx_start,idx_end = 0,len(ml_prerig)-1
 
         mLoc = self.doLoc()
         SNAP.aim_atPoint(mLoc.mNode,ml_prerig[idx_end].p_position,vectorUp=closestVector)

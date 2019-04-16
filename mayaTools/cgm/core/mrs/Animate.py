@@ -1698,7 +1698,7 @@ def buildTab_mrs(self,parent):
     mc.setParent(_columnBelow)
     buildFrame_mrsTimeContext(self,_columnBelow)        
     buildFrame_mrsAnim(self,_columnBelow)    
-    buildFrame_poses(self,_columnBelow)    
+    #buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
     buildFrame_mrsMirror(self,_columnBelow)
