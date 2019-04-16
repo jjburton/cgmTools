@@ -2013,6 +2013,7 @@ class ui(cgmUI.cgmGUI):
         if self._blockCurrent:
             self._blockCurrent.select()
     
+    @cgmGEN.Timer
     def uiScrollList_block_select(self): 
         try:
             _str_func = 'uiScrollList_block_select'  
@@ -2029,6 +2030,11 @@ class ui(cgmUI.cgmGUI):
                 return False
             
             _mBlock = ml_block[0]
+            if _mBlock and not _mBlock.mNode:
+                log.warning("|{0}| >> Dead block. Rebuilding blockList".format(_str_func))                
+                self.uiScrollList_blocks.rebuild()
+                return False
+                
             self.uiScrollList_blocks.setHLC(_mBlock)
             
             _short = _mBlock.p_nameShort
@@ -2047,7 +2053,7 @@ class ui(cgmUI.cgmGUI):
                 
             #>>>Special menu ---------------------------------------------------------------------------------------
             
-            mBlockModule = _mBlock.p_blockModule
+            mBlockModule = _mBlock.getBlockModule()
             reload(mBlockModule)
             if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
                 mBlockModule.uiBuilderMenu(_mBlock,_popUp)
@@ -3542,9 +3548,9 @@ class ui(cgmUI.cgmGUI):
         _LeftColumn = mUI.MelFormLayout(_MainForm)
         _header = cgmUI.add_Header('Rigblocks')
         _textField = mUI.MelTextField(_LeftColumn,
-                                      ann='Testing',
+                                      ann='Filter blocks',
                                       w=50,
-                                      bgc = [1,1,1],
+                                      bgc = [.5,.5,.5],
                                       en=True,
                                       text = '')
         self.cgmUIField_filterBlocks = _textField
