@@ -393,7 +393,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
 
-    'buildEnd':'joint',
+    'buildEnd':'none',
     'ikRollSetup':'control',
     'buildBall':'none',
     'buildToe':'none',
@@ -1789,14 +1789,19 @@ def prerig(self):
         #Names... -----------------------------------------------------------------
         int_namesToGet = self.numControls
         idx_end = -1
-        for a in ['buildLeverBase','buildBall','buildLeverEnd','buildEnd','buildToe']:
+        for a in ['buildLeverBase','buildBall','buildLeverEnd','buildToe']:
             if self.getMayaAttr(a):
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for: {0}".format(a)))
-                if a not in ['buildEnd']:
-                    int_namesToGet+=1
+                int_namesToGet+=1
                 if a in ['buildBall','buildToe']:
                     idx_end -=1 
                     
+        if self.buildEnd:
+            if self.buildLeverEnd or self.buildBall or self.buildToe:
+                pass
+            else:
+                int_namesToGet +=1
+                
         #if self.buildLeverEnd and self.buildEnd:
             #int_namesToGet -=1
             #idx_end +=1 
