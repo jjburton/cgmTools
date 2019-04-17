@@ -9788,6 +9788,7 @@ def prerig_get_upVector(self, markPos = False):
     log.debug(cgmGEN.logString_start(_str_func))
 
     mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+    pos_use = mVectorRP.p_position
     
     _blockType = self.blockType
     _tag_orient = 'orientHelper'
@@ -9820,6 +9821,14 @@ def prerig_get_upVector(self, markPos = False):
             else:
                 closestVector = v
                 
+    if markPos:
+        pos_use = mVectorRP.p_position
+        size = TRANS.bbSize_get(mVectorRP.mNode,mode='max') * 2
+        crv = DIST.create_vectorCurve(pos_use,closestVector,
+                                      size,name='{0}_baseUpVector'.format(self.p_nameBase))
+        TRANS.rotatePivot_set(crv,pos_use)
+        CORERIG.override_color(crv,'white')
+        
     #Now that we have our main up vector, we need to aim at
     ml_prerig = self.msgList_get('prerigHandles')
     if ml_prerig:
@@ -9829,19 +9838,28 @@ def prerig_get_upVector(self, markPos = False):
         except:idx_start,idx_end = 0,len(ml_prerig)-1
 
         mLoc = self.doLoc()
-        SNAP.aim_atPoint(mLoc.mNode,ml_prerig[idx_end].p_position,vectorUp=closestVector)
-        
+        SNAP.aim_atPoint(mLoc.mNode, ml_prerig[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
+                
         closestVector =  mLoc.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
         mLoc.delete()
         
+        if markPos:
+            crv_toEnd = CORERIG.create_at(create= 'curveLinear',
+                                          l_pos= [pos_use, ml_prerig[idx_end].p_position])
+            CORERIG.override_color(crv_toEnd,'white')
+            mc.rename(crv_toEnd, '{0}_toEnd'.format(self.p_nameBase))
+            
+            
+        
                 
     if markPos:
-        pos_use = mVectorRP.p_position
         size = TRANS.bbSize_get(mVectorRP.mNode,mode='max') * 2
         crv = DIST.create_vectorCurve(pos_use,closestVector,
                                       size,name='{0}_upVector'.format(self.p_nameBase))
         TRANS.rotatePivot_set(crv,pos_use)
         CORERIG.override_color(crv,'white')
+        
+        
 
     
     return closestVector

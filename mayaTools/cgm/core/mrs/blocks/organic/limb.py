@@ -2449,6 +2449,32 @@ def skeleton_build(self, forceNew = True):
         
         #End joint fix when not end joint is there...
         
+        #End Fixing --------------------------------
+        if len(ml_handleJoints) > self.numControls:
+            log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+            _idx_end = -1
+            if _buildToe == 2:
+                _idx_end -=1
+            if _buildBall == 2:
+                _idx_end -=1
+            mEnd = ml_handleJoints[_idx_end]
+            log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+            ml_children = mEnd.getChildren(asMeta=True)
+            if ml_children:
+                ml_children[0].p_parent = False
+                mEnd.jointOrient = 0,0,0
+                
+                ml_children[0].p_parent = mEnd
+                JOINT.freezeOrientation(ml_children[0].mNode)
+                
+ 
+                    
+            
+            
+            
+            
+            
+        """
         if not self.buildEnd and not self.buildLeverEnd:
             mEnd = ml_joints[-1]        
             log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
@@ -2458,7 +2484,7 @@ def skeleton_build(self, forceNew = True):
             if self.buildToe:
                 mEnd.doSnapTo(ml_prerigHandles[-1])
                 
-            JOINT.freezeOrientation(mEnd.mNode)
+            JOINT.freezeOrientation(mEnd.mNode)"""
             
         for mJnt in ml_joints:mJnt.rotateOrder = 5
         self.blockState = 'skeleton'#...buffer
