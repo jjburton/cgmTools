@@ -1385,6 +1385,17 @@ def rig_controls(self):
             mLookAtHandle.masterGroup.parent = mRootParent
             ml_controlsAll.append(mLookAtHandle)
     
+        mHandleFactory = self.asHandleFactory()
+        for mCtrl in ml_controlsAll:            
+            if mCtrl.hasAttr('radius'):
+                ATTR.set(mCtrl.mNode,'radius',0)        
+            
+            ml_pivots = mCtrl.msgList_get('spacePivots')
+            if ml_pivots:
+                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+                for mPivot in ml_pivots:
+                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    ml_controlsAll.append(mPivot)    
     
         #Connections =======================================================================================
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)

@@ -749,9 +749,12 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, repair = False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
+    
+    
+    repair - ammend missing controls to the list
     """
     def addMObj(mObj,mList):
         if mObj not in mList:
@@ -759,7 +762,12 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
                 else:
-                    log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
+                    if repair:
+                        log.warning("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
+                        mRigNull.msgList_append('controlsAll',mObj)
+                        mRigNull.moduleSet.append(mObj.mNode)                        
+                    else:
+                        log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
                 
@@ -844,6 +852,12 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         #pprint.pprint( ml_objs)
         raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+    
+    if repair:
+        for mObj in ml_controls:
+            if not mObj.getMessageAsMeta('rigNull'):
+                log.warning("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
+                mObj.connectParentNode(mRigNull,'rigNull')
     
     if report:
         return
@@ -1162,9 +1176,9 @@ def get_mirrorDat(self):
     _str_module = self.p_nameShort
     _d = {}
     _d['str_name'] = _str_module
-    md,ml = controls_getDat(self,ignore=['spacePivots'])
+    md,ml = controls_getDat(self,repair=True)#...used to ignore=['spacePivots'] don't remember why
     _d['md_controls'] = md
-    _d['ml_controls'] = ml#self.rigNull.moduleSet.getMetaList()
+    _d['ml_controls'] = ml
     _d['mMirror'] = mirror_get(self)
     _d['str_side'] = cgmGEN.verify_mirrorSideArg(self.getMayaAttr('cgmDirection') or 'center')
     
@@ -1264,7 +1278,7 @@ def mirror_verifySetup(self, d_Indices = {},
             _v = i_start+1
             log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
             mObj.mirrorIndex = _v
-            d_Indices[_side] = _v#...push it back
+            d_Indices[_side] = _v
             md_indicesToControls[_side][_v] = mObj
             
         if l_processed is not None:l_processed.append(self)
@@ -1278,9 +1292,6 @@ def mirror_verifySetup(self, d_Indices = {},
         log.debug("|{0}| >>  Mirror module found...".format(_str_func))
         mMirror = d_self['mMirror']
         
-        #i_start = max([d_Indices['Left'],d_Indices['Right']])
-        #i_running = copy.copy(i_start)
-        #log.debug("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
         
         validate_controls(d_self['ml_controls'])
         validate_controls(d_mirror['ml_controls'])
@@ -1355,31 +1366,6 @@ def mirror_verifySetup(self, d_Indices = {},
                 md_indicesToControls[_side][_v] = mObj
                 
                 
-            
-            
-            """
-            for i,mObj in enumerate(self_keyControls):
-                _side = mObj.getEnumValueString('mirrorSide')                
-                i_start = d_Indices[_side]
-                _v = i_start+1
-                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
-                mObj.mirrorIndex = _v
-                d_Indices[_side] = _v#...push it back
-                md_indicesToControls[_side][_v] = mObj
-                
-            for i,mObj in enumerate(mirr_keyControls):
-                _side = mObj.getEnumValueString('mirrorSide')                
-                i_start = d_Indices[_side]
-                _v = i_start+1
-                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
-                mObj.mirrorIndex = _v
-                d_Indices[_side] = _v#...push it back
-                md_indicesToControls[_side][_v] = mObj
-                
-            i_running = i_running + max(len_self,len_mirr)
-            log.debug("|{0}| >>  i_running: {1}".format(_str_func,i_running))"""
-            #d_Indices[d_self['str_side']] = i_running
-            #d_Indices[d_mirror['str_side']] = i_running
             
         if progressBar and progressEnd:cgmUI.progressBar_end(progressBar)
         

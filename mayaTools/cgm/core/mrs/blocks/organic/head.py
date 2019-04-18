@@ -2403,6 +2403,7 @@ def rig_controls(self):
                 log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    ml_controlsAll.append(mPivot)
         
         if mHeadIK:
             ATTR.set(mHeadIK.mNode,'rotateOrder',self.ro_head)

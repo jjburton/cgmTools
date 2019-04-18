@@ -567,6 +567,17 @@ def rig_cleanUp(self):
             mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             
+        for mCtrl in ml_controlsAll:            
+            if mCtrl.hasAttr('radius'):
+                ATTR.set(mCtrl.mNode,'radius',0)        
+            
+            ml_pivots = mCtrl.msgList_get('spacePivots')
+            if ml_pivots:
+                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+                for mPivot in ml_pivots:
+                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    ml_controlsAll.append(mPivot)
+        
         #Connect -------------------------------------------------------------
         mPuppet.msgList_connect('controlsAll', ml_controlsAll)
         mPuppet.puppetSet.extend( ml_controlsAll)
