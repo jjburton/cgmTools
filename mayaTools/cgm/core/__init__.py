@@ -80,11 +80,11 @@ _l_ignoreTags = ['cgm.core.examples',
 
 import cgm
 import copy
-
+import maya.cmds as mc
 from cgm.core.cgmPy import os_Utils as cgmOS
 reload(cgmOS)
 @cgmGen.Timer
-def _reload():
+def _reload(stepConfirm=False):
     _str_func = '_reload'
     
     _d_modules, _l_ordered, _l_pycd = cgmOS.get_module_data(cgm.__path__[0],cleanPyc=True)
@@ -176,6 +176,17 @@ def _reload():
                     #for arg in e.args:
                         #log.error(arg)
                     _d_failed[m] = e.args
+                if stepConfirm:
+                    result = mc.confirmDialog(title="Shall we continue",
+                                              message= m,
+                                              button=['OK', 'Cancel'],
+                                              defaultButton='OK',
+                                              cancelButton='Cancel',
+                                              dismissString='Cancel')
+                
+                    if result != 'OK':
+                        log.error("Cancelled at: {0}".format(m))
+                        return False                    
                     
     if _d_failed:   
         log.info(cgmGen._str_subLine)        
