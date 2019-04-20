@@ -1385,7 +1385,7 @@ def rig_controls(self):
             mLookAtHandle.masterGroup.parent = mRootParent
             ml_controlsAll.append(mLookAtHandle)
     
-        mHandleFactory = self.asHandleFactory()
+        mHandleFactory = mBlock.asHandleFactory()
         for mCtrl in ml_controlsAll:            
             if mCtrl.hasAttr('radius'):
                 ATTR.set(mCtrl.mNode,'radius',0)        
