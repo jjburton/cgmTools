@@ -967,7 +967,7 @@ def get_keyed(node):
     """ 
     _str_func = 'get_keyed'
     _res = []
-    for a in mc.listAttr(node,keyable=True):
+    for a in mc.listAttr(node,keyable=True) or []:
         if is_keyed(node,a):
             _res.append(a)
             

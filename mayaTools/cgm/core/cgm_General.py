@@ -749,20 +749,20 @@ def returnCallerFunctionName():
     return result
 
 def log_start(str_func,split='-',intCount = 80):
-    log.debug("|{0}| >> ...".format(str_func)+split*intCount)
+    log.debug("{0} >> ...".format(str_func)+split*intCount)
 def log_sub(str_func,msg='break',split='_',intCount = 30):
-    log.debug("|{0}| >> {1} ".format(str_func,msg)+split*intCount)
+    log.debug("{0} >> {1} ".format(str_func,msg)+split*intCount)
     
 def logString_start(str_func,split='-',intCount = 80):
-    if str_func:return "|{0}| >> ...".format(str_func)+split*intCount
-    return "...".format(str_func)+split*intCount
+    if str_func:return "{0} >> ".format(str_func)+split*intCount
+    return " ".format(str_func)+split*intCount
 
 def logString_sub(str_func,msg='break',split='_',intCount = 80):
-    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)+split*intCount
+    if str_func:return "{0} >> {1} ...".format(str_func,msg)+split*intCount
     return "{0} ...".format(msg)+split*intCount
 
-def logString_msg(str_func,msg='break'):
-    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)
+def logString_msg(str_func,msg=''):
+    if str_func:return "{0} >> {1} ...".format(str_func,msg)
     return "{0} ...".format(msg)
     
 def log_info_dict(arg = None,tag = 'Stored Dict'):
