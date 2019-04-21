@@ -1089,14 +1089,28 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
 
-def controls_get(self,walk=False):
+@cgmGEN.Timer
+def controls_get(self,walk=False,repair=False):
     _str_func = ' controls_get'
     _res = controls_getDat(self,listOnly=True)
-    if not walk:
+    if not walk and not repair:
         return _res
+    
+    if not repair:
+        try:
+            _res = self.mControls
+            if _res:
+                log.info(cgmGEN.logString_msg(_str_func,'mControls buffer...'))
+                return _res
+        except Exception,err:
+            log.error(err)    
     
     for mModule in modules_get(self):
         _res.extend( mModule.atUtils('controls_get'))
+        
+    if repair:
+        ATTR.set_message(self.mNode, 'mControls', [mObj.mNode for mObj in _res])
+        #self.connectChildren(_res, 'mControls', srcAttr='msg')
     return _res
         
     log.error("|{0}| >> No options specified".format(_str_func))

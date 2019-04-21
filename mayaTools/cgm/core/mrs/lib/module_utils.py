@@ -741,14 +741,15 @@ l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct'
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
-                  'ik':['controlIK','controlIKEnd',
-                        'controlIKBase','controlsFK',
+                  'ik':['controlIK','controlIKEnd','controlBallRotation',
+                        'controlIKBase','controlsFK','controlFollowParentBank',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'face':['controlsFace'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
+@cgmGEN.Timer
 def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, repair = False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
@@ -756,6 +757,20 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     
     repair - ammend missing controls to the list
     """
+    _str_func = ' controls_getDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    ignore = VALID.listArg(ignore)
+    
+    if not repair and not keys and not ignore and listOnly:
+        try:
+            _res = self.mControls
+            if _res:
+                log.info(cgmGEN.logString_msg(_str_func,'mControls'))
+                return _res
+        except Exception,err:
+            log.error("{0} | {1}".format(self,err))    
+    
     def addMObj(mObj,mList):
         if mObj not in mList:
             if ml_objs is not None:
@@ -772,10 +787,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
             mList.append(mObj)
                 
                     
-    _str_func = ' controls_getDat'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
-    ignore = VALID.listArg(ignore)
+
     
     mRigNull = self.rigNull
     try:ml_objs = mRigNull.moduleSet.getMetaList() or []
@@ -791,6 +803,8 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         l_useKeys = l_controlOrder
     
     if ignore:
+        if repair:
+            raise ValueError,"Cannot have repair on with ignore"
         log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
         for k in ignore:
             if k in l_useKeys:
@@ -848,9 +862,9 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         pprint.pprint( ml_controls)
     
     if ml_objs and keys is None and not ignore:        
-        log.debug("|{0}| >> remaining... ".format(_str_func))
-        #pprint.pprint( ml_objs)
-        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        log.error("|{0}| >> remaining... ".format(_str_func))
+        pprint.pprint( ml_objs)
+        raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if repair:
@@ -858,6 +872,8 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
             if not mObj.getMessageAsMeta('rigNull'):
                 log.warning("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
                 mObj.connectParentNode(mRigNull,'rigNull')
+                
+        ATTR.set_message(self.mNode, 'mControls', [mObj.mNode for mObj in ml_controls])        
     
     if report:
         return
@@ -866,12 +882,12 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
     
-def controls_get(self, mode = 'mirror'):
+def controls_get(self, mode = '',repair=False):
     _str_func = ' controls_get'    
     if mode == 'mirror':
-        return controls_getDat(self,ignore='spacePivots',listOnly=True)
+        return controls_getDat(self,mode,listOnly=True,repair=repair)#ignore='spacePivots'
     else:
-        return controls_getDat(self,mode,listOnly=True)
+        return controls_getDat(self,mode,listOnly=True,repair=repair)
         
     log.error("|{0}| >> No options specified".format(_str_func))
     return False
