@@ -102,12 +102,22 @@ def get_shapeOffset(self):
         
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
-    
-def modules_get(self):
+
+@cgmGEN.Timer
+def modules_get(self,rewire=False):
     try:
         _str_func = ' modules_get'.format(self)
         log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
+        if not rewire:
+            try:
+                _res = self.mModulesAll
+                if _res:
+                    log.info(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
+                    return _res
+            except Exception,err:
+                log.error(err)    
+
         try:ml_initialModules = self.moduleChildren
         except:ml_initialModules = []
         
@@ -120,6 +130,11 @@ def modules_get(self):
             for m in m.get_allModuleChildren():
                 if m not in ml_allModules:
                     ml_allModules.append(m)
+                    
+            
+        if rewire:
+            ATTR.set_message(self.mNode, 'mModulesAll', [mObj.mNode for mObj in ml_allModules])
+            #self.connectChildren(_res, 'mControlsAll', srcAttr='msg')
                     
         return ml_allModules        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -1090,17 +1105,17 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     return md_controls,ml_controls
 
 @cgmGEN.Timer
-def controls_get(self,walk=False,repair=False):
+def controls_get(self,walk=False,rewire=False):
     _str_func = ' controls_get'
     _res = controls_getDat(self,listOnly=True)
-    if not walk and not repair:
+    if not walk and not rewire:
         return _res
     
-    if not repair:
+    if not rewire:
         try:
-            _res = self.mControls
+            _res = self.mControlsAll
             if _res:
-                log.info(cgmGEN.logString_msg(_str_func,'mControls buffer...'))
+                log.info(cgmGEN.logString_msg(_str_func,'mControlsAll buffer...'))
                 return _res
         except Exception,err:
             log.error(err)    
@@ -1108,9 +1123,9 @@ def controls_get(self,walk=False,repair=False):
     for mModule in modules_get(self):
         _res.extend( mModule.atUtils('controls_get'))
         
-    if repair:
-        ATTR.set_message(self.mNode, 'mControls', [mObj.mNode for mObj in _res])
-        #self.connectChildren(_res, 'mControls', srcAttr='msg')
+    if rewire:
+        ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in _res])
+        #self.connectChildren(_res, 'mControlsAll', srcAttr='msg')
     return _res
         
     log.error("|{0}| >> No options specified".format(_str_func))

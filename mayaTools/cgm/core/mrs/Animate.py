@@ -202,8 +202,8 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_mDev, l="Puppet - Up to date?",
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
-        mUI.MelMenuItem(_mDev,l="Buffer Dat",
-                        ann = "Buffer data ",
+        mUI.MelMenuItem(_mDev,l="Reset Buffer",
+                        ann = "Reset anim buffer",
                         c = cgmGEN.Callback(uiCB_bufferDat,self,True))                        
     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
@@ -2021,7 +2021,8 @@ def uiCB_contextualAction(self,**kws):
     if _contextTime == 'current' or _mode not in _l_timeFunctions:
         log.info(cgmGEN.logString_sub(None,'Current Only mode: {0}'.format(_mode)))
         
-        _l_controls = self.mDat.get_context(mirrorQuery=_mirrorQuery,**kws)
+        _ml_controls = self.mDat.get_context(mirrorQuery=_mirrorQuery,**kws)
+        _l_controls = [mObj.mNode for mObj in _ml_controls]
         
         if not _l_controls:
             return log.error("Nothing found in context: {0} ".format(_context))
@@ -4465,11 +4466,11 @@ def deleteKey():
 
         mel.eval('timeSliderClearKey;') 
         
-global CGM_MRSANIMATE_DAT
 def uiCB_bufferDat(self,update=True):
     _str_func='uiCB_bufferDat'
     log.info(cgmGEN.logString_msg(_str_func))
-    self.mDat.get_all(update)
+    reload(MRSANIMUTILS)
+    self.mDat = MRSANIMUTILS.MRSDAT
         
 def uiCB_resetSliderDrop(self):
     _str_func='cgmUICB_resetSliderDrop'
