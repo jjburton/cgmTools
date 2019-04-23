@@ -488,6 +488,9 @@ class dat(object):
                     if context == 'control':
                         res.append(mObj)
                         
+                if mModule and not self.d_context['mModulesBase']:
+                    self.d_context['mModulesBase'].append(mModule)
+                        
                 if context == 'part':
                     if mModule:
                         if mModule not in self.d_context['mModules']:
@@ -535,7 +538,8 @@ class dat(object):
                         #res.append(mObj)
     
         #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
-        self.d_context['mModulesBase'] = copy.copy(self.d_context['mModules'])
+        if not self.d_context['mModulesBase']:
+            self.d_context['mModulesBase'] = copy.copy(self.d_context['mModules'])
         ls=[]
         #pprint.pprint(res)
         #pprint.pprint(self.d_context)
@@ -637,7 +641,7 @@ class dat(object):
             ml = []
             for mPuppet in self.d_context['mPuppets']:
                 log.info("|{0}| >> puppet: {1}".format(_str_func,mPuppet))
-                if mPuppet.getMayaAttr('mClass') != 'cgmRigPuppet':
+                if not mPuppet or mPuppet.getMayaAttr('mClass') != 'cgmRigPuppet':
                     self.d_context['mPuppets'].remove(mPuppet)
                     log.error('Bad puppet: {0}'.format(mPuppet))
                     continue
