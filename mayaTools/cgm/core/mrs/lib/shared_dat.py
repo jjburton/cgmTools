@@ -36,6 +36,7 @@ _l_requiredModuleDat = ['__version__',
                         'prerig','is_prerig','prerigDelete',
                         'rig','is_rig','rigDelete']
 
+_l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct','face','spacePivots']
 
 _l_buildProfiles = 'unityLow','unityMed','unityHigh','unityToon','feature'
 

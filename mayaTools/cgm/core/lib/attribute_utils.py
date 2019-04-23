@@ -2265,6 +2265,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                         connect((n + ".message"),holderDict['combined'],nextAvailable=True)
                     except Exception,err:
                         log.warning("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
+                        
             if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
                 if mc.objExists(_combined):
                     if not get_type(_combined) == 'message':

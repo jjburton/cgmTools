@@ -863,9 +863,10 @@ def walk_heirarchy_dict_to_list(arg = None, l_return = None):
             
     if isinstance(arg,dict):
         l_keys = arg.keys()	
+        l_return.extend(l_keys)
         
         for k in l_keys:
-            l_return.append(k)
+            #l_return.append(k)
             walk_heirarchy_dict_to_list(arg[k],l_return)
 		                
     return l_return

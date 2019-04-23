@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -133,7 +133,7 @@ def moduleChildren_get(self,excludeSelf = True):
     
     try:
         ml_children = []
-        ml_childrenCull = copy.copy(self.moduleChildren)
+        ml_childrenCull = self.getMessageAsMeta('moduleChildren') or []
     
         cnt = 0
         while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
@@ -143,7 +143,7 @@ def moduleChildren_get(self,excludeSelf = True):
             for mChild in ml_childrenCull:
                 if mChild not in ml_children:
                     ml_children.append(mChild)
-                for i_subChild in mChild.moduleChildren:
+                for i_subChild in mChild.getMessageAsMeta('moduleChildren') or []:
                     ml_childrenCull.append(i_subChild)
                 ml_childrenCull.remove(mChild) 
         
@@ -737,7 +737,7 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         return mTarget
     
 reload(BLOCKSHARE)
-l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
+l_controlOrder = BLOCKSHARE._l_controlOrder
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
@@ -868,9 +868,10 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if rewire:
+        log.warning("|{0}| >> rewire... ".format(_str_func))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('rigNull'):
-                log.warning("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
+                log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
                 mObj.connectParentNode(mRigNull,'rigNull')
                 
         ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in ml_controls])        
@@ -1208,6 +1209,7 @@ def mirror_verifySetup(self, d_Indices = {},
                        md_data = None,
                        progressBar = None,progressEnd=True):
     _str_func = ' mirror_verifySetup'
+    raise ValueError,"Don't use this"
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
@@ -1242,28 +1244,6 @@ def mirror_verifySetup(self, d_Indices = {},
             md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmDirection'])
             mObj._verifyMirrorable()#...veryify the mirrorsetup
             
-            """
-            _mirrorSideFromCGMDirection = cgmGEN.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
-            
-            _mirrorSideCurrent = cgmGEN.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
-
-            _setMirrorSide = False
-            if _mirrorSideFromCGMDirection:
-                if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
-                    log.debug("|{0}| >> {1}'s cgmDirection ({2}) is not it's mirror side({3}). Resolving...".format(_str_func,mObj.p_nameShort,_mirrorSideCurrent,_mirrorSideFromCGMDirection))
-                    _setMirrorSide = _mirrorSideFromCGMDirection                                            
-            elif not _mirrorSideCurrent:
-                _setMirrorSide = str_mirrorSide
-        
-            if _setMirrorSide:
-                if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
-                    mObj.doStore('mirrorSide',_setMirrorSide)
-                else:
-                    #log.debug("{0} mirrorSide driven".format(mObj.p_nameShort))
-                    log.debug("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
-        """
-            #append the control to our lists to process                                    
-            #md_culling_controlLists[_mirrorSideCurrent].append(mObj)    
     
     #>>>Module control maps ===============================================================================
     d_self = get_mirrorDat(self)
@@ -1367,9 +1347,7 @@ def mirror_verifySetup(self, d_Indices = {},
                         d_Indices[_sideMirror] = _v#...push it back                
                         ml_cull.remove(mCandidate)
                         md_indicesToControls[_sideMirror][_v] = mCandidate
-                        
 
-                        
             for mObj in ml_cull:
                 log.debug("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 _side = mObj.getEnumValueString('mirrorSide')                
@@ -1380,16 +1358,12 @@ def mirror_verifySetup(self, d_Indices = {},
                 mObj.mirrorIndex = _v
                 d_Indices[_side] = _v#...push it back                
                 md_indicesToControls[_side][_v] = mObj
-                
-                
-            
+
         if progressBar and progressEnd:cgmUI.progressBar_end(progressBar)
         
         if l_processed is not None:l_processed.extend([self,mMirror])
         return md_indicesToControls
-        
-    
-    #return ml_modules,md_data
+
     
 def mirror(self,mode = 'self'):
     """
