@@ -38,6 +38,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.math_utils as MATH
+from Red9.core import Red9_AnimationUtils as r9Anim
 
 reload(cgmGEN)
 """
@@ -122,7 +123,7 @@ class dat(object):
             except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                               defaultValue = 'each')
             
-            _l_order = ['children','siblings','mirror']
+            _l_order = ['children','siblings','mirror','core']
             for k in _l_order:
                 _plug = 'cgmVar_mrsContext_' + k
                 try:self.__dict__[_plug]
@@ -204,6 +205,10 @@ class dat(object):
             #Controls...
             ml_controls = mModule.UTILS.controls_get(mModule)#rigNull.moduleSet.getMetaList()
             _m['mControls'] = ml_controls
+            _m['mCore'] = ml_controls
+            try:_m['mCore'] = mModule.mControlsCore
+            except:pass
+                
             """
             l_controls = []
             len_controls = len(ml_controls)
@@ -248,8 +253,9 @@ class dat(object):
         b_children = self.d_context.get('children') or self.cgmVar_mrsContext_children.value
         b_siblings = self.d_context.get('siblings') or self.cgmVar_mrsContext_siblings.value
         b_mirror = self.d_context.get('mirror') or self.cgmVar_mrsContext_mirror.value
+        b_core = self.d_context.get('core') or self.cgmVar_mrsContext_core.value
         
-        log.info("context: {0} | children: {1} | siblings: {2} | mirror: {3}".format(context,b_children,b_siblings,b_mirror))
+        log.info("context: {0} | children: {1} | siblings: {2} | mirror: {3} | core: {4}".format(context,b_children,b_siblings,b_mirror,b_core))
         
         log.info("controls: {0}".format(len(self.d_context['mControls'])))
         log.info("modules: {0}".format(len(self.d_context['mModules'])))
@@ -374,13 +380,9 @@ class dat(object):
             _p['mPuppetControls'] = mPuppet.UTILS.controls_get(mPuppet)
             _p['sControls'] = []
             _p['mControls'] = mPuppet.UTILS.controls_get(mPuppet,True)
-            
-            #for mModule in ml_modules:
-                #_p['mControls'].extend(mModule.UTILS.controls_get(mModule))
-            
-            self.d_parts[mPuppet] = _p['mControls']
+            _p['mCore'] = mPuppet.UTILS.controls_get(mPuppet,core=True)
+
             self.dat[mPuppet] = _p
-             
             return _p
         except Exception,err:
             log.error(err)
@@ -399,6 +401,7 @@ class dat(object):
         b_children = kws.get('children') or self.cgmVar_mrsContext_children.value
         b_siblings = kws.get('siblings') or self.cgmVar_mrsContext_siblings.value
         b_mirror = kws.get('mirror') or self.cgmVar_mrsContext_mirror.value
+        b_core = kws.get('core') or self.cgmVar_mrsContext_core.value
         
         #_contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
@@ -408,7 +411,7 @@ class dat(object):
             context = 'scene'
             b_siblings = False
         
-        log.info("|{0}| >> context: {1} | children: {2} | siblings: {3} | mirror: {4}".format(_str_func,context,b_children,b_siblings,b_mirror))
+        log.info("|{0}| >> context: {1} | children: {2} | siblings: {3} | mirror: {4} | core: {5}".format(_str_func,context,b_children,b_siblings,b_mirror,b_core))
         
         #>>  Individual objects....===============================================================
         sel = mc.ls(sl=True)
@@ -559,8 +562,6 @@ class dat(object):
                 #context = 'part'
                 #b_siblings = False
                 
-                
-        
         if context == 'control':
             if b_siblings:
                 ml_new = []
@@ -637,8 +638,13 @@ class dat(object):
             
             ml = []
             for mModule in self.d_context['mModules']:
-                d_mModule = self.module_get(mModule)                            
-                ml.extend(d_mModule['mControls'])
+                d_mModule = self.module_get(mModule)
+                ml_add = d_mModule['mControls']
+                if b_core:
+                    ml_core =  d_mModule.get('mCore')
+                    if ml_core:
+                        ml_add = ml_core
+                ml.extend(ml_add)
             self.d_context['mControls'] = ml
             
         elif context == 'puppet':
@@ -651,8 +657,12 @@ class dat(object):
                     self.d_context['mPuppets'].remove(mPuppet)
                     log.error('Bad puppet: {0}'.format(mPuppet))
                     continue
-                d_ = self.puppet_get(mPuppet)                           
-                ml.extend(d_['mControls'])
+                
+                d_ = self.puppet_get(mPuppet)
+                if b_core:
+                    ml.extend(d_['mCore'])
+                else:
+                    ml.extend(d_['mControls'])
                 self.d_context['mModules'].extend(d_['mModules'])
             self.d_context['mControls'] = ml                
             
@@ -1380,6 +1390,37 @@ class dat(object):
                 _d_c = _dat[c]
                 for a,v in _d_c.iteritems():
                     ATTR.set(c,a,v)
+                    
+    @cgmGEN.Timer
+    def mirrorData(self,mode=''):
+        ml_nodes = self.d_context['mControls']
+        if not ml_nodes:
+            raise ValueError,"Must have controls in context"
+        
+        l_strings = self.d_context.get('sControls')
+        if not l_strings:
+            l_strings = [mObj.mNode for mObj in ml_nodes]
+            self.d_context['sControls']=l_strings
+            
+        r9Anim.MirrorHierarchy().mirrorData(l_strings,mode = mode)
+        
+    @cgmGEN.Timer
+    def key(self,):
+        ml_nodes = self.d_context['mControls']
+        if not ml_nodes:
+            raise ValueError,"Must have controls in context"
+        
+        l_strings = self.d_context.get('sControls')
+        if not l_strings:
+            l_strings = [mObj.mNode for mObj in ml_nodes]
+            self.d_context['sControls']=l_strings
+            
+        for o in l_strings:#self.mDat.d_context['sControls']:
+            mc.setKeyframe(o)        
+        
+        
+        
+        
         
 @cgmGEN.Timer
 def get_buffer_dat(update = False):

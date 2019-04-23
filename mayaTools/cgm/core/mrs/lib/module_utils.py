@@ -24,7 +24,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -750,7 +750,7 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'direct':['rigJoints']}
 
 @cgmGEN.Timer
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False):
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False,core=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
     
@@ -762,14 +762,23 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     log.debug("{0}".format(self))
     ignore = VALID.listArg(ignore)
     
-    if not rewire and not keys and not ignore and listOnly:
+    if not core and not rewire and not keys and not ignore and listOnly:
         try:
             _res = self.mControlsAll
             if _res:
-                log.info(cgmGEN.logString_msg(_str_func,'mControlsAll'))
+                log.debug(cgmGEN.logString_msg(_str_func,'mControlsAll'))
                 return _res
         except Exception,err:
-            log.error("{0} | {1}".format(self,err))    
+            log.error("{0} | {1}".format(self,err))
+            
+    if core:
+        try:
+            _res = self.mControlsCore
+            if _res:
+                log.debug(cgmGEN.logString_msg(_str_func,'mControlsCore'))
+                return _res
+        except Exception,err:
+            log.error("{0} | {1}".format(self,err))        
     
     def addMObj(mObj,mList):
         if mObj not in mList:
@@ -854,6 +863,16 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 addMObj(mSpace,_ml)
                 ml_controls.append(mSpace)
     
+    ml_core = []
+    for k in 'root','fk','ik','segmentHandles','face':
+        ml = md_controls.get(k)
+        if ml:ml_core.extend(ml)
+    
+    if core:
+        return ml_core
+    
+    md_controls['core'] = ml_core
+        
     if report:
         log.info("|{0}| >> Dict... ".format(_str_func))
         pprint.pprint( md_controls)
@@ -874,7 +893,8 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
                 mObj.connectParentNode(mRigNull,'rigNull')
                 
-        ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in ml_controls])        
+        ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in ml_controls],multi=1)
+        ATTR.set_message(self.mNode, 'mControlsCore', [mObj.mNode for mObj in ml_core],multi=1)        
     
     if report:
         return
@@ -883,12 +903,12 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
     
-def controls_get(self, mode = '',rewire=False):
+def controls_get(self, mode = '',rewire=False,core=False):
     _str_func = ' controls_get'    
     if mode == 'mirror':
-        return controls_getDat(self,mode,listOnly=True,rewire=rewire)#ignore='spacePivots'
+        return controls_getDat(self,mode,listOnly=True,rewire=rewire,core=core)#ignore='spacePivots'
     else:
-        return controls_getDat(self,mode,listOnly=True,rewire=rewire)
+        return controls_getDat(self,mode,listOnly=True,rewire=rewire,core=core)
         
     log.error("|{0}| >> No options specified".format(_str_func))
     return False

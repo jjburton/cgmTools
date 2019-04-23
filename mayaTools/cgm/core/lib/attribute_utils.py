@@ -2216,7 +2216,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None):
+def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None, multi = None):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
@@ -2246,9 +2246,12 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         _d_dataAttr = None
         
         if dataAttr is None:
-            dataAttr = "{0}_datdict".format(messageAttr)        
-        
+            dataAttr = "{0}_datdict".format(messageAttr)
+            
         _multi = False
+        if multi is not None:
+            _multi= multi
+            
         if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
             _multi = True
             if not message:

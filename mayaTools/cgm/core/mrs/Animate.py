@@ -86,7 +86,7 @@ _l_contextTime = ['back','previous','current','bookEnd','next','forward','slider
 _d_shorts = {'back':'<-',
              'previous':'|<',
              'bookEnd':'|--|',
-             'current':'^',
+             'current':'now',
              'selected':'sel',
              'next':'>|',
              'slider':'[ ]',
@@ -108,7 +108,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 275,500
+    DEFAULT_SIZE = 300,500
     TOOLNAME = '{0}.cgmUI'.format(__toolname__)
     
     def insert_init(self,*args,**kws):
@@ -1666,14 +1666,16 @@ def buildTab_mrs(self,parent):
     
     #>>>Context Options -------------------------------------------------------------------------------
     _rowContextSub = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
-    _d = {}
+    _d = {'children':'chldrn',
+          'siblings':'sblg',
+          'mirror':'mrr'}
     
     mUI.MelSpacer(_rowContextSub,w=5)                          
-    mUI.MelLabel(_rowContextSub,l='Options: ')
+    mUI.MelLabel(_rowContextSub,l='Options:')
     _rowContextSub.setStretchWidget( mUI.MelSeparator(_rowContextSub) )
     
     _d_defaults = {}
-    _l_order = ['children','siblings','mirror']
+    _l_order = ['core','children','siblings','mirror']
     self._dCB_contextOptions = {}
     for k in _l_order:
         _plug = 'cgmVar_mrsContext_' + k
@@ -1691,6 +1693,9 @@ def buildTab_mrs(self,parent):
                               onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
                               offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
         self._dCB_contextOptions[k] = _cb
+        
+    mUI.MelSpacer(_rowContextSub,w=5)                      
+        
     _rowContextSub.layout()
     
 
@@ -1975,9 +1980,7 @@ _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
                     'FKon','IKon','FKsnap','IKsnap','IKsnapAll',
                    'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
-                   'aimSnap','aimToIK','aimToFK',
-                   'mirrorPush','mirrorPull',
-                   'symLeft','symRight','mirrorFlip']
+                   'aimSnap','aimToIK','aimToFK']
 
 _l_noReselect = ['aimSnap','aimToIK','aimToFK']
 
@@ -2034,6 +2037,11 @@ def uiCB_contextualAction(self,**kws):
             except Exception,err:
                 log.error(err)
         endCall(self,False)
+        
+    @cgmGEN.Timer
+    def key(f,l_controls):
+        for o in l_controls:#self.mDat.d_context['sControls']:
+            mc.setKeyframe(o,time = f)
             
     if _contextTime == 'current' or _mode not in _l_timeFunctions:
         log.info(cgmGEN.logString_sub(None,'Current Only mode: {0}'.format(_mode)))
@@ -2051,6 +2059,9 @@ def uiCB_contextualAction(self,**kws):
             self.mDat.report_contextDat()
             if _contextTime == 'current':
                 return endCall(self)
+        elif _mode == 'animFlip':
+            self.mDat.mirrorData('Anim')
+            return endCall(self)
         elif _mode == 'select':
             return  mc.select(_l_controls)
         elif _mode in ['selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']:
@@ -2158,8 +2169,58 @@ def uiCB_contextualAction(self,**kws):
                 return log.error("Nothing found in context".format(_context))
     
             mc.select(l_sel)
-            return        
-    
+            return
+        elif _mode == 'mirrorFlip':
+            self.mDat.mirrorData()
+            self.mDat.key()
+            return endCall(self)
+        
+        elif _mode in ['mirrorPush','mirrorPull',
+                     'symLeft','symRight']:
+            mBaseModule = self.mDat.d_context['mModulesBase'][0]                
+            log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
+            
+            _l_cBuffer = [mObj.mNode for mObj in _ml_controls]
+            for mMirror in self.mDat.d_context['mModulesMirror']:
+                d_mModule = self.mDat.module_get(mMirror)
+                _l_cBuffer.extend([mObj.mNode for mObj in d_mModule['mControls']])
+                
+            log.debug(cgmGEN._str_subLine)
+            
+            try:
+                _primeAxis = self.mDat._ml_sel[0].getEnumValueString('mirrorSide')
+                log.info("Prime axis from control: {0}".format(_primeAxis))
+            except:
+                if mBaseModule.hasAttr('cgmDirection'):
+                    _primeAxis = mBaseModule.cgmDirection.capitalize()
+                else:
+                    _primeAxis = 'Centre'
+                log.info("Prime axis from module: {0}".format(_primeAxis))
+            else:
+                _primeAxisUse = _primeAxis
+                
+                log.info("mirror call...")
+                
+                if _mode == 'mirrorPull':
+                    _dFlip = {'Left':'Right',
+                              'Right':'Left'}
+            
+                    _primeAxisUse = _dFlip.get(_primeAxis,_primeAxis)
+
+                elif _mode == 'mirrorPush':
+                    pass #...trying to just use first selected
+                elif _mode == 'symLeft':
+                    _primeAxisUse = 'Left'
+                else:
+                    _primeAxisUse = 'Right'
+        
+                    log.debug("|{0}| >> Mirror {1} | primeAxis: {2}.".format(_str_func,_mode,_primeAxisUse))
+                
+                r9Anim.MirrorHierarchy().makeSymmetrical(_l_cBuffer,
+                                                         mode = '',
+                                                         primeAxis = _primeAxisUse )        
+            self.mDat.key()
+            return endCall(self)    
     
     _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
@@ -2192,10 +2253,7 @@ def uiCB_contextualAction(self,**kws):
     _l_cBuffer = []
     mc.refresh(su=1)
     
-    @cgmGEN.Timer
-    def key(f,l_controls):
-        for o in l_controls:#self.mDat.d_context['sControls']:
-            mc.setKeyframe(o,time = f)
+
             
     if _mode == 'pushKey':
         log.debug("|{0}| >> Push Key buffer".format(_str_func))
@@ -2208,9 +2266,12 @@ def uiCB_contextualAction(self,**kws):
             except:pass
             
             mc.currentTime(f,update=True)
-            
-            if _mode in ['mirrorPush','mirrorPull',
-                         'symLeft','symRight','mirrorFlip']:
+            if _mode == 'mirrorFlip':
+                self.mDat.mirrorData()
+                self.mDat.key()
+                
+            elif _mode in ['mirrorPush','mirrorPull',
+                         'symLeft','symRight']:
                 mBaseModule = self.mDat.d_context['mModulesBase'][0]                
                 log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
                 
@@ -2233,10 +2294,9 @@ def uiCB_contextualAction(self,**kws):
                     else:
                         _primeAxis = 'Centre'
                     log.info("Prime axis from module: {0}".format(_primeAxis))
-                _primeAxisUse = _primeAxis
-                if _mode == 'mirrorFlip':
-                    r9Anim.MirrorHierarchy().mirrorData(_l_cBuffer,mode = '')
                 else:
+                    _primeAxisUse = _primeAxis
+                    
                     log.info("mirror call...")
                     
                     if _mode == 'mirrorPull':
@@ -2467,7 +2527,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     #>>>Time Context Options -------------------------------------------------------------------------------
     #_rowContextTime = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-    _rowContextTime = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
+    _rowContextTime = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=3)
 
     _d = {}
 
@@ -2491,7 +2551,7 @@ def buildFrame_mrsTimeContext(self,parent):
                       c = cgmGEN.Callback(setContext_time,self,item)) 
         #uiRC.createButton(_rowContextTime,label=_label,sl=_rb,
         #                  ann = "Set time context to: {0}".format(item),                          
-        #                  onCommand = cgmGEN.Callback(setContext_time,self,item))
+        #                  onCommand = cgmGEN.Callback(setContext_time,self,item))        
     _rowContextTime.layout()         
     
     updateHeader(self)
@@ -2873,12 +2933,14 @@ def buildFrame_mrsMirror(self,parent):
                             'arg':{'mode':'symRight'}},
                 'flip':{'ann':'Flip the pose',
                         'arg':{'mode':'mirrorFlip'}},
+                'animFlip':{'ann':'Flip the animation | IGNORES TIME CONTEXT',
+                            'arg':{'mode':'animFlip'}},
                 'mirrorSelect':{'ann':'Select objects in mirror context',
                                 'short':'select',
                                 'arg':{'mode':'mirrorSelect'}},                
                 }
     
-    l_mirror = ['push','pull','flip','symLeft','mirrorSelect','symRight']
+    l_mirror = ['push','pull','flip','symLeft','symRight','mirrorSelect','animFlip']
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     
     for i,b in enumerate(l_mirror):
@@ -2890,7 +2952,7 @@ def buildFrame_mrsMirror(self,parent):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
-        if i == 2:#New row
+        if i and MATH.is_even(i):#New row
             _row.layout()
             _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     _row.layout()

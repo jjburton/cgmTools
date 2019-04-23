@@ -247,6 +247,8 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
     _str_func = ' mirror_verify'.format(self)
     log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
+    controls_get(self,True,rewire=True)#Wire pass
+    
     md_data = {}
     md_cgmTags = {}
     ml_processed = []
@@ -1231,7 +1233,7 @@ d_controlLinks = {'root':['masterControl'],
                   'motionHandle':['rootMotionHandle'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder]}
 
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False,rewire=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
     """
@@ -1321,7 +1323,21 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
             for mSpace in mBuffer:
                 addMObj(mSpace,_ml)
                 ml_controls.append(mSpace)
-
+    
+    if rewire:
+        log.warning("|{0}| >> rewire... ".format(_str_func))        
+        for mObj in ml_controls:
+            if not mObj.getMessageAsMeta('cgmOwner'):
+                log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
+                mObj.connectParentNode(self.mNode,'cgmOwner')
+                
+        ml_core = []
+        for k in ['root']:
+            ml_core.extend(md_controls[k])
+        #self.addAttr('mControlsCore',attrType = 'multimessage')
+        #self.mControlsCore = ml_core
+        ATTR.set_message(self.mNode, 'mControlsCore', [mObj.mNode for mObj in ml_core],multi=True)                
+        
     if report:
         log.info("|{0}| >> Dict... ".format(_str_func))
         pprint.pprint( md_controls)
@@ -1343,27 +1359,49 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     return md_controls,ml_controls
 
 @cgmGEN.Timer
-def controls_get(self,walk=False,rewire=False):
+def controls_get(self,walk=False,rewire=False,core=False):
     _str_func = ' controls_get'
-    _res = controls_getDat(self,listOnly=True)
-    if not walk and not rewire:
+    _res = controls_getDat(self,listOnly=True,rewire=rewire)
+    if not core and not walk and not rewire:
         return _res
     
     if not rewire:
-        try:
-            _res = self.mControlsAll
-            if _res:
-                log.info(cgmGEN.logString_msg(_str_func,'mControlsAll buffer...'))
-                return _res
-        except Exception,err:
-            log.error(err)    
-    
+        if not core:
+            try:
+                _res = self.mControlsAll
+                if _res:
+                    log.info(cgmGEN.logString_msg(_str_func,'mControlsAll buffer...'))
+                    return _res
+            except Exception,err:
+                log.error(err)
+        else:
+            try:
+                _resCore = self.mControlsCoreAll
+                if _resCore:
+                    log.info(cgmGEN.logString_msg(_str_func,'mControlsCoreAll buffer...'))
+                    return _resCore
+            except Exception,err:
+                log.error(err)
+                
+    try:
+        _resCore = self.mControlsCore
+        if _resCore:
+            if not walk:
+                log.info(cgmGEN.logString_msg(_str_func,'mControlsCore buffer...'))                
+                return _resCore
+    except Exception,err:
+        log.error(err)
+        _resCore = copy.copy(_res)
+        
     for mModule in modules_get(self):
-        _res.extend( mModule.atUtils('controls_get'))
+        _res.extend( mModule.atUtils('controls_get',rewire=rewire))
+        _resCore.extend( mModule.atUtils('controls_get',core=True))
         
     if rewire:
         ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in _res])
-        #self.connectChildren(_res, 'mControlsAll', srcAttr='msg')
+        ATTR.set_message(self.mNode, 'mControlsCoreAll', [mObj.mNode for mObj in _resCore])
+    if core:
+        return _resCore
     return _res
         
     log.error("|{0}| >> No options specified".format(_str_func))
