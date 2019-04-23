@@ -259,7 +259,13 @@ class dat(object):
         log.info("puppets: {0}".format(len(self.d_context['mPuppets'])))
         for i,v in enumerate(self.d_context['mPuppets']):
             log.info("[{0}] : {1}".format(i,v))
-        log.info(cgmGEN._str_subLine)        
+        log.info(cgmGEN._str_subLine)
+        
+        if self.d_context.get('mModulesBase'):
+            log.info("baseModules: {0}".format(len(self.d_context['mModulesBase'])))
+            for i,v in enumerate(self.d_context['mModulesBase']):
+                log.info("[{0}] : {1}".format(i,v))
+            log.info(cgmGEN._str_subLine)            
         #pprint.pprint(self.d_context)
         
         #for i,v in enumerate(self.d_context['res']):
@@ -383,8 +389,8 @@ class dat(object):
         pass
     
     @cgmGEN.Timer
-    def get_context(self, mObj = None, addMirrors = False, mirrorQuery = False, **kws):
-        _str_func='get_context'
+    def context_get(self, mObj = None, addMirrors = False, mirrorQuery = False, **kws):
+        _str_func='context_get'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
                         
         _keys = kws.keys()
@@ -1076,15 +1082,15 @@ class dat(object):
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
     @cgmGEN.Timer
-    def get_contextTimeDat(self,mirrorQuery=False,**kws):
+    def contextTime_get(self,mirrorQuery=False,**kws):
         try:        
-            _str_func='get_contextTimeDat'
+            _str_func='contextTime_get'
             log.debug(cgmGEN.logString_start(_str_func))
             _res = {}
             
             if not self.d_context:
                 log.debug(cgmGEN.logString_sub(_str_func,'No context, acquiring...'))                
-                self.get_context(mirrorQuery = mirrorQuery,**kws)
+                self.context_get(mirrorQuery = mirrorQuery,**kws)
             
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))

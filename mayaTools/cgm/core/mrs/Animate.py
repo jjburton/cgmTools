@@ -2020,7 +2020,7 @@ def uiCB_contextualAction(self,**kws):
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-    _ml_controls = self.mDat.get_context(mirrorQuery=_mirrorQuery,**kws)
+    _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
     
     #First we see if we have a current only function or current time ========================
     if _mode == 'mirrorVerify':
@@ -2161,7 +2161,7 @@ def uiCB_contextualAction(self,**kws):
             return        
     
     
-    _res  = self.mDat.get_contextTimeDat(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
+    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:
             return log.error(_res[1])
