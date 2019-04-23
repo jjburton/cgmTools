@@ -36,6 +36,8 @@ import cgm.core.cgm_General as cgmGEN
 from cgm.core.classes import GuiFactory as CGMUI
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.search_utils as SEARCH
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.math_utils as MATH
 
 reload(cgmGEN)
 """
@@ -44,10 +46,8 @@ import cgm.core.cgmPy.os_Utils as cgmOS
 import cgm.core.cgmPy.path_Utils as cgmPATH
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.rig.general_utils as CORERIGGEN
-import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
-import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.classes.NodeFactory as NODEFACTORY
 from cgm.core import cgm_RigMeta as cgmRigMeta
@@ -104,6 +104,7 @@ class dat(object):
         self.d_buffer = {}
         self.d_timeContext = {}
         self.d_parts = {}
+        self.d_timeSnips = {}
         
         if datTarget:
             self.datTarget = datTarget
@@ -143,6 +144,7 @@ class dat(object):
         self.d_timeContext = {}
         self._sel = []
         self._ml_sel = []        
+        self.d_timeSnips = {}
         
     @cgmGEN.Timer
     def get_all(self,update=False):
@@ -293,7 +295,7 @@ class dat(object):
         else:
             log.info("Context: {0} | Time: {1} | keys: {2}".format(_context, _contextTime, len(d_timeContext.keys())))        
             for k in _keys:
-                log.info("{0} : {1}".format(k,len(d_timeContext[k])))
+                log.info("{0} : {1}".format(k,d_timeContext[k]))
             log.info(cgmGEN._str_subLine)
             
         
@@ -1322,6 +1324,52 @@ class dat(object):
             pprint.pprint(self.d_timeContext)
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
+    @cgmGEN.Timer
+    def snapShot_get(self,key=None):
+        _str_func='get_contextTimeDat'
+        log.debug(cgmGEN.logString_start(_str_func))
+        if not self.d_timeContext:
+            return log.error("Time context needed")
+        
+        _res = {}
+        if key is None:
+            key = self.d_timeContext['frameInitial']
+            
+        for mPart,controls in self.d_timeContext['partControls'].iteritems():
+            _d = {}
+            for c in controls:
+                _d_c = {}
+                for a in mc.listAttr(c, keyable=True, unlocked=True):
+                    _d_c[a] = ATTR.get(c,a)
+                    
+                _d[c] = _d_c
+
+            _res[mPart] = _d
+            
+        pprint.pprint(_res)
+        self.d_timeSnips[key] = _res
+        
+    def snapShot_set(self,key=None):
+        _str_func='get_contextTimeDat'
+        log.debug(cgmGEN.logString_start(_str_func))
+        if not self.d_timeContext:
+            return log.error("Time context needed")
+        _res = {}
+        if key is None:
+            key = self.d_timeContext['frameInitial']
+            
+        dat = self.d_timeSnips.get(key)
+        if not dat:
+            return log.error("Key empty: {0}".format(key))
+            
+            
+        for mPart,controls in self.d_timeContext['partControls'].iteritems():
+            log.debug(cgmGEN.logString_sub(_str_func,'mPart: {0}'.format(mPart)))
+            _dat = dat[mPart]
+            for c in controls:
+                _d_c = _dat[c]
+                for a,v in _d_c.iteritems():
+                    ATTR.set(c,a,v)
         
 @cgmGEN.Timer
 def get_buffer_dat(update = False):

@@ -1700,8 +1700,8 @@ def buildTab_mrs(self,parent):
     _columnBelow = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
     
     mc.setParent(_columnBelow)
-    buildFrame_mrsTimeContext(self,_columnBelow)        
-    buildFrame_mrsAnim(self,_columnBelow)    
+    buildFrame_mrsAnim(self,_columnBelow)
+    buildFrame_mrsTimeContext(self,_columnBelow)            
     #buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
@@ -2122,7 +2122,7 @@ def uiCB_contextualAction(self,**kws):
     
             return endCall(self)
     
-        elif _mode in ['holdCurrent','holdAverage','holdPrev','holdNext']:
+        elif _mode in ['holdCurrent','holdAverage','holdPrev','holdNext','holdCurrentTime','holdAverageTime']:
             mc.select(_l_controls)
     
             if _mode == 'holdCurrent':
@@ -2133,6 +2133,10 @@ def uiCB_contextualAction(self,**kws):
                 ml_hold.previous()
             elif _mode == 'holdNext':
                 ml_hold.next()
+            elif _mode == 'holdCurrentTime':
+                ml_hold.holdRange(True,False)
+            elif _mode == 'holdAverageTime':
+                ml_hold.holdRange(False,True)                
             return endCall(self)
         elif _mode == 'mirrorSelect':
             mc.select(_l_controls)
@@ -2191,8 +2195,12 @@ def uiCB_contextualAction(self,**kws):
     @cgmGEN.Timer
     def key(f,l_controls):
         for o in l_controls:#self.mDat.d_context['sControls']:
-            mc.setKeyframe(o,time = f)        
-        
+            mc.setKeyframe(o,time = f)
+            
+    if _mode == 'pushKey':
+        log.debug("|{0}| >> Push Key buffer".format(_str_func))
+        self.mDat.snapShot_get()
+
     try:
         for i,f in enumerate(_keys):
             log.info(cgmGEN.logString_sub(None,'Key: {0}'.format(f),'_',40))
@@ -2269,7 +2277,12 @@ def uiCB_contextualAction(self,**kws):
                         key(f,self.mDat.d_timeContext['partControls'][mModule])                    
                         #for o in _l_controls:#self.mDat:#self.mDat.d_context['sControls']:
                             #mc.setKeyframe(o,time = f)
-
+            elif _mode == 'pushKey':
+                self.mDat.snapShot_set()
+                for mPart,controls in self.mDat.d_timeContext['partControls'].iteritems():
+                    for c in controls:
+                        if SEARCH.get_key_indices_from(c):
+                            mc.setKeyframe(c,time = f)                        
             else:
                 log.info("Processing parts...".format(_context))
                 
@@ -2515,12 +2528,12 @@ def buildFrame_mrsAnim(self,parent):
               '>>':{'ann':'Find next contexual key',
                      'arg':{'mode':'nextKey'},},
               'delete':{'ann':'Clear current contextual keys',
-                     'arg':{'mode':'delete'},},
-              'report':{'ann':'Report objects in context',
-                        'arg':{'mode':'report'}},              
-              }
+                        'short':'del',
+                        'arg':{'mode':'delete'},},
+              'push':{'ann':'Push current contextual key to others in context',
+                     'arg':{'mode':'pushKey'},}}
     
-    l_anim = ['<<','key','bKey','>>','delete','report']
+    l_anim = ['<<','key','bKey','>>','delete','push']
     for b in l_anim:
         _d = d_anim.get(b,{})
         _arg = _d.get('arg',{'mode':b})
@@ -2802,13 +2815,19 @@ def buildFrame_mrsHold(self,parent):
 
               'holdPrev':{'short':'<<Prev',
                              'ann':'ml_hold + context | Matches selected key or current frame to the previous keyframe value.',
-                             'arg':{'mode':'holdPrev'}},            
-
+                             'arg':{'mode':'holdPrev'}},
               'holdNext':{'short':'Next>>',
                              'ann':'ml_hold + context | Matches selected key or current frame to the next keyframe value.',
-                             'arg':{'mode':'holdNext'}},}
+                             'arg':{'mode':'holdNext'}},
+              'holdCurrentTime':{'short':'Current Time',
+                                 'ann':'ml_hold + context | hold for range',
+                                 'arg':{'mode':'holdCurrentTime'}},              
+
+              'holdAverageTime':{'short':'Average Time',
+                                 'ann':'ml_hold + context | Matches selected key or current frame to the next keyframe value.',
+                                 'arg':{'mode':'holdAverageTime'}},}
     
-    l_hold = ['holdCurrent','holdAverage','holdPrev','holdNext']
+    l_hold = ['holdCurrent','holdAverage','holdCurrentTime','holdAverageTime','holdPrev','holdNext',]
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
     
     for i,b in enumerate(l_hold):
@@ -2820,7 +2839,7 @@ def buildFrame_mrsHold(self,parent):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
-        if i == 1:#New row
+        if i in [1,3]:#New row
             _row.layout()
             _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding=5)
             
