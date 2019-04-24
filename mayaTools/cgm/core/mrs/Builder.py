@@ -3142,9 +3142,9 @@ class ui(cgmUI.cgmGUI):
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
         
-        
-        _short = self._blockCurrent.p_nameShort
-        _intState = self._blockCurrent.getState(False)        
+        if self._blockCurrent and self._blockCurrent.mNode:
+            _short = self._blockCurrent.p_nameShort
+            _intState = self._blockCurrent.getState(False)        
         mBlock = self._blockCurrent
         
         if not mBlock:

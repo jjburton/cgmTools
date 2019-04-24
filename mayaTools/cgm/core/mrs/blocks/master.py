@@ -94,7 +94,7 @@ _d_attrStateOn = {0:[],
                   4:[]}
 _d_attrStateOff = {0:[],
                   1:[],
-                  2:['baseSize'],
+                  2:['baseSize','scaleY'],
                   3:['addMotionJoint'],
                   4:[]}
 
@@ -382,14 +382,17 @@ def prerig(self):
         mPrerigNull = self.atBlockUtils('prerigNull_verify')
         mHandleFactory = self.asHandleFactory(self.mNode)
         ml_handles = [self.mNode]
-        offset = self.controlOffset 
+        _offset = self.controlOffset 
         
         #Helpers=====================================================================================
         self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addMotionJoint:
-            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=offset * 4.0)
+            _baseSize = self.baseSize
+            _sizeHandle = (MATH.average(_baseSize[0],_baseSize[1]) * .1) + _offset
+            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=_sizeHandle)
             mMotionJoint.p_parent = mPrerigNull
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def prerigDelete(self):

@@ -4133,8 +4133,6 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     if _d_subShapers:
         _d['subShapers'] =_d_subShapers
         
-
-
     #if self.getMessage('orientHelper'):
     #    _d['rootOrientHelper'] = self.orientHelper.rotate
 
