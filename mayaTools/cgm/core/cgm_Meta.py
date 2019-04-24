@@ -17,6 +17,9 @@ import maya.cmds as mc
 import maya.mel as mel
 import maya.OpenMaya as OM
 import maya.OpenMayaAnim as OMANIM 
+try:import maya.api.OpenMaya as OM2
+except:OM2 = False
+    
 
 import copy
 import time
@@ -2922,6 +2925,7 @@ class cgmObject(cgmNode):
         """         
         return TRANS.is_parentTo(self,child)
     isParentOf = isParentTo
+    
     def isChildTo(self,parent):
         """
         Query whether a given node is a parent of our mNode
@@ -2935,6 +2939,30 @@ class cgmObject(cgmNode):
         """                 
         return TRANS.is_childTo(self,parent)
     isChildOf = isChildTo
+    
+    def isVisible(self,checkShapes=False):
+        _str_func = 'isVisible'
+        try:
+            if not OM2:
+                raise ValueError,"haven't implemented non OM2 version"
+            _state = None
+            sel2 = OM2.MSelectionList()#...make selection list
+            sel2.add(self.mNode)#...add to list
+            _state = sel2.getDagPath(0).isVisible()   
+            if not checkShapes:
+                return _state  
+            _states = [_state]
+            if checkShapes:
+                for s in self.getShapes():
+                    sel2.clear()
+                    sel2.add(s)
+                    _states.append(sel2.getDagPath(0).isVisible())
+            if False in _states:
+                return False
+            return True
+            
+        except Exception,err:
+            log.error(cgmGEN.logString_msg(_str_func,err))
     #========================================================================================================
     #>>> Position/Rotation/Scale ...
     #========================================================================================================      
