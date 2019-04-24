@@ -1001,7 +1001,7 @@ class cgmNode(r9Meta.MetaClass):
             return [NAMES.long(o) for o in _res]
         return _res    
     
-    def getMessageAsMeta(self,attr):
+    def getMessageAsMeta(self,attr,asList=False):
         """
         This is for when you need to build a attr name in 
         """
@@ -1016,10 +1016,10 @@ class cgmNode(r9Meta.MetaClass):
                 for arg in e.args:
                     log.error(arg)      
                 raise Exception,e
-        if len(buffer) == 1:
-            return validateObjArg(buffer)
-        else:
+            
+        if asList or len(buffer) > 1:
             return validateObjListArg(buffer)
+        return validateObjArg(buffer)
     #========================================================================================================     
     #>>> msgLists... 
     #========================================================================================================        

@@ -133,7 +133,7 @@ def moduleChildren_get(self,excludeSelf = True):
     
     try:
         ml_children = []
-        ml_childrenCull = self.getMessageAsMeta('moduleChildren') or []
+        ml_childrenCull = self.getMessageAsMeta('moduleChildren',asList=1) or []
     
         cnt = 0
         while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
@@ -143,7 +143,7 @@ def moduleChildren_get(self,excludeSelf = True):
             for mChild in ml_childrenCull:
                 if mChild not in ml_children:
                     ml_children.append(mChild)
-                for i_subChild in mChild.getMessageAsMeta('moduleChildren') or []:
+                for i_subChild in mChild.getMessageAsMeta('moduleChildren',asList=1) or []:
                     ml_childrenCull.append(i_subChild)
                 ml_childrenCull.remove(mChild) 
         
