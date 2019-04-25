@@ -55,6 +55,7 @@ import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.mrs.lib.general_utils as BLOCKGEN
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.rig.general_utils as RIGGEN
 
@@ -1718,4 +1719,59 @@ def clean_null(self,null='rigNull'):
         for mChild in mNull.getChildren(asMeta=True):
             log.debug("|{0}| >>  deleting: {1}".format(_str_func,mChild))
             mChild.delete()
+
+
+def get_uiString(self,showSide=True):
+    """
+    Get a snap shot of all of the controls of a rigBlock
+    """
+    try:
+        _str_func = 'get_uiString'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        _d_scrollList_shorts = BLOCKGEN._d_scrollList_shorts
+        _l_report = []
+        
+        #Control sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, '...'))
+        
+        if showSide:
+            _dir = self.getMayaAttr('cgmDirection')
+            if _dir:
+                _l_report.append( _d_scrollList_shorts.get(_dir,_dir))
             
+        _pos = self.getMayaAttr('cgmPosition')
+        if _pos:
+            if _pos and str(_pos).lower() not in ['none','false']:
+                _l_report.append( _d_scrollList_shorts.get(_pos,_pos) )                
+                                    
+        l_name = []
+        
+        #l_name.append( ATTR.get(_short,'blockType').capitalize() )
+        _cgmName = self.getMayaAttr('cgmName')
+        l_name.append('"{0}"'.format(_cgmName))
+
+        #_l_report.append(STR.camelCase(' '.join(l_name)))
+        _l_report.append(' - '.join(l_name))
+        
+        _modType = self.getMayaAttr('moduleType')
+        if _modType:
+            _l_report.append('[{0}]'.format(_modType))
+        
+        """
+        if mObj.hasAttr('baseName'):
+            _l_report.append(mObj.baseName)                
+        else:
+            _l_report.append(mObj.p_nameBase)"""                
+    
+        if self.isReferenced():
+            _l_report.append("[REF]")
+            
+        _str = " | ".join(_l_report)
+            
+        return _str
+        
+    except Exception,err:
+        log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
+        log.error(err)
+        return self.mNode
