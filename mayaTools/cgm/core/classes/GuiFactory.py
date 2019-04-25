@@ -245,7 +245,6 @@ class cgmGUI(mUI.BaseMelWindow):
             if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
                 log.setLevel(logging.DEBUG)	
                 
-            
             #killChildren(self)
             #>>> Standard cgm variables
             #====================	    
@@ -255,15 +254,24 @@ class cgmGUI(mUI.BaseMelWindow):
             self.description = __description__
             self.initializeTemplates() 
             self.setup_baseVariables()	
-            
+            self.__toolName__ = 'cgmGUI'
             #>>> Insert our init, overloaded for other tools
+            
+            self.pg_maya = doStartMayaProgressBar(statusMessage='Building...')
+            mc.progressBar(self.pg_maya,edit=True, status = '{0} | Init'.format(self.__toolName__),
+                           progress = 2, maxValue= 10)
+            
             self.insert_init(self,*a,**kw)
                 
             #>>> Menu
+            mc.progressBar(self.pg_maya,edit=True,status = '{0} | Menu'.format(self.__toolName__),
+                           progress = 6, maxValue= 10)            
             self.build_menus()
     
             #>>> Body
-            #====================        
+            #====================
+            mc.progressBar(self.pg_maya,edit=True,status = '{0} | Layout'.format(self.__toolName__),
+                           progress = 8, maxValue= 10)                        
             self.build_layoutWrapper(self)
     
             #====================
@@ -295,6 +303,8 @@ class cgmGUI(mUI.BaseMelWindow):
             """    
             self.show()
         except Exception,err:cgmGEN.cgmException(Exception,err)
+        finally:
+            mc.progressBar(self.pg_maya, edit=True, endProgress=True)
 
     def insert_init(self,*args,**kws):
         """ This is meant to be overloaded per gui """
@@ -1359,7 +1369,7 @@ def doToggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,
             #doToggleMenuShowState(Container,False)
         cnt+=1
 
-def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
+def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True,**kws):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1391,7 +1401,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
                     status=statusMessage,
                     minValue = 0,
                     step=1,
-                    maxValue= stepMaxValue )
+                    maxValue= stepMaxValue,**kws)
     return mayaMainProgressBar
 
 def doEndMayaProgressBar(mayaMainProgressBar = None):

@@ -669,7 +669,7 @@ def uiSection_mrs(parent):
     mc.menuItem(parent = parent,
                 l='MRS Documentation',
                 ann = "Access to MRS Docmenation || Subscription required.",
-                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/documentation/"))      
+                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/"))      
 
     
 def uiSection_hotkeys(parent):
