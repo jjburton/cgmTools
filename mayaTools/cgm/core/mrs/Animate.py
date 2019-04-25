@@ -81,9 +81,10 @@ __version__ = '1.04222019'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
-               'puppet':{},
-               'scene':{}}
-_l_contexts = _d_contexts.keys()
+               'puppet':{'short':'char'},
+               'scene':{},
+               'list':{}}
+_l_contexts = ['control','part','puppet','scene','list']
 _l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
 _d_shorts = {'back':'<-',
              'previous':'|<',
@@ -1707,7 +1708,7 @@ def buildTab_mrs(self,parent):
     _columnBelow = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
     
     mc.setParent(_columnBelow)
-    buildFrame_mrsScene(self,_columnBelow)    
+    buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
     buildFrame_mrsTimeContext(self,_columnBelow)            
     #buildFrame_poses(self,_columnBelow)    
@@ -2559,12 +2560,12 @@ def buildFrame_mrsTimeContext(self,parent):
     
     updateHeader(self)
     
-def buildFrame_mrsScene(self,parent):
-    try:self.var_mrsSceneFrameCollapse
-    except:self.create_guiOptionVar('mrsSceneFrameCollapse',defaultValue = 0)
-    mVar_frame = self.var_mrsSceneFrameCollapse
+def buildFrame_mrsList(self,parent):
+    try:self.var_mrsListFrameCollapse
+    except:self.create_guiOptionVar('mrsListFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_mrsListFrameCollapse
     
-    _frame = mUI.MelFrameLayout(parent,label = 'Scene',vis=True,
+    _frame = mUI.MelFrameLayout(parent,label = 'List',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
                                 enable=True,
@@ -2600,12 +2601,16 @@ def buildFrame_mrsScene(self,parent):
                                  tcc = lambda *a: self.uiScrollList_blocks.update_display())
     
     self.uiScrollList_blocks = _scrollList
-    
-    button_refresh = mUI.MelButton(_inside,
-                                   label='Refresh',
+    _row = mUI.MelHLayout(_inside,padding=5,)
+    button_refresh = mUI.MelButton(_row,
+                                   label='Clear Sel',ut='cgmUITemplate',
+                                    c=lambda *a:self.uiScrollList_blocks.clearSelection(),
+                                    ann='Clear selection the scroll list to update')     
+    button_refresh = mUI.MelButton(_row,
+                                   label='Refresh',ut='cgmUITemplate',
                                     c=lambda *a:self.uiScrollList_blocks.rebuild(),
                                     ann='Force the scroll list to update')    
-    
+    _row.layout()
     
     
 
@@ -5259,6 +5264,7 @@ class mrsScrollList(mUI.BaseMelWidget):
         if mBlock:
             self.setHLC(mBlock[0])
             pprint.pprint(mBlock)
+            self.mDat._ml_listNodes = mBlock
         if self.b_selCommandOn and self.cmd_select:
             if len(l_indices)<=1:
                 return self.cmd_select()
@@ -5315,10 +5321,10 @@ class mrsScrollList(mUI.BaseMelWidget):
             self._l_itc.append(_color)            
             self._d_itc[mBlock] = _color
             try:
-                _str_base = mBlock.p_nameBase#mBlock.UTILS.get_uiString(mBlock)
-                _modType = mBlock.getMayaAttr('moduleType')
-                if _modType:
-                    _str_base = _str_base + ' | [{0}]'.format(_modType)
+                _str_base = mBlock.UTILS.get_uiString(mBlock)#mBlock.p_nameBase#
+                #_modType = mBlock.getMayaAttr('moduleType')
+                #if _modType:
+                    #_str_base = _str_base + ' | [{0}]'.format(_modType)
             except:_str_base = 'FAIL | {0}'.format(mBlock.mNode)
             _pre = _l_strings[i]
             self._l_strings.append(getString(_pre,_str_base))

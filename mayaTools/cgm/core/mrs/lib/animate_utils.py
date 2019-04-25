@@ -110,6 +110,7 @@ class dat(object):
         self.d_timeContext = {}
         self.d_parts = {}
         self.d_timeSnips = {}
+        self._ml_listNodes = []
         
         if datTarget:
             self.datTarget = datTarget
@@ -435,7 +436,46 @@ class dat(object):
         #------------------------------------------------------
         _cap = 5
         
-        if context == 'scene':
+        if context == 'list':
+            if not self._ml_listNodes:
+                log.error("No nodes selected")
+                return False
+            
+            ml_modules = []
+            ml_puppets = []
+            for mObj in self._ml_listNodes:
+                log.info(mObj)
+                if mObj.mNode:
+                    _mClass = mObj.getMayaAttr('mClass')
+                    if _mClass == 'cgmRigPuppet':
+                        log.info('cgmRigPuppet: {0}'.format(mObj))
+                        ml_puppets.append(mObj)
+                    elif _mClass == 'cgmRigModule':
+                        log.info('cgmRigModule: {0}'.format(mObj))                        
+                        ml_modules.append(mObj)
+                        
+            if not ml_modules and not ml_puppets:
+                log.error("List | no modules or puppets found")
+                return False
+                
+                        
+            if ml_puppets:
+                log.info("|{0}| >> list puppet...".format(_str_func))
+                context = 'puppet'
+                for mPuppet in ml_puppets:
+                    if mPuppet not in self.d_context['mPuppets']:
+                        self.d_context['mPuppets'].append(mPuppet)
+                    res.append(mPuppet)
+            else:
+                log.info("|{0}| >> list modules...".format(_str_func))
+                context = 'part'
+                for mModule in ml_modules:
+                    if mModule not in self.d_context['mModules']:
+                        self.d_context['mModules'].append(mModule)
+                        self.d_context['mModulesBase'].append(mModule)                    
+                    res.append(mModule)                
+
+        elif context == 'scene':
             try:
                 if self.d_buffer.get['scene']:
                     self.d_context = self.d_buffer['scene']
