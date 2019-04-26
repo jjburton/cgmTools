@@ -2853,11 +2853,11 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
         for i,v in enumerate(_l_dat):
             str_attr = "{0}_{1}".format(attr,i)
             if not has_attr(node,str_attr):
-                log.info(cgmGEN.logString_msg(_str_func,'New enum dat attr: {0} | {1}'.format(str_attr, v)))
+                log.debug(cgmGEN.logString_msg(_str_func,'New enum dat attr: {0} | {1}'.format(str_attr, v)))
                 
                 add(node,str_attr,'enum',value= v, enumOptions=enum,keyable=False)
             else:
-                log.info(cgmGEN.logString_msg(_str_func,'Exisiting enum dat attr: {0} | {1}'.format(str_attr, v)))
+                log.debug(cgmGEN.logString_msg(_str_func,'Exisiting enum dat attr: {0} | {1}'.format(str_attr, v)))
                 strValue = get_enumValueString(node,str_attr)
                 add(node,str_attr,'enum',enumOptions=enum,value = v, keyable=False)
                 if strValue:

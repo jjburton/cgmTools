@@ -1244,18 +1244,36 @@ def add_TextBlock(text, align = 'center'):
 def add_cgmFooter(parent = False):
     from cgm import images as cgmImagesFolder
     
-    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.20,.20,.20], h = 20)
     try:
         _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
-        _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        #_path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')        
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
+                          c=lambda *a:(webbrowser.open("http://https://www.cgmonastery.com/")))  
+                          #c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
         for arg in err.args:
             log.error(arg)
     return _row_cgm
-        
+
+def add_cgMonaseryFooter(parent = False):
+    from cgm import images as cgmImagesFolder
+    
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
+    try:
+        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
+        mc.iconTextButton(style='iconOnly',image =_path_image,
+                          c=lambda *a:(webbrowser.open("http://https://www.cgmonastery.com/")))  
+    except Exception,err:
+        log.warning("Failed to add cgmFooter")
+        for arg in err.args:
+            log.error(arg)
+    return _row_cgm
+
+
 def return_SplitLines(text, size):
     lineList = []
     wordsList = text.split(' ')

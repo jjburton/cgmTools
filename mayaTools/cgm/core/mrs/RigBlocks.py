@@ -297,7 +297,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         try:
                             if a == 'side' and v == None:
                                 v = 0
-                            log.info("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
+                            log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
                             ATTR.set(self.mNode,a,v)
                         except Exception,err:
                             log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 

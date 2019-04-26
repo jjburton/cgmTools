@@ -21,7 +21,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -80,14 +80,14 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
 d_block_profiles = {
-    'box':{
+    'simple':{
         'basicShape':'cube',
         'proxyShape':'cube',
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',
         'baseSize':[10,10,10],
         'addPivot':True,
-        'cgmName':'box'},
+        'cgmName':'simple'},
     'cone':{
     'basicShape':'pyramid',
     'proxyShape':'cone',
@@ -107,6 +107,17 @@ d_block_profiles = {
         'loftSplit':10,
         'baseSize':[10,10,10],        
         },
+    'box':{'proxyShape':'shapers',
+           'cgmName':'box',
+           'loftShape':'square',
+           'numShapers':2,
+           'shapersAim':'toEnd',
+           'rotPivotPlace':'jointHelper',
+           'shapeDirection':'y+',            
+           'loftSetup':'default',
+           'addPivot':True,            
+           'baseSize':[10,10,10],
+            },    
     'shapers4':{
             'proxyShape':'shapers',
             'cgmName':'shapers',
@@ -850,7 +861,7 @@ def prerig(self):
         if self.hasJoint:
             _sizeSub = _size * .2   
         
-            log.info("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+            log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
             mJointHelper = self.asHandleFactory(mMain.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
@@ -867,9 +878,25 @@ def prerig(self):
         #self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addPivot:
-            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size,loft=False)
-            #mHandleFactory.addPivotSetupHelper()
+            _size_pivot = _size
+            if ml_formHandles:
+                _size_pivot = DIST.get_bb_size(ml_formHandles[0].mNode,True,True)
+                """
+                mLoft = ml_formHandles[0].getMessageAsMeta('loftCurve')
+                if mLoft:
+                    _base = DIST.get_axisSize(mLoft.mNode)
+                    _size_pivot = MATH.average(_base[0],_base[1])"""
+                    
+            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size_pivot,loft=False, mParent = mPrerigNull)
             mPivot.p_parent = mPrerigNull
+            mDriverGroup = ml_formHandles[0].doCreateAt(setClass=True)
+            mDriverGroup.rename("Pivot_driver_grp")
+            mDriverGroup.p_parent = mPrerigNull
+            mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            mGroup.p_parent = mDriverGroup
+            mc.scaleConstraint([ml_formHandles[0].mNode],mDriverGroup.mNode, maintainOffset = True)
+ 
+            #mHandleFactory.addPivotSetupHelper()
             ml_formHandles[0].connectChildNode(mPivot,'pivotHelper')
 
             if _shape in ['pyramid','semiSphere','circle','square']:
@@ -890,10 +917,10 @@ def prerig(self):
             
         if b_shapers:
             mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
-            mc.scaleConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+            #mc.scaleConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
         else:
             mc.parentConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
-            mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
+            #mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
         
         return
 
@@ -1757,8 +1784,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     #>> Build bbProxy -----------------------------------------------------------------------------
     ml_geo = mBlock.msgList_get('proxyMeshGeo')
     ml_proxy = []
-    if ml_geo:
-        reload(RIGCREATE)
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    str_setup = self.getEnumValueString('proxyShape')
+    if str_setup == 'shapers':
+        d_kws = {}
+        mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+        ml_proxy = [mMesh]
+        
+    elif ml_geo:
         for i,mGeo in enumerate(ml_geo):
             log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
             if mGeo.getMayaType() == 'nurbsSurface':
@@ -1769,10 +1802,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
                 mMesh = mGeo.doDuplicate(po=False)
                 #mMesh.p_parent = False
                 #mDup = mBlock.proxyHelper.doDuplicate(po=False)
-            mMesh.p_parent = mRigNull.msgList_get('rigJoints')[0]
-            mMesh.rename("{0}_{1}_mesh".format(mBlock.p_nameBase,i))
-            #mDup.inheritsTransform = True
             ml_proxy.append(mMesh)
+                
+    for i,mMesh in enumerate(ml_proxy):
+        mMesh.p_parent = ml_rigJoints[0]
+        mMesh.rename("{0}_{1}_mesh".format(mBlock.p_nameBase,i))
+    #mDup.inheritsTransform = True
     
     
     #Connect to setup ------------------------------------------------------------------------------------
@@ -1796,8 +1831,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     
     for mProxy in ml_proxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
-        
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+        
+        
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1

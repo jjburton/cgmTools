@@ -1888,8 +1888,8 @@ class ui(cgmUI.cgmGUI):
                 if b_changeState and not b_devMode:
                     mBlock.atUtils('attrMask_set',mode=None)
                     
-            if _mActiveBlock and b_changeState:
-                self.uiUpdate_blockDat()
+            #if _mActiveBlock and b_changeState:
+                #self.uiUpdate_blockDat()
                 
             if b_dupMode and len(ml_res) > 1:
                 log.info(cgmGEN.logString_msg(_str_func,"mDup post process..."))
@@ -2396,7 +2396,7 @@ class ui(cgmUI.cgmGUI):
             
     def uiCallback_blockDatButton(self,func,*args,**kws):
         func(*args,**kws)
-        self.uiUpdate_blockDat()
+        #self.uiUpdate_blockDat()
         
     def uiSection_blockDatUtils(self,parent):
         _str_func = 'uiUpdate_blockUtils'
@@ -3142,7 +3142,8 @@ class ui(cgmUI.cgmGUI):
     def uiUpdate_blockDat(self):
         _str_func = 'uiUpdate_blockDat'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
-        
+        log.warning("Remove this.")
+        return False
         self.uiFrame_blockSettings.clear()
         #_d_ui_annotations = {}
         
@@ -3561,7 +3562,7 @@ class ui(cgmUI.cgmGUI):
         
         _scrollList = BlockScrollList(_LeftColumn, ut='cgmUISubTemplate',
                                       allowMultiSelection=True,en=True,
-                                      ebg=0,
+                                      ebg=1,
                                       bgc = [.2,.2,.2],
                                       dcc = cgmGEN.Callback(self.uiFunc_block_setActive),
                                       w = 50)
@@ -4438,7 +4439,11 @@ class BlockScrollList(cgmScrollList):
         
         super(BlockScrollList, self).__init__(parent, *a, **kw)
         
+        #from cgm import images as cgmImagesFolder
+        #_path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        #_path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
         
+        #self(e=True, ebg=True, bgc=[.5,.5,.5])
 
     
     def rebuild( self ):
