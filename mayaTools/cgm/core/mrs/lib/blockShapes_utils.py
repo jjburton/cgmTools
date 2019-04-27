@@ -926,7 +926,7 @@ class handleFactory(object):
         if _bfr:
             mc.delete(_bfr)
 
-        _sizeSub = self.get_subSize[0](.5)
+        _sizeSub = MATH.average(_baseSize) * .5
 
 
         #helper ======================================================================================

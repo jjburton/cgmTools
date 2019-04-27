@@ -5796,7 +5796,10 @@ _d_attrStateMasks = {0:[],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
-_d_attrStateVisOn = {0:['blockState'],
+_d_attrStateVisOn = {0:['blockState',
+                        #'proxyShape','shapeDirection','numShapers',
+                        #'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
+                        ],
                      1:['attachPoint','attachIndex','numRoll',
                         'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
                      2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
@@ -11315,3 +11318,142 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+
+
+def uiStatePickerMenu(self,parent = None):
+    _short = self.p_nameShort
+    ml_done = []
+    try:mc.setParent(parent)
+    except:pass
+    """
+    mc.menuItem(en=True,divider = True,
+                label = "Utilities")
+    
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "State Picker")"""
+
+    _state = self.blockState
+    #Define ----------------------------------------------------------------------------
+    mc.menuItem(label = 'Root',
+                ann = 'select root',
+                c = cgmGEN.Callback(self.select),)
+    ml_done.append(self)
+    
+    
+    #Define .... --------------------------------------------------------
+    d_define = []
+    for k in ['start','end','rp','up','lever']:
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+        if mHandle:
+            if mHandle.v:
+                if mHandle in ml_done:continue
+                d = {'ann':'[{0}] Define {1} Helper'.format(_short,k),
+                     'c':cgmGEN.Callback(mHandle.select),
+                     'label':"{0} Helper".format(k)}
+                d_define.append(d)
+                ml_done.append(mHandle)
+                
+    if d_define:
+        mc.menuItem(en=True,divider = True, label = "Define")
+        for d in d_define:
+            mc.menuItem(**d)
+        
+    #Form ------------------------------------------------------------------------------
+    def addPivotHelper(mPivotHelper,i,l):
+        d_form.append({'ann':'[{0}] Pivot Helper [{1}]'.format(_short,i),
+                      'c':cgmGEN.Callback(mPivotHelper.select),
+                      'label':' '*i + "Pivot Helper - [ {0} ]".format(i)})
+        ml_done.append(mPivotHelper)
+        
+        mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+        if mTopLoft:
+            d_form.append({'ann':'[{0}] Pivot Top [{1}]'.format(_short,i),
+                          'c':cgmGEN.Callback(mTopLoft.select),
+                          'label':' '*i + "Pivot Top - [ {0} ]".format(i)})            
+        
+    if _state:
+
+        d_form = []
+        
+        for k in ['orientHelper']:
+            mHandle = self.getMessageAsMeta("{0}".format(k))
+            if mHandle:
+                if mHandle in ml_done:continue                
+                d_form.append({'ann':'[{0}] {1}'.format(_short,k),
+                              'c':cgmGEN.Callback(mHandle.select),
+                              'label':"{0}".format(k)})
+                ml_done.append(mHandle)
+
+        
+        ml_handles = self.msgList_get('formHandles')
+        if ml_handles:
+            for i,mObj in enumerate(ml_handles):
+                if mObj in ml_done:continue                                
+                d_form.append({'ann':'[{0}] Form Handles [{1}]'.format(_short,i),
+                              'c':cgmGEN.Callback(mObj.select),
+                              'label':' '*i + mObj.p_nameBase})#"Form Handle - [ {0} ]".format(i)})
+                mPivotHelper = mObj.getMessageAsMeta('pivotHelper')
+                ml_done.append(mObj)
+                
+                if mPivotHelper:
+                    addPivotHelper(mPivotHelper,i,d_form)
+
+        if d_form:
+            mc.menuItem(en=True,divider = True,
+                        label = "Form")
+            for d in d_form:
+                mc.menuItem(**d)                        
+            
+            
+            try:mc.setParent(parent)
+            except:pass            
+    #Prerig ------------------------------------------------------------------------------
+    if _state > 1:
+        d_pre = []
+
+        for k in ['cogHelper','scalePivotHelper']:
+            mHandle = self.getMessageAsMeta("{0}".format(k))
+            if mHandle:
+                if mObj in ml_done:continue                                                
+                d_pre.append({'ann':'[{0}] {1}'.format(_short,k),
+                              'c':cgmGEN.Callback(mHandle.select),
+                              'label':"{0}".format(k)})
+                ml_done.append(mObj)
+                
+        
+        ml_preHandles = self.msgList_get('prerigHandles')
+        d_names = {}
+        if ml_preHandles:
+            for i,mObj in enumerate(ml_preHandles):
+                if mObj in ml_done:continue                                                
+                try:
+                    _name = mObj.p_nameBase
+                    #d_names[i] = _name
+                    #_name = _name + ' ' + mObj.cgmType
+                except:_name = "Pre handle - [ {0} ]".format(i)
+                d_pre.append({'ann':'[{0}] prerig [{1}]'.format(_short,i),
+                              'c':cgmGEN.Callback(mObj.select),
+                              'label' : ' '*i + _name})
+                ml_done.append(mObj)
+
+        ml_jointHelpers = self.msgList_get('jointHelpers')
+        if ml_jointHelpers:
+            for i,mObj in enumerate(ml_jointHelpers):
+                if mObj in ml_done:continue                                                
+                try:_name = mObj.p_nameBase #"joint helper [{0}] ".format(d_names[i])
+                except:_name = "joint helper - [ {0} ]".format(i)
+                
+                d_pre.append({'ann':'[{0}] Joint Helper [{1}]'.format(_short,i),
+                              'c':cgmGEN.Callback(mObj.select),
+                              'label' : ' '*i + _name})
+                ml_done.append(mObj)
+            
+            try:mc.setParent(parent)
+            except:pass
+            
+        if d_pre:
+            mc.menuItem(en=True,divider = True,
+                        label = "Prerig")            
+            for d in d_pre:
+                mc.menuItem(**d)            

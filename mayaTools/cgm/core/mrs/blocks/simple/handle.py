@@ -47,6 +47,7 @@ import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+reload(BLOCKSHAPES)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.rig.joint_utils as JOINTS
@@ -117,7 +118,18 @@ d_block_profiles = {
            'loftSetup':'default',
            'addPivot':True,            
            'baseSize':[10,10,10],
-            },    
+            },
+    'cylinder':{'proxyShape':'shapers',
+                'cgmName':'cylinder',
+                'loftShape':'circle',
+                'numShapers':2,
+                'shapersAim':'toEnd',
+                'rotPivotPlace':'jointHelper',
+                'shapeDirection':'y+',            
+                'loftSetup':'default',
+                'addPivot':True,            
+                'baseSize':[5,5,10],
+                 },        
     'shapers4':{
             'proxyShape':'shapers',
             'cgmName':'shapers',
@@ -217,12 +229,12 @@ _d_attrStateOn = {0:[],
                   3:[],
                   4:[]}
 
-d_attrProfileMask = {'box':['proxyShape','loftList','shapersAim','loftSetup',
+d_attrProfileMask = {'simple':['proxyShape','loftList','shapersAim','loftSetup',
                             'loftShape','numSubShapers','numShapers'],
                      'shaperList':['proxyShape','basicShape'],
                      'shaperes':['proxyShape','basicShape']}
 for k in 'sphere','cone':
-    d_attrProfileMask[k] = d_attrProfileMask['box']
+    d_attrProfileMask[k] = d_attrProfileMask['simple']
 
 #=============================================================================================================
 #>> UI
@@ -300,8 +312,9 @@ def uiBuilderMenu(self,parent = None):
     #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
     _short = self.p_nameShort
     
-    mc.menuItem(en=False,
-                label = "Handle Geo")    
+    mc.menuItem(en=False,divider=True,
+                label = "Handle Geo")
+    
     mc.menuItem(ann = '[{0}] Report proxy geo group'.format(_short),
                 c = cgmGEN.Callback(proxyGeo_getGroup,self),
                 label = "Report Group")
@@ -318,6 +331,16 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(proxyGeo_getGroup,self,True),
                 label = "Select Group")
     
+    mc.menuItem(en=True,divider = True,
+                label = "Utilities")
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "State Picker")
+    
+    self.atUtils('uiStatePickerMenu',parent)
+    
+    #self.UTILS.uiBuilderMenu(self,parent)
+    
+    return
 
 
 
@@ -852,7 +875,7 @@ def prerig(self):
             mMain = ml_formHandles[0]
 
 
-        mHandleFactory = self.asHandleFactory(mMain.mNode)
+        mHandleFactory =  self.asHandleFactory(mMain.mNode)
         
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
@@ -864,7 +887,7 @@ def prerig(self):
             log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
-            mJointHelper = self.asHandleFactory(mMain.mNode).addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
+            mJointHelper = mHandleFactory.addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
             ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
                                    lock=False, visible=True,keyable=False)
         
@@ -1659,7 +1682,8 @@ def rig_cleanUp(self):
         
 
     #>>  Lock and hide ======================================================================================
-
+    mHandle.visDirect = 0
+    
     #>>  Attribute defaults =================================================================================
     
     mRigNull.version = self.d_block['buildVersion']
@@ -1689,25 +1713,11 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
+        
         if ml_geo:
-            for i,mGeo in enumerate(ml_geo):
-                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
-                if mGeo.getMayaType() == 'nurbsSurface':
-                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,
-                                                        mode = 'general',
-                                                        uNumber = self.loftSplit, vNumber=self.loftSides)
-                else:
-                    mMesh = mGeo.doDuplicate(po=False)
-                    #mMesh.p_parent = False
-                    #mDup = mBlock.proxyHelper.doDuplicate(po=False)
-                mMesh.rename("{0}_{1}_mesh".format(self.p_nameBase,i))
-                #mDup.inheritsTransform = True
-                ml_proxy.append(mMesh)        
-        
-        
-            #mDup = self.proxyHelper.doDuplicate(po=False)
+            
             str_setup = self.getEnumValueString('proxyShape')
-            if str_setup == 'shapers':
+            if str_setup in ['shapers']:
                 d_kws = {}
                 mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
                 ml_proxy = [mMesh]
@@ -1722,7 +1732,25 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                         mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
                     else:
                         mMesh = mGeo.doDuplicate(po=False)
-                    ml_proxy.append(mMesh)
+                    ml_proxy.append(mMesh)            
+            """
+            for i,mGeo in enumerate(ml_geo):
+                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
+                if mGeo.getMayaType() == 'nurbsSurface':
+                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,
+                                                        mode = 'general',
+                                                        uNumber = self.loftSplit, vNumber=self.loftSides)
+                else:
+                    mMesh = mGeo.doDuplicate(po=False)
+                    #mMesh.p_parent = False
+                    #mDup = mBlock.proxyHelper.doDuplicate(po=False)
+                mMesh.rename("{0}_{1}_mesh".format(self.p_nameBase,i))
+                #mDup.inheritsTransform = True
+                ml_proxy.append(mMesh)        """
+        
+        
+            #mDup = self.proxyHelper.doDuplicate(po=False)
+
                     
             for i,mMesh in enumerate(ml_proxy):
                 if parent and skin:

@@ -79,7 +79,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.04242019'
+__version__ = '1.04262019'
 _sidePadding = 25
 
 def check_cgm():
@@ -713,6 +713,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_add = mUI.MelMenu(l='Add') 
         self.buildMenu_add(False)        
         self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1)
+        self.uiMenu_picker = mUI.MelMenu( l='Select',pmc=self.buildMenu_picker, tearOff=1)        
         self.uiMenu_vis = mUI.MelMenu( l='Vis')
         self.buildMenu_vis()
         #self.uiMenu_profile = mUI.MelMenu( l='Profile')
@@ -739,6 +740,32 @@ class ui(cgmUI.cgmGUI):
         if self.uiScrollList_blocks.getSelectedIdxs() or self._blockCurrent:
             self.uiFunc_contextBlockCall('atUtils','buildProfile_load',_profile, **{'contextMode':'root'})
             
+    def buildMenu_picker(self,*args,**kws):
+        self.uiMenu_picker.clear()
+        
+        try:
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")
+        
+        _menu = self.uiMenu_picker
+        
+        ml_blocks = mList.getSelectedObjs()
+        if not ml_blocks:
+            mUI.MelMenuItem(_menu, l="None")
+            return log.error("Nothing selected")
+            
+        for mBlock in ml_blocks:
+            mBlockModule = mBlock.getBlockModule()
+            
+            _sub = mUI.MelMenuItem(_menu, l="{0}".format(mBlock.p_nameShort),tearOff=True,
+                                   subMenu = True)            
+            #if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
+            mBlock.atUtils('uiStatePickerMenu',_sub)
+
+        
+        
+        
     def buildMenu_options(self,*args,**kws):
         self.uiMenu_options.clear()
         #>>> Reset Options
@@ -1425,11 +1452,11 @@ class ui(cgmUI.cgmGUI):
                 if l in divTags:
                     mUI.MelMenuItemDiv(_sub)                
                 if l in headerTags:
-                    mUI.MelMenuItemDiv(_sub)
-                    mUI.MelMenuItem(_sub,
-                                    label = "--- {0} ---".format(l.upper()),
-                                    en=False)
-                    mUI.MelMenuItemDiv(_sub)
+                    #mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItem(_sub,divider = True,
+                                    label = "{0}".format(l.upper()),
+                                    en=True)
+                    #mUI.MelMenuItemDiv(_sub)
                     continue
                 d2 = d[l]
                 mUI.MelMenuItem(_sub,
@@ -4740,4 +4767,4 @@ def buildFrame_blockDat(self,parent):
  
     mUI.MelSpacer(_row,w=1)
     _row.layout()    
-        
+
