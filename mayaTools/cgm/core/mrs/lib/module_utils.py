@@ -783,6 +783,9 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     
     def addMObj(mObj,mList):
         if mObj not in mList:
+            _mClass = mObj.getMayaAttr('mClass')
+            if not _mClass:
+                mObj = cgmMeta.validateObjArg(mObj,'cgmControl',setClass=True)
             if ml_objs is not None:
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
