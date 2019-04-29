@@ -142,7 +142,7 @@ def modules_get(self,rewire=False):
         
         if not rewire:
             try:
-                _res = self.mModulesAll
+                _res = VALID.listArg(self.mModulesAll)
                 if _res:
                     log.info(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
                     return _res
