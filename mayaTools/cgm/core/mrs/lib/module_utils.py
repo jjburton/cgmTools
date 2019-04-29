@@ -26,6 +26,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #========================================================================
+__version__ = '1.04292019'
 
 import maya.cmds as mc
 
