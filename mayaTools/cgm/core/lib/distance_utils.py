@@ -40,6 +40,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LIST
+import cgm.core.lib.node_utils as NODES
+reload(NODES)
 #import cgm.core.lib.shape_utils as SHAPE
 reload(POS)
 reload(MATHUTILS)
@@ -175,7 +177,14 @@ def get_size_byShapes(arg, mode = 'max'):
     else:
         raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
         
-    
+def get_arcLen(arg):
+    shapes = mc.listRelatives(arg,shapes=True,path = 1)
+    shapeLengths = []
+    for shape in shapes:
+        infoNode = NODES.curveInfo(shape)
+        shapeLengths.append(mc.getAttr(infoNode+'.arcLength'))
+        mc.delete(infoNode)
+    return sum(shapeLengths)    
 
 def get_createSize(arg = None, mode = None):
     """

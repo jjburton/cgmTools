@@ -1240,7 +1240,7 @@ def prerig(self):
             for mHandle in ml_handles:
                 mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
             
-            self.msgList_connect('jointHelpers',targets)
+            self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
             self.atUtils('create_jointLoft',
                          targets,
                          mPrerigNull,

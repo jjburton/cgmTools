@@ -119,6 +119,34 @@ def create(name = None, nodeType = None):
     else:
         return mc.createNode (nodeType,name= (name+'_'+_suffix),)
     
+def curveInfo(curve,baseName = 'curveInfo'):
+    """
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    DESCRIPTION:
+    Creates a curve lenght measuring node
+
+    ARGUMENTS:
+    polyFace(string) - face of a poly
+
+    RETURNS:
+    length(float)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    _str_func = 'curveInfo'
+    
+    if VALID.is_shape(curve):
+        l_shapes = [curve]
+    else:
+        l_shapes = mc.listRelatives(curve, s=True,fullPath = True)
+    
+    if len(l_shapes)>1:
+        raise ValueError,cgmGeneral.logString_msg(__str_func,"Must have one shape. Found {0} | {1}".format(len(l_shapes),l_shapes))
+    
+
+    infoNode = create(baseName,'curveInfo')
+    ATTR.connect((l_shapes[0]+'.worldSpace'),(infoNode+'.inputCurve'))
+    return infoNode
+    
 
 def createFollicleOnMesh(targetSurface, name = 'follicle'):
     """

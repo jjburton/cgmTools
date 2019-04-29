@@ -758,7 +758,7 @@ class ui(cgmUI.cgmGUI):
         for mBlock in ml_blocks:
             mBlockModule = mBlock.getBlockModule()
             
-            _sub = mUI.MelMenuItem(_menu, l="{0}".format(mBlock.p_nameShort),tearOff=True,
+            _sub = mUI.MelMenuItem(_menu, l="{0}".format(mBlock.UTILS.get_uiString(mBlock)),tearOff=True,
                                    subMenu = True)            
             #if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
             mBlock.atUtils('uiStatePickerMenu',_sub)
@@ -1294,6 +1294,11 @@ class ui(cgmUI.cgmGUI):
                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                            'atUtils','blockFrame_alignTo',True,
                                            **{'updateUI':0})}},
+               
+               'Form':{
+                   'Resize Handles':{'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                           'atUtils', 'blockDat_load_state','form',
+                                                           **{'updateUI':0,'overrideMode':'useLoft'})}},
 
 
 

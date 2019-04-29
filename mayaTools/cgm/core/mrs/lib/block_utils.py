@@ -4153,6 +4153,11 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
             else:
                 mainHandleNormalizeScale = True
                 _scaleMode = 'bb'
+        elif overrideMode == 'useLoft':
+            if state in ['form',1]:
+                _scaleMode = 'useLoft'
+
+                
     
     #pprint.pprint([mainHandleNormalizeScale,_noScale,_scaleMode])    
     
@@ -4240,11 +4245,19 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                     mObj.p_orient = _orientsTempl[i]
                     
                 _tmp_short = mObj.mNode
+                _d_loft = _loftCurves.get(str(i))
                 
                 if _noScale != True:
                     _cgmType = mObj.getMayaAttr('cgmType')
-                    if mainHandleNormalizeScale and _cgmType in ['blockHandle']:
-                        _average = MATH.average(_bbTempl[i]) * .5
+                    if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle']:
+                        _bb = _d_loft.get('bb')
+                        _size = MATH.average(_bb) * .75
+                        #_size = DIST.get_arcLen(mObj.getMessage('loftCurve')[0]) / 2.0
+                        #DIST.scale_to_axisSize(_tmp_short,[_bb[0],_bb[1],_size])
+                        mc.scale(_size,_size,_size, _tmp_short, absolute = True)
+                        
+                    elif mainHandleNormalizeScale and _cgmType in ['blockHandle']:
+                        _average = MATH.average(_bbTempl[i])
                         mc.scale(_average,_average,_average, _tmp_short, absolute = True)
                         
                         #TRANS.scale_to_boundingBox(_tmp_short,[_bbTempl[i][0],
@@ -4275,7 +4288,6 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                 if _jointHelpers and _jointHelpers.get(i):
                     mObj.jointHelper.translate = _jointHelpers[i]
                 
-                _d_loft = _loftCurves.get(str(i))
                 if _d_loft:
                     if i_loop:
                         log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
@@ -4292,7 +4304,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                             
                         if _noScale != True:
                             if _s != None:
-                                if _scaleMode == 'bb':
+                                if _scaleMode in ['bb','useLoft']:
                                     try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
                                     except Exception,err:
                                         log.error(err)
@@ -4330,7 +4342,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                             ATTR.set(mObj.mNode,'r',_r[ii-1])
                             
                             if _noScale != True:
-                                if _scaleMode == 'bb':
+                                if _scaleMode in ['bb','useLoft']:
                                     try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii-1],skip=2)
                                     except Exception,err:
                                         log.error(err)                                
@@ -4344,7 +4356,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                         ATTR.set(mObj.mNode,'r',_r[ii])
                         
                         if _noScale != True:
-                            if _scaleMode == 'bb':
+                            if _scaleMode in ['bb','useLoft']:
                                 try:DIST.scale_to_axisSize(mObj.mNode,_ab[ii],skip=2)
                                 except Exception,err:
                                     log.error(err)
@@ -11361,9 +11373,10 @@ def uiStatePickerMenu(self,parent = None):
         
     #Form ------------------------------------------------------------------------------
     def addPivotHelper(mPivotHelper,i,l):
-        d_form.append({'ann':'[{0}] Pivot Helper [{1}]'.format(_short,i),
+        _nameBase = mPivotHelper.p_nameBase
+        d_form.append({'ann':' Pivot [{0}] [{1}]'.format(_nameBase,i),
                       'c':cgmGEN.Callback(mPivotHelper.select),
-                      'label':' '*i + "Pivot Helper - [ {0} ]".format(i)})
+                      'label':' '*i + "{0} - [ {1} ]".format(_nameBase,i)})
         ml_done.append(mPivotHelper)
         
         mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')

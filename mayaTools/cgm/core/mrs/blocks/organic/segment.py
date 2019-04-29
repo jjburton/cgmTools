@@ -954,7 +954,7 @@ def prerig(self):
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         
         
-        self.msgList_connect('jointHelpers',targets)
+        self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
         
         self.atUtils('create_jointLoft',
                      targets,
