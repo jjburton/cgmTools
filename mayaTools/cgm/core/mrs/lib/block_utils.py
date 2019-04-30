@@ -7631,7 +7631,7 @@ def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numCo
             log.debug(cgmGEN.logString_sub(_str_func,'Getting via dialog'))
             msg_base = ''
             if len_current < len_needed:
-                msg_base= msg_base + "{2} \n datList does not match num needed \n"
+                msg_base= msg_base + "{0} \n datList does not match num needed \n".format(self.p_nameBase)
                 
             msg_base = msg_base + "Current: {0} | Needed: {1}".format(len_current,len_needed,self.p_nameShort)
             
@@ -10629,8 +10629,6 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             else:
                 _l.append(l_uValues[i+1])
 
-            if i == 0 and extendToStart:
-                _l.insert(0,minU)
             """
             for ii,v2 in enumerate(_l):
                 if ii:
@@ -10640,6 +10638,15 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             l_sets.append(_l)
             log.debug("|{0}| >> uSet [{1}] : {2} ...".format(_str_func,i,_l))
 
+        if extendToStart:
+            _low = min(l_sets[0])
+            l_add =[]
+            for v in l_uIsos:
+                if v < _low:
+                    l_add.append(v)
+            l_add.reverse()
+            for v in l_add:
+                l_sets[0].insert(0,v)
 
         l_created = []
         d_curves = {}

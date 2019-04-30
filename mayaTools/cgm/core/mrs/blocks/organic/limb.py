@@ -430,7 +430,7 @@ d_block_profiles = {
           'ikRollSetup':'control',
           'buildBall':'none',
           'buildToe':'none',
-          'buildEnd':'joint',
+          'buildEnd':'none',
           'buildLeverBase':'joint',
           'buildLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
@@ -497,7 +497,7 @@ d_block_profiles = {
           'nameList':['thumb'],
           'scaleSetup':False,
           
-          'buildEnd':'joint',
+          'buildEnd':'none',
           'ikRollSetup':'control',
           'buildBall':'none',
           'buildToe':'none',
@@ -2100,6 +2100,8 @@ def prerig(self):
         for i,mObj in enumerate(ml_handles[:-1]):
             mLoft = mObj.jointHelper.loftCurve
             mAimGroup = mLoft.doGroup(True,True,asMeta=True)
+            mAimGroup.p_parent = mPrerigNull
+            mc.pointConstraint(mObj.jointHelper.mNode,mAimGroup.mNode,maintainOffset=True)
             mc.aimConstraint(ml_handles[i+1].masterGroup.mNode,
                              mAimGroup.mNode,
                              maintainOffset = True, weight = 1,
@@ -4487,12 +4489,12 @@ def rig_shapes(self):
             mIKCrv.doCopyNameTagsFromObject(ml_fkJoints[self.int_handleEndBaseIdx].mNode,
                                             ignore=['cgmType','cgmTypeModifier'])
             
-            CORERIG.match_orientation(mIKCrv, mBlock.ikOrientHandle.mNode)
             mIKCrv.doStore('cgmTypeModifier','ik')
             mIKCrv.doStore('cgmType','handle')
             mIKCrv.doName()
     
-            mc.makeIdentity(mIKCrv.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
+            mc.makeIdentity(mIKCrv.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)#this needs to happen before the match orient
+            CORERIG.match_orientation(mIKCrv, mBlock.ikOrientHandle.mNode)
             
     
             #CORERIG.match_transform(mIKCrv.mNode,ml_ikJoints[-1].mNode)
@@ -4903,7 +4905,7 @@ def rig_controls(self):
                     
             log.debug(cgmGEN._str_subLine)
     
-            
+        #...ikBase
         mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
         if mIKControlBase:
             log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mIKControlBase))
@@ -4922,6 +4924,10 @@ def rig_controls(self):
             
             self.atUtils('get_switchTarget', mIKControlBase,ml_blend[0])
             log.debug(cgmGEN._str_subLine)
+            
+            for mShape in mIKControlBase.getShapes(asMeta=True):
+                ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                        
     
             
         mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
@@ -4978,7 +4984,7 @@ def rig_controls(self):
                                         mirrorSide= self.d_module['mirrorDirection'],
                                         mirrorAxis="translateX,rotateY,rotateZ",
                                         makeAimable = True)
-            mIKControlEnd = _d['mObj']
+            mIKBallRotationControl = _d['mObj']
             ml_controlsAll.append(mIKBallRotationControl)
             log.debug(cgmGEN._str_subLine)
             

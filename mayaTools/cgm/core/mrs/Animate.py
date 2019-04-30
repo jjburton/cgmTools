@@ -3869,7 +3869,7 @@ def get_context(self, addMirrors = False,**kws):
     
         if context == 'scene':
             log.debug("|{0}| >> Scene mode bail...".format(_str_func))          
-            self.mDat.d_context['mPuppets'] = self.dat['mPuppets']#r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
+            self.mDat.d_context['mPuppets'] = self.mDat.dat['mPuppets']#r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
             ls=[]
             """
             for mPuppet in self.mDat.d_context['mPuppets']:
@@ -3895,7 +3895,7 @@ def get_context(self, addMirrors = False,**kws):
                 for mModule in self.mDat.d_context['mModules']:
                     res.append(mModule)
                     log.debug("|{0}| >> sibling check: {1}".format(_str_func,mModule))
-                    mSib = self.dat[mModule]['mSibling']
+                    mSib = self.mDat.dat[mModule]['mSibling']
                     if mSib:res.append(mSib)
                     """
                     for mSib in mModule.atUtils('siblings_get'):
@@ -3910,7 +3910,7 @@ def get_context(self, addMirrors = False,**kws):
                     log.debug("|{0}| >> sibling gathering for control | {1}".format(_str_func,mModule))
                     #res.extend(mModule.rigNull.msgList_get("controlsAll"))
                     #res.extend(mModule.rigNull.moduleSet.getMetaList())
-                    res.extend(self.dat[mModule]['mControls'])
+                    res.extend(self.mDat.dat[mModule]['mControls'])
                 self.mDat.d_context['mControls'] = res
                     
         if b_children:
@@ -3919,7 +3919,7 @@ def get_context(self, addMirrors = False,**kws):
             
             if self.mDat.d_context['b_puppetPart']:
                 for mPuppet in self.mDat.d_context['mPuppets']:
-                    for mModule in self.dat[mPuppet]['mModules']:
+                    for mModule in self.mDat.dat[mPuppet]['mModules']:
                         self.mDat.d_context['mModules'].append(mModule)
                     """
                     for mModule in mPuppet.atUtils('modules_get'):
@@ -3930,7 +3930,7 @@ def get_context(self, addMirrors = False,**kws):
             if context == 'part':
                 for mModule in self.mDat.d_context['mModules']:
                     log.debug("|{0}| >> child check: {1}".format(_str_func,mModule))
-                    for mChild in self.dat['mModules']['mChildren']:
+                    for mChild in self.mDat.dat['mModules']['mChildren']:
                         if mChild not in self.mDat.d_context['mModules']:
                             self.mDat.d_context['mModules'].append(mChild)                        
                     """

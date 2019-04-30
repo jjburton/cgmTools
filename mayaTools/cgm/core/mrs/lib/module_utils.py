@@ -745,6 +745,7 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'ikEnd':['controlIK'],
                   'ik':['controlIK','controlIKEnd','controlBallRotation',
                         'controlIKBase','controlsFK','controlFollowParentBank',
+                        'controlIKBall','controlIKBallHinge','controlIKToe',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'face':['controlsFace'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
@@ -888,7 +889,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     if ml_objs and keys is None and not ignore:        
         log.error("|{0}| >> remaining... ".format(_str_func))
         pprint.pprint( ml_objs)
-        raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
+        #raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if rewire:

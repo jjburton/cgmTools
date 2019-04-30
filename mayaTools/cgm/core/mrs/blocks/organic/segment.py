@@ -1562,7 +1562,7 @@ def rig_shapes(self):
         if not ml_fkCastTargets:
             ml_fkCastTargets = copy.copy(ml_fkJoints)
 
-    
+
         #controlSegMidIK... =============================================================================
         mControlSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
         if mControlSegMidIK:
@@ -1604,6 +1604,7 @@ def rig_shapes(self):
                 d_ikEnd = {'shapeArg':'locatorForm'}
             else:
                 use_ikEnd = str_ikEnd
+                
             RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
     
     
