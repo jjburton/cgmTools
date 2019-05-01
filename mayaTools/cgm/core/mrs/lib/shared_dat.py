@@ -143,7 +143,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
                    'visBoundingBox':'bool',
-                   'visRotatePlane':'bool',                   
+                   'visRotatePlane':'bool',
+                   'visLabels':'bool',
                    'visMeasure':'bool',}
 
 _l_defineHandlesOrder = ['end','start','up','rp','aim','lever']

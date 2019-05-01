@@ -38,7 +38,6 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 from cgm.core.classes import GuiFactory as CGMUI
-reload(CGMUI)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -62,7 +61,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 
-for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT:
+for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     reload(m)
 _d_blockTypes = {}
 
@@ -79,7 +78,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.04262019'
+__version__ = '1.04302019'
 _sidePadding = 25
 
 def check_cgm():
@@ -710,17 +709,17 @@ class ui(cgmUI.cgmGUI):
     def build_menus(self):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
         #self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
-        self.uiMenu_add = mUI.MelMenu(l='Add') 
+        self.uiMenu_add = mUI.MelMenu(l='Add', tearOff=1) 
         self.buildMenu_add(False)        
-        self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1)
+        self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
         self.uiMenu_picker = mUI.MelMenu( l='Select',pmc=self.buildMenu_picker, tearOff=1)        
-        self.uiMenu_vis = mUI.MelMenu( l='Vis')
+        self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
         self.buildMenu_vis()
         #self.uiMenu_profile = mUI.MelMenu( l='Profile')
         #self.buildMenu_profile()        
-        self.uiMenu_advanced = mUI.MelMenu( l='Advanced', pmc=self.buildMenu_advanced,pmo=1)
-        self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True)
-        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True)        
+        self.uiMenu_advanced = mUI.MelMenu( l='Advanced', pmc=self.buildMenu_advanced,pmo=1, tearOff=1)
+        self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True, tearOff=1)
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True, tearOff=1)        
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)
         
     def uiFunc_buildProfile_set(self,*args,**kws):
@@ -1163,7 +1162,7 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane']:
+        for a in ['Measure','RotatePlane','Labels']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)
@@ -1257,7 +1256,7 @@ class ui(cgmUI.cgmGUI):
                                                            **{'updateUI':1,'reverseContext':False})},
                   'Block Rebuild':{'ann':'[DEV] Rebuild a block. In testing',
                                                       'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                             'atUtils','update',True,None,
+                                                                             'atUtils','rebuild',
                                                                             **{'updateUI':1,'reverseContext':False})},
                   'blockModule | debug':{'ann':'Set the blockModule to debug',
                                   'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
@@ -1270,7 +1269,11 @@ class ui(cgmUI.cgmGUI):
                   'blockProfile | update':{'ann':'Check if blockProfile setting is valid, then force update',
                                          'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                               'atUtils','blockProfile_valid',
-                                                              **{'updateUI':0,'update':True})},                  
+                                                              **{'updateUI':0,'update':True})},
+                  'Joint Labels | wire':{'ann':'Wire jointLabels to block vis',
+                                         'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                              'atUtils','connect_jointLabels',
+                                                              **{'updateUI':0})},                  
                   'Reorder UD':{'ann':'Reorder user defined attrs',
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'atUtils','reorder_udAttrs',
@@ -1911,8 +1914,13 @@ class ui(cgmUI.cgmGUI):
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
                 ml_res.append(res)
                 if res:
+                    if _call == 'rebuild':
+                        mBlock = res                    
                     log.info("[{0}] ...".format(mBlock.p_nameShort,res))
                     pprint.pprint(res)
+                    
+
+                        
                 if b_dupMode:
                     md_dat[res] = mBlock
                     md_datRev[mBlock] = res

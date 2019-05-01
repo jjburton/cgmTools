@@ -96,7 +96,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04162019'
+__version__ = '1.04302019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -606,6 +606,7 @@ l_attrsStandard = ['side',
                    'ribbonAim',
                    'ribbonParam',
                    'visRotatePlane',
+                   'visLabels',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'segmentMidIKControl',
                    'spaceSwitch_direct',
@@ -672,7 +673,7 @@ d_defaultSettings = {'version':__version__,
                      'buildToe':'joint',
                      'buildLeverBase':'none',
                      'buildLeverEnd':'none',                     
-                     
+                     'visLabels':True,
                      'settingsDirection':'up',
                      'numSpacePivots':2,
                      'settingsPlace':1,
@@ -2013,11 +2014,20 @@ def prerig(self):
             except:
                 b_curveAttach = True
             
+            _lever = False
+            if not i and self.buildLeverBase:
+                _lever = True
+            _end = False
             if mFormHandle == ml_prerigTrackers[idx_end]:
+                _end = True
+                
+            if _lever or _end:
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
-                self.connectChildNode(mHandle.mNode,'ikOrientHandle')
+                
+                if _end:
+                    self.connectChildNode(mHandle.mNode,'ikOrientHandle')
                 #ml_shapes = mHandle.getShapes(asMeta=1)
                 #crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 2.5)
                 #CORERIG.override_color(crv2, 'black')
@@ -2027,7 +2037,8 @@ def prerig(self):
             else:
                 crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-                BLOCKSHAPES.color(self,mHandle)
+                BLOCKSHAPES.color(self,mHandle,controlType='sub')
+                
             _short = mHandle.mNode
             
             #if b_iterNames:
@@ -2083,7 +2094,7 @@ def prerig(self):
             
             #Convert to loft curve setup ----------------------------------------------------
             mHandleFactory.setHandle(mHandle)
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse /2.0))
+            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse ))
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
         
             try:mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
@@ -2117,27 +2128,6 @@ def prerig(self):
         for mHandle in ml_handles:
             #Joint Label ---------------------------------------------------------------------------
             mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
-            """
-            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-            #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
-        
-            mJointLabel.p_parent = mHandle
-            mJointLabel.resetAttrs()
-        
-            mJointLabel.radius = 0
-            mJointLabel.side = 0
-            mJointLabel.type = 18
-            mJointLabel.drawLabel = 1
-            mJointLabel.otherType = mHandle.cgmName
-        
-            mJointLabel.doStore('cgmName',mHandle)
-            mJointLabel.doStore('cgmType','jointLabel')
-            mJointLabel.doName()            
-        
-            mJointLabel.dagLock()
-        
-            mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2  """  
         
         self.msgList_connect('jointHelpers',jointHelpers)
         
@@ -2306,7 +2296,7 @@ def skeleton_build(self, forceNew = True):
         for mObj in ml_jointHelpers:
             l_pos.append(mObj.p_position)
                 
-        pprint.pprint(l_pos)
+        #pprint.pprint(l_pos)
         mOrientHelper = self.orientHelper
         
         mVecUp = self.atUtils('prerig_get_upVector')

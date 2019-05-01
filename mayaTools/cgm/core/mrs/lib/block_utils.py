@@ -41,7 +41,6 @@ import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.euclid as EUCLID
 
-reload(ARRANGE)
 import cgm.core.lib.geo_Utils as GEO
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -72,10 +71,7 @@ import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
 import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
-reload(STR)
-reload(ATTR)
-reload(SNAP)
-reload(CORERIG)
+
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -226,7 +222,7 @@ def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
             raise ValueError,_msg
         return mTarget
 
-def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True, extraAttrs = None):
+def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True, extraAttrs = None, mBlockModule = None):
     """
     Verify the attributes of a given block type
     
@@ -241,7 +237,7 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
             log.debug("|{0}| >> QUERY MODE".format(_str_func,self))
         if blockType is None:
             mBlockModule = self.p_blockModule
-        else:
+        elif not mBlockModule:
             raise NotImplementedError,"Haven't implemented blocktype changing..."
         
         try:d_attrsFromModule = mBlockModule.d_attrsToMake
@@ -378,6 +374,58 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         
         for a in ['blockState']:
             ATTR.set_lock(_short,a,True)
+            
+        return True
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
+def verify(self, blockType = None, size = None, side = None):
+    """
+    Verify a block
+    """
+    try:
+        _str_func = 'verify'
+        _short = self.mNode
+        
+        log.debug(cgmGEN.logString_start(_str_func))
+
+        if self.isReferenced():
+            raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
+
+        _type = self.getMayaAttr('blockType')
+        if blockType is not None:
+            if _type is not None and _type != blockType:
+                raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+        else:
+            blockType = _type
+            
+        _mBlockModule = self.query_blockModuleByType(blockType)
+        reload(_mBlockModule)
+        
+        self.doStore('blockType',blockType)
+        verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule)
+        
+        _side = side
+        try:
+            if _side is not None and self._callKWS.get('side'):
+                log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
+                _side = self._callKWS.get('side')
+        except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
+
+
+        if _side is not None:
+            log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
+            try: ATTR.set(self.mNode,'side',_side)
+            except Exception,err:
+                log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
+
+
+        #>>> Base shapes --------------------------------------------------------------------------------
+        try:self.baseSize = self._callSize
+        except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
+        self.doName()
+        
+        if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
+            ATTR.convert_type(self.mNode,'blockProfile','string')
             
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -3435,6 +3483,24 @@ def duplicate(self, uiPrompt = True):
         
         log.debug("|{0}| >> Block settings...".format(_str_func))                    
         #pprint.pprint(_d)
+        if replaceSelf:
+            ml_children = self.getBlockChildren()
+            _blockProfile = self.getMayaAttr('blockProfile')
+            mBlockModule = self.p_blockModule
+            
+            _d_profiles = {}        
+            try:_d_profiles = mBlockModule.d_block_profiles
+            except:
+                log.error(cgmGEN.logString_msg(_str_func,'No d_block_profile_found'))            
+            
+            _typeDict=  _d_profiles.get(_blockProfile,{})
+            if _blockProfile and not _typeDict:
+                log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
+                pprint.pprint(_d_profiles.keys())
+                return False        
+            
+            _baseDat = _typeDict.get('baseDat')
+            
         mDup = cgmMeta.createMetaNode('cgmRigBlock',
                                       **_d)
         
@@ -3462,12 +3528,25 @@ def duplicate(self, uiPrompt = True):
             
         #changeState(mDup,'define',forceNew=True)#redefine to catch any optional created items from settings
         mDup.blockDat = blockDat
+        
+        if replaceSelf:
+            if _baseDat:
+                log.warning(cgmGEN.logString_msg(_str_func,'resetting baseDat: {0}'.format(_baseDat)))
+                mDup.baseDat = _baseDat                        
+        
+        
         blockDat_load(mDup,redefine=True)
         #log.debug('here...')
         #blockDat_load(mDup)#...investigate why we need two...
         
         #mDup.p_blockParent = self.p_blockParent
         #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
+        if replaceSelf:
+            for mChild in ml_children:
+                mChild.p_blockParent = mDup
+                
+            self.delete()
+            
         return mDup
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -4145,6 +4224,8 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
     
     _noScale = False
     _scaleMode = None
+
+        
     if overrideMode:
         if overrideMode == 'update':
             if state not in ['form',1]:
@@ -4156,8 +4237,9 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
         elif overrideMode == 'useLoft':
             if state in ['form',1]:
                 _scaleMode = 'useLoft'
-
                 
+    if state  in ['prerig', 2]:
+        _noScale = True
     
     #pprint.pprint([mainHandleNormalizeScale,_noScale,_scaleMode])    
     
@@ -4395,7 +4477,6 @@ def blockDat_load(self, blockDat = None,
         if _blockType != self.blockType:
             raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
     
-            
         self.blockScale = blockDat['blockScale']
         
         #.>>>..UD ====================================================================================
@@ -4472,8 +4553,6 @@ def blockDat_load(self, blockDat = None,
         self.p_position = blockDat.get('position')
         self.p_orient = blockDat.get('orient')
         
-        if blockDat.get('blockScale'):
-            self.blockScale = blockDat['blockScale']
         #else:
             #for ii,v in enumerate(_scale):
                 #_a = 's'+'xyz'[ii]
@@ -4488,6 +4567,10 @@ def blockDat_load(self, blockDat = None,
             changeState(self,'define',forceNew=True)            
             _current_state_idx = 0
             _current_state = 'define'
+        
+        if blockDat.get('blockScale'):
+            self.blockScale = blockDat['blockScale']
+            
             
         if mMirror == 'cat':
             log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
@@ -4505,7 +4588,7 @@ def blockDat_load(self, blockDat = None,
                     log.debug("|{0}| >> Pushing to form....".format(_str_func))
                     self.p_blockState = 1
             else:
-                return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
+                return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {0}".format(_target_state)))
             
             log.debug(cgmGEN.logString_msg(_str_func,'form push'))
             
@@ -4546,10 +4629,12 @@ def blockDat_load(self, blockDat = None,
             blockDat_load_state(self,'prerig',blockDat,_d_warnings,overrideMode,overrideMode)
             
         if _d_warnings:
-            for k,d in _d_warnings.iteritems():
-                for i,w in enumerate(d):
-                    if i == 0:log.warning(cgmGEN.logString_sub(_str_func,"{0} | Warnings".format(k)))
-                    log.warning(w)
+            try:
+                for k,d in _d_warnings.iteritems():
+                    for i,w in enumerate(d):
+                        if i == 0:log.warning(cgmGEN.logString_sub(_str_func,"{0} | Warnings".format(k)))
+                        log.warning(w)
+            except:pass
         return
 
     except Exception,err:cgmGEN.cgmException(Exception,err)
@@ -5236,21 +5321,39 @@ def get_blockDagNodes(self):
         for a in ['proxyHelper','defineLoftMesh','prerigLoftMesh','jointLoftMesh']:
             if self.getMessage(a):
                 ml_controls.extend(self.getMessage(a,asMeta=True))
-                
-        if 'd_wiring_extraDags' in self.p_blockModule.__dict__.keys():
+        mBlockModule = self.getBlockModule()
+        if 'd_wiring_extraDags' in mBlockModule.__dict__.keys():
             log.debug("|{0}| >>  Found extraDat wiring".format(_str_func))
-            for k in self.p_blockModule.d_wiring_extraDags.get('msgLinks',[]):
+            for k in mBlockModule.d_wiring_extraDags.get('msgLinks',[]):
                 mNode = self.getMessageAsMeta(k)
                 if mNode:
                     ml_controls.append(mNode)
-            for k in self.p_blockModule.d_wiring_extraDags.get('msgLists',[]):
+            for k in mBlockModule.d_wiring_extraDags.get('msgLists',[]):
                 ml = self.msgList_get(k)
                 if ml:
                     ml_controls.extend(ml)
         return ml_controls
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
+def connect_jointLabels(self):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'connect_jointLabels'
+        log.debug(cgmGEN.logString_start(_str_func))
+        if not self.getMayaAttr('visLabels'):
+            return log.info(cgmGEN.logString_msg(_str_func,"{0} has no visLabels attr".format(_short)))
+        
+        _driver =  "{0}.visLabels".format(_short)
+        for mObj in self.getDescendents(asMeta=1):
+            if mObj.getMayaAttr('cgmType') == 'jointLabel':
+                log.info(cgmGEN.logString_msg(_str_func,"Found: {0}".format(mObj)))
+                ATTR.connect(_driver, "{0}.overrideVisibility".format(mObj.mNode))        
+                
+        
 
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
+    
 def controls_get(self,define = False, form = False, prerig= False, asDict =False, getExtra=False):
     try:
         _short = self.p_nameShort        
@@ -10188,11 +10291,13 @@ def update(self,force=False,stopState = 'define'):
     try:
         _str_func = 'update'
         log.debug(cgmGEN.logString_start(_str_func))
+        _short = self.mNode
         
         if is_current(self) and not force:
             return True
         
         log.debug(cgmGEN.logString_sub(_str_func,"Checking blockProfile"))
+        blockType = self.blockType
         mBlockModule = self.p_blockModule
         _blockProfile = self.getMayaAttr('blockProfile')
         _d_profiles = {}        
@@ -10206,7 +10311,6 @@ def update(self,force=False,stopState = 'define'):
             pprint.pprint(_d_profiles.keys())
             return False        
         
-        
         verify_blockAttrs(self)
         
         _baseDat = _typeDict.get('baseDat')
@@ -10215,7 +10319,7 @@ def update(self,force=False,stopState = 'define'):
             self.baseDat = _baseDat
         blockDat_save(self)
         _dat = self.blockDat
-        
+
         for k in ['baseAim','baseSize']:
             _v = _typeDict.get(k)
             if _v is not None:
@@ -10223,6 +10327,20 @@ def update(self,force=False,stopState = 'define'):
                 _dat['ud'][k] = _v
                 for a in 'XYZ':
                     _dat['ud'].pop(k+a)
+                    
+        if force:
+            for a in mc.listAttr(self.mNode,ud=True):
+                if a not in ['mClass','blockType','blockDat','blockType',
+                             'cgmName','baseSize',
+                             'blockParent','blockChildren','blockMirror']:
+                    try:ATTR.delete(_short,a)
+                    except Exception,err:log.error("Failed to delete: {0} | {1}".format(a,err))
+            self.verify()
+            changeState(self,'define',forceNew=True)
+            
+            if _baseDat:
+                log.debug(cgmGEN.logString_msg(_str_func,'baseDat: {0}'.format(_baseDat)))
+                self.baseDat = _baseDat
         
         if stopState is not None:
             _dat['blockState'] = stopState
@@ -10243,6 +10361,102 @@ def update(self,force=False,stopState = 'define'):
         return True   
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+        
+        
+def rebuild(self, stopState = 'define'):
+    """
+    Bring a rigBlock to current settings - check attributes, reset baseDat
+    """
+    try:
+        _str_func = 'rebuild'
+        log.debug(cgmGEN.logString_start(_str_func))
+        _short = self.mNode
+
+        log.debug(cgmGEN.logString_sub(_str_func,"Checking blockProfile"))
+        blockType = self.blockType
+        mBlockModule = self.p_blockModule
+        _blockProfile = self.getMayaAttr('blockProfile')
+        _d_profiles = {}        
+        try:_d_profiles = mBlockModule.d_block_profiles
+        except:
+            log.error(cgmGEN.logString_msg(_str_func,'No d_block_profile_found'))
+            
+        _typeDict=  _d_profiles.get(_blockProfile,{})
+        if _blockProfile and not _typeDict:
+            log.error(cgmGEN.logString_msg(_str_func,'blockType not found in blockProfiles. Please fix | found {0}'.format(_blockProfile)))
+            pprint.pprint(_d_profiles.keys())
+            return False
+        _baseDat = _typeDict.get('baseDat')
+        
+        ml_children = self.getBlockChildren()
+        
+        mBlockMirror = self.getMessageAsMeta('blockMirror')
+        
+        _blockType = self.blockType
+        _side = get_side(self)
+        
+        d_lists = {}
+        for l in ['nameList','rollCount']:
+            if ATTR.datList_exists(_short,l):
+                d_lists[l] = ATTR.datList_get(_short,l)
+                
+        _d = {'blockType':self.blockType,
+              'autoForm':False,
+              'side':_side,
+              'baseSize':baseSize_get(self),
+              'blockProfile':_blockProfile,
+              'blockParent': self.p_blockParent}
+        
+
+        for a in 'cgmName','blockProfile':
+            if a in ['cgmName']:
+                _d['name'] =  self.getMayaAttr(a)
+            elif self.hasAttr(a):
+                _d[a] = self.getMayaAttr(a)        
+        
+        blockDat = self.getBlockDat()
+        if blockDat['ud'].get('baseDat'):
+            blockDat['ud'].pop('baseDat')
+                
+        mLoc = self.doLoc()
+        self.delete()
+        
+        
+        mDup = cgmMeta.createMetaNode('cgmRigBlock',
+                                      **_d)
+        
+        mDup.doSnapTo(mLoc)
+        mLoc.delete()
+
+        
+
+        mDup.blockDat = blockDat
+        
+        #if _baseDat:
+            #log.warning(cgmGEN.logString_msg(_str_func,'resetting baseDat: {0}'.format(_baseDat)))
+            #mDup.baseDat = _baseDat                        
+        
+        for a,l in d_lists.iteritems():
+            ATTR.datList_connect(mDup.mNode,a,l)
+            
+        blockDat_load(mDup)
+
+        for mChild in ml_children:
+            mChild.p_blockParent = mDup
+        
+        if mBlockMirror:
+            mDup.connectChildNode(mBlockMirror,'blockMirror','blockMirror')#Connect
+            
+            
+            
+        return mDup        
+        
+        
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
         
         
 def to_scriptEditor(self,mode = 'block', blockString ='mBlock', facString = 'mRigFac'):

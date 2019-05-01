@@ -60,24 +60,12 @@ import cgm.core.mrs.lib.module_utils as MODULEUTILS
 import cgm.core.rig.general_utils as RIGGEN
 from cgm.core.classes import GuiFactory as cgmUI
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
-
-for m in MODULEUTILS,PUPPETUTILS,BLOCKUTILS,BLOCKGEN:
-    reload(m)
-
-#reload(BUILDERUTILS)
 from cgm.core.lib import nameTools
-#reload(BLOCKSHARE)
 from cgm.core.classes import GuiFactory as CGMUI
-#reload(CGMUI)
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 get_from_scene = BLOCKGEN.get_from_scene
 
-#from cgm.core.lib import nameTools
-#from cgm.core.rigger import ModuleFactory as mFactory
-#from cgm.core.rigger import PuppetFactory as pFactory
-#from cgm.core.classes import NodeFactory as nodeF
 
-#from cgm.core.mrs.blocks import box
 
 #_d_blockTypes = {'box':box}
 
@@ -384,76 +372,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """ 
 
         """
-        try:
-            reload(BLOCKSHARE)#...to make sure we get changes
-            try:reload(self.p_blockModule)
-            except:pass
-            
-            _str_func = '[{0}] verify'.format(self.p_nameShort)
-    
-            #_start = time.clock()
-    
-            if self.isReferenced():
-                raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
-    
-            #if blockType and not is_blockType_valid(blockType):
-                #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
-    
-            _type = self.getMayaAttr('blockType')
-            if blockType is not None:
-                if _type is not None and _type != blockType:
-                    raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-            else:
-                blockType = _type
-    
-            #_mBlockModule = get_blockModule(blockType)
-    
-            #if not _mBlockModule:
-                #log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
-                #return False
-    
-            #if 'build_rigBlock' not in _module.__dict__.keys():
-                #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
-                #return False
-    
-            #>>> Attributes --------------------------------------------------------------------------------
-            #self._factory.verify(blockType)
-            BLOCKUTILS.verify_blockAttrs(self,queryMode=False)
-            #self.atBlockUtils('verify_blockAttrs',queryMode = False)
-            
-            _side = side
-            try:
-                if _side is not None and self._callKWS.get('side'):
-                    log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
-                    _side = self._callKWS.get('side')
-            except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
-
-    
-            if _side is not None:
-                log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
-                try: ATTR.set(self.mNode,'side',_side)
-                except Exception,err:
-                    log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
-    
-    
-            #>>> Base shapes --------------------------------------------------------------------------------
-            #_size = self._callKWS.get('size')
-            #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
-            #get_callSize(self._callKWS.get('size'), blockModule=_mBlockModule, rigBlock = self)
-            try:self.baseSize = self._callSize
-            except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
-    
-            self.doName()
-            #log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-            
-            if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
-                ATTR.convert_type(self.mNode,'blockProfile','string')
-            
-            return True
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        return self.UTILS.verify(self,blockType,size,side)
 
     def doName(self):
         return self.atUtils('doName')
+    
+    def query_blockModuleByType(self,*args,**kws):
+        return get_blockModule(*args,**kws)
 
 
     def getControls(self, asMeta = False):

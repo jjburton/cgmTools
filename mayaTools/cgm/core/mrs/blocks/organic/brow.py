@@ -136,6 +136,7 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:side',
@@ -159,6 +160,7 @@ d_defaultSettings = {'version':__version__,
                      'paramStart':.2,
                      'paramMid':.5,
                      'paramEnd':1.0,
+                     'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 

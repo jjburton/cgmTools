@@ -78,7 +78,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04042019'
+__version__ = '1.04302019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -328,6 +328,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'spaceSwitch_fk',
                    'visRotatePlane',
+                   'visLabels',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -369,7 +370,7 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'loftList':['square','circle','square'],
-                     
+                     'visLabels':True,
                      'segmentMidIKControl':True,
                      'squash':'both',
                      'squashExtraControl':True,
@@ -844,14 +845,19 @@ def prerig(self):
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
+                self.connectChildNode(mHandle.mNode,'ikOrientHandle')
+                """
+                crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
+                mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+                mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
             
                 ml_shapes = mHandle.getShapes(asMeta=1)
                 crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 2.5)
                 CORERIG.override_color(crv2, 'black')
                 SNAP.go(crv2,mHandle.mNode)
-                CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            
+                CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            """
             else:
-                crv = CURVES.create_fromName('axis3d', size = _sizeUse)
+                crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             #mHandle = cgmMeta.cgmObject(crv, name = 'handle_{0}'.format(i))
             _short = mHandle.mNode
@@ -884,7 +890,7 @@ def prerig(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub / 2.0))
+            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        

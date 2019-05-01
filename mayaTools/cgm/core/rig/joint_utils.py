@@ -240,7 +240,7 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                         
                         #pprint.pprint(vars())
                         
-                        log.info(cgmGEN.logString_msg(_str_func,"{0} | vec: {1} | angle: {2} | cross: {3}".format(mJnt.mNode,_angleVec,_angle,_cross)))
+                        log.debug(cgmGEN.logString_msg(_str_func,"{0} | vec: {1} | angle: {2} | cross: {3}".format(mJnt.mNode,_angleVec,_angle,_cross)))
                         
                         if _angle > 70:
                             log.warning(cgmGEN.logString_msg(_str_func,"{0} | dangerous angles vec: {1} | angle: {2} ".format(mJnt.mNode,_angleVec,_angle)))

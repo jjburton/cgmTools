@@ -143,6 +143,7 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'moduleTarget',]
 
 d_attrsToMake = {'faceType':'default:muzzle:beak',
@@ -185,6 +186,7 @@ d_defaultSettings = {'version':__version__,
                      'paramUprStart':.15,
                      'paramLwrStart':.15,
                      'numJointsTongue':3,
+                     'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 

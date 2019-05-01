@@ -60,7 +60,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04042019'
+__version__ = '1.04302019'
 __autoForm__ = False
 __component__ = True
 __menuVisible__ = True
@@ -180,6 +180,7 @@ l_attrsStandard = ['side',
                    'loftShape',
                    'loftDegree',
                    'loftList',
+                   'visLabels',
                    'spaceSwitch_direct',
                    #'buildProfile',
                    'visMeasure',
@@ -204,6 +205,7 @@ d_defaultSettings = {'version':__version__,
                      'axisUp':4,
                      'attachPoint':'end',
                      'rotPivotPlace':0,
+                     'visLabels':True,
                      'loftSides': 10,
                      'loftSplit':1,
                      'rotPivotPlace':'jointHelper',

@@ -1244,16 +1244,21 @@ class handleFactory(object):
         mJointLabel.doStore('cgmType','jointLabel')
         mJointLabel.doName()
     
-        mJointLabel.dagLock()
     
         mJointLabel.overrideEnabled = 1
         mJointLabel.overrideDisplayType = 2
         
-        mJointLabel.connectParentNode(mHandle.mNode,'handle','jointLabel')   
+        mJointLabel.connectParentNode(mHandle.mNode,'handle','jointLabel')
+        
+        try:
+            ATTR.connect("{0}.visLabels".format(self.mBlock.mNode), "{0}.overrideVisibility".format(mJointLabel.mNode))
+        except:pass
+            
+        mJointLabel.dagLock()
         
         return mJointLabel
         
-    def addJointHelper(self,baseShape='sphere', baseSize = None,
+    def addJointHelper(self,baseShape='locatorForm', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:
