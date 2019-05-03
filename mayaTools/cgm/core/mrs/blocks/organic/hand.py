@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'HAND'
+
 # From Python =============================================================
 import copy
 import re
@@ -48,6 +50,7 @@ import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
@@ -60,13 +63,25 @@ reload(RAYS)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.02.202019'
+__version__ = '1.04042019'
 __autoForm__ = False
 __component__ = False
 __menuVisible__ = True
 __baseSize__ = 10,10,10
 __l_rigBuildOrder__ = []
 __blockFrame__ = True
+
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 
 #>>>Profiles ===================================================================================================
 d_build_profiles = {'unityLow':{'default':{}},
@@ -103,7 +118,6 @@ l_attrsStandard = [
 'side',
 'position',
 'attachPoint',
-#'baseDat',
 'blockProfile',
 'moduleTarget']
 
@@ -866,7 +880,7 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
                 else:
                     ml_uValues = CURVES.getUSplitList(md_curves['base'].mNode,int_fingers,False,returnU=True)
                     ml_uValues = MATH.normalizeList(ml_uValues)
-                pprint.pprint(ml_uValues)
+                #pprint.pprint(ml_uValues)
                 
                 log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
                 ATTR.datList_connect(self.mNode,'paramDigitStart',ml_uValues)
@@ -1305,7 +1319,7 @@ def verify_subBlocks(self,forceNew=True):
                     
                     
                 self.msgList_connect('fingerBlocks',ml_fingerBlocks,connectBack='blockFrame')
-                pprint.pprint(md_fingerDat)
+                #pprint.pprint(md_fingerDat)
                 
         
         #Thumbs ---------------------------------------------------------------------
@@ -1368,7 +1382,7 @@ def verify_subBlocks(self,forceNew=True):
                     #mUpHandle = self.getMessageAsMeta('defineThumbUp{0}Helper'.format(s_tag))
                     #if not mUpHandle:raise ValueError,"Didn't find up"                             
             
-                    pprint.pprint(vars())
+                    #pprint.pprint(vars())
                     
                     #size ========================================================================
                     log.debug(cgmGEN.logString_msg(_str_func,'thumb {0} | initial size'.format(a)))
@@ -1458,7 +1472,7 @@ def subBlock_align(self,mBlockArg  = None, formScale = True, ml_drivers = None, 
                 
                         
         #Process =============================================================================
-        pprint.pprint(md_blocks)
+        #pprint.pprint(md_blocks)
         
         for k,dSet in md_blocks.iteritems():
             if dSet:
@@ -1717,7 +1731,7 @@ def verify_subBlocksBAK(self,forceNew=True):
             else:
                 ml_uValues = CURVES.getUSplitList(md_curves['base'].mNode,int_fingers,False,returnU=True)
                 ml_uValues = MATH.normalizeList(ml_uValues)
-            pprint.pprint(ml_uValues)
+            #pprint.pprint(ml_uValues)
             
             log.debug(cgmGEN.logString_msg(_str_func,'param attributes'))
             ATTR.datList_connect(self.mNode,'paramDigit',ml_uValues)
@@ -1753,8 +1767,8 @@ def verify_subBlocksBAK(self,forceNew=True):
                 self.msgList_connect('finger{0}Drivers'.format(STR.capFirst(k)), ml)
                 md_driverLists[k] = ml
                 
-            pprint.pprint(md_curves)        
-            pprint.pprint(md_drivers)
+            #pprint.pprint(md_curves)        
+            #pprint.pprint(md_drivers)
             
             
             log.debug(cgmGEN.logString_msg(_str_func,'scale...'))

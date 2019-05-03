@@ -36,7 +36,8 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
-
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+reload(BLOCKSHAPES)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
@@ -47,7 +48,10 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.05312018'
+__version__ = '1.04302019'
+__MAYALOCAL = 'MASTER'
+
+
 __autoForm__ = True
 __menuVisible__ = True
 __baseSize__ = 170,170,170
@@ -77,18 +81,35 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
+_d_attrStateMasks = {0:[],
+                     1:[],
+                     2:[],
+                     3:['addMotionJoint'],
+                     4:[]}
+
+_d_attrStateOn = {0:[],
+                  1:['hasJoint'],
+                  2:['rotPivotPlace','basicShape'],
+                  3:[],
+                  4:[]}
+_d_attrStateOff = {0:[],
+                  1:[],
+                  2:['baseSize','scaleY'],
+                  3:['addMotionJoint'],
+                  4:[]}
 
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format
 #cgmRigamathig
 
 def uiBuilderMenu(self,parent = None):
-    uiMenu = mc.menuItem( parent = parent, l='Master:', subMenu=True)
     _short = self.p_nameShort
     
-    mc.menuItem(uiMenu,
-                ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),                                                    
-                c = cgmGEN.Callback(resize_masterShape,self),
+    mc.menuItem(en=False,
+                label = "Master")        
+    
+    mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
+                c = cgmGEN.Callback(resize_masterShape,self,**{'resize':1}),
                 label = "Resize")            
     
 #=============================================================================================================
@@ -193,7 +214,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
@@ -226,7 +247,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
@@ -361,16 +382,17 @@ def prerig(self):
         mPrerigNull = self.atBlockUtils('prerigNull_verify')
         mHandleFactory = self.asHandleFactory(self.mNode)
         ml_handles = [self.mNode]
+        _offset = self.controlOffset 
         
         #Helpers=====================================================================================
         self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addMotionJoint:
-            mMotionJoint = mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d', shapeDirection = 'y-')
-            mShape = mMotionJoint.doDuplicate(po=False)
-            SNAP.to_ground(mShape.mNode)
-            CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
+            _baseSize = self.baseSize
+            _sizeHandle = (MATH.average(_baseSize[0],_baseSize[1]) * .1) + _offset
+            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=_sizeHandle)
             mMotionJoint.p_parent = mPrerigNull
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def prerigDelete(self):
@@ -548,6 +570,17 @@ def rig_cleanUp(self):
             mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             
+        for mCtrl in ml_controlsAll:            
+            if mCtrl.hasAttr('radius'):
+                ATTR.set(mCtrl.mNode,'radius',0)        
+            
+            ml_pivots = mCtrl.msgList_get('spacePivots')
+            if ml_pivots:
+                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+                for mPivot in ml_pivots:
+                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    ml_controlsAll.append(mPivot)
+        
         #Connect -------------------------------------------------------------
         mPuppet.msgList_connect('controlsAll', ml_controlsAll)
         mPuppet.puppetSet.extend( ml_controlsAll)

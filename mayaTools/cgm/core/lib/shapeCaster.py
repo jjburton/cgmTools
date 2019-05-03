@@ -2,6 +2,8 @@
 Module for building controls for cgmModules
 
 """
+__MAYALOCAL = 'SHAPECAST'
+
 # From Python =============================================================
 import copy
 import re
@@ -605,10 +607,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
 
     #>>> Info #================================================================
-    guiFactory.doProgressWindow(winName='Mesh Slice...', 
-                                statusMessage='Progress...', 
-                                startingProgress=1, 
-                                interruptableState=True)		
+    #guiFactory.doProgressWindow(winName='Mesh Slice...', 
+    #                            statusMessage='Progress...', 
+    #                            startingProgress=1, 
+    #                            interruptableState=True)		
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
     l_pos = []
@@ -706,9 +708,9 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
         #================================================================
         l_hits = []
         for i,rotateValue in enumerate(l_rotateSettings):
-            guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
-                                              len(l_rotateSettings), 
-                                              reportItem=False)	    
+            #guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
+            #                                  len(l_rotateSettings), 
+            #                                  reportItem=False)	    
             d_castReturn = {}
             hit = False
             
@@ -732,6 +734,12 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                     log.debug(cgmGEN.logString_msg(_str_func,
                                                    "No hit, alternate method | {0}".format(rotateValue)))
                     hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                
+                if hit:
+                    if DIST.get_distance_between_points(pos_base,hit)>maxDistance:
+                        log.debug("Max distance exceeded. Using alternative")
+                        hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                        
                     
                 #d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, #maxDistance = maxDistance, firstHit=False) or {}
                # d_hitReturnFromValue[rotateValue] = d_castReturn	
@@ -745,23 +753,6 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 l_pos.append(hit)
                 if markHits:
                     LOC.create(position=hit,name="cast_rot{0}_loc".format(rotateValue))
-                """if closestInRange:
-		    try:
-			d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance) or {}
-		    except StandardError,error:
-			log.error("createMeshSliceCurve >> closestInRange error : %s"%error)
-			return False
-		    log.debug("closest in range castReturn: %s"%d_castReturn)		
-		    d_hitReturnFromValue[rotateValue] = d_castReturn	
-		    log.debug("From %s: %s" %(rotateValue,d_castReturn))
-
-		else:
-		    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, singleReturn=False) or {}
-		    log.debug("castReturn: %s"%d_castReturn)
-		    if d_castReturn.get('hits'):
-			closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
-			d_castReturn['hit'] = closestPoint
-			log.debug("From %s: %s" %(rotateValue,d_castReturn))"""
 
                 d_rawHitFromValue[rotateValue] = hit
 
@@ -770,7 +761,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
  
         mc.delete(mi_loc.getParents()[-1])#delete top group
         log.debug("pos list: %s"%l_pos)    
-        guiFactory.doCloseProgressWindow()
+        #guiFactory.doCloseProgressWindow()
 
     except Exception,error:
         pprint.pprint(vars())

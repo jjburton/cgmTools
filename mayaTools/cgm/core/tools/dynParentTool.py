@@ -1120,13 +1120,18 @@ def uiMenu_changeSpace(self, parent, showNoSel = False):
             mDynParentGroup = cgmMeta.validateObjArg(mDynParentGroup,'cgmDynParentGroup',True)
             d_buffer = {'mDynParent':mDynParentGroup,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
             if mDynParentGroup:
-                for a in cgmRigMeta.d_DynParentGroupModeAttrs[mDynParentGroup.dynMode]:
-                    if mObj.hasAttr(a):
-                        d_buffer['attrs'].append(a)
-                        lBuffer_attrOptions = []
-                        for i,o in enumerate(ATTR.get_enumList(_short,a)):
-                            lBuffer_attrOptions.append(o)
-                        d_buffer['attrOptions'][a] = lBuffer_attrOptions
+                try:
+                    for a in cgmRigMeta.d_DynParentGroupModeAttrs[mDynParentGroup.dynMode]:
+                        if mObj.hasAttr(a):
+                            d_buffer['attrs'].append(a)
+                            lBuffer_attrOptions = []
+                            for i,o in enumerate(ATTR.get_enumList(_short,a)):
+                                lBuffer_attrOptions.append(o)
+                            d_buffer['attrOptions'][a] = lBuffer_attrOptions
+                except:
+                    log.error("Failed ot build menu")
+                    pprint.pprint(vars())
+                    return
         self.md_spaceSwitchDat[mObj] = d_buffer
     
     #=========================================================================================
@@ -1241,7 +1246,7 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,**kws):
     try:var_mrsContextKeys
     except:var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')"""
-    pprint.pprint([md_spaceSwitchDat,attr,option])
+    #pprint.pprint([md_spaceSwitchDat,attr,option])
     _frame = SEARCH.get_time()    
     d_keys = {}
     ml_objs = []

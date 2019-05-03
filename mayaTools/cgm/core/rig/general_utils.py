@@ -40,7 +40,8 @@ import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
-
+reload(ATTR)
+@cgmGEN.Timer
 def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
     """
     :mode
@@ -71,7 +72,8 @@ def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
     _d['selectedChannels'] = selectedChannels
     _d['nodes'] = nodes
     reset_channels(**_d)
-    
+
+@cgmGEN.Timer
 def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excludeChannels=None, keyableOnly=False):
     '''
     Modified from Morgan Loomis' great reset call to expand options...
@@ -84,8 +86,9 @@ def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excl
         if not nodes:
             return
 
-    if excludeChannels and not isinstance(excludeChannels, (list, tuple)):
-        excludeChannels = [excludeChannels]
+    if excludeChannels:
+        if not isinstance(excludeChannels, (list, tuple)):
+            excludeChannels = [excludeChannels]
 
     chans = None
     if selectedChannels:
@@ -95,7 +98,7 @@ def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excl
 
 
     for obj in nodes:
-        mObj = r9Meta.MetaClass(obj)
+        #mObj = r9Meta.MetaClass(obj)
 
         attrs = chans
         if not chans:
@@ -110,8 +113,8 @@ def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excl
 
         d_defaults = {}
         for plug in ['defaultValues','transResets']:
-            if mObj.hasAttr(plug):
-                d_defaults = getattr(mObj,plug)
+            if ATTR.has_attr(obj, plug):
+                d_defaults = getattr(r9Meta.MetaClass(obj),plug)
 
         if not attrs:
             log.warning("{0} resetAttrs | no attributes offered!".format(obj))            
@@ -686,8 +689,8 @@ def split_blends(driven1 = None,
                                                         mayaType=['joint'], noneValid = False)
 
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
-        pprint.pprint(d_dat[1]['driven'])
-        pprint.pprint(d_dat[2]['driven'])
+        #pprint.pprint(d_dat[1]['driven'])
+        #pprint.pprint(d_dat[2]['driven'])
 
         if buildNetwork:
             log.debug("|{0}| >> buildNetwork | building driver attrs...".format(_str_func))                            
@@ -866,7 +869,7 @@ def split_blends(driven1 = None,
                                          itt=inTangent,ott=outTangent,                                         
                                          driverValue = dat['distMidOn'][i],value = 1.0)
 
-        pprint.pprint(d_dat)
+        #pprint.pprint(d_dat)
         #return d_dat
 
         for idx,dat in d_dat.iteritems():

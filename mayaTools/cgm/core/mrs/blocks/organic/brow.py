@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BROW'
+
 # From Python =============================================================
 import copy
 import re
@@ -100,6 +102,17 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
@@ -118,12 +131,12 @@ d_block_profiles = {'default':{},
 l_attrsStandard = ['side',
                    'position',
                    'baseAim',
-                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:side',
@@ -147,6 +160,7 @@ d_defaultSettings = {'version':__version__,
                      'paramStart':.2,
                      'paramMid':.5,
                      'paramEnd':1.0,
+                     'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -1737,7 +1751,7 @@ def rig_frame(self):
         
         
         
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
 
     return
 
@@ -1884,6 +1898,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
+    raise ValueError,"This needs to be reworked to new block call"
     _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)

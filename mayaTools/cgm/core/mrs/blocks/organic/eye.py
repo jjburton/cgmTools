@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'EYE'
+
 # From Python =============================================================
 import copy
 import re
@@ -56,6 +58,7 @@ import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
@@ -99,6 +102,17 @@ d_wiring_form = {'msgLinks':['formNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
@@ -125,13 +139,13 @@ d_block_profiles = {'default':{},
 l_attrsStandard = ['side',
                    'position',
                    'baseAim',
-                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'numSpacePivots',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'proxyDirect',
                    'moduleTarget',]
 
@@ -155,6 +169,7 @@ d_defaultSettings = {'version':__version__,
                      'side':'right',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      'loftDegree':'cubic',
+                     'visLabels':True,
                      'paramMidUpr':.5,
                      'paramMidLwr':.5,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
@@ -795,7 +810,7 @@ def skeleton_build(self, forceNew = True):
     
     _d_base = self.atBlockUtils('skeleton_getNameDictBase')
     _d_base['cgmType'] = 'skinJoint'    
-    pprint.pprint( _d_base )
+    #pprint.pprint( _d_base )
     
     #..name --------------------------------------
     def name(mJnt,d):
@@ -1199,7 +1214,7 @@ def rig_skeleton(self):
             
             mLidRig.p_parent = mLidBlend
             
-        pprint.pprint(self.d_lidData)
+        #pprint.pprint(self.d_lidData)
     log.debug(cgmGEN._str_subLine)
     
     
@@ -1564,7 +1579,7 @@ def rig_frame(self):
     
     ml_joints = [mJointFK,mJointIK,mBlendJoint,mSettings,mDirect]
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     log.debug("|{0}| >> Adding to attach driver...".format(_str_func))
     self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode    
@@ -2149,7 +2164,7 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
             
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         
         log.debug(cgmGEN._str_subLine)
 
@@ -2310,6 +2325,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
+    raise ValueError,"This needs to be reworked to new block call"
+    
     _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)

@@ -281,8 +281,8 @@ class Vector2:
 
     def dot(self, other):
         assert isinstance(other, Vector2)
-        return self.x * other.x + \
-               self.y * other.y
+        return max(min(self.x * other.x + \
+               self.y * other.y, 1.0), -1.0)
 
     def cross(self):
         return Vector2(self.y, -self.x)
@@ -537,9 +537,13 @@ class Vector3:
 
     def dot(self, other):
         assert isinstance(other, Vector3)
-        return self.x * other.x + \
+        return max(min(self.x * other.x + \
                self.y * other.y + \
-               self.z * other.z
+               self.z * other.z, 1.0), -1.0)
+    
+    def add(self, other):
+        assert isinstance(other,Vector3)
+        return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def cross(self, other):
         assert isinstance(other, Vector3)
@@ -575,8 +579,12 @@ class Vector3:
 
     def angle(self, other):
         """Return the angle to the vector other"""
-        return math.acos(self.dot(other) / (self.magnitude()*other.magnitude()))
-
+        try:return math.acos(self.dot(other) / (self.magnitude()*other.magnitude()))
+        except Exception,err:
+            #if self.cross(other) == (0.0,0.0,0.0):
+            return 0.0
+            raise Exception,err
+        
     def project(self, other):
         """Return one vector projected on the vector other"""
         n = other.normalized()

@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'CORERIG'
+
 # From Python =============================================================
 import copy
 import re
@@ -128,10 +130,11 @@ def match_orientation(obj = None, source = None,
     log.debug("|{0}| >> children:{1}".format(_str_func,_l_children))
             
     if _l_shapes:#...dup our shapes to properly shape parent them back
-        _dup = mc.duplicate(obj, parentOnly = True)[0]
-        log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
+        _dup = mc.duplicate(obj, parentOnly = False)[0]
+        #log.debug("|{0}| >> dup:{1}".format(_str_func,_dup))
         for s in _l_shapes:
-            shapeParent_in_place(_dup,s,keepSource=False)        
+            mc.delete(s)
+            #shapeParent_in_place(_dup,s,keepSource=False)        
         
     #The meat of it...
     _restorePivotRP = False
@@ -297,7 +300,8 @@ def combineShapes(targets = [], keepSource = True, replaceShapes = False, snapFi
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+@cgmGEN.Timer
+def shapeParent_in_placeBAK(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
     """
     Shape parent a curve in place to a obj transform
 
@@ -419,6 +423,175 @@ def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = Fa
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     return True
+
+@cgmGEN.Timer
+def shapeParent_in_place_matrix(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+    """
+    Shape parent a curve in place to a obj transform
+
+    :parameters:
+        obj(str): Object to modify
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
+
+    :returns
+        success(bool)
+    """
+    
+    _str_func = 'shapeParent_in_place'
+    
+    l_source = VALID.listArg(shapeSource)
+    obj = VALID.mNodeString(obj)
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
+        if _l_objShapes:
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
+    mc.select (cl=True)
+    #mc.refresh()
+    matrix_me = TRANS.worldMatrix_get(obj)
+    pprint.pprint(matrix_me)
+    for c in l_source:
+        try:
+            _shapeCheck = SEARCH.is_shape(c)
+            if _shapeCheck:
+                _dupBase = duplicate_shape(c)[0]
+                log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                                        
+            else:
+                log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
+                _dupBase = mc.duplicate(c,po=False)[0]
+                for child in TRANS.children_get(_dupBase,True):
+                    mc.delete(child)
+                if snapFirst:
+                    SNAP.go(_dupBase,obj)
+                
+            mc.makeIdentity(_dupBase, apply=True,  scale=True)#translate=True, rotate=True,
+            #TRANS.pivots_zeroTransform(_dupBase)
+            matrix_tar = TRANS.worldMatrix_get(_dupBase)
+            matrix_res = []
+            for i,v in enumerate(matrix_tar):
+                matrix_res.append(v * (matrix_me[i]*-1))
+
+            mc.xform( _dupBase,m=matrix_res, ws=True,p=True)
+
+            l_baseShapes = mc.listRelatives (_dupBase, f= True,shapes=True, fullPath = True)
+            for i,s in enumerate(l_baseShapes):
+                mc.parent (s,obj,add=True,shape=True)
+
+            #mc.delete(_dupBase)
+            #mc.delete(obj,ch=True)
+            if not keepSource:
+                mc.delete(c)
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
+    return True
+
+
+#@cgmGEN.Timer
+def shapeParent_in_place(obj, shapeSource, keepSource = True, replaceShapes = False, snapFirst = False):
+    """
+    Shape parent a curve in place to a obj transform
+
+    :parameters:
+        obj(str): Object to modify
+        shapeSource(str): Curve to shape parent
+        keepSource(bool): Keep the curve shapeParented as well
+        replaceShapes(bool): Whether to remove the obj's original shapes or not
+        snapFirst(bool): whether to snap source to obj before transfer
+
+    :returns
+        success(bool)
+    """
+    
+    _str_func = 'shapeParent_in_place'
+    
+    l_source = VALID.listArg(shapeSource)
+    obj = VALID.mNodeString(obj)
+    log.debug("|{0}|  >> obj: {1} | shapeSource: {2} | keepSource: {3} | replaceShapes: {4}".format(_str_func,obj,shapeSource,keepSource,replaceShapes))  
+    
+    if replaceShapes:
+        _l_objShapes = mc.listRelatives(obj, s=True, fullPath = True)    
+        if _l_objShapes:
+            log.debug("|{0}|  >> Removing obj shapes...| {1}".format(_str_func,_l_objShapes))
+            mc.delete(_l_objShapes)
+    
+    mc.select (cl=True)
+    #mc.refresh()    
+    for i,c in enumerate(l_source):
+        try:
+            l_nodes = []
+            _shapeCheck = SEARCH.is_shape(c)
+            #if not _shapeCheck and not mc.listRelatives(c, f= True,shapes=True, fullPath = True):
+            #    raise ValueError,"Has no shapes"
+            #if coreNames.get_long(obj) == coreNames.get_long(c):
+                #raise ValueError,"Cannot parentShape self"
+            #l_startShapes = mc.listRelatives (obj, f= True,shapes=True, fullPath = True)
+ 
+            if _shapeCheck:
+                _dup_curve = duplicate_shape(c)[0]
+                _dupBase = duplicate_shape(c)[0]
+                
+                log.debug("|{0}|  >> shape duplicate".format(_str_func))                                  
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                                        
+            else:
+                log.debug("|{0}|  >> regular duplicate".format(_str_func))                  
+                _dup_curve =  mc.duplicate(c,po=False,rc=True)[0]
+                for child in TRANS.children_get(_dup_curve,True):
+                    log.debug("|{0}|  >> Removing child: {1}".format(_str_func,child))
+                    mc.delete(child)
+                if snapFirst:
+                    SNAP.go(_dup_curve,obj)
+                    
+                _dupBase = mc.duplicate(_dup_curve,po=False)
+            
+                #matrix_a = mc.xform( obj,q=True,m=True, ws=True )
+                #mc.xform(_dup_curve, m=matrix_a,ws=True,p=True)
+                #mc.makeIdentity(_dup_curve,apply=True,translate =True, rotate = True, scale=True)
+            l_dupShapes = mc.listRelatives (_dup_curve, f= True,shapes=True, fullPath = True)
+            l_baseShapes = mc.listRelatives (_dupBase, f= True,shapes=True, fullPath = True)
+                
+            for ii,s in enumerate(l_dupShapes):
+                log.debug("|{0}|  >> blendshaping [{1}] | {2} | {3}".format(_str_func,i,ii,s))                                  
+                newShape = mc.parent (s,obj,add=True,shape=True)
+                try:node= mc.blendShape(l_baseShapes[ii],newShape[0], origin ='world')
+                except:
+                    node = None
+                    log.error("|{0}|  >> FAILED to blendshape [{1}] | {2} | {3}".format(_str_func,i,ii,l_baseShapes[ii]))
+                    shapeParent_in_placeBAK(obj,l_baseShapes[ii],False,False)
+                if node:
+                    mc.blendShape(node, edit=True, w=[(0,1.0)])
+                    l_nodes.extend(node)
+                    mc.delete(newShape,ch=True)                    
+
+                #mc.delete(l_baseShapes[i])
+                #mc.delete(node)
+
+            mc.delete(_dup_curve,_dupBase)
+            #mc.delete(l_nodes)
+            #mc.delete(obj,ch=True)#...can't do this. Breaks other bits
+            """
+            for n in l_nodes:
+                for plug in ATTR.get_driven(n,'outputGeometry') or []:
+                    log.debug("|{0}|  >> Removing plug: {1}".format(_str_func,child))
+                    ATTR.break_connection(plug)
+                mc.delete(n)"""
+            
+            if not keepSource:
+                mc.delete(c)
+        except Exception,err:
+            cgmGEN.cgmException(Exception,err)
+    return True
+
 
 def create_axisProxy(obj=None):
     """
@@ -563,7 +736,7 @@ _d_proxyCreate = {'cube':'nurbsCube',
                   'cone':'cone',
                   'torus':'torus'}
 
-def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=True):
+def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=True, bakeScale = True):
     try:
         #cube:sphere:cylinder:cone:torus
         _str_func = 'create_proxyGeo'
@@ -579,13 +752,19 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
         
         
         if proxyShape in ['cube']:
-            _kws['width'] = size[0]
+            _kws['width'] = 1.0#size[0]
             _kws['ch'] = False
         if proxyShape in ['cylinder','sphere','cone','cylinder','torus']:
-            _kws['radius'] =  max(size)/2.0
+            _kws['radius'] =  1.0#max(size)/2.0
             _kws['axis'] = VALID.simpleAxis(direction).p_vector
 
         _res = _call(**_kws )
+        
+        if proxyShape == 'cube':
+            _children = TRANS.children_get(_res[0])
+            for i,c in enumerate(_children):
+                _children[i] = TRANS.parent_set(c,False)
+            combineShapes(_children + [_res[0]],keepSource=False,replaceShapes=False)        
         
         if size is not None:
             if VALID.isListArg(size):
@@ -598,7 +777,8 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
                     
                 else:
                     mc.scale(size,size,size,_res[0],os=True)
-            #mc.makeIdentity(_res[0], apply=True,s=1)    
+            if bakeScale:
+                mc.makeIdentity(_res[0], apply=True,s=1)    
         """
         if proxyShape == 'cube':
             _d_directionXRotates = {'x+':[0,0,0],'x-':[0,180,0],'y+':[0,0,90],'y-':[0,0,-90],'z+':[0,-90,0],'z-':[0,90,0]}
@@ -606,16 +786,13 @@ def create_proxyGeo(proxyShape = 'cube', size = [1,1,1], direction = 'z+',ch=Tru
             mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res[0], ws=True)"""
             #mc.makeIdentity(_res[0], apply=True,r =1, n= 1)        
         
-        if proxyShape == 'cube':
-            _children = TRANS.children_get(_res[0])
-            for i,c in enumerate(_children):
-                _children[i] = TRANS.parent_set(c,False)
-            combineShapes(_children + [_res[0]],keepSource=False,replaceShapes=False)
+
         
         return _res
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    
+
+
 def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName = 'created'):
     """
     Create a null matching a given obj

@@ -10,6 +10,9 @@ ACKNOWLEDGEMENTS:
    Samaneh Momtazmand -- r&d for casting with surfaces
 ================================================================
 """
+__MAYALOCAL = 'RAYS'
+
+
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
@@ -110,7 +113,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
                     shapes.append(o)                
                 else:
                     shapes.extend(TRANS.shapes_get(o,True))
-
+                
         mAxis = VALID.simpleAxis(axis)
         posBase = POS.get(obj)
 
@@ -190,7 +193,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+#@cgmGEN.Timer
 def cast(mesh = None, obj = None, axis = 'z+',
          startPoint = None, vector = None,
          maxDistance = 1000, firstHit = True,

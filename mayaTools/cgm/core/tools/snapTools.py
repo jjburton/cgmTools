@@ -140,7 +140,7 @@ def uiQuery_advancedSnap(self):
         _plug = 'cgmVar_snapAdvanced_' + k
         _res[k] = cgmMeta.cgmOptionVar(_plug).getValue()
     
-    pprint.pprint(_res)
+    #pprint.pprint(_res)
     return _res
 
 def buildSection_advancedSnap(self,parent):

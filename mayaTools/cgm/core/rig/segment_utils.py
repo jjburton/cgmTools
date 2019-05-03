@@ -389,7 +389,7 @@ def create(jointList, segmentType = 'curve',
     #> baseDistance -------------------------------------------------------------
     baseDist = DIST.get_distance_between_points(ml_jointList[0].p_position, ml_jointList[-1].p_position)/2
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
 
     #<<<Gather data DONE=====================================================================================
 
@@ -914,7 +914,7 @@ def addAdditveScale_toCurve(jointList,#attrHolder,#Should be an ikHandle normall
         else:
             raise ValueError,"|{0}| >> No attr holder data found on joint : {1}...".format(_str_func,mJnt.p_nameShort)
 
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     mSegmentCurve = cgmMeta.validateObjArg(segmentCurve)
     _short_curve = NAMES.short(mSegmentCurve.mNode)
     

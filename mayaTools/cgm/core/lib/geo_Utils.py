@@ -1,8 +1,8 @@
-#=================================================================================================================================================
-#=================================================================================================================================================
+#==========================================================================================================
+#==========================================================================================================
 #	geo - a part of cgmTools
-#=================================================================================================================================================
-#=================================================================================================================================================
+#==========================================================================================================
+#==========================================================================================================
 # 
 # DESCRIPTION:
 #	Series of tools for working with geo
@@ -11,16 +11,23 @@
 # 	Maya
 # 
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
+# 	Josh Burton - jjburton@gmail.com
 #	http://www.cgmonks.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 # 
-#=================================================================================================================================================
+#==========================================================================================================
+#...NO IMPORT
+#   LOC,
 
+__MAYALOCAL = 'GEO'
+
+
+import pprint
 import maya.cmds as mc
 import maya.mel as mel
 import maya.OpenMaya as OM
 import copy
+import random
 
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as VALID
@@ -31,8 +38,12 @@ from cgm.lib import guiFactory
 from cgm.lib import cgmMath
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import rayCaster as cgmRAYS
+reload(cgmRAYS)
 from cgm.core.lib import search_utils as SEARCH
 import re
+import cgm.core.lib.distance_utils as DIST
+import cgm.core.lib.math_utils as MATH
+#import cgm.core.lib.locator_utils as LOC
 
 from cgm.lib import search
 from cgm.lib import distance
@@ -306,7 +317,7 @@ def get_proximityGeo(sourceObj= None, targets = None, mode = 1, returnMode = 0,
     for o in targets:
         _d = VALID.MeshDict(o)
         l_targetCounts.append(_d['pointCountPerShape'][0])
-
+        
     sel = OM.MSelectionList()#..make selection list
     for i,o in enumerate([sourceObj] + targets):
         try:
@@ -1559,10 +1570,182 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
             'axisVector':_l_axis,            
             'asymmetrical':[ _d_vtxToID[vtx] for vtx in _l_assym ]}
 
+@cgmGeneral.Timer
+def normalCheck(mesh,ch=0):
+    if is_reversed(mesh):
+        mc.polyNormal(mesh, normalMode = 0, userNormalMode=1,ch=ch)
+        return True
+    return False
 
+@cgmGeneral.Timer
+def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markHits = False):
+    """
+    Call to see if a mesh is flipped
+    
+    
+    factorCheck= how many verts to check
+    threshold | what threshold returns True
+    """
+    #from maya.api import OpenMaya as OM
+    try:
+        if mesh is None:
+            _sel = mc.ls(sl=True)
+            mesh = _sel[0]
+            
+        from maya.api import OpenMaya as OM2
+        
+        sel = OM.MSelectionList()#..make selection list
+        #for o in [sourceObj] + targetList:
+        sel.add(mesh)#...add objs
+        meshPath = OM.MDagPath()#...mesh path holder
+        sel.getDagPath(0,meshPath)#...get source dag path
+        fnMesh  = OM.MFnMesh(meshPath)#...fnMesh holder
+        #basePoints = OM.MFloatPointArray() #...data array
+        #fnMesh.getPoints(basePoints)#...get our data
+        #sel.remove(0)#...remove the source form our list
+    
+        targets = OM.MSelectionList()#...new list for found matches
+        
+        _dagPath = OM.MDagPath()#...mesh path holder
+        matching = []#...our match holder
+        _l_found = OM.MSelectionList()#...new list for found matches
+        
+        """
+        guiFactory.doProgressWindow(winName='get_contained', 
+                                    statusMessage='Progress...', 
+                                    startingProgress=1, 
+                                    interruptableState=True)"""
+    
+    
+        iter = OM.MItGeometry(meshPath)
+        _cnt = 0
+        _hit = 0
+        _max = mc.polyEvaluate(mesh, vertex=True)
+        
+        _check = int(_max * factorCheck)
+        _cap = _check * threshold
+        
+        
+        l_seed = random.sample(xrange(_max-1), _check)
+        
+        #print l_seed
+        
+        sel2 = OM2.MSelectionList()#...make selection list
+        sel2.add(mesh)#...add them to our lists         
+        fnMesh = OM2.MFnMesh(sel2.getDagPath(0))
+        
+        for i,v in enumerate(l_seed):
+            if _hit > _cap:
+                print 'hit cap: {0}'.format(mesh)
+                return True
+            """
+            guiFactory.doUpdateProgressWindow("Checking vtx[{0}]".format(v), i, 
+                                              _check, 
+                                              reportItem=False)   """       
+            _cnt +=1
+            
+            #vert = iter.position(OM.MSpace.kWorld)
+            #mNormal = fnMesh.getClosestNormal(vert,OM.MSpace.kWorld)
+            pos = mc.pointPosition("{0}.vtx[{1}]".format(mesh,v),world=True)
+            mPoint_hit = OM2.MPoint( pos ) 
 
+            try:
+                mNormal = fnMesh.getClosestNormal(mPoint_hit,OM2.MSpace.kWorld)
+                #normal = fnMesh.getFaceVertexNormals (index,om.MSpace.kWorld)
+            except Exception, err:
+                print('error while processing getFaceVertexNormal | {0}'.format( err))        
+                raise Exception,err
+            
+            _vec = [v for v in mNormal[0]]
+            #_vec = MATH.normalizeList(_vec)
+            
+            d = cgmRAYS.cast(mesh,startPoint=pos,vector= _vec,firstHit=False)
+            _hits = d.get('hits')
+            if _hits:
+                if method == 'bokser':
+                    _hits_use = []
+                    for h in _hits:
+                        if DIST.get_distance_between_points(pos,h) > .02:
+                            if _hits_use:
+                                if DIST.get_distance_between_points(_hits_use[-1],h) > .02:
+                                    _hits_use.append(h)
+                            else:
+                                _hits_use.append(h)
+                                
+                    
+                    
+                    if _hits_use:
+                        if not MATH.is_even(len(_hits_use)):
+                            _hit +=1
+                            if markHits:
+                                DIST.create_vectorCurve(pos,_vec ,10)
+                                pprint.pprint(d)
+                                pprint.pprint(_hits_use)
+                                #for i,h in enumerate(_hits_use):
+                                #    LOC.create(position=h,name='hit_{0}'.format(i))
+                else:
+                    if len(_hits)>1:
+                        if DIST.get_distance_between_points(pos,_hits[1]) > .02:
+                            _hit+=1
+                    elif not MATH.is_vector_equivalent(pos,_hits[0], 3):
+                        _hit+=1
+                        
+                            #print _hit
+                            #DIST.create_vectorCurve(pos,_vec ,1)
 
-
+        return False
+            
+        #This works for faces
+        #fnMesh.getFaceVertexNormals(5,OM2.MSpace.kWorld)
+        
+        return 
+        while not iter.isDone():
+            if _hit > _cap:
+                print "Hit cap"
+                return True
+            guiFactory.doUpdateProgressWindow("Checking vtx[{0}]".format(_cnt), _cnt, 
+                                              _max, 
+                                              reportItem=False)          
+            _cnt +=1
+            vert = iter.position(OM.MSpace.kWorld)
+            _inside = True
+            #mNormal = fnMesh.getClosestNormal(vert,OM.MSpace.kWorld)
+            
+            sel2 = OM2.MSelectionList()#...make selection list
+            sel2.add(mesh)#...add them to our lists         
+            mPoint_hit = OM2.MPoint(vert.x,vert.y,vert.z) 
+            fnMesh = OM2.MFnMesh(sel2.getDagPath(0))
+            
+            try:
+                mNormal = fnMesh.getClosestNormal(mPoint_hit,OM2.MSpace.kWorld)
+                #normal = fnMesh.getFaceVertexNormals (index,om.MSpace.kWorld)
+            except Exception, err:
+                print('error while processing getFaceVertexNormal | {0}'.format( err))        
+                raise Exception,err
+            _vec = [v for v in mNormal[0]]
+            DIST.create_vectorCurve([vert.x,vert.y,vert.z],_vec ,10)
+            
+            d = cgmRAYS.cast(mesh,startPoint=[vert.x,vert.y,vert.z],vector= _vec)
+            if d.get('hit'):
+                _hit+=1
+                
+            #print "[{0}] | hits: {1} | {2}".format(_cnt,_hit,  mNormal[0])
+                
+            #pprint.pprint(d)
+            iter.next()
+        
+        return False
+            
+    except Exception,err:
+        #guiFactory.doCloseProgressWindow()
+        cgmGeneral.cgmException(Exception,err)
+    finally:
+        pass
+        #guiFactory.doCloseProgressWindow()
+        
+        
+        
+    
 
 
 

@@ -5,6 +5,8 @@ www.cgmonks.com
 
 Refactoring attribte calls to core.
 """
+__MAYALOCAL = 'ATTR'
+
 # From Python =============================================================
 import copy
 import re
@@ -522,83 +524,86 @@ def set(node, attr = None, value = None, lock = False,**kws):
     :returns
         value(s)
     """ 
-    _str_func = 'set'
-    
-    if '.' in node or issubclass(type(node),dict):
-        _d = validate_arg(node)
-        if value == None and attr is not None:
-            value = attr
-    else:
-        _d = validate_arg(node,attr)  
-    
-    _combined = _d['combined']
-    _obj = _d['node']
-    _attr = _d['attr']
-    _wasLocked = False
-
-    log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
-    if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
-
-    _aType =  mc.getAttr(_combined,type=True)
-    _validType = validate_attrTypeName(_aType)
-    
-    
-    if is_locked(_combined):
-        _wasLocked = True
-        mc.setAttr(_combined,lock=False)    
-
-    #CONNECTED!!!
-    if not is_keyed(_d):
-        if break_connection(_d):
-            log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
-            
-    _current = get(_combined)
-    if _current == value:
-        log.debug("|{0}| >> Already has value: {1}".format(_str_func,_combined))
-        if _wasLocked:set_lock(_d,True)
-        return 
-    
-    _children = get_children(_d)
-    if _children:
-        if VALID.isListArg(value):
-            if len(_children) != len(value):
-                raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
-        else:
-            value = [value for i in range(len(_children))]
-        for i,c in enumerate(_children):
-            mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
-    elif _validType == 'long':
-        mc.setAttr(_combined,int(float(value)), **kws)
-    elif _validType == 'string':
-        mc.setAttr(_combined,str(value),type = 'string', **kws)
-    elif _validType == 'double':
-        mc.setAttr(_combined,float(value), **kws)
-    elif _validType == 'message':
-        set_message(_obj, _attr, value)
-    elif _validType == 'enum':
-        _l = get_enum(_d).split(':')        
-        if VALID.stringArg(value) and ':' in value:
-            #if len(_l) != len(value.split(':')):
-                #raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
-            mc.addAttr(_combined, edit=True, en = value, **kws)              
-        else:
-            _l = get_enum(_d).split(':')
-            
-            if value in _l:
-                mc.setAttr(_combined, _l.index(value), **kws)
-            elif value is not None and value <= len(_l):
-                mc.setAttr(_combined, value, **kws)  
-            else:
-                mc.setAttr(_combined,value, **kws)
+    try:
+        _str_func = 'set'
         
-    else:
-        mc.setAttr(_combined,value, **kws)
-
-    if _wasLocked or lock:
-        mc.setAttr(_combined,lock=True)    
-
-    return
-
+        if '.' in node or issubclass(type(node),dict):
+            _d = validate_arg(node)
+            if value == None and attr is not None:
+                value = attr
+        else:
+            _d = validate_arg(node,attr)  
+        
+        _combined = _d['combined']
+        _obj = _d['node']
+        _attr = _d['attr']
+        _wasLocked = False
+    
+        log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
+        if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  
+    
+        _aType =  mc.getAttr(_combined,type=True)
+        _validType = validate_attrTypeName(_aType)
+        
+        
+        if is_locked(_combined):
+            _wasLocked = True
+            mc.setAttr(_combined,lock=False)    
+    
+        #CONNECTED!!!
+        if not is_keyed(_d):
+            if break_connection(_d):
+                log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+                
+        _current = get(_combined)
+        if _current == value:
+            log.debug("|{0}| >> Already has value: {1}".format(_str_func,_combined))
+            if _wasLocked:set_lock(_d,True)
+            return 
+        
+        _children = get_children(_d)
+        if _children:
+            if VALID.isListArg(value):
+                if len(_children) != len(value):
+                    raise ValueError,"Must have matching len for value and children. Children: {0} | value: {1}".format(_children,value)
+            else:
+                value = [value for i in range(len(_children))]
+            for i,c in enumerate(_children):
+                mc.setAttr("{0}.{1}".format(_obj,c),value[i], **kws)
+        elif _validType == 'long':
+            mc.setAttr(_combined,int(float(value)), **kws)
+        elif _validType == 'string':
+            mc.setAttr(_combined,str(value),type = 'string', **kws)
+        elif _validType == 'double':
+            mc.setAttr(_combined,float(value), **kws)
+        elif _validType == 'message':
+            set_message(_obj, _attr, value)
+        elif _validType == 'enum':
+            _l = get_enum(_d).split(':')        
+            if VALID.stringArg(value) and ':' in value:
+                #if len(_l) != len(value.split(':')):
+                    #raise ValueError,"Must have matching len for editing. Current: {0} | requested: {1}".format(_l,value)
+                mc.addAttr(_combined, edit=True, en = value, **kws)              
+            else:
+                _l = get_enum(_d).split(':')
+                
+                if value in _l:
+                    mc.setAttr(_combined, _l.index(value), **kws)
+                elif value is not None and value <= len(_l):
+                    mc.setAttr(_combined, value, **kws)  
+                else:
+                    mc.setAttr(_combined,value, **kws)
+            
+        else:
+            mc.setAttr(_combined,value, **kws)
+    
+        if _wasLocked or lock:
+            mc.setAttr(_combined,lock=True)    
+    
+        return
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
 def set_lock(node, attr = None, arg = None):
     """   
     Set the lock status of an attribute
@@ -962,7 +967,7 @@ def get_keyed(node):
     """ 
     _str_func = 'get_keyed'
     _res = []
-    for a in mc.listAttr(node,keyable=True):
+    for a in mc.listAttr(node,keyable=True) or []:
         if is_keyed(node,a):
             _res.append(a)
             
@@ -1053,6 +1058,9 @@ def is_keyable(*a):
     _d = validate_arg(*a) 
 
     try:
+        _children = get_children(_d)
+        if _children:
+            return [mc.getAttr("{0}.{1}".format(_d['node'],a),keyable=True) for a in _children ]
         return mc.getAttr(_d['combined'],keyable=True) 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
@@ -1072,6 +1080,12 @@ def is_locked(*a):
     _d = validate_arg(*a) 
 
     try:
+        _children = get_children(_d)
+        if _children:
+            _l =  [mc.getAttr("{0}.{1}".format(_d['node'],a),lock=True) for a in _children ]
+            for v in _l:
+                if v:return True
+            return False        
         return mc.getAttr(_d['combined'],lock=True) 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
@@ -1110,7 +1124,12 @@ def is_connected(*a):
     """ 
     _str_func = 'is_connected'
     _d = validate_arg(*a) 
-
+    _children = get_children(_d)    
+    if _children:
+        _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        for v in _l:
+            if v:return True
+        return False
     if mc.connectionInfo(_d['combined'], isDestination=True):return True
     return False
 
@@ -1297,7 +1316,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
     return True
 
 
-def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock = None,*a, **kws):
+def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock = None,convert=False,*a, **kws):
     """   
     Breaks connections on an attribute. Handles locks on source or end
 
@@ -1322,13 +1341,25 @@ def add(obj,attr=None,attrType=None, enumOptions = ['off','on'],value=None, lock
         _combined = _d['combined']
         _node = _d['node']
         _attr = _d['attr']
-        if mc.objExists(_combined):
-            raise ValueError,"{0} already exists.".format(_combined)
-    
-        _type = validate_attrTypeName(attrType)
-
         
-        assert _type is not False,"'{0}' is not a valid attribute type for creation.".format(attrType)
+        _type = validate_attrTypeName(attrType)
+        if not _type:
+            raise ValueError,"'{0}' is not a valid attribute type for creation.".format(attrType)
+        if mc.objExists(_combined):
+            currentType = get_type(_d)
+            currentValid = validate_attrTypeName(currentType)
+            if not currentValid == _type:
+                if convert:
+                    convert_type(_node,_attr,_type)
+                else:
+                    raise ValueError,"{0} already exists. Wrong type [{1}] != [{2}]. No convert flag".format(_combined,currentValid,_type)
+                
+                if value is not None:
+                    set(_node,_attr,value=value)
+                if lock:
+                    set_lock(_node,_attr,lock)
+            return _combined
+
     
         if _type == 'string':
             mc.addAttr (_node, ln = _attr, dt = 'string',*a, **kws)
@@ -1921,7 +1952,10 @@ def get_children(*a):
     """ 
     _str_func = 'get_children'
     _d = validate_arg(*a) 
-
+    
+    if '[' in _d['attr']:
+        return False
+    
     try:return mc.attributeQuery(_d['attr'], node = _d['node'], listChildren=True) or [] 
     except Exception,err:
         log.error("|{0}| >> {1} | {2}".format(_str_func,_d['combined'],err))
@@ -2182,7 +2216,7 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
     
-def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None):
+def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None, multi = None):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
     Get attributes driven by an attribute
@@ -2212,9 +2246,12 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         _d_dataAttr = None
         
         if dataAttr is None:
-            dataAttr = "{0}_datdict".format(messageAttr)        
-        
+            dataAttr = "{0}_datdict".format(messageAttr)
+            
         _multi = False
+        if multi is not None:
+            _multi= multi
+            
         if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
             _multi = True
             if not message:
@@ -2231,6 +2268,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                         connect((n + ".message"),holderDict['combined'],nextAvailable=True)
                     except Exception,err:
                         log.warning("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
+                        
             if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
                 if mc.objExists(_combined):
                     if not get_type(_combined) == 'message':
@@ -2396,7 +2434,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-def convert_type(node = None, attr = None, attrType = None):
+def convert_type(node = None, attr = None, attrType = None, enum = None):
     """   
      Attempts to convert an existing attrType from one type to another. 
      Enum's are stored to strings as 'option1;option2'.
@@ -2458,7 +2496,9 @@ def convert_type(node = None, attr = None, attrType = None):
     #Rebuild -----------------------------------------------------------   
     
     if _attrType == 'enum':
-        if _data:
+        if enum:
+            _enum = enum
+        elif _data:
             if VALID.stringArg(_data):
                 for o in [":",",",";"]:
                     if o in _data:
@@ -2813,11 +2853,11 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
         for i,v in enumerate(_l_dat):
             str_attr = "{0}_{1}".format(attr,i)
             if not has_attr(node,str_attr):
-                log.info(cgmGEN.logString_msg(_str_func,'New enum dat attr: {0} | {1}'.format(str_attr, v)))
+                log.debug(cgmGEN.logString_msg(_str_func,'New enum dat attr: {0} | {1}'.format(str_attr, v)))
                 
                 add(node,str_attr,'enum',value= v, enumOptions=enum,keyable=False)
             else:
-                log.info(cgmGEN.logString_msg(_str_func,'Exisiting enum dat attr: {0} | {1}'.format(str_attr, v)))
+                log.debug(cgmGEN.logString_msg(_str_func,'Exisiting enum dat attr: {0} | {1}'.format(str_attr, v)))
                 strValue = get_enumValueString(node,str_attr)
                 add(node,str_attr,'enum',enumOptions=enum,value = v, keyable=False)
                 if strValue:

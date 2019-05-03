@@ -8,6 +8,7 @@ Website : http://www.cgmonastery.com
 ================================================================
 """
 __version__ = '0.1.01022019'
+__MAYALOCAL = 'LIGHTLOOMLITE'
 
 
 # From Python =============================================================
@@ -361,7 +362,7 @@ def get_lightDict(lights=None):
         d['dag']= {'position':mDag.p_position,
                    'orient':mDag.p_orient}
         
-    pprint.pprint(_res)
+    #pprint.pprint(_res)
     return _res
 
 @cgmGEN.Timer

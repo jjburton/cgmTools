@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'SEGMENT'
+
 # From Python =============================================================
 import copy
 import re
@@ -76,7 +78,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.03052019'
+__version__ = '1.04302019'
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -99,6 +101,17 @@ d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull'],
 d_wiring_form = {'msgLinks':['formNull','prerigLoftMesh','noTransFormNull'],
                      'msgLists':['formHandles']}
 
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numJoints':3,
@@ -193,6 +206,7 @@ d_block_profiles = {
             'squashFactorMin':.25,
             'ribbonAim':'stable',
             'shapersAim':'chain',
+            'settingsPlace':'end',            
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
             'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,1]},
@@ -240,9 +254,9 @@ d_block_profiles = {
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
              
-             'squash':'both',
+             'squash':'none',
              'squashExtraControl':True,
-             'squashMeasure':'pointDist',
+             'squashMeasure':'arcLength',
              'squashFactorMax':1.0,
              'squashFactorMin':0,
              'ribbonAim':'stable',
@@ -267,9 +281,9 @@ d_block_profiles = {
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
              
-             'squash':'both',
+             'squash':'none',
              'squashExtraControl':True,
-             'squashMeasure':'pointDist',
+             'squashMeasure':'arcLength',
              'squashFactorMax':1.0,
              'squashFactorMin':0,
              'ribbonAim':'stable',
@@ -286,7 +300,6 @@ l_attrsStandard = ['side',
                    'position',
                    'baseUp',
                    'baseAim',
-                   'baseDat',
                    'addCog',
                    #'hasRootJoint',
                    'nameList',
@@ -295,7 +308,6 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftList',                   
                    'loftSplit',
-                   'loftReverseNormal',                   
                    'loftShape',
                    'ikSetup',
                    'ikBase',
@@ -316,6 +328,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'spaceSwitch_fk',
                    'visRotatePlane',
+                   'visLabels',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -357,7 +370,7 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'loftList':['square','circle','square'],
-                     
+                     'visLabels':True,
                      'segmentMidIKControl':True,
                      'squash':'both',
                      'squashExtraControl':True,
@@ -432,15 +445,15 @@ def define(self):
         
         
         _size = self.atUtils('defineSize_get')
-        
+        """
         _crv = CURVES.create_fromName(name='locatorForm',
                                       direction = 'z+', size = _size)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
         CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        mHandleFactory = self.asHandleFactory()
-        self.addAttr('cgmColorLock',True,lock=True,hidden=True)
+        self.addAttr('cgmColorLock',True,lock=True,hidden=True)"""
+        
         mDefineNull = self.atUtils('stateNull_verify','define')
         mHandleFactory = self.asHandleFactory()
         
@@ -472,9 +485,14 @@ def define(self):
         #Rotate Plane ======================================================================
         self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
         _end = md_handles['end'].mNode
-        self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-        self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-        self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+        
+        self.UTILS.rootShape_update(self)        
+        _dat = self.baseDat
+        _dat['baseSize'] = self.baseSize
+        self.baseDat = _dat
         
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -505,13 +523,21 @@ def formDelete(self):
                             mc.delete(c)
                     mHandle.p_position = pos
                 if k == 'end':
-                    _end = mHandle.mNode
-                    self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                    self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
+                    _end = mHandle.mNode                    
+                    _baseSize = []
+                    for a in 'width','height','length':
+                        _baseSize.append(ATTR.get(_end,a))
+                    self.baseSize = _baseSize
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat
+                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))                    
         
                 mHandle.v = True
                 mHandle.template = False        
+        self.defineLoftMesh.v = True
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
@@ -558,10 +584,7 @@ def form(self):
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        #self.baseSize = [_size_width,_size_height,_size_length]
-        
-        for a in 'XYZ':
-            ATTR.break_connection(self.mNode,'baseSize'+a)
+        self.baseSize = [_size_width,_size_height,_size_length]
             
         _size_handle = _size_width * 1.25
         _size_loft = MATH.get_greatest(_size_width,_size_height)
@@ -763,9 +786,7 @@ def prerig(self):
         mTrackCurve.rename(self.cgmName + 'prerigTrack_crv')
         mTrackCurve.parent = mNoTransformNull
         
-        
-        #mPrerigNull.connectChildNode('prerigTrackCurve',mTrackCurve.mNode,)
-        
+                
         l_clusters = []
         #_l_clusterParents = [mStartHandle,mEndHandle]
         for i,cv in enumerate(mTrackCurve.getComponents('cv')):
@@ -774,9 +795,7 @@ def prerig(self):
             TRANS.parent_set( _res[1], ml_formHandles[i].getMessage('loftCurve')[0])
             l_clusters.append(_res)
             ATTR.set(_res[1],'visibility',False)
-        
-        pprint.pprint(l_clusters)
-        
+                
         mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
         
         """
@@ -826,14 +845,19 @@ def prerig(self):
                 crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
                 mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
+                self.connectChildNode(mHandle.mNode,'ikOrientHandle')
+                """
+                crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
+                mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+                mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
             
                 ml_shapes = mHandle.getShapes(asMeta=1)
                 crv2 = CURVES.create_fromName('sphere', size = _sizeUse * 2.5)
                 CORERIG.override_color(crv2, 'black')
                 SNAP.go(crv2,mHandle.mNode)
-                CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            
+                CORERIG.shapeParent_in_place(mHandle.mNode,crv2,False)            """
             else:
-                crv = CURVES.create_fromName('axis3d', size = _sizeUse)
+                crv = CURVES.create_fromName('cubeOpen', size = _sizeUse)
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             #mHandle = cgmMeta.cgmObject(crv, name = 'handle_{0}'.format(i))
             _short = mHandle.mNode
@@ -866,7 +890,7 @@ def prerig(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub / 2.0))
+            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
@@ -881,6 +905,8 @@ def prerig(self):
         self.atUtils('prerigHandles_getNameDat',True)
         
         for mHandle in ml_handles:
+            mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
+            """
             #Joint Label ---------------------------------------------------------------------------
             mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
             #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
@@ -901,7 +927,7 @@ def prerig(self):
             mJointLabel.dagLock()
         
             mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2
+            mJointLabel.overrideDisplayType = 2"""
         
 
         
@@ -934,7 +960,7 @@ def prerig(self):
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         
         
-        self.msgList_connect('jointHelpers',targets)
+        self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
         
         self.atUtils('create_jointLoft',
                      targets,
@@ -950,11 +976,21 @@ def prerig(self):
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
-            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull        
+            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
+            
+            
+            
+        #Point Contrain the rpHandle -------------------------------------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        
+        mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
+        ATTR.set_lock(str_vectorRP,'translate',True)
         
         #Close out =======================================================================================
         mNoTransformNull.v = False
-        cgmGEN.func_snapShot(vars())
+        #cgmGEN.func_snapShot(vars())
         
         #if self.getMessage('formLoftMesh'):
             #mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
@@ -972,6 +1008,14 @@ def prerigDelete(self):
             for s in mFormLoft.getShapes(asMeta=True):
                 s.overrideDisplayType = 2
             mFormLoft.v = True
+            
+        #vectorRP ----------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        mVectorRP.resetAttrs(['tx','ty','tz'])
+        ATTR.set_lock(str_vectorRP,'translate',True)        
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
@@ -1030,7 +1074,10 @@ def skeleton_build(self, forceNew = True):
     
         mOrientHelper = ml_formHandles[0].orientHelper
         
-        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mOrientHelper.getAxisVector('y+'))
+        reload(JOINT)
+        mVecUp = self.atUtils('prerig_get_upVector')
+        
+        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
         
             
         _l_names = self.atUtils('skeleton_getNameDicts',False)
@@ -1118,8 +1165,12 @@ def rig_dataBuffer(self):
         
         if mBlock.numJoints == 4 and mBlock.numControls == 3:
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
-            mBlock.segmentMidIKControl = 0    
-        
+            mBlock.segmentMidIKControl = 0
+            
+        #Vector ====================================================================================
+        self.mVec_up = mBlock.atUtils('prerig_get_upVector')
+        log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
+
         #Initial option checks ============================================================================    
         #if mBlock.scaleSetup:
             #raise NotImplementedError,"Haven't setup scale yet."
@@ -1161,7 +1212,7 @@ def rig_dataBuffer(self):
         self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
         
         log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
-        pprint.pprint(self.d_squashStretch)
+        #pprint.pprint(self.d_squashStretch)
         
         #Check for mid control and even handle count to see if w need an extra curve
         if mBlock.segmentMidIKControl:
@@ -1170,7 +1221,7 @@ def rig_dataBuffer(self):
                 
         if self.d_squashStretchIK:
             log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
-            pprint.pprint(self.d_squashStretchIK)
+            #pprint.pprint(self.d_squashStretchIK)
         
         
         if not self.b_scaleSetup:
@@ -1352,7 +1403,7 @@ def rig_skeleton(self):
         
         log.debug("|{0}| >> rig chain...".format(_str_func))              
         ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock, ml_joints, 'rig', self.mRigNull,'rigJoints',blockNames=True)
-        pprint.pprint(ml_rigJoints)
+        #pprint.pprint(ml_rigJoints)
         
         #...fk chain -------------------------------------------------------------------------------------
         log.debug("|{0}| >> fk_chain".format(_str_func))
@@ -1423,7 +1474,7 @@ def rig_skeleton(self):
                 #DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,ml_rigJoints[-1].p_position])
             
                 SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
-                         mBlock.orientHelper.getAxisVector('y+'))
+                         self.mVec_up)
                 reload(JOINT)
                 JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
@@ -1468,7 +1519,7 @@ def rig_skeleton(self):
         if self.d_module['mirrorDirection'] == 'Left':
             log.debug("|{0}| >> Mirror direction ...".format(_str_func))
             ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
-            ml_jointsToConnect.extend(ml_fkAttachJoints)
+            ml_jointsToHide.extend(ml_fkAttachJoints)
            
         
         #...joint hide -----------------------------------------------------------------------------------
@@ -1535,7 +1586,7 @@ def rig_shapes(self):
         if not ml_fkCastTargets:
             ml_fkCastTargets = copy.copy(ml_fkJoints)
 
-    
+
         #controlSegMidIK... =============================================================================
         mControlSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
         if mControlSegMidIK:
@@ -1577,6 +1628,7 @@ def rig_shapes(self):
                 d_ikEnd = {'shapeArg':'locatorForm'}
             else:
                 use_ikEnd = str_ikEnd
+                
             RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
     
     
@@ -1876,6 +1928,7 @@ def rig_controls(self):
                 log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
+                    ml_controlsAll.append(mPivot)
     
         
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
@@ -2493,7 +2546,7 @@ def rig_matchSetup(self):
 def rig_cleanUp(self):
     try:
         _short = self.d_block['shortName']
-        _str_func = 'rig_neckSegment'
+        _str_func = 'rig_cleanUp'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug(self)
         
@@ -2561,7 +2614,7 @@ def rig_cleanUp(self):
         ml_targetDynParents.extend(mRoot.msgList_get('spacePivots',asMeta = True))
     
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
-        pprint.pprint(ml_targetDynParents)
+        #pprint.pprint(ml_targetDynParents)
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
@@ -2629,7 +2682,7 @@ def rig_cleanUp(self):
                 mDynGroup.dynFollow.p_parent = self.mConstrainNull
                 
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         log.debug(cgmGEN._str_subLine)
                   
         
@@ -2671,7 +2724,7 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
         
@@ -2768,7 +2821,7 @@ def rig_cleanUp(self):
                 mDynGroup.dynFollow.p_parent = mRoot    
             
             log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
-            pprint.pprint(ml_targetDynParents)                
+            #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
         #Settings =================================================================================
@@ -2852,20 +2905,23 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     Build our proxyMesh
     """
     try:
-        _short = self.d_block['shortName']
+        _short = self.p_nameShort
         _str_func = '[{0}] > build_proxyMesh'.format(_short)
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug(self)
-        
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
+        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    
+        _start = time.clock()
+        mBlock = self
+        mModule = self.moduleTarget
+        mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
-        mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-        mPuppet = self.d_module['mPuppet']
+        mPuppet = self.atUtils('get_puppet')
+        mMaster = mPuppet.masterControl
+        mPuppetSettings = mMaster.controlSettings
+        str_partName = mModule.get_partNameBase()
         
         directProxy = mBlock.proxyDirect
         
-        _side = BLOCKUTILS.get_side(self.mBlock)
+        _side = BLOCKUTILS.get_side(self)
         ml_proxy = []
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
@@ -2911,18 +2967,17 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
         if _blockProfile in ['wingBase']:
             _ballBase = False"""
             
-        ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                     ml_rigJoints,
-                                                                     firstToStart=True,
-                                                                     ballBase = _ballBase,
-                                                                     ballMode = _ballMode,
-                                                                     reverseNormal=mBlock.loftReverseNormal,
-                                                                     extendToStart=_extendToStart),
+        ml_segProxy = cgmMeta.validateObjListArg(self.atUtils('mesh_proxyCreate',
+                                                              ml_rigJoints,
+                                                              firstToStart=True,
+                                                              ballBase = _ballBase,
+                                                              ballMode = _ballMode,
+                                                              extendToStart=_extendToStart),
                                                  'cgmObject')    
         
         
         if directProxy:
-            _settings = self.mRigNull.settings.mNode
+            _settings = mRigNull.settings.mNode
             log.debug("|{0}| >> directProxy... ".format(_str_func))    
         
         if puppetMeshMode:
@@ -2932,7 +2987,7 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
             for i,mGeo in enumerate(ml_segProxy):
                 log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
                 mGeo.parent = ml_moduleJoints[i]
-                mGeo.doStore('cgmName',self.d_module['partName'])
+                mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()

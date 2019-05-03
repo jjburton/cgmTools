@@ -7,6 +7,9 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'DIST'
+
+
 # From Python =============================================================
 import copy
 import re
@@ -37,6 +40,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LIST
+import cgm.core.lib.node_utils as NODES
+reload(NODES)
 #import cgm.core.lib.shape_utils as SHAPE
 reload(POS)
 reload(MATHUTILS)
@@ -44,13 +49,16 @@ reload(MATHUTILS)
 #from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
-def scale_to_axisSize(arg = None, size = None):
+def scale_to_axisSize(arg = None, size = None, skip = None):
     _str_func = 'scale_to_axisSize'
     log.debug(cgmGEN.logString_start(_str_func))
     _currentSize = get_axisSize(arg)
     _currentScale = ATTR.get(arg,'scale')
+    _skip = VALID.listArg(skip)
     _targetScale = []
     for i,s in enumerate(size):
+        if skip and i in _skip:
+            _targetScale.append(_currentScale[i])
         if s is not None:
             v = (_currentScale[i] * s) / _currentSize[i]
             _targetScale.append(v)
@@ -169,7 +177,14 @@ def get_size_byShapes(arg, mode = 'max'):
     else:
         raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
         
-    
+def get_arcLen(arg):
+    shapes = mc.listRelatives(arg,shapes=True,path = 1)
+    shapeLengths = []
+    for shape in shapes:
+        infoNode = NODES.curveInfo(shape)
+        shapeLengths.append(mc.getAttr(infoNode+'.arcLength'))
+        mc.delete(infoNode)
+    return sum(shapeLengths)    
 
 def get_createSize(arg = None, mode = None):
     """
@@ -719,6 +734,10 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         POS.set(_loc,_pos) 
         
     return _pos, _l_res_distances[_idx], _shapes[_idx]
+
+def create_vectorCurve(pos=[0,0,0],vector=[0,1,0],distance=1,name='vectorCurve'):
+    l_pos = [pos,get_pos_by_vec_dist(pos,vector,distance)]
+    return mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True, name = name)
 
 def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     """

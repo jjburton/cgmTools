@@ -10,6 +10,8 @@ Website : http://www.cgmonks.com
 Class Factory for 
 ================================================================
 """
+__MAYALOCAL = 'NAMETOOLS'
+
 # From Python =============================================================
 import copy
 import re

@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'MUZZLE'
+
 # From Python =============================================================
 import copy
 import re
@@ -60,6 +62,7 @@ import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -135,12 +138,12 @@ d_block_profiles = {'default':{},
 l_attrsStandard = ['side',
                    'position',
                    'baseAim',
-                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'moduleTarget',]
 
 d_attrsToMake = {'faceType':'default:muzzle:beak',
@@ -183,6 +186,7 @@ d_defaultSettings = {'version':__version__,
                      'paramUprStart':.15,
                      'paramLwrStart':.15,
                      'numJointsTongue':3,
+                     'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -720,7 +724,7 @@ def form(self):
         for mObj in self.msgList_get('defineCurves'):
             md_dCurves[mObj.handleTag] = mObj
             mObj.template=1
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         #
         d_pairs = {}
@@ -2851,7 +2855,7 @@ def skeleton_build(self, forceNew = True):
     mRigNull.msgList_connect('moduleJoints', ml_joints)
     self.msgList_connect('moduleJoints', ml_joints)
     
-    pprint.pprint(ml_joints)
+    #pprint.pprint(ml_joints)
 
     for mJnt in ml_joints:
         mJnt.displayLocalAxis = 1
@@ -3263,7 +3267,7 @@ def rig_skeleton(self):
         try:mJnt.drawStyle =2
         except:mJnt.radius = .00001
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     #...connect... 
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     return
@@ -4216,6 +4220,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
+    raise ValueError,"This needs to be reworked to new block call"
+    
     _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
