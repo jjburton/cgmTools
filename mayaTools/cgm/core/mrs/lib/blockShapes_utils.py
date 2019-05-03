@@ -1348,8 +1348,9 @@ class handleFactory(object):
 
             #>>>make our loft curve
             mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-            mCrv.doStore('cgmName',self._mTransform)
-            mCrv.doStore('cgmType','loftCurve')
+            #mCrv.doStore('cgmName',self._mTransform)
+            mCrv.doCopyNameTagsFromObject(self._mTransform.mNode,['cgmType'])
+            mCrv.doStore('cgmType','shapeHandle')
             mCrv.doName()
             mCrv.p_parent = self._mTransform
             self.color(mCrv.mNode,controlType='sub')
@@ -1395,8 +1396,9 @@ class handleFactory(object):
 
             #>>>make our loft curve
             mCrv = mBaseCrv
-            mCrv.doStore('cgmName',self._mTransform)
-            mCrv.doStore('cgmType','loftCurve')
+            #mCrv.doStore('cgmName',self._mTransform)
+            mCrv.doCopyNameTagsFromObject(self._mTransform.mNode,['cgmType'])            
+            mCrv.doStore('cgmType','shapeHandle')
             mCrv.doName()
             mCrv.p_parent = self._mTransform
             self.color(mCrv.mNode,controlType='sub')

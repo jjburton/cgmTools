@@ -254,9 +254,9 @@ d_block_profiles = {
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
              
-             'squash':'both',
+             'squash':'none',
              'squashExtraControl':True,
-             'squashMeasure':'pointDist',
+             'squashMeasure':'arcLength',
              'squashFactorMax':1.0,
              'squashFactorMin':0,
              'ribbonAim':'stable',
@@ -281,9 +281,9 @@ d_block_profiles = {
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
              
-             'squash':'both',
+             'squash':'none',
              'squashExtraControl':True,
-             'squashMeasure':'pointDist',
+             'squashMeasure':'arcLength',
              'squashFactorMax':1.0,
              'squashFactorMin':0,
              'ribbonAim':'stable',
@@ -976,11 +976,21 @@ def prerig(self):
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
-            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull        
+            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
+            
+            
+            
+        #Point Contrain the rpHandle -------------------------------------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        
+        mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
+        ATTR.set_lock(str_vectorRP,'translate',True)
         
         #Close out =======================================================================================
         mNoTransformNull.v = False
-        cgmGEN.func_snapShot(vars())
+        #cgmGEN.func_snapShot(vars())
         
         #if self.getMessage('formLoftMesh'):
             #mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
@@ -998,6 +1008,14 @@ def prerigDelete(self):
             for s in mFormLoft.getShapes(asMeta=True):
                 s.overrideDisplayType = 2
             mFormLoft.v = True
+            
+        #vectorRP ----------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        mVectorRP.resetAttrs(['tx','ty','tz'])
+        ATTR.set_lock(str_vectorRP,'translate',True)        
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 

@@ -988,7 +988,7 @@ def form(self):
         log.debug("|{0}| >> base loftList: {1}".format(_str_func,_l_loftShapes))        
         if _l_loftShapes:
             if len(_l_loftShapes) < int_handles:
-                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape".format(_str_func,i,_loftShape))
+                log.warning("|{0}| >> Not enough shapes in loftList. Padding with loftShape: {1}".format(_str_func,_loftShape))
                 while len(_l_loftShapes) < int_handles:
                     _l_loftShapes.append(_loftShape)
         else:
@@ -1550,8 +1550,8 @@ def form(self):
             
                     #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
                     self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                    mHandle.doStore('cgmNameModifier','shapeHandle_{0}_{1}'.format(i,ii))
-                    mHandle.doStore('cgmType','blockHandle')
+                    mHandle.doStore('cgmNameModifier','{0}_{1}'.format(i,ii))
+                    mHandle.doStore('cgmType','shapeHandle')
                     mHandle.doName()
             
                     mHandle.p_parent = mFormNull
@@ -1700,8 +1700,6 @@ def form(self):
         self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
         
         #Aim end handle ----------------------------------------------------------------------------------- 
-
-        
         if mPivotHelper:
             if self.blockProfile in ['arm']:
                 mPivotHelper.doSnapTo(mEndHandle,True,True)
@@ -1803,9 +1801,6 @@ def prerig(self):
             else:
                 int_namesToGet +=1
                 
-        #if self.buildLeverEnd and self.buildEnd:
-            #int_namesToGet -=1
-            #idx_end +=1 
 
         _res = self.atUtils('nameList_validate',int_namesToGet)
         if not _res:
@@ -2153,8 +2148,17 @@ def prerig(self):
         #if self.addScalePivot:
             #mHandleFactory.addScalePivotHelper().p_parent = mPrerigNull        
         
+        #Point Contrain the rpHandle -------------------------------------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        idx_start,idx_end = get_handleIndices(self)
         
-        #Close out ==================================================================================================
+        mc.pointConstraint([ml_jointHandles[idx_start].mNode], str_vectorRP,maintainOffset=False)
+        ATTR.set_lock(str_vectorRP,'translate',True)
+        
+        
+        #Close out ==========================================================================================
         mNoTransformNull.v = False
         #cgmGEN.func_snapShot(vars())
         
@@ -2165,13 +2169,20 @@ def prerig(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
 def prerigDelete(self):
-    try:
-        if self.getMessage('formLoftMesh'):
-            mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
-            for s in mFormLoft.getShapes(asMeta=True):
-                s.overrideDisplayType = 2
-            mFormLoft.v = True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    log.info('prerigDelete...')
+    if self.getMessage('formLoftMesh'):
+        mFormLoft = self.getMessage('formLoftMesh',asMeta=True)[0]
+        for s in mFormLoft.getShapes(asMeta=True):
+            s.overrideDisplayType = 2
+        mFormLoft.v = True
+    
+    #vectorRP ----------------------------------------------
+    mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+    str_vectorRP = mVectorRP.mNode
+    ATTR.set_lock(str_vectorRP,'translate',False)
+    mVectorRP.resetAttrs(['tx','ty','tz'])
+    ATTR.set_lock(str_vectorRP,'translate',True)
+        
 
 def skeleton_check(self):
     return True

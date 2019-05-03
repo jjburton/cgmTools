@@ -1248,7 +1248,16 @@ def prerig(self):
             for t in targets:
                 ATTR.set(t,'v',0)
             
-            cgmGEN.func_snapShot(vars())
+            #Point Contrain the rpHandle -------------------------------------------------------------------------
+            mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+            str_vectorRP = mVectorRP.mNode
+            ATTR.set_lock(str_vectorRP,'translate',False)
+            
+            mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
+            ATTR.set_lock(str_vectorRP,'translate',True)            
+            
+            
+            #cgmGEN.func_snapShot(vars())
             #Neck ==================================================================================================
             mNoTransformNull.v = False
         
@@ -1264,6 +1273,16 @@ def prerigDelete(self):
             s.overrideDisplayType = 2     
     if self.getMessage('noTransformNull'):
         mc.delete(self.getMessage('noTransformNull'))
+        
+    
+    if self.neckBuild:
+        #vectorRP ----------------------------------------------
+        mVectorRP = self.getMessageAsMeta('vectorRpHelper')
+        str_vectorRP = mVectorRP.mNode
+        ATTR.set_lock(str_vectorRP,'translate',False)
+        mVectorRP.resetAttrs(['tx','ty','tz'])
+        ATTR.set_lock(str_vectorRP,'translate',True)        
+        
     return BLOCKUTILS.prerig_delete(self,formHandles=True)
 
 #def is_prerig(self):

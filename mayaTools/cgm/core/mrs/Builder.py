@@ -708,15 +708,15 @@ class ui(cgmUI.cgmGUI):
             
     def build_menus(self):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
-        #self.uiMenu_block = mUI.MelMenu( l='Contextual', pmc=self.buildMenu_block)
         self.uiMenu_add = mUI.MelMenu(l='Add', tearOff=1) 
-        self.buildMenu_add(False)        
+        self.buildMenu_add(False)
+        
+        self.uiMenu_picker = mUI.MelMenu( l='Select',pmc=self.buildMenu_picker, tearOff=1)                
+        
         self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
-        self.uiMenu_picker = mUI.MelMenu( l='Select',pmc=self.buildMenu_picker, tearOff=1)        
         self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
         self.buildMenu_vis()
-        #self.uiMenu_profile = mUI.MelMenu( l='Profile')
-        #self.buildMenu_profile()        
+
         self.uiMenu_advanced = mUI.MelMenu( l='Advanced', pmc=self.buildMenu_advanced,pmo=1, tearOff=1)
         self.uiMenu_post = mUI.MelMenu( l='Post', pmc=self.buildMenu_post,pmo=True, tearOff=1)
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True, tearOff=1)        
@@ -1016,6 +1016,53 @@ class ui(cgmUI.cgmGUI):
                                              **{'updateUI':0})},                                      
 
                    },
+               'Geo':{
+                   'order':['Block Mesh','Block Loft | Default',
+                            'Block Loft | Even',
+                            'Puppet Mesh',
+                            'Unified','Unified [Skinned]',
+                            'Parts Mesh','Parts Mesh [Skinned]',
+                            'Proxy Mesh [Parented]','Delete',
+                            ],
+                   'divTags':['Delete'],
+                   'headerTags':['Puppet Mesh'],
+                   'Block Mesh':{'ann':'Generate Simple mesh',
+                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':1})},
+                   'Block Loft | Default':{'ann':'Generate Simple mesh with history to tweak the loft manually',
+                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':0})},
+                   'Block Loft | Even':{'ann':'Generate Simple mesh with history to tweak the loft manually',
+                                 'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                                  'atUtils','create_simpleMesh',
+                                                  **{'connect':False,'updateUI':0,'deleteHistory':0,
+                                                     'loftMode':'evenCubic'})},                   
+                   'Unified':{'ann':"Create a unified unskinned puppet mesh from the active block's basis.",
+                              'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                               **{'unified':True,'skin':False})},
+                   'Unified [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':True,'skin':True})},
+                   'Parts Mesh':{
+                       'ann':"Create parts unskinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':False})},
+                   'Parts Mesh [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':True})},
+                   'Proxy Mesh [Parented]':{
+                       'ann':"Create proxy puppet mesh parented to skin joints from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                         **{'proxy':True,'unified':False,'skin':False})},
+                   'Delete':{
+                       'ann':"Remove skinned or wired puppet mesh",
+                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete')},
+                   },
+               
                }
 
         
@@ -1072,11 +1119,15 @@ class ui(cgmUI.cgmGUI):
                 if l in divTags:
                     mUI.MelMenuItemDiv(_sub)                
                 if l in headerTags:
+                    mUI.MelMenuItem(_sub,divider = True,
+                                    label = l,
+                                    en=False)
+                    """
                     mUI.MelMenuItemDiv(_sub)
                     mUI.MelMenuItem(_sub,
                                     label = "--- {0} ---".format(l.upper()),
                                     en=False)
-                    mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItemDiv(_sub)"""
                     continue
                 d2 = d[l]
                 mUI.MelMenuItem(_sub,
@@ -1348,52 +1399,6 @@ class ui(cgmUI.cgmGUI):
                                              'atUtils','attrMask_set',
                                              **{'clear':1,'updateUI':0})}},
                
-               'Geo':{
-                   'order':['Block Mesh','Block Loft | Default',
-                            'Block Loft | Even',
-                            'Puppet Mesh',
-                            'Unified','Unified [Skinned]',
-                            'Parts Mesh','Parts Mesh [Skinned]',
-                            'Proxy Mesh [Parented]','Delete',
-                            ],
-                   'divTags':['Delete'],
-                   'headerTags':['Puppet Mesh'],
-                   'Block Mesh':{'ann':'Generate Simple mesh',
-                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
-                                                'atUtils','create_simpleMesh',
-                                                **{'connect':False,'updateUI':0,'deleteHistory':1})},
-                   'Block Loft | Default':{'ann':'Generate Simple mesh with history to tweak the loft manually',
-                               'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
-                                                'atUtils','create_simpleMesh',
-                                                **{'connect':False,'updateUI':0,'deleteHistory':0})},
-                   'Block Loft | Even':{'ann':'Generate Simple mesh with history to tweak the loft manually',
-                                 'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
-                                                  'atUtils','create_simpleMesh',
-                                                  **{'connect':False,'updateUI':0,'deleteHistory':0,
-                                                     'loftMode':'evenCubic'})},                   
-                   'Unified':{'ann':"Create a unified unskinned puppet mesh from the active block's basis.",
-                              'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                               **{'unified':True,'skin':False})},
-                   'Unified [Skinned]':{
-                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
-                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                         **{'unified':True,'skin':True})},
-                   'Parts Mesh':{
-                       'ann':"Create parts unskinned puppet mesh from the active block's basis.",
-                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                         **{'unified':False,'skin':False})},
-                   'Parts Mesh [Skinned]':{
-                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
-                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                         **{'unified':False,'skin':True})},
-                   'Proxy Mesh [Parented]':{
-                       'ann':"Create proxy puppet mesh parented to skin joints from the active block's basis.",
-                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                         **{'proxy':True,'unified':False,'skin':False})},
-                   'Delete':{
-                       'ann':"Remove skinned or wired puppet mesh",
-                       'call':cgmGEN.CB(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_delete')},
-                   },
                'Mirror':{ 
                    'divTags':['Settings | Pull'],
                    'Controls | Push':{'ann':'Mirror block controls in context | push',

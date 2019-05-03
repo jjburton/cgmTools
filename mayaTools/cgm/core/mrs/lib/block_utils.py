@@ -2501,7 +2501,7 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
     else:
         _nameDict['cgmName'] = [_short,'blockType']
     
-    _nameDict['cgmType'] = 'blockHandle'
+    _nameDict['cgmType'] = 'preHandle'
     
     for a,v in kws.iteritems():
         _nameDict[a] = v    
@@ -4128,7 +4128,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     #pprint.pprint(vars())
     
     if not ml_handles:
-        log.error('[{0}] No form or prerig handles found'.format(_short))
+        log.debug('[{0}] No form or prerig handles found'.format(_short))
         return False
 
     _ml_controls = ml_handles
@@ -4331,14 +4331,14 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                 
                 if _noScale != True:
                     _cgmType = mObj.getMayaAttr('cgmType')
-                    if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle']:
+                    if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle','formHandle']:
                         _bb = _d_loft.get('bb')
                         _size = MATH.average(_bb) * .75
                         #_size = DIST.get_arcLen(mObj.getMessage('loftCurve')[0]) / 2.0
                         #DIST.scale_to_axisSize(_tmp_short,[_bb[0],_bb[1],_size])
                         mc.scale(_size,_size,_size, _tmp_short, absolute = True)
                         
-                    elif mainHandleNormalizeScale and _cgmType in ['blockHandle']:
+                    elif mainHandleNormalizeScale and _cgmType in ['blockHandle','formHandle']:
                         _average = MATH.average(_bbTempl[i])
                         mc.scale(_average,_average,_average, _tmp_short, absolute = True)
                         
@@ -5340,7 +5340,7 @@ def connect_jointLabels(self):
         _short = self.p_nameShort
         _str_func = 'connect_jointLabels'
         log.debug(cgmGEN.logString_start(_str_func))
-        if not self.getMayaAttr('visLabels'):
+        if not ATTR.has_attr(_short,'visLabels'):
             return log.info(cgmGEN.logString_msg(_str_func,"{0} has no visLabels attr".format(_short)))
         
         _driver =  "{0}.visLabels".format(_short)
@@ -5348,8 +5348,6 @@ def connect_jointLabels(self):
             if mObj.getMayaAttr('cgmType') == 'jointLabel':
                 log.info(cgmGEN.logString_msg(_str_func,"Found: {0}".format(mObj)))
                 ATTR.connect(_driver, "{0}.overrideVisibility".format(mObj.mNode))        
-                
-        
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -6357,7 +6355,6 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
         log.debug("|{0}| >> loftShapes: {1}".format(_str_func,_l_loftShapes)) 
         
-        
         mHandleFactory = self.asHandleFactory()
         mRootUpHelper = self.vectorUpHelper
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
@@ -6371,7 +6368,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             mHandle.resetAttrs()
         
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-            mHandle.doStore('cgmType','blockHandle')
+            mHandle.doStore('cgmType','formHandle')
             mHandle.doStore('cgmNameModifier',n)
         
             mHandle.doName()
@@ -6478,7 +6475,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
     
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                mHandle.doStore('cgmType','blockHandle')
+                mHandle.doStore('cgmType','formHandle')
                 mHandle.doStore('cgmNameModifier',"mid_{0}".format(i+1))
                 mHandle.doName()                
     
@@ -6852,8 +6849,8 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     
                     #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
                     self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                    mHandle.doStore('cgmNameModifier','shapeHandle_{0}_{1}'.format(i,ii))
-                    mHandle.doStore('cgmType','blockHandle')
+                    mHandle.doStore('cgmNameModifier','{0}_{1}'.format(i,ii))
+                    mHandle.doStore('cgmType','shapeHandle')
                     mHandle.doName()
     
                     mHandle.p_parent = mFormNull
@@ -9711,7 +9708,7 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
         
         ml_preUse = []
         for mObj in ml_prerig:
-            if mObj.cgmType in ['blockHandle','preHandle','blockHelper']:
+            if mObj.cgmType in ['blockHandle','formHandle','preHandle','blockHelper']:
                 ml_preUse.append(mObj)
                 
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
@@ -11321,7 +11318,7 @@ def snapShot_set(self, md_dat = None, sizeMethod = 'bb', mainHandleNormalizeScal
                         _scaleDone = False
 
                         if _bb:
-                            if mainHandleNormalizeScale and mCtrl.getMayaAttr('cgmType') in ['blockHandle']:
+                            if mainHandleNormalizeScale and mCtrl.getMayaAttr('cgmType') in ['blockHandle','formHandle']:
                                 _average = MATH.average(_bb)
                                 mc.scale(_average,_average,_average, str_short, absolute = True)
                                 _scaleDone = True
@@ -11607,7 +11604,6 @@ def uiStatePickerMenu(self,parent = None):
                           'label':' '*i + "Pivot Top - [ {0} ]".format(i)})            
         
     if _state:
-
         d_form = []
         
         for k in ['orientHelper']:
@@ -11621,17 +11617,29 @@ def uiStatePickerMenu(self,parent = None):
 
         
         ml_handles = self.msgList_get('formHandles')
+        ml_lofts = []
         if ml_handles:
             for i,mObj in enumerate(ml_handles):
                 if mObj in ml_done:continue                                
                 d_form.append({'ann':'[{0}] Form Handles [{1}]'.format(_short,i),
                               'c':cgmGEN.Callback(mObj.select),
-                              'label':' '*i + mObj.p_nameBase})#"Form Handle - [ {0} ]".format(i)})
+                              'label':' '*i + "{0} | {1}".format(i,mObj.p_nameBase)})
+                try:
+                    mLoft = mObj.loftCurve
+                except:mLoft = False
+                if mLoft:
+                    ml_lofts.append(mLoft)
+                    
+                ml_sub = mObj.msgList_get('subShapers')
+                if ml_sub:
+                    ml_lofts.extend(ml_sub)
+                  
                 mPivotHelper = mObj.getMessageAsMeta('pivotHelper')
                 ml_done.append(mObj)
-                
                 if mPivotHelper:
                     addPivotHelper(mPivotHelper,i,d_form)
+                    
+        
 
         if d_form:
             mc.menuItem(en=True,divider = True,
@@ -11639,6 +11647,14 @@ def uiStatePickerMenu(self,parent = None):
             for d in d_form:
                 mc.menuItem(**d)                        
             
+            if ml_lofts:
+                mc.menuItem(en=False,divider = True,
+                            label = "--- [Shapers]")
+                for i,mSub in enumerate(ml_lofts):
+                    mc.menuItem(ann='[{0}] Loft Handles [{1}]'.format(mSub.mNode,i),
+                                label=' '*i + "{0} | {1}".format(i,mSub.p_nameBase),
+                                c=cgmGEN.Callback(mSub.select))
+
             
             try:mc.setParent(parent)
             except:pass            
@@ -11668,7 +11684,7 @@ def uiStatePickerMenu(self,parent = None):
                 except:_name = "Pre handle - [ {0} ]".format(i)
                 d_pre.append({'ann':'[{0}] prerig [{1}]'.format(_short,i),
                               'c':cgmGEN.Callback(mObj.select),
-                              'label' : ' '*i + _name})
+                              'label':' '*i + "{0} | {1}".format(i,_name)})
                 ml_done.append(mObj)
 
         ml_jointHelpers = self.msgList_get('jointHelpers')
@@ -11680,7 +11696,7 @@ def uiStatePickerMenu(self,parent = None):
                 
                 d_pre.append({'ann':'[{0}] Joint Helper [{1}]'.format(_short,i),
                               'c':cgmGEN.Callback(mObj.select),
-                              'label' : ' '*i + _name})
+                              'label':' '*i + "{0} | {1}".format(i,_name)})
                 ml_done.append(mObj)
             
             try:mc.setParent(parent)
