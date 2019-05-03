@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'SURF'
+
 # From Python =============================================================
 import copy
 import re
@@ -132,6 +134,12 @@ def get_splitValues(surface = None, values = [], mode='u',
                 _l.append(knot)"""
     
         if _last and insertMax:
+            l_add = []
+            for v2 in l_base:
+                if v2 > _l[-1]:
+                    l_add.append(v2)
+            for v2 in l_add:
+                _l.append(v2)
             _l.append(maxKnot)
             
         if _last != True:

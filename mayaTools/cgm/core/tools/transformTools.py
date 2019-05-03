@@ -379,7 +379,7 @@ def uiFunc_updateFields(self):
     #_pos = POS.get(_short,'rp',_space)
     _info = POS.get_info(_short)
     
-    pprint.pprint(_info)
+    #pprint.pprint(_info)
     #pprint.pprint(self._d_transformAttrFields)
     _d_sectionToDatKey = {'rotate':'rotateLocal',
                           'orient':'rotation'}
@@ -468,7 +468,7 @@ def uiFunc_valuesSend(self,section=None,key=None):
     #log.warning("|{0}| >> Haven't setup for {1}...".format(_str_func,_s))   
         
     #if _s in ['translate','rotate','scale','jointOrient','rotateAxis']:
-    pprint.pprint(_d_fieldValues)
+    #pprint.pprint(_d_fieldValues)
     
     if _s in ['translate','rotate','scale','jointOrient','rotateAxis']:
         for a,v in _d_fieldValues.iteritems():
@@ -572,7 +572,7 @@ def uiFunc_valuesTweak(self,mode = '+'):
     for a in 'XYZ':
         _tweak.append(self.__dict__['uiff_transformTweak{0}'.format(a)].getValue())
     
-    pprint.pprint([mode,_l_toTweak,_tweak])
+    #pprint.pprint([mode,_l_toTweak,_tweak])
     
     if mode == '+':
         _tweak_call = MATH.list_add

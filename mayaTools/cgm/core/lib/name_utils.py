@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'NAMES'
+
 # From Python =============================================================
 import copy
 import re

@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'MATH'
+
 # From Python =============================================================
 import pprint
 import copy
@@ -21,7 +23,7 @@ log.setLevel(logging.INFO)
 # From Maya =============================================================
 import maya.cmds as mc
 from maya import mel
-#import cgm.core.lib.euclid as euclid
+#import cgm.core.lib.euclid as EUCLID
 import euclid as EUCLID
 
 # From Red9 =============================================================
@@ -297,7 +299,7 @@ def is_even(f1):
 def get_midIndex(v):
     if is_even(v):
         return int(v/2)
-    return v/2 +1
+    return v/2 
 
 def is_float_equivalent(f1,f2,places=4):
     """
@@ -558,7 +560,7 @@ def find_valueInList(v,l,mode='near'):
         _l.append(_diff)
         _d[_diff] = v1
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     if mode in ['near','previous','next']:return _d[min(_l)]
     elif mode == 'far':return _d[max(_l)]
 
@@ -600,7 +602,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             return [maxValue for i in range(count)]
             
         
-        blendFactor = (float(maxValue) - float(minValue))/(idx_mid-1)
+        blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
         
         if is_even(count):
             for i in range(idx_mid):
@@ -833,14 +835,38 @@ def median(*args):
             return sum(sorted(l)[n//2-1:n//2+1])/2.0    
 
 def angleBetween(p1, p2, p3):
-    p1 = VALID.euclidVector3Arg(p1)
-    p2 = VALID.euclidVector3Arg(p2)
-    p3 = VALID.euclidVector3Arg(p3)
-    
-    v1 = (p2 - p1).normalized()
-    v2 = (p3 - p2).normalized()
-    
-    return math.degrees(v1.angle(v2))
+    try:
+        p1 = VALID.euclidVector3Arg(p1)
+        p2 = VALID.euclidVector3Arg(p2)
+        p3 = VALID.euclidVector3Arg(p3)
+        
+        v1 = (p2 - p1).normalized()
+        v2 = (p3 - p2).normalized()
+        
+        return math.degrees(v1.angle(v2))
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+def averageVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    return [average(a,b) for a,b in zip(v1,v2)]
+    #return sum((a*b) for a, b in zip(v1, v2))
+
+def dotproduct(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
+    v1 = VALID.euclidVector3Arg(v1)
+    v2 = VALID.euclidVector3Arg(v2)
+    return max(min(sum((a*b) for a, b in zip(v1, v2)), 1.0), -1.0)
+    return sum((a*b) for a, b in zip(v1, v2))
+
+def length(v):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.sqrt(dotproduct(v, v))
+
+def angleBetweenVectors(v1, v2):
+    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python    
+    return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+
 
 
 

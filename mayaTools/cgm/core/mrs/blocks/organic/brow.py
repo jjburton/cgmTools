@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BROW'
+
 # From Python =============================================================
 import copy
 import re
@@ -75,7 +77,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.10.31.2018'
-__autoTemplate__ = False
+__autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True
 
@@ -96,10 +98,21 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull']}
-d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull'],
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
@@ -118,12 +131,12 @@ d_block_profiles = {'default':{},
 l_attrsStandard = ['side',
                    'position',
                    'baseAim',
-                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:side',
@@ -147,6 +160,7 @@ d_defaultSettings = {'version':__version__,
                      'paramStart':.2,
                      'paramMid':.5,
                      'paramEnd':1.0,
+                     'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -222,15 +236,15 @@ def define(self):
  
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
 def mirror_self(self,primeAxis = 'Left'):
     _str_func = 'mirror_self'
     _idx_state = self.getState(False)
 
     if _idx_state > 0:
-        log.debug("|{0}| >> template...".format(_str_func)+ '-'*80)
-        ml_mirrorHandles = self.msgList_get('templateHandles')
+        log.debug("|{0}| >> form...".format(_str_func)+ '-'*80)
+        ml_mirrorHandles = self.msgList_get('formHandles')
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                                      mode = '',primeAxis = primeAxis.capitalize() )
     if _idx_state > 1:
@@ -240,18 +254,18 @@ def mirror_self(self,primeAxis = 'Left'):
                                                  mode = '',primeAxis = primeAxis.capitalize() )        
     
 
-def mirror_template(self,primeAxis = 'Left'):
-    _str_func = 'mirror_template'    
+def mirror_form(self,primeAxis = 'Left'):
+    _str_func = 'mirror_form'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
-    ml_mirrorHandles = self.msgList_get('templateHandles')
+    ml_mirrorHandles = self.msgList_get('formHandles')
     
     r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                              mode = '',primeAxis = primeAxis.capitalize() )
     
 def mirror_prerig(self,primeAxis = 'Left'):
-    _str_func = 'mirror_template'    
+    _str_func = 'mirror_form'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
@@ -260,8 +274,8 @@ def mirror_prerig(self,primeAxis = 'Left'):
     r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                              mode = '',primeAxis = primeAxis.capitalize() )    
 
-def templateDelete(self):
-    _str_func = 'templateDelete'
+def formDelete(self):
+    _str_func = 'formDelete'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     ml_defSubHandles = self.msgList_get('defineSubHandles')
@@ -273,9 +287,9 @@ def templateDelete(self):
     self.bbHelper.v = True
     
 @cgmGEN.Timer
-def template(self):
+def form(self):
     try:    
-        _str_func = 'template'
+        _str_func = 'form'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
@@ -292,8 +306,8 @@ def template(self):
         
         
         #Create temple Null  ==================================================================================
-        mTemplateNull = BLOCKUTILS.templateNull_verify(self)
-        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        mFormNull = BLOCKUTILS.formNull_verify(self)
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         mHandleFactory = self.asHandleFactory()
         
@@ -365,7 +379,7 @@ def template(self):
             _d_pairs['templeLeft']='templeRight'
             _d_pairs['templeLeftUp']='templeRightUp'
             
-            md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5, mTemplateNull)
+            md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5, mFormNull)
         
             md_handles = md_res['md_handles']
             ml_handles = md_res['ml_handles']
@@ -426,7 +440,7 @@ def template(self):
             d_handleTags['browLeft'] = ['browCenter','browMidLeft','browLeft','templeLeft']
             d_handleTags['browRight'] = ['browCenter','browMidRight','browRight','templeRight']
         
-        self.msgList_connect('templateHandles',ml_handles)#Connect
+        self.msgList_connect('formHandles',ml_handles)#Connect
         
         
         #Track curve --------------------------------------------------------------------------
@@ -464,10 +478,10 @@ def template(self):
             
         #Build our brow loft --------------------------------------------------------------------------
         log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
-        self.UTILS.create_simpleTemplateLoftMesh(self,
+        self.UTILS.create_simpleFormLoftMesh(self,
                                                  [md_loftCurves['browLine'].mNode,
                                                   md_loftCurves['browUpr'].mNode],
-                                                 mTemplateNull,
+                                                 mFormNull,
                                                  polyType = 'bezier',
                                                  baseName = 'brow')
         
@@ -481,9 +495,9 @@ def template(self):
                 mLoc = cgmMeta.asMeta(self.doCreateAt())
                 mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
                 
-                self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
+                self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
                 
-                mLoc.rename("{0}_{1}_templateHelper".format(tag,k))
+                mLoc.rename("{0}_{1}_formHelper".format(tag,k))
                 
                 mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                              turnOnPercentage=True))
@@ -534,7 +548,7 @@ def prerigDelete(self):
     try:self.moduleEyelid.delete()
     except:pass
     
-    self.noTransTemplateNull.v=True
+    self.noTransFormNull.v=True
     
 def create_handle(self,tag,pos,mJointTrack=None,
                   trackAttr=None,visualConnection=True,
@@ -547,7 +561,7 @@ def create_handle(self,tag,pos,mJointTrack=None,
 
     mHandle.p_parent = mStateNull
     mHandle.doStore('cgmName',tag)
-    mHandle.doStore('cgmType','templateHandle')
+    mHandle.doStore('cgmType','formHandle')
     mHandle.doName()
 
     mHandleFactory.color(mHandle.mNode,controlType='sub')
@@ -648,7 +662,7 @@ def prerig(self):
         self.atUtils('module_verify')
         mStateNull = self.UTILS.stateNull_verify(self,'prerig')
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
-        self.noTransTemplateNull.v=False
+        self.noTransFormNull.v=False
         
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
@@ -662,7 +676,7 @@ def prerig(self):
                               'right':[]}}
         #Get base dat =============================================================================    
         mBBHelper = self.bbHelper
-        mBrowLoft = self.getMessageAsMeta('browTemplateLoft')
+        mBrowLoft = self.getMessageAsMeta('browFormLoft')
         
         _size = MATH.average(self.baseSize[1:])
         _size_base = _size * .25
@@ -804,9 +818,9 @@ def prerig(self):
                 else:
                     _control = 'main'
                     
-                mTemplateHelper = self.getMessageAsMeta(tag+k.capitalize()+'templateHelper')
+                mFormHelper = self.getMessageAsMeta(tag+k.capitalize()+'formHelper')
                 
-                mHandle = create_handle(mTemplateHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
+                mHandle = create_handle(mFormHelper,mBrowLoft,tag,k,_side,controlType = _control,nameDict = _d)
                 md_handles['brow'][_side].append(mHandle)
                 ml_handles.append(mHandle)
             mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),md_handles['brow'][_side])
@@ -848,7 +862,7 @@ def prerig(self):
                 mLoc = cgmMeta.asMeta(self.doCreateAt())
                 mLoc.rename("{0}_{1}_jointTrackHelper".format(tag,i))
             
-                #self.connectChildNode(mLoc, tag+k.capitalize()+'templateHelper','block')
+                #self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
                 mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
                                                                              turnOnPercentage=True))
             
@@ -1140,7 +1154,7 @@ def skeleton_build(self, forceNew = True):
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
-    mHeadHelper = ml_templateHandles[0].orientHelper
+    mHeadHelper = ml_formHandles[0].orientHelper
     
     #...create ---------------------------------------------------------------------------
     mHead_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
@@ -1269,10 +1283,10 @@ def rig_dataBuffer(self):
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
     mMasterNull = self.d_module['mMasterNull']
     
-    mEyeTemplateHandle = mBlock.bbHelper
+    mEyeFormHandle = mBlock.bbHelper
     
-    self.mRootTemplateHandle = mEyeTemplateHandle
-    ml_templateHandles = [mEyeTemplateHandle]
+    self.mRootFormHandle = mEyeFormHandle
+    ml_formHandles = [mEyeFormHandle]
     
     self.b_scaleSetup = mBlock.scaleSetup
     
@@ -1296,7 +1310,7 @@ def rig_dataBuffer(self):
         log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
         
         l_sizes = []
-        for mHandle in ml_templateHandles:
+        for mHandle in ml_formHandles:
             _size_sub = POS.get_bb_size(mHandle,True)
             l_sizes.append( MATH.average(_size_sub) * .1 )            
         self.v_offset = MATH.average(l_sizes)"""
@@ -1737,7 +1751,7 @@ def rig_frame(self):
         
         
         
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
 
     return
 
@@ -1785,7 +1799,7 @@ def rig_cleanUp(self):
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    mBlock.UTILS.set_blockNullFormState(mBlock)
     self.UTILS.rigNodes_store(self)
 
 
@@ -1884,6 +1898,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
+    raise ValueError,"This needs to be reworked to new block call"
     _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -1993,7 +2008,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
 
 
-    #mLoft = mBlock.getMessageAsMeta('{0}LidTemplateLoft'.format(tag))
+    #mLoft = mBlock.getMessageAsMeta('{0}LidFormLoft'.format(tag))
     #mMesh = mLoft.doDuplicate(po=False, ic=False)
     #mDag = mRigJoint.doCreateAt(setClass='cgmObject')
     #CORERIG.shapeParent_in_place(mDag.mNode, mMesh.mNode,False)

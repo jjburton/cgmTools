@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'ARRANGE'
+
 # From Python =============================================================
 import copy
 import re
@@ -132,7 +134,7 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
             curveBuffer.append(mc.rebuildCurve (crv1, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=spans, d=3, tol=0.001)[0])
 
     elif curve == 'cubicArc':
-        _mid = MATH.get_midIndex(_len)-1
+        _mid = MATH.get_midIndex(_len)
         log.info("|{0}| >> cubicArc | mid: {1} ".format(_str_func,_mid))
         
         l_pos = [POS.get(o) for o in [objList[0],objList[_mid],objList[-1]]]

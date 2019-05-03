@@ -7,12 +7,13 @@ www.cgmonks.com
 # From Python =============================================================
 #import copy
 #import re
+__MAYALOCAL = 'LOC'
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc

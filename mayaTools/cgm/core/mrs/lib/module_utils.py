@@ -26,6 +26,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #========================================================================
+__version__ = '1.04292019'
 
 import maya.cmds as mc
 
@@ -55,6 +56,7 @@ import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.mrs.lib.general_utils as BLOCKGEN
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.rig.general_utils as RIGGEN
 
@@ -133,7 +135,7 @@ def moduleChildren_get(self,excludeSelf = True):
     
     try:
         ml_children = []
-        ml_childrenCull = copy.copy(self.moduleChildren)
+        ml_childrenCull = self.getMessageAsMeta('moduleChildren',asList=1) or []
     
         cnt = 0
         while len(ml_childrenCull)>0 and cnt < 100:#While we still have a cull list
@@ -143,7 +145,7 @@ def moduleChildren_get(self,excludeSelf = True):
             for mChild in ml_childrenCull:
                 if mChild not in ml_children:
                     ml_children.append(mChild)
-                for i_subChild in mChild.moduleChildren:
+                for i_subChild in mChild.getMessageAsMeta('moduleChildren',asList=1) or []:
                     ml_childrenCull.append(i_subChild)
                 ml_childrenCull.remove(mChild) 
         
@@ -606,7 +608,7 @@ def skeleton_connectToParent(self):
             ml_moduleJoints[0].p_parent = mTargetJoint
     return True
 
-def get_attachPoint(self, mode = 'end',noneValid = True):
+def get_attachPoint(self, mode = 'end',idx = None, noneValid = True):
     _str_func = 'get_attachPoint'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
@@ -624,7 +626,10 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        if mode == 'index':
+            l_msgLinks = ['moduleJoints']
+        else:
+            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -648,6 +653,8 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
             jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
             mTarget = cgmMeta.asMeta(jnt)
+        elif mode == 'index':
+            mTarget = ml_targetJoints[idx]        
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:
@@ -655,7 +662,7 @@ def get_attachPoint(self, mode = 'end',noneValid = True):
             raise ValueError,_msg
         return mTarget
     
-def get_driverPoint(self, mode = 'end',noneValid = True):
+def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
     """
     Get the main driver point for a 
     """
@@ -679,7 +686,13 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         mParentRigNull = mParentModule.rigNull
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
-        l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        
+        if mode == 'index':
+            l_msgLinks = ['moduleJoints']
+        else:
+            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
+        
+
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -701,7 +714,9 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         elif mode == 'closest':
             ml_moduleJoints = self.rigNull.msgList_get('moduleJoints',asMeta = True)            
             jnt = DIST.get_closestTarget(ml_moduleJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
-            mTarget = cgmMeta.asMeta(jnt)        
+            mTarget = cgmMeta.asMeta(jnt)
+        elif mode == 'index':
+            mTarget = ml_targetJoints[idx]         
         else:
             _msg = ("|{0}| >> Unknown mode: {1}".format(_str_func,mode))
             if noneValid:
@@ -724,37 +739,70 @@ def get_driverPoint(self, mode = 'end',noneValid = True):
         return mTarget
     
 reload(BLOCKSHARE)
-l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct']
+l_controlOrder = BLOCKSHARE._l_controlOrder
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
-                  'ik':['controlIK','controlIKEnd',
-                        'controlIKBase','controlsFK',
+                  'ik':['controlIK','controlIKEnd','controlBallRotation',
+                        'controlIKBase','controlsFK','controlFollowParentBank',
+                        'controlIKBall','controlIKBallHinge','controlIKToe',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'face':['controlsFace'],
                   'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False):
+@cgmGEN.Timer
+def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False,core=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
+    
+    
+    rewire - ammend missing controls to the list
     """
-    def addMObj(mObj,mList):
-        if mObj not in mList:
-            if ml_objs is not None:
-                if mObj in ml_objs:
-                    ml_objs.remove(mObj)
-                else:
-                    log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
-            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
-            mList.append(mObj)
-                
-                    
     _str_func = ' controls_getDat'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     ignore = VALID.listArg(ignore)
+    
+    if not core and not rewire and not keys and not ignore and listOnly:
+        try:
+            _res = self.mControlsAll
+            if _res:
+                log.debug(cgmGEN.logString_msg(_str_func,'mControlsAll'))
+                return _res
+        except Exception,err:
+            log.error("{0} | {1}".format(self,err))
+            
+    if core:
+        try:
+            _res = self.mControlsCore
+            if _res:
+                log.debug(cgmGEN.logString_msg(_str_func,'mControlsCore'))
+                return _res
+        except Exception,err:
+            log.error("{0} | {1}".format(self,err))        
+    
+    def addMObj(mObj,mList):
+        if mObj not in mList:
+            _mClass = mObj.getMayaAttr('mClass')
+            if not _mClass:
+                mObj = cgmMeta.validateObjArg(mObj,'cgmControl',setClass=True)
+            if ml_objs is not None:
+                if mObj in ml_objs:
+                    ml_objs.remove(mObj)
+                else:
+                    if rewire:
+                        log.warning("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
+                        mRigNull.msgList_append('controlsAll',mObj)
+                        mRigNull.moduleSet.append(mObj.mNode)                        
+                    else:
+                        log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
+            log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
+            mList.append(mObj)
+                
+                    
+
     
     mRigNull = self.rigNull
     try:ml_objs = mRigNull.moduleSet.getMetaList() or []
@@ -770,6 +818,8 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         l_useKeys = l_controlOrder
     
     if ignore:
+        if rewire:
+            raise ValueError,"Cannot have rewire on with ignore"
         log.debug("|{0}| >> Ignore found... ".format(_str_func)+'-'*20)        
         for k in ignore:
             if k in l_useKeys:
@@ -819,6 +869,16 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 addMObj(mSpace,_ml)
                 ml_controls.append(mSpace)
     
+    ml_core = []
+    for k in 'root','fk','ik','segmentHandles','face':
+        ml = md_controls.get(k)
+        if ml:ml_core.extend(ml)
+    
+    if core:
+        return ml_core
+    
+    md_controls['core'] = ml_core
+        
     if report:
         log.info("|{0}| >> Dict... ".format(_str_func))
         pprint.pprint( md_controls)
@@ -827,10 +887,20 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         pprint.pprint( ml_controls)
     
     if ml_objs and keys is None and not ignore:        
-        log.debug("|{0}| >> remaining... ".format(_str_func))
+        log.error("|{0}| >> remaining... ".format(_str_func))
         pprint.pprint( ml_objs)
-        raise ValueError,("|{0}| >> Resolve missing controls!".format(_str_func))
+        #raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
+    
+    if rewire:
+        log.warning("|{0}| >> rewire... ".format(_str_func))        
+        for mObj in ml_controls:
+            if not mObj.getMessageAsMeta('rigNull'):
+                log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
+                mObj.connectParentNode(mRigNull,'rigNull')
+                
+        ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in ml_controls],multi=1)
+        ATTR.set_message(self.mNode, 'mControlsCore', [mObj.mNode for mObj in ml_core],multi=1)        
     
     if report:
         return
@@ -839,12 +909,12 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
     
-def controls_get(self, mode = 'mirror'):
+def controls_get(self, mode = '',rewire=False,core=False):
     _str_func = ' controls_get'    
     if mode == 'mirror':
-        return controls_getDat(self,ignore='spacePivots',listOnly=True)
+        return controls_getDat(self,mode,listOnly=True,rewire=rewire,core=core)#ignore='spacePivots'
     else:
-        return controls_getDat(self,mode,listOnly=True)
+        return controls_getDat(self,mode,listOnly=True,rewire=rewire,core=core)
         
     log.error("|{0}| >> No options specified".format(_str_func))
     return False
@@ -1149,9 +1219,9 @@ def get_mirrorDat(self):
     _str_module = self.p_nameShort
     _d = {}
     _d['str_name'] = _str_module
-    md,ml = controls_getDat(self,ignore=['spacePivots'])
+    md,ml = controls_getDat(self,rewire=True)#...used to ignore=['spacePivots'] don't remember why
     _d['md_controls'] = md
-    _d['ml_controls'] = ml#self.rigNull.moduleSet.getMetaList()
+    _d['ml_controls'] = ml
     _d['mMirror'] = mirror_get(self)
     _d['str_side'] = cgmGEN.verify_mirrorSideArg(self.getMayaAttr('cgmDirection') or 'center')
     
@@ -1165,6 +1235,7 @@ def mirror_verifySetup(self, d_Indices = {},
                        md_data = None,
                        progressBar = None,progressEnd=True):
     _str_func = ' mirror_verifySetup'
+    raise ValueError,"Don't use this"
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
@@ -1199,28 +1270,6 @@ def mirror_verifySetup(self, d_Indices = {},
             md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmDirection'])
             mObj._verifyMirrorable()#...veryify the mirrorsetup
             
-            """
-            _mirrorSideFromCGMDirection = cgmGEN.verify_mirrorSideArg(mObj.getNameDict().get('cgmDirection','centre'))
-            
-            _mirrorSideCurrent = cgmGEN.verify_mirrorSideArg(mObj.getEnumValueString('mirrorSide'))
-
-            _setMirrorSide = False
-            if _mirrorSideFromCGMDirection:
-                if _mirrorSideFromCGMDirection != _mirrorSideCurrent:
-                    log.debug("|{0}| >> {1}'s cgmDirection ({2}) is not it's mirror side({3}). Resolving...".format(_str_func,mObj.p_nameShort,_mirrorSideCurrent,_mirrorSideFromCGMDirection))
-                    _setMirrorSide = _mirrorSideFromCGMDirection                                            
-            elif not _mirrorSideCurrent:
-                _setMirrorSide = str_mirrorSide
-        
-            if _setMirrorSide:
-                if not cgmMeta.cgmAttr(mObj,'mirrorSide').getDriver():
-                    mObj.doStore('mirrorSide',_setMirrorSide)
-                else:
-                    #log.debug("{0} mirrorSide driven".format(mObj.p_nameShort))
-                    log.debug("|{0}| >> mirror side driven: {1}".format(_str_func,mObj))
-        """
-            #append the control to our lists to process                                    
-            #md_culling_controlLists[_mirrorSideCurrent].append(mObj)    
     
     #>>>Module control maps ===============================================================================
     d_self = get_mirrorDat(self)
@@ -1251,7 +1300,7 @@ def mirror_verifySetup(self, d_Indices = {},
             _v = i_start+1
             log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
             mObj.mirrorIndex = _v
-            d_Indices[_side] = _v#...push it back
+            d_Indices[_side] = _v
             md_indicesToControls[_side][_v] = mObj
             
         if l_processed is not None:l_processed.append(self)
@@ -1265,9 +1314,6 @@ def mirror_verifySetup(self, d_Indices = {},
         log.debug("|{0}| >>  Mirror module found...".format(_str_func))
         mMirror = d_self['mMirror']
         
-        #i_start = max([d_Indices['Left'],d_Indices['Right']])
-        #i_running = copy.copy(i_start)
-        #log.debug("|{0}| >> Starting with biggest side int: {1}".format(_str_func,i_start))
         
         validate_controls(d_self['ml_controls'])
         validate_controls(d_mirror['ml_controls'])
@@ -1327,9 +1373,7 @@ def mirror_verifySetup(self, d_Indices = {},
                         d_Indices[_sideMirror] = _v#...push it back                
                         ml_cull.remove(mCandidate)
                         md_indicesToControls[_sideMirror][_v] = mCandidate
-                        
 
-                        
             for mObj in ml_cull:
                 log.debug("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
                 _side = mObj.getEnumValueString('mirrorSide')                
@@ -1340,41 +1384,12 @@ def mirror_verifySetup(self, d_Indices = {},
                 mObj.mirrorIndex = _v
                 d_Indices[_side] = _v#...push it back                
                 md_indicesToControls[_side][_v] = mObj
-                
-                
-            
-            
-            """
-            for i,mObj in enumerate(self_keyControls):
-                _side = mObj.getEnumValueString('mirrorSide')                
-                i_start = d_Indices[_side]
-                _v = i_start+1
-                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
-                mObj.mirrorIndex = _v
-                d_Indices[_side] = _v#...push it back
-                md_indicesToControls[_side][_v] = mObj
-                
-            for i,mObj in enumerate(mirr_keyControls):
-                _side = mObj.getEnumValueString('mirrorSide')                
-                i_start = d_Indices[_side]
-                _v = i_start+1
-                log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
-                mObj.mirrorIndex = _v
-                d_Indices[_side] = _v#...push it back
-                md_indicesToControls[_side][_v] = mObj
-                
-            i_running = i_running + max(len_self,len_mirr)
-            log.debug("|{0}| >>  i_running: {1}".format(_str_func,i_running))"""
-            #d_Indices[d_self['str_side']] = i_running
-            #d_Indices[d_mirror['str_side']] = i_running
-            
+
         if progressBar and progressEnd:cgmUI.progressBar_end(progressBar)
         
         if l_processed is not None:l_processed.extend([self,mMirror])
         return md_indicesToControls
-        
-    
-    #return ml_modules,md_data
+
     
 def mirror(self,mode = 'self'):
     """
@@ -1709,4 +1724,59 @@ def clean_null(self,null='rigNull'):
         for mChild in mNull.getChildren(asMeta=True):
             log.debug("|{0}| >>  deleting: {1}".format(_str_func,mChild))
             mChild.delete()
+
+
+def get_uiString(self,showSide=True):
+    """
+    Get a snap shot of all of the controls of a rigBlock
+    """
+    try:
+        _str_func = 'get_uiString'
+        log.debug(cgmGEN.logString_start(_str_func))
+        str_self = self.mNode
+        _d_scrollList_shorts = BLOCKGEN._d_scrollList_shorts
+        _l_report = []
+        
+        #Control sets ===================================================================================
+        log.debug(cgmGEN.logString_sub(_str_func, '...'))
+        
+        if showSide:
+            _dir = self.getMayaAttr('cgmDirection')
+            if _dir:
+                _l_report.append( _d_scrollList_shorts.get(_dir,_dir))
             
+        _pos = self.getMayaAttr('cgmPosition')
+        if _pos:
+            if _pos and str(_pos).lower() not in ['none','false']:
+                _l_report.append( _d_scrollList_shorts.get(_pos,_pos) )                
+                                    
+        l_name = []
+        
+        #l_name.append( ATTR.get(_short,'blockType').capitalize() )
+        _cgmName = self.getMayaAttr('cgmName')
+        l_name.append('"{0}"'.format(_cgmName))
+
+        #_l_report.append(STR.camelCase(' '.join(l_name)))
+        _l_report.append(' - '.join(l_name))
+        
+        _modType = self.getMayaAttr('moduleType')
+        if _modType:
+            _l_report.append('[{0}]'.format(_modType))
+        
+        """
+        if mObj.hasAttr('baseName'):
+            _l_report.append(mObj.baseName)                
+        else:
+            _l_report.append(mObj.p_nameBase)"""                
+    
+        if self.isReferenced():
+            _l_report.append("[REF]")
+            
+        _str = " | ".join(_l_report)
+            
+        return _str
+        
+    except Exception,err:
+        log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
+        log.error(err)
+        return self.mNode

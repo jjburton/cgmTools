@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'EYE'
+
 # From Python =============================================================
 import copy
 import re
@@ -56,6 +58,7 @@ import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
@@ -73,7 +76,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.10.31.2018'
-__autoTemplate__ = False
+__autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True
 
@@ -95,10 +98,21 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
-d_wiring_template = {'msgLinks':['templateNull'],
+d_wiring_form = {'msgLinks':['formNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
+_d_attrStateOn = {0:[],
+                  1:[],
+                  2:[],
+                  3:[],
+                  4:[]}
+
+_d_attrStateOff = {0:[],
+                   1:[],
+                   2:[],
+                   3:[],
+                   4:[]}
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
@@ -125,13 +139,13 @@ d_block_profiles = {'default':{},
 l_attrsStandard = ['side',
                    'position',
                    'baseAim',
-                   'baseDat',
                    'attachPoint',
                    'nameList',
                    'numSpacePivots',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
+                   'visLabels',
                    'proxyDirect',
                    'moduleTarget',]
 
@@ -155,6 +169,7 @@ d_defaultSettings = {'version':__version__,
                      'side':'right',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      'loftDegree':'cubic',
+                     'visLabels':True,
                      'paramMidUpr':.5,
                      'paramMidLwr':.5,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
@@ -286,10 +301,10 @@ def define(self):
  
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
-def templateDelete(self):
-    _str_func = 'templateDelete'
+def formDelete(self):
+    _str_func = 'formDelete'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     ml_defSubHandles = self.msgList_get('defineSubHandles')
@@ -321,9 +336,9 @@ def templateDelete(self):
     self.bbHelper.v = True
     
 @cgmGEN.Timer
-def template(self):
+def form(self):
     try:    
-        _str_func = 'template'
+        _str_func = 'form'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
@@ -339,7 +354,7 @@ def template(self):
             return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
         
         #Create temple Null  ==================================================================================
-        mTemplateNull = BLOCKUTILS.templateNull_verify(self)    
+        mFormNull = BLOCKUTILS.formNull_verify(self)    
         mHandleFactory = self.asHandleFactory()
         
         #Meat ==============================================================================================
@@ -406,7 +421,7 @@ def template(self):
             for tag,l_pos in d_loftCurves.iteritems():
                 _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
                 mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-                mCrv.p_parent = mTemplateNull
+                mCrv.p_parent = mFormNull
                 mHandleFactory.color(mCrv.mNode)
                 
                 mCrv.rename('{0}_loftCurve'.format(tag))
@@ -414,21 +429,21 @@ def template(self):
                 self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
                 md_loftCurves[tag]=mCrv
                 
-            self.UTILS.create_simpleTemplateLoftMesh(self,
+            self.UTILS.create_simpleFormLoftMesh(self,
                                                      [md_loftCurves['upr'].mNode,
                                                       md_loftCurves['uprEnd'].mNode],
-                                                     mTemplateNull,
+                                                     mFormNull,
                                                      polyType = 'bezier',
                                                      baseName = 'uprLid')
-            self.UTILS.create_simpleTemplateLoftMesh(self,
+            self.UTILS.create_simpleFormLoftMesh(self,
                                                      [md_loftCurves['lwr'].mNode,
                                                       md_loftCurves['lwrEnd'].mNode],
-                                                     mTemplateNull,
+                                                     mFormNull,
                                                      polyType = 'bezier',
                                                      baseName = 'lwrLid')    
             
-            log.debug(self.uprLidTemplateLoft)
-            log.debug(self.lwrLidTemplateLoft)
+            log.debug(self.uprLidFormLoft)
+            log.debug(self.lwrLidFormLoft)
             log.debug(self.uprLidLoftCurve)
             log.debug(self.lwrLidLoftCurve)
     
@@ -478,12 +493,12 @@ def prerig(self):
     
     
     
-        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'template') 
+        #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form') 
     
     
         #Create Pivot =====================================================================================
         #loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
-        #TRANS.parent_set(loc,mTemplateNull)
+        #TRANS.parent_set(loc,mFormNull)
     
         crv = CURVES.create_fromName('sphere', size = _size_base)
         mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
@@ -493,7 +508,7 @@ def prerig(self):
     
         #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
         mHandleRoot.doStore('cgmName','eyeRoot')    
-        mHandleRoot.doStore('cgmType','templateHandle')
+        mHandleRoot.doStore('cgmType','formHandle')
         mHandleRoot.doName()
     
         mHandleRoot.p_position = _pos_bbCenter
@@ -524,7 +539,7 @@ def prerig(self):
         mOrientHelper.p_parent = mHandleRoot
     
         mOrientHelper.doStore('cgmName','eyeOrient')
-        mOrientHelper.doStore('cgmType','templateHandle')
+        mOrientHelper.doStore('cgmType','formHandle')
         mOrientHelper.doName()
     
         self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
@@ -547,7 +562,7 @@ def prerig(self):
     
                 #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
                 mHandleOrb.doStore('cgmName','eyeOrb')    
-                mHandleOrb.doStore('cgmType','templateHandle')
+                mHandleOrb.doStore('cgmType','formHandle')
                 mHandleOrb.doName()
     
                 self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
@@ -593,7 +608,7 @@ def prerig(self):
                 
                 mHandle.p_parent = mStateNull
                 mHandle.doStore('cgmName',tag)
-                mHandle.doStore('cgmType','templateHandle')
+                mHandle.doStore('cgmType','formHandle')
                 mHandle.doName()
                 
                 mHandleFactory.color(mHandle.mNode,controlType='sub')
@@ -701,7 +716,7 @@ def prerig(self):
         
             #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
             mLidRoot.doStore('cgmName','lidRoot')    
-            mLidRoot.doStore('cgmType','templateHandle')
+            mLidRoot.doStore('cgmType','formHandle')
             mLidRoot.doName()
         
             mLidRoot.p_position = _pos_bbCenter
@@ -795,7 +810,7 @@ def skeleton_build(self, forceNew = True):
     
     _d_base = self.atBlockUtils('skeleton_getNameDictBase')
     _d_base['cgmType'] = 'skinJoint'    
-    pprint.pprint( _d_base )
+    #pprint.pprint( _d_base )
     
     #..name --------------------------------------
     def name(mJnt,d):
@@ -899,7 +914,7 @@ def skeleton_build(self, forceNew = True):
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))
     p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
-    mHeadHelper = ml_templateHandles[0].orientHelper
+    mHeadHelper = ml_formHandles[0].orientHelper
     
     #...create ---------------------------------------------------------------------------
     mHead_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
@@ -1023,10 +1038,10 @@ def rig_dataBuffer(self):
     ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
     mMasterNull = self.d_module['mMasterNull']
     
-    mEyeTemplateHandle = mBlock.bbHelper
+    mEyeFormHandle = mBlock.bbHelper
     
-    self.mRootTemplateHandle = mEyeTemplateHandle
-    ml_templateHandles = [mEyeTemplateHandle]
+    self.mRootFormHandle = mEyeFormHandle
+    ml_formHandles = [mEyeFormHandle]
     
     self.b_scaleSetup = mBlock.scaleSetup
     
@@ -1050,7 +1065,7 @@ def rig_dataBuffer(self):
         log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
         
         l_sizes = []
-        for mHandle in ml_templateHandles:
+        for mHandle in ml_formHandles:
             _size_sub = POS.get_bb_size(mHandle,True)
             l_sizes.append( MATH.average(_size_sub) * .1 )            
         self.v_offset = MATH.average(l_sizes)
@@ -1199,7 +1214,7 @@ def rig_skeleton(self):
             
             mLidRig.p_parent = mLidBlend
             
-        pprint.pprint(self.d_lidData)
+        #pprint.pprint(self.d_lidData)
     log.debug(cgmGEN._str_subLine)
     
     
@@ -1564,7 +1579,7 @@ def rig_frame(self):
     
     ml_joints = [mJointFK,mJointIK,mBlendJoint,mSettings,mDirect]
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     log.debug("|{0}| >> Adding to attach driver...".format(_str_func))
     self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode    
@@ -2149,7 +2164,7 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
             
         log.debug("|{0}| >>  IK targets...".format(_str_func))
-        pprint.pprint(ml_targetDynParents)        
+        #pprint.pprint(ml_targetDynParents)        
         
         log.debug(cgmGEN._str_subLine)
 
@@ -2211,7 +2226,7 @@ def rig_cleanUp(self):
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
     mBlock.blockState = 'rig'
-    mBlock.UTILS.set_blockNullTemplateState(mBlock)
+    mBlock.UTILS.set_blockNullFormState(mBlock)
     self.UTILS.rigNodes_store(self)
 
 
@@ -2310,6 +2325,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
+    raise ValueError,"This needs to be reworked to new block call"
+    
     _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -2438,7 +2455,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             
             
-            #mLoft = mBlock.getMessageAsMeta('{0}LidTemplateLoft'.format(tag))
+            #mLoft = mBlock.getMessageAsMeta('{0}LidFormLoft'.format(tag))
             #mMesh = mLoft.doDuplicate(po=False, ic=False)
             #mDag = mRigJoint.doCreateAt(setClass='cgmObject')
             #CORERIG.shapeParent_in_place(mDag.mNode, mMesh.mNode,False)

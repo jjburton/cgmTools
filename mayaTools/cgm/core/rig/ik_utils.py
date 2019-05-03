@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -452,7 +452,7 @@ def addSplineTwist(ikHandle = None, midHandle = None, advancedTwistSetup = False
         
     mi_crv = cgmMeta.validateObjArg(ATTR.get_driver("%s.inCurve"%mIKHandle.mNode,getNode=True),'cgmObject',noneValid=False)
     
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
 
     mPlug_start = cgmMeta.cgmAttr(mi_crv.mNode,'twistStart',attrType='float',keyable=True, hidden=False)
     mPlug_end = cgmMeta.cgmAttr(mi_crv.mNode,'twistEnd',attrType='float',keyable=True, hidden=False)
@@ -785,7 +785,7 @@ def buildFKIK(fkJoints = None,
     mPlug_IKon.doConnectOut("%s.visibility"%ikGroup)	
 
 
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     return True
 
 

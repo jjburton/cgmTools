@@ -275,7 +275,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             else:
                 mc.makeIdentity(mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)    
         
-        #Mirror attriubte Bridges ============================================================================================
+        #Mirror attriubte Bridges ==========================================================================
         if addForwardBack:
             mPlug_forwardBackDriver = cgmMeta.cgmAttr(mi_control,"forwardBack",attrType = 'float',keyable=True)
             try:

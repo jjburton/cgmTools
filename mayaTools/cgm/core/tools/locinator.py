@@ -396,12 +396,14 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     mc.refresh(su=1)
     try:
         for i,f in enumerate(_keysToProcess):
+            mc.currentTime(f)
             for o in _l_toDo:
                 _keys = _d_keysOfTarget.get(o,[])
                 if f in _keys:
-                    #log.info("|{0}| >> Baking: {1} | {2}...".format(_str_func,f,o))
+                    log.debug("|{0}| >> Baking: {1} | {2} | {3}".format(_str_func,f,o,_attrs))
                     
                     if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                        log.warning('Bake cancelled!')
                         break
                     mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
                 

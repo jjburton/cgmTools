@@ -39,8 +39,8 @@ class _MainMenus_(object):
 
     red9_homepage = "Red9_HomePage"
     red9_homepage_ann = "Open Red9Consultancy HomePage"
-    red9_blog = "Red9_Blog"
-    red9_blog_ann = "Open Red9Blog"
+    red9_blog = "Red9_News : Latest Tools!"
+    red9_blog_ann = "Open Red9 News Feed"
     red9_vimeo = "Red9_Vimeo Channel"
     red9_vimeo_ann = "Open Red9Vimeo Channel"
     red9_facebook = "Red9_Facebook"
@@ -72,6 +72,8 @@ class _MainMenus_(object):
     open_in_explorer_ann = "Open the folder containing the current Maya Scene"
     copy_to_clipboard = 'Red9: Copy to Clipboard'
     copy_to_clipboard_ann = 'Copy the current Maya filepath to the OS:Clipboard'
+    open_r9anim = 'Red9 PRO: Import r9Anim Direct'
+    open_r9anim_ann = 'Import an r9Anim file direct IF it has internal reference file pointers (mRig Only)'
 
     # TimeSlider menu additions
     collapse_time = 'Red9: Collapse Time'
@@ -429,6 +431,8 @@ checkBoxes will process all children of the roots'''
     pose_load_ann = 'Load Pose data for the given Hierarchy or Selections'
     pose_save = 'Save Pose'
     pose_save_ann = 'Save Pose data for the given Hierarchy or Selections'
+    pose_blend = 'Blend Pose'
+    pose_blend_ann = 'blend the selected pose with the current objects transforms'
     pose_hierarchy_ann = "Hierarchy: if OFF during Load then the pose will load to the selected nodes IF they're in the pose file"
     pose_set_root = 'SetRootNode'
     pose_set_root_ann = 'Hierarchy Root Node for the Pose'

@@ -10,6 +10,8 @@ Website : http://www.cgmonks.com
 Class Factory for 
 ================================================================
 """
+__MAYALOCAL = 'NAMETOOLS'
+
 # From Python =============================================================
 import copy
 import re
@@ -262,11 +264,13 @@ def get_objNameDict(obj,ignore=[False]):
             if nameObj:
                 nameObj = nameObj[0]
                 nameObjDict = get_objNameDict(nameObj)
-                for k in 'cgmDirection','test':
-                    if nameObjDict.get(k) and namesDict.get(k):
-                        namesDict.pop(k)
+                #pprint.pprint(nameObjDict)
+                for k in 'cgmDirection','cgmPosition':
+                    #if nameObjDict.get(k) and namesDict.get(k):
+                    try:namesDict.pop(k)
+                    except:pass
                 log.debug("nameObj: {0}".format(nameObj))
-                namesDict['cgmName'] = nameObj
+                namesDict['cgmName'] = names.getBaseName(nameObj)
                 return namesDict
         
         typeTag = SEARCH.get_nodeTagInfo(obj,'cgmType')

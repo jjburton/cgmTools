@@ -59,24 +59,13 @@ import cgm.core.mrs.lib.puppet_utils as PUPPETUTILS
 import cgm.core.mrs.lib.module_utils as MODULEUTILS
 import cgm.core.rig.general_utils as RIGGEN
 from cgm.core.classes import GuiFactory as cgmUI
-
-for m in MODULEUTILS,PUPPETUTILS,BLOCKUTILS,BLOCKGEN:
-    reload(m)
-
-#reload(BUILDERUTILS)
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 from cgm.core.lib import nameTools
-#reload(BLOCKSHARE)
 from cgm.core.classes import GuiFactory as CGMUI
-#reload(CGMUI)
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 get_from_scene = BLOCKGEN.get_from_scene
 
-#from cgm.core.lib import nameTools
-#from cgm.core.rigger import ModuleFactory as mFactory
-#from cgm.core.rigger import PuppetFactory as pFactory
-#from cgm.core.classes import NodeFactory as nodeF
 
-#from cgm.core.mrs.blocks import box
 
 #_d_blockTypes = {'box':box}
 
@@ -187,7 +176,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     _l_controlLinks = []
     _l_controlmsgLists = []
 
-    def __init__(self, node = None, blockType = None, blockParent = None, autoTemplate = True, *args,**kws):
+    def __init__(self, node = None, blockType = None, blockParent = None, autoForm = True, *args,**kws):
         """ 
         The root of the idea of cgmRigBlock is to be a sizing mechanism and build options for
         our modular rigger.
@@ -296,7 +285,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         try:
                             if a == 'side' and v == None:
                                 v = 0
-                            log.info("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
+                            log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
                             ATTR.set(self.mNode,a,v)
                         except Exception,err:
                             log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
@@ -342,15 +331,21 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     if 'define' in _blockModule.__dict__.keys():
                         log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
                         _blockModule.define(self)
+                        
+                    try:BLOCKUTILS.attrMask_getBaseMask(self)
+                    except Exception,err:
+                        log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
+
+                    self.doName()
                 
-                #Template -------------------------------------------------
-                if autoTemplate and _blockModule.__dict__.get('__autoTemplate__'):
-                    log.debug("|{0}| >> AutoTemplate...".format(_str_func))
+                #Form -------------------------------------------------
+                if autoForm and _blockModule.__dict__.get('__autoForm__'):
+                    log.debug("|{0}| >> AutoForm...".format(_str_func))
                     if _sizeMode:
-                        _postState = 'template'
+                        _postState = 'form'
             
                     else:
-                        self.p_blockState = 'template'
+                        self.p_blockState = 'form'
             else:log.debug("|{0}| >> No verify...".format(_str_func))
                 
             if blockParent is not None:
@@ -366,9 +361,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     #self.atUtils('doSize', _sizeMode, postState = _postState )                
 
         except Exception,err:
-            pprint.pprint(vars())
+            #pprint.pprint(vars())
             log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
-            
+            cgmGEN.cgmException(Exception,err)
             #cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
@@ -377,75 +372,13 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """ 
 
         """
-        try:
-            reload(BLOCKSHARE)#...to make sure we get changes
-            try:reload(self.p_blockModule)
-            except:pass
-            
-            _str_func = '[{0}] verify'.format(self.p_nameShort)
-    
-            #_start = time.clock()
-    
-            if self.isReferenced():
-                raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
-    
-            #if blockType and not is_blockType_valid(blockType):
-                #raise ValueError,"|{0}| >> Invalid blocktype specified".format(_str_func)
-    
-            _type = self.getMayaAttr('blockType')
-            if blockType is not None:
-                if _type is not None and _type != blockType:
-                    raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-            else:
-                blockType = _type
-    
-            #_mBlockModule = get_blockModule(blockType)
-    
-            #if not _mBlockModule:
-                #log.error("|{0}| >> [{1}] | Failed to query type. Probably not a module".format(_str_func,blockType))        
-                #return False
-    
-            #if 'build_rigBlock' not in _module.__dict__.keys():
-                #log.error("|{0}| >> [{1}] | Failed to query create function.".format(_str_func,blockType))        
-                #return False
-    
-            #>>> Attributes --------------------------------------------------------------------------------
-            #self._factory.verify(blockType)
-            BLOCKUTILS.verify_blockAttrs(self,queryMode=False)
-            #self.atBlockUtils('verify_blockAttrs',queryMode = False)
-            
-            _side = side
-            try:
-                if _side is not None and self._callKWS.get('side'):
-                    _side = self._callKWS.get('side')
-            except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
-
-    
-            if _side is not None:
-                log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
-                try: ATTR.set(self.mNode,'side',_side)
-                except Exception,err:
-                    log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
-    
-    
-            #>>> Base shapes --------------------------------------------------------------------------------
-            #_size = self._callKWS.get('size')
-            #log.info("|{0}| >> size: {1}".format(_str_func, self._callSize))  
-            #get_callSize(self._callKWS.get('size'), blockModule=_mBlockModule, rigBlock = self)
-            try:self.baseSize = self._callSize
-            except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
-    
-            self.doName()
-            #log.debug("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-            
-            if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
-                ATTR.convert_type(self.mNode,'blockProfile','string')
-            
-            return True
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        return self.UTILS.verify(self,blockType,size,side)
 
     def doName(self):
         return self.atUtils('doName')
+    
+    def query_blockModuleByType(self,*args,**kws):
+        return get_blockModule(*args,**kws)
 
 
     def getControls(self, asMeta = False):
@@ -611,28 +544,28 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def getModuleStatus(self,state = None):
         return get_blockModule_status(self.blockType, state)
 
-    def getBlockDat_templateControls(self,report = False):
+    def getBlockDat_formControls(self,report = False):
         _short = self.p_nameShort        
-        _str_func = '[{0}] getBlockDat_templateControls'.format(_short)
+        _str_func = '[{0}] getBlockDat_formControls'.format(_short)
 
-        _blockState_int = self.getState(False)
+        _blockState_int = self.blockState
 
         if not _blockState_int:
-            raise ValueError,'[{0}] not templated yet'.format(_short)
-            #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-        _ml_templateHandles = self.atUtils('controls_get',True,False)
+            raise ValueError,'[{0}] not formd yet'.format(_short)
+            #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+        _ml_formHandles = self.atUtils('controls_get',True,False)
             
-        if not _ml_templateHandles:
-            log.error('[{0}] No template or prerig handles found'.format(_short))
+        if not _ml_formHandles:
+            log.error('[{0}] No form or prerig handles found'.format(_short))
             return False
 
-        _ml_controls = [self] + _ml_templateHandles
+        _ml_controls = [self] + _ml_formHandles
 
         _l_orientHelpers = []
         _l_jointHelpers = []
         _d_orientHelpers = {}
         _d_jointHelpers = {}        
-        for i,mObj in enumerate(_ml_templateHandles):
+        for i,mObj in enumerate(_ml_formHandles):
             log.info("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
             if mObj.getMessage('orientHelper'):
                 #_l_orientHelpers.append(mObj.orientHelper.rotate)
@@ -647,16 +580,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
             #else:
                 #_l_jointHelpers.append(False)
                 
-        _d = {'positions':[mObj.p_position for mObj in _ml_templateHandles],
-              'orientations':[mObj.p_orient for mObj in _ml_templateHandles],
-              'scales':[mObj.scale for mObj in _ml_templateHandles],
+        _d = {'positions':[mObj.p_position for mObj in _ml_formHandles],
+              'orientations':[mObj.p_orient for mObj in _ml_formHandles],
+              'scales':[mObj.scale for mObj in _ml_formHandles],
               'jointHelpers':_d_jointHelpers,
               'orientHelpers':_d_orientHelpers}
 
         if self.getMessage('orientHelper'):
             _d['rootOrientHelper'] = self.orientHelper.rotate
 
-        if report:cgmGEN.walk_dat(_d,'[{0}] template blockDat'.format(self.p_nameShort))
+        if report:cgmGEN.walk_dat(_d,'[{0}] form blockDat'.format(self.p_nameShort))
         return _d
 
     def getBlockDat_prerigControls(self,report = False):
@@ -711,94 +644,26 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def getBlockModule(self,update = False):
         if self._blockModule and  update:
-            if self._blockModule:
+            if self._blockModule:                
                 return self._blockModule
             return get_blockModule(self.getMayaAttr('blockType'))
         blockType = self.getMayaAttr('blockType')
         blockModule = get_blockModule(blockType)
         if not blockModule:
             raise ValueError,"No blockModule found. blockType: {0}".format(self.blockType)
-        reload(blockModule)
         return blockModule
 
     try:p_blockModule = property(getBlockModule)
     except Exception,err:
         log.error("Failed to load block module. Check it. {0}".format(self))        
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    def getBlockDat(self,report = True):
+        log.error(err)
+        
+    def getBlockDat(self,report = False):
         """
         Carry from Bokser stuff...
         """
         return BLOCKUTILS.blockDat_get(self,report)
-        try:
-            _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
-            _ml_controls = self.getControls(True)
-            _short = self.p_nameShort
-            _blockState_int = self.getState(False)
-            #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
-            _d = {#"name":_short, 
-                  "blockType":self.blockType,
-                  "blockState":self.p_blockState,
-                  "baseName":self.getMayaAttr('baseName'), 
-                  #"part":self.part,
-                  ##"blockPosition":self.getEnumValueString('position'),
-                  ##"blockDirection":self.getEnumValueString('side'),
-                  ###"attachPoint":self.getEnumValueString('attachPoint'),
-                  #"_rig":self._rig.name if self._rig else None, 
-                  #"_template":self._template.name if self._template else None, 
-                  #"_controls":self._controls.name if self._controls else None, 
-                  #"_attach":self._attach.name if self._attach else None, 
-                  #"_noTouch":self._noTouch.name if self._noTouch else None, 
-                  #"controls":[mObj.mNode for mObj in _ml_controls],
-                  "positions":[mObj.p_position for mObj in _ml_controls],
-                  "orientations":[mObj.p_orient for mObj in _ml_controls],
-                  "scale":[mObj.scale for mObj in _ml_controls],
-                  "isSkeletonized":self.isSkeletonized(),
-                  #...these will be indexed against the number of handles
-                  #"templatePositions":[x.name for x in self.templatePositions or []], 
-                  #"templateOrientation":[x.name for x in self.templateOrientation or []], 
-                  #"templateNodes":[x.name for x in self.templateNodes or []], 
-                  #"controls":[x.name for x in self.controls or []], 
-                  #"rigJoints":[x.name for x in self.rigJoints or []], 
-                  #"skinJoints":[x.name for x in self.skinJoints or []], 
-                  #"ikJoints":[x.name for x in self.ikJoints or []], 
-                  #"fkJoints":[x.name for x in self.fkJoints or []], 
-                  #"ikControls":[x.name for x in self.ikControls or []], 
-                  #"fkControls":[x.name for x in self.fkControls or []], 
-                  #"settingsControl":self.settingsControl.name if self.settingsControl else None, 
-                  #"ikSwitchNodes":[x.name for x in self.ikSwitchNodes or []], 
-                  #"fkSwitchNodes":[x.name for x in self.fkSwitchNodes or []], 
-                  #"attachPoints":[x.name for x in self.attachPoints or []],
-                  "version":self.version, 
-                  "ud":{}
-                  }   
 
-            if self.getShapes():
-                _d["size"] = POS.get_axisBox_size(self.mNode,False),
-            else:
-                _d['size'] = self.baseSize
-
-            if _blockState_int >= 1:
-                _d['template'] = self.getBlockDat_templateControls()
-
-            if _blockState_int >= 2:
-                _d['prerig'] = self.getBlockDat_prerigControls() 
-
-            for a in self.getAttrs(ud=True):
-                if a not in _l_udMask:
-                    _type = ATTR.get_type(_short,a)
-                    if _type in ['message']:
-                        continue
-                    elif _type == 'enum':
-                        _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
-                    else:
-                        _d['ud'][a] = ATTR.get(_short,a)
-
-            if report:cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
-            return _d
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-            
     def saveBlockDat(self):
         self.blockDat = self.getBlockDat(False)
 
@@ -875,39 +740,39 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         ATTR.set(_short,_a,v)
         
         
-        #>>Template Controls ====================================================================================
+        #>>Form Controls ====================================================================================
         _int_state = self.getState(False)
         
         if _int_state > 0:
-            log.info("|{0}| >> template dat....".format(_str_func))             
-            _d_template = blockDat.get('template',False)
-            if not _d_template:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+            log.info("|{0}| >> form dat....".format(_str_func))             
+            _d_form = blockDat.get('form',False)
+            if not _d_form:
+                log.error("|{0}| >> No form data found in blockDat".format(_str_func)) 
             else:
                 #if _int_state == 1:
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-                _ml_templateHandles = self.atUtils('controls_get',True,False)
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+                _ml_formHandles = self.atUtils('controls_get',True,False)
                 #else:
-                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                #_ml_formHandles = self.msgList_get('prerigHandles',asMeta = True)                
 
 
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
-                if not _ml_templateHandles:
-                    log.error("|{0}| >> No template handles found".format(_str_func))
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+                if not _ml_formHandles:
+                    log.error("|{0}| >> No form handles found".format(_str_func))
                 else:
-                    _posTempl = _d_template.get('positions')
-                    _orientsTempl = _d_template.get('orientations')
-                    _scaleTempl = _d_template.get('scales')
-                    _jointHelpers = _d_template.get('jointHelpers')
+                    _posTempl = _d_form.get('positions')
+                    _orientsTempl = _d_form.get('orientations')
+                    _scaleTempl = _d_form.get('scales')
+                    _jointHelpers = _d_form.get('jointHelpers')
 
-                    if len(_ml_templateHandles) != len(_posTempl):
-                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_templateHandles),len(_posTempl))) 
+                    if len(_ml_formHandles) != len(_posTempl):
+                        log.error("|{0}| >> Form handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_formHandles),len(_posTempl))) 
                     else:
                         for i_loop in range(2):
                             log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
                             
-                            for i,mObj in enumerate(_ml_templateHandles):
-                                log.info ("|{0}| >> TemplateHandle: {1}".format(_str_func,mObj.mNode))
+                            for i,mObj in enumerate(_ml_formHandles):
+                                log.info ("|{0}| >> FormHandle: {1}".format(_str_func,mObj.mNode))
                                 mObj.p_position = _posTempl[i]
                                 mObj.p_orient = _orientsTempl[i]
                                 _tmp_short = mObj.mNode
@@ -918,9 +783,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
                                 if _jointHelpers and _jointHelpers.get(i):
                                     mObj.jointHelper.translate = _jointHelpers[i]
                                 
-                if _d_template.get('rootOrientHelper'):
+                if _d_form.get('rootOrientHelper'):
                     if self.getMessage('orientHelper'):
-                        self.orientHelper.p_orient = _d_template.get('rootOrientHelper')
+                        self.orientHelper.p_orient = _d_form.get('rootOrientHelper')
                     else:
                         log.error("|{0}| >> Found root orient Helper data but no orientHelper control".format(_str_func))
                         
@@ -928,16 +793,16 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.info("|{0}| >> prerig dat....".format(_str_func))             
             _d_prerig = blockDat.get('prerig',False)
             if not _d_prerig:
-                log.error("|{0}| >> No template data found in blockDat".format(_str_func)) 
+                log.error("|{0}| >> No form data found in blockDat".format(_str_func)) 
             else:
                 #if _int_state == 1:
                 _ml_prerigControls = self.msgList_get('prerigHandles',asMeta = True)
                 #_ml_prerigControls = self.atUtils('controls_get',True,False)
                 #else:
-                #_ml_templateHandles = self.msgList_get('prerigHandles',asMeta = True)                
+                #_ml_formHandles = self.msgList_get('prerigHandles',asMeta = True)                
 
 
-                #_ml_templateHandles = self.msgList_get('templateHandles',asMeta = True)
+                #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
                 if not _ml_prerigControls:
                     log.error("|{0}| >> No prerig handles found".format(_str_func))
                 else:
@@ -947,7 +812,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
                     _jointHelpersPre = _d_prerig.get('jointHelpers')
 
                     if len(_ml_prerigControls) != len(_posPre):
-                        log.error("|{0}| >> Template handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
+                        log.error("|{0}| >> Form handle dat doesn't match. Cannot load. self: {1} | blockDat: {2}".format(_str_func,len( _ml_prerigControls),len(_posPre))) 
                     else:
                         for i_loop in range(2):
                             log.info("|{0}| >> Loop: {1}".format(_str_func,i_loop))
@@ -1001,46 +866,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     def getState(self, asString = True):
         return self.atUtils('getState',asString)
-        _str_func = '[{0}] getState'.format(self.p_nameShort)
-        #if asString:
-        #    return self.blockState
-        #return BLOCKSHARE._l_blockStates.index(self.blockState)
-        _blockModule = get_blockModule(self.blockType)
-        _goodState = False
-        _l_blockStates = BLOCKSHARE._l_blockStates
-
-        _state = self.blockState
-        if _state not in BLOCKSHARE._l_blockStates:
-            log.debug("|{0}| >> Failed a previous change: {1}. Reverting to previous".format(_str_func,_state))                    
-            _state = _state.split('>')[0]
-            self.blockState = _state
-            self.changeState(_state),#rebuild=True)
-
-        if _state == 'define':
-            _goodState = 'define'
-        else:
-            _call = getattr(_blockModule,'is_{0}'.format(_state))
-            if _call and _call(self):
-                log.debug("|{0}| >> blockModule test...".format(_str_func))     
-                _goodState = _state  
-            else:
-                _idx = _l_blockStates.index(_state) - 1
-                log.debug("|{0}| >> blockModule test failed. Testing: {1}".format(_str_func, _l_blockStates[_idx]))                
-                while _idx > 0 and not _blockModule.__dict__['is_{0}'.format(_l_blockStates[_idx])](self):
-                    log.debug("|{0}| >> Failed {1}. Going down".format(_str_func,_l_blockStates[_idx]))
-                    _blockModule.__dict__['{0}Delete'.format(_l_blockStates[_idx])](self)
-                    #self.changeState(_l_blockStates[_idx])
-                    _idx -= 1
-                _goodState = _l_blockStates[_idx]
-
-
-        if _goodState != self.blockState:
-            log.debug("|{0}| >> Passed: {1}. Changing buffer state".format(_str_func,_goodState))                    
-            self.blockState = _goodState
-
-        if asString:
-            return _goodState
-        return _l_blockStates.index(_goodState)
+        
 
     def changeState(self, *args,**kws):
         _res = self.atUtils('changeState',*args,**kws)
@@ -1105,6 +931,9 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def delete(self):
         BLOCKUTILS.delete(self)
         
+    def duplicate(self,uiPrompt=True):
+        return BLOCKUTILS.duplicate(self,uiPrompt)
+        
     def puppetMesh_create(self,*args,**kws):
         reload(BLOCKUTILS)
         return BLOCKUTILS.puppetMesh_create(self,*args,**kws)
@@ -1118,7 +947,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     @staticmethod
     def MirrorBlock(rootBlock = None, mirrorBlock = None, reflectionVector = MATH.Vector3(1,0,0) ):
         try:
-            '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+            '''Mirrors the form positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
             _str_func = 'MirrorBlock'
     
             if not rootBlock or not mirrorBlock:
@@ -1131,7 +960,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             
             rootTransform = rootBlock
             rootReflectionVector = TRANS.transformDirection(rootTransform,reflectionVector).normalized()
-            #rootReflectionVector = rootTransform.templatePositions[0].TransformDirection(reflectionVector).normalized()
+            #rootReflectionVector = rootTransform.formPositions[0].TransformDirection(reflectionVector).normalized()
             
             print("|{0}| >> Root: {1}".format(_str_func, rootTransform.p_nameShort))                                            
             
@@ -1139,56 +968,56 @@ class cgmRigBlock(cgmMeta.cgmControl):
             if mirrorBlock:
                 print ("|{0}| >> Target: {1} ...".format(_str_func, mirrorBlock.p_nameShort))
                 
-                _blockState = rootBlock.getState(False)
-                _mirrorState = mirrorBlock.getState(False)
+                _blockState = rootBlock.blockState
+                _mirrorState = mirrorBlock.blockState
                 if _blockState > _mirrorState or _blockState < _mirrorState:
                     print ("|{0}| >> root state greater. Matching root: {1} to mirror:{2}".format(_str_func, _blockState,_mirrorState))
                 else:
                     print ("|{0}| >> blockStates match....".format(_str_func, mirrorBlock.p_nameShort))
                     
                 #if rootBlock.blockState != BlockState.TEMPLATE or mirrorBlock.blockState != BlockState.TEMPLATE:
-                    #print "Can only mirror blocks in Template state"
+                    #print "Can only mirror blocks in Form state"
                     #return
                 
                 #cgmGEN.func_snapShot(vars())
                 return
             
-                currentTemplateObjects = block.templatePositions
-                templateHeirarchyDict = {}
-                for i,p in enumerate(currentTemplateObjects):
-                    templateHeirarchyDict[i] = p.fullPath.count('|')
+                currentFormObjects = block.formPositions
+                formHeirarchyDict = {}
+                for i,p in enumerate(currentFormObjects):
+                    formHeirarchyDict[i] = p.fullPath.count('|')
     
-                templateObjectsSortedByHeirarchy = sorted(templateHeirarchyDict.items(), key=operator.itemgetter(1))
+                formObjectsSortedByHeirarchy = sorted(formHeirarchyDict.items(), key=operator.itemgetter(1))
     
                 for x in range(2):
                     # do this twice in case there are any stragglers 
-                    for i in templateObjectsSortedByHeirarchy:
+                    for i in formObjectsSortedByHeirarchy:
                         index = i[0]
-                        #print "Mirroring %s to %s" % (mirrorBlock.templatePositions[index].name, block.templatePositions[index].name)
+                        #print "Mirroring %s to %s" % (mirrorBlock.formPositions[index].name, block.formPositions[index].name)
     
                         # reflect rotation
-                        reflectAim = block.templatePositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
-                        reflectUp  = block.templatePositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
-                        mirrorBlock.templatePositions[index].LookRotation( reflectAim, reflectUp )
+                        reflectAim = block.formPositions[index].TransformDirection( MATH.Vector3(0,0,1)).reflect( rootReflectionVector )
+                        reflectUp  = block.formPositions[index].TransformDirection( MATH.Vector3(0,1,0)).reflect( rootReflectionVector )
+                        mirrorBlock.formPositions[index].LookRotation( reflectAim, reflectUp )
     
-                    for i in templateObjectsSortedByHeirarchy:
+                    for i in formObjectsSortedByHeirarchy:
                         index = i[0]
-                        wantedPos = (block.templatePositions[index].position - rootTransform.templatePositions[0].position).reflect( rootReflectionVector ) + rootTransform.templatePositions[0].position
+                        wantedPos = (block.formPositions[index].position - rootTransform.formPositions[0].position).reflect( rootReflectionVector ) + rootTransform.formPositions[0].position
     
                         #print "wanted position:", wantedPos
-                        mirrorBlock.templatePositions[index].position = wantedPos
+                        mirrorBlock.formPositions[index].position = wantedPos
     
-                        if block.templatePositions[index].type == "joint":
-                            #mirrorBlock.templatePositions[index].SetAttr("radius", block.templatePositions[index].GetAttr("radius"))
-                            mirrorBlock.templatePositions[index].radius = block.templatePositions[index].radius
+                        if block.formPositions[index].type == "joint":
+                            #mirrorBlock.formPositions[index].SetAttr("radius", block.formPositions[index].GetAttr("radius"))
+                            mirrorBlock.formPositions[index].radius = block.formPositions[index].radius
     
-                        wantedScale = block.templatePositions[index].localScale
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sx'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sx', wantedScale.x)
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sy'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sy', wantedScale.y)
-                        if not mc.getAttr(mirrorBlock.templatePositions[index].GetAttrString('sz'), l=True):
-                            mirrorBlock.templatePositions[index].SetAttr('sz', wantedScale.z)
+                        wantedScale = block.formPositions[index].localScale
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sx'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sx', wantedScale.x)
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sy'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sy', wantedScale.y)
+                        if not mc.getAttr(mirrorBlock.formPositions[index].GetAttrString('sz'), l=True):
+                            mirrorBlock.formPositions[index].SetAttr('sz', wantedScale.z)
     
                 for attr in mc.listAttr(block.name, ud=True, v=True, unlocked=True):
                     mirrorBlock.SetAttr( attr, block.GetAttr(attr) )
@@ -1207,7 +1036,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     @staticmethod
     def MirrorSelectedBlocks( reflectionVector = MATH.Vector3(1,0,0) ):
-        '''Mirrors the template positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
+        '''Mirrors the form positions from the block to the mirrorBlock across the reflection vector transformed from the root block'''
 
         for blockName in mc.ls(sl=True):
             currentBlock = Block.LoadRigBlock( GetNodeType(blockName) )
@@ -1224,7 +1053,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
     @staticmethod
     def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
-        '''Mirrors the given block using the mirrorBlock's template positions'''
+        '''Mirrors the given block using the mirrorBlock's form positions'''
 
         mirrorBlock = block.GetMirrorBlock()
 
@@ -1240,7 +1069,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
     def asHandleFactory(self,*a,**kws):
         if not kws.get('rigBlock'):
             kws['rigBlock'] = self
-        return handleFactory(*a,**kws)
+        return BLOCKSHAPES.handleFactory(*a,**kws)
     
     def asRigFactory(self,*a,**kws):
         return rigFactory(self,*a,**kws)    
@@ -1265,6 +1094,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         #try:
         _blockModule = self.p_blockModule
+        reload(_blockModule)
         return getattr(_blockModule,func)(self,*args,**kws)            
         #return self.stringModuleCall(_blockModule,func,*args, **kws)
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
@@ -1371,1254 +1201,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.error("|{0}| >> [{1}] Block module lacks 'build_proxyMesh' call.".format(_str_func, self.blockType))                        
             return False
         
-        mRigFac = rigFactory(self, autoBuild = False)
-        return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        return self.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        #mRigFac = rigFactory(self, autoBuild = False)
+        #return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
     
-
-class handleFactory(object):
-    _l_controlLinks = []
-    _l_controlmsgLists = []	
-
-    def __init__(self, node = None, rigBlock = None,baseShape = 'square',  baseSize = 1, side = None,
-                 shapeDirection = 'z+', aimDirection = 'z+', upDirection = 'y+', *a,**kws):
-        """
-        :returns
-            factory instance
-        """
-        _str_func = 'handleFactory._init_'
-
-        if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
-        if kws:
-            self._call_kws = kws
-            cgmGEN.walk_dat(kws,_str_func)
-            #log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
-        
-        self.mBlock = None
-        self._mTransform = None
-        self._baseShape = baseShape
-        self._baseSize = get_callSize(baseSize)
-        self._side = side
-        self._mTemp = None
-        
-        #if node is None:
-            #self._mTransform = cgmMeta.createMetaNode('cgmObject',nodeType = 'transform', nameTools = baseShape)
-            #self.rebuildSimple(baseShape,baseSize,shapeDirection)
-        if node is not None:
-            self.setHandle(node)
-        if rigBlock is not None:
-            self.setRigBlock(rigBlock)
-            #self.setHandle(rigBlock)
-            
-    def __repr__(self):
-        try:return "{0}(root: {1} | mBlock: {2})".format(self.__class__, self._mTransform, self.mBlock)
-        except:return self
-        
-    def setHandle(self,arg = None):
-        #if not VALID.is_transform(arg):
-            #raise ValueError,"must be a transform"
-
-        self._mTransform = cgmMeta.validateObjArg(arg,'cgmObject')
-        #if not self._mTransform.hasAttr('baseSize'):
-            #ATTR.add(self._mTransform.mNode,'baseSize','float3')
-            #self._mTransform.baseSize = 1.0,1.0,1.0
-            #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
-            
-    def setRigBlock(self,arg = None):
-        mBlock = cgmMeta.validateObjArg(arg)
-        if mBlock.mClass != 'cgmRigBlock':
-            raise ValueError,"Not a rigBlock: {0}".format(arg)
-        self.mBlock = mBlock
-
-                #ATTR.set_hidden(self._mTransform.mNode,'baseSize',False)
-    
-    def rebuildSimple(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
-        self.cleanShapes()
-
-        if baseShape is None:
-            baseShape = 'square'
-
-        self._mTransform.addAttr('baseShape', baseShape,attrType='string')
-
-        SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
-
-        if baseSize is not None:
-            _baseSize = get_callSize(baseSize)
-            #self._mTransform.baseSize = baseSize
-
-        _baseSize = self.mBlock.baseSize
-
-        _baseShape = self._mTransform.getMayaAttr('baseShape') 
-        mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-        CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
-
-        # CURVES.create_fromName('square', color = 'yellow', direction = 'y+', sizeMode = 'fixed', size = _size * .5)
-
-        #self.color()
-
-        #if not self._mTransform.hasAttr('cgmName'):
-            #self._mTransform.doStore('cgmName',baseShape)
-
-        self._mTransform.doStore('cgmType','blockHandle')
-        self._mTransform.doName()
-        return True
-
-    def verify(self, baseShape = None, baseSize = None, shapeDirection = 'z+'):
-        SNAP.verify_aimAttrs(self._mTransform.mNode, aim = 'z+', up = 'y+')
-        return True
-
-    def cleanShapes(self):
-        if self._mTransform.getShapes():
-            mc.delete(self._mTransform.getShapes())     
-
-        for link in ['loftCurve']:
-            _buffer = self._mTransform.getMessage(link)
-            if _buffer:
-                mc.delete(_buffer)
-
-
-    def getBaseCreateSize(self):
-        _maxLossy = max(self._mTransform.getScaleLossy())
-        _baseSize = self.mBlock.baseSize * _maxLossy    
-        return _baseSize
-
-    def copyBlockNameTags(self, target = None, name = True, direction = True, position = True):
-        _str_func = 'handleFactory.copyBlockNameTags'
-        log.info("|{0}| >> ".format(_str_func)+ '-'*80)
-        
-        if not self.mBlock:
-            raise ValueError,"Must have rigBlock loaded"
-        mBlock = self.mBlock
-        
-        #_targets = VALID.listArg(target)
-        ml_targets = cgmMeta.validateObjListArg(target)
-        log.info("|{0}| >> target: [{1}]".format(_str_func, ml_targets))
-    
-        for mTar in ml_targets:
-            t = mTar.mNode
-            if name and mBlock.getMayaAttr('cgmName') and not mTar.getMayaAttr('cgmName') :
-                ATTR.copy_to(mBlock.mNode,'cgmName',t,driven='target')
-            if position and mBlock.getMayaAttr('cgmPosition') and not mTar.getMayaAttr('cgmPosition'):
-                ATTR.copy_to(mBlock.mNode,'cgmPosition',t,driven='target')
-            if not mTar.getMayaAttr('cgmDirection'):
-                if direction and mBlock.getMayaAttr('cgmDirection'):
-                    ATTR.copy_to(mBlock.mNode,'cgmDirection',t,driven='target')
-                elif mBlock.side:
-                    mTar.doStore('cgmDirection',self.get_side())
-            mTar.doName()
-            
-                
-    def color(self, target = None, side = None, controlType = None, transparent = None,shaderOnly =True):
-        _str_func = 'handleFactory.color'
-        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
-        _targets = VALID.listArg(target)
-        log.debug("|{0}| >> target: [{1}]".format(_str_func, _targets))
-        
-        mTransform = self._mTransform
-        if side is None:
-            _side = self.get_side()
-        else:
-            log.debug("|{0}| >> arg side: {1}".format(_str_func, side))            
-            _side = side
-            
-        if transparent is None:
-            _transparent = True
-        else:
-            log.debug("|{0}| >> arg transparent: {1}".format(_str_func, transparent))            
-            _transparent = transparent
-                
-        if controlType is None:
-            _controlType = 'main'        
-        else:
-            log.debug("|{0}| >> arg controlType: {1}".format(_str_func, controlType))                        
-            _controlType = controlType
-        
-        for t in _targets:
-            if t is None:
-                t = self._mTransform.mNode
-                
-            if ATTR.get(t,'cgmColorLock'):
-                log.info("|{0}| >> No recolor flag! {1}".format(_str_func,t))                        
-                continue
-            
-            if VALID.get_mayaType(t) == 'joint':
-                CORERIG.colorControl(t,_side,_controlType,transparent = _transparent)
-                
-            else:
-                if VALID.is_shape(t):
-                    log.debug("|{0}| >> is shape: {1}".format(_str_func, t))                
-                    _shapes = [t]
-                else:
-                    _shapes = TRANS.shapes_get(t,True)
-                
-                for s in _shapes:
-                    log.debug("|{0}| >> s: {1}".format(_str_func, s))
-                    _useType = _controlType
-                    _type = VALID.get_mayaType(s)
-                    if controlType is not None:
-                        log.debug("|{0}| >> Setting controlType: {1}".format(_str_func, controlType))                                            
-                        ATTR.store_info(s,'cgmControlType',controlType)
-                        
-                    if transparent is not None and _type in ['mesh','nurbsSurface']:
-                        log.debug("|{0}| >> Setting transparent: {1}".format(_str_func, transparent))                                                                
-                        ATTR.store_info(s,'cgmControlTransparent',transparent)
-                        
-                    if ATTR.has_attr(s,'cgmControlType'):
-                        _useType = ATTR.get(s,'cgmControlType')
-                        log.debug("|{0}| >> Shape has cgmControlType tag: {1}".format(_str_func,_useType))                
-                    log.debug("|{0}| >> s: {1} | side: {2} | controlType: {3}".format(_str_func, s, _side, _useType))            
-                        
-                    if _type in ['mesh','nurbsSurface']:
-                        CORERIG.colorControl(s,_side,_useType,transparent = _transparent, shaderOnly = shaderOnly)
-                    else:
-                        CORERIG.colorControl(s,_side,_useType,transparent = _transparent,shaderOnly=False)
-                        
-
-
-    def get_baseDat(self, baseShape = None, baseSize = None, shapeDirection = None):
-        _str_func = 'get_baseDat'
-
-        
-        if not self._mTransform or self._mTransform.mNode is None:
-            if baseShape:
-                name=baseShape
-            else:
-                name='handleFactory_shape'
-            self._mTransform = cgmMeta.createMetaNode('cgmObject', name = name, nodeType = 'transform')
-            log.error("|{0}| >> Must have an handle loaded. One Generated".format(_str_func))
-            self._mTemp = self._mTransform
-        
-        
-        if baseShape:
-            _baseShape = baseShape
-        elif self._mTransform and self._mTransform.hasAttr('baseShape'):
-            _baseShape = self._mTransform.baseShape
-        else:
-            _baseShape = 'square'
-            
-        if baseSize is not None:
-            _baseSize = get_callSize(baseSize)
-        elif self._mTransform.getShapes():
-            _baseSize = POS.get_axisBox_size(self._mTransform.mNode,False)
-        elif self.mBlock and self.mBlock.hasAttr('baseSize'):
-            _baseSize = self.mBlock.baseSize
-        elif self._mTransform and self._mTransform.hasAttr('baseSize'):
-            _baseSize = self._mTransform.baseSize
-        else:
-            _baseSize = [1.0,1.0,1.0]
-
-        return [_baseShape,_baseSize]
-
-    def get_axisBox_size(self,targets = None, maxDistance = 10000000):
-        """
-        Putting this here till I can refactor it out of SNAPCALLS as I don't want it there permenantly
-        """
-        return SNAPCALLS.get_axisBox_size(targets,maxDistance)
-
-    def buildBaseShape(self, baseShape = None, baseSize = None, shapeDirection = 'z+' ):
-        _baseDat = self.get_baseDat(baseShape,baseSize)
-        _baseShape = _baseDat[0]
-        _baseSize = _baseDat[1]
-
-        if _baseShape not in ['sphere','sphere2','cube','locatorForm']:
-            _baseSize = [_baseSize[0],_baseSize[1],None]
-
-        if baseShape == 'self':
-            _crv = mc.duplicate( self._mTransform.getShapes()[0])[0]
-        else:
-            _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
-            TRANS.snap(_crv, self._mTransform.mNode) 
-            
-        mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-
-        #...lossy
-        _lossy = self._mTransform.getScaleLossy()
-        mCrv.scaleX = mCrv.scaleX * _lossy[0]
-        mCrv.scaleY = mCrv.scaleY * _lossy[1]
-        mCrv.scaleZ = mCrv.scaleZ * _lossy[2]
-        
-        if self._mTemp:
-            self._mTemp.delete()
-            self._mTemp = None
-        return mCrv
-
-    def get_side(self):
-        if self.mBlock:
-            return self.mBlock.atUtils('get_side')
-        if self._side:
-            return self._side
-        _side = 'center'
-        mHandle = self._mTransform        
-        if mHandle.getMayaAttr('side'):
-            _side = mHandle.getEnumValueString('side')
-        return _side
-
-    def addPivotSetupHelper(self,baseShape=None, baseSize = None, upAxis = 'y+', setAttrs = {}):
-        try:
-            _str_func = 'addPivotSetupHelper'
-            mHandle = self._mTransform
-            _short = mHandle.mNode
-            _side = self.get_side()
-
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-
-            _bbsize = POS.get_axisBox_size(mHandle.mNode,False)
-            _size = MATH.average(_bbsize)
-            _sizeSub = _size * .2
-
-            _bfr = mHandle.getMessage('scalePivotHelper')
-            if _bfr:
-                mc.delete(_bfr)
-
-
-            ml_pivots = []
-            mPivotRootHandle = False
-            self_pos = mHandle.p_position
-            self_upVector = mHandle.getAxisVector(upAxis)
-
-            d_pivotDirections = {'back':'z-',
-                                 'front':'z+',
-                                 'left':'x+',
-                                 'right':'x-'}        
-            _axisBox = False
-            
-            _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
-
-            for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
-                _strPivot = a.split('pivot')[-1]
-                _strPivot = _strPivot[0].lower() + _strPivot[1:]
-                log.info("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
-                if _strPivot == 'center':
-                    pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
-                                                       direction = upAxis,
-                                                       sizeMode = 'fixed',
-                                                       size = _sizeSub)
-                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                    mPivot.addAttr('cgmName',_strPivot)
-                    ml_pivots.append(mPivot)
-                else:
-                    if not _axisBox:
-                        _axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
-                        SNAP.go(_axisBox,self._mTransform.mNode)
-
-                    mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
-                    _inverse = mAxis.inverse.p_string
-                    pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
-                                                       direction = _inverse,
-                                                       sizeMode = 'fixed', size = _sizeSub)
-                    mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                    mPivot.addAttr('cgmName',_strPivot)
-                    
-                    #mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
-                    SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
-
-                    SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
-
-                    ml_pivots.append(mPivot)
-
-                    if not mPivotRootHandle:
-                        pivotHandle = CURVES.create_controlCurve(mHandle.mNode, shape=_baseShape,
-                                                                 direction = upAxis,
-                                                                 sizeMode = 'fixed', size = _size * 1.1)
-                        mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-                        mPivotRootHandle.addAttr('cgmName','base')
-                        mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-                        mPivotRootHandle.doName()
-
-                        #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
-                        self.color(mPivotRootHandle.mNode,_side,'sub')
-
-                        #mPivotRootHandle.parent = mPrerigNull
-                        mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-
-                        if mHandle.hasAttr('addPivot'):
-                            mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-                        self.mBlock.msgList_append('prerigHandles',mPivotRootHandle)
-
-            if _axisBox:
-                mc.delete(_axisBox)
-            for mPivot in ml_pivots:
-                mPivot.addAttr('cgmType','pivotHelper')            
-                mPivot.doName()
-
-                #CORERIG.colorControl(mPivot.mNode,_side,'sub') 
-                self.color(mPivot.mNode,_side,'sub')
-                
-                mPivot.parent = mPivotRootHandle
-                mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
-                self.mBlock.msgList_append('prerigHandles',mPivot)
-
-            if self._mTransform.getShapes():
-                SNAPCALLS.snap(mPivotRootHandle.mNode,self._mTransform.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
-
-            return mPivotRootHandle
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-            
-    def addFootHelper(self,baseShape=None, baseSize = None, upAxis = 'y+', setAttrs = {}):
-            try:
-                _str_func = 'addPivotSetupHelper'
-                mHandle = self._mTransform
-                _short = mHandle.mNode
-                _side = self.get_side()
-    
-                _baseDat = self.get_baseDat(baseShape,baseSize)
-                _baseShape = _baseDat[0]
-                _baseSize = _baseDat[1]
-    
-                _bbsize = POS.get_axisBox_size(mHandle.mNode,False)
-                _size = MATH.average(_bbsize)
-                _sizeSub = _size * .2
-    
-                _bfr = mHandle.getMessage('scalePivotHelper')
-                if _bfr:
-                    mc.delete(_bfr)
-    
-    
-                ml_pivots = []
-                mPivotRootHandle = False
-                self_pos = mHandle.p_position
-                self_upVector = mHandle.getAxisVector(upAxis)
-    
-                d_pivotDirections = {'back':'z-',
-                                     'front':'z+',
-                                     'left':'x+',
-                                     'right':'x-'}
-                _axisBox = False
-                
-                d_altName = {'back':'heel',
-                             'front':'toe',
-                             'center':'ball'}
-    
-                mAxis = VALID.simpleAxis(d_pivotDirections['front'])
-                #p_ballPush = DIST.get_pos_by_vec_dist(self_pos, mAxis.p_vector,_size/8 )
-                
-                _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
-                #Main Handle -----------------------------------------------------------------------------
-                pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
-                                                         shape=_baseShape,
-                                                         direction = 'y-',
-                                                         sizeMode = 'fixed',
-                                                         size = _size)
-                mPivotRootHandle = cgmMeta.validateObjArg(pivotHandle,'cgmObject',setClass=True)
-                mPivotRootHandle.addAttr('cgmName','base')
-                mPivotRootHandle.addAttr('cgmType','pivotHelper')            
-                mPivotRootHandle.doName()
-            
-                mPivotRootHandle.p_position = self_pos
-                #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
-                self.color(mPivotRootHandle.mNode,_side,'sub')
-            
-                #mPivotRootHandle.parent = mPrerigNull
-                mHandle.connectChildNode(mPivotRootHandle,'pivotHelper','block')#Connect    
-            
-                if mHandle.hasAttr('addPivot'):
-                    mHandle.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-            
-                self.mBlock.msgList_append('prerigHandles',mPivotRootHandle)
-            
-                #Top loft ----------------------------------------------------------------
-                mTopLoft = mPivotRootHandle.doDuplicate(po=False)
-                mTopLoft.addAttr('cgmName','topLoft')
-                mTopLoft.addAttr('cgmType','pivotHelper')            
-                mTopLoft.doName()
-            
-                mTopLoft.parent = mPivotRootHandle
-            
-                
-
-                
-                if not _axisBox:
-                    _axisBox = CORERIG.create_proxyGeo('cube',_baseSize,ch=False)[0]
-                    SNAP.go(_axisBox,self._mTransform.mNode)
-                    #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
-                    
-                #Sub pivots =============================================================================
-                for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
-                    _strPivot = a.split('pivot')[-1]
-                    _strPivot = _strPivot[0].lower() + _strPivot[1:]
-                    _strName = d_altName.get(_strPivot,_strPivot)
-                    log.info("|{0}| >> Adding pivot helper: {1}".format(_str_func,_strPivot))
-                    if _strPivot == 'center':
-                        pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
-                                                           direction = upAxis,
-                                                           sizeMode = 'fixed',
-                                                           size = _sizeSub)
-                        mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                        mPivot.addAttr('cgmName',_strName)
-                        ml_pivots.append(mPivot)
-                        mPivot.p_parent = mPivotRootHandle
-                        
-                        mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
-                        
-                        #mPivot.p_position = p_ballPush
-                    else:
-
-    
-                        mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
-                        _inverse = mAxis.inverse.p_string
-                        pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
-                                                           direction = _inverse,
-                                                           sizeMode = 'fixed', size = _sizeSub)
-                        mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
-                        mPivot.addAttr('cgmName',_strName)
-                        mPivot.p_parent = mPivotRootHandle
-                        
-                        mPivotRootHandle.connectChildNode(mPivot, a ,'handle')#Connect    
-    
-                        #mPivot.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size/2)
-                        SNAPCALLS.snap(mPivot.mNode,_axisBox,rotation=False,targetPivot='castNear',targetMode=mAxis.p_string)
-                        #SNAPCALLS.get_special_pos()
-                        #mPivot.p_position = #SNAPCALLS.get_special_pos(mPivotRootHandle.p_nameLong,'axisBox',mAxis.p_string,True)
-                        SNAP.aim_atPoint(mPivot.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
-    
-                        ml_pivots.append(mPivot)
-                        
-                        #if _strPivot in ['left','right']:
-                            #mPivot.p_position = p_ballPush
-                            #mPivot.tz = .75
-                                
-                #Clean up Pivot root after all else --------------------------------------------------
-                #mAxis = VALID.simpleAxis(d_pivotDirections['back'])
-                #p_Base = DIST.get_pos_by_axis_dist(mPivotRootHandle.mNode,
-                #                                   d_pivotDirections['back'],
-                #                                   _size/4 )
-                
-                #mc.xform (mPivotRootHandle.mNode,  ws=True, sp= p_Base, rp=p_Base, p=True)
-                
-                for mPivot in ml_pivots:#Unparent for loft
-                    mPivot.p_parent = False
-                    
-                if self._mTransform.getMessage('loftCurve'):
-                    log.info("|{0}| >> LoftSetup...".format(_str_func))
-                    
-                    #Fix the aim on the foot
-                    mTopLoft.parent = False
-                    
-                    l_footTargets = [self._mTransform.loftCurve.mNode, mTopLoft.mNode,mPivotRootHandle.mNode]
-                    
-                    _res_body = mc.loft(l_footTargets, o = True, d = 3, po = 0,reverseSurfaceNormals=True)
-                    
-                    mTopLoft.parent = mPivotRootHandle
-                    
-                    _loftNode = _res_body[1]
-                    mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)        
-                        
-                        
-                    mLoftSurface.overrideEnabled = 1
-                    mLoftSurface.overrideDisplayType = 2
-                    #...this used to be {1} + 1. may need to revisit for head/neck
-                    
-                    mLoftSurface.parent = self.mBlock.templateNull
-
-                    #mLoft.p_parent = mTemplateNull
-                    mLoftSurface.resetAttrs()
-                    
-                    ATTR.set(_loftNode,'degree',1)    
-                
-                    mLoftSurface.doStore('cgmName',self.mBlock)
-                    mLoftSurface.doStore('cgmType','footApprox')
-                    mLoftSurface.doName()
-                
-                
-                
-                    #mc.polySetToFaceNormal(mLoft.mNode,setUserNormal = True)
-                    #polyNormal -normalMode 0 -userNormalMode 1 -ch 1 spine_block_controlsApproxShape;
-                
-                    #mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
-                
-                    #Color our stuff...
-                    self.color(mLoftSurface.mNode,transparent=True)
-                    #RIGGING.colorControl(mLoft.mNode,_side,'main',transparent = True)
-                
-                    mLoftSurface.inheritsTransform = 0
-                    for s in mLoftSurface.getShapes(asMeta=True):
-                        s.overrideDisplayType = 2   
-                
-                    self.mBlock.connectChildNode(mLoftSurface.mNode, 'templateFootMesh', 'block')
-                    
-                for mPivot in ml_pivots:
-                    mPivot.addAttr('cgmType','pivotHelper')            
-                    mPivot.doName()
-    
-                    #CORERIG.colorControl(mPivot.mNode,_side,'sub') 
-                    self.color(mPivot.mNode,_side,'sub')
-                    
-                    mPivot.parent = mPivotRootHandle
-                    
-                    #if mPivot.cgmName in ['ball','left','right']:
-                        #mPivot.tz = .5
-                        
-                    #mPivotRootHandle.connectChildNode(mPivot,'pivot'+ mPivot.cgmName.capitalize(),'handle')#Connect    
-                    self.mBlock.msgList_append('prerigHandles',mPivot)
-                    
-                    
-    
-                if self._mTransform.getShapes():
-                    SNAPCALLS.snap(mPivotRootHandle.mNode,self._mTransform.mNode,rotation=False,targetPivot='axisBox',targetMode='y-')
-                    mTopLoft.ty = 1
-                    
-                if _axisBox:
-                    mc.delete(_axisBox)
-                    
-                log.info(_bbsize)
-                #TRANS.scale_to_boundingBox(mPivotRootHandle.mNode,[_bbsize[0],None,_bbsize[2] * 2], False)
-                #mPivotRootHandle.scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2]
-                #mc.xform(mPivotRootHandle.mNode,
-                         #scale = [_bbsize[0],_bbsize[1],_bbsize[2] * 2],
-                         #worldSpace = True, absolute = True)
-                
-                return mPivotRootHandle,mTopLoft
-            except Exception,err:
-                cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-                
-    def add_lidsHelper(self,upAxis = 'y+', setAttrs = {}):
-        try:
-            _str_func = 'add_lidsHelper'
-            #mHandleMain = self._mTransform
-            mBlock = self.mBlock
-            _short = mBlock.mNode
-            _side = self.get_side()
-            
-            if not mBlock.setupLid:
-                raise ValueError,"No setupLid option detected"
-                return False
-            
-            _setup = mBlock.getEnumValueString('setupLid')
-            
-            log.info("|{0}| >> setupLid: {1}".format(_str_func,_setup))
-            
-            _v_size = [mBlock.blockScale * v for v in mBlock.baseSize]
-            _bbsize = POS.get_axisBox_size(mBlock.mNode,False)
-            _size = MATH.average(_bbsize)
-            _sizeSub = _size * .2
-
-            _bfr = mBlock.getMessage('lidsHelper')
-            if _bfr:
-                mc.delete(_bfr)
-            
-            
-
-            ml_handles = []
-            md_handles = {}
-            mRootHandle = False
-            self_pos = mBlock.p_position
-            self_upVector = mBlock.getAxisVector(upAxis)
-            self_aimVector = mBlock.getAxisVector('z+')
-
-            d_handleDirections = {'upr':'y+',
-                                 'lwr':'y-',
-                                 'left':'x+',
-                                 'right':'x-'}
-            
-            d_handleDirectionsDist = {'upr':_v_size[1],
-                                      'lwr':_v_size[1],
-                                      'left':_v_size[0],
-                                      'right':_v_size[0]}
-            _axisBox = False
-            
-            
-            p_push = DIST.get_pos_by_vec_dist(self_pos, self_aimVector, _size * 3 )
-            
-            #Main Handle -----------------------------------------------------------------------------
-            lidHandleShape = CURVES.create_controlCurve(mBlock.mNode,
-                                                        'loftCircle',
-                                                        direction = 'z+',
-                                                        size = _size)
-            POS.set(lidHandleShape,p_push )
-            if mBlock.getMessage('rootHelper'):
-                mLidHandle = mBlock.rootHelper.doCreateAt(setClass=True)
-                CORERIG.shapeParent_in_place(mLidHandle.mNode,lidHandleShape,False)
-            else:
-                mLidHandle = cgmMeta.validateObjArg(lidHandle,'cgmObject',setClass=True)
-
-            mLidHandle.addAttr('cgmName','base')
-            mLidHandle.addAttr('cgmType','lidsHelper')            
-            mLidHandle.doName()
-            #CORERIG.colorControl(mPivotRootHandle.mNode,_side,'sub') 
-            self.color(mLidHandle.mNode,_side,'main')
-        
-            #mPivotRootHandle.parent = mPrerigNull
-            mBlock.connectChildNode(mLidHandle,'lidsHelper','block')#Connect    
-        
-            if mBlock.hasAttr('setupLids'):
-                mBlock.doConnectOut('addPivot',"{0}.v".format(mPivotRootHandle.mNode))
-            
-            mLidHandle.p_parent = mBlock.templateNull
-            
-            mBlock.msgList_append('templateHandles',mLidHandle)
-            
-            
-            
-            #if not _axisBox:
-                #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
-            l_handles = ['lidUpr','lidLwr']
-                
-            if _setup not in ['clam']:
-                l_handles.extend(['lidLeft','lidRight'])
-            
-            #main handles =============================================================================
-            for a in l_handles:
-                _strHandle = a.split('lid')[-1]
-                _strHandle = _strHandle[0].lower() + _strHandle[1:]
-                _strName = _strHandle#d_altName.get(_strHandle,_strHandle)
-                
-                log.info("|{0}| >> Adding handle helper: {1}".format(_str_func,_strHandle))
-                
-                mAxis = VALID.simpleAxis(d_handleDirections[_strHandle])
-                _inverse = mAxis.inverse.p_string
-                
-                handle = CURVES.create_fromName('cubeOpen',
-                                                direction = 'z+',
-                                                size = _sizeSub*3)
-                
-                mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
-                mHandle.doSnapTo(_short)                
-                mHandle.addAttr('cgmName',_strName)
-                mHandle.p_parent = mLidHandle
-                self.color(mHandle.mNode,_side,'main')
-                mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect    
-
-                mHandle.p_position = DIST.get_pos_by_axis_dist(_short,mAxis.p_string,
-                                                               d_handleDirectionsDist.get(_strName)/2)
-                #SNAPCALLS.snap(mHandle.mNode,_axisBox,rotation=False,targetHandle='castNear',targetMode=mAxis.p_string)
-                #SNAPCALLS.get_special_pos()
-                #SNAP.aim_atPoint(mHandle.mNode,self_pos, _inverse, upAxis, mode='vector', vectorUp = self_upVector)
-
-                ml_handles.append(mHandle)
-                md_handles[_strName] = mHandle
-                
-                    #if _strHandle in ['left','right']:
-                        #mHandle.p_position = p_ballPush
-                        #mHandle.tz = .75
-                        
-            if _setup not in ['clam']:
-                #Sub handles ==============================================================================
-                d_handleDirections = {'uprLeft':['left','upr'],
-                                      'uprRight':['right','upr'],
-                                      'lwrLeft':['left','lwr'],
-                                      'lwrRight':['right','lwr'],
-                                      }
-                
-                for a,pair in d_handleDirections.iteritems():
-                    log.info("|{0}| >> Adding sub handle helper: {1}".format(_str_func,a))
-                                    
-                    handle = CURVES.create_fromName('cube',
-                                                    direction = 'z+',
-                                                    size = _sizeSub * 2)
-                    
-                    mHandle = cgmMeta.validateObjArg(handle,'cgmObject',setClass=True)
-                    mHandle.doSnapTo(_short)                
-                    mHandle.addAttr('cgmName',a)
-                    mHandle.p_parent = mLidHandle
-                    
-                    self.color(mHandle.mNode,_side,'sub')
-                    mLidHandle.connectChildNode(mHandle, a ,'handle')#Connect
-                    
-                    mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
-                    l_targets = []
-                    for o in pair:
-                        l_targets.append(md_handles[o].mNode)
-                    mc.pointConstraint(l_targets, mGroup.mNode, maintainOffset = False)
-                    
-                    ml_handles.append(mHandle)
-                md_handles[a] = mHandle
-
-            
-            for mHandle in ml_handles:
-                mHandle.addAttr('cgmType','handleHelper')            
-                mHandle.doName()
-
-                #CORERIG.colorControl(mHandle.mNode,_side,'sub') 
-                #self.color(mHandle.mNode,_side,'sub')
-                self.mBlock.msgList_append('templateHandles',mHandle)
-                
-                
-            #Curves ============================================================
-                
-                
-
-            return mLidHandle
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def addScalePivotHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
-        _baseDat = self.get_baseDat(baseShape,baseSize)
-        _baseShape = _baseDat[0]
-        _baseSize = _baseDat[1]
-        _side = self.get_side()
-
-        mHandle = self._mTransform
-        _bfr = mHandle.getMessage('scalePivotHelper')
-        if _bfr:
-            mc.delete(_bfr)
-
-        _sizeSub = self.get_subSize[0](.5)
-
-
-        #helper ======================================================================================
-        _curve = CURVES.create_controlCurve(mHandle.mNode,'arrowsScaleOut',  direction= shapeDirection, sizeMode = 'fixed', size = _sizeSub)
-        mCurve = cgmMeta.validateObjArg(_curve, mType = 'cgmObject',setClass=True)
-
-        if mHandle.hasAttr('cgmName'):
-            ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
-        mCurve.doStore('cgmType','scalePivotHelper')
-        mCurve.doName()    
-
-        mCurve.p_parent = mHandle
-
-        for a,v in setAttrs.iteritems():
-            ATTR.set(mCurve.mNode, a, v)
-
-        CORERIG.match_transform(mCurve.mNode, mHandle)
-        mCurve.connectParentNode(mHandle.mNode,'handle','scalePivotHelper')      
-        self.color(mCurve.mNode,_side,'sub')
-
-        if mHandle.hasAttr('addScalePivot'):
-            mHandle.doConnectOut('addScalePivot',"{0}.v".format(mCurve.mNode))
-
-        self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
-        return mCurve    
-
-    def get_subSize(self,mult = .2):
-        mHandle = self._mTransform        
-        _absize = POS.get_axisBox_size(mHandle.mNode)
-        _size = MATH.average(_absize)
-        _sizeSub = _size * mult
-        return _sizeSub, _size, _absize
-
-    def addCogHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
-        try:
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-            _plug = 'cogHelper'
-            _side = self.get_side()
-            
-            _d_shapeDirectionOptions = {'z+':{'up':'y+',
-                                       'directions':{'back':'z-',
-                                                     'front':'z+',
-                                                     'left':'x+',
-                                                     'right':'x-'}},
-                                        'y+':{'up':'z+',
-                                              'directions':{'back':'y-',
-                                                            'front':'y+',
-                                                            'left':'x+',
-                                                            'right':'x-'}},
-                                 }
-            _d_shapeDirection = _d_shapeDirectionOptions.get(shapeDirection)
-            if not _d_shapeDirection:
-                raise ValueError,"shapeDirection {0} not setup".format(shapeDirection)
-
-            mHandle = self._mTransform
-            mBlock = self.mBlock
-            upAxis = _d_shapeDirection['up']
-            _short = mHandle.mNode
-
-            _bfr = mHandle.getMessage(_plug)
-            if _bfr:
-                mc.delete(_bfr)
-                
-            _sizeSub, _size, _absize = self.get_subSize(.25)
-            #_sizeByBB = [_absize[0] * .5, _absize[1] * .15, _absize[2]*.5]
-            _sizeByBB = [_absize[0] * .25, _absize[1] * .25, _absize[2]*.25]
-            
-            self_pos = mHandle.p_position
-            self_upVector = mHandle.getAxisVector(upAxis)
-            _sizeArrow = (MATH.average(_absize)) * .25
-            mCurve = cgmMeta.validateObjArg(self._mTransform.doCreateAt(),'cgmObject',setClass=True)
-            #helper ======================================================================================
-            d_shapeDirections = _d_shapeDirection['directions']
-            
-            ml_shapes = []
-            for d,axis in d_shapeDirections.iteritems():
-                mAxis = VALID.simpleAxis(axis)
-                _inverse = mAxis.inverse.p_string
-                shape = CURVES.create_controlCurve(mHandle.mNode, shape='pyramid',
-                                                   direction = axis,
-                                                   sizeMode = 'fixed', size = [_sizeArrow,_sizeArrow,_sizeArrow])
-                mShape = cgmMeta.validateObjArg(shape,'cgmObject',setClass=True)
-                _pos = DIST.get_pos_by_axis_dist(_short,mAxis.p_string, _size)
-                mShape.p_position = _pos
-                #import cgm.core.lib.locator_utils as LOC
-                #LOC.create(position=_pos)
-                SNAP.aim_atPoint(mShape.mNode,self_pos, _inverse, upAxis, mode='vector',
-                                 vectorUp = self_upVector)
-
-                ml_shapes.append(mShape)
-
-                #mCurve.scaleY = 2
-                #mCurve.scaleZ = .75
-                
-                CORERIG.shapeParent_in_place(mCurve.mNode,mShape.mNode,False)
-            
-            """
-            mCurve = cgmMeta.validateObjArg(CORERIG.combineShapes([mObj.mNode for mObj in ml_shapes],keepSource=False),
-                                            'cgmObject',setClass=True)"""
-
-
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
-                
-            mCurve.doStore('cgmType',_plug)
-            mCurve.doStore('cgmTypeModifier','shape')            
-            mCurve.doName()    
-
-            mCurve.p_parent = mHandle
-
-            for a,v in setAttrs.iteritems():
-                ATTR.set(mCurve.mNode, a, v)
-
-
-            #CORERIG.colorControl(mCurve.mNode,_side,'sub')
-            self.color(mCurve.mNode,_side,'sub')
-            
-            #Transform ---------------------------------------------------------------------------
-            mTrans = cgmMeta.validateObjArg( CURVES.create_text('COG',MATH.average(_sizeByBB)),'cgmObject',setClass=True)
-            SNAP.go(mTrans.mNode, mCurve.mNode)
-            self.color(mTrans.mNode,_side,'main')
-            
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mTrans.mNode,driven='target')            
-            
-            mTrans.doStore('cgmType',_plug)
-            mTrans.doStore('cgmTypeModifier','dag')            
-            
-            mTrans.doName()                
-            
-            mCurve.p_parent = mTrans
-            
-            mTrans.connectParentNode(mBlock.mNode,'rigBlock',_plug)            
-            mCurve.connectParentNode(mTrans.mNode,'handle','shapeHelper')
-            
-            
-            if mBlock.hasAttr('addCog'):
-                mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
-                mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
-            
-            mBlock.msgList_append('prerigHandles',mTrans.mNode)
-            mBlock.msgList_append('prerigHandles',mCurve.mNode)
-            
-            return mTrans
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def setAttrs_fromDict(self, setAttrs={}):
-        try:
-            mHandle = self._mTransform   
-            _short = mHandle.mNode
-
-            for a,v in setAttrs.iteritems():
-                ATTR.set(_short, a, v)
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def addOrientHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z-', setAttrs = {}):
-        try:
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-
-            mHandle = self._mTransform
-            _short = mHandle.mNode
-            _bfr = mHandle.getMessage('orientHelper')
-            if _bfr:
-                mc.delete(_bfr)
-
-            _size = MATH.average(_baseSize[:1])
-
-            #Orientation helper ======================================================================================
-            _orientHelper = CURVES.create_controlCurve(mHandle.mNode,'arrowSingle',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .75)
-            mCurve = cgmMeta.validateObjArg(_orientHelper, mType = 'cgmObject',setClass=True)
-
-
-            mCurve.p_position = DIST.get_pos_by_axis_dist(_short,shapeDirection, _size/1.75)
-
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')        
-            mCurve.doStore('cgmType','orientHandle')
-            mCurve.doName()    
-
-            mCurve.p_parent = mHandle
-
-            for a,v in setAttrs.iteritems():
-                ATTR.set(mCurve.mNode, a, v)
-
-            CORERIG.match_transform(mCurve.mNode, mHandle)
-            mCurve.connectParentNode(mHandle.mNode,'handle','orientHelper')      
-            self.color(mCurve.mNode)
-
-            return mCurve
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def addProxyHelper(self,baseShape=None, baseSize = None, shapeDirection = 'z+', setAttrs = {}):
-        try:
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-            _side = self.get_side()
-            #cgmGEN.func_snapShot(vars())
-            mHandle = self._mTransform
-            _short = mHandle.mNode
-            _bfr = mHandle.getMessage('proxyHelper')
-            
-            if _bfr:
-                mc.delete(_bfr)
-
-            _proxyShape = self.mBlock.getEnumValueString('proxyShape')
-
-            #Orientation helper ======================================================================================
-            _proxy = CORERIG.create_proxyGeo(_proxyShape, _baseSize, shapeDirection)
-            mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
-
-            mProxy.doSnapTo(mHandle)
-            SNAPCALLS.snap(mProxy.mNode,mHandle.mNode, objPivot='boundingBox',objMode='y-',targetPivot='boundingBox',targetMode='y-')
-
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
-            mProxy.doStore('cgmType','proxyHelper')
-            mProxy.doName()    
-
-            mProxy.p_parent = mHandle
-
-            self.setAttrs_fromDict(setAttrs)
-
-            #CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
-            self.color(mProxy.mNode,_side,'sub',transparent=True)
-
-            mProxy.connectParentNode(mHandle.mNode,'handle','proxyHelper')
-
-            if mHandle.hasAttr('proxyVis'):
-                mHandle.doConnectOut('proxyVis',"{0}.v".format(mProxy.mNode))
-
-            return mProxy
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def addRootMotionHelper(self,baseShape='pivotLocator', baseSize = None, shapeDirection = 'z+'):
-        try:
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-
-            mHandle = self._mTransform
-            _bfr = mHandle.getMessage('rootMotionHelper')
-            if _bfr:
-                mc.delete(_bfr)
-
-            _size = MATH.average(_baseSize[:1]) * .2
-
-
-            #helper ======================================================================================
-            _str_curve = CURVES.create_controlCurve(mHandle.mNode, baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
-
-            mCurve = cgmMeta.validateObjArg(_str_curve, mType = 'cgmObject',setClass=True)
-
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mCurve.mNode,driven='target')
-                
-            mCurve.doStore('cgmType','rootMotionHelper')
-            mCurve.doName()    
-
-            mCurve.p_parent = mHandle
-
-            CORERIG.match_transform(mCurve.mNode, mHandle)
-
-
-            mCurve.connectParentNode(mHandle.mNode,'handle','rootMotionHelper')   
-            if mHandle.hasAttr('addMotionJoint'):
-                mHandle.doConnectOut('addMotionJoint',"{0}.v".format(mCurve.mNode))
-                ATTR.set_standardFlags(mCurve.mNode,['v'])
-
-            self.mBlock.msgList_append('prerigHandles',mCurve.mNode)
-            return mCurve
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def addJointLabel(self,mHandle = None, label = None):
-        _bfr = mHandle.getMessage('jointLabel')
-        if _bfr:
-            mc.delete(_bfr)
-        
-        if label is None:
-            label = mHandle.cgmName
-            
-        #Joint Label ---------------------------------------------------------------------------
-        mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-    
-        mJointLabel.p_parent = mHandle
-        mJointLabel.resetAttrs()
-    
-        mJointLabel.radius = 0
-        mJointLabel.side = 0
-        mJointLabel.type = 18
-        mJointLabel.drawLabel = 1
-        mJointLabel.otherType = label
-    
-        mJointLabel.doStore('cgmName',mHandle)
-        mJointLabel.doStore('cgmType','jointLabel')
-        mJointLabel.doName()
-    
-        mJointLabel.dagLock()
-    
-        mJointLabel.overrideEnabled = 1
-        mJointLabel.overrideDisplayType = 2
-        
-        mJointLabel.connectParentNode(mHandle.mNode,'handle','jointLabel')   
-        
-        return mJointLabel
-        
-    def addJointHelper(self,baseShape='sphere', baseSize = None,
-                       shapeDirection = 'z+', loftHelper = True,
-                       lockChannels = ['rotate','scale']):
-        try:
-            _baseDat = self.get_baseDat(baseShape,baseSize)
-            _baseShape = _baseDat[0]
-            _baseSize = _baseDat[1]
-
-            mHandle = self._mTransform
-            _bfr = mHandle.getMessage('jointHelper')
-            if _bfr:
-                mc.delete(_bfr)
-
-            _size = MATH.average(_baseSize[:1]) #* .5
-
-
-            #Joint helper ======================================================================================
-            #jack
-            _jointHelper = CURVES.create_controlCurve(mHandle.mNode,baseShape,  direction= shapeDirection, sizeMode = 'fixed', size = _size)
-            mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
-            mJointCurve.doStore('cgmType','jointHandle')
-            mJointCurve.doName()    
-
-            mJointCurve.p_parent = mHandle
-
-            self.color(mJointCurve.mNode)
-
-            #CORERIG.match_transform(mJointCurve.mNode, mHandle)
-
-            #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-            #                   etx = (True,True), ety = (True,True), etz = (True,True))        
-
-            mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
-
-            mJointCurve.setAttrFlags(lockChannels)
-
-            if loftHelper:#...loft curve -------------------------------------------------------------------------------------
-                mLoft = self.buildBaseShape('square',_size*.5,'z+')
-                mLoft.doStore('cgmName',mJointCurve)
-                mLoft.doStore('cgmType','loftCurve')
-                mLoft.doName()
-                mLoft.p_parent = mJointCurve
-                self.color(mLoft.mNode,controlType='sub')
-
-                for s in mLoft.getShapes(asMeta=True):
-                    s.overrideEnabled = 1
-                    s.overrideDisplayType = 2
-                mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
-
-            return mJointCurve
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-
-    def rebuildAsLoftTarget(self, baseShape = None, baseSize = None, shapeDirection = 'z+', rebuildHandle = True):
-        _baseDat = self.get_baseDat(baseShape,baseSize)
-        _baseShape = _baseDat[0]
-        _baseSize = _baseDat[1]   
-
-
-        if baseShape is not 'self':
-            if rebuildHandle:
-                self.cleanShapes()      
-                _offsetSize = _baseSize * 1.3
-                _dist = _baseSize *.05
-                _mShapeDirection = VALID.simpleAxis(shapeDirection)
-                
-                mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
-                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False,True)
-                self.color(self._mTransform.mNode)
-                
-                """
-                for i,p in enumerate(['upper','lower']):
-                    mCrv = self.buildBaseShape(_baseShape,_offsetSize,shapeDirection)
-                    if i == 0:
-                        _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
-                    else:
-                        _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
-
-                    mCrv.p_position = _pos
-                    CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)
-
-                    self.color(self._mTransform.mNode)"""
-
-            #>>>make our loft curve
-            mCrv = self.buildBaseShape(_baseShape,_baseSize,shapeDirection)
-            mCrv.doStore('cgmName',self._mTransform)
-            mCrv.doStore('cgmType','loftCurve')
-            mCrv.doName()
-            mCrv.p_parent = self._mTransform
-            self.color(mCrv.mNode,controlType='sub')
-
-            #for s in mCrv.getShapes(asMeta=True):
-                #s.overrideEnabled = 1
-                #s.overrideDisplayType = 2
-            mCrv.connectParentNode(self._mTransform,'handle','loftCurve')            
-
-            return mCrv
-
-        else:
-            _baseSize = DIST.get_createSize(self._mTransform.getShapes()[0])
-            _baseShape = 'self'
-
-            _offsetSize = _baseSize * 1.3
-            _dist = _baseSize *.05
-            _mShapeDirection = VALID.simpleAxis(shapeDirection)               
-
-            mBaseCrv = self.buildBaseShape('self',_offsetSize,shapeDirection)
-            
-            mCrv = mBaseCrv.doDuplicate(po=False)
-            mCrv.scale = [1.25,1.25,1.25]
-            CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False,True)
-            
-            """
-            #>>> make our offset shapes to control our handle
-            for i,p in enumerate(['upper','lower']):
-                mCrv = mBaseCrv.doDuplicate(po=False)
-                if baseShape == 'self':
-                    #mc.scale(_offsetSize,_offsetSize,_offsetSize, mCrv.mNode, absolute = True)
-                    #mc.xform(mCrv.mNode, scale = [_baseSize,_baseSize,_baseSize], worldSpace = True, relative = True)
-                    mCrv.scale = [1.25,1.25,1.25]
-                if i == 0:
-                    _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,_dist)
-                else:
-                    _pos = self._mTransform.getPositionByAxisDistance(_mShapeDirection.p_string,-_dist)
-
-                mCrv.p_position = _pos
-                CORERIG.shapeParent_in_place(self._mTransform.mNode,mCrv.mNode,False)"""
-
-            self.color(self._mTransform.mNode)
-
-            #>>>make our loft curve
-            mCrv = mBaseCrv
-            mCrv.doStore('cgmName',self._mTransform)
-            mCrv.doStore('cgmType','loftCurve')
-            mCrv.doName()
-            mCrv.p_parent = self._mTransform
-            self.color(mCrv.mNode,controlType='sub')
-
-            #for s in mCrv.getShapes(asMeta=True):
-                #s.overrideEnabled = 1
-                #s.overrideDisplayType = 2
-            mCrv.connectParentNode(self._mTransform,'handle','loftCurve')
-
-            return mCrv
-
-
 class cgmRigBlockHandle(cgmMeta.cgmControl):
     def __init__(self, node = None, baseShape = None,  baseSize = 1, shapeDirection = 'z+',
                  aimDirection = 'z+', upDirection = 'y+',
@@ -2712,7 +1298,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
             target = self.mNode
         CORERIG.colorControl(target,_side,_controlType,transparent = True)
 
-    def template(self):
+    def form(self):
         #...build loftCurve, wire
         self.verify()
         pass
@@ -2724,7 +1310,7 @@ class cgmRigBlockHandle(cgmMeta.cgmControl):
         _baseSize = self.baseSize
 
         _baseShape = self.getMayaAttr('baseShape') 
-        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection)
+        _crv = CURVES.create_fromName(_baseShape, _baseSize, shapeDirection, baseSize=1.0)
         TRANS.snap(_crv, self.mNode) 
         mCrv = cgmMeta.validateObjArg(_crv)
 
@@ -3175,15 +1761,15 @@ class factory(object):
         _str_func = '[{0}] factory.changeState'.format(_mBlock.p_nameBase)
 
         #>Validate our data ------------------------------------------------------
-        d_upStateFunctions = {'template':self.template,
+        d_upStateFunctions = {'form':self.form,
                               'prerig':self.prerig,
                               'rig':self.rig,
                               }
-        d_downStateFunctions = {'define':self.templateDelete,#deleteSizeInfo,
-                                'template':self.prerigDelete,#deleteSkeleton,
+        d_downStateFunctions = {'define':self.formDelete,#deleteSizeInfo,
+                                'form':self.prerigDelete,#deleteSkeleton,
                                 'prerig':self.rigDelete,#rigDelete,
                                 }
-        d_deleteStateFunctions = {'template':self.templateDelete,#deleteTemplate,#handle from factory now
+        d_deleteStateFunctions = {'form':self.formDelete,#deleteForm,#handle from factory now
                                   'prerig':self.prerigDelete,
                                   'rig':self.rigDelete,#rigDelete,
                                   }        
@@ -3259,7 +1845,7 @@ class factory(object):
                 if not d_upStateFunctions[_state_target]():return False
                 return True	            
 
-    def template(self):
+    def form(self):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
         _mBlock = self._mi_block
@@ -3267,33 +1853,34 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
 
-        _str_func = '[{0}] factory.template'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.form'.format(_mBlock.p_nameBase)
 
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
+        
 
-        if _mBlock.blockState != 'define':
+        if _str_state != 'define':
             raise ValueError,"{0} is not in define state. state: {1}".format(_str_func, _str_state)
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'define>template'#...buffering that we're in process
+        #_mBlock.blockState = 'define>form'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
-        if 'template' in _mBlockModule.__dict__.keys():
+        if 'form' in _mBlockModule.__dict__.keys():
             log.debug("|{0}| >> BlockModule call found...".format(_str_func))            
-            _mBlockModule.template(_mBlock)
+            _mBlockModule.form(_mBlock)
 
         for mShape in _mBlock.getShapes(asMeta=True):
             mShape.doName()
 
-        _mBlock.blockState = 'template'#...yes now in this state
+        _mBlock.blockState = 'form'#...yes now in this state
         return True
 
 
-    def templateDelete(self):
+    def formDelete(self):
         if self._mi_block is None:
             raise ValueError,"No root loaded."
         _mBlock = self._mi_block
@@ -3301,30 +1888,30 @@ class factory(object):
         if _mBlock.isReferenced():
             raise ValueError,"Referenced node."
 
-        _str_func = '[{0}] factory.templateDelete'.format(_mBlock.p_nameBase)
+        _str_func = '[{0}] factory.formDelete'.format(_mBlock.p_nameBase)
 
 
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'template':
-            log.error("{0} is not in template state. state: {1}".format(_str_func, _str_state))
+        if _str_state != 'form':
+            log.error("{0} is not in form state. state: {1}".format(_str_func, _str_state))
 
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'template>define'        
+        #_mBlock.blockState = 'form>define'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
 
-        if _mBlock.getMessage('templateNull'):
-            _mBlock.templateNull.delete()
+        if _mBlock.getMessage('formNull'):
+            _mBlock.formNull.delete()
 
-        if 'templateDelete' in _mBlockModule.__dict__.keys():
-            log.debug("|{0}| >> BlockModule templateDelete call found...".format(_str_func))            
-            _mBlockCall = _mBlockModule.templateDelete    
+        if 'formDelete' in _mBlockModule.__dict__.keys():
+            log.debug("|{0}| >> BlockModule formDelete call found...".format(_str_func))            
+            _mBlockCall = _mBlockModule.formDelete    
             _mBlockCall(_mBlock)
 
         if 'define' in _mBlockModule.__dict__.keys():
@@ -3350,14 +1937,14 @@ class factory(object):
         _str_func = '[{0}] factory.prerig'.format(_mBlock.p_nameBase)
         _str_state = _mBlock.blockState
 
-        if _mBlock.blockState != 'template':
-            raise ValueError,"{0} is not in template state. state: {1}".format(_str_func, _str_state)
+        if _mBlock.blockState != 'form':
+            raise ValueError,"{0} is not in form state. state: {1}".format(_str_func, _str_state)
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'template>prerig'#...buffering that we're in process
+        #_mBlock.blockState = 'form>prerig'#...buffering that we're in process
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
 
@@ -3377,9 +1964,9 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.prerigDelete'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'prerig':
+        if _str_state != 'prerig':
             raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)
 
 
@@ -3387,7 +1974,7 @@ class factory(object):
 
 
         #>>>Meat ------------------------------------------------------------------------------------        
-        _mBlock.blockState = 'prerig>template'        
+        _mBlock.blockState = 'prerig>form'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
@@ -3399,7 +1986,7 @@ class factory(object):
         if _mBlockCall:
             _mBlockCall(_mBlock)
 
-        _mBlock.blockState = 'template'
+        _mBlock.blockState = 'form'
 
         return True
 
@@ -3413,17 +2000,17 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.rig'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
 
-        if _mBlock.blockState != 'prerig':
+        if _str_state != 'prerig':
             raise ValueError,"{0} is not in prerig state. state: {1}".format(_str_func, _str_state)      
 
         #>>>Children ------------------------------------------------------------------------------------
 
 
         #>>>Meat ------------------------------------------------------------------------------------
-        _mBlock.blockState = 'prerig>rig'#...buffering that we're in process
+        #_mBlock.blockState = 'prerig>rig'#...buffering that we're in process
         _BlockModule= _mBlock.p_blockModule
 
 
@@ -3442,12 +2029,12 @@ class factory(object):
             raise ValueError,"Referenced node."
 
         _str_func = '[{0}] factory.rigDelete'.format(_mBlock.p_nameBase)
-        _str_state = _mBlock.blockState
+        _str_state = _mBlock.getEnumValueString('blockState')
 
-        if _mBlock.blockState != 'rig':
+        if _str_state != 'rig':
             raise ValueError,"{0} is not in rig state. state: {1}".format(_str_func, _str_state)
 
-        _mBlock.blockState = 'rig>prerig'        
+        #_mBlock.blockState = 'rig>prerig'        
 
         _mBlockModule = get_blockModule(_mBlock.blockType)
         _mBlockCall = False
@@ -4084,12 +2671,12 @@ def valid_blockModule_rigBuildOrder(blockType):
     return False
 
 _l_requiredModuleDat = ['__version__',
-                        'template',
+                        'form',
                         'prerig','is_prerig',
                         'rig','is_rig','rigDelete']
 
 _d_requiredModuleDat = {'define':['__version__'],
-                        'template':['template',],
+                        'form':['form',],
                         'prerig':['prerig'],
                         'skeleton':['skeleton_build'],
                         'rig':['is_rig','rigDelete']}
@@ -4825,8 +3412,8 @@ class rigFactory(object):
 
                 #_d['l_moduleColors'] = _mModule.getModuleColors() 
                 #_d['l_coreNames'] = []#...need to do this
-                #self.mTemplateNull = _mModule.templateNull
-                #_d['mTemplateNull'] = self.mTemplateNull
+                #self.mFormNull = _mModule.formNull
+                #_d['mFormNull'] = self.mFormNull
                 #_d['bodyGeo'] = _mPuppet.getGeo() or ['Morphy_Body_GEO']
                 _d['direction'] = _mModule.getAttr('cgmDirection')
 
@@ -4925,8 +3512,11 @@ class rigFactory(object):
         _mi_moduleParent = self.d_module['mModuleParent']
         _ml_skinJoints = self.d_joints['ml_skinJoints']
         
+        try:_attachIdx = self.mBlock.attachIndex
+        except:_attachIdx = None
+
         _attachPoint = ATTR.get_enumValueString(self.mBlock.mNode,'attachPoint')        
-        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint )        
+        self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint,idx=_attachIdx )        
 
         if not self.mModule.getMessage('deformNull'):
             if self.d_block['b_faceBlock']:
@@ -5744,7 +4334,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             
             mc.delete(l_shapes)
             
-            mHandleFactory = handleFactory(node = _short)
+            mHandleFactory = BLOCKSHAPES.handleFactory(node = _short)
             
                     
             #>>> Figure out font------------------------------------------------------------------
@@ -5753,7 +4343,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
                 else:font = 'arial'
                 
             #>>> Main shape ----------------------------------------------------------------------
-            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1)    
+            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1, baseSize=1.0)    
             TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
         
             mHandleFactory.color(_crv,'center','sub',transparent = False)
@@ -5908,7 +4498,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 
 
-moduleStates = ['define','template','deform','rig']
+moduleStates = ['define','form','deform','rig']
 
 initLists = []
 initDicts = ['infoNulls','parentTagDict']
@@ -5927,15 +4517,15 @@ rigNullAttrs_toMake = {'version':'string',#Attributes to be initialzed for any m
                        'gutsVis':'int',                       
                        'dynSwitch':'messageSimple'}
 
-templateNullAttrs_toMake = {'version':'string',
+formNullAttrs_toMake = {'version':'string',
                             'gutsLock':'int',
                             'gutsVis':'int',
                             'controlsVis':'int',
                             'controlsLock':'int',
                             'root':'messageSimple',#The module root                            
                             'handles':'int',                            
-                            'templateStarterData':'string',#this will be a json dict
-                            'controlObjectTemplatePose':'string'}
+                            'formStarterData':'string',#this will be a json dict
+                            'controlObjectFormPose':'string'}
 
 class cgmRigModule(cgmMeta.cgmObject):
     def __init__(self,*args,**kws):
@@ -5949,7 +4539,7 @@ class cgmRigModule(cgmMeta.cgmObject):
         moduleName(string) -- either base name or the name of an existing module in scene
         moduleParent(string) -- module parent to connect to. MUST exist if called. If the default False flag is passed, it looks for what's stored
 
-        Naming and template tags. All Default to False
+        Naming and form tags. All Default to False
         position(string) -- position tag
         direction(string) -- direction
         directionModifier(string)
@@ -6082,7 +4672,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             self.addAttr('modulePuppet',attrType='messageSimple')
             self.addAttr('moduleChildren',attrType='message')
     
-            #stateDict = {'templateState':0,'rigState':0,'skeletonState':0} #Initial dict
+            #stateDict = {'formState':0,'rigState':0,'skeletonState':0} #Initial dict
             #self.addAttr('moduleStates',attrType = 'string', initialValue=stateDict, lock = True)
     
             self.addAttr('rigNull',attrType='messageSimple',lock=True)
@@ -6115,7 +4705,7 @@ class cgmRigModule(cgmMeta.cgmObject):
             for a,t in rigNullAttrs_toMake.iteritems():
                 mRigNull.addAttr(a,attrType=t)
             #self.__verifyAttributesOn__(self.i_rigNull,rigNullAttrs_toMake)
-            #self.__verifyAttributesOn__(self.i_templateNull,templateNullAttrs_toMake)
+            #self.__verifyAttributesOn__(self.i_formNull,formNullAttrs_toMake)
     
             #Set Module Parent if we have that kw
             #=================		

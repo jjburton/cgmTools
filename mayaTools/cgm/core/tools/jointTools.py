@@ -44,10 +44,6 @@ import cgm.core.lib.position_utils as POS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.annotations as TOOLANNO
 
-reload(POS)
-reload(UICHUNKS)
-reload(CURVES)
-reload(JOINTS)
 #>>> Root settings =============================================================
 __version__ = '0.10162017'
 __toolname__ ='cgmJointTools'
@@ -507,7 +503,7 @@ def createJoints(self, mode = 'each'):
         
     log.info("|{0}| >> mode: {1}".format(_str_func,mode))        
     mc.select(cl=True)
-    pprint.pprint(_sel)
+    #pprint.pprint(_sel)
     
     if mode == 'curve':
         for o in _sel:
@@ -567,7 +563,7 @@ def orientJoints(self):
     if not _sel:
         return log.error("|{0}| >> Nothing selected".format(_str_func))
     
-    pprint.pprint(_sel)
+    #pprint.pprint(_sel)
     
     JOINTS.orientChain(_sel,axisAim=_d['aim'],
                        axisUp=_d['up'],

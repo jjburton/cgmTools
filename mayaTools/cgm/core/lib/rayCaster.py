@@ -10,6 +10,9 @@ ACKNOWLEDGEMENTS:
    Samaneh Momtazmand -- r&d for casting with surfaces
 ================================================================
 """
+__MAYALOCAL = 'RAYS'
+
+
 import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
@@ -110,7 +113,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
                     shapes.append(o)                
                 else:
                     shapes.extend(TRANS.shapes_get(o,True))
-
+                
         mAxis = VALID.simpleAxis(axis)
         posBase = POS.get(obj)
 
@@ -190,7 +193,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+#@cgmGEN.Timer
 def cast(mesh = None, obj = None, axis = 'z+',
          startPoint = None, vector = None,
          maxDistance = 1000, firstHit = True,
@@ -222,154 +225,156 @@ def cast(mesh = None, obj = None, axis = 'z+',
 
     :raises:
     Exception | if reached
-    """  
-    def simpleLoc( position = None):
-        _loc = mc.spaceLocator()[0]
-        mc.move (position[0],position[1],position[2], _loc, ws=True)
-        return _loc
-
-
-    _str_func = 'cast'
-    if mesh is None:
-        mesh = get_eligibleMesh()
-    _meshArg = VALID.listArg(mesh)
-    _mesh =  []
-    for m in _meshArg:
-        log.debug("|{0}| >> checking mesh arg: {1}...".format(_str_func,m))                            
-        if SEARCH.is_transform(m):
-            #_mesh.extend(mc.listRelatives(m,shapes = True))
-            for s in TRANS.shapes_get(m,True):
-                if VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
-                    log.debug("|{0}| >> good shape: {1}...".format(_str_func,s))                    
-                    _mesh.append(m)
-        elif SEARCH.is_shape(m):
-            if VALID.get_mayaType(m) in ['mesh','nurbsSurface']:
-                log.debug("|{0}| >> good shape: {1}...".format(_str_func,m))                    
-                _mesh.append(m)            
-
-    if not startPoint:
-        startPoint = POS.get(obj,pivot='rp',space='ws')
-
-    _castPoint = MATH.get_space_value(startPoint,'apiSpace')#...must convert value to apiSpace
-
-    if not vector:
-        if not obj:
-            raise ValueError,"Must have an obj to get a vector when no vector is provided"
-
-        d_matrixVectorIndices = {'x':[0,1,2],
-                                 'y': [4,5,6],
-                                 'z' : [8,9,10]}
-
-        matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
-
-        #>>> Figure out our vector
-        if axis not in dictionary.stringToVectorDict.keys():
-            log.error("|{0}| >> axis arg not valid: '{1}'".format(_str_func,axis))
-            return False
-        if list(axis)[0] not in d_matrixVectorIndices.keys():
-            log.error("|{0}| >> axis arg not in d_matrixVectorIndices: '{1}'".format(_str_func,axis))            
-            return False  
-        vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
-        if list(axis)[1] == '-':
-            for i,v in enumerate(vector):
-                vector[i]=-v
-
-    _l_posBuffer = []
-    _l_uvBuffer = []
-    _source = None
-
-    log.debug("|{0}| >> Source:{1} | Vector:{2}".format(_str_func,startPoint,vector))
-    _d_meshPos = {}
-    _d_meshUV = {}
-    _d_meshUVRaw = {}
-    _d_meshNormal = {}
-    for m in _mesh:
-        _b = {}
-        if not _d_meshUV.get(m):_d_meshUV[m] = []
-        if not _d_meshPos.get(m):_d_meshPos[m] = []
-        if not _d_meshNormal.get(m):_d_meshNormal[m] = []
-        if not _d_meshUVRaw.get(m):_d_meshUVRaw[m] = []        
-        if firstHit:
-            try:_b = findMeshIntersection(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
-            except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))
-            if _b:
-                h = _b['hit']
-
-                _uv = _b.get('uv',None)
-                _uvRaw = _b.get('uvRaw',None)
-                _normal = _b.get('normal',False)
-                _d_meshUV[m].append(_uv)
-                _d_meshUVRaw[m].append(_uvRaw)
-                _d_meshPos[m].append(h)	
-                _d_meshNormal[m].append(_normal)
-                if not _uv:
-                    log.debug("{0} failed to find uvs".format(m))
-
-                if offsetMode:
-                    h = offsetHit(h,startPoint,vector,offsetDistance)
-                _l_posBuffer.append(h)                
-        else:
-            try:_b = findMeshIntersections(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
-            except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
-            if _b:
-                _uvs = _b.get('uvs',None)
-                _uvsRaw = _b.get('uvsRaw',[])
-                _normals =_b.get('normals',False)
-
-                if not _uvs:
-                    log.debug("{0} failed to find uvs".format(m))
-                if not _normals:
-                    log.debug("{0} failed to find normals".format(m))   
-
-                for i,h in enumerate(_b['hits']):
-                    _uv = _uvs[i]
+    """
+    try:
+        def simpleLoc( position = None):
+            _loc = mc.spaceLocator()[0]
+            mc.move (position[0],position[1],position[2], _loc, ws=True)
+            return _loc
+    
+    
+        _str_func = 'cast'
+        if mesh is None:
+            mesh = get_eligibleMesh()
+        _meshArg = VALID.listArg(mesh)
+        _mesh =  []
+        for m in _meshArg:
+            log.debug("|{0}| >> checking mesh arg: {1}...".format(_str_func,m))                            
+            if SEARCH.is_transform(m):
+                #_mesh.extend(mc.listRelatives(m,shapes = True))
+                for s in TRANS.shapes_get(m,True):
+                    if VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                        log.debug("|{0}| >> good shape: {1}...".format(_str_func,s))                    
+                        _mesh.append(m)
+            elif SEARCH.is_shape(m):
+                if VALID.get_mayaType(m) in ['mesh','nurbsSurface']:
+                    log.debug("|{0}| >> good shape: {1}...".format(_str_func,m))                    
+                    _mesh.append(m)            
+    
+        if not startPoint:
+            startPoint = POS.get(obj,pivot='rp',space='ws')
+    
+        _castPoint = MATH.get_space_value(startPoint,'apiSpace')#...must convert value to apiSpace
+    
+        if not vector:
+            if not obj:
+                raise ValueError,"Must have an obj to get a vector when no vector is provided"
+    
+            d_matrixVectorIndices = {'x':[0,1,2],
+                                     'y': [4,5,6],
+                                     'z' : [8,9,10]}
+    
+            matrix = mc.xform(obj, q=True,  matrix=True, worldSpace=True)
+    
+            #>>> Figure out our vector
+            if axis not in dictionary.stringToVectorDict.keys():
+                log.error("|{0}| >> axis arg not valid: '{1}'".format(_str_func,axis))
+                return False
+            if list(axis)[0] not in d_matrixVectorIndices.keys():
+                log.error("|{0}| >> axis arg not in d_matrixVectorIndices: '{1}'".format(_str_func,axis))            
+                return False  
+            vector = [matrix[i] for i in d_matrixVectorIndices.get(list(axis)[0])]
+            if list(axis)[1] == '-':
+                for i,v in enumerate(vector):
+                    vector[i]=-v
+    
+        _l_posBuffer = []
+        _l_uvBuffer = []
+        _source = None
+    
+        log.debug("|{0}| >> Source:{1} | Vector:{2}".format(_str_func,startPoint,vector))
+        _d_meshPos = {}
+        _d_meshUV = {}
+        _d_meshUVRaw = {}
+        _d_meshNormal = {}
+        for m in _mesh:
+            _b = {}
+            if not _d_meshUV.get(m):_d_meshUV[m] = []
+            if not _d_meshPos.get(m):_d_meshPos[m] = []
+            if not _d_meshNormal.get(m):_d_meshNormal[m] = []
+            if not _d_meshUVRaw.get(m):_d_meshUVRaw[m] = []        
+            if firstHit:
+                try:_b = findMeshIntersection(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
+                except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))
+                if _b:
+                    h = _b['hit']
+    
+                    _uv = _b.get('uv',None)
+                    _uvRaw = _b.get('uvRaw',None)
+                    _normal = _b.get('normal',False)
                     _d_meshUV[m].append(_uv)
-
-                    if _uvsRaw:
-                        _uvRaw = _uvsRaw[i]
-                    else:
-                        _uvRaw = None
                     _d_meshUVRaw[m].append(_uvRaw)
-
-                    _d_meshPos[m].append(h)		
-                    _d_meshNormal[m].append(_normals[i])
-                    if offsetMode == 'vectorDistance':
-                        h = offsetHit(h,startPoint,vector,offsetDistance)
-                    _l_posBuffer.append(h)
-
-        if _b:
-            if _source == None:
-                _source = _b['source']
-
-    if not _l_posBuffer:
-        log.debug("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
-        return {}
-
-
-    _near = distance.returnClosestPoint(startPoint, _l_posBuffer)
-    _furthest = distance.returnFurthestPoint(startPoint,_l_posBuffer)
-
-    _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'uvsRaw':_d_meshUVRaw, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
-
-    if locDat:
-        for k in ['source','near','far']:
-            if _d.get(k):
-                mc.rename( simpleLoc(position = _d.get(k)), 'cast_{0}_loc'.format(k))
-        for m in _d['meshHits'].keys():
-            for i,p in enumerate(_d['meshHits'][m]):
-                _dist = DIST.get_distance_between_points(_d['source'],p) / 3
-                mc.rename( simpleLoc(position = p), 'cast_hit_{0}_{1}_loc'.format(NAMES.get_base(m),i))
-
-                _p = DIST.get_pos_by_vec_dist(p, _d['meshNormals'][m][i], _dist)
-                mc.rename( simpleLoc(position = _p), 'cast_normalOffset_{0}_{1}_loc'.format(NAMES.get_base(m),i))
-
-
-
-    if firstHit:
-        _d['hit'] = _near
-    else:_d['hit'] = _furthest
-    return _d
-
+                    _d_meshPos[m].append(h)	
+                    _d_meshNormal[m].append(_normal)
+                    if not _uv:
+                        log.debug("{0} failed to find uvs".format(m))
+    
+                    if offsetMode:
+                        h = offset_hit_by_distance(h,startPoint,vector,offsetDistance)
+                    _l_posBuffer.append(h)                
+            else:
+                try:_b = findMeshIntersections(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
+                except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
+                if _b:
+                    _uvs = _b.get('uvs',None)
+                    _uvsRaw = _b.get('uvsRaw',[])
+                    _normals =_b.get('normals',False)
+    
+                    if not _uvs:
+                        log.debug("{0} failed to find uvs".format(m))
+                    if not _normals:
+                        log.debug("{0} failed to find normals".format(m))   
+    
+                    for i,h in enumerate(_b['hits']):
+                        _uv = _uvs[i]
+                        _d_meshUV[m].append(_uv)
+    
+                        if _uvsRaw:
+                            _uvRaw = _uvsRaw[i]
+                        else:
+                            _uvRaw = None
+                        _d_meshUVRaw[m].append(_uvRaw)
+    
+                        _d_meshPos[m].append(h)		
+                        _d_meshNormal[m].append(_normals[i])
+                        if offsetMode == 'vectorDistance':
+                            h = offset_hit_by_distance(h,startPoint,vector,offsetDistance)
+                        _l_posBuffer.append(h)
+    
+            if _b:
+                if _source == None:
+                    _source = _b['source']
+    
+        if not _l_posBuffer:
+            log.debug("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
+            return {}
+    
+    
+        _near = distance.returnClosestPoint(startPoint, _l_posBuffer)
+        _furthest = distance.returnFurthestPoint(startPoint,_l_posBuffer)
+    
+        _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'uvsRaw':_d_meshUVRaw, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
+    
+        if locDat:
+            for k in ['source','near','far']:
+                if _d.get(k):
+                    mc.rename( simpleLoc(position = _d.get(k)), 'cast_{0}_loc'.format(k))
+            for m in _d['meshHits'].keys():
+                for i,p in enumerate(_d['meshHits'][m]):
+                    _dist = DIST.get_distance_between_points(_d['source'],p) / 3
+                    mc.rename( simpleLoc(position = p), 'cast_hit_{0}_{1}_loc'.format(NAMES.get_base(m),i))
+    
+                    _p = DIST.get_pos_by_vec_dist(p, _d['meshNormals'][m][i], _dist)
+                    mc.rename( simpleLoc(position = _p), 'cast_normalOffset_{0}_{1}_loc'.format(NAMES.get_base(m),i))
+    
+    
+    
+        if firstHit:
+            _d['hit'] = _near
+        else:_d['hit'] = _furthest
+        return _d
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 def offset_hit_by_distance(h,startPoint,vector,offsetDistance, offsetMode = 'distance'):
     _str_func = 'offset_hit_by_distance'    
     log.debug("|{0}| >> offset call...".format(_str_func))

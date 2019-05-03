@@ -35,7 +35,6 @@ from maya.mel import eval as evalMel
 
 #>>>>> Bridge to get our sub zoo stuff working
 from cgm import cgmInitialize
-reload(cgmInitialize)
 cgmInitialize.setupContributorPaths()
 
 #import cgm.lib.zoo.zooPyMaya.baseMelUI as mUI
@@ -44,52 +43,16 @@ import cgm.core.classes.HotkeyFactory as HKEY
 #>>>>>
 
 from cgm.lib import guiFactory
-#from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
 from cgm.core.cgmPy import path_Utils as cgmPath
 from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
 from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
 
 #==========================================================================
-from cgm.core import cgm_General as cgmGen
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
-reload(MMCONTEXT)
 from cgm.core.lib import shared_data as SHARED
-reload(SHARED)
 import cgm.core.tools.toolbox as TOOLBOX
-#from cgm.core.tools import locinator as LOCINATOR
-#import cgm.core.lib.locator_utils as LOC
-#from cgm.core.lib import snap_utils as SNAP
-#from cgm.core.lib import curve_Utils as CURVES
-#import cgm.core.tools.lib.snap_calls as SNAPCALLS
-#from cgm.core.tools import meshTools as MESHTOOLS
-#reload(MESHTOOLS)
-#import cgm.core.cgmPy.validateArgs as VALID
-#from cgm.core.lib import node_utils as NODES
-#from cgm.core.tools import attrTools as ATTRTOOLS
-#from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-#import cgm.core.tools.setTools as SETTOOLS
-#import cgm.core.lib.attribute_utils as ATTR
-#import cgm.core.rig.joint_utils as JOINTS
-#import cgm.core.tools.locinator as LOCINATOR
-#import cgm.core.lib.arrange_utils as ARRANGE
-#import cgm.core.lib.rigging_utils as RIGGING
-#import cgm.core.classes.GuiFactory as cgmUI
-#import cgm.core.tools.lib.annotations as TOOLANNO
-#import cgm.core.lib.distance_utils as DIST
-#import cgm.core.tools.toolbox as TOOLBOX
-#import cgm.core.lib.skin_utils as SKIN
-#import cgm.core.lib.constraint_utils as CONSTRAINTS
-#import cgm.core.lib.math_utils as MATH
-#import cgm.core.lib.list_utils as LISTS
-#import cgm.core.lib.skinDat as SKINDAT
-#reload(DIST)
-#reload(TOOLBOX)
-#reload(TOOLANNO)
-#reload(cgmUI)
-#reload(RIGGING)
-#mUI = cgmUI.mUI
 
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
@@ -344,7 +307,7 @@ class AutoStartInstaller(object):
                 log.info("Install error: {0}".format(x))
 
     def isInstalledPy( self, pyUserSetup ):
-        l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
+        l_lines = ['import cgmToolbox','import cgm.core.tools.lib.tool_chunks as TOOLCHUNKS','TOOLCHUNKS.loadLocalPython()']
         l_found = []
         l_missing = []
         with open( pyUserSetup ) as f:
@@ -389,7 +352,7 @@ class AutoStartInstaller(object):
             raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup )"""
 
     def isInstalledMel( self, melUserSetup ):
-        l_lines = ['import cgmToolbox','import cgm.core','cgm.core._reload()']
+        l_lines = ['import cgmToolbox','import cgm.core.tools.lib.tool_chunks as TOOLCHUNKS','TOOLCHUNKS.loadLocalPython()']
         l_found = []
         l_missing = []
         with open( melUserSetup ) as f:

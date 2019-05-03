@@ -37,7 +37,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block data
 #=============================================================================================================
 __version__ = 'alpha.06142017'
-__autoTemplate__ = True
+__autoForm__ = True
 __ignore__ = True
 
 l_attrsStandard = ['proxyType','hasRootJoint','moduleTarget']
@@ -66,17 +66,17 @@ def define(self):
     ATTR.set_alias(_short,'sy','blockScale')
     
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
-def template(self):
+def form(self):
     _crv = CURVES.create_controlCurve(self.mNode,shape='circleArrow',direction = 'y+', sizeMode = 'fixed', size = self.baseSize)
     RIG.shapeParent_in_place(self.mNode,_crv,False)
     return True
 
-def templateDelete(self):
+def formDelete(self):
     pass#...handled in generic callmc.delete(self.getShapes())
 
-def is_template(self):
+def is_form(self):
     if self.getShapes():
         return True
     return False

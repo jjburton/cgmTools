@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'SHAPES'
+
 # From Python =============================================================
 import copy
 import re
@@ -15,7 +17,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
