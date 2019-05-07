@@ -59,7 +59,9 @@ from cgm.lib import (distance,
 
 #>>> Utilities
 #===================================================================   
-def get_splitValues(surface = None, values = [], mode='u', 
+def get_splitValues(surface = None,
+                    values = [], mode='u',
+                    knotIndices = [],
                     insertMin=False, 
                     insertMax = False, 
                     preInset = None, 
@@ -97,7 +99,10 @@ def get_splitValues(surface = None, values = [], mode='u',
         
     l_sets = []
     
-    log.debug("|{0}| >>  l_base: {1}".format(_str_func,l_base))                    
+    log.debug("|{0}| >>  l_base: {1}".format(_str_func,l_base))
+    
+    if knotIndices:
+        values = [l_base[v] for v in knotIndices]
     
     for i,v in enumerate(values):
         log.debug("|{0}| >>  Processing: {1} | {2}".format(_str_func,i,v)+"-"*40)        

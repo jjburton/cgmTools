@@ -475,7 +475,14 @@ def rig_cleanUp(self):
             mMasterControl.masterGroup.setAttrFlags()
             ml_dynParents = [mMasterNull]
             
-            ml_dynParents.extend(mMasterControl.msgList_get('spacePivots',asMeta = True))    
+            ml_spacePivots = mMasterControl.msgList_get('spacePivots',asMeta = True)
+            for mPivot in ml_spacePivots:
+                mDup = mPivot.doDuplicate(po=False)
+                mDup.scale = .25,.25,.25
+                CORERIG.shapeParent_in_place(mPivot.mNode, mDup.mNode,False,True)
+                
+            
+            ml_dynParents.extend(ml_spacePivots)    
         
             mDynGroup = mMasterControl.dynParentGroup
             mDynGroup.dynMode = 0

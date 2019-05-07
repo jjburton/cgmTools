@@ -22,7 +22,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -60,6 +60,9 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
+import cgm.core.lib.surface_Utils as SURF
+
+
 reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -799,7 +802,25 @@ def lever(self,ball = False):
         ml_prerigHandles = self.ml_prerigHandles
         mHandleFactory = self.mHandleFactory
         
+        #Mesh shapes ----------------------------------------------------------
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        str_meshShape = mMesh_tmp.getShapes()[0]        
         
+        #Figure out our knots ----------------------------------------------------
+        mMain = self.ml_formHandlesUse[0]
+        mMainLoft = mMain.loftCurve
+        idxMain = self.ml_shapers.index(mMainLoft)
+        
+        
+        minU = ATTR.get(str_meshShape,'minValueU')
+        maxU = ATTR.get(str_meshShape,'maxValueU')
+        
+        f_factor = (maxU-minU)/(20)        
+        
+        pprint.pprint(vars())
+        
+        reload(SURF)
+         
         #Meat ==============================================================
         mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
         mLeverFK = mRigNull.getMessageAsMeta('leverFK')
@@ -861,6 +882,7 @@ def lever(self,ball = False):
             mMesh_tmp.delete()
 
         #Main clav section ========================================
+        """
         ml_clavShapes = BUILDUTILS.shapes_fromCast(self, 
                                                    targets= [mLeverControlCast.mNode,
                                                               mDup.mNode],
@@ -868,17 +890,32 @@ def lever(self,ball = False):
                                                          connectionPoints = 5,
                                                          f_factor=0,
                                                          offset=_offset,
-                                                         mode = 'frameHandle')
+                                                         mode = 'frameHandle')"""
+        
+        l_curves = SURF.get_splitValues(str_meshShape,
+                                        knotIndices=[0,idxMain],
+                                        mode='u',
+                                        insertMax=False,
+                                        preInset = f_factor*.5,
+                                        postInset = -f_factor*.5,
+                                        curvesCreate=True,
+                                        curvesConnect=True,
+                                        connectionPoints=6,
+                                        offset=self.v_offset)
+        ml_shapes = cgmMeta.validateObjListArg(l_curves)
+        
+        
+        
         
         mHandleFactory.color(mLeverFK.mNode, controlType = 'sub')
         CORERIG.shapeParent_in_place(mLeverFK.mNode,
-                                     ml_clavShapes[0].mNode,
+                                     ml_shapes[0].mNode,
                                      False,replaceShapes=False)            
         mDup.delete()
-        for mShape in ml_clavShapes:
+        for mShape in ml_shapes:
             try:mShape.delete()
             except:pass
-        
+        mMesh_tmp.delete()
 
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
