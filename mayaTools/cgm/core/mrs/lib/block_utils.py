@@ -3762,6 +3762,11 @@ def blockMirror_settings(blockSource, blockMirror = None,
         _nameList = ATTR.datList_get(mSource.mNode,'nameList')
         ATTR.datList_connect(mTarget.mNode, 'nameList', _nameList)
         
+        #rollCount 
+        _rollCount = ATTR.datList_get(mSource.mNode,'rollCount')
+        if _rollCount:
+            ATTR.datList_connect(mTarget.mNode, 'rollCount', _rollCount)        
+        
         #loftList
         _loftList = ATTR.datList_get(mSource.mNode,'loftList','enum',enum=True)
         log.debug("|{0}| >> loftList pre : {1}".format(_str_func,_loftList))
@@ -5957,10 +5962,10 @@ _d_attrStateVisOff = {0:[],
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         ],
                      3:['addAim','addCog','addPivot','addScalePivot',
-                        'hasJoint','side','position','rollCount','numControls'],
+                        'hasJoint','side','position','numControls'],
                      4:['hasEndJoint','numJoints','attachPoint','attachIndex',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
-                        'mainRotAxis','hasEndJoint',
+                        'mainRotAxis','hasEndJoint','rollCount',
                         'ribbonAim','ribbonParam','rigSetup','scaleSetup',
                         'segmentMidIKControl','settingsDirection','settingsPlace',
                         'numSpacePivots',
@@ -6337,7 +6342,8 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     """
     _str_func = 'form_segment'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
-    _short = self.p_nameShort    
+    _short = self.p_nameShort
+    mc.select(cl=1)#...why maya....
     #_size_handle = baseSize
     #_size_loft = sizeLoft
     _size_width = sizeWidth
@@ -10212,29 +10218,46 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
         mDefineStartObj = self.defineStartHelper
         
         size_base = DIST.get_axisSize(mDefineStartObj.mNode)
+        size_end = DIST.get_axisSize(mDefineEndObj.mNode)
         
+        ml_use = []
         for mHandle in ml_handles:
-            log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
+            _cgmType = mHandle.getMayaAttr('cgmType')
+            if _cgmType in ['blockHelper']:
+                continue
+            ml_use.append(mHandle)
+            
+        if self.blockType == 'head':
+            ml_use.reverse()
+            
+        for i,mHandle in enumerate(ml_use):
+            log.info(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
 
             try:
                 _mNode = mHandle.mNode
                 try:xDist = RAYS.get_dist_from_cast_axis(_mNode,'x',shapes=_surf)
-                except:xDist = size_base[0]
+                except:
+                    log.debug("alternate X...")
+                    if i:xDist = size_end[0]
+                    else:xDist = size_base[0]
                 
                 try:yDist = RAYS.get_dist_from_cast_axis(_mNode,'y',shapes=_surf)
-                except:yDist = size_base[1]
-                
+                except:
+                    log.debug("alternate Y...")                    
+                    if i:yDist = size_end[1]
+                    else:yDist = size_base[1]
+                    
                 l_x.append(xDist)
                 l_y.append(yDist)
 
                 l_box = [xDist,
                          yDist,
                          None]
-                if mHandle in [ml_handles[0],ml_handles[-1]]:
+                if mHandle in [ml_use[0],ml_use[-1]]:
                     l_box[2] = MATH.average(xDist,yDist)
                 #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)
                 DIST.scale_to_axisSize(_mNode,l_box)
-                #pprint.pprint(l_box)
+                log.debug(l_box)
             except Exception,err:
                 log.error("Form Handle failed to scale: {0}".format(mHandle))
                 log.error(err)
@@ -10920,7 +10943,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             if i  and _b_singleMode:
                 log.debug("|{0}| >> SINGLE MODE".format(_str_func))                
                 break
-            
+            mc.select(cl=1)
             log.info(cgmGEN.logString_sub(_str_func,"{0} | u's: {1}".format(i,uSet)))
 
             _loftCurves = [getCurve(uValue) for uValue in uSet]
@@ -11025,12 +11048,12 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     #if cgmGEN.__mayaVersion__ in [2018]:
                         #_loftTargets.reverse()
 
-                    mc.delete(_mesh)#...we're going to replace our mesh
+                    #mc.delete(_mesh)#...we're going to replace our mesh
 
-                    _mesh = BUILDUTILS.create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                    _mesh = BUILDUTILS.create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=1,divisions=1)
 
                     log.debug("|{0}| >> mesh created...".format(_str_func))                            
-                    CORERIG.match_transform(_mesh,ml_targets[i])
+                    #CORERIG.match_transform(_mesh,ml_targets[i])
 
                     #if reverseNormal:
                         #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
@@ -11044,9 +11067,35 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
 
                     _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
+                    
+                    try:
+                        l_edges = []
+                        d_indices = {}
+                        cnt_curves = len(_loftCurves) + len(_loftTargets)
+                        indices = range(cnt_curves + 6)
+                        for ii,c in enumerate(_loftTargets + _loftCurves):#because we reverse stuff
+                            d_indices[3+ii] = c
+                            
+                        pprint.pprint(d_indices)
+                        for ii in indices:
+                            c = d_indices.get(ii,False)
+                            if not c or c in [_loftCurves[0],_loftCurves[-1]]:
+                                try:
+                                    print ii
+                                    vrts = GEO.get_edgeLoopVertsByLoopAndVerts(_mesh,ii,16)
+                                    l_edges.extend(GEO.get_edgeLoopFromVerts(vrts))
+                                except Exception,err:log.error(err)
+    
+                        mc.polySoftEdge(l_edges, a=0, ch=0)
+                        #mc.select(l_edges)
+                    except Exception,err:print err
+                    
+                    mc.select(cl=1)
+                    
                     mc.delete([end,mid1,mid2])
-                    mc.delete(root)
+                    mc.delete(root)                    
 
+    
                 else:
                     log.debug(cgmGEN.logString_msg(_str_func,'d2 <...'))
                     

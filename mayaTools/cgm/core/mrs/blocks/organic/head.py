@@ -917,6 +917,7 @@ def form(self):
             mc.pointConstraint(md_handles['end'].mNode,mDefineStartObj.mNode,maintainOffset=False)
            
            
+            self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
                
                
                 

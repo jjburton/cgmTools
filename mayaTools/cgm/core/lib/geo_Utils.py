@@ -1745,6 +1745,30 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
         
         
         
+def get_edgeLoopVertsByLoopAndVerts(obj, loopNum, numVerts):
+    return ['%s.vtx[%i]' % (obj, x) for x in range(loopNum*numVerts+1, loopNum*numVerts+numVerts+1)]
+
+def get_edgeLoopFromVerts( verts ):
+    loopList = []
+    for vtx in verts:
+        connectedEdges = mc.ls( mc.polyListComponentConversion(vtx, fv=True, te=True), fl=True )
+        for e in connectedEdges:
+            edgeVerts = mc.ls( mc.polyListComponentConversion(e, fe=True, tv=True), fl=True )
+            numConnectedVerts = 0
+            for v in edgeVerts:
+                if v in verts:
+                    numConnectedVerts += 1
+            if numConnectedVerts == 2:
+                loopList.append(e)
+    return loopList
+
+#obj = 'L_UPR_L_UPR_arm_limb_part_4_proxyGeo'
+#x = ListEdgeLoopVertsByLoopNum( obj, 4, 16)
+#mc.select(x)
+#mc.select( GetEdgeLoopFromVerts( x ) )
+
+
+        
     
 
 
