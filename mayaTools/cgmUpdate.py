@@ -91,7 +91,13 @@ def get_install_path(confirm = False,branch=_defaultBranch):
             log.debug("|{0}| >> paths match.".format(_str_func))
     
     if confirm:
-        _dat = get_dat(branch,1)
+        try:_dat = get_dat(branch,1)
+        except Exception,err:
+            log.error(err)
+            _dat = False
+        if not _dat:
+            log.error("Failed to get branch dat")            
+            return False
         _msg = 'Would you like to install cgmTools here: \n [ {0} ] \n  {1} \n Branch: {2} || Last Updated: {3} \n {4} \n {5}'.format(_path,'-'*100,branch,_dat[0]['date'], _dat[0]['msg'],'-'*100)
         if _warn:
             _msg = _msg + "\n {0}".format(_warn)
@@ -460,8 +466,10 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
     except URLError, e:
         pprint.pprint(vars())
         print 'It appears this is not working...URL or Timeout Error :(', e
+        print 'More than likely your internet is down or the server is.'
     finally:
         print '...'
+        return False
         
 def get_dat_bit(branch = 'master', limit = 3, update = False):
     """
@@ -590,6 +598,7 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
         _zip = get_download(branch,idx)
     except Exception,err:
         log.error(err)
+        
         log.error("|{0}| >> Failed to acquire zip. Check branch name: {1}".format(_str_func,branch))
         return
     
