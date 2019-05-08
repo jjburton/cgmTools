@@ -99,7 +99,7 @@ def eyeLook_get(self,autoBuild=False):
         return eyeLook_verify(self)
     return False
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def eyeLook_verify(self):
     _str_func = 'eyeLook_verify'
     try:
@@ -836,7 +836,7 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit=0, divisions = None,
                     d_tess = None,uniform=False,reverseNormal=False,
                     cap = True, merge = True,form = 1,planar=False,deleteHistory =True ):
@@ -1255,7 +1255,7 @@ def rigNodes_store(self):
     print _res
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_dynParentTargetsDat(self,allParents=True):
     """
     :parameters:
@@ -1343,7 +1343,7 @@ def get_dynParentTargetsDat(self,allParents=True):
     log.debug(cgmGEN._str_subLine)    
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,f_factor = None,connectionPoints=6):
     """
     :parameters:
@@ -2054,7 +2054,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 
                                 
                         #After we get the pos we're going to see if we have any weird ones....
-                        pprint.pprint(l_dist)
+                        #pprint.pprint(l_dist)
                         l_posUse = []
                         l_distUse = []
                         _max = max(l_dist)
@@ -2210,7 +2210,7 @@ def joints_mirrorChainAndConnect(self,ml_chain=None):
         
     return ml_fkAttachJoints
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
@@ -2389,7 +2389,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 log.debug("|{0}| >> SINGLE MODE".format(_str_func))                
                 break
             
-            log.info("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
+            log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
 
             _loftCurves = [getCurve(uValue) for uValue in uSet]
             _mesh = None
@@ -2550,7 +2550,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
-            log.info(_mesh)
+            log.debug(_mesh)
             CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
 

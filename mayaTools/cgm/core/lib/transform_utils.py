@@ -507,9 +507,9 @@ def scale_to_size(node = None, size = 1.0, mode = 'bb'):
         currentSize = DIST.get_bb_size(node,True,True)
     else:
         boundingBoxSize =  DIST.get_bb_size(node)
-        log.info("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        
+        log.debug("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        
         currentSize = max(boundingBoxSize)
-    log.info('currentSize: {0}'.format(currentSize))
+    log.debug('currentSize: {0}'.format(currentSize))
     
     multiplier = size/currentSize
     mc.scale(multiplier,multiplier,multiplier, node, relative = True)
@@ -831,7 +831,7 @@ def parent_orderedTargets(targetList=None, reverse = False):
     if not targetList:
         targetList = mc.ls(sl=True,flatten = False)
         _sel=True
-        log.info("|{0}| >> targetList: {1}".format(_str_func,targetList))
+        log.debug("|{0}| >> targetList: {1}".format(_str_func,targetList))
         
     for i,o in enumerate(targetList):
         targetList[i] = parent_set(o,False)
@@ -841,7 +841,7 @@ def parent_orderedTargets(targetList=None, reverse = False):
     
     if reverse is False:
         targetList.reverse()
-        log.info("|{0}| >> reverse: {1}".format(_str_func,targetList))
+        log.debug("|{0}| >> reverse: {1}".format(_str_func,targetList))
     
     for i,o in enumerate(targetList[:-1]):
         targetList[i] = parent_set(o,targetList[i+1])

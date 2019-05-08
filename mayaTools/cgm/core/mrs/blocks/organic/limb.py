@@ -2567,6 +2567,8 @@ def rig_dataBuffer(self):
         self.b_leverEnd = mBlock.buildLeverEnd
         log.debug("|{0}| >> Quad | self.b_leverEnd: {1} ".format(_str_func,self.b_leverEnd))
         
+        self.ml_shapers = mBlock.UTILS.shapers_get(mBlock)
+        
         #Vector ====================================================================================
         self.mVec_up = mBlock.atUtils('prerig_get_upVector')
         log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
@@ -2634,6 +2636,7 @@ def rig_dataBuffer(self):
         self.b_lever = _b_lever
             
         self.ml_fkShapeTargets = ml_fkShapeHandles
+        self.ml_formHandlesUse = ml_formHandlesUse
 
         if not self.b_singleChain:
             self.int_formHandleMidIdx = MATH.get_midIndex(len(ml_formHandlesUse))
@@ -4164,7 +4167,6 @@ def rig_shapes(self):
     
         _offset = self.v_offset
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
-        
         
         log.debug("|{0}| >> Making fkShapeTargets ".format(_str_func))
         #This is from a bug that Benn reported where a prerig handle we had been using was rotated odd and throwing off the cast

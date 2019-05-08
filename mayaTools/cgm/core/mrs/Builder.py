@@ -252,11 +252,11 @@ class ui_stepBuild(cgmUI.cgmGUI):
         _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         _inside = mUI.MelColumnLayout(_MainForm)
         if self.mBlock:
-            _strBlock = self.mBlock.p_nameBase
+            _strBlock = self.mBlock.UTILS.get_uiString(self.mBlock)#p_nameBase
         else:
             _strBlock = self.mBlock
             
-        SetHeader = cgmUI.add_Header('Block: {0}'.format(_strBlock))
+        SetHeader = cgmUI.add_Header('{0}'.format(_strBlock))
         
         #mc.setParent(_MainForm)
         self.uiStatus = mUI.MelButton(_MainForm,bgc=SHARED._d_gui_state_colors.get('warning'),

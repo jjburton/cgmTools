@@ -124,8 +124,11 @@ def get_scene_module_heirarchy(asMeta = True):
             k = mPuppet.mNode
         
         ml_initialModules = mPuppet.UTILS.modules_get(mPuppet)
-            
-        _md_heirachy[k] = get_puppet_heirarchy_context(ml_initialModules[0],'root',asList=False,report=False)
+        
+        if not ml_initialModules:
+            _md_heirachy[k] = {}
+        else:
+            _md_heirachy[k] = get_puppet_heirarchy_context(ml_initialModules[0],'root',asList=False,report=False)
 
     #cgmGEN.walk_dat(_md_heirachy, _str_func)
     return _md_heirachy
