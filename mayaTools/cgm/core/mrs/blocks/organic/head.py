@@ -29,7 +29,6 @@ import maya.cmds as mc
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
-#r9Meta.cleanCache()#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 import cgm.core.cgm_General as cgmGEN
@@ -1878,9 +1877,7 @@ def rig_shapes(self):
             #mIK.doStore('cgmName','head')
             if b_FKIKhead:mIK.doStore('cgmTypeModifier','ik')
             mIK.doName()    
-            
             CORERIG.colorControl(mIK.mNode,_side,'main')
-            
             self.mRigNull.connectChildNode(mIK,'headIK','rigNull')#Connect
             
             if b_FKIKhead:
@@ -1935,10 +1932,27 @@ def rig_shapes(self):
             
             if mBlock.neckIK:
                 ml_blendJoints = mRigNull.msgList_get('blendJoints')
-                
-                mIKHead = mFKHead.doDuplicate(po=False)
+                mIKHead = mBlock.ikOrientHandle.doCreateAt(setClass=True)
+                mIKHead.doCopyNameTagsFromObject(mFKHead.mNode)
                 mIKHead.doStore('cgmTypeModifier','ik')
-                mIKHead.doName()            
+                mIKHead.doName()
+                
+                CORERIG.shapeParent_in_place(mIKHead.mNode, mFKHead.mNode)                            
+                
+                #mIKHead = mFKHead.doDuplicate(po=False)
+                #mIKHead.doStore('cgmTypeModifier','ik')
+                #mIKHead.doName()
+                #mIKHead.p_parent = False
+                
+                #match orient
+                #CORERIG.match_orientation(mIKHead.mNode, mBlock.ikOrientHandle.mNode)
+                mIKHeadDriver = mFKHead.doCreateAt(setClass=True)
+                mIKHeadDriver.doStore('cgmType','ikHeadDriver')
+                mIKHeadDriver.p_parent = mIKHead.mNode
+                mIKHeadDriver.doName()
+                mIKHead.connectChildNode(mIKHeadDriver,'driver','control')#Connect
+                
+                
                 self.mRigNull.connectChildNode(mIKHead,'controlIK','rigNull')#Connect
                 self.mRigNull.connectChildNode(mIKHead,'headIK','rigNull')#Connect
                 
@@ -2608,7 +2622,7 @@ def rig_frame(self):
         mHeadIK = mRigNull.getMessageAsMeta('headIK')
         if mHeadIK:
             log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
-            mTopHandleDriver = mHeadIK
+            mTopHandleDriver = mHeadIK.driver
         else:
             mTopDriver = mHeadFK
             

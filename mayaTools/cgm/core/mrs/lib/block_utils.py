@@ -1259,7 +1259,7 @@ def get_castSize(self, casters, castMesh = None, axis1 = 'x', axis2 = 'y',extend
             axis1:l_x,
             axis2:l_y}
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_castMesh(self,extend=False,pivotEnd=False):
     _str_func =  'get_castMesh'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -2024,7 +2024,7 @@ d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
 l_pivotOrder = BLOCKSHARE._l_pivotOrder
 d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
     """
     Builder of shapes for pivot setup. Excpects to find pivotHelper on block
@@ -2067,7 +2067,7 @@ def pivots_buildShapes(self, mPivotHelper = None, mRigNull = None):
             mPivot.parent = False
     return True
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def pivots_setup(self, mControl = None,
                  mRigNull = None,
                  mBallJoint = None,
@@ -4456,7 +4456,7 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                     log.error(cgmGEN.logString_msg(_str_func,"subShapers: {0} | {1}".format(i,err)))
                     pprint.pprint(d_sub)
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def blockDat_load(self, blockDat = None,
                   useMirror = False,
                   settingsOnly = False,
@@ -7286,7 +7286,7 @@ def rigDelete(self):
     set_blockNullFormState(self, state=False, define=False)
     return True
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDependency=True,**kws):
     #try:
     _str_func = 'changeState'
@@ -9959,7 +9959,6 @@ def prerig_get_upVector(self, markPos = False):
         raise log.error( cgmGEN.logString_start(_str_func,"No mOrient.") )
     
     
-    
     rpVectorX = mVectorRP.getTransformDirection(EUCLID.Vector3(1,0,0)).normalized()
     rpVectorY = mVectorRP.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
     rpVectorZ = mVectorRP.getTransformDirection(EUCLID.Vector3(0,0,1)).normalized()
@@ -9994,7 +9993,7 @@ def prerig_get_upVector(self, markPos = False):
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
         except:idx_start,idx_end = 0,len(ml_prerig)-1
 
-        mLoc = self.doLoc()
+        mLoc = mVectorRP.doLoc()
         SNAP.aim_atPoint(mLoc.mNode, ml_prerig[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
                 
         closestVector =  mLoc.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
@@ -10231,7 +10230,7 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
             ml_use.reverse()
             
         for i,mHandle in enumerate(ml_use):
-            log.info(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
+            log.debug(cgmGEN.logString_msg(_str_func,'Handle: {0}'.format(mHandle)))
 
             try:
                 _mNode = mHandle.mNode
@@ -10751,7 +10750,7 @@ def get_orienationDict(self,orienation='zyx'):
         cgmGEN.cgmExceptCB(Exception,err)
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
@@ -10925,7 +10924,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _crv = d_curves.get(uValue)
             if _crv:return _crv
             _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,uValue,method), ch = 0, rn = 0, local = 0)[0]
-            _crv = mc.rename(_crv,"u{0}_crv".format(str(uValue)))
+            #_crv = mc.rename(_crv,"u{0}_crv".format(str(uValue)))
             d_curves[uValue] = _crv
             log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
             l_created.append(_crv)
@@ -10944,7 +10943,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 log.debug("|{0}| >> SINGLE MODE".format(_str_func))                
                 break
             mc.select(cl=1)
-            log.info(cgmGEN.logString_sub(_str_func,"{0} | u's: {1}".format(i,uSet)))
+            log.debug(cgmGEN.logString_sub(_str_func,"{0} | u's: {1}".format(i,uSet)))
 
             _loftCurves = [getCurve(uValue) for uValue in uSet]
             
@@ -11070,30 +11069,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     
                     try:
                         l_edges = []
-                        d_indices = {}
-                        cnt_curves = len(_loftCurves) + len(_loftTargets)
-                        indices = range(cnt_curves + 6)
-                        for ii,c in enumerate(_loftTargets + _loftCurves):#because we reverse stuff
-                            d_indices[3+ii] = c
-                            
-                        pprint.pprint(d_indices)
-                        for ii in indices:
-                            c = d_indices.get(ii,False)
-                            if not c or c in [_loftCurves[0],_loftCurves[-1]]:
-                                try:
-                                    print ii
-                                    vrts = GEO.get_edgeLoopVertsByLoopAndVerts(_mesh,ii,16)
-                                    l_edges.extend(GEO.get_edgeLoopFromVerts(vrts))
-                                except Exception,err:log.error(err)
+                        for c in _loftCurves[0],_loftCurves[-1],root:
+                            vtxs = GEO.get_vertsFromCurve(_mesh,c)
+                            l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
     
                         mc.polySoftEdge(l_edges, a=0, ch=0)
-                        #mc.select(l_edges)
+                        
                     except Exception,err:print err
-                    
                     mc.select(cl=1)
-                    
                     mc.delete([end,mid1,mid2])
-                    mc.delete(root)                    
+                    mc.delete(root)
 
     
                 else:
@@ -11142,13 +11127,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
 
             if not _mesh:
                 _mesh = BUILDUTILS.create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
-                log.debug("|{0}| >> mesh created...".format(_str_func))                                            
+                log.debug("|{0}| >> mesh created...".format(_str_func))
+                
+                l_edges = []
+                for c in [_loftCurves[-1]]:
+                    vtxs = GEO.get_vertsFromCurve(_mesh,c)
+                    l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
+
+                mc.polySoftEdge(l_edges, a=0, ch=0)                
+                
             for s in TRANS.shapes_get(_mesh):
                 GEO.normalCheck(s)
 
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
-            log.info(_mesh)
+            log.debug(_mesh)
             CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
 

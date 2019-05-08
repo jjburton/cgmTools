@@ -29,7 +29,7 @@ import maya.OpenMaya as OM
 import copy
 import random
 
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 reload(VALID)
 from cgm.core.lib import selection_Utils as selUtils
@@ -635,7 +635,7 @@ def get_shapePosData(meshShape = None, space = 'os'):
 
     _result = []
     _dict = VALID.MeshDict(meshShape)
-    #cgmGeneral.log_info_dict(_dict,'get_shapePosData: {0}'.format(meshShape))
+    #cgmGEN.log_info_dict(_dict,'get_shapePosData: {0}'.format(meshShape))
     for i in range(_dict['pointCount']):
         if _space == 'world':
             _result.append(mc.xform("{0}.vtx[{1}]".format(_dict['shape'],i), t = True, ws = True, q=True))                
@@ -751,10 +751,10 @@ def meshMath_OLD(sourceObj = None, target = None, mode = 'blend', space = 'objec
         if _d_source[k] != _d_target[k]:
             raise ValueError,"{0} Mesh dicts keys must match. {1} failed".format(_str_funcName,k)
 
-    log.debug(cgmGeneral._str_subLine)	
+    log.debug(cgmGEN._str_subLine)	
     log.debug("{0}...".format(_str_funcName))
-    #cgmGeneral.log_info_dict(_d_source,'Source')
-    #cgmGeneral.log_info_dict(_d_target,'Target')
+    #cgmGEN.log_info_dict(_d_source,'Source')
+    #cgmGEN.log_info_dict(_d_target,'Target')
     log.debug("sourceObj: {0}".format(sourceObj))	
     log.debug("target: {0}".format(target))	
     log.debug("mode: {0}".format(_mode))	
@@ -823,7 +823,7 @@ def meshMath_OLD(sourceObj = None, target = None, mode = 'blend', space = 'objec
         _l_toApply = meshMath_values(_l_pos_obj,_l_pos_targ,_mode,_multiplier)
 
     log.debug("res pos: {0}".format(_l_toApply))   
-    log.debug(cgmGeneral._str_subLine)  
+    log.debug(cgmGEN._str_subLine)  
 
     if _resultType == 'values':
         _result = _l_toApply
@@ -973,7 +973,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
     if len(_l_targetsGood) < 2:
         raise ValueError,"{0}>> must have at least two good targets".format(_str_funcName)
 
-    log.debug(cgmGeneral._str_subLine)	
+    log.debug(cgmGEN._str_subLine)	
     log.debug("{0}...".format(_str_funcName))
 
     for i in _l_targetsGood:
@@ -1179,7 +1179,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
 
 
     log.debug("res pos: {0}".format(_l_toApply))   
-    log.debug(cgmGeneral._str_subLine)  
+    log.debug(cgmGEN._str_subLine)  
 
     if _resultType == 'values':
         _result = _l_toApply
@@ -1248,7 +1248,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
         else:
             _multiplier = 1
 
-    log.debug(cgmGeneral._str_subLine)	
+    log.debug(cgmGEN._str_subLine)	
     log.debug("{0}...".format(_str_funcName))
     log.debug("sourceValues: {0}".format(sourceValues))	
     log.debug("targetValues: {0}".format(targetValues))	
@@ -1361,7 +1361,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             _result[i] = _nPos
 
     log.debug("res pos: {0}".format(_result))   
-    log.debug(cgmGeneral._str_subLine)  
+    log.debug(cgmGEN._str_subLine)  
     guiFactory.doCloseProgressWindow()
     return _result
 
@@ -1434,7 +1434,7 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
     _shape = _dict['shape']
     _mesh = _dict['mesh']
 
-    log.debug(cgmGeneral._str_subLine)	
+    log.debug(cgmGEN._str_subLine)	
     log.debug("{0}...".format(_str_funcName))
     log.debug("sourceObject: '{0}'".format(_shape))	    
     log.debug("dict: '{0}'".format(_dict))	
@@ -1570,14 +1570,14 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
             'axisVector':_l_axis,            
             'asymmetrical':[ _d_vtxToID[vtx] for vtx in _l_assym ]}
 
-@cgmGeneral.Timer
+@cgmGEN.Timer
 def normalCheck(mesh,ch=0):
     if is_reversed(mesh):
         mc.polyNormal(mesh, normalMode = 0, userNormalMode=1,ch=ch)
         return True
     return False
 
-@cgmGeneral.Timer
+@cgmGEN.Timer
 def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markHits = False):
     """
     Call to see if a mesh is flipped
@@ -1738,7 +1738,7 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
             
     except Exception,err:
         #guiFactory.doCloseProgressWindow()
-        cgmGeneral.cgmException(Exception,err)
+        cgmGEN.cgmException(Exception,err)
     finally:
         pass
         #guiFactory.doCloseProgressWindow()
@@ -1748,12 +1748,29 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
 def get_edgeLoopVertsByLoopAndVerts(obj, loopNum, numVerts):
     return ['%s.vtx[%i]' % (obj, x) for x in range(loopNum*numVerts+1, loopNum*numVerts+numVerts+1)]
 
+#@cgmGEN.Timer
+def get_vertsFromCurve(obj,crv,tolerance = .1):
+    _dict = VALID.MeshDict(obj)
+    _pointDat = {}
+    _res = []
+    for i in range(_dict['pointCount']):
+        v = "{0}.vtx[{1}]".format(_dict['mesh'],i)
+        p1 = mc.xform(v, t = True, ws = True, q=True)
+        p2,d,shape = DIST.get_closest_point(p1,crv)        
+        if d < tolerance:
+            _res.append(v)
+    return _res
+
 def get_edgeLoopFromVerts( verts ):
+    _str_func = 'get_edgeLoopFromVerts'
     loopList = []
     for vtx in verts:
+        log.debug(cgmGEN.logString_sub(_str_func,"{0}...".format(vtx)))
         connectedEdges = mc.ls( mc.polyListComponentConversion(vtx, fv=True, te=True), fl=True )
         for e in connectedEdges:
+            log.debug(cgmGEN.logString_msg(_str_func,"{0}...".format(e)))            
             edgeVerts = mc.ls( mc.polyListComponentConversion(e, fe=True, tv=True), fl=True )
+            #pprint.pprint(edgeVerts)
             numConnectedVerts = 0
             for v in edgeVerts:
                 if v in verts:
