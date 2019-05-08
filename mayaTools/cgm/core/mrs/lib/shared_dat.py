@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BLOCKSHARE'
+
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',
@@ -17,8 +19,9 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'cgmName':'string',
                 'cgmDirection':'string',
                 'cgmPosition':'string',
-                'blockState':'string',
-                'blockDat':'string',#...for pickle? 
+                'blockState':'define:form:prerig:skeleton:rig',
+                'blockDat':'string',#...for pickle?
+                'baseDat':'string',
                 'blockParent':'messageSimple',
                 'blockMirror':'messageSimple'}
 d_defaultAttrSettings = {'blockState':'define'}
@@ -27,12 +30,13 @@ d_defaultAttrSettings = {'blockState':'define'}
 _l_requiredSkeletonDat = ['__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']
 _l_requiredRigDat = []
 
-_l_blockStates = ['define','template','prerig','skeleton','rig']
+_l_blockStates = ['define','form','prerig','skeleton','rig']
 _l_requiredModuleDat = ['__version__',
-                        'template','is_template','templateDelete',
+                        'form','is_form','formDelete',
                         'prerig','is_prerig','prerigDelete',
                         'rig','is_rig','rigDelete']
 
+_l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct','face','spacePivots']
 
 _l_buildProfiles = 'unityLow','unityMed','unityHigh','unityToon','feature'
 
@@ -74,13 +78,13 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'baseUp':'float3',
                    'baseAim':'float3',
                    'basePoint':'float3',
-                   'baseDat':'string',
                    'blockProfile':'string',
-                   
+                   'nowState':'define:form:prerig:skeleton:rig',
                    'controlOffset':'float',
                    'basicShape':'circle:square:pyramid:semiSphere:sphere:cube',
                    'proxyShape':'cube:sphere:cylinder:cone:torus',
-                   'attachPoint':'base:end:closest:surface',
+                   'attachPoint':'base:end:closest:surface:index',
+                   'attachIndex':'int',
                    'squashStretch':'none:single:double',
                    'addCog':'bool',
                    'addAim':'bool',
@@ -93,7 +97,6 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'loftSplit':'int',
                    'loftList':'enumDatList',
                    'loftDegree':'linear:cubic',
-                   'loftReverseNormal':'bool',
                    'controlType':'main:sub:direct:extra',    
                    'nameList':'stringDatList',
                    'namesHandles':'stringDatList',
@@ -140,7 +143,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
                    'visBoundingBox':'bool',
-                   'visRotatePlane':'bool',                   
+                   'visRotatePlane':'bool',
+                   'visLabels':'bool',
                    'visMeasure':'bool',}
 
 _l_defineHandlesOrder = ['end','start','up','rp','aim','lever']
@@ -156,7 +160,7 @@ _d_mirrorAttrCheck = {'loftShape':{'widePos':'wideNeg',
 
 #>> State Attr Masks =================================================================================
 _l_attrMask_all = ['visibility']
-_l_attrMask_template = ['baseSize','blockScale']
+_l_attrMask_form = ['baseSize','blockScale']
 _l_attrMask_prerig = []
 _l_attrMask_rig = []
 

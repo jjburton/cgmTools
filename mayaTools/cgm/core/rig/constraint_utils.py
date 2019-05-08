@@ -470,7 +470,7 @@ def build_aimSequence(l_driven = None,
             s_targetBack = s_rootTarget
             #ml_parents[i].mNode
 
-        pprint.pprint([s_targetForward,s_targetBack])
+        #pprint.pprint([s_targetForward,s_targetBack])
         mAimGroup = mDriven.doGroup(True,asMeta=True,typeModifier = 'aim')
 
         mDriven.parent = False
@@ -731,7 +731,7 @@ def build_aimSequence(l_driven = None,
             s_targetBack = s_rootTarget
             #ml_parents[i].mNode
 
-        pprint.pprint([s_targetForward,s_targetBack])
+        #pprint.pprint([s_targetForward,s_targetBack])
         mAimGroup = mObj.doGroup(True,asMeta=True,typeModifier = 'aim')
 
         mObj.parent = False

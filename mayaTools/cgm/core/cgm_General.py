@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
+__MAYALOCAL = 'cgmGEN'
+
 import maya.cmds as mc
 import maya.mel as mel
 import maya.utils as mUtils
@@ -747,20 +749,20 @@ def returnCallerFunctionName():
     return result
 
 def log_start(str_func,split='-',intCount = 80):
-    log.debug("|{0}| >> ...".format(str_func)+split*intCount)
+    log.debug("{0} >> ...".format(str_func)+split*intCount)
 def log_sub(str_func,msg='break',split='_',intCount = 30):
-    log.debug("|{0}| >> {1} ".format(str_func,msg)+split*intCount)
+    log.debug("{0} >> {1} ".format(str_func,msg)+split*intCount)
     
 def logString_start(str_func,split='-',intCount = 80):
-    if str_func:return "|{0}| >> ...".format(str_func)+split*intCount
-    return "...".format(str_func)+split*intCount
+    if str_func:return "{0} >> ".format(str_func)+split*intCount
+    return " ".format(str_func)+split*intCount
 
 def logString_sub(str_func,msg='break',split='_',intCount = 80):
-    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)+split*intCount
+    if str_func:return "{0} >> {1} ...".format(str_func,msg)+split*intCount
     return "{0} ...".format(msg)+split*intCount
 
-def logString_msg(str_func,msg='break'):
-    if str_func:return "|{0}| >> {1} ...".format(str_func,msg)
+def logString_msg(str_func,msg=''):
+    if str_func:return "{0} >> {1} ...".format(str_func,msg)
     return "{0} ...".format(msg)
     
 def log_info_dict(arg = None,tag = 'Stored Dict'):
@@ -861,9 +863,10 @@ def walk_heirarchy_dict_to_list(arg = None, l_return = None):
             
     if isinstance(arg,dict):
         l_keys = arg.keys()	
+        l_return.extend(l_keys)
         
         for k in l_keys:
-            l_return.append(k)
+            #l_return.append(k)
             walk_heirarchy_dict_to_list(arg[k],l_return)
 		                
     return l_return
@@ -986,7 +989,9 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
-            #raise Exception,err
+        finally:
+            del self
+            
 CB = Callback
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
     """

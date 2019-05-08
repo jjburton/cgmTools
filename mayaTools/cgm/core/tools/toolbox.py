@@ -26,7 +26,6 @@ import Red9
 from cgm.core import cgm_General as cgmGen
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
-reload(MMCONTEXT)
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.locator_utils as LOC
@@ -50,7 +49,6 @@ import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.transformTools as TT
 import cgm.core.tools.jointTools as JOINTTOOLS
 import cgm.core.lib.sdk_utils as SDK
-reload(SDK)
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
 import cgm.core.cgmPy.validateArgs as VALID
@@ -62,10 +60,8 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.skinDat as SKINDAT
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
-reload(UICHUNKS)
 import cgm.core.tools.lib.tool_calls as LOADTOOL
 import cgm.core.tools.snapTools as SNAPTOOLS
-reload(SNAPTOOLS)
 from cgm.lib.ml import (ml_breakdownDragger,
                         ml_resetChannels,
                         ml_deleteKey,
@@ -76,12 +72,6 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_convertRotationOrder,
                         ml_copyAnim)
 
-
-reload(MESHTOOLS)
-reload(TT)
-reload(TOOLANNO)
-reload(cgmUI)
-reload(SNAPCALLS)
 mUI = cgmUI.mUI
 
 _2016 = False

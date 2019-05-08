@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'BUILDERUTILS'
+
 import random
 import re
 import copy
@@ -34,7 +36,8 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-
+import cgm.core.lib.geo_Utils as GEO
+reload(GEO)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -56,6 +59,8 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.lib.string_utils as STRING
+reload(STRING)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
@@ -94,7 +99,7 @@ def eyeLook_get(self,autoBuild=False):
         return eyeLook_verify(self)
     return False
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def eyeLook_verify(self):
     _str_func = 'eyeLook_verify'
     try:
@@ -279,7 +284,7 @@ def gather_rigBlocks(progressBar=False):
                 mObj.parent = mGroup
                 ml_gathered.append(mObj)
                 
-            for link in ['noTransTemplateNull','noTransDefineNull','noTransPrerigNull']:
+            for link in ['noTransFormNull','noTransDefineNull','noTransPrerigNull']:
                 try:
                     mLink = mObj.getMessageAsMeta(link)
                     if mLink and not mLink.parent:
@@ -458,7 +463,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
             ml_use = ml_handles
         else:
             ml_prerigHandles = self.mBlock.msgList_get('prerigHandles')
-            ml_templateHandles = self.mBlock.msgList_get('templateHandles')
+            ml_formHandles = self.mBlock.msgList_get('formHandles')
             
             int_count = self.mBlock.numControls
             ml_use = ml_prerigHandles[:int_count]
@@ -534,7 +539,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
         
         return pos_use
         
-        pos_mid = ml_templateHandles[mid].p_position
+        pos_mid = ml_formHandles[mid].p_position
     
     
         #Get our point for knee...
@@ -831,8 +836,10 @@ def build_jointProxyMeshOLD(root,degree = 3, jointUp = 'y+'):
     #>>Parent to the joints ----------------------------------------------------------------- 
     return _l_new
 
+#@cgmGEN.Timer
 def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit=0, divisions = None,
-                    cap = True, merge = True,form = 1,planar=False,reverseSurfaceNormals=True,deleteHistory =True ):
+                    d_tess = None,uniform=False,reverseNormal=False,
+                    cap = True, merge = True,form = 1,planar=False,deleteHistory =True ):
     """
     Create lofted mesh from target curves.
 
@@ -841,14 +848,16 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         name(str) | Base name for created objects
         degree(int) | degree of surface
         divisions(int) | how many splits in the created mesh
+        d_tess(dict) | override for tesselate logic
         cap(bool) | whether to cap the top and bottom
         merge(bool) | whether to merge the caps to the base mesh
 
     :returns
         created(list)
-    """    
+    """
+    reload(RAYS)
     _str_func = 'create_loftMesh'
-    
+    ml_delete= []
     if targets == None:
         targets = mc.ls(sl=True)
     if not targets:
@@ -860,7 +869,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     #tess method - general, uType 1, vType 2+ joint count
     
     int_count = len(targets)
-    
+    #pprint.pprint(vars())
     #>>Body -----------------------------------------------------------------
     _ss = 1
     if degree == 1:
@@ -868,17 +877,99 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
         _ss = vSplit
     else:
         _loftDegree = 3
-        
-    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 1, ss=_ss,
-                        autoReverse=True,
-                        reverseSurfaceNormals=False )
+
+    log.debug(cgmGEN.logString_sub(_str_func,"Loft"))
+    
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
+    
+    if cap:
+        log.debug(cgmGEN.logString_sub(_str_func,"cap"))
+        l_use = copy.copy(targets)
+        for i,loft in enumerate([targets[0],targets[-1]]):
+            log.debug(cgmGEN.logString_msg(_str_func,"duping: {0}".format(loft)))
+            mLoft = cgmMeta.asMeta(loft)
+            mStartCollapse = mLoft.doDuplicate(po=False)
+            l_children = mStartCollapse.getChildren()
+            if l_children:mc.delete(l_children)
+            mStartCollapse.p_parent = False
+            mMidCollapse = mStartCollapse.doDuplicate(po=False)
+            mEndCollapse = mStartCollapse.doDuplicate(po=False)
+            pos_bb = TRANS.bbCenter_get(mEndCollapse.mNode)
 
+            for ep in mc.ls("{0}.ep[*]".format(mEndCollapse.getShapes()[0]),flatten=True):
+                POS.set(ep,pos_bb)
+                
+            DIST.offsetShape_byVector(mStartCollapse.mNode,origin= pos_bb,
+                                      factor = -.2, offsetMode = 'vectorScale')
+            DIST.offsetShape_byVector(mMidCollapse.mNode,origin= pos_bb,
+                                      factor = -.8, offsetMode = 'vectorScale')
+
+            if loft == targets[0]:
+                l_use.insert(0,mStartCollapse.mNode)
+                l_use.insert(0,mMidCollapse.mNode)
+                l_use.insert(0,mEndCollapse.mNode)                
+                
+            else:
+                l_use.append(mStartCollapse.mNode)
+                l_use.append(mMidCollapse.mNode)                
+                l_use.append(mEndCollapse.mNode)
+                
+            ml_delete.append(mStartCollapse)
+            ml_delete.append(mMidCollapse)            
+            ml_delete.append(mEndCollapse)
+            
+        targets = l_use        
+    
+    targets.reverse()
+    _res_body = mc.loft(targets, o = True, d = _loftDegree, po = 0, ss=_ss,uniform=uniform,
+                        autoReverse=True, reverseSurfaceNormals=False )
+    
+    #Check if we need to reverse our surface u/v ===========================================================
+    log.debug(cgmGEN.logString_sub(_str_func,"Surface loft and check for need to reverse"))
+    
+    mSurf = cgmMeta.asMeta(_res_body[0])
+    str_meshShape = mSurf.getShapes()[0]
+    
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    useU = MATH.average(minU,maxU)
+    
+    _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,useU), ch = 0, rn = 0, local = 0)[0]
+    mCrv = cgmMeta.asMeta(_crv)
+    l_cvsRes = mc.ls("{0}.cv[*]".format(mCrv.getShapes()[0]),flatten=True)
+    p1 = POS.get(l_cvsRes[0])
+    p2 = POS.get(l_cvsRes[1])
+    
+    vec_Mid = MATH.get_vector_of_two_points(p1, p2)
+    
+    l_pos = []
+    for crv in l_use[0],l_use[-1]:
+        mCrv = cgmMeta.asMeta(crv)
+        l_cvsRes = mc.ls("{0}.cv[*]".format(mCrv.getShapes()[0]),flatten=True)
+        l_pos.append(POS.get(l_cvsRes[0]))
+    
+    vec_startEnd = MATH.get_vector_of_two_points(l_pos[0], l_pos[1])
+    vec_cross = MATH.dotproduct(vec_Mid, vec_startEnd)
+    #vec_angle = MATH.angleBetweenVectors(vec_startEnd,vec_Mid)
+    #pprint.pprint(vars())
+    
+    if MATH.is_float_equivalent(vec_cross,0.00000,1):
+        mc.reverseSurface(mSurf.mNode, d=2,ch=1,rpo=1)
+        
+    mc.delete(_crv)
+    _res_body = mc.nurbsToPoly(mSurf.mNode,mnd=1,ch=1,f=2,pt= 1,pc=200,
+                               chr=0.9,ft =0.01,mel=0.001,d =0.1,ut =1,
+                               un =3,vt =1,vn =3,uch =0,ucr =0,
+                               cht =0.2,es =0,ntr =0,mrt =0,uss =1)
+
+
+    
     _inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
     _tessellate = _inputs[0]
     
+    log.debug(cgmGEN.logString_sub(_str_func,"set values"))        
 
     if degree == 1:
         if form == 2:
@@ -897,22 +988,23 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
               'vNumber':1+vSplit,
               'uNumber': points+(uSplit*points)}
         
+    if d_tess:
+        _d.update(d_tess)
+        
     for a,v in _d.iteritems():
         ATTR.set(_tessellate,a,v)
         
-    #mc.polySoftEdge(_res_body[0], a = 30, ch = 1)
     
-    #if degree ==1:
-        ##mc.polyNormal(_res_body[0],nm=0)
-        #mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
-        #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
-
-    if form == 2:
-        mc.polyNormal(_res_body[0],nm=0)           
+    if deleteHistory:
+        mc.delete(_res_body[0], ch=True)
+        mSurf.delete()
+        for mObj in ml_delete:
+            mObj.delete()
+            
     
-    if not deleteHistory:
-        return _res_body[0]
-    if merge:
+    if cap and merge:
+        log.debug(cgmGEN.logString_sub(_str_func,"merge"))        
+        
         #Get our merge distance
         l_cvPoints = []
         for p in l_cvs:
@@ -922,46 +1014,14 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
             l_dist.append(DIST.get_distance_between_points(p,l_cvPoints[i+1]))
     
         f_mergeDist = (sum(l_dist)/ float(len(l_dist))) * .001        
+        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
+        mc.select(cl=1)
         
-        mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )    
-        
-    if cap:
-        mc.polyCloseBorder(_res_body[0] )
-        """
-        _l_combine = [_res_body[0]]
-        
-        #>>Top bottom -----------------------------------------------------------------
-        for i,crv in enumerate([targets[0],targets[-1]]):
-            _res = mc.planarSrf(crv,po=1,ch=True,d=3,ko=0, tol=.01,rn=0)
-            log.debug(_res)
-            _inputs = mc.listHistory(_res[0],pruneDagObjects=True)
-            _tessellate = _inputs[0]        
-            _d = {'format':1,#Fit
-                  'polygonType':1,#'quads',
-                  #'vNumber':1,
-                  #'uNumber':1
-                  }
-            for a,v in _d.iteritems():
-                ATTR.set(_tessellate,a,v)
-            _l_combine.append(_res[0])
-        
-        #_res = mc.polyUnite(_l_combine,ch=False,mergeUVSets=1,n = "{0}_proxy_geo".format(name))
-        """
-        
-        if merge:
-            mc.polyMergeVertex(_res_body[0], d= f_mergeDist, ch = 0, am = 1 )
-            #polyMergeVertex  -d 0.01 -am 1 -ch 1 box_3_proxy_geo;
-        _res = _res_body
-    else:
-        _res = _res_body
-    
-    #if degree == 1:
-        #mc.polyNormal(_res_body[0],nm=0)
-    
+    _res = _res_body
+
     if planar:
+        log.debug(cgmGEN.logString_sub(_str_func,"planar"))                
         mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)#THIS WILL MAKE GEO SMOOTH
-        #mc.polyNormal(_res_body[0], normalMode = 0, userNormalMode=1,ch=0)
-       # mc.polySetToFaceNormal(_res_body[0],setUserNormal = True)
         
     return _res[0]    
 
@@ -1195,7 +1255,7 @@ def rigNodes_store(self):
     print _res
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_dynParentTargetsDat(self,allParents=True):
     """
     :parameters:
@@ -1283,7 +1343,7 @@ def get_dynParentTargetsDat(self,allParents=True):
     log.debug(cgmGEN._str_subLine)    
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, upVector = None, uValues = [], offset = None, size = None,f_factor = None,connectionPoints=6):
     """
     :parameters:
@@ -1316,6 +1376,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 str_aim = self.d_orientation['mOrientation'].p_out.p_string        
         else:
             str_aim = VALID.simpleAxis(aimVector).p_string
+        str_up = self.d_orientation['mOrientation'].p_up.p_string
             
         mRigNull = self.mRigNull
         ml_shapes = []
@@ -1328,6 +1389,9 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         if aimVector is None:
             aimVector = self.d_orientation['vectorAim']
         
+        def returnRes(res):
+            if mMesh_tmp:mMesh_tmp.delete()
+            return res
 
         #Get our prerig handles if none provided
         if mode not in ['singleCurve']:
@@ -1556,7 +1620,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                 elif mode == 'frameHandle':#================================================================
                     #if not mRigNull.msgList_get('fkJoints'):
                         #return log.error("|{0}| >> No fk joints found".format(_str_func))
-                    
+
                     #...Get our vectors...
                     """
                     l_vectors = []
@@ -1578,8 +1642,14 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
                         except:
-                            log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
-                            _v = l_failSafes[i]
+                            try:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | trying up".format(_str_func,i))
+                                _d = RAYS.cast(str_meshShape, _short, str_up)
+                                _v = _d['uvsRaw'][str_meshShape][0][0]  
+                                
+                            except:
+                                log.debug("|{0}| >> frameHandle. Hit fail {1} | {2}".format(_str_func,i,l_failSafes[i]))                                            
+                                _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
                     reload(SURF)
@@ -1961,33 +2031,53 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                         
                         dist = offset * 5
                         pos_obj = mObj.p_position
+                        crvBase = CURVES.create_fromName(name='semiSphere',
+                                                     direction = 'z+',
+                                                     size = offset)
+                        
+                        
+                        l_pos = []
+                        l_dist = []
                         for i,axis in enumerate([str_orientation[1], str_orientation[2]]):
                             for ii,d in enumerate(['+','-']):
                                 
-                                if 'limbSegmentHandleBack' and i == 0 and ii == 1:
+                                if mode =='limbSegmentHandleBack' and i == 0 and ii == 1:
                                     continue
                                 p = SNAPCALLS.get_special_pos([mObj.mNode,
                                                                str_meshShape],
                                                               'cast',axis+d)
-
-                                crv = CURVES.create_fromName(name='semiSphere',
-                                                             direction = 'z+',
-                                                             size = offset)
-                                l_shapes.append(crv)
-                                mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
                                 
                                 if not p:
                                     p = DIST.get_pos_by_axis_dist(mObj.mNode, axis+d, dist)
-                                    
-                                dist = DIST.get_distance_between_points(p, pos_obj)
+                                l_pos.append(p)
+                                l_dist.append( DIST.get_distance_between_points(p, pos_obj) )
                                 
-                                vec_tmp = MATH.get_vector_of_two_points(pos_obj,p)
-                                p_use = DIST.get_pos_by_vec_dist(pos_obj,vec_tmp, dist+offset)
                                 
-                                mCrv.p_position = p_use
-                                
-                                SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
-                                
+                        #After we get the pos we're going to see if we have any weird ones....
+                        #pprint.pprint(l_dist)
+                        l_posUse = []
+                        l_distUse = []
+                        _max = max(l_dist)
+                        _distCheck = MATH.average([v for v in l_dist if v is not _max]) * 2.0
+                        
+                        
+                        for i,p in enumerate(l_pos):
+                            dist = l_dist[i]
+                            if dist > _distCheck:
+                                continue
+
+                            crv = mc.duplicate(crvBase)[0]
+                            l_shapes.append(crv)                                
+                            
+                            vec_tmp = MATH.get_vector_of_two_points(pos_obj,p)
+
+                            p_use = DIST.get_pos_by_vec_dist(pos_obj,vec_tmp, dist+offset)
+                            mCrv = cgmMeta.validateObjArg(crv,'cgmObject')
+                            
+                            mCrv.p_position = p_use
+                            
+                            SNAP.aim_atPoint(mCrv.mNode, pos_obj, 'z-')
+                        mc.delete(crvBase)
                                 
 
                         for crv in l_shapes[1:]:
@@ -2005,7 +2095,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
         
                     ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
                     if len(ml_ikJoints)<2:
-                        return log.error("|{0}| >> Need at least two ik joints".format(_str_func))
+                        return returnRes(log.error("|{0}| >> Need at least two ik joints".format(_str_func)))
                     
                     vec_normal = MATH.get_vector_of_two_points(ml_ikJoints[-2].p_position,
                                                                ml_ikJoints[-1].p_position)
@@ -2120,12 +2210,14 @@ def joints_mirrorChainAndConnect(self,ml_chain=None):
         
     return ml_fkAttachJoints
 
-
+#@cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
                      ballPosition = 'joint',
                      reverseNormal=False,
+                     extendCastSurface = False,
+                     l_values = [],
                      extendToStart = True,method = 'u'):
     try:
         _short = self.mBlock.mNode
@@ -2143,7 +2235,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 aimVector = self.d_orientation['mOrientation'].p_outNegative.p_string
             else:
                 aimVector = self.d_orientation['mOrientation'].p_out.p_string
-                
+        aimAlternate = self.d_orientation['mOrientation'].p_up.p_string
             
         #Get our prerig handles if none provided
         if targets is None:
@@ -2154,13 +2246,13 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             ml_targets = cgmMeta.validateObjListArg(targets,'cgmObject')
         
     
-        ml_handles = self.mBlock.msgList_get('templateHandles',asMeta = True)
+        ml_handles = self.mBlock.msgList_get('formHandles',asMeta = True)
         #l_targets = [mObj.loftCurve.mNode for mObj in ml_handles]
         #res_body = mc.loft(l_targets, o = True, d = 3, po = 0 )
         #mMesh_tmp = cgmMeta.validateObjArg(res_body[0],'cgmObject')
         #str_tmpMesh = mMesh_tmp.mNode
         
-        mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+        mMesh_tmp =  self.mBlock.atUtils('get_castMesh',extend=extendCastSurface)
         str_meshShape = mMesh_tmp.getShapes()[0]
         
         """
@@ -2212,11 +2304,17 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             _d = RAYS.cast(str_meshShape,j,aimVector)
             l_pos.append(mTar.p_position)
             log.debug("|{0}| >> Casting {1} ...".format(_str_func,j))
+            _v = None
             #cgmGEN.log_info_dict(_d,j)
             if not _d:
-                log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
-                _v = l_failSafes[i]
-            else:
+                _d_alt = RAYS.cast(str_meshShape,j,aimAlternate)
+                if not _d_alt:
+                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
+                    _v = l_failSafes[i]
+                else:
+                    _d = _d_alt
+                    
+            if _v is None:
                 if method == 'v':
                     _v = _d['uvsRaw'][str_meshShape][0][1]
                 else:
@@ -2232,6 +2330,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             l_uValues.append(maxU)
             _b_singleMode = True
             
+        log.debug("|{0}| >> uValues: {1} ...".format(_str_func,l_uValues))
+
         for i,v in enumerate(l_uValues):
             _l = [v]
             
@@ -2241,7 +2341,11 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         if uKnot < maxU:
                             _l.append(uKnot)
                     elif uKnot < l_uValues[i+1]:
-                        _l.append(uKnot)
+                        if (l_uValues[i+1] - uKnot < .01):
+                            l_uValues[i] = uKnot
+                            v=uKnot
+                        else:
+                            _l.append(uKnot)
                     
             if v == l_uValues[-1]:
                 _l.append(maxU)
@@ -2250,32 +2354,26 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 
             if i == 0 and extendToStart:
                 _l.insert(0,minU)
+            """
+            for ii,v2 in enumerate(_l):
+                if ii:
+                    if _l[ii-1] - v2 < 1:
+                        _l.remove(v2)"""
                 
             l_sets.append(_l)
-    
+            log.debug("|{0}| >> uSet [{1}] : {2} ...".format(_str_func,i,_l))
             
-            #>>For each v value, make a new curve ---------------------------------------------------------
-            #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
-            #l_uValues.append(_v)
-            #crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,_v), ch = 0, rn = 0, local = 0)
-            #log.debug("|{0}| >> created: {1} ...".format(_str_func,crv))        
-            #l_newCurves.append(crv[0])
-            #if mTar == ml_targets[-1]:
-            #    crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,maxU), ch = 0, rn = 0, local = 0)
-            #    l_newCurves.append(crv[0])
-                
-            #str_start = crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,0),
-            #                                    ch = 0, rn = 0, local = 0)[0]
-    
-        l_newCurves = []
+        
+        l_created = []
         d_curves = {}
-        def getCurve(uValue,l_curves):
+        def getCurve(uValue):
             _crv = d_curves.get(uValue)
             if _crv:return _crv
             _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,uValue,method), ch = 0, rn = 0, local = 0)[0]
+            _crv = mc.rename(_crv,"u{0}_crv".format(str(uValue)))
             d_curves[uValue] = _crv
             log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))        
-            l_curves.append(_crv)
+            l_created.append(_crv)
             return _crv
         
         _degree = 1
@@ -2292,19 +2390,9 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 break
             
             log.debug("|{0}| >> {1} | u's: {2}".format(_str_func,i,uSet))
-            """
-            if i == 0 and str_start:
-                _pair = [str_start,c,l_newCurves[i+1]]
-            else:
-                _pair = [c,l_newCurves[i+1]]"""
-            
-            _loftCurves = [getCurve(uValue, l_newCurves) for uValue in uSet]
-            
-            _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
-            log.debug("|{0}| >> mesh created...".format(_str_func))                            
-            CORERIG.match_transform(_mesh,ml_targets[i])
-            if reverseNormal:
-                mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+
+            _loftCurves = [getCurve(uValue) for uValue in uSet]
+            _mesh = None
             
             if ballBase and i != 0:
                 log.debug("|{0}| >> ball started...".format(_str_func))
@@ -2315,7 +2403,11 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 if ballMode == 'loft':
                     root = mc.duplicate(_loftCurves[0])[0]
                     try:
-                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0)[0]
+                        #mc.select(cl=1)
+                        #mc.refresh(su=0)
+                        
+                        log.debug("Planar curve from: {0}".format(_loftCurves[0]))
+                        _planar = mc.planarSrf(_loftCurves[0],ch=0,d=3,ko=0,rn=0,po=0,tol = 10)[0]
                         vecRaw = SURF.get_uvNormal(_planar,.5,.5)
                         vec = [-v for v in vecRaw]
                         log.debug("|{0}| >> vector: {1}".format(_str_func,vec))                                        
@@ -2332,65 +2424,85 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                                 vec =MATH.get_vector_of_two_points(l_pos[i+1],l_pos[i])
                                 
                             log.debug("|{0}| >> Using last vector: {1}".format(_str_func,vec))
-                        p1 = l_pos[i]                    
+                        p1 = l_pos[i]
                         
+                    try:mc.delete(_planar)
+                    except:pass
+
                     p2 = l_pos[i-1]
                     pClose = DIST.get_closest_point(ml_targets[i].mNode, _loftCurves[0])[0]
                     dClose = DIST.get_distance_between_points(p1,pClose)
                     d2 = DIST.get_distance_between_points(p1,p2)
                     
-                    #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
-                    #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
-    
-                    
-                    #vec = _resClosest['normal']
-                    
-                    """
-                    if uSet == l_sets[-1]:
-                        vec = MATH.get_vector_of_two_points(p1,p2)                    
-                    else:
-                        vec = MATH.get_vector_of_two_points(p1,l_pos[i-1])"""                
-                        #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
+                    if d2 > dClose:
+                        #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "duplicatedCurve40";
+                        #vecRaw = mc.pointOnSurface(_planar,parameterU=.5,parameterV=.5,normalizedNormal=True)
+        
                         
-                    #dMax = min([dClose,_offset*10])
-                    dMax = (mc.arclen(root)/3.14)/3
-                    
-                    #dMax = dClose * .5#_offset *10
-                    pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
-                    pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .85)
-                    pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
-                    
-                    
-                    #DIST.offsetShape_byVector(root,-_offset)
-                    ATTR.set(root,'scale',.9)                                        
-                    mid1 = mc.duplicate(root)[0]
-                    ATTR.set(mid1,'scale',.7)
-                    mid2 = mc.duplicate(root)[0]
-                    ATTR.set(mid2,'scale',.5)                
-                    end = mc.duplicate(root)[0]
-                    ATTR.set(end,'scale',.1)
-                    
-                    #DIST.offsetShape_byVector(end,-_offset)
-                    
-                    TRANS.position_set(mid1,pSet1)
-                    TRANS.position_set(mid2,pSet2)
-                    TRANS.position_set(end,pSet3)
-                    
-                    #now loft new mesh...
-                    _loftTargets = [end,mid2,mid1,root]
-                    #if cgmGEN.__mayaVersion__ in [2018]:
+                        #vec = _resClosest['normal']
+                        
+                        """
+                        if uSet == l_sets[-1]:
+                            vec = MATH.get_vector_of_two_points(p1,p2)                    
+                        else:
+                            vec = MATH.get_vector_of_two_points(p1,l_pos[i-1])"""                
+                            #vec = MATH.get_vector_of_two_points(l_pos[i+1],p1)
+                            
+                        #dMax = min([dClose,_offset*10])
+                        dMax = (mc.arclen(root)/3.14)/4
+                        
+                        #dMax = dClose * .5#_offset *10
+                        pSet1 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .5)                
+                        pSet2 = DIST.get_pos_by_vec_dist(p1,vec,dMax * .85)
+                        pSet3 = DIST.get_pos_by_vec_dist(p1,vec,dMax)
+                        
+                        
+                        #DIST.offsetShape_byVector(root,-_offset)
+                        ATTR.set(root,'scale',.9)                                        
+                        mid1 = mc.duplicate(root)[0]
+                        ATTR.set(mid1,'scale',.7)
+                        mid2 = mc.duplicate(root)[0]
+                        ATTR.set(mid2,'scale',.5)                
+                        end = mc.duplicate(root)[0]
+                        ATTR.set(end,'scale',.1)
+                        
+                        #DIST.offsetShape_byVector(end,-_offset)
+                        
+                        TRANS.position_set(mid1,pSet1)
+                        TRANS.position_set(mid2,pSet2)
+                        TRANS.position_set(end,pSet3)
+                        
+                        #now loft new mesh...
+                        _loftTargets = [end,mid2,mid1,root]
                         #_loftTargets.reverse()
+                        #if cgmGEN.__mayaVersion__ in [2018]:
+                            #_loftTargets.reverse()
+                            
+                        #mc.delete(_mesh)#...we're going to replace our mesh
                         
-                    _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
-                                               degree=1,divisions=1)
-                    
-                    mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
-                    
-                    _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]
-                    mc.delete([end,mid1,mid2,root])
-                    try:mc.delete(_planar)
-                    except:pass
+                        _mesh = create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                                    
+                        log.debug("|{0}| >> mesh created...".format(_str_func))                            
+                        CORERIG.match_transform(_mesh,ml_targets[i])
+                        
+                        #if reverseNormal:
+                            #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
+                            
+                        """
+                        
+                            
+                        _meshEnd = create_loftMesh(_loftTargets, name="{0}_{1}".format('test',i),
+                                                   degree=1,divisions=1)
+                        
+                        mc.polyNormal(_meshEnd, normalMode = 0, userNormalMode=1,ch=0)
+                        
+                        _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
+                        mc.delete([end,mid1,mid2])
+                    mc.delete(root)
+
                 else:
+                    _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                    log.debug("|{0}| >> mesh created...".format(_str_func))                            
                 
                     #TRANS.orient_set(_sphere[0], ml_targets[i].p_orient)
                     if ballPosition == 'joint':
@@ -2429,16 +2541,21 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                         SNAP.go(_sphere[0],ml_targets[i].mNode,False,True)
                     
                     _mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
-                    
+
+            if not _mesh:
+                _mesh = create_loftMesh(_loftCurves, name="{0}_{1}".format('test',i), degree=_degree,divisions=1)
+                log.debug("|{0}| >> mesh created...".format(_str_func))                                            
+            for s in TRANS.shapes_get(_mesh):
+                GEO.normalCheck(s)
+                        
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
-                
+            log.debug(_mesh)
             CORERIG.match_transform(_mesh,ml_targets[i])
             l_new.append(_mesh)
-            log.debug("|{0}| >> ball done...".format(_str_func))                
-        
+
         #...clean up 
-        mc.delete(l_newCurves)# + [str_tmpMesh]
+        mc.delete(l_created)# + [str_tmpMesh]
         mMesh_tmp.delete()
         
         if str_start:

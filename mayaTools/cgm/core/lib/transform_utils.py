@@ -8,6 +8,7 @@ Website : http://www.cgmonks.com
 
 Unified location for transform calls. metanode instances may by passed
 """
+__MAYALOCAL = 'TRANS'
 
 # From Python =============================================================
 import copy
@@ -506,15 +507,15 @@ def scale_to_size(node = None, size = 1.0, mode = 'bb'):
         currentSize = DIST.get_bb_size(node,True,True)
     else:
         boundingBoxSize =  DIST.get_bb_size(node)
-        log.info("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        
+        log.debug("|{0}| >> boundingBoxSize = {1}".format(_str_func,boundingBoxSize))        
         currentSize = max(boundingBoxSize)
-    log.info('currentSize: {0}'.format(currentSize))
+    log.debug('currentSize: {0}'.format(currentSize))
     
     multiplier = size/currentSize
     mc.scale(multiplier,multiplier,multiplier, node, relative = True)
     #mc.makeIdentity(node,apply=True,scale=True)   
     
-def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True):
+def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
     """
     Scale an object to a bounding box size
     
@@ -525,9 +526,9 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True):
     :returns
         None
     """
-    _str_func = 'orient_set'
-    
-    mc.makeIdentity(node, apply =True, scale = True)    
+    _str_func = 'scale_to_boundingBox'
+    if freeze:
+        mc.makeIdentity(node, apply =True, scale = True)    
     _bb_current = DIST.get_bb_size(node,shapes)
     _l_scale = []
     for i,v in enumerate(_bb_current):
@@ -540,7 +541,34 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True):
     #mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, absolute = True)
     mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
     
+def scale_to_boundingBox_relative(node = None, box = [1,1,1],shapes=True,freeze=False):
+    """
+    Scale an object to a bounding box size
     
+    :parameters:
+        node(str): node to modify
+        box(double3): Box to scale to
+
+    :returns
+        None
+    """
+    _str_func = 'scale_to_boundingBox_relative'
+    if freeze:
+        mc.makeIdentity(node, apply =True, scale = True)    
+    _bb_current = DIST.get_bb_size(node,shapes)
+    _l_scale = []
+    for i,v in enumerate(_bb_current):
+        v_b = box[i]
+        if v_b is None:
+            _l_scale.append( v )            
+        else:
+            try:_l_scale.append( box[i]/v )
+            except:
+                print 'fail'
+                _l_scale.append( v ) 
+    
+    mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, relative = True)
+    #mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
     
 def scaleLocal_get(node=None, asEuclid = False):
     """
@@ -803,7 +831,7 @@ def parent_orderedTargets(targetList=None, reverse = False):
     if not targetList:
         targetList = mc.ls(sl=True,flatten = False)
         _sel=True
-        log.info("|{0}| >> targetList: {1}".format(_str_func,targetList))
+        log.debug("|{0}| >> targetList: {1}".format(_str_func,targetList))
         
     for i,o in enumerate(targetList):
         targetList[i] = parent_set(o,False)
@@ -813,7 +841,7 @@ def parent_orderedTargets(targetList=None, reverse = False):
     
     if reverse is False:
         targetList.reverse()
-        log.info("|{0}| >> reverse: {1}".format(_str_func,targetList))
+        log.debug("|{0}| >> reverse: {1}".format(_str_func,targetList))
     
     for i,o in enumerate(targetList[:-1]):
         targetList[i] = parent_set(o,targetList[i+1])
@@ -1055,9 +1083,9 @@ def transformDirection(node = None, v = None):
     transform_matrix.o = v.z
 
     scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
+    scale_matrix.a = 1 #s.x
+    scale_matrix.f = 1 #s.y
+    scale_matrix.k = 1 #s.z
     scale_matrix.p = 1
 
     result_matrix = transform_matrix * current_matrix * scale_matrix
@@ -1140,7 +1168,6 @@ def transformInverseDirection(node = None, v = None):
     result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o)    
 
-
 def transformInversePoint(node = None, v = None):
     """
     Get local position of vector transformed from world space of Transform
@@ -1176,6 +1203,51 @@ def transformInversePoint(node = None, v = None):
     result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) 
 
+
+
+def relativePos_get(node = None, target = None, asEuclid = True):
+    """
+    Get local position of vector transformed from world space of Transform
+    
+    :parameters:
+        node(str): Object to check
+        v(d3): vector
+
+    :returns
+        new value(Vector3)
+    """   
+    _str_func = 'get_relativeToTarget'
+    _node =  VALID.mNodeString(node)
+    
+    _res = transformInverseDirection(target, POS.get(node))
+    
+    if asEuclid:
+        return _res
+    return _res.x,_res.y,_res.z
+
+def relativePos_set(node = None, target = None, pos = None, asEuclid = True):
+    """
+    Get local position of vector transformed from world space of Transform
+    
+    :parameters:
+        node(str): Object to check
+        v(d3): vector
+
+    :returns
+        new value(Vector3)
+    """   
+    _str_func = 'get_relativeToTarget'
+    _node =  VALID.mNodeString(node)
+    
+    #mBlock.getTransformDirection(mPos) + (mBlock.getPosition(asEuclid=1))
+    
+    _res = transformDirection(target, pos) + position_get(target, asEuclid=1)
+    
+    POS.set(node,_res)
+    
+    if asEuclid:
+        return _res
+    return _res.x,_res.y,_res.z
 
 #Matrix stuff ============================================================================================  
 def worldMatrix_get(node = None, asEuclid = False):
@@ -1304,4 +1376,8 @@ def group_me(obj = None,
 
 
 
+def create_vectorCurveFromObj(obj = None, vector = 'z+',distance=1,asEuclid = False):
+    try:_vec = transformDirection(obj,vector)
+    except:_vec= MATH.get_obj_vector(obj,vector,True)
+    return DIST.create_vectorCurve(POS.get(obj),_vec,distance, "{0}_{1}_vecLine".format(NAME.get_base(obj),vector))
 

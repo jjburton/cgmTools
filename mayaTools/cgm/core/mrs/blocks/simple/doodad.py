@@ -35,7 +35,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = 'alpha.06272017'
-__autoTemplate__ = True
+__autoForm__ = True
 __menuVisible__ = False
 
 #>>>Attrs ----------------------------------------------------------------------------------------------------
@@ -52,18 +52,18 @@ d_defaultSettings = {'version':__version__,
 
 
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
-def template(self):
+def form(self):
     _crv = CURVES.create_controlCurve(self.mNode, shape=self.getEnumValueString('basicShape'), 
                                       direction = 'z+', sizeMode = 'fixed', size = self.baseSize)
     RIG.shapeParent_in_place(self.mNode,_crv,False)
     return True
 
-def templateDelete(self):
+def formDelete(self):
     pass#...handled in generic callmc.delete(self.getShapes())
 
-def is_template(self):
+def is_form(self):
     if self.getShapes():
         return True
     return False

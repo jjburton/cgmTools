@@ -21,7 +21,6 @@ from cgm.core import cgm_General as cgmGEN
 '''
 from Red9.core import Red9_Meta as r9Meta
 import cgm
-cgm.core._reload()
 
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
 
@@ -31,6 +30,7 @@ from cgm.core.mrs.lib import general_utils as BLOCKGEN
 
 @cgmGEN.Timer
 def createMRSRig(folderPath):
+    cgm.core._reload()
 
     fileList = mc.getFileList(folder = folderPath)
 

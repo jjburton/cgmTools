@@ -2,6 +2,8 @@
 Module for building controls for cgmModules
 
 """
+__MAYALOCAL = 'SHAPECAST'
+
 # From Python =============================================================
 import copy
 import re
@@ -31,8 +33,9 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.position_utils as POS
 from cgm.core.cgmPy import validateArgs as VALID
+import pprint
 from cgm.lib import guiFactory
-
+import cgm.core.lib.locator_utils as LOC
 reload(RayCast)
 reload(Snap)
 from cgm.lib import (cgmMath,
@@ -604,10 +607,10 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
 
 
     #>>> Info #================================================================
-    guiFactory.doProgressWindow(winName='Mesh Slice...', 
-                                statusMessage='Progress...', 
-                                startingProgress=1, 
-                                interruptableState=True)		
+    #guiFactory.doProgressWindow(winName='Mesh Slice...', 
+    #                            statusMessage='Progress...', 
+    #                            startingProgress=1, 
+    #                            interruptableState=True)		
     mi_loc = mi_obj.doLoc()
     mi_loc.doGroup()
     l_pos = []
@@ -700,16 +703,17 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     if not l_rotateSettings:raise ValueError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
 
-    
+    reload(RayCast)
     try:#>>> Pew, pew !
         #================================================================
+        l_hits = []
         for i,rotateValue in enumerate(l_rotateSettings):
-            guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
-                                              len(l_rotateSettings), 
-                                              reportItem=False)	    
+            #guiFactory.doUpdateProgressWindow("Casting {0}".format(rotateValue), i, 
+            #                                  len(l_rotateSettings), 
+            #                                  reportItem=False)	    
             d_castReturn = {}
             hit = False
-
+            
             #shoot our ray, store the hit
             log.debug("Casting: %i>>%f"%(i,rotateValue))
             mc.setAttr("%s.rotate%s"%(mi_rotObj.mNode,latheAxis.capitalize()),rotateValue)
@@ -722,85 +726,45 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
                 log.debug("aimAxis: %s"%aimAxis)
                 log.debug("latheAxis: %s"%latheAxis)
                 log.debug("maxDistance: %s"%maxDistance)
-
-                d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, firstHit=False) or {}
-                d_hitReturnFromValue[rotateValue] = d_castReturn	
-                if closestInRange:
-                    hit = d_castReturn.get('near') or False
-                else:
-                    hit = d_castReturn.get('far') or False
-                if not hit:log.info("{0} -- {1}".format(rotateValue,d_castReturn))
-
-                """if closestInRange:
-		    try:
-			d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance) or {}
-		    except StandardError,error:
-			log.error("createMeshSliceCurve >> closestInRange error : %s"%error)
-			return False
-		    log.debug("closest in range castReturn: %s"%d_castReturn)		
-		    d_hitReturnFromValue[rotateValue] = d_castReturn	
-		    log.debug("From %s: %s" %(rotateValue,d_castReturn))
-
-		else:
-		    d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, maxDistance = maxDistance, singleReturn=False) or {}
-		    log.debug("castReturn: %s"%d_castReturn)
-		    if d_castReturn.get('hits'):
-			closestPoint = distance.returnFurthestPoint(mi_loc.getPosition(),d_castReturn.get('hits')) or False
-			d_castReturn['hit'] = closestPoint
-			log.debug("From %s: %s" %(rotateValue,d_castReturn))"""
+                
+                hit = RayCast.cast(mesh,mi_loc.mNode,aimAxis,
+                                   offsetMode='vector',offsetDistance=vectorOffset,
+                                   maxDistance=maxDistance).get('hit')
+                if not hit:
+                    log.debug(cgmGEN.logString_msg(_str_func,
+                                                   "No hit, alternate method | {0}".format(rotateValue)))
+                    hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                
+                if hit:
+                    if DIST.get_distance_between_points(pos_base,hit)>maxDistance:
+                        log.debug("Max distance exceeded. Using alternative")
+                        hit = DIST.get_pos_by_axis_dist(mi_loc.mNode,aimAxis,maxDistance)
+                        
+                    
+                #d_castReturn = RayCast.findMeshIntersectionFromObjectAxis(mesh, mi_loc.mNode, axis=aimAxis, #maxDistance = maxDistance, firstHit=False) or {}
+               # d_hitReturnFromValue[rotateValue] = d_castReturn	
+                #if closestInRange:
+                    #hit = d_castReturn.get('near') or False
+                #else:
+                    #hit = d_castReturn.get('far') or False
+                #if not hit:log.info("{0} -- {1}".format(rotateValue,d_castReturn))
+                l_hits.append(hit)
+                d_processedHitFromValue[rotateValue] = hit
+                l_pos.append(hit)
+                if markHits:
+                    LOC.create(position=hit,name="cast_rot{0}_loc".format(rotateValue))
 
                 d_rawHitFromValue[rotateValue] = hit
 
-            except Exception,error:
-                for arg in error.args:
-                    log.error(arg)
-                raise Exception,"createMeshSliceCurve>> error: %s"%error 
-            log.debug("rotateValue %s | raw hit: %s"%(rotateValue,hit))
-            if hit and not cgmMath.isVectorEquivalent(hit,d_rawHitFromValue.get(l_rotateSettings[i-1])):
-                log.debug("last raw: %s"%d_rawHitFromValue.get(l_rotateSettings[i-1]))
-                if markHits or offsetMode != 'vector':
-                    mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
-                    mc.move (hit[0],hit[1],hit[2], mi_tmpLoc.mNode,ws=True)	                    
-                if offsetMode =='vector':
-                    _baseVector = MATH.get_vector_of_two_points(pos_base,
-                                                                hit)
-                    _baseDist = DIST.get_distance_between_points(pos_base, 
-                                                                 hit)
-                    hit = DIST.get_pos_by_vec_dist(pos_base,_baseVector, _baseDist + vectorOffset)
-                elif posOffset:
-                    constBuffer = mc.normalConstraint(mesh,mi_tmpLoc.mNode,
-                                                      aimVector=[0,0,1],
-                                                      upVector=[0,1,0],
-                                                      worldUpType = 'scene')
-                    mc.delete(constBuffer)
-                    mc.move(posOffset[0],posOffset[1],posOffset[2], [mi_tmpLoc.mNode], r=True, rpr = True, os = True, wd = True)
-                    hit = mi_tmpLoc.getPosition()
-                    if not markHits:
-                        mi_tmpLoc.delete()
-
-                l_pos.append(hit)
-                d_processedHitFromValue[rotateValue] = hit
-            else:#Gonna mark our max distance if no hit
-                mi_dup = mi_loc.doDuplicate()#dup loc
-                mi_dup.doGroup()#zero
-                if '-' == aimAxis[1]:
-                    mi_dup.__setattr__("t%s"%aimAxis[0],-maxDistance)#mve		
-                else:
-                    mi_dup.__setattr__("t%s"%aimAxis[0],maxDistance)#mve
-                pos = mi_dup.getPosition()
-                l_pos.append(pos)#append position
-                if markHits:
-                    mi_tmpLoc = cgmMeta.cgmObject(mc.spaceLocator(n='loc_%s'%i)[0])
-                    mc.move (pos[0],pos[1],pos[2], mi_tmpLoc.mNode,ws=True)		    
-                d_processedHitFromValue[rotateValue] = pos	    
-                mc.delete(mi_dup.parent)#delete
-                log.debug("%s : %s : max marked"%(i,rotateValue))
-            if markHits:mc.curve (d=1, ep = l_pos, os=True)#build curves as we go to see what's up
+            except Exception,err:
+                cgmGEN.cgmException(Exception,err)
+ 
         mc.delete(mi_loc.getParents()[-1])#delete top group
         log.debug("pos list: %s"%l_pos)    
-        guiFactory.doCloseProgressWindow()
+        #guiFactory.doCloseProgressWindow()
 
     except Exception,error:
+        pprint.pprint(vars())
         raise ValueError,"Cast fail | {0}".format(error) 	
     try:
         if not l_pos:
@@ -808,21 +772,15 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
             raise StandardError,"createMeshSliceCurve>> Not hits found. Nothing to do"
         if len(l_pos)>=3:
             if closedCurve:
-                #l_pos2 = l_pos + [l_pos[0]]
                 l_pos.extend(l_pos[:curveDegree])
-                #_cvs.extend(_cvs[:_degree])
-
-                #knot_len = len(l_pos2)+curveDegree-1
+              
                 knot_len = len(l_pos)+curveDegree-1		                
-                #curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
                 curveBuffer = mc.curve (d=curveDegree, periodic = True, p = l_pos, k = [i for i in range(0,knot_len)], os=True)
                 for i,ep in enumerate(mc.ls("{0}.ep[*]".format(curveBuffer),flatten=True)):
                     #Second loop to put ep's where we want them. Necessary only because I couldn't get curve create to work right closed
                     POS.set(ep,l_pos[i])
 
             else:
-                #knot_len = len(l_pos)+curveDegree-1		
-                #curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
                 knot_len = len(l_pos)+curveDegree-1		
                 curveBuffer = mc.curve (d=curveDegree, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)   
             if returnDict:

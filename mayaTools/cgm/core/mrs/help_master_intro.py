@@ -35,7 +35,7 @@ b1 = cgmMeta.asMeta('Peter_masterBlock')#...this reinitializes our master rigBlo
 
 #...here are the calls to walk through the states. This is a proprty call for b1.changeState() if you prefer that method
 b1.p_blockState = 'define'
-b1.p_blockState = 'template'
+b1.p_blockState = 'form'
 b1.p_blockState = 'prerig'
 b1.p_blockState = 'rig'
 

@@ -36,7 +36,8 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
-
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+reload(BLOCKSHAPES)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
@@ -47,8 +48,11 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.05312018'
-__autoTemplate__ = True
+__version__ = '1.04302019'
+__MAYALOCAL = 'MASTER'
+
+
+__autoForm__ = True
 __menuVisible__ = True
 __baseSize__ = 170,170,170
 
@@ -75,20 +79,37 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
-d_wiring_template = {'msgLinks':['templateNull','noTransTemplateNull']}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
+_d_attrStateMasks = {0:[],
+                     1:[],
+                     2:[],
+                     3:['addMotionJoint'],
+                     4:[]}
+
+_d_attrStateOn = {0:[],
+                  1:['hasJoint'],
+                  2:['rotPivotPlace','basicShape'],
+                  3:[],
+                  4:[]}
+_d_attrStateOff = {0:[],
+                  1:[],
+                  2:['baseSize','scaleY'],
+                  3:['addMotionJoint'],
+                  4:[]}
 
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format
 #cgmRigamathig
 
 def uiBuilderMenu(self,parent = None):
-    uiMenu = mc.menuItem( parent = parent, l='Master:', subMenu=True)
     _short = self.p_nameShort
     
-    mc.menuItem(uiMenu,
-                ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),                                                    
-                c = cgmGEN.Callback(resize_masterShape,self),
+    mc.menuItem(en=False,
+                label = "Master")        
+    
+    mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
+                c = cgmGEN.Callback(resize_masterShape,self,**{'resize':1}),
                 label = "Resize")            
     
 #=============================================================================================================
@@ -108,7 +129,7 @@ def define(self):
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
     
 #=============================================================================================================
-#>> Template
+#>> Form
 #=============================================================================================================
 @cgmGEN.Timer
 def resize_masterShape(self,sizeBy=None,resize=False):
@@ -138,8 +159,8 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         _size = _average * 1.5
         _offsetSize = _average * .01    
         _blockScale = self.blockScale
-        mTemplateNull = self.atUtils('stateNull_verify','template')
-        mNoTransformNull = self.atUtils('noTransformNull_verify','template')
+        mFormNull = self.atUtils('stateNull_verify','form')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         if resize or self.controlOffset == .9999:
             self.controlOffset = _offsetSize
@@ -167,7 +188,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         _bb_newSize = MATH.list_mult(self.baseSize,[_blockScale,_blockScale,_blockScale])
         TRANS.scale_to_boundingBox(_bb_shape,_bb_newSize)
         mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-        mBBShape.p_parent = mTemplateNull
+        mBBShape.p_parent = mFormNull
         
         mBBShape.inheritsTransform = False
         mc.parentConstraint(self.mNode,mBBShape.mNode,maintainOffset=False)
@@ -193,7 +214,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
@@ -226,11 +247,11 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         
         mShape = self.getShapes(asMeta=True)[0]
         l_return = mc.offsetCurve(mShape.mNode, distance = 1, ch=True )
-        pprint.pprint(l_return)
+        #pprint.pprint(l_return)
         mHandleFactory.color(l_return[0],'center','sub',transparent = False)
         
         mOffsetShape = cgmMeta.validateObjArg(l_return[0], 'cgmObject',setClass=True)
-        mOffsetShape.p_parent = mTemplateNull
+        mOffsetShape.p_parent = mFormNull
         
         mOffsetShape.inheritsTransform = False
         mc.parentConstraint(self.mNode,mOffsetShape.mNode,maintainOffset=False)        
@@ -277,7 +298,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
             
         _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
         mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-        mBBShape.p_parent = mTemplateNull
+        mBBShape.p_parent = mFormNull
         
         SNAPCALLS.snap( mBBShape.mNode,self.mNode,objPivot='axisBox',objMode='y-')
         
@@ -300,10 +321,10 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
     
     
-def template(self):
+def form(self):
     try:
         _short = self.mNode    
-        _str_func = '[{0}] template'.format(_short)
+        _str_func = '[{0}] form'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
     
     
@@ -339,11 +360,11 @@ def template(self):
         RIG.shapeParent_in_place(self.mNode,s,False)
     return True
 
-def templateDelete(self):
+def formDelete(self):
     pass
     #self.setAttrFlags(attrs=['translate','rotate','sx','sz'], lock = False)
 
-def is_template(self):
+def is_form(self):
     if self.getShapes():
         return True
     return False
@@ -361,20 +382,21 @@ def prerig(self):
         mPrerigNull = self.atBlockUtils('prerigNull_verify')
         mHandleFactory = self.asHandleFactory(self.mNode)
         ml_handles = [self.mNode]
+        _offset = self.controlOffset 
         
         #Helpers=====================================================================================
         self.msgList_connect('prerigHandles',[self.mNode])
         
         if self.addMotionJoint:
-            mMotionJoint = mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d', shapeDirection = 'y-')
-            mShape = mMotionJoint.doDuplicate(po=False)
-            SNAP.to_ground(mShape.mNode)
-            CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
+            _baseSize = self.baseSize
+            _sizeHandle = (MATH.average(_baseSize[0],_baseSize[1]) * .1) + _offset
+            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=_sizeHandle)
             mMotionJoint.p_parent = mPrerigNull
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def prerigDelete(self):
-    self.atBlockUtils('prerig_delete',templateHandles=True)
+    self.atBlockUtils('prerig_delete',formHandles=True)
     try:self.moduleTarget.masterNull.delete()
     except Exception,err:
         for a in err:
@@ -453,7 +475,14 @@ def rig_cleanUp(self):
             mMasterControl.masterGroup.setAttrFlags()
             ml_dynParents = [mMasterNull]
             
-            ml_dynParents.extend(mMasterControl.msgList_get('spacePivots',asMeta = True))    
+            ml_spacePivots = mMasterControl.msgList_get('spacePivots',asMeta = True)
+            for mPivot in ml_spacePivots:
+                mDup = mPivot.doDuplicate(po=False)
+                mDup.scale = .25,.25,.25
+                CORERIG.shapeParent_in_place(mPivot.mNode, mDup.mNode,False,True)
+                
+            
+            ml_dynParents.extend(ml_spacePivots)    
         
             mDynGroup = mMasterControl.dynParentGroup
             mDynGroup.dynMode = 0
@@ -548,6 +577,17 @@ def rig_cleanUp(self):
             mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
             
+        for mCtrl in ml_controlsAll:            
+            if mCtrl.hasAttr('radius'):
+                ATTR.set(mCtrl.mNode,'radius',0)        
+            
+            ml_pivots = mCtrl.msgList_get('spacePivots')
+            if ml_pivots:
+                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+                for mPivot in ml_pivots:
+                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    ml_controlsAll.append(mPivot)
+        
         #Connect -------------------------------------------------------------
         mPuppet.msgList_connect('controlsAll', ml_controlsAll)
         mPuppet.puppetSet.extend( ml_controlsAll)
@@ -567,7 +607,7 @@ def rig_cleanUp(self):
         mBlock.blockState = 'rig'
         
         mBlock.template = True
-        mBlock.noTransTemplateNull.template=True
+        mBlock.noTransFormNull.template=True
         self.UTILS.rigNodes_store(self)
         
         self.version = self.d_block['buildVersion']
@@ -585,7 +625,7 @@ def rigDelete(self):
         log.debug("|{0}| >> ...".format(_str_func,)+'-'*80)
         log.debug(self)
         self.template = False
-        self.noTransTemplateNull.template=True
+        self.noTransFormNull.template=True
         mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:

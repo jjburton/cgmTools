@@ -6,6 +6,8 @@ email: jjburton@cgmonks.com
 Website : http://www.cgmonks.com
 ------------------------------------------
 """
+__MAYALOCAL = 'CORESHARE'
+
 l_cgmNameOrder = ['cgmDirection',
                   'cgmDirectionModifier',
                   'cgmPosition',

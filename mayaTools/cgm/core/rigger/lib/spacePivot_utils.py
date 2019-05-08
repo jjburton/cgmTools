@@ -97,7 +97,7 @@ def create(obj,parentTo = False):
 
     #>>>Create #====================================================
     #CURVES.create_controlCurve(i_obj.mNode,'jack')
-    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack')[0],'cgmObject',setClass=True)
+    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack',sizeMode='guess')[0],'cgmObject',setClass=True)
     log.debug(i_control)
     try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
     except Exception,error:raise Exception,"color | %s"%(error)          

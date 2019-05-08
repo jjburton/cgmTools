@@ -1,8 +1,6 @@
 #=========================================================================      
 #=========================================================================
 import cgm.core
-cgm.core._reload()
-
 from Red9.core import Red9_Meta as r9Meta
 #from Red9.core.Red9_Meta import *
 #r9Meta.registerMClassInheritanceMapping()    

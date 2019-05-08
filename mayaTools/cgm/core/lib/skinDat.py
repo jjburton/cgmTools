@@ -20,6 +20,8 @@ Thanks to Alex Widener for some ideas on how to set things up.
 
 """
 __version__ = "02.06.2016"
+__MAYALOCAL = 'SKINDAT'
+
 
 # From Python =============================================================
 import copy

@@ -40,6 +40,7 @@ import lib.shapeCaster"""
 
 import cgm_General as cgmGen
 import os
+import maya.mel as mel
 #import reloadFactory as RELOAD
 #import cgm.core.cgmPy.path_Utils as PATH
 
@@ -47,7 +48,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 _l_core_order = ['cgm_General',
                  'cgm_Meta',
@@ -79,19 +80,29 @@ _l_ignoreTags = ['cgm.core.examples',
 
 import cgm
 import copy
-
+import maya.cmds as mc
 from cgm.core.cgmPy import os_Utils as cgmOS
 reload(cgmOS)
 @cgmGen.Timer
-def _reload():
+def _reload(stepConfirm=False):
     _str_func = '_reload'
     
     _d_modules, _l_ordered, _l_pycd = cgmOS.get_module_data(cgm.__path__[0],cleanPyc=True)
     _l_finished = []
     _l_cull = copy.copy(_l_ordered)
     
-    Red9.core._reload()   
-
+    Red9.core._reload()
+    
+    def loadLocal(str_module, module):
+        _key = module.__dict__.get('__MAYALOCAL')
+        if _key:
+            try:
+                mel.eval('python("import {0} as {1};")'.format(str_module,_key))
+                log.info("|{0}| >> ... {1} loaded local as [{2}]".format(_str_func,m,_key))  
+                
+            except Exception,err:
+                log.error(err)
+                
     for m in _l_core_order:
         _k = 'cgm.core.' + m
         
@@ -105,6 +116,7 @@ def _reload():
                 log.debug("|{0}| >> ... {1}".format(_str_func,m))  
                 _l_finished.append(_k)
                 _l_cull.remove(_k)
+                loadLocal(_k,module)
             except Exception, e:
                 for arg in e.args:
                     log.error(arg)
@@ -157,11 +169,24 @@ def _reload():
                     log.debug("|{0}| >> ... {1}".format(_str_func,m))  
                     _l_finished.append(m)
                     _l_cull.remove(m)
+                    loadLocal(m,module)
+                    
                 except Exception, e:
                     #log.error("|{0}| >> Failed: {1}".format(_str_func,m))  
                     #for arg in e.args:
                         #log.error(arg)
                     _d_failed[m] = e.args
+                if stepConfirm:
+                    result = mc.confirmDialog(title="Shall we continue",
+                                              message= m,
+                                              button=['OK', 'Cancel'],
+                                              defaultButton='OK',
+                                              cancelButton='Cancel',
+                                              dismissString='Cancel')
+                
+                    if result != 'OK':
+                        log.error("Cancelled at: {0}".format(m))
+                        return False                    
                     
     if _d_failed:   
         log.info(cgmGen._str_subLine)        

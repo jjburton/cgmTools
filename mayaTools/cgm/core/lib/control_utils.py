@@ -5,6 +5,8 @@ www.cgmonks.com
 
 For use with meta instance data
 """
+__MAYALOCAL = 'CONTROLS'
+
 # From Python =============================================================
 import copy
 import re
