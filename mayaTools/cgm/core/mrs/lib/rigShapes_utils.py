@@ -854,14 +854,14 @@ def lever(self,ball = False):
             #mOrientHelper = mBlock.orientHelper
             #_mVectorLeverUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
             
-            mMesh_tmp =  mBlock.atUtils('get_castMesh')
-            str_meshShape = mMesh_tmp.getShapes()[0]
-            pos = RAYS.cast(str_meshShape,
+            mBall_tmp =  mBlock.atUtils('get_castMesh')
+            str_ballShape = mBall_tmp.getShapes()[0]
+            pos = RAYS.cast(str_ballShape,
                             startPoint=_mTar.p_position,
                             vector=_mVectorLeverUp).get('near')
             
-            #pos = RAYS.get_cast_pos(_mTar.mNode,_mVectorLeverUp,shapes = str_meshShape)
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+            #pos = RAYS.get_cast_pos(_mTar.mNode,_mVectorLeverUp,shapes = str_ballShape)
+            #SNAPCALLS.get_special_pos([_mTar,str_ballShape],'castNear',str_settingsDirections,False)
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
             
@@ -879,7 +879,7 @@ def lever(self,ball = False):
             l_lolis.extend([ball,line])        
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
             CORERIG.shapeParent_in_place(mLeverFK.mNode,l_lolis,False)
-            mMesh_tmp.delete()
+            mBall_tmp.delete()
 
         #Main clav section ========================================
         """
