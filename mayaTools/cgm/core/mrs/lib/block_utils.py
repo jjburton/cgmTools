@@ -4381,30 +4381,31 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                     if i_loop:
                         log.debug("|{0}| >> _d_loft: {1}".format(_str_func,_d_loft))
                     
-                        mLoftCurve = mObj.loftCurve
-                        _rot = _d_loft.get('r')
-                        _s = _d_loft.get('s')
-                        _t = _d_loft.get('t')
-                        _bb = _d_loft.get('bb')
-                        _ab = _d_loft.get('ab')
-                        _p = _d_loft.get('p')
-                        if _rot:
-                            ATTR.set(mLoftCurve.mNode,'rotate',_rot)
-                            
-                        if _noScale != True:
-                            if _s != None:
-                                if _scaleMode in ['bb','useLoft']:
-                                    try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
-                                    except Exception,err:
-                                        log.error(err)
-                                        TRANS.scale_to_boundingBox_relative(mLoftCurve.mNode,_bb,freeze=False)
-                                else:
-                                    ATTR.set(mLoftCurve.mNode,'scale',_s)
+                        mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+                        if mLoftCurve:
+                            _rot = _d_loft.get('r')
+                            _s = _d_loft.get('s')
+                            _t = _d_loft.get('t')
+                            _bb = _d_loft.get('bb')
+                            _ab = _d_loft.get('ab')
+                            _p = _d_loft.get('p')
+                            if _rot:
+                                ATTR.set(mLoftCurve.mNode,'rotate',_rot)
                                 
-                        if _p:
-                            mLoftCurve.p_position = _p
-                        #if _t:
-                            #ATTR.set(mLoftCurve.mNode,'translate',_t)
+                            if _noScale != True:
+                                if _s != None:
+                                    if _scaleMode in ['bb','useLoft']:
+                                        try:DIST.scale_to_axisSize(mLoftCurve.mNode,_ab,skip=2)
+                                        except Exception,err:
+                                            log.error(err)
+                                            TRANS.scale_to_boundingBox_relative(mLoftCurve.mNode,_bb,freeze=False)
+                                    else:
+                                        ATTR.set(mLoftCurve.mNode,'scale',_s)
+                                    
+                            if _p:
+                                mLoftCurve.p_position = _p
+                            #if _t:
+                                #ATTR.set(mLoftCurve.mNode,'translate',_t)
                             
                 if _jointHelpersPre and _jointHelpersPre.get(i):
                     mObj.jointHelper.translate = _jointHelpersPre[i]                    

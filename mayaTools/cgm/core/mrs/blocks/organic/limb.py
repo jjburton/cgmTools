@@ -161,7 +161,7 @@ d_block_profiles = {
     'nameList':['clav','shoulder','knee','wrist','ball','end'],
     
     #'hasEndJoint':True,
-    'buildEnd':'joint',    
+    'buildEnd':'none',    
     'ikRollSetup':'control',
     'buildBall':'none',
     'buildToe':'none',
@@ -193,7 +193,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe','end'],
     
-    'buildEnd':'joint',
+    'buildEnd':'none',
     'ikRollSetup':'control',
     'buildBall':'none',
     'buildToe':'none',
@@ -1755,10 +1755,10 @@ def uiCall_edit_rollCount(self):
 def sanityChecks(self):
     _str_func = 'sanityChecks'
     
-    if self.buildLeverEnd:
-        if self.getEnumValueString('buildEnd') != 'end':
-            log.warning(cgmGEN.logString_msg(_str_func,"buildLeverEnd and buildEnd off. Turning on"))
-            self.buildEnd = 2
+    #if self.buildLeverEnd:
+        #if self.getEnumValueString('buildEnd') != 'end':
+            #log.warning(cgmGEN.logString_msg(_str_func,"buildLeverEnd and buildEnd off. Turning on"))
+            #self.buildEnd = 2
 
 def prerig(self):
     try:
