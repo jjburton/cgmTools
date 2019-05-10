@@ -1575,51 +1575,26 @@ def rig_cleanUp(self):
     #>>>> mSettings.masterGroup.parent = mHandle
     
     #>>  DynParentGroups - Register parents for various controls ============================================
-    ml_baseDynParents_start = []
-    ml_baseDynParents_end = []
-    
-    #Start parents....
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('cog'):
-            ml_baseDynParents_start.append( mi_parentRigNull.cog )
-        else:
-            ml_baseDynParents_start.append( mi_parentRigNull.msgList_get('rigJoints')[-1] )
-    
-    #End parents....
-    ml_baseDynParents_end.append(mMasterNull.puppetSpaceObjectsGroup)
-    ml_baseDynParents_end.append(mMasterNull.worldSpaceObjectsGroup)
+    #>>  DynParentGroups - Register parents for various controls ============================================
+    ml_baseDynParents = []
+    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
+    ml_ikDynParents = []
     
     
-    #...Handle -----------------------------------------------------------------------------------
-    ml_baseHandleDynParents = []
-
-    #ml_baseDynParents = [ml_controlsFK[0]]
-    _moveStart = False
-    if not ml_baseDynParents_start:
-        _moveStart = True
-        
-    ml_baseHandleDynParents = copy.copy(ml_baseDynParents_start)
-    ml_baseHandleDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
-    ml_baseHandleDynParents.extend(ml_baseDynParents_end)
+    #...Handle -----------------------------------------------------------------------------------   
+    ml_targetDynParents = copy.copy(ml_baseDynParents)
+    ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+    ml_targetDynParents.extend(ml_endDynParents)
     
-    if _moveStart:
-        mPuppetSpace = ml_baseHandleDynParents.pop(-2)
-        ml_baseHandleDynParents.insert(0,mPuppetSpace)
-    """
-    mBlendDriver =  mHandle.getMessage('blendDriver',asMeta=True)
-    if mBlendDriver:
-        mBlendDriver = mBlendDriver[0]
-        ml_baseDynParents.insert(0, mBlendDriver)  
-        mBlendDriver.addAttr('cgmAlias','neckDriver')
-    """
+    ml_targetDynParents.append(self.md_dynTargetsParent['world'])
+    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     #Add our parents
     mDynGroup = mHandle.dynParentGroup
     log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
     mDynGroup.dynMode = 0
 
-    for o in ml_baseHandleDynParents:
+    for o in ml_targetDynParents:
         mDynGroup.addDynParent(o)
     mDynGroup.rebuild()
 
@@ -1631,8 +1606,8 @@ def rig_cleanUp(self):
             _short_direct = mControl.p_nameBase
             if mControl.getMessage('dynParentGroup'):
                 log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
-                ml_directHandleDynParents = copy.copy(ml_baseDynParents_start)
-                ml_directHandleDynParents.extend(ml_baseDynParents_end)
+                ml_directHandleDynParents = copy.copy(ml_baseDynParents)
+                ml_directHandleDynParents.extend(ml_endDynParents)
                 
                 mDriver = mControl.masterGroup.getParent(asMeta=True)
                 if mDriver:
@@ -1660,7 +1635,7 @@ def rig_cleanUp(self):
         mHeadLookAt.setAttrFlags(attrs='v')
         
         #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseDynParents_start)
+        ml_headLookAtDynParents = copy.copy(ml_baseDynParents)
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
         ml_headLookAtDynParents.extend(ml_baseDynParents_end)
         
@@ -1717,24 +1692,27 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         ml_proxy = []
         
         if ml_geo:
+            log.debug("|{0}| >> ml_geo...".format(_str_func))
             
             str_setup = self.getEnumValueString('proxyShape')
             if str_setup in ['shapers']:
                 d_kws = {}
                 mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
                 ml_proxy = [mMesh]
-            else:
-                for i,mGeo in enumerate(ml_geo):
-                    log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
-                    if mGeo.getMayaType() == 'nurbsSurface':
-                        d_kws = {'mode':'general',
-                                 'uNumber':self.loftSplit,
-                                 'vNumber':self.loftSides,
-                                 }
-                        mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
-                    else:
-                        mMesh = mGeo.doDuplicate(po=False)
-                    ml_proxy.append(mMesh)            
+                
+            for i,mGeo in enumerate(ml_geo):
+                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
+                if mGeo.getMayaType() == 'nurbsSurface':
+                    d_kws = {'mode':'general',
+                             'uNumber':self.loftSplit,
+                             'vNumber':self.loftSides,
+                             }
+                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
+                else:
+                    mMesh = mGeo.doDuplicate(po=False)
+                    mMesh.p_parent = False
+                    
+                ml_proxy.append(mMesh)            
             """
             for i,mGeo in enumerate(ml_geo):
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
@@ -1752,6 +1730,15 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         
         
             #mDup = self.proxyHelper.doDuplicate(po=False)
+            
+            if len(ml_proxy) > 1:
+                _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
+                mMesh = cgmMeta.asMeta(_mesh)
+                for mObj in ml_proxy[1:]:
+                    try:mObj.delete()
+                    except:pass
+                ml_proxy = [mMesh]
+                
 
                     
             for i,mMesh in enumerate(ml_proxy):
@@ -1821,7 +1808,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
         mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
         ml_proxy = [mMesh]
         
-    elif ml_geo:
+    if ml_geo:
         for i,mGeo in enumerate(ml_geo):
             log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
             if mGeo.getMayaType() == 'nurbsSurface':
@@ -1860,7 +1847,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     
     
     for mProxy in ml_proxy:
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
         
         

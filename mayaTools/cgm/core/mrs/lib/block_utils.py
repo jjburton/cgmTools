@@ -1270,13 +1270,14 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         l_targets = []
         ml_formHandles = self.msgList_get('formHandles')
         
+        """
         mHandleLast = ml_formHandles[-2]
         l_targets.append(mHandleLast.loftCurve.mNode)        
         ml_sub = mHandleLast.msgList_get('subShapers')
         if ml_sub:
             for mSub in ml_sub:
                 l_targets.append(mSub.mNode)
-        
+        """
         mHandle = ml_formHandles[-1]
         l_targets.append(mHandle.loftCurve.mNode)
         
@@ -10784,7 +10785,9 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 aimVector = mdOrient['mOrientation'].p_outNegative.p_string
             else:
                 aimVector = mdOrient['mOrientation'].p_out.p_string
+                
         aimAlternate = mdOrient['mOrientation'].p_up.p_string
+        aimVector = mdOrient['mOrientation'].p_up.p_string
 
         #Get our prerig handles if none provided
         if targets is None:

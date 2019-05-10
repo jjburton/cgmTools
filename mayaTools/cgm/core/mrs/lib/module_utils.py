@@ -24,9 +24,9 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
-__version__ = '1.04292019'
+__version__ = '1.05092019'
 
 import maya.cmds as mc
 
@@ -626,10 +626,11 @@ def get_attachPoint(self, mode = 'end',idx = None, noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        if mode == 'index':
-            l_msgLinks = ['moduleJoints']
-        else:
-            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        #if mode == 'index':
+        l_msgLinks = ['moduleJoints']
+        #else:
+        #l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+            
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -687,10 +688,11 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
         
-        if mode == 'index':
-            l_msgLinks = ['moduleJoints']
-        else:
-            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
+        #if mode == 'index':
+        l_msgLinks = ['rigJoints']
+        _plugUsed = 'rigJoints'
+        #else:
+        #    l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
         
 
         _direct = False
