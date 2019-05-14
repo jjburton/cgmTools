@@ -851,6 +851,16 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
+    mMasterSet = self.getMessageAsMeta('masterSet')
+    if not mMasterSet:
+        mMasterSet = cgmMeta.cgmObjectSet(setType='tdSet',qssState=True)
+        mMasterSet.connectParentNode(self.mNode,'puppet','masterSet')
+        mMasterSet.doStore('cgmName','master')
+    mMasterSet.doName()
+    
+    log.debug("|{0}| >> masterSet: {1}".format(_str_func,mMasterSet))    
+    
+    
     if puppetSet:
         log.debug("|{0}| >> puppetSet...".format(_str_func)+'-'*40)        
         
@@ -862,6 +872,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
             mSet.doStore('cgmName','all')
             
         mSet.doName()
+        mMasterSet.addObj(mSet.mNode)
         
         log.debug("|{0}| >> puppetSet: {1}".format(_str_func,mSet))
         
@@ -878,6 +889,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
         mSet.doName()
         mSet.purge()
         log.debug("|{0}| >> bakeSet: {1}".format(_str_func,mSet))
+        mMasterSet.addObj(mSet.mNode)
         
         ml_joints = get_joints(self,'bind')
         
@@ -897,6 +909,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
             mSet.doStore('cgmName','delete')
         mSet.doName()
         mSet.purge()
+        mMasterSet.addObj(mSet.mNode)
 
         log.debug("|{0}| >> deleteSet: {1}".format(_str_func,mSet))
         
@@ -915,6 +928,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
             mSet.doStore('cgmName','export')
         mSet.doName()
         mSet.purge()
+        mMasterSet.addObj(mSet.mNode)        
         log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
         mMaster = self.masterNull
         for mGrp in mMaster.skeletonGroup,mMaster.geoGroup:

@@ -521,7 +521,7 @@ d_block_profiles = {
        'settingsPlace':'end',
        'ikSetup':'rp',
        'ikEnd':'tipEnd',
-       'numControls':2,
+       'numControls':1,
        'numShapers':2,       
        'numRoll':0,
        'ikRPAim':'default',
@@ -532,8 +532,6 @@ d_block_profiles = {
        'followParentBank':True,           
        'nameList':['nub'],
        'scaleSetup':False,
-       
-       
        'buildEnd':'joint',
        'ikRollSetup':'control',
        'buildBall':'none',
@@ -747,7 +745,7 @@ def define(self):
             if ATTR.has_attr(_short,a):
                 ATTR.set_hidden(_short,a,True)
         
-        ATTR.set_min(_short, 'numControls', 2)
+        ATTR.set_min(_short, 'numControls', 1)
         ATTR.set_min(_short, 'numShapers', 2)        
         ATTR.set_min(_short, 'numRoll', 0)
         ATTR.set_min(_short, 'loftSides', 3)
@@ -2199,10 +2197,10 @@ def skeleton_build(self, forceNew = True):
         _baseCount = self.numControls - 1
         if self.buildLeverEnd == 2:
             _baseCount +=1
-
-        
-        if not self.atUtils('datList_validate',datList='rollCount',count=_baseCount,defaultAttr='numRoll',forceEdit=0):
-            return False                
+            
+        if self.numControls > 1:
+            if not self.atUtils('datList_validate',datList='rollCount',count=_baseCount,defaultAttr='numRoll',forceEdit=0):
+                return False                
         
         mPrerigNull = self.prerigNull
         self.atUtils('module_verify')
@@ -2266,9 +2264,7 @@ def skeleton_build(self, forceNew = True):
         if len(_l_names) < len(ml_jointHelpers):
             log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
             return False
-    
-        
-    
+
         _d_base['cgmType'] = 'skinJoint'
         _buildBall = self.buildBall
         _buildToe = self.buildToe
@@ -2286,6 +2282,10 @@ def skeleton_build(self, forceNew = True):
         if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
             log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))                                        
             _specialEndHandling=True
+            
+        if self.numControls == 1 and not self.buildEnd == 2:
+            log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+            ml_jointHelpers.pop(-1)            
             
             
         #if not _specialEndHandling and not self.buildEnd == 2:
