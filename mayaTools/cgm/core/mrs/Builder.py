@@ -3329,7 +3329,7 @@ class ui(cgmUI.cgmGUI):
         
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
-                    c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
+                    c='import webbrowser;webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/");',                        
                     rp = 'N')    
         mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
                          c=lambda *a: cgmUI.log_selfReport(self) )   

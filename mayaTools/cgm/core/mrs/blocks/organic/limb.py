@@ -2273,6 +2273,7 @@ def skeleton_build(self, forceNew = True):
         #Build our handle chain ======================================================
         l_pos = []
         _specialEndHandling = False
+        mEndAim = False
         
         if _buildToe == 1:
             ml_jointHelpers.pop(-1)
@@ -2280,13 +2281,14 @@ def skeleton_build(self, forceNew = True):
             ml_jointHelpers.pop(-1)
             
         if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
-            log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))                                        
+            log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))
             _specialEndHandling=True
             
         if self.numControls == 1 and not self.buildEnd == 2:
             log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-            ml_jointHelpers.pop(-1)            
-            
+            if len(ml_jointHelpers) > 1:
+                mEndAim = ml_jointHelpers.pop(-1)
+                
             
         #if not _specialEndHandling and not self.buildEnd == 2:
             #log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
@@ -2317,28 +2319,39 @@ def skeleton_build(self, forceNew = True):
         
         _d_orient = {'worldUpAxis':mVecUp,
                      'relativeOrient':False}
-        if _b_lever:
-            log.debug("|{0}| >> lever...".format(_str_func))            
-            ml_handleJoints[1].p_parent = False
-            #Lever...
-            mLever = ml_handleJoints[0]
-            log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_jointHelpers[0]))                        
-            _vec =  ml_jointHelpers[0].getAxisVector('y+')
-            log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
-            
-            SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
-                     _vec)
-            
-            JOINT.freezeOrientation(mLever.mNode)
-            
-            #Rest...
-            JOINT.orientChain(ml_handleJoints[1:],
-                             **_d_orient)
-            ml_handleJoints[1].p_parent = ml_handleJoints[0]
-            
+        
+        if len(ml_handleJoints) == 1:
+            if mEndAim:
+                mJoint = ml_handleJoints[0]
+                _vec =  ml_jointHelpers[0].getAxisVector('y+')
+                SNAP.aim(mJoint.mNode, mEndAim.mNode, 'z+','y+','vector',
+                         _vec)
+                JOINT.freezeOrientation(mJoint.mNode)
+            else:
+                raise ValueError,"Josh fix this case"
         else:
-            JOINT.orientChain(ml_handleJoints,
-                              **_d_orient)        
+            if _b_lever:
+                log.debug("|{0}| >> lever...".format(_str_func))            
+                ml_handleJoints[1].p_parent = False
+                #Lever...
+                mLever = ml_handleJoints[0]
+                log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_jointHelpers[0]))                        
+                _vec =  ml_jointHelpers[0].getAxisVector('y+')
+                log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
+                
+                SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
+                         _vec)
+                
+                JOINT.freezeOrientation(mLever.mNode)
+                
+                #Rest...
+                JOINT.orientChain(ml_handleJoints[1:],
+                                 **_d_orient)
+                ml_handleJoints[1].p_parent = ml_handleJoints[0]
+                
+            else:
+                JOINT.orientChain(ml_handleJoints,
+                                  **_d_orient)        
         
     
         ml_joints = []

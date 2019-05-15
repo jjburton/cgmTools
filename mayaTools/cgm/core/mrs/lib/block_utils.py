@@ -9267,7 +9267,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mArrow.doStore('cgmType','vectorHelper')
                     mArrow.doName()
                 
-                    mArrow.dagLock()
                 
                     md_vector[k] = mArrow
                     self.connectChildNode(mArrow.mNode,'vector{0}Helper'.format(STR.capFirst(k)),'block')
@@ -9292,6 +9291,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         #Parent the tags
         for k in l_order:
             _dtmp = d_definitions.get(k,{})
+            _arrowFollow = _dtmp.get('arrowFollow',False)
+            if _arrowFollow:
+                if md_vector[k]:
+                    mc.pointConstraint(md_handles[_arrowFollow].mNode,  md_vector[k].mNode, maintainOffset = False)
+                    
             _trackTag = _dtmp.get('parentTag',False)
             if _trackTag:
                 mc.pointConstraint(md_handles[_trackTag].mNode,  md_handles[k].mNode, maintainOffset = False)
@@ -9586,6 +9590,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 pos = md_handles['end'].p_position
                 md_handles['end'].p_position = 1,2,3
                 md_handles['end'].p_position = pos
+                
+            for k,mObj in md_vector.iteritems():
+                mObj.dagLock()
                 
             mel.eval('EnableAll;doEnableNodeItems true all;')
 

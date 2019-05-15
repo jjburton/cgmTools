@@ -170,10 +170,13 @@ l_attrsStandard = ['side',
                    'addAim',
                    'addPivot',
                    'addCog',
+                   'buildSDK',
                    'addScalePivot',
                    'proxy',
+                   'buildSDK',
                    'numShapers',
                    'numSubShapers',
+                   'numSpacePivots',
                    'blockProfile',
                    'loftSides',
                    'loftSplit',
@@ -203,6 +206,7 @@ d_defaultSettings = {'version':__version__,
                      'shapeDirection':2,
                      'axisAim':2,
                      'axisUp':4,
+                     'buildSDK':0,
                      'attachPoint':'end',
                      'rotPivotPlace':0,
                      'visLabels':True,
@@ -1357,28 +1361,34 @@ def rig_controls(self):
         if self.mBlock.addAim:        
             mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
         
+        reload(MODULECONTROL)
         #mHandle ========================================================================================
-        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))    
+        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))
+        d_space = {}
+        if mBlock.numSpacePivots:
+            d_space = {'addDynParentGroup':True,
+             'addSpacePivots':mBlock.numSpacePivots}
+            
         _d = MODULECONTROL.register(mHandle,
-                                    addSpacePivots = 1,
-                                    addDynParentGroup = True,
                                     addConstraintGroup=False,
+                                    addSDKGroup = mBlock.buildSDK,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = True,**d_space)
         
         mHandle = _d['mObj']
         mHandle.masterGroup.parent = mRootParent
         ml_controlsAll.append(mHandle)            
         
         #>> settings ========================================================================================
-        if mSettings != mHandle:
+        if mSettings.mNode != mHandle.mNode:
             log.info("|{0}| >> Settings setup : {1}".format(_str_func, mSettings))        
             MODULECONTROL.register(mSettings)
             mSettings.masterGroup.parent = mHandle
             ml_controlsAll.append(mSettings)
+            
     
-        #>> Direct Controls ========================================================================================
+        #>> Direct Controls ================================================================================
         ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
         ml_controlsAll.extend(ml_rigJoints)
         
@@ -1397,6 +1407,7 @@ def rig_controls(self):
                 
             for mShape in mObj.getShapes(asMeta=True):
                 ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+    
     
         # Pivots =================================================================================================
         if mMainHandle.getMessage('pivotHelper'):
@@ -1590,14 +1601,19 @@ def rig_cleanUp(self):
     ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     #Add our parents
-    mDynGroup = mHandle.dynParentGroup
-    log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    mDynGroup.dynMode = 0
-
-    for o in ml_targetDynParents:
-        mDynGroup.addDynParent(o)
-    mDynGroup.rebuild()
-
+    mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')
+    if mDynGroup:
+        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+        mDynGroup.dynMode = 0
+    
+        for o in ml_targetDynParents:
+            mDynGroup.addDynParent(o)
+        mDynGroup.rebuild()
+    else:
+        mc.parentConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                            mHandle.masterGroup.mNode,maintainOffset = True)
+        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                            mHandle.masterGroup.mNode,maintainOffset = True)
     #mDynGroup.dynFollow.parent = mMasterDeformGroup
     
     #Direct ---------------------------------------------------------------------------------------------
@@ -1690,6 +1706,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
+        mMeshCheck = self.getMessageAsMeta('proxyHelper')
         
         if ml_geo:
             log.debug("|{0}| >> ml_geo...".format(_str_func))
@@ -1701,6 +1718,9 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 ml_proxy = [mMesh]
                 
             for i,mGeo in enumerate(ml_geo):
+                if mGeo == mMeshCheck:
+                    print 'nope...'
+                    continue
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
                 if mGeo.getMayaType() == 'nurbsSurface':
                     d_kws = {'mode':'general',
@@ -1728,7 +1748,8 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 #mDup.inheritsTransform = True
                 ml_proxy.append(mMesh)        """
         
-        
+            for mGeo in ml_proxy:
+                CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
             #mDup = self.proxyHelper.doDuplicate(po=False)
             
             if len(ml_proxy) > 1:
@@ -1738,9 +1759,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                     try:mObj.delete()
                     except:pass
                 ml_proxy = [mMesh]
-                
-
-                    
+ 
             for i,mMesh in enumerate(ml_proxy):
                 if parent and skin:
                     mMesh.p_parent=parent
@@ -1799,6 +1818,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
             return _bfr
       
     #>> Build bbProxy -----------------------------------------------------------------------------
+    mMeshCheck = mBlock.getMessageAsMeta('proxyHelper')
     ml_geo = mBlock.msgList_get('proxyMeshGeo')
     ml_proxy = []
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
@@ -1810,6 +1830,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
         
     if ml_geo:
         for i,mGeo in enumerate(ml_geo):
+            if mGeo == mMeshCheck:
+                continue
             log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
             if mGeo.getMayaType() == 'nurbsSurface':
                 mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper,
