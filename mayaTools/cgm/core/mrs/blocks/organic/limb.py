@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 def echoLogger():
     log.info('info')
@@ -1118,7 +1118,9 @@ def form(self):
             mHandle.p_position = pos_lever
             
             mHandleFactory.setHandle(mHandle.mNode)
-            mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget(self.getEnumValueString('loftShapeStart'),#_loftShape,
+            _leverBaseShape = self.getEnumValueString('loftShapeStart')
+            _leverShape = ('loft' + _leverBaseShape[0].capitalize() + ''.join(_leverBaseShape[1:]))
+            mLeverLoftCurve = mHandleFactory.rebuildAsLoftTarget(_leverShape,#_loftShape,
                                                                  1.0,
                                                                  shapeDirection = 'z+',rebuildHandle = False)
             #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
