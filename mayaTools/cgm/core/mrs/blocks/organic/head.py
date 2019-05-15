@@ -988,9 +988,9 @@ def prerig(self):
         _side = self.atUtils('get_side')
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
         
+
         #Initial validation ================================================================================
         log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)
         
@@ -1003,7 +1003,7 @@ def prerig(self):
         
         #>>New handles =====================================================================================
         mHandleFactory = self.asHandleFactory(self.mNode)   
-        
+
         #Settings Helper ====================================================================
         mBBHelper = self.bbHelper
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
@@ -1152,6 +1152,7 @@ def prerig(self):
             _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
             _sizeUse2 = self.atUtils('get_shapeOffset') * 2
             _sizeUse = min([_sizeUse1,_sizeUse2])
+            _len_set = len(_l_pos)
             
             for i,p in enumerate(_l_pos): #i,mFormHandle in enumerate(ml_formHandles_neck):
                 log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
@@ -1178,7 +1179,10 @@ def prerig(self):
                     #SNAP.aim_atPoint(mHandle.mNode,_l_pos[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
                     
                 else:
-                    mHandle.doStore('cgmName','{0}_{1}'.format(_l_baseNames[0],i))
+                    if _len_set > 2:
+                        mHandle.doStore('cgmName','{0}_{1}'.format(_l_baseNames[0],i))
+                    else:
+                        mHandle.doStore('cgmName','{0}'.format(_l_baseNames[0]))
                     #ml_formHandles_neck[i].connectChildNode(mHandle.mNode,'prerigHandle')
                     SNAP.aim_atPoint(mHandle.mNode,_l_pos[i+1], mode = 'vector',vectorUp=_worldUpVector)
                     
