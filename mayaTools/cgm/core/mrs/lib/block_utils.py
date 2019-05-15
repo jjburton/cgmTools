@@ -9274,6 +9274,13 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     for mShape in mArrow.getShapes(True):
                         mShape.overrideEnabled = 1
                         mShape.overrideDisplayType = 2
+                        
+                    _arrowFollow = _dtmp.get('arrowFollow',False)
+                    if _arrowFollow:
+                        mc.pointConstraint(md_handles[_arrowFollow].mNode, mArrow.mNode, maintainOffset = False)
+                        
+                    mArrow.dagLock()
+                    
             
             if _dtmp.get('jointLabel') !=False:#Joint Label-----------------------------------------------------------------
                 if _tagOnly:
@@ -9282,6 +9289,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     labelName = str_name
                 mJointLabel = mHandleFactory.addJointLabel(mHandle,labelName)
                 md_jointLabels[k] = mJointLabel
+                
         
         
             self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(STR.capFirst(k)),'block')
@@ -9291,10 +9299,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         #Parent the tags
         for k in l_order:
             _dtmp = d_definitions.get(k,{})
-            _arrowFollow = _dtmp.get('arrowFollow',False)
-            if _arrowFollow:
-                if md_vector[k]:
-                    mc.pointConstraint(md_handles[_arrowFollow].mNode,  md_vector[k].mNode, maintainOffset = False)
                     
             _trackTag = _dtmp.get('parentTag',False)
             if _trackTag:
@@ -9591,8 +9595,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 md_handles['end'].p_position = 1,2,3
                 md_handles['end'].p_position = pos
                 
-            for k,mObj in md_vector.iteritems():
-                mObj.dagLock()
                 
             mel.eval('EnableAll;doEnableNodeItems true all;')
 
