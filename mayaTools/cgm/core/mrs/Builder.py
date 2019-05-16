@@ -60,6 +60,7 @@ import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
+import cgm.core.lib.list_utils as LISTS
 
 for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     reload(m)
@@ -1888,7 +1889,7 @@ class ui(cgmUI.cgmGUI):
                     mBlock.UTILS.focus(mBlock,args[1],args[2],ml_focus=ml_blocks)
                 return
             
-            
+            ml_context = LISTS.get_noDuplicates(ml_context)
             int_len = len(ml_context)
             self.uiRow_progress(edit=1,vis=True,m=True)                
             self.uiProgressText(edit=True,vis=True,label="Processing...")

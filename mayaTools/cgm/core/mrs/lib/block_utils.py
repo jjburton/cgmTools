@@ -304,6 +304,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                 
         for a in _keys:
             try:
+                if forceReset and a in ['blockType']:
+                    continue
                 v = d_defaultSettings.get(a,None)
                 t = _d[a]
                 
@@ -352,10 +354,12 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                         ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
                 elif t == 'float3':
                     #checkType(a,'float3')
-                    
                     if not self.hasAttr(a):
                         ATTR.add(_short, a, attrType='float3', keyable = True)
+                        
                         if v:ATTR.set(_short,a,v)
+                    elif forceReset:
+                        ATTR.set(_short,a,v)
                 else:
                     if t == 'string':
                         _l = True
@@ -378,7 +382,7 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-def verify(self, blockType = None, size = None, side = None):
+def verify(self, blockType = None, size = None, side = None, forceReset = False):
     """
     Verify a block
     """
@@ -402,7 +406,7 @@ def verify(self, blockType = None, size = None, side = None):
         reload(_mBlockModule)
         
         self.doStore('blockType',blockType)
-        verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule)
+        verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
         
         _side = side
         try:
@@ -9632,6 +9636,11 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
         return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
     
     log.debug("|{0}| >>  baseSize: {1}".format(_str_func,baseSize))
+    
+    if self.blockType in ['eye']:
+        log.info("|{0}| >>  baseSize only type.".format(_str_func))
+        self.baseSize = d_baseDat.get('baseSize') or baseSize
+        return True
     
     if baseAim is None:
         try:baseAim = self.baseAim

@@ -368,11 +368,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
-    def verify(self, blockType = None, size = None, side = None):
+    def verify(self, blockType = None, size = None, side = None,forceReset=False):
         """ 
 
         """
-        return self.UTILS.verify(self,blockType,size,side)
+        return self.UTILS.verify(self,blockType,size,side,forceReset)
 
     def doName(self):
         return self.atUtils('doName')

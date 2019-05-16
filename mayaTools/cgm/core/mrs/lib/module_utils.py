@@ -209,8 +209,12 @@ def verify_faceObjectSet(self):
         mParentModule = self.getMessageAsMeta('moduleParent')
         if not mParentModule:
             mParentModule = mModulePuppet
+            mParentRigNull = mModulePuppet
+        else:
+            mParentRigNull = mParentModule.rigNull
+            
+        mFaceSet = mRigNull.getMessageAsMeta('faceSet')
         
-        mFaceSet = mParentModule.rigNull.getMessageAsMeta('faceSet')
         #mParentSet = mParentModule.rigNull.getMessageAsMeta('moduleSet')
         
         _created = False
@@ -220,7 +224,7 @@ def verify_faceObjectSet(self):
         else:
             _created = True
             mFaceSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
-            mParentModule.rigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
+            mParentRigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
         
         mRigNull.connectChildNode(mFaceSet.mNode,'faceSet')        
         mFaceSet.doStore('cgmName',"{0}_face".format(get_partName(mParentModule)))
