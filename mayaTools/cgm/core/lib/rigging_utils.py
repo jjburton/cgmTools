@@ -1197,27 +1197,39 @@ def getControlShader(direction = 'center', controlType = 'main',
             else:
                 _color = SHARED._d_side_colors[direction][controlType]
                 _rgb = SHARED._d_colors_to_RGB[_color]
-            
-                ATTR.set(_node,'diffuse',1.0)
-            
-            if proxy:
+
+            if proxy and controlType not in ['pupil']:
                 #_rgb = [v * .75 for v in _rgb]
                 _hsv = [v for v in get_HSV_fromRGB(_rgb[0],_rgb[1],_rgb[2])]
-                _hsv[1] = .5
-                
+                #_hsv[1] = .8
+                #_hsv = [v * .5]
                 _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
-                ATTR.set(_node,'diffuse',.75)
-
+                ATTR.set(_node,'diffuse',.1)
+                
             ATTR.set(_node,'colorR',_rgb[0])
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
+            ATTR.set(_node,'diffuse',.497)
+            ATTR.set(_node,'ambientColorR',_rgb[0]*.5)
+            ATTR.set(_node,'ambientColorG',_rgb[1]*.5)
+            ATTR.set(_node,'ambientColorB',_rgb[2]*.5)
+            
+            ATTR.set(_node,'specularColorR',.25)
+            ATTR.set(_node,'specularColorG',.25)
+            ATTR.set(_node,'specularColorB',.25)
             
             if transparent:
-                ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
-                ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
-                ATTR.set(_node,'ambientColorB',_rgb[2]*.1)        
                 ATTR.set(_node,'transparency',.5)
                 ATTR.set(_node,'incandescence',0)
+                ATTR.set(_node,'diffuse',0.1)
+                ATTR.set(_node,'cosinePower',95)
+                
+            if controlType in ['pupil']:
+                ATTR.set(_node,'diffuse',0)
+                ATTR.set(_node,'specularColorR',0)
+                ATTR.set(_node,'specularColorG',0)
+                ATTR.set(_node,'specularColorB',0)                
+                
       
     if not _set:
         _set = ATTR.get_driven(_node,'outColor',True)[0] 
@@ -1280,9 +1292,10 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
     else:
         _color = SHARED._d_side_colors_index[direction][controlType]
         
+            
     _shader = False
     _set = False
-    
+
     if shaderSetup:
         _shader, _set = getControlShader(direction,controlType,transparent,proxy,directProxy)
         

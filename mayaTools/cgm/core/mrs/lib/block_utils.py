@@ -837,7 +837,7 @@ def stateNull_verify(self,state='define'):
         mNull = self.getMessageAsMeta(_strPlug)
     return mNull
 
-def create_formLoftMesh(self, targets = None, mDatHolder = None, mFormNull = None,
+def create_formLoftMesh(self, targets = None, mDatHolder = None, mFormNull = None,transparent = True,
                             uAttr = 'neckControls',baseName = 'test',plug = 'formLoftMesh'):
     try:
         _str_func = 'create_formLoftMesh'
@@ -907,7 +907,7 @@ def create_formLoftMesh(self, targets = None, mDatHolder = None, mFormNull = Non
         mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
     
         #Color our stuff...
-        self.asHandleFactory().color(mLoft.mNode,transparent=True)
+        self.asHandleFactory().color(mLoft.mNode,transparent=transparent)
         #CORERIG.colorControl(mLoft.mNode,_side,'main',transparent = True)
     
         mLoft.inheritsTransform = 0
@@ -1140,10 +1140,10 @@ def get_stateLinks(self, mode = 'form' ):
             log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))
             pass
         
-        _noTrans = 'NoTrans' + mode.capitalize() + 'Null'
+        _noTrans = 'noTrans' + mode.capitalize() + 'Null'
         if _noTrans not in d_wiring and self.getMessage(_noTrans):
             if not d_wiring.get('msgLinks'):d_wiring['msgLinks'] = []            
-            d_wiring['msgLinks'].append(a)
+            d_wiring['msgLinks'].append(_noTrans)
         return d_wiring
         
     except Exception,err:
@@ -1645,6 +1645,7 @@ def create_simpleFormLoftMesh(self, targets = None,
                                   plug = None,
                                   baseName = None,
                                   noReverse = False,
+                                  transparent = True,
                                   d_rebuild = {},
                                   **kws
                                   ):
@@ -1752,7 +1753,7 @@ def create_simpleFormLoftMesh(self, targets = None,
     
         #Color our stuff...
         log.debug("|{0}| >> Color...".format(_str_func))        
-        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = True)
+        CORERIG.colorControl(mLoftSurface.mNode,_side,'main',transparent = transparent)
     
         mLoftSurface.inheritsTransform = 0
         for s in mLoftSurface.getShapes(asMeta=True):
@@ -9215,7 +9216,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)
  
             #Helper --------------------------------------------------------------------------------
-            if _dtmp.get('vectorLine') !=False:
+            if _dtmp.get('vectorLine'):
                 if rotVecControl and k in ['up','rp']:pass
                 elif k in ['start']:pass
                 else:
@@ -9245,7 +9246,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     mAim.dagLock(True)
         
                 
-            if _dtmp.get('arrow') !=False:#Arrow ---------------------------------------------
+            if _dtmp.get('arrow'):#Arrow ---------------------------------------------
                 if rotVecControl and k in ['up','rp']:pass
                 elif k in ['start']:pass                
                 else:                

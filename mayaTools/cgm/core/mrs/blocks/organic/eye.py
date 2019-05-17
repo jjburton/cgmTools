@@ -66,6 +66,7 @@ import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.string_utils as STR
+import cgm.core.lib.surface_Utils as SURF
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
     reload(m)
@@ -111,13 +112,13 @@ d_build_profiles = {}
 
 d_block_profiles = {'eyeSimple':{'eyeType':'sphere',
                                  'ikSetup':True,
-                                 'buildLid':'none',
+                                 'lidBuild':'none',
                                  'baseDat':{'baseSize':[2.7,2.7,2.7]},
                                  },
                     'clamLid':{
                     'eyeType':'sphere',
                     'ikSetup':True,
-                    'buildLid':'clam',
+                    'lidBuild':'clam',
                     'numLidUprJoints':1,
                     'numLidLwrJoints':1,
                     'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],'baseSize':[2.7,2.7,2.7]},
@@ -144,9 +145,9 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'ikSetup':'bool',
                  'paramMidUpr':'float',
                  'paramMidLwr':'float',
-                 'buildPupil':'none:joint:blendshape',
-                 'buildIris':'none:joint:blendshape',
-                 'buildLid':'none:clam:full',
+                 'pupilBuild':'none:joint:blendshape',
+                 'irisBuild':'none:joint:blendshape',
+                 'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
                  'numLidUprJoints':'int',
                  'numLidUprShapers':'int',
@@ -191,11 +192,68 @@ _d_attrStateOff = {0:[],
 
 
 d_attrProfileMask = {'noLid':['numLidUprJoints','numLidUprShapers','numLidLwrJoints','numLidLwrShapers',
-                              'loftDegree','loftSplit',
+                              'loftDegree','loftSplit','lidBuild',
                               'paramMidUpr','paramMidLwr']}
 
 for k in ['eyeSimple']:
     d_attrProfileMask[k] = d_attrProfileMask['noLid']
+    
+    
+
+#=============================================================================================================
+#>> Define
+#=============================================================================================================
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,divider=True,
+                label = "Eye")
+    
+    mc.menuItem(ann = '[{0}] Snap state handles to surface'.format(_short),
+                c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
+                label = "Snap state handles")
+    
+    mc.menuItem(ann = '[{0}] Snap selected objects to the surface'.format(_short),
+                c = cgmGEN.Callback(uiFunc_snapSelectedToEye,self),
+                label = "Snap Selected")
+    
+    mc.menuItem(en=True,divider = True,
+                label = "Utilities")
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "State Picker")
+    
+    self.atUtils('uiStatePickerMenu',parent)
+    
+    #self.UTILS.uiBuilderMenu(self,parent)
+    
+    return
+
+def uiFunc_snapStateHandles(self):
+    _state = self.p_blockState
+    
+    if not self.blockState:
+        ml_handles = self.msgList_get('defineSubHandles')
+        uiFunc_snapSelectedToEye(self, ml_handles)
+
+def uiFunc_snapSelectedToEye(self,ml=None):
+    if not ml:
+        ml = cgmMeta.asMeta(mc.ls(sl=1))
+    
+    if not ml:
+        log.warning("Nothing Selected")
+        return False
+    
+    mBBShape = self.getMessageAsMeta('bbHelper')
+    if not mBBShape:
+        log.warning("No eye surface found")
+        return False
+    
+    for mObj in ml:
+        try:mObj.p_position = DIST.get_closest_point(mObj.mNode, mBBShape.mNode)[0]
+        except Exception,err:
+            log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
+    
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -242,6 +300,8 @@ def define(self):
     mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
     if mNoTransformNull:
         mNoTransformNull.delete()
+        
+    mNoTransformNull = self.atUtils('noTransformNull_verify','define')
     
 
     #Rotate Group ==================================================================
@@ -254,7 +314,7 @@ def define(self):
     #Bounding sphere ==================================================================
     #_bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
     #_bb_shape = CORERIG.create_proxyGeo('sphere', [.5,.5,.5], 'z+',bakeScale=False)[0]
-    _bb_shape = mc.sphere(axis=[0,0,1],ch=0,radius=.5,sections=4,spans=4)
+    _bb_shape = mc.sphere(axis=[0,0,1],ch=0,radius=.5,sections=6,spans=8)#[0]
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
     for mShape in mBBShape.getShapes(asMeta=1):
         mShape.overrideEnabled = 1
@@ -265,7 +325,7 @@ def define(self):
     
     CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
     #mHandleFactory.color(mBBShape.mNode,controlType='sub')
-    CORERIG.colorControl(mBBShape.mNode,_side,'sub',transparent = True)
+    CORERIG.colorControl(mBBShape.mNode,_side,controlType='sub',transparent = True)
     
     mBBShape.setAttrFlags()
     
@@ -275,6 +335,26 @@ def define(self):
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
     
+    str_meshShape = mBBShape.getShapes()[0]
+    l_uIsos = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    l_use = []
+    for i,k in enumerate(l_uIsos):
+        if i in [6,8]:
+            l_use.append(k)    
+    l_use.append(maxU * .9)
+    ml_curves = []
+    for i,k in enumerate(l_use):
+        _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,k,'u'), ch = 1, rn = 0, local = 0)[0]
+        mCrv = cgmMeta.validateObjArg(_crv, 'cgmObject',setClass=True)
+        mCrv.p_parent = mNoTransformNull
+        mHandleFactory.color(_crv)
+        mCrv.rename("eye_knot_{0}_approx".format(i))
+        #for mShape in mCrv.getShapes(asMeta=1):
+            #mShape.overrideEnabled = 1
+            #mShape.overrideDisplayType = 2
+        mCrv.dagLock()
+        
     #Pupil/Iris =====================================================================
     for k in ['pupil','iris']:
         _shape = CURVES.create_fromName('circle', 1.0, baseSize=1.0)
@@ -284,9 +364,13 @@ def define(self):
         
         mHelper.rename("{0}_visualize".format(k))
         
-        mHelper.p_parent = mDefineNull    
-        mHelper.tz = -.1
+        mHelper.p_parent = mDefineNull
         
+        if k == 'pupil':
+            mHelper.tz = -.1
+        else:
+            mHelper.tz = -.11
+            
         mTrack = mHelper.doCreateAt()
         mTrack.rename("{0}_tracker")
         mTrack.p_parent = mBBShape
@@ -298,7 +382,28 @@ def define(self):
         
         self.connectChildNode(mHelper.mNode,'{0}Helper'.format(k))
         
+        
+        #mc.projectCurve(mBBShape.mNode, mHelper.mNode, ch=1, un=True)
+        #mHelper.v = False
+        mHelper.template = True
         mHelper.dagLock()
+        
+        _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
+                             name = "{0}_approx".format(k))
+        mc.reverseSurface(_surf[0])
+        mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        if k == 'iris':
+            CORERIG.colorControl(mSurf.mNode,_side,'sub',transparent = True)
+        else:
+            CORERIG.colorControl(mSurf.mNode,_side,'main',transparent=True)
+            
+        mSurf.p_parent = mNoTransformNull
+        mSurf.dagLock()
+        #planarSrf -ch 1 -d 3 -ko 0 -tol 0.01 -rn 0 -po 0 "iris_visualizeShape";
+        
+        
+        # projectCurve -ch true -rn false -un  true  -tol 0.01 "iris_visualizeShape" "clamLid__eyeBlock_bbVisualizeShape" ;
+
         #for mShape in mHelper.getShapes(asMeta=1):
             #mShape.overrideEnabled = 1
             #mShape.overrideDisplayType = 2        
@@ -316,8 +421,7 @@ def define(self):
         _axisOuter = 'x-'
         _axisInner = 'x+'
         
-    if self.buildLid:
-        mNoTransformNull = self.atUtils('noTransformNull_verify','define')
+    if self.lidBuild:
         
         
         _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
@@ -329,13 +433,13 @@ def define(self):
                        'vectorLine':False,'defaults':{'tx':1*_sideMult}},
               'outer':{'color':'white','tagOnly':True,'arrow':False,
                        'vectorLine':False,'defaults':{'tx':-1*_sideMult}},
-              'uprEnd':{'color':'white','tagOnly':True,'arrowFollow':'upr',
+              'uprEnd':{'color':'white','tagOnly':True,'arrowFollow':'upr','arrow':False,
                         'defaults':{'ty':1.5}},
-              'lwrEnd':{'color':'white','tagOnly':True,'arrowFollow':'lwr',
+              'lwrEnd':{'color':'white','tagOnly':True,'arrowFollow':'lwr','arrow':False,
                         'defaults':{'ty':-1.5}},
-              'innerEnd':{'color':'white','tagOnly':True,'arrowFollow':'inner',
+              'innerEnd':{'color':'white','tagOnly':True,'arrowFollow':'inner','arrow':False,
                           'defaults':{'tx':1.5*_sideMult}},
-              'outerEnd':{'color':'white','tagOnly':True,'arrowFollow':'outer',
+              'outerEnd':{'color':'white','tagOnly':True,'arrowFollow':'outer','arrow':False,
                           'defaults':{'tx':-1.5*_sideMult}},              
               }
     
@@ -391,6 +495,14 @@ def define(self):
         md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
         self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
         self.msgList_connect('defineSubHandles',ml_handles)#Connect
+        
+        for mHandle in ml_handles:
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mController = mHandle.controller_get()
+                mController.visibilityMode = 2
+            
+            #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
+            mHandle.p_position = DIST.get_closest_point(mHandle.mNode, mBBShape.mNode)[0]
     
     #_dat = self.baseDat
     #self.baseSize = _dat['baseSize']
@@ -462,7 +574,7 @@ def form(self):
         mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         #Meat ==============================================================================================
-        if self.buildLid:
+        if self.lidBuild:
             log.debug("|{0}| >> Lid setup...".format(_str_func)+ '-'*40)
             
             
@@ -483,8 +595,7 @@ def form(self):
             for mObj in self.msgList_get('defineCurves'):
                 md_dCurves[mObj.handleTag] = mObj
                 mObj.template=1
-                mObj.v=0
-
+            
             #
             d_pairs = {}
             d_creation = {}
@@ -603,13 +714,15 @@ def form(self):
                 for mObj in ml_curves:
                     mObj.v=False
                 
+                reload(self.UTILS)
                 self.UTILS.create_simpleFormLoftMesh(self,
-                                                         [mObj.mNode for mObj in ml_curves],
-                                                         mFormNull,
-                                                         polyType = 'faceLoft',
-                                                         d_rebuild = d.get('rebuild',{}),
-                                                         baseName = k,
-                                                         **d.get('kws',{}))
+                                                     [mObj.mNode for mObj in ml_curves],
+                                                     mFormNull,
+                                                     polyType = 'faceLoft',
+                                                     d_rebuild = d.get('rebuild',{}),
+                                                     baseName = k,
+                                                     transparent = False,
+                                                     **d.get('kws',{}))
         
             
             
@@ -878,7 +991,7 @@ def prerig(self):
             
             ml_handles.append(mSettingsShape)
         
-        if self.buildLid:
+        if self.lidBuild:
             def create_lidHandle(self,tag,pos,mJointTrack=None,trackAttr=None,visualConnection=True):
                 mHandle = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = _size_sub), 
                                                   'cgmObject',setClass=1)
@@ -979,11 +1092,11 @@ def prerig(self):
                 return mHandle
                 
             log.debug("|{0}| >> Lid setup...".format(_str_func)+ '-'*40)
-            _buildLid = self.getEnumValueString('buildLid')
+            _lidBuild = self.getEnumValueString('lidBuild')
             mUprLid = self.getMessageAsMeta('uprLidLoftCurve')
             mLwrLid = self.getMessageAsMeta('lwrLidLoftCurve')
             
-            log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_buildLid))
+            log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_lidBuild))
             
             mModule_lids = self.atUtils('module_verify','eyelid','moduleEyelid')
             
@@ -1010,7 +1123,7 @@ def prerig(self):
             md_lidHandles = {}
             
             #Lid Handles
-            if _buildLid == 'clam':
+            if _lidBuild == 'clam':
                 d_handles = {'upr':CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                              'lwr':CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5)}
                 
@@ -1139,9 +1252,9 @@ def skeleton_build(self, forceNew = True):
     if len(ml_joints) > 1:
         ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
         
-    if self.buildLid:#=====================================================
-        _buildLid = self.getEnumValueString('buildLid')
-        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_buildLid))
+    if self.lidBuild:#=====================================================
+        _lidBuild = self.getEnumValueString('lidBuild')
+        log.debug("|{0}| >> EyeLid setup: {1}.".format(_str_func,_lidBuild))
         
         #'lidRootHelper'
         
@@ -1150,7 +1263,7 @@ def skeleton_build(self, forceNew = True):
         
         _d_lids['cgmNameModifier'] = 'lid'
         
-        if _buildLid == 'clam':
+        if _lidBuild == 'clam':
             
             for a in ['upr','lwr']:
                 log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
@@ -1171,7 +1284,7 @@ def skeleton_build(self, forceNew = True):
                 mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
 
         else:
-            log.error("Don't have setup for eyelidType: {0}".format(_buildLid))
+            log.error("Don't have setup for eyelidType: {0}".format(_lidBuild))
             
     
     mRigNull.msgList_connect('moduleJoints', ml_joints)
@@ -1298,7 +1411,7 @@ def rig_prechecks(self):
     
     mBlock = self.mBlock
     
-    str_lidSetup = mBlock.getEnumValueString('buildLid')
+    str_lidSetup = mBlock.getEnumValueString('lidBuild')
     if str_lidSetup not in ['clam','none']:
         self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidSetup))
     
@@ -1326,8 +1439,8 @@ def rig_dataBuffer(self):
     self.b_scaleSetup = mBlock.scaleSetup
     
     self.str_lidSetup = False
-    if mBlock.buildLid:
-        self.str_lidSetup  = mBlock.getEnumValueString('buildLid')
+    if mBlock.lidBuild:
+        self.str_lidSetup  = mBlock.getEnumValueString('lidBuild')
         
     #Logic checks ========================================================================
     self.b_needEyeOrb = False
@@ -2672,17 +2785,110 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #    _settings = self.mRigNull.settings.mNode
         
     mDirect = mRigNull.getMessageAsMeta('directEye')
-    
+    """
     mProxyEye = cgmMeta.validateObjArg(CORERIG.create_proxyGeo('sphere',
                                                                v_baseSize,ch=False)[0],
-                                       'cgmObject',setClass=True)
+                                       'cgmObject',setClass=True)"""
     
-    mProxyEye.doSnapTo(mDirect)
+    mOrb = mBlock.getMessageAsMeta('bbHelper')
+    str_meshShape = mOrb.getShapes()[0]
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    
+    l_use = [MATH.average(minU,maxU),
+             maxU * .6,
+             maxU * .7]
+    
+    l_crvs = []
+    l_delete = []
+    for v in l_use:
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
+        l_crvs.append(_crv)
+        l_delete.append(_crv)
+        
+    _r = 272
+    md_helpers = {}
+    
+    for k in ['iris','pupil']:
+        mHelper = mBlock.getMessageAsMeta('{0}Helper'.format(k))
+
+        
+        mDup = mHelper.doDuplicate(po=False)
+        mDup.dagLock(False)
+        mDup.p_parent = False
+        l_crvs.append(mDup.mNode)
+        l_delete.append(mDup.mNode)
+        
+        mDup.rz = _r
+        
+        
+        if k == 'pupil':
+            mDup2 = mHelper.doDuplicate(po=False)
+            mDup2.rz = _r
+            
+            mDup2.dagLock(False)
+            mDup2.p_parent = mDup
+            d = DIST.get_bb_size(mDup.mNode,mode='max')
+            mDup2.tz = - d * .2
+            pos_bb = TRANS.bbCenter_get(mDup2.mNode)
+            
+            mDup2.p_parent = False
+            
+            DIST.offsetShape_byVector(mDup2.mNode,origin= pos_bb,
+                                      factor = -.8, offsetMode = 'vectorScale')            
+            
+            #for ep in mc.ls("{0}.ep[*]".format(mDup2.getShapes()[0]),flatten=True):
+                #POS.set(ep,pos_bb)
+                
+            l_crvs.append(mDup2.mNode)
+            l_delete.append(mDup2.mNode)
+        
+        """
+        _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
+                             name = "{0}_approx".format(k))
+        mc.reverseSurface(_surf[0])
+        mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        mSurf.p_parent = False
+        if k == 'iris':
+            CORERIG.colorControl(mSurf.mNode,_side,'sub',transparent = True)
+        else:
+            CORERIG.colorControl(mSurf.mNode,_side,'main',transparent=True)    """
+    
+    l_crvs.reverse()
+    _mesh = BUILDERUTILS.create_loftMesh(l_crvs[2:], name="{0}_proxy".format(str_partName),
+                                         uniform=True,
+                                         degree=2,divisions=1,cap=False)
+    #l_crvs.reverse()
+    CORERIG.colorControl(_mesh,_side,'sub',transparent=False,proxy=True)
+    
+    #Iris...------------------------------------------------------------------------
+    _meshIris = BUILDERUTILS.create_loftMesh(l_crvs[1:3], name="{0}_proxyIris".format(str_partName),
+                                             uniform=0,
+                                             degree=1,divisions=5,cap=False)
+    
+    mc.polyNormal(_meshIris, normalMode = 0, userNormalMode=1,ch=0)
+    CORERIG.colorControl(_meshIris,_side,'main',transparent=False,proxy=True)
+    
+    #pupil ----------------------------------------------------------------------
+    _meshPupil = BUILDERUTILS.create_loftMesh(l_crvs[:2], name="{0}_proxyPupil".format(str_partName),
+                                             uniform=1,
+                                             degree=1,divisions=5,cap=False)    
+    mc.polyNormal(_meshPupil, normalMode = 0, userNormalMode=1,ch=0)
+    CORERIG.colorControl(_meshPupil,'special','pupil',transparent=False,proxy=True)
+    
+    
+    
+    _mesh = mc.polyUnite([_mesh,_meshIris,_meshPupil], ch=False )[0]
+    mProxyEye = cgmMeta.validateObjArg(_mesh,'cgmObject',setClass=True)  
+    mc.delete(l_delete)
+    
+    #mProxyEye.doSnapTo(mDirect)
     mProxyEye.p_parent = mDirect
-    
     ml_proxy = [mProxyEye]
     
-    str_lidSetup = mBlock.getEnumValueString('buildLid')
+    
+    
+    str_lidSetup = mBlock.getEnumValueString('lidBuild')
     #>>Lid setup ================================================
     if str_lidSetup == 'clam':
         #Need to make our lid roots and orient
@@ -2762,7 +2968,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     
 
     for mProxy in ml_proxy:
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
         #Vis connect -----------------------------------------------------------------------
