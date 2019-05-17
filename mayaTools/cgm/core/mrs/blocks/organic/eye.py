@@ -152,6 +152,8 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidUprShapers':'int',
                  'numLidLwrJoints':'int',
                  'numLidLwrShapers':'int',
+                 'pupilSize':'float',
+                 'irisSize':'float',
                  
 }
 
@@ -164,6 +166,8 @@ d_defaultSettings = {'version':__version__,
                      'visLabels':True,
                      'paramMidUpr':.5,
                      'paramMidLwr':.5,
+                     'pupilSize':.4,
+                     'irisSize':.7,
                      'baseSize':[2.7,2.7,2.7],
                      'numLidLwrShapers':3,
                      'numLidUprShapers':3
@@ -202,6 +206,7 @@ def define(self):
     log.debug("{0}".format(self))
     
     _short = self.mNode
+    _side = self.UTILS.get_side(self)
     
     ATTR.set_alias(_short,'sy','blockScale')    
     self.setAttrFlags(attrs=['sx','sz','sz'])
@@ -247,15 +252,21 @@ def define(self):
     mRotateGroup.setAttrFlags()
     
     #Bounding sphere ==================================================================
-    _bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
+    #_bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
+    #_bb_shape = CORERIG.create_proxyGeo('sphere', [.5,.5,.5], 'z+',bakeScale=False)[0]
+    _bb_shape = mc.sphere(axis=[0,0,1],ch=0,radius=.5,sections=4,spans=4)
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    for mShape in mBBShape.getShapes(asMeta=1):
+        mShape.overrideEnabled = 1
+        mShape.overrideDisplayType = 2
     mBBShape.doSnapTo(self)
     mBBShape.p_parent = mDefineNull    
     mBBShape.tz = -.5
     
     CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
-    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
-    mHandleFactory.color(mBBShape.mNode,controlType='sub')
+    #mHandleFactory.color(mBBShape.mNode,controlType='sub')
+    CORERIG.colorControl(mBBShape.mNode,_side,'sub',transparent = True)
+    
     mBBShape.setAttrFlags()
     
     mBBShape.doStore('cgmName', self)
@@ -263,6 +274,39 @@ def define(self):
     mBBShape.doName()    
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
+    
+    #Pupil/Iris =====================================================================
+    for k in ['pupil','iris']:
+        _shape = CURVES.create_fromName('circle', 1.0, baseSize=1.0)
+        mHelper = cgmMeta.validateObjArg(_shape, 'cgmObject',setClass=True)
+        mHelper.doSnapTo(self)
+        mHandleFactory.color(mHelper.mNode,controlType='sub')
+        
+        mHelper.rename("{0}_visualize".format(k))
+        
+        mHelper.p_parent = mDefineNull    
+        mHelper.tz = -.1
+        
+        mTrack = mHelper.doCreateAt()
+        mTrack.rename("{0}_tracker")
+        mTrack.p_parent = mBBShape
+        
+        mc.pointConstraint(mTrack.mNode,mHelper.mNode)
+        
+        ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleY".format(mHelper.mNode))
+        ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleX".format(mHelper.mNode))
+        
+        self.connectChildNode(mHelper.mNode,'{0}Helper'.format(k))
+        
+        mHelper.dagLock()
+        #for mShape in mHelper.getShapes(asMeta=1):
+            #mShape.overrideEnabled = 1
+            #mShape.overrideDisplayType = 2        
+    
+    #...no connect scale
+    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    
+    #Lid stuff ======================================================================
     _sideMult = 1
     _axisOuter = 'x+'
     _axisInner = 'x-'
@@ -277,21 +321,21 @@ def define(self):
         
         
         _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
-              'upr':{'color':'blueSky','tagOnly':True,'arrow':False,
+              'upr':{'color':'white','tagOnly':True,'arrow':False,
                      'vectorLine':False,'defaults':{'ty':1}},
-              'lwr':{'color':'blueSky','tagOnly':True,'arrow':False,
+              'lwr':{'color':'white','tagOnly':True,'arrow':False,
                      'vectorLine':False,'defaults':{'ty':-1}},
-              'inner':{'color':'blueSky','tagOnly':True,'arrow':False,
+              'inner':{'color':'white','tagOnly':True,'arrow':False,
                        'vectorLine':False,'defaults':{'tx':1*_sideMult}},
-              'outer':{'color':'blueSky','tagOnly':True,'arrow':False,
+              'outer':{'color':'white','tagOnly':True,'arrow':False,
                        'vectorLine':False,'defaults':{'tx':-1*_sideMult}},
-              'uprEnd':{'color':'blue','tagOnly':True,'arrowFollow':'upr',
+              'uprEnd':{'color':'white','tagOnly':True,'arrowFollow':'upr',
                         'defaults':{'ty':1.5}},
-              'lwrEnd':{'color':'blue','tagOnly':True,'arrowFollow':'lwr',
+              'lwrEnd':{'color':'white','tagOnly':True,'arrowFollow':'lwr',
                         'defaults':{'ty':-1.5}},
-              'innerEnd':{'color':'blue','tagOnly':True,'arrowFollow':'inner',
+              'innerEnd':{'color':'white','tagOnly':True,'arrowFollow':'inner',
                           'defaults':{'tx':1.5*_sideMult}},
-              'outerEnd':{'color':'blue','tagOnly':True,'arrowFollow':'outer',
+              'outerEnd':{'color':'white','tagOnly':True,'arrowFollow':'outer',
                           'defaults':{'tx':-1.5*_sideMult}},              
               }
     
@@ -346,7 +390,6 @@ def define(self):
         
         md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
         self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
-    
         self.msgList_connect('defineSubHandles',ml_handles)#Connect
     
     #_dat = self.baseDat
@@ -440,7 +483,8 @@ def form(self):
             for mObj in self.msgList_get('defineCurves'):
                 md_dCurves[mObj.handleTag] = mObj
                 mObj.template=1
-            
+                mObj.v=0
+
             #
             d_pairs = {}
             d_creation = {}
