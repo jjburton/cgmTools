@@ -3856,6 +3856,19 @@ class cgmControl(cgmObject):
         except StandardError,error:
             log.error("%s._hasSwitch>> _hasSwitch fail | %s"%(self.getShortName(),error))
             return False	
+        
+    def controller_get(self):
+        if cgmGEN.__mayaVersion__ < 2018:
+            log.warning('Controllers not supported before maya 2018')
+            return True
+        
+        mController = self.getMessageAsMeta('mController')
+        if not mController:
+            mc.controller(self.mNode)
+            mController = asMeta(mc.controller(self.mNode,q=True)[0])
+            self.connectParentNode(mController,'mController','source')
+        return mController
+    
 
     #>>> Lock stuff
     #========================================================================    

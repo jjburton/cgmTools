@@ -100,7 +100,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
-d_wiring_form = {'msgLinks':['formNull'],
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
@@ -147,11 +147,11 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'buildPupil':'none:joint:blendshape',
                  'buildIris':'none:joint:blendshape',
                  'buildLid':'none:clam:full',
+                 'lidType':'simple:full',
                  'numLidUprJoints':'int',
                  'numLidUprShapers':'int',
                  'numLidLwrJoints':'int',
                  'numLidLwrShapers':'int',
-                 
                  
 }
 
@@ -165,6 +165,8 @@ d_defaultSettings = {'version':__version__,
                      'paramMidUpr':.5,
                      'paramMidLwr':.5,
                      'baseSize':[2.7,2.7,2.7],
+                     'numLidLwrShapers':3,
+                     'numLidUprShapers':3
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -207,6 +209,8 @@ def define(self):
     
     #ATTR.set_min(_short, 'loftSides', 3)
     ATTR.set_min(_short, 'loftSplit', 1)
+    ATTR.set_min(_short, 'numLidLwrShapers', 3)
+    ATTR.set_min(_short, 'numLidUprShapers', 3)
         
     _shapes = self.getShapes()
     if _shapes:
@@ -230,6 +234,11 @@ def define(self):
     self.addAttr('cgmColorLock',True,lock=True, hidden=True)
     mDefineNull = self.atUtils('stateNull_verify','define')
     
+    mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
+    if mNoTransformNull:
+        mNoTransformNull.delete()
+    
+
     #Rotate Group ==================================================================
     mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
                                           'cgmObject',setClass=True)
@@ -264,6 +273,9 @@ def define(self):
         _axisInner = 'x+'
         
     if self.buildLid:
+        mNoTransformNull = self.atUtils('noTransformNull_verify','define')
+        
+        
         _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
               'upr':{'color':'blueSky','tagOnly':True,'arrow':False,
                      'vectorLine':False,'defaults':{'ty':1}},
@@ -321,13 +333,26 @@ def define(self):
                                                             d_positions['lwr'],
                                                             d_positions['outer']])"""
         
+        d_curveCreation = {'lidUpr':{'keys':['inner','upr','outer'],
+                                   'rebuild':False},
+                           'lidUprOutr':{'keys':['innerEnd','uprEnd','outerEnd'],
+                                     'rebuild':False},
+                           'lidLwr':{'keys':['inner','lwr','outer'],
+                                   'rebuild':False},
+                           'lidLwrOutr':{'keys':['innerEnd','lwrEnd','outerEnd'],
+                                     'rebuild':False},                   
+                           
+                            }
+        
+        md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
+        self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
     
         self.msgList_connect('defineSubHandles',ml_handles)#Connect
     
     #_dat = self.baseDat
     #self.baseSize = _dat['baseSize']
  
- 
+
 
 #=============================================================================================================
 #>> Form
@@ -339,6 +364,12 @@ def formDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
+        mObj.v=1
+        
+    for mObj in self.msgList_get('defineCurves'):
+        mObj.template=0
+        mObj.v=1
+        
     """
     for k in ['end','rp','up','aim']:
         mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
@@ -385,71 +416,272 @@ def form(self):
         #Create temple Null  ==================================================================================
         mFormNull = BLOCKUTILS.formNull_verify(self)    
         mHandleFactory = self.asHandleFactory()
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
         
         #Meat ==============================================================================================
         if self.buildLid:
             log.debug("|{0}| >> Lid setup...".format(_str_func)+ '-'*40)
             
-            ml_defSubHandles = self.msgList_get('defineSubHandles')
-            for mObj in ml_defSubHandles:
-                mObj.template = True
-                
-            l_tags = ['upr','lwr','inner','outer',
-                      'uprEnd','lwrEnd','innerEnd','outerEnd']
+            
+            #Gather all our define dhandles and curves -----------------------------
+            log.debug("|{0}| >> Get our define curves/handles...".format(_str_func)+ '-'*40)    
+    
             md_handles = {}
-            d_pos = {}
+            md_dCurves = {}
+            d_defPos = {}
+            
+
+            ml_defineHandles = self.msgList_get('defineSubHandles')
+            for mObj in ml_defineHandles:
+                md_handles[mObj.handleTag] = mObj
+                d_defPos[mObj.handleTag] = mObj.p_position
+                mObj.v=0
+                
+            for mObj in self.msgList_get('defineCurves'):
+                md_dCurves[mObj.handleTag] = mObj
+                mObj.template=1
+            
+            #
+            d_pairs = {}
+            d_creation = {}
+            l_order = []
+            d_curveCreation = {}
+            ml_subHandles = []
+            md_loftCreation = {}
+            
+            DGETAVG = DIST.get_average_position
+            CRVPCT = CURVES.getPercentPointOnCurve
+            
+            log.debug("|{0}| >>  Need some special positions".format(_str_func))
+
+            mVec = self.getAxisVector('z+')
+
+            _offset = DIST.get_distance_between_points(d_defPos['inner'],d_defPos['upr']) * .25
+            _size = self.atUtils('defineSize_get') / 8
+            
+            for tag in 'upr','lwr','outer','inner':
+                d_defPos[tag+'Line'] = DIST.get_pos_by_vec_dist(d_defPos[tag],mVec,_offset)
+                
+                
+            pMidInner = DGETAVG([d_defPos['innerLine'],d_defPos['innerEnd']])
+            pMidOuter = DGETAVG([d_defPos['outerLine'],d_defPos['outerEnd']])
+            pMidUpr = DGETAVG([d_defPos['uprLine'],d_defPos['uprEnd']])
+            pMidLwr = DGETAVG([d_defPos['lwrLine'],d_defPos['lwrEnd']])
+            
+            d_defPos['innerMid'] = pMidInner
+            d_defPos['outerMid'] = pMidOuter
+            d_defPos['uprMid'] = pMidUpr
+            d_defPos['lwrMid'] = pMidLwr
+            
+            
+            log.debug("|{0}| >>  Lid setup...".format(_str_func))
+            
+            _d_toDo = {'upr':{'count':self.numLidUprShapers,
+                              },
+                       'lwr':{'count':self.numLidLwrShapers}}
+            
+            _d_posToSplit = {'upr':{'contact':['inner','upr','outer'],
+                                    'line':['innerLine','uprLine','outerLine'],
+                                    'mid':['innerMid','uprMid','outerMid'],
+                                    'edge':['innerEnd','uprEnd','outerEnd']},
+                             'lwr':{'contact':['inner','lwr','outer'],
+                                    'line':['innerLine','lwrLine','outerLine'],
+                                    'mid':['innerMid','lwrMid','outerMid'],
+                                    'edge':['innerEnd','lwrEnd','outerEnd']}                             }
+            
+            _d_pos = {}
+            d_curveKeys = {}
+            l_tags = ['upr','lwr']
             for tag in l_tags:
-                md_handles[tag] = self.getMessageAsMeta("define{0}Helper".format(STR.capFirst(tag)))
-                d_pos[tag] = md_handles[tag].p_position
+                d = _d_toDo[tag]
+                d_curveKeys[tag] = {}
+                for ii, crvToDo in enumerate(['contact','line','mid','edge']):
+                    _tag = tag + STR.capFirst(crvToDo)
+                    _cnt = d['count']
+                    l_keys = _d_posToSplit[tag][crvToDo]
+                    
+                    #GEt main positions
+                    l_pos = []
+                    for t in l_keys:
+                        l_pos.append(d_defPos[t])
+                        
+                    #Get percentage list
+                    l_v = MATH.get_splitValueList(points = _cnt)
+                    
+                    _crv = CORERIG.create_at(create='curve',l_pos= l_pos)
+                    l_keys = []
+                    for i,v in enumerate(l_v):
+                        _key = "{0}_{1}".format(_tag,i)
+                        if tag != 'upr':
+                            if v == l_v[0] or v == l_v[-1]:
+                                continue
+                        l_keys.append(_key)
+                        
+                        #Generate handle dat...
+                        l_order.append(_key)
+                        p = CRVPCT(_crv,v)
+                        _d_pos[_key] = p
+                        d_creation[_key] = {'color':'yellowWhite','tagOnly':True,'arrow':False,'jointLabel':0,
+                                            'vectorLine':False,
+                                            'pos':p}
+                    d_curveKeys[tag][crvToDo] = l_keys
+                        
+                    if tag != 'upr':
+                        l_keys.insert(0,d_curveKeys['upr'][crvToDo] [0])
+                        l_keys.append(d_curveKeys['upr'][crvToDo] [-1])
+                    d_curveCreation[_tag] = {'keys':l_keys,
+                                             'rebuild':1}
+                        
+                        
+                    mc.delete(_crv)                
+
+            #LoftDeclarations....
+            md_loftCreation['uprLid'] = {'keys':['uprContact','uprLine','uprMid','uprEdge'],
+                                         'rebuild':{'spansU':5,'spansV':5},
+                                         'kws':{'noRebuild':1}}
+            md_loftCreation['lwrLid'] = {'keys':['lwrContact','lwrLine','lwrMid','lwrEdge'],
+                                         'rebuild':{'spansU':5,'spansV':5},
+                                         'kws':{'noRebuild':1}}
+            md_loftCreation['uprLid']['keys'].reverse()
+
+            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size,
+                                                     mFormNull)
+            
+            ml_subHandles.extend(md_res['ml_handles'])
+            md_handles.update(md_res['md_handles'])
+        
                 
+            md_res = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
+            md_resCurves = md_res['md_curves']
             
-            #Build our curves =======================================================================
-            #For this first pass we're just doing simple curve, will loop back when we do full lids
-            log.debug("|{0}| >> Lid cuves...".format(_str_func)+ '-'*40)
+            for k,d in md_loftCreation.iteritems():
+                ml_curves = [md_resCurves[k2] for k2 in d['keys']]
+                for mObj in ml_curves:
+                    mObj.v=False
+                
+                self.UTILS.create_simpleFormLoftMesh(self,
+                                                         [mObj.mNode for mObj in ml_curves],
+                                                         mFormNull,
+                                                         polyType = 'faceLoft',
+                                                         d_rebuild = d.get('rebuild',{}),
+                                                         baseName = k,
+                                                         **d.get('kws',{}))
+        
             
-            md_loftCurves = {}
-            d_loftCurves = {'upr':[d_pos['inner'],
-                                   d_pos['upr'],
-                                   d_pos['outer']],
-                            'lwr':[d_pos['inner'],
-                                   d_pos['lwr'],
-                                   d_pos['outer']],
-                            'uprEnd':[d_pos['innerEnd'],
-                                      d_pos['uprEnd'],
-                                      d_pos['outerEnd']],
-                            'lwrEnd':[d_pos['innerEnd'],
-                                      d_pos['lwrEnd'],
-                                      d_pos['outerEnd']]}
+            
+            for tag,mHandle in md_handles.iteritems():
+                if cgmGEN.__mayaVersion__ >= 2018:
+                    mController = mHandle.controller_get()
+                    mController.visibilityMode = 2
+            """       
+    
+            #Mirror indexing -------------------------------------
+            log.debug("|{0}| >> Mirror Indexing...".format(_str_func)+'-'*40) 
+            
+            idx_ctr = 0
+            idx_side = 0
+            d = {}
+            
+            for tag,mHandle in md_handles.iteritems():
+                if mHandle in ml_defineHandles:
+                    continue
+                
+                mHandle._verifyMirrorable()
+                _center = True
+                for p1,p2 in d_pairs.iteritems():
+                    if p1 == tag or p2 == tag:
+                        _center = False
+                        break
+                if _center:
+                    log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+                    mHandle.mirrorSide = 0
+                    mHandle.mirrorIndex = idx_ctr
+                    idx_ctr +=1
+                mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+        
+            #Self mirror wiring -------------------------------------------------------
+            for k,m in d_pairs.iteritems():
+                try:
+                    md_handles[k].mirrorSide = 1
+                    md_handles[m].mirrorSide = 2
+                    md_handles[k].mirrorIndex = idx_side
+                    md_handles[m].mirrorIndex = idx_side
+                    md_handles[k].doStore('mirrorHandle',md_handles[m])
+                    md_handles[m].doStore('mirrorHandle',md_handles[k])
+                    idx_side +=1        
+                except Exception,err:
+                    log.error('Mirror error: {0}'.format(err))
+            """
+                
+        
+            self.msgList_connect('formHandles',ml_subHandles)#Connect
+            self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
+            return            
+            
+            
+        
+
+        """
+        ml_defSubHandles = self.msgList_get('defineSubHandles')
+        for mObj in ml_defSubHandles:
+            mObj.template = True
+            
+        l_tags = ['upr','lwr','inner','outer',
+                  'uprEnd','lwrEnd','innerEnd','outerEnd']
+        md_handles = {}
+        d_pos = {}
+        for tag in l_tags:
+            md_handles[tag] = self.getMessageAsMeta("define{0}Helper".format(STR.capFirst(tag)))
+            d_pos[tag] = md_handles[tag].p_position
+            
+        
+        #Build our curves =======================================================================
+        #For this first pass we're just doing simple curve, will loop back when we do full lids
+        log.debug("|{0}| >> Lid cuves...".format(_str_func)+ '-'*40)
+        
+        md_loftCurves = {}
+        d_loftCurves = {'upr':[d_pos['inner'],
+                               d_pos['upr'],
+                               d_pos['outer']],
+                        'lwr':[d_pos['inner'],
+                               d_pos['lwr'],
+                               d_pos['outer']],
+                        'uprEnd':[d_pos['innerEnd'],
+                                  d_pos['uprEnd'],
+                                  d_pos['outerEnd']],
+                        'lwrEnd':[d_pos['innerEnd'],
+                                  d_pos['lwrEnd'],
+                                  d_pos['outerEnd']]}
 
 
-            for tag,l_pos in d_loftCurves.iteritems():
-                _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
-                mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-                mCrv.p_parent = mFormNull
-                mHandleFactory.color(mCrv.mNode)
-                
-                mCrv.rename('{0}_loftCurve'.format(tag))
-                
-                self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
-                md_loftCurves[tag]=mCrv
-                
-            self.UTILS.create_simpleFormLoftMesh(self,
-                                                     [md_loftCurves['upr'].mNode,
-                                                      md_loftCurves['uprEnd'].mNode],
-                                                     mFormNull,
-                                                     polyType = 'bezier',
-                                                     baseName = 'uprLid')
-            self.UTILS.create_simpleFormLoftMesh(self,
-                                                     [md_loftCurves['lwr'].mNode,
-                                                      md_loftCurves['lwrEnd'].mNode],
-                                                     mFormNull,
-                                                     polyType = 'bezier',
-                                                     baseName = 'lwrLid')    
+        for tag,l_pos in d_loftCurves.iteritems():
+            _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
+            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+            mCrv.p_parent = mFormNull
+            mHandleFactory.color(mCrv.mNode)
             
-            log.debug(self.uprLidFormLoft)
-            log.debug(self.lwrLidFormLoft)
-            log.debug(self.uprLidLoftCurve)
-            log.debug(self.lwrLidLoftCurve)
+            mCrv.rename('{0}_loftCurve'.format(tag))
+            
+            self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
+            md_loftCurves[tag]=mCrv
+            
+        self.UTILS.create_simpleFormLoftMesh(self,
+                                                 [md_loftCurves['upr'].mNode,
+                                                  md_loftCurves['uprEnd'].mNode],
+                                                 mFormNull,
+                                                 polyType = 'bezier',
+                                                 baseName = 'uprLid')
+        self.UTILS.create_simpleFormLoftMesh(self,
+                                                 [md_loftCurves['lwr'].mNode,
+                                                  md_loftCurves['lwrEnd'].mNode],
+                                                 mFormNull,
+                                                 polyType = 'bezier',
+                                                 baseName = 'lwrLid')    
+        
+        log.debug(self.uprLidFormLoft)
+        log.debug(self.lwrLidFormLoft)
+        log.debug(self.uprLidLoftCurve)
+        log.debug(self.lwrLidLoftCurve)"""
     
         
     except Exception,err:
