@@ -625,7 +625,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'buildToe':'none:dag:joint',
                  'buildLeverBase':'none:dag:joint',
                  'buildLeverEnd':'none:dag:joint',
-                 'proxyLoft':'default:toEnd',
+                 'proxyLoft':'default:toEnd:toStart:toBoth',
                  
                  'ikExtendSetup':'aim:full',
                  'mainRotAxis':'up:out',
@@ -8139,13 +8139,22 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
             _ballBase=True
         
-        _extend = False
+                
+    
+        if mBlock.buildLeverBase < 2:
+            _extendToStart = False        
+        
+        _extendToEnd = False
         _proxyLoft = mBlock.getEnumValueString('proxyLoft')
         if _proxyLoft == 'toEnd':
-            _extend = True
+            _extendToEnd = True
+        elif _proxyLoft == 'toStart':
+            _extendToStart = True
+        elif _proxyLoft == 'toBoth':
+            _extendToEnd = True
+            _extendToStart = True
+            
 
-        if mBlock.buildLeverBase < 2:
-            _extendToStart = False
             
         """
         _ballMode = 'sdf'#loft
@@ -8176,8 +8185,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                                                                 ballBase = _ballBase,
                                                                 ballMode = _ballMode,
                                                                 reverseNormal=0,#mBlock.loftReverseNormal,
-                                                                extendCastSurface = _extend,
-                                                                extendToStart=False),#_extendToStart),
+                                                                extendCastSurface = _extendToEnd,
+                                                                extendToStart=_extendToStart),#_extendToStart),
                                                  'cgmObject')
         
         
@@ -8185,7 +8194,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             #ml_segProxy = [ml_clav[0]] + ml_segProxy
         
         #Proxyhelper-----------------------------------------------------------------------------------
-        if not _extend:
+        if not _extendToEnd:
             if _str_rigSetup != 'digit':
                 log.debug("|{0}| >> proxyHelper... ".format(_str_func))
                 mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=1)
