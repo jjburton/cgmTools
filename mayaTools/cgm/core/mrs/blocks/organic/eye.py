@@ -145,8 +145,9 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'ikSetup':'bool',
                  'paramMidUpr':'float',
                  'paramMidLwr':'float',
-                 'pupilBuild':'none:joint:blendshape',
-                 'irisBuild':'none:joint:blendshape',
+                 'pupilBuild':'none:shape:joint:blendshape',
+                 'irisBuild':'none:shape:joint:blendshape',
+                 'irisDepth':'float',
                  'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
                  'numLidUprJoints':'int',
@@ -302,15 +303,104 @@ def define(self):
         mNoTransformNull.delete()
         
     mNoTransformNull = self.atUtils('noTransformNull_verify','define')
+    ml_handles = []
     
-
+    """
     #Rotate Group ==================================================================
     mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
                                           'cgmObject',setClass=True)
     mRotateGroup.p_parent = mDefineNull
     mRotateGroup.doConnectIn('rotate',"{0}.baseAim".format(_short))
-    mRotateGroup.setAttrFlags()
+    mRotateGroup.setAttrFlags()"""
     
+    _size_width = self.baseSize[0]#...x width
+    _size_base = _size_width * .25
+    
+    #Bounding sphere ==================================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'blockVolume...'))
+    mBlockVolume = self.doCreateAt(setClass=1)
+
+    mBlockVolume.doSnapTo(self)
+    mBlockVolume.p_parent = mDefineNull    
+    mBlockVolume.tz = -.5
+    
+    mBlockVolume.rename('blockVolume')
+    
+    #Mid driver ....
+    log.debug(cgmGEN.logString_msg(_str_func,'midDriver...'))
+    
+    mMidDriver = mBlockVolume.doCreateAt(setClass=1)
+    mMidDriver.rename('midDriver')
+    mMidDriver.p_parent = mBlockVolume
+    mMidDriver.dagLock()
+    
+    #Mid Group...
+    log.debug(cgmGEN.logString_msg(_str_func,'midGroup...'))    
+    mMidGroup = mMidDriver.doCreateAt(setClass=1)
+    mMidGroup.rename('midGoup')
+    mMidGroup.p_parent = mDefineNull
+    mc.parentConstraint(mMidDriver.mNode, mMidGroup.mNode)
+    mMidGroup.dagLock()
+    self.connectChildNode(mMidGroup.mNode,'midDrivenDag','module')
+
+    CORERIG.copy_pivot(mBlockVolume.mNode,self.mNode)
+    
+    
+    #Create Pivot =====================================================================================
+    """
+    log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))    
+    
+    crv = CURVES.create_fromName('sphere', size = _size_base/5)
+    mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+    mHandleFactory.color(mHandleRoot.mNode)
+
+    #_shortHandle = mHandleRoot.mNode
+
+    #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
+    mHandleRoot.doStore('cgmType','formHandle')
+    mHandleRoot.rename('eyeRoot_formHandle')
+
+    mHandleRoot.p_parent = mMidGroup
+    mHandleRoot.resetAttrs()
+    #mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
+
+    self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
+    ml_handles.append('rootHelper')"""
+    
+    #Orient helper =====================================================================================
+    _orientHelper = CURVES.create_fromName('arrowSingle', size = _size_base)
+    mShape = cgmMeta.validateObjArg(_orientHelper)
+
+
+    mShape.doSnapTo(self.mNode)
+    mShape.p_parent = mMidGroup
+
+    mShape.tz = self.baseSizeZ
+    mShape.rz = 90
+    
+    mPupilTrackDriver = mShape.doCreateAt(setClass=1)
+    mPupilTrackDriver.rename('eyeTrackDriver')
+
+    _crvLinear = CORERIG.create_at(create='curveLinear',
+                                   l_pos=[mMidGroup.p_position,mShape.p_position])
+    
+    
+    mOrientHelper = mMidGroup.doCreateAt(setClass=True)
+    CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
+    CORERIG.shapeParent_in_place(mOrientHelper.mNode, _crvLinear,False)
+    
+    mOrientHelper.p_parent = mMidGroup
+
+    mOrientHelper.doStore('cgmType','formHandle')
+    mOrientHelper.rename('eyeOrient_formHandle')
+
+    self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
+    mHandleFactory.color(mOrientHelper.mNode,controlType='sub')
+    
+    ml_handles.append(mOrientHelper)    
+    mPupilTrackDriver.p_parent = mOrientHelper#...parent our tracker to the orient handle
+    
+
     #Bounding sphere ==================================================================
     #_bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
     #_bb_shape = CORERIG.create_proxyGeo('sphere', [.5,.5,.5], 'z+',bakeScale=False)[0]
@@ -319,11 +409,12 @@ def define(self):
     for mShape in mBBShape.getShapes(asMeta=1):
         mShape.overrideEnabled = 1
         mShape.overrideDisplayType = 2
-    mBBShape.doSnapTo(self)
-    mBBShape.p_parent = mDefineNull    
-    mBBShape.tz = -.5
+    mBBShape.doSnapTo(mMidDriver)
+    mBBShape.p_parent = mMidDriver#mDefineNull    
+    mc.orientConstraint(mOrientHelper.mNode, mBBShape.mNode)
+    #mBBShape.tz = -.5
     
-    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+    #CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
     #mHandleFactory.color(mBBShape.mNode,controlType='sub')
     CORERIG.colorControl(mBBShape.mNode,_side,controlType='sub',transparent = True)
     
@@ -342,7 +433,7 @@ def define(self):
     for i,k in enumerate(l_uIsos):
         if i in [6,8]:
             l_use.append(k)    
-    l_use.append(maxU * .9)
+    #l_use.append(maxU * .9)
     ml_curves = []
     for i,k in enumerate(l_use):
         _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,k,'u'), ch = 1, rn = 0, local = 0)[0]
@@ -355,7 +446,36 @@ def define(self):
             #mShape.overrideDisplayType = 2
         mCrv.dagLock()
         
+    #SurfaceTrackSphere ==========================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'surface...'))
+    mSurface = mBBShape.doDuplicate(po=False)
+    mSurface.rename('TrackSurface')
+    mSurface.v=0
+        
+        
     #Pupil/Iris =====================================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'Iris/pupil...'))
+    
+    mTrack = self.doCreateAt()
+    mTrack.rename("pupilIris_surfaceDriver")
+    mTrack.p_parent = mNoTransformNull
+
+    _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,'conParent',driver= mPupilTrackDriver)
+    md = _res[-1]
+    mFollicle = md['mFollicle']
+    for k in ['mDriverLoc','mFollicle']:
+        md[k].p_parent = mNoTransformNull
+        md[k].v = False
+        
+    mDepth = mTrack.doCreateAt(setClass=1)
+    mDepth.rename('irisDepth')
+    mDepth.p_parent = mTrack
+        
+    ATTR.connect('{0}.irisDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+        
+        
+        
+    
     for k in ['pupil','iris']:
         _shape = CURVES.create_fromName('circle', 1.0, baseSize=1.0)
         mHelper = cgmMeta.validateObjArg(_shape, 'cgmObject',setClass=True)
@@ -366,27 +486,33 @@ def define(self):
         
         mHelper.p_parent = mDefineNull
         
+        #if k == 'pupil':
+        #    mHelper.tz = -.1
+        #else:
+        #    mHelper.tz = -.11
+
+        
+        mTransformedGroup = mHelper.doGroup(True,True,asMeta=True,
+                                            typeModifier = 'driver',
+                                            setClass='cgmObject')
+        mc.parentConstraint(mDepth.mNode,mTransformedGroup.mNode)
+        
         if k == 'pupil':
-            mHelper.tz = -.1
+            _sizeUse = _size_width * .2
         else:
-            mHelper.tz = -.11
+            _sizeUse = _size_width * .4
             
-        mTrack = mHelper.doCreateAt()
-        mTrack.rename("{0}_tracker")
-        mTrack.p_parent = mBBShape
+        mHelper.sx = _sizeUse        
+        mHelper.sy = _sizeUse        
         
-        mc.pointConstraint(mTrack.mNode,mHelper.mNode)
-        
-        ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleY".format(mHelper.mNode))
-        ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleX".format(mHelper.mNode))
+        #ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleY".format(mHelper.mNode))
+        #ATTR.connect('{0}.{1}Size'.format(self.mNode,k), "{0}.scaleX".format(mHelper.mNode))
         
         self.connectChildNode(mHelper.mNode,'{0}Helper'.format(k))
         
-        
         #mc.projectCurve(mBBShape.mNode, mHelper.mNode, ch=1, un=True)
         #mHelper.v = False
-        mHelper.template = True
-        mHelper.dagLock()
+        #mHelper.template = True
         
         _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
                              name = "{0}_approx".format(k))
@@ -408,8 +534,24 @@ def define(self):
             #mShape.overrideEnabled = 1
             #mShape.overrideDisplayType = 2        
     
+    
+    self.irisDepth = -_size_width * .1
+    
     #...no connect scale
-    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
+    
+    
+    
+    #self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    
+    
+    #Setup our pivot, aim, vector setup which will drive some of the bits above...
+    
+    return
+    
+    
+    
+    
     
     #Lid stuff ======================================================================
     _sideMult = 1
