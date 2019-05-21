@@ -1647,6 +1647,8 @@ def create_simpleFormLoftMesh(self, targets = None,
                                   noReverse = False,
                                   transparent = True,
                                   d_rebuild = {},
+                                  uDriver = None,
+                                  vDriver = None,
                                   **kws
                                   ):
     try:
@@ -1811,7 +1813,14 @@ def create_simpleFormLoftMesh(self, targets = None,
         if _rebuildNode:
             mLoftSurface.connectChildNode(_rebuildNode, 'rebuildNode','builtMesh')
             if _loftNode:
-                mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')        
+                mLoftSurface.connectChildNode(_rebuildNode, 'loftNode','builtMesh')
+                
+            if uDriver:
+                ATTR.connect(uDriver, "{0}.spansU".format(_rebuildNode))
+            if vDriver:
+                ATTR.connect(vDriver, "{0}.spansV".format(_rebuildNode))
+                
+                
 
         for n in toName:
             mObj = cgmMeta.validateObjArg(n)
@@ -8872,7 +8881,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         mCrv = getCurve(uValue,l_newCurves)
         
 
-def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
+def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType='defineCurve'):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineCurve'
@@ -8911,12 +8920,12 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None):
             else:
                 mHandleFactory.color(mCrv.mNode)
                 
-            mCrv.rename('{0}_defineCurve'.format(k))
+            mCrv.rename('{0}_{1}'.format(k,crvType))
             mCrv.doStore('handleTag',k,attrType='string')
             #mCrv.v=False
             #md_loftCurves[tag] = mCrv
         
-            self.connectChildNode(mCrv, k+'DefineCurve','block')
+            self.connectChildNode(mCrv, k+STR.capFirst(crvType),'block')
             ml_defineCurves.append(mCrv)
             md_defineCurves[k] = mCrv
         
@@ -9134,10 +9143,14 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 CORERIG.override_color(mHandle.mNode, _dtmp['color'])
                 
             else:
-                if k == 'aim':
-                    _shape = 'eye'
-                else:
-                    _shape = 'sphere'
+                _shape = _dtmp.get('shape')
+                _useSize = _dtmp.get('size',_useSize)
+                if not _shape:
+                    if k == 'aim':
+                        _shape = 'eye'
+                    else:
+                        _shape = 'sphere'
+                    
                 _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
                                               bakeScale = 1,                                              
                                               direction = 'z+', size = _useSize)

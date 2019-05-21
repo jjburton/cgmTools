@@ -22,7 +22,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -103,6 +103,9 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
                 i_follicleShape.parameterU = d_closest['normalizedU']
                 i_follicleShape.parameterV = d_closest['normalizedV']
             _res = [i_follicleTrans.mNode, i_follicleShape.mNode]
+            
+            md_res['mFollicle'] = i_follicleTrans
+            md_res['mFollicleShape'] = i_follicleShape
         else:
             log.debug("|{0}| >> Curve mode...".format(_str_func))
             #d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
@@ -222,9 +225,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
                              '{0}.parameterV'.format(mFollShape.mNode))
                 
                 
-                md_res = {'mFollicle':mFollicle,
-                          'mFollicleShape':mFollShape,
-                          'mDriverLoc':mDriverLoc}
+                md_res['mDriverLoc'] = mDriverLoc
             else:
                 log.warning(cgmGEN.logString_msg(_str_func,"Shape type not currently supported for driver setup. Type: {0}".format(d_closest['type'])))
         
