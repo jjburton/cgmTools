@@ -291,8 +291,7 @@ def define(self):
             log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
             mc.delete(defineNull)
             
-    self.atUtils('define_set_baseSize')
-    
+    #self.atUtils('define_set_baseSize')
     _size = self.atUtils('defineSize_get')
     
     _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
@@ -469,9 +468,9 @@ def define(self):
     maxU = ATTR.get(str_meshShape,'maxValueU')
     l_use = []
     for i,k in enumerate(l_uIsos):
-        if i in [6,8]:
+        if i in [5,6,7]:
             l_use.append(k)    
-    #l_use.append(maxU * .9)
+    #l_use.append(maxU * .95)
     ml_curves = []
     for i,k in enumerate(l_use):
         _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,k,'u'), ch = 1, rn = 0, local = 0)[0]
@@ -528,7 +527,7 @@ def define(self):
             mHelper = cgmMeta.validateObjArg(_shape, 'cgmObject',setClass=True)
             mHelper.doSnapTo(self)
             mHandleFactory.color(mHelper.mNode,controlType='sub')
-            
+            ml_handles.append(mHelper)
             mHelper.rename("{0}_visualize".format(k))
             
             mHelper.p_parent = mDefineNull
@@ -538,7 +537,6 @@ def define(self):
             #else:
             #    mHelper.tz = -.11
     
-            
             mTransformedGroup = mHelper.doGroup(True,True,asMeta=True,
                                                 typeModifier = 'driver',
                                                 setClass='cgmObject')
@@ -586,8 +584,6 @@ def define(self):
         
     #...no connect scale
     self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
-    
-    
 
     #Lid stuff ======================================================================
     _sideMult = 1
@@ -600,8 +596,6 @@ def define(self):
         _axisInner = 'x+'
         
     if self.lidBuild:
-        
-        
         _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
               'upr':{'color':'white','tagOnly':True,'arrow':False,
                      'vectorLine':False,'defaults':{'ty':1}},
@@ -625,11 +619,11 @@ def define(self):
                     'uprEnd','lwrEnd','innerEnd','outerEnd']
     
     
-        md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5)
+        md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 2)
         #self.UTILS.define_set_baseSize(self)
         
         md_handles = md_res['md_handles']
-        ml_handles = md_res['ml_handles']
+        ml_handlesSub = md_res['ml_handles']
         
         d_positions = {'inner':self.getPositionByAxisDistance(_axisOuter,_size*.75),
                        'outer':self.getPositionByAxisDistance(_axisInner,_size*.75),
@@ -672,14 +666,51 @@ def define(self):
         
         md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
         self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
-        self.msgList_connect('defineSubHandles',ml_handles)#Connect
+        self.msgList_connect('defineSubHandles',ml_handlesSub)#Connect
         
+        self.msgList_connect('defineHandles',ml_handles + ml_handlesSub)#Connect
+        
+        _size_depthHelper = _size_base/8
+        
+            
         for tag,mHandle in md_handles.iteritems():
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
                 mController.visibilityMode = 2
             
             #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
+            
+            if 'End' not in tag:
+            
+                #Lid Depth Vis....
+                _depthHelp = CURVES.create_fromName('cylinder', size = [_size_depthHelper,_size_depthHelper,1])
+                #mShape = cgmMeta.validateObjArg(_depthHelp)
+                #mShape.doSnapTo(mHandle.mNode)
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,_depthHelp,False,True,True)
+                self.doConnectOut('lidDepth', "{0}.scaleZ".format(mHandle.mNode))
+                
+                #mShape.p_parent = mDefineNull
+                """
+                
+                mGroup = mShape.doGroup(True,True,asMeta=True,
+                                        typeModifier = 'driven',
+                                        setClass='cgmObject')
+                mc.pointConstraint(mHandle.mNode, mGroup.mNode,maintainOffset = False)"""
+                """
+                mc.aimConstraint(mMidDriver.mNode, mHandle.mNode, maintainOffset = False,
+                                 aimVector = [0,0,-1], upVector = [0,1,0], 
+                                 worldUpObject = self.mNode,
+                                 worldUpType = 'objectrotation', 
+                                 worldUpVector = [0,1,0])"""
+                SNAP.aim_atPoint(mHandle.mNode,mMidDriver.p_position,'z-',mode='vector', vectorUp=self.getAxisVector('y+'))
+                ATTR.set_standardFlags(mHandle.mNode,['sz'])
+            #else:
+                #for a in 'sx','sy','sz':
+                    #self.doConnectOut('lidDepth', "{0}.{1}".format(mHandle.mNode,a))
+                    #ATTR.set_standardFlags(mHandle.mNode,[a])
+                
+        
             if 'End' not in tag:
                 mHandle.p_position = DIST.get_closest_point(mHandle.mNode, mBBShape.mNode)[0]
     
@@ -799,15 +830,15 @@ def form(self):
                 d_defPos[tag+'Line'] = DIST.get_pos_by_vec_dist(d_defPos[tag],mVec,_offset)
                 
                 
-            pMidInner = DGETAVG([d_defPos['innerLine'],d_defPos['innerEnd']])
-            pMidOuter = DGETAVG([d_defPos['outerLine'],d_defPos['outerEnd']])
-            pMidUpr = DGETAVG([d_defPos['uprLine'],d_defPos['uprEnd']])
-            pMidLwr = DGETAVG([d_defPos['lwrLine'],d_defPos['lwrEnd']])
+            pEdgeInner = DGETAVG([d_defPos['innerLine'],d_defPos['innerEnd']])
+            pEdgeOuter = DGETAVG([d_defPos['outerLine'],d_defPos['outerEnd']])
+            pEdgeUpr = DGETAVG([d_defPos['uprLine'],d_defPos['uprEnd']])
+            pEdgeLwr = DGETAVG([d_defPos['lwrLine'],d_defPos['lwrEnd']])
             
-            d_defPos['innerMid'] = pMidInner
-            d_defPos['outerMid'] = pMidOuter
-            d_defPos['uprMid'] = pMidUpr
-            d_defPos['lwrMid'] = pMidLwr
+            d_defPos['innerEdge'] = pEdgeInner
+            d_defPos['outerEdge'] = pEdgeOuter
+            d_defPos['uprEdge'] = pEdgeUpr
+            d_defPos['lwrEdge'] = pEdgeLwr
             
             
             log.debug("|{0}| >>  Lid setup...".format(_str_func))
@@ -818,12 +849,12 @@ def form(self):
             
             _d_posToSplit = {'upr':{'contact':['inner','upr','outer'],
                                     'line':['innerLine','uprLine','outerLine'],
-                                    'mid':['innerMid','uprMid','outerMid'],
-                                    'edge':['innerEnd','uprEnd','outerEnd']},
+                                    'edge':['innerEdge','uprEdge','outerEdge'],
+                                    'orb':['innerEnd','uprEnd','outerEnd']},
                              'lwr':{'contact':['inner','lwr','outer'],
                                     'line':['innerLine','lwrLine','outerLine'],
-                                    'mid':['innerMid','lwrMid','outerMid'],
-                                    'edge':['innerEnd','lwrEnd','outerEnd']}
+                                    'edge':['innerEdge','lwrEdge','outerEdge'],
+                                    'orb':['innerEnd','lwrEnd','outerEnd']}
                              }
             
             _d_pos = {}
@@ -833,7 +864,7 @@ def form(self):
             for tag in l_tags:
                 d = _d_toDo[tag]
                 d_curveKeys[tag] = {}
-                for ii, crvToDo in enumerate(['contact','line','mid','edge']):
+                for ii, crvToDo in enumerate(['contact','line','edge','orb']):
                     _tag = tag + STR.capFirst(crvToDo)
                     _cnt = d['count']
                     l_keys = _d_posToSplit[tag][crvToDo]
@@ -843,10 +874,45 @@ def form(self):
                     for t in l_keys:
                         l_pos.append(d_defPos[t])
                         
+                        
                     #Get percentage list
                     l_v = MATH.get_splitValueList(points = _cnt)
                     
                     _crv = CORERIG.create_at(create='curve',l_pos= l_pos)
+                    
+                    if crvToDo in ['contact','line']:
+                        _crvShape = TRANS.shapes_get(_crv)[0]
+                        
+                        _crv = mc.rebuildCurve(_crv,rpo=True,ch=1, spans=10)
+                        _l_source = mc.ls("{0}.{1}[*]".format(_crvShape,'ep'),flatten=True,long=True)
+                        
+                        for ii,cv in enumerate(_l_source):
+                            if crvToDo == 'contact':
+                                pClose = DIST.get_closest_point(cv, mTrackSurface.mNode)[0]
+                                POS.set(cv,pClose)
+                                #LOC.create(position=pClose,name='contact_{0}'.format(ii))
+                            else:
+                                pMe = POS.get(cv)
+                                datClose = DIST.get_closest_point_data(mTrackSurface.mNode, targetPoint=pMe)
+                                pClose = datClose['position']
+                                #_vec = MATH.get_vector_of_two_points(pSurf,pMe)
+                                pprint.pprint(datClose)
+                                newPos = DIST.get_pos_by_vec_dist(pClose,datClose['normalizedNormal'],_offset)
+                                POS.set(cv,newPos)
+                                
+                            """
+                            if offsetMode == 'fixed':
+                                set_vectorOffset(c,_origin,distance,vector,mode=mode)
+                            else:
+                                pMe = POS.get(c)
+                                _vec = MATHUTILS.get_vector_of_two_points(_origin,pMe)
+                                d = get_distance_between_points(_origin,pMe)
+                                newPos = get_pos_by_vec_dist(POS.get(c),_vec,d*factor)
+                                POS.set(c,newPos) """                       
+
+                    
+                    
+                    
                     l_keys = []
                     for i,v in enumerate(l_v):
                         _key = "{0}_{1}".format(_tag,i)
@@ -858,10 +924,11 @@ def form(self):
                         #Generate handle dat...
                         l_order.append(_key)
                         p = CRVPCT(_crv,v)
+
+                                
                         _d_pos[_key] = p
                         d_creation[_key] = {'color':'yellowWhite','tagOnly':True,'arrow':False,'jointLabel':0,
-                                            'vectorLine':False,
-                                            'pos':p}
+                                            'vectorLine':False,'pos':p}
                     d_curveKeys[tag][crvToDo] = l_keys
                         
                     if tag != 'upr':
@@ -873,10 +940,10 @@ def form(self):
 
 
             #LoftDeclarations....
-            md_loftCreation['uprLid'] = {'keys':['uprContact','uprLine','uprMid','uprEdge'],
+            md_loftCreation['uprLid'] = {'keys':['uprContact','uprLine','uprEdge','uprOrb'],
                                          'rebuild':{'spansU':5,'spansV':5},
                                          'kws':{'noRebuild':1}}
-            md_loftCreation['lwrLid'] = {'keys':['lwrContact','lwrLine','lwrMid','lwrEdge'],
+            md_loftCreation['lwrLid'] = {'keys':['lwrContact','lwrLine','lwrEdge','lwrOrb'],
                                          'rebuild':{'spansU':5,'spansV':5},
                                          'kws':{'noRebuild':1}}
             md_loftCreation['uprLid']['keys'].reverse()
@@ -892,33 +959,36 @@ def form(self):
             for tag in l_tags:
                 for i,key in enumerate(d_curveKeys[tag]['contact']):
                     mHandle = md_handles[key]
+                    _trackKey = d_curveKeys[tag]['line'][i]
+                    
+                    
 
-                    mHandle.p_position = DIST.get_closest_point(mHandle.mNode, mTrackSurface.mNode)[0]
+                    mHandle.p_position = DIST.get_closest_point(md_handles[_trackKey].mNode,
+                                                                mTrackSurface.mNode)[0]
                     
                     
                     mTrackGroup = mHandle.doGroup(True,True,asMeta=True,
                                                   typeModifier = 'track',
                                                   setClass='cgmObject')                    
-                    _trackKey = d_curveKeys[tag]['line'][i]
                     
                     _res = RIGCONSTRAINT.attach_toShape(mTrackGroup.mNode,mTrackSurface.mNode,
-                                                        'conParent',driver= md_handles[_trackKey])
+                                                        'conPoint',driver= md_handles[_trackKey])
                     md = _res[-1]
                     mFollicle = md['mFollicle']
                     for k in ['mDriverLoc','mFollicle']:
                         md[k].p_parent = mNoTransformNull
                         md[k].v = False
                         
-                
-                for i,key in enumerate(d_curveKeys[tag]['mid']):
-                    if key in [d_curveKeys[tag]['mid'][0],d_curveKeys[tag]['mid'][-1]] and tag == 'lwr':
+                """
+                for i,key in enumerate(d_curveKeys[tag]['edge']):
+                    if key in [d_curveKeys[tag]['edge'][0],d_curveKeys[tag]['edge'][-1]] and tag == 'lwr':
                         continue
                     
                     mHandle = md_handles[key]
                     #pos  = DIST.get_closest_point(mHandle.mNode, mTrackSurface.mNode)[0]
                     pos = DIST.get_pos_by_vec_dist(mHandle.p_position,mVec,-_offset)
                     mHandle.p_position = pos
-                    
+                    """
             
         
                 
@@ -930,7 +1000,6 @@ def form(self):
                 for mObj in ml_curves:
                     mObj.v=False
                 
-                reload(self.UTILS)
                 self.UTILS.create_simpleFormLoftMesh(self,
                                                      [mObj.mNode for mObj in ml_curves],
                                                      mFormNull,
@@ -948,6 +1017,17 @@ def form(self):
                 if cgmGEN.__mayaVersion__ >= 2018:
                     mController = mHandle.controller_get()
                     mController.visibilityMode = 2
+                    
+                #Depth setup
+                #_depthHelp = CURVES.create_fromName('cylinder', size = [_size,_size,1])
+                #mShape = cgmMeta.validateObjArg(_depthHelp)
+                #mShape.doSnapTo(mHandle.mNode)
+                
+                #CORERIG.shapeParent_in_place(mHandle.mNode,_depthHelp,False,True,True)
+                #self.doConnectOut('lidDepth', "{0}.scaleZ".format(mHandle.mNode))
+                
+                #SNAP.aim_atPoint(mHandle.mNode,mEdgeDriver.p_position,'z-',mode='vector', vectorUp=self.getAxisVector('y+'))
+                #ATTR.set_standardFlags(mHandle.mNode,['sz'])
             """       
     
             #Mirror indexing -------------------------------------
@@ -1880,6 +1960,7 @@ def rig_shapes(self):
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         mSettings = None
+        
         if mBlock.buildEyeOrb or mBlock.ikSetup or self.b_needEyeOrb:
             log.debug("|{0}| >> Settings needed...".format(_str_func))
             mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
@@ -1915,10 +1996,13 @@ def rig_shapes(self):
             log.debug("|{0}| >> FK eye...".format(_str_func))  
             log.debug(mFKEye)
             
-            _shape_fk = CURVES.create_fromName('sphere', size = [v*1.1 for v in self.v_baseSize])
-            SNAP.go(_shape_fk,mFKEye.mNode)
-            mHandleFactory.color(_shape_fk, controlType = 'main')
-            CORERIG.shapeParent_in_place(mFKEye.mNode,_shape_fk,False)
+            mEyeOrientHelper = mBlock.eyeOrientHelper
+            
+            #_shape_fk = CURVES.create_fromName('sphere', size = [v*1.1 for v in self.v_baseSize])
+            #SNAP.go(_shape_fk,mFKEye.mNode)
+            #mHandleFactory.color(_shape_fk, controlType = 'main')
+            CORERIG.shapeParent_in_place(mFKEye.mNode,mEyeOrientHelper.mNode,1)
+            mHandleFactory.color(mFKEye.mNode, controlType = 'main')
             
             #mShape = mBlock.getMessageAsMeta('bbHelper').doDuplicate()
             mRigNull.connectChildNode(mFKEye.mNode,'controlFK','rigNull')#Connect
@@ -2511,7 +2595,10 @@ def create_clamBlinkCurves(self):
     
     
     for mCrv in ml_curves:
-        mCrv.p_parent = mRigNull
+        if mCrv in [ md['upr']['mDriver'], md['lwr']['mDriver']]:
+            mCrv.p_parent = mRigNull
+        else:
+            mCrv.p_parent = mSettings
         
     self.md_blinkCurves = md
     self.ml_blinkCurves = ml_curves    
@@ -3160,7 +3247,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     
     str_lidSetup = mBlock.getEnumValueString('lidBuild')
     #>>Lid setup ================================================
-    if str_lidSetup == 'clam':
+    if str_lidSetup == 'cat':
         #Need to make our lid roots and orient
         for k in 'upr','lwr':
             log.debug("|{0}| >> {1}...".format(_str_func,k))
@@ -3169,12 +3256,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(k))
             mRigJoint = mLidSkin.rigJoint
             
-            mEndCurve = mBlock.getMessageAsMeta('{0}EndLidLoftCurve'.format(k)).doDuplicate(po=False)
+            mEndCurve = mBlock.getMessageAsMeta('{0}EdgeFormCurve'.format(k)).doDuplicate(po=False)
             mEndCurve.p_parent = False
             mEndCurve.p_parent = mDeformNull
             mEndCurve.v = False
             
-            mStartCurve = mRigNull.getMessageAsMeta(k+'LidCurve')#.doDuplicate(po=False)
+            mStartCurve = mRigNull.getMessageAsMeta(k+'LineFormCurve')#.doDuplicate(po=False)
             
             """
             mHandle = mRigNull.getMessageAsMeta(_keyHandle)

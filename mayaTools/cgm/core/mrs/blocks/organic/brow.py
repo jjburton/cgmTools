@@ -117,7 +117,7 @@ _d_attrStateOff = {0:[],
 d_build_profiles = {}
 
 
-d_block_profiles = {'default':{},
+d_block_profiles = {'default':{'baseSize':[17.6,7.2,8.4],},
                     'eyebrow':{'baseSize':[17.6,7.2,8.4],
                                'browType':'full',
                                'profileOptions':{},

@@ -80,7 +80,6 @@ def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excl
     '''
     gChannelBoxName = mel.eval('$temp=$gChannelBoxName')
     _reset = {}
-    
     if not nodes:
         nodes = mc.ls(sl=True)
         if not nodes:
