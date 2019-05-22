@@ -1185,6 +1185,7 @@ def prerig(self):
     
     
         #mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form') 
+        mIrisPos = self.getMessageAsMeta('irisPosHelper')
     
     
         #Create Pivot =====================================================================================
@@ -1214,14 +1215,16 @@ def prerig(self):
         mShape = cgmMeta.validateObjArg(_orientHelper)
     
         mShape.doSnapTo(self.mNode)
-        mShape.p_parent = mHandleRoot
+        mShape.p_parent = self
     
-        mShape.tz = self.baseSizeZ
+        mShape.tz = DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
         mShape.rz = 90
-    
-        _crvLinear = CORERIG.create_at(create='curveLinear',
-                                       l_pos=[mHandleRoot.p_position,mShape.p_position])
         
+        
+        _crvLinear = CORERIG.create_at(create='curveLinear',
+                                       l_pos=[self.p_position,mShape.p_position])
+        
+        mShape.p_parent = mHandleRoot
         
         mOrientHelper = mHandleRoot.doCreateAt(setClass=True)
         CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
@@ -1238,7 +1241,6 @@ def prerig(self):
         
         ml_handles.append(mOrientHelper)
         
-        mIrisPos = self.getMessageAsMeta('irisPosHelper')
         mAimGroup = mOrientHelper.doGroup(True,True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
         
         mc.aimConstraint(mIrisPos.mNode, mAimGroup.mNode, maintainOffset = False,
