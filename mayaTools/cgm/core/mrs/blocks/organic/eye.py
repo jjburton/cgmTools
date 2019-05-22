@@ -948,8 +948,8 @@ def form(self):
                                          'kws':{'noRebuild':1}}
             md_loftCreation['uprLid']['keys'].reverse()
 
-            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size,
-                                                     mFormNull)
+            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
+                                                     mFormNull,statePlug = 'form')
             
             ml_subHandles.extend(md_res['ml_handles'])
             md_handles.update(md_res['md_handles'])

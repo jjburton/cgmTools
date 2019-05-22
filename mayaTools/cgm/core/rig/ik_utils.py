@@ -1443,9 +1443,9 @@ def ribbon(jointList = None,
                 
         log.debug("|{0}| >> Attaching mDriven: {1}".format(_str_func,mDriven))
         
-        follicle,shape = RIGCONSTRAINTS.attach_toShape(mDriven.mNode, mControlSurface.mNode, None)
-        mFollicle = cgmMeta.asMeta(follicle)
-        mFollShape = cgmMeta.asMeta(shape)
+        _res = RIGCONSTRAINTS.attach_toShape(mDriven.mNode, mControlSurface.mNode, None)
+        mFollicle = _res[-1]['mFollicle']#cgmMeta.asMeta(follicle)
+        mFollShape = _res[-1]['mFollicleShape']#cgmMeta.asMeta(shape)
         
         if mCrv_reparam:
             if str_paramaterization == 'blend':
@@ -3826,9 +3826,11 @@ def ribbon_seal(driven1 = None,
                     mTrack = d['mTrack']
                     mSurf = d['mSurf']
 
-                    follicle,shape = RIGCONSTRAINTS.attach_toShape(mTrack.mNode, mSurf.mNode, 'parent')
-                    mFollicle = cgmMeta.asMeta(follicle)
-                    mFollShape = cgmMeta.asMeta(shape)
+                    _res = RIGCONSTRAINTS.attach_toShape(mTrack.mNode, mSurf.mNode, 'parent')
+                    mFollicle = _res[-1]['mFollicle']#cgmMeta.asMeta(follicle)
+                    mFollShape = _res[-1]['mFollicleShape']#cgmMeta.asMeta(shape)                    
+                    #mFollicle = cgmMeta.asMeta(follicle)
+                    #mFollShape = cgmMeta.asMeta(shape)
 
                     md_follicleShapes[mObj] = mFollShape
                     md_follicles[mObj] = mFollicle

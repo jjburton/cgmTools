@@ -9042,7 +9042,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         return mPlane
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, vectorScaleAttr = 'baseSize',startScale=False):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -9059,7 +9059,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         _offset = _size * 2
         
         if mParentNull == None:
-            mParentNull = self.atUtils('stateNull_verify','define')
+            mParentNull = self.atUtils('stateNull_verify',statePlug)
         mHandleFactory = self.asHandleFactory()
         
         for k in l_order:
@@ -9310,9 +9310,9 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 
         
         
-            self.connectChildNode(mHandle.mNode,'define{0}Helper'.format(STR.capFirst(k)),'block')
+            self.connectChildNode(mHandle.mNode,'{0}{1}Helper'.format(statePlug,STR.capFirst(k)),'block')
         
-        self.msgList_connect('defineHandles', ml_handles)
+        self.msgList_connect('{0}Handles'.format(statePlug), ml_handles)
         
         #Parent the tags
         for k in l_order:
