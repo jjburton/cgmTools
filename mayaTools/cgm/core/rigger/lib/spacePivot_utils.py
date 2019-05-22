@@ -65,13 +65,13 @@ def clear(obj):
     _res = False
     ml_spacePivots = mObj.msgList_get('spacePivots')
     if ml_spacePivots:
-        log.info("|{0}| >> SpacePivots found...".format(_str_func))    
+        log.debug("|{0}| >> SpacePivots found...".format(_str_func))    
         mc.delete([mPivot.mNode for mPivot in ml_spacePivots])
         _res = True
     
     for a in mc.listAttr(obj,ud=True) or []:
         if a.startswith('pivot_'):
-            log.info("|{0}| >> Removing attr: {1}".format(_str_func,a))                
+            log.debug("|{0}| >> Removing attr: {1}".format(_str_func,a))                
             ATTR.delete(mObj.mNode,a)
             _res = True
             
@@ -97,8 +97,8 @@ def create(obj,parentTo = False):
 
     #>>>Create #====================================================
     #CURVES.create_controlCurve(i_obj.mNode,'jack')
-    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack')[0],'cgmObject',setClass=True)
-    log.info(i_control)
+    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack',sizeMode='guess')[0],'cgmObject',setClass=True)
+    log.debug(i_control)
     try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
     except Exception,error:raise Exception,"color | %s"%(error)          
     log.debug("l_color: %s"%l_color)
@@ -202,7 +202,7 @@ def add(obj, parentTo = False, count = 1, clean = False):
     
     for i in range(count):
         _int = i+1
-        log.info("|{0}| >> adding {1}".format(_str_func,_int))   
+        log.debug("|{0}| >> adding {1}".format(_str_func,_int))   
         _res.append( create(mObj,mParent) )
         
     return _res

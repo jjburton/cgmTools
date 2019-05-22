@@ -28,7 +28,7 @@ log.setLevel(logging.INFO)
 
 
 __author__ = 'Mark Jackson'
-__buildVersionID__ = 2.5
+__buildVersionID__ = 2.75
 installedVersion = False
 
 
@@ -527,6 +527,13 @@ def addToMayaMenus():
                           p=mainFileMenu,
                           echoCommand=True,
                           c="import maya.cmds as cmds;import Red9.core.Red9_General as r9General;r9General.os_OpenFileDirectory(cmds.file(q=True,sn=True))")
+            if has_pro_pack():
+                cmds.menuItem('redNineOpenr9AnimItem',
+                              l=LANGUAGE_MAP._MainMenus_.open_r9anim,
+                              ann=LANGUAGE_MAP._MainMenus_.open_r9anim_ann,
+                              p=mainFileMenu,
+                              echoCommand=True,
+                              c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs('r9anim_open_direct')")
 
         # timeSlider additions
         if not cmds.menuItem('redNineTimeSliderCollapseItem', q=True, ex=True):
@@ -828,7 +835,8 @@ def red9_blog(*args):
     open up the Red9 Blog
     '''
     import Red9.core.Red9_General as r9General  # lazy load
-    r9General.os_OpenFile('http://red9-consultancy.blogspot.com/')
+    # r9General.os_OpenFile('http://red9-consultancy.blogspot.com/')
+    r9General.os_OpenFile('http://red9consultancy.com/news/')  
 
 def red9_website_home(*args):
     '''
@@ -891,16 +899,32 @@ def get_pro_pack(*args):
     redProWin = 'Red9ProPack'
     if cmds.window(redProWin, exists=True):
         cmds.deleteUI(redProWin, window=True)
-    redProWin = cmds.window(redProWin, title="Red9 ProPack", s=False)
-    cmds.columnLayout()
-    cmds.paneLayout()
+    redProWin = cmds.window(redProWin, title="Red9 ProPack", s=True)
+    cmds.columnLayout(adj=True)
+    #cmds.paneLayout()
+    cmds.rowColumnLayout(nc=1, cw=(1, 300), cs=(1,50))
     cmds.image(image='Red9_ProPack_logo.png')
     cmds.setParent('..')
-    cmds.rowColumnLayout(nc=1, cw=(1, 250))
+    
+    cmds.columnLayout(adj=True)
+    #cmds.rowColumnLayout(nc=1, cw=(1, 300))
     cmds.text(l="Red9 ProPack : Not yet Installed!\n", fn='boldLabelFont')
-    cmds.button(label='Get Me ProPack!', h=40, c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://red9consultancy.com/')")
+    cmds.text(l='Red9 ProPack is our commercially available pipeline for Maya\n'
+              'that vastly expands on the foundations of the StudioPack.\n'
+              'Already in full production with many AAA Game & Film studios\n'
+              'ProPack truly is a fully fledged pipeline off the shelf!\n\n'
+              'Available in multi-seat Floating or Nodelocked licenses\n'
+              'Please check-out our Web-site for more details!')
+    cmds.separator(h=50, style='none')
+    
+    
+    cmds.button(label='Latest ProPack News!', h=40,
+                c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://red9consultancy.com/category/tools/red9-propack/')")
+    cmds.separator(h=5, style='none')
+    cmds.button(label='Get Me ProPack!', h=40,
+                c="import Red9.core.Red9_General as r9General;r9General.os_OpenFile('http://red9consultancy.com/')")
     cmds.showWindow(redProWin)
-    cmds.window(redProWin, e=True, widthHeight=(250, 350))
+    cmds.window(redProWin, e=True, widthHeight=(350, 550))
 
 # -----------------------------------------------------------------------------------------
 # BOOT FUNCTIONS ---
@@ -1082,7 +1106,7 @@ def has_pro_pack():
                 return False
         except StandardError, err:
             # we have the pro-pack folder so assume we're running legacy build
-            log.info('r9Pro.checkr9User : failed validation! : %s' % err)
+            log.info('r9Pro : checkr9User : failed validation! : %s' % err)
             return True
     else:
         return False
@@ -1189,32 +1213,51 @@ def clients_booted():
     global CLIENTS_BOOTED
     return CLIENTS_BOOTED
 
-def boot_client_projects():
+def boot_client_projects(batchclients=[]):
     '''
     Boot Client modules found in the Red9_ClientCore dir. This now prompts
     if multiple client projects were found.
+
+    :param batchclients: aimed as use during mayaBatch to denote what we're actually going
+        to boot when there's multiple clients. None, [] or ['clientA', 'clientB',...]
+        if None we do NOT boot any of the ClientCore modules
+        if [] we boot all available ClientCore modules
+        if ['clientA', 'clientB',... ] we boot all clients matching the given
     '''
     global CLIENTS_BOOTED
     CLIENTS_BOOTED = []
     clients = get_client_modules()
     clientsToBoot = []
-    if clients and len(clients) > 1 and not mayaIsBatch():
-        options = ['ALL', 'NONE']
-        options.extend(clients)
-        result = cmds.confirmDialog(title='ProjectPicker',
-                            message=("Multiple Clients Found!\r\r" +
-                                     "Which Client would you like to boot?"),
-                            button=options, messageAlign='center', icon='question',
-                            dismissString='Cancel')
-        if result == 'ALL':
-            clientsToBoot = clients
-        if result == 'NONE':
+
+    # mayaBatch boot (unittests and batching)
+    if mayaIsBatch():
+        if batchclients is None:
             return
-        elif result not in ['Cancel', 'ALL', 'NONE']:
-            print 'appending result ', result
-            clientsToBoot.append(result)
+        if batchclients:
+            clientsToBoot = [_client for _client in batchclients if _client in clients]
+        else:
+            clientsToBoot = clients
+        log.info('mayBatch custom clients to load: %s' % clientsToBoot)
+
     else:
-        clientsToBoot = clients
+        # standard boot sequence
+        if clients and len(clients) > 1:
+            options = ['ALL', 'NONE']
+            options.extend(clients)
+            result = cmds.confirmDialog(title='ProjectPicker',
+                                message=("Multiple Clients Found!\r\r" +
+                                         "Which Client would you like to boot?"),
+                                button=options, messageAlign='center', icon='question',
+                                dismissString='Cancel')
+            if result == 'ALL':
+                clientsToBoot = clients
+            if result == 'NONE':
+                return
+            elif result not in ['Cancel', 'ALL', 'NONE']:
+                print 'appending result ', result
+                clientsToBoot.append(result)
+        else:
+            clientsToBoot = clients
 
     # boot the project / projects
     for client in clientsToBoot:
@@ -1262,7 +1305,7 @@ def __reload_clients__():
 # BOOT CALL ---
 # -----------------------------------------------------------------------------------------
 
-def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindow'):
+def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindow', batchclients=[]):
     '''
     Main entry point for the StudioPack
     :param Menu: Add the Red9 Menu to the Maya Main Menus
@@ -1342,7 +1385,7 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
         # Client Codebases boot
         # =====================
         if has_client_modules():
-            boot_client_projects()
+            boot_client_projects(batchclients)
 
         # finish ProPack dependancies
         # ===========================

@@ -35,6 +35,10 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+def logging_is_debug():
+    if log.level == 10:
+        return True
+
 # Language map is used for all UI's as a text mapping for languages
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
 
@@ -62,14 +66,14 @@ def prioritizeNodeList(inputlist, priorityList, regex=True, prioritysOnly=False)
     :param prioritysOnly: return just the priorityList matches or the entire list sorted
 
     .. note::
-        Known issue, if Regex=True and you have 2 similar str's in the priority list then there's 
-        a chance that matching may be erractic... 
-    
+        Known issue, if Regex=True and you have 2 similar str's in the priority list then there's
+        a chance that matching may be erractic...
+
         >>> priorityList=['upperLip','l_upperLip']
         >>> nodes=['|my|dag|path|jaw',|my|dag|path|l_upperLip','|my|dag|path|upperLip','|my|dag|path|lowerLip']
         >>> returns: ['|my|dag|path|l_upperLip','|my|dag|path|upperLip',|my|dag|path|jaw,'|my|dag|path|lowerLip]
-    
-        as in regex 'l_upperLip'=='upperLip' as well as 'upperLip'=='upperLip' 
+
+        as in regex 'l_upperLip'=='upperLip' as well as 'upperLip'=='upperLip'
         really in regex you'd need to be more specific:  priorityList=['^upperLip','l_upperLip']
     '''
     # stripped = [nodeNameStrip(node) for node in inputlist]  # stripped back to nodeName
@@ -87,7 +91,8 @@ def prioritizeNodeList(inputlist, priorityList, regex=True, prioritysOnly=False)
                     try:
                         nList.remove(node)
                     except:
-                        log.debug('node not in list or already removed: %s>> priority str : %s' % (nodeNameStrip(node), node))
+                        if logging_is_debug():
+                            log.debug('node not in list or already removed: %s>> priority str : %s' % (nodeNameStrip(node), node))
 
     else:
         # this is setup to match exact only
@@ -116,7 +121,7 @@ def sortNumerically(data):
     >>> # standard gives us:
     >>> data.sort()
     >>> ['Joint_1', 'Joint_10', 'Joint_11', 'Joint_12', 'Joint_2', 'Joint_9']
-    >>> 
+    >>>
     >>> # sortNumerically gives us:
     >>> sortNumerically(data)
     >>> ['Joint_1', 'Joint_2', 'Joint_9', 'Joint_10', 'Joint_11', 'Joint_12']
@@ -169,6 +174,14 @@ def decodeString(val):
     it back to it's original state so we pass it through this
     '''
     try:
+        # configobj section handler to push back to native dict
+        try:
+            from Red9.packages.configobj import Section
+            if issubclass(type(val), Section):
+                return val.dict()
+        except:
+            log.debug('failed to convert configObj section %s' % val)
+
         if not issubclass(type(val), str) and not type(val) == unicode:
             # log.debug('Val : %s : is not a string / unicode' % val)
             # log.debug('ValType : %s > left undecoded' % type(val))
@@ -300,6 +313,38 @@ def nodes_in_hierarchy(rootNode, nodes=[], nodeType=None):
                     found.append(m)
     return found
 
+def nodes_are_constrained(src, target):
+    '''
+    :param src: the node that would be the driver of the constraint
+    :param target: the node we think is being driven
+
+    return any constraints between the source and target object if found.
+    This checks the target for child constraints, then checks the target list
+    for those constraints to see if the src is in the list, if so it's added to the return
+    '''
+    found = []
+    src = cmds.ls(src, l=True)[0]
+    cons = cmds.listRelatives(target, type='parentConstraint', f=True)
+    if cons:
+        for con in cons:
+            if src in [cmds.ls(node, l=True)[0] for node in cmds.parentConstraint(con, q=True, tl=True)]:
+                found.append(con)
+    cons = cmds.listRelatives(target, type='orientConstraint', f=True)
+    if cons:
+        for con in cons:
+            if src in [cmds.ls(node, l=True)[0] for node in cmds.orientConstraint(con, q=True, tl=True)]:
+                found.append(con)
+    cons = cmds.listRelatives(target, type='pointConstraint', f=True)
+    if cons:
+        for con in cons:
+            if src in [cmds.ls(node, l=True)[0] for node in cmds.pointConstraint(con, q=True, tl=True)]:
+                found.append(con)
+    cons = cmds.listRelatives(target, type='scaleConstraint', f=True)
+    if cons:
+        for con in cons:
+            if src in [cmds.ls(node, l=True)[0] for node in cmds.scaleConstraint(con, q=True, tl=True)]:
+                found.append(con)
+    return found
 
 # -------------------------------------------------------------------------------------
 # Filter Node Setups ------
@@ -860,9 +905,9 @@ class FilterNode(object):
 
         self.foundNodeTypes = []
         typeMatched = []
-
-        log.debug('lsSearchNodeTypes : params : nodeTypes=%s, nodes=%s, incRoots=%i, transformClamp=%i'\
-               % (nodeTypes, nodes, incRoots, transformClamp))
+        if logging_is_debug():
+            log.debug('lsSearchNodeTypes : params : nodeTypes=%s, nodes=%s, incRoots=%i, transformClamp=%i'\
+                   % (nodeTypes, nodes, incRoots, transformClamp))
 
         if not isinstance(nodeTypes, list):
             nodeTypes = [nodeTypes]
@@ -1116,9 +1161,9 @@ class FilterNode(object):
 
         self.foundAttributes = []
         attrDict = {}
-
-        log.debug('lsSearchAttributes : params : searchAttrs=%s, nodes=%s, incRoots=%i, returnValues=%i'
-               % (searchAttrs, nodes, incRoots, returnValues))
+        if logging_is_debug():
+            log.debug('lsSearchAttributes : params : searchAttrs=%s, nodes=%s, incRoots=%i, returnValues=%i'
+                   % (searchAttrs, nodes, incRoots, returnValues))
 
         # ensure we're passing a list
         if not isinstance(searchAttrs, list):
@@ -1140,8 +1185,10 @@ class FilterNode(object):
                 excludeAttrs[(attr.split('NOT:')[-1])] = val
             else:
                 includeAttrs[attr] = val
-        log.debug('includes : %s' % includeAttrs.items())
-        log.debug('excludes : %s' % excludeAttrs.items())
+
+        if logging_is_debug():
+            log.debug('includes : %s' % includeAttrs.items())
+            log.debug('excludes : %s' % excludeAttrs.items())
 
         # Node block
         if not nodes:
@@ -1168,21 +1215,25 @@ class FilterNode(object):
                         if not type(val[1]) == float:
                             if cmds.getAttr('%s.%s' % (node, attr)) == val[1]:
                                 add = True
-                                log.debug('attr %s : value %s == %s : node %s > ADD = True' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('attr %s : value %s == %s : node %s > ADD = True' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                             else:
                                 add = False
-                                log.debug('attr %s : value %s != %s : node %s > ADD = False' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('attr %s : value %s != %s : node %s > ADD = False' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                         else:
                             if floatIsEqual(cmds.getAttr('%s.%s' % (node, attr)), val[1]):
                                 add = True
-                                log.debug('attr %s : Float value %f == %f : node %s > ADD = True' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('attr %s : Float value %f == %f : node %s > ADD = True' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                             else:
                                 add = False
-                                log.debug('attr %s : Float value %f != %f : node %s > ADD = False' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('attr %s : Float value %f != %f : node %s > ADD = False' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                     else:
                         add = True
                         log.debug('attr %s : node %s > ADD = True' % (attr, node))
@@ -1196,13 +1247,15 @@ class FilterNode(object):
                         if not type(val[1]) == float:
                             if cmds.getAttr('%s.%s' % (node, attr)) == val[1]:
                                 add = False
-                                log.debug('NOT: attr %s : Float value %s == %s : node %s > ADD = False' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('NOT: attr %s : Float value %s == %s : node %s > ADD = False' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                         else:
                             if floatIsEqual(cmds.getAttr('%s.%s' % (node, attr)), val[1]):
                                 add = False
-                                log.debug('NOT: attr %s : Float value %f == %f : node %s > ADD = False' %
-                                    (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
+                                if logging_is_debug():
+                                    log.debug('NOT: attr %s : Float value %f == %f : node %s > ADD = False' %
+                                        (attr, val[1], cmds.getAttr('%s.%s' % (node, attr)), node))
                     else:
                         add = False
                         log.debug('NOT: attr %s : node %s > ADD = False' % (attr, node))
@@ -1375,7 +1428,8 @@ class FilterNode(object):
 
         # Find all controllers hanging off these given metaSystems
         if metaNodes:
-            log.debug('processing found MetaSystsem Nodes : %s' % ','.join([x.mNode for x in metaNodes]))
+            if logging_is_debug():
+                log.debug('processing found MetaSystsem Nodes : %s' % ','.join([x.mNode for x in metaNodes]))
             for meta in metaNodes:
                 ctrls = meta.getChildren(walk=walk)
                 if ctrls and not incMain:
@@ -1544,13 +1598,14 @@ def getBlendTargetIndex(blendNode, targetName):
 # -------------------------------------------------------------------------------------
 # Node Matching ------
 # -------------------------------------------------------------------------------------
-
-def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
+@r9General.Timer
+def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix', returnfails=False):
     '''
     Matches 2 given NODE LISTS by node name via various methods.
 
     :param nodeListA: list of nodes
     :param nodeListB: list of nodes
+    :param returnfails: if True we return [matchedData, unmatched] so that we can pass the unmatched list for further processing
     :param matchMethod: default 'stripPrefix'
 
         | * matchMethod="index" : no intelligent matching, just purely zip the lists
@@ -1576,6 +1631,8 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
         getMirrorID = r9Anim.MirrorHierarchy().getMirrorCompiledID
     if matchMethod == 'metaData':
         getMetaDict = r9Meta.MetaClass.getNodeConnectionMetaDataMap  # optimisation
+        metaDictB = {}  # a cache of the connections so we don't re-process unless we have to
+
     if matchMethod == 'index':
         matchedData = zip(nodeListA, nodeListB)
     elif matchMethod == 'indexReversed':
@@ -1584,23 +1641,25 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
         matchedData = zip(nodeListA, nodeListB)
     else:
         for nodeA in nodeListA:
-            strippedA = nodeNameStrip(nodeA)
             if matchMethod == 'mirrorIndex':
                 indexA = getMirrorID(nodeA)
             if matchMethod == 'metaData':
                 metaDictA = getMetaDict(nodeA)
+
             matched = False
 
             # BaseMatch is a direct compare ONLY
             # note that for 'stripPrefix' method we now FIRST do a base name
-            # test to match like for like if we can if successfull we don't
+            # test to match like for like if we can if successful we don't
             # progress to the stripPrefix block itself
             if matchMethod == 'base' or matchMethod == 'stripPrefix':
+                strippedA = nodeNameStrip(nodeA).upper()
                 for nodeB in hierarchyB:
-                    strippedB = nodeNameStrip(nodeB)
-                    if strippedA.upper() == strippedB.upper():
-                        infoPrint += '\nMatch Method : %s : %s == %s' % \
-                                (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                    strippedB = nodeNameStrip(nodeB).upper()
+                    if strippedA == strippedB:
+                        if logging_is_debug():
+                            infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                    (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
                         matchedData.append((nodeA, nodeB))
                         hierarchyB.remove(nodeB)
                         matched = True
@@ -1608,16 +1667,14 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
 
             if not matchMethod == 'base':
                 for nodeB in hierarchyB:
-                    # strip the path off for the compare
-                    # strippedA = nodeNameStrip(nodeA)
-                    strippedB = nodeNameStrip(nodeB)
-
+                    strippedB = nodeNameStrip(nodeB).upper()
                     # Compare allowing for prefixing which is stripped off
                     if matchMethod == 'stripPrefix' and not matched:
-                        if strippedA.upper().endswith(strippedB.upper()) \
-                            or strippedB.upper().endswith(strippedA.upper()):
-                            infoPrint += '\nMatch Method : %s : %s == %s' % \
-                                    (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                        if strippedA.endswith(strippedB) \
+                            or strippedB.endswith(strippedA):
+                            if logging_is_debug():
+                                infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                         (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
                             matchedData.append((nodeA, nodeB))
                             hierarchyB.remove(nodeB)
                             matched = True
@@ -1626,17 +1683,21 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
                     # Compare using the nodes internal mirrorIndex if found
                     elif matchMethod == 'mirrorIndex':
                         if indexA and indexA == getMirrorID(nodeB):
-                            infoPrint += '\nMatch Method : %s : %s == %s' % \
-                                    (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                            if logging_is_debug():
+                                infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                        (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
                             matchedData.append((nodeA, nodeB))
                             hierarchyB.remove(nodeB)
                             matched = True
                             break
 
                     elif matchMethod == 'metaData':
-                        if metaDictA and metaDictA == getMetaDict(nodeB):
-                            infoPrint += '\nMatch Method : %s : %s == %s' % \
-                                    (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
+                        if nodeB not in metaDictB.keys():
+                            metaDictB[nodeB] = getMetaDict(nodeB)
+                        if metaDictA and metaDictA == metaDictB[nodeB]:  # getMetaDict(nodeB):
+                            if logging_is_debug():
+                                infoPrint += '\nMatch Method : %s : %s == %s' % \
+                                        (matchMethod, nodeA.split('|')[-1], nodeB.split('|')[-1])
                             matchedData.append((nodeA, nodeB))
                             hierarchyB.remove(nodeB)
                             matched = True
@@ -1644,13 +1705,16 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix'):
             if not matched:
                 unmatched.append(nodeA)
 
-        if unmatched:
+        if unmatched and logging_is_debug():
             for node in unmatched:
-                log.warning('\n!! Unresolved Matched Node !! : Match Method : %s : %s' % (matchMethod, node.split('|')[-1]))
+                infoPrint+='\n!! Unresolved Matched Node !! : Match Method : %s : %s' % (matchMethod, node.split('|')[-1])
 
     log.debug('\nMatched Log : \n%s' % infoPrint)
     infoPrint = None
-    return matchedData
+    if returnfails:
+        return matchedData, unmatched
+    else:
+        return matchedData
 
 
 def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMethod='stripPrefix'):
@@ -1682,7 +1746,7 @@ def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMeth
         log.debug('filterSettings Passed To MatchedNodeInputs : %s', filterSettings.__dict__)
 
     # make an instance of the MatchedNodeInputs object
-    nodeList = MatchedNodeInputs(nodes, filterSettings=filterSettings, matchMethod=matchMethod)
+    nodeList = MatchedNodeInputs(nodes, filterSettings=filterSettings, matchMethod=matchMethod, returnfails=True)
 
     if not toMany:
         nodeList.processMatchedPairs()
@@ -1721,12 +1785,14 @@ class MatchedNodeInputs(object):
         into selected pairs obj[0]>obj[1], obj[2]>obj[3] etc
     '''
 
-    def __init__(self, nodes=None, filterSettings=None, matchMethod='stripPrefix'):
+    def __init__(self, nodes=None, filterSettings=None, matchMethod='stripPrefix', returnfails=False):
 
         self.MatchedPairs = []  # Main Result Tuple of Pairs
 
         self.matchMethod = matchMethod
+        self.returnfails = returnfails
         self.roots = nodes
+        self.unmatched = []  # resultant list of unmatched nodes from the processing
 
         # make sure we have a settings object to process
         if filterSettings:
@@ -1758,8 +1824,17 @@ class MatchedNodeInputs(object):
             nodesB = filterNode.processFilter()
 
             # Match the 2 nodeLists by nodeName and return the MatcherPairs list
-            self.MatchedPairs = matchNodeLists(nodesA, nodesB, self.matchMethod)
+            self.MatchedPairs, self.unmatched = matchNodeLists(nodesA, nodesB, self.matchMethod, self.returnfails)
 
+            # added 14/02/19: if the metaData mNodeID has been changed between rigs then the proper
+            # metaData match will fail as it's based on mNodeID and mAttr matches for all nodes.
+            # if this happens then regress the testing back to stripPrefix for all failed nodes
+            if self.matchMethod == 'metaData' and self.unmatched:
+                log.info('Regressing matchMethod from "metaData" to "stripPrefix" for failed matches within the mNode ConnectionMap')
+                rematched = matchNodeLists(self.unmatched, nodesB, matchMethod='stripPrefix')
+                if rematched:
+                    self.MatchedPairs.extend(rematched)
+                    self.unmatched = [node for node in rematched if node in self.unmatched]
         else:
             if not len(self.roots) >= 2:
                 raise StandardError('Please select 2 or more matching base objects')
@@ -2358,7 +2433,7 @@ class TimeOffset(object):
         :param randomize: whether to add a random factor to each successive nodes offset
         :param timerange: only offset times within a given timerange
         :param ripple: manage the upper range of data and ripple them with the offset
-        :param mRigs: if True then the nodes used be resolved via mRig.getChildren but for all
+        :param mRigs: if True then the nodes to be used are resolved via mRig.getChildren but for all
             mRigs wired to the given nodes
         :param startfrm: this turns the offset arg into a new target start frame for the animation,
             calculating the offset for you such that timerange[0] starts at the offset frm value, only works if timerange is passed in
@@ -2374,9 +2449,9 @@ class TimeOffset(object):
         if timerange and startfrm:
             offset = offset - timerange[0]
             log.info('New Offset calculated based on given Start Frm and timerange : %s' % offset)
-
-        log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s, ripple:%s, startfrm=%s' %
-                  (offset, flocking, randomize, str(timerange), ripple, startfrm))
+        if logging_is_debug():
+            log.debug('TimeOffset from Selected : offset=%s, flocking=%i, randomize=%i, timerange=%s, ripple:%s, startfrm=%s' %
+                      (offset, flocking, randomize, str(timerange), ripple, startfrm))
 
         if not nodes:
             basenodes = cmds.ls(sl=True, l=True)
@@ -2426,7 +2501,8 @@ class TimeOffset(object):
                         cls.animCurves(increment, node,
                                        timerange=timerange,
                                        ripple=ripple)
-                        log.debug('animData randon/flock modified offset : %f on node: %s' % (increment, nodeNameStrip(node)))
+                        if logging_is_debug():
+                            log.debug('animData randon/flock modified offset : %f on node: %s' % (increment, nodeNameStrip(node)))
                 else:
                     cls.animCurves(offset, nodes=filtered,
                                    timerange=timerange,
@@ -2453,8 +2529,8 @@ class TimeOffset(object):
 
         :param offset: amount to offset the curves
         :param nodes: nodes to offset if given
-        :param timerange: if timerange given [start,end] then we cut the keys in that 
-            range before shifting associated keys. Now we could just use the 
+        :param timerange: if timerange given [start,end] then we cut the keys in that
+            range before shifting associated keys. Now we could just use the
             keyframe(option='insert') BUT this has a MAJOR crash bug!
         :param ripple: manage the upper range of keys and ripple them with the offset
         '''
@@ -2493,8 +2569,9 @@ class TimeOffset(object):
                         cmds.keyframe(curve, edit=True, r=True, timeChange=offset)
                     log.debug('offsetting: %s' % curve)
                     moved += 1
-                except:
+                except StandardError, err:
                     log.info('Failed to offset curves fully : %s' % curve)
+                    log.debug(err)
             log.info('%i : AnimCurves were offset' % moved)
 
     @staticmethod
@@ -2517,7 +2594,7 @@ class TimeOffset(object):
         :param mode: either process entire scene or selected
         :param audioNodes: optional, given nodes to process
         :param timerange: optional timerange to process (outer bounds only)
-        :param ripple: when shifting nodes ripple the offset to sounds after the range, 
+        :param ripple: when shifting nodes ripple the offset to sounds after the range,
             if ripple=False we only shift audio that starts in tghe bounds of the timerange
         '''
         if mode == 'Scene':
@@ -2551,7 +2628,7 @@ class TimeOffset(object):
         :param mode: either process entire scene or selected
         :param clips: optional, given clips to offset
         :param timerange: optional timerange to process (outer bounds only)
-        :param ripple: when shifting nodes ripple the offset to clips after the range, 
+        :param ripple: when shifting nodes ripple the offset to clips after the range,
             if ripple=False we only shift clips that starts in tghe bounds of the timerange
         '''
         if mode == 'Scene':
@@ -2590,6 +2667,7 @@ class TimeOffset(object):
         :param ripple: when shifting nodes ripple the offset to clips after the range,
             if ripple=False we only shift clips that starts in tghe bounds of the timerange
         '''
+        nodesoffset = []
         if not mNodes:
             mNodes = r9Meta.getMetaNodes()
         if mNodes:
@@ -2597,7 +2675,13 @@ class TimeOffset(object):
             for mNode in mNodes:
                 if 'timeOffset' in dir(mNode) and callable(getattr(mNode, 'timeOffset')):
                     mNode.timeOffset(offset, timerange=timerange, ripple=ripple)
-            log.info('%i : MetaData were offset' % len(mNodes))
+                    nodesoffset.append(mNode)
+            if nodesoffset:
+                log.info('================================')
+                log.info('timeOffset generic mClass called')
+                log.info('================================')
+            for i, node in enumerate(nodesoffset):
+                log.info('%i : MetaData %s.timeOffset : called %s ' % (i, node.__class__.__name__, node))
 
 # -------------------------------------------------------------------------------------
 # Math functions ----
@@ -2619,17 +2703,22 @@ def floatIsEqual(a, b, tolerance=0.01, allowGimbal=True):
         if allowGimbal:
             mod = abs(a - b) % 180.0
             if mod < tolerance:
-                log.debug('compare passed with gimbal : %f == %f : diff = %f' % (a, b, mod))
+                if logging_is_debug():
+                    log.debug('compare passed with gimbal : %f == %f : diff = %f' % (a, b, mod))
                 return True
             elif abs(180.0 - mod) < tolerance:
-                log.debug('compare passed with gimbal 180 : %f == %f : diff = %f' % (a, b, abs(180 - mod)))
+                if logging_is_debug():
+                    log.debug('compare passed with gimbal 180 : %f == %f : diff = %f' % (a, b, abs(180 - mod)))
                 return True
             elif abs(90.0 - mod) < tolerance:
-                log.debug('compare passed with gimbal 90 : %f == %f diff = %f' % (a, b, abs(90.0 - mod)))
+                if logging_is_debug():
+                    log.debug('compare passed with gimbal 90 : %f == %f diff = %f' % (a, b, abs(90.0 - mod)))
                 return True
-            log.debug('compare with gimbal failed against mod 180: best diff :%f' % (abs(180.0 - mod)))
-            log.debug('compare with gimbal failed against mod 90: best diff :%f' % (abs(90.0 - mod)))
-    log.debug('float is out of tolerance : %f - %f == %f' % (a, b, abs(a - b)))
+            if logging_is_debug():
+                log.debug('compare with gimbal failed against mod 180: best diff :%f' % (abs(180.0 - mod)))
+                log.debug('compare with gimbal failed against mod 90: best diff :%f' % (abs(90.0 - mod)))
+    if logging_is_debug():
+        log.debug('float is out of tolerance : %f - %f == %f' % (a, b, abs(a - b)))
     return False
 
 def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):

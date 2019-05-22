@@ -175,7 +175,7 @@ def orientByPlane(joints = None, axisAim = 'z+', axisUp = 'y+',
 @cgmGEN.Timer
 def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
                 worldUpAxis = [0,1,0], relativeOrient = True,
-                progressBar = None,
+                progressBar = None,axisBackup = 'x+',
                 baseName = None, asMeta = True):
                 
     """
@@ -187,141 +187,200 @@ def orientChain(joints = None, axisAim = 'z+', axisUp = 'y+',
     :returns
         created(list)
     """    
-    _str_func = 'orientChain'
-    if baseName:raise NotImplementedError,"Remove these calls"
-    
-    def orientJoint(mJnt):
-        if mJnt not in ml_cull:
-            log.debug("|{0}| >> Aready done: {1}".format(_str_func,mJnt.mNode))                     
-            return 
+    try:
+        _str_func = 'orientChain'
+        if baseName:raise NotImplementedError,"Remove these calls"
         
-        log.debug("|{0}| >> Orienting: {1}".format(_str_func,mJnt.mNode))
-        mParent = _d_parents[mJnt]
-        if mParent and mParent in ml_cull:
-            return
-            log.debug("|{0}| >> Orienting parent: {1}".format(_str_func,mParent.mNode))         
-            orientJoint(mParent)
-            
-        if mJnt in ml_world:
-            log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode))
+        def orientJoint(mJnt):
             try:
-                axisWorldOrient = SHARED._d_axisToJointOrient[str_aim][str_up]
-            except Exception,err:
-                log.error("{0}>> World axis query. {1} | {2}".format(_str_func, str_aim, str_up))
-                raise Exception,err
-            
-            log.debug("|{0}| >> World joint: {1} | {2}".format(_str_func,mJnt.mNode, axisWorldOrient))
-            mJnt.rotate = 0,0,0
-            mJnt.jointOrient = axisWorldOrient[0],axisWorldOrient[1],axisWorldOrient[2]
-            
-        elif mJnt not in ml_ends:
-            log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
-            mDup = mJnt.doDuplicate(parentOnly = True)
-            mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
-            
-            if relativeOrient and mParent:
-                _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)            
-            else:
-                _axisWorldUp = worldUpAxis
-    
-            SNAP.aim(mDup.mNode,_d_children[mJnt][0].mNode,
-                     mAxis_aim.p_vector,mAxis_up.p_vector,
-                     'vector',_axisWorldUp)
-            
-            mJnt.rotate = 0,0,0
-            mJnt.jointOrient = mDup.rotate
-            mDup.delete()
-            
-        if mJnt in ml_cull:ml_cull.remove(mJnt)
-        return
-    
-    def reparent(progressBar):
-        log.debug("|{0}| >> reparent...".format(_str_func))
-        
-        #progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
-        
-        #log.info("|{0}| >> reparent progressBar:{1}".format(_str_func,format(progressBar)))
-        for mJnt in ml_joints:
-            #log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
-            #cgmUI.progressBar_iter(progressBar,status='Reparenting: {0}'.format(mJnt.mNode))
-            
-            mJnt.parent = _d_parents[mJnt]
-            
-            for mChild in _d_children[mJnt]:
-                #if mChild not in ml_joints:
-                    #log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
-                mChild.parent = mJnt
-            
-            if mJnt in ml_ends and mJnt not in ml_world:
-                log.debug("|{0}| >> End joint. No world: {1}".format(_str_func,mJnt))                                             
-                mJnt.jointOrient = 0,0,0                
-                        
-    ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
-    ml_joints = LISTS.get_noDuplicates(ml_joints)
-    
-    mAxis_aim = VALID.simpleAxis(axisAim)
-    mAxis_up = VALID.simpleAxis(axisUp)
-    _axisWorldUp = worldUpAxis
-    str_aim = mAxis_aim.p_string
-    str_up = mAxis_up.p_string
-    
-    if str_aim == str_up:
-        raise ValueError,"axisAim and axisUp cannot be the same"
-    
-    _len = len(ml_joints)
-    _d_parents = {}
-    _d_children = {}
-    ml_roots = []
-    ml_ends = []
-    ml_world =[]
-    ml_done = []
-    ml_cull = copy.copy(ml_joints)
-    
-    #First loop is logic check ---------------------------------------------------------
-    for mJnt in ml_joints:
-        _d_parents[mJnt] = mJnt.getParent(asMeta=True)
-        _d_children[mJnt] = mJnt.getChildren(asMeta=True)
-        if not _d_parents[mJnt]:
-            log.debug("|{0}| >> Root joint: {1}".format(_str_func,mJnt.mNode)) 
-            ml_roots.append(mJnt)
-            
-        if not _d_children[mJnt]:
-            log.debug("|{0}| >> End joint: {1}".format(_str_func,mJnt.mNode)) 
-            ml_ends.append(mJnt)
-            if not _d_parents[mJnt]:
-                log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode)) 
-                ml_world.append(mJnt)
-
+                if mJnt not in ml_cull:
+                    log.debug("|{0}| >> Aready done: {1}".format(_str_func,mJnt.mNode))                     
+                    return 
                 
-    for mJnt in ml_joints:
-        mJnt.parent = False
-        for mChild in _d_children[mJnt]:
-            if mChild not in ml_joints:
-                mChild.parent = False            
+                log.debug("|{0}| >> Orienting: {1}".format(_str_func,mJnt.mNode))
+                mParent = _d_parents[mJnt]
+                if mParent and mParent in ml_cull:
+                    return
+                    log.debug("|{0}| >> Orienting parent: {1}".format(_str_func,mParent.mNode))         
+                    orientJoint(mParent)
+                    
+                if mJnt in ml_world:
+                    log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode))
+                    try:
+                        axisWorldOrient = SHARED._d_axisToJointOrient[str_aim][str_up]
+                    except Exception,err:
+                        log.error("{0}>> World axis query. {1} | {2}".format(_str_func, str_aim, str_up))
+                        raise Exception,err
+                    
+                    log.debug("|{0}| >> World joint: {1} | {2}".format(_str_func,mJnt.mNode, axisWorldOrient))
+                    mJnt.rotate = 0,0,0
+                    mJnt.jointOrient = axisWorldOrient[0],axisWorldOrient[1],axisWorldOrient[2]
+                    
+                elif mJnt not in ml_ends:
+                    log.debug("|{0}| >> Reg joint: {1}".format(_str_func,mJnt.mNode))            
+                    mDup = mJnt.doDuplicate(parentOnly = True)
+                    mc.makeIdentity(mDup.mNode, apply = 1, jo = 1)#Freeze
+                    b_rotFix = False
+                    
+                    if relativeOrient and mParent:
+                        p_child = _d_children[mJnt][0].p_position
+                        p_me = mJnt.p_position
+                        p_parent = mParent.p_position                                    
+                        
+                        _axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisUp)
+                        _vecToChild = MATH.get_vector_of_two_points(p_child, p_me)
+                        _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)
+                        _vecFromParent = MATH.get_vector_of_two_points(p_parent, p_me)
+                        
+                        _angleVec = MATH.angleBetweenVectors(_axisWorldUp,_vecToChild)
+                        #_angle = MATH.angleBetweenVectors(_vecFromParent,_vecToChild)
+                        _angle = MATH.angleBetween(p_child,p_me,p_parent)
+                        #except:_angle = 0
+                        _cross = MATH.dotproduct(_vecToChild,_vecToParent)
+                        
+                        #pprint.pprint(vars())
+                        
+                        log.debug(cgmGEN.logString_msg(_str_func,"{0} | vec: {1} | angle: {2} | cross: {3}".format(mJnt.mNode,_angleVec,_angle,_cross)))
+                        
+                        if _angle > 70:
+                            log.warning(cgmGEN.logString_msg(_str_func,"{0} | dangerous angles vec: {1} | angle: {2} ".format(mJnt.mNode,_angleVec,_angle)))
+                            #log.info(cgmGEN.logString_msg(_str_func,"dangerous cross: {0} ".format(_cross)))
+                            
+                            #_axisWorldUp = MATH.get_obj_vector(mParent.mNode, axisBackup)
+                            
+                            if _cross < 0:
+                                _axisWorldUp = [-1*v for v in _vecToParent]
+                            else:
+                                pass
+                                #_axisWorldUp = _vecToParent
+                                #_axisWorldUp = _lastVecUp
+                            #v = MATH.transform_direction(
             
-    #pprint.pprint(vars())
-    _go = True
-    _cnt = 0
-    while ml_cull and _go and _cnt <= _len+1:
-        _cnt+=1
-        #progressBar = cgmUI.progressBar_start(progressBar,stepMaxValue=_len)        
-        for mJnt in ml_cull:
-            try:            
-                #cgmUI.progressBar_iter(progressBar,status='Orienting: {0}'.format(mJnt.mNode))
-                orientJoint(mJnt)
+                            b_rotFix = True
+                            """
+                            if _angleVec < 1.0:
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToChild)
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                                log.warning(cgmGEN.logString_msg(_str_func,"To child | postfix: {0} ".format(_axisWorldUp)))
+                                
+                            else:
+                                _vecToParent = MATH.get_vector_of_two_points(p_me, p_parent)                        
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,_vecToParent)
+                                _axisWorldUp = MATH.averageVectors(_axisWorldUp,worldUpAxis)#.average in the world value
+                                log.warning(cgmGEN.logString_msg(_str_func,"To parent | postfix: {0} ".format(_axisWorldUp)))"""
+                    else:
+                        _axisWorldUp = worldUpAxis
+                        
+                    mDup.rotateOrder = 0
+                    SNAP.aim(mDup.mNode,_d_children[mJnt][0].mNode,
+                             mAxis_aim.p_vector,mAxis_up.p_vector,
+                             'vector',_axisWorldUp)
+                    
+                    if b_rotFix:
+                        pass
+                        """
+                        a = 'r{0}'.format(axisAim[0])
+                        v = ATTR.get(mDup.mNode,a)                
+                        log.warning(cgmGEN.logString_msg(_str_func,"{0} | rotFix | a: {1} | v: {2}".format(mJnt.mNode,a,v)))
+            
+                        ATTR.set(mDup.mNode,a,90)"""
+                        
+                    mJnt.rotate = 0,0,0
+                    mJnt.jointOrient = mDup.p_orient
+                    mDup.delete()
+                    
+                if mJnt in ml_cull:ml_cull.remove(mJnt)
+                return
             except Exception,err:
-                log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
-                _go = False
-                #cgmUI.progressBar_end(progressBar)
-                reparent()                
-                return False
+                cgmGEN.cgmException(Exception,err)
+                
+        def reparent(progressBar=None):
+            log.debug("|{0}| >> reparent...".format(_str_func))
             
-    reparent(progressBar)
-    #try:cgmUI.progressBar_end(progressBar)
-    #except:pass
-    #pprint.pprint(vars())
-    return
- 
+            #progressBar = cgmUI.progressBar_start(progressBar, stepMaxValue=_len)
+            
+            #log.info("|{0}| >> reparent progressBar:{1}".format(_str_func,format(progressBar)))
+            for mJnt in ml_joints:
+                #log.debug("|{0}| >> reparenting: {1} | {2}".format(_str_func,mJnt.mNode, _d_parents[mJnt]))         
+                #cgmUI.progressBar_iter(progressBar,status='Reparenting: {0}'.format(mJnt.mNode))
+                
+                mJnt.parent = _d_parents[mJnt]
+                
+                for mChild in _d_children[mJnt]:
+                    #if mChild not in ml_joints:
+                        #log.debug("|{0}| >> reparenting child: {1}".format(_str_func,mChild.mNode))                             
+                    mChild.parent = mJnt
+                
+                if mJnt in ml_ends and mJnt not in ml_world:
+                    log.debug("|{0}| >> End joint. No world: {1}".format(_str_func,mJnt))                                             
+                    mJnt.jointOrient = 0,0,0                
+                            
+        ml_joints = cgmMeta.validateObjListArg(joints,mayaType=['joint'],noneValid=False)
+        ml_joints = LISTS.get_noDuplicates(ml_joints)
+        
+        mAxis_aim = VALID.simpleAxis(axisAim)
+        mAxis_up = VALID.simpleAxis(axisUp)
+        _axisWorldUp = worldUpAxis
+        str_aim = mAxis_aim.p_string
+        str_up = mAxis_up.p_string
+        
+        if str_aim == str_up:
+            raise ValueError,"axisAim and axisUp cannot be the same"
+        
+        _len = len(ml_joints)
+        _d_parents = {}
+        _d_children = {}
+        ml_roots = []
+        ml_ends = []
+        ml_world =[]
+        ml_done = []
+        ml_cull = copy.copy(ml_joints)
+        
+        #First loop is logic check ---------------------------------------------------------
+        for mJnt in ml_joints:
+            _d_parents[mJnt] = mJnt.getParent(asMeta=True)
+            _d_children[mJnt] = mJnt.getChildren(asMeta=True)
+            if not _d_parents[mJnt]:
+                log.debug("|{0}| >> Root joint: {1}".format(_str_func,mJnt.mNode)) 
+                ml_roots.append(mJnt)
+                
+            if not _d_children[mJnt]:
+                log.debug("|{0}| >> End joint: {1}".format(_str_func,mJnt.mNode)) 
+                ml_ends.append(mJnt)
+                if not _d_parents[mJnt]:
+                    log.debug("|{0}| >> World joint: {1}".format(_str_func,mJnt.mNode)) 
+                    ml_world.append(mJnt)
+        
+                    
+        for mJnt in ml_joints:
+            mJnt.parent = False
+            for mChild in _d_children[mJnt]:
+                if mChild not in ml_joints:
+                    mChild.parent = False            
+                
+        #pprint.pprint(vars())
+        _go = True
+        _cnt = 0
+        while ml_cull and _go and _cnt <= _len+1:
+            _cnt+=1
+            #progressBar = cgmUI.progressBar_start(progressBar,stepMaxValue=_len)        
+            for mJnt in ml_cull:
+                try:            
+                    #cgmUI.progressBar_iter(progressBar,status='Orienting: {0}'.format(mJnt.mNode))
+                    orientJoint(mJnt)
+                except Exception,err:
+                    log.error("{0}>> Error fail. Last joint: {1} | {2}".format(_str_func, mJnt.mNode, err))
+                    _go = False
+                    #cgmUI.progressBar_end(progressBar)
+                    reparent()                
+                    #return False
+                    cgmGEN.cgmException(Exception,err)
+                
+        reparent(progressBar)
+        return
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
             
 def freezeOrientation(targetJoints):
     """

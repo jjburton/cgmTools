@@ -8,6 +8,7 @@ Website : http://www.cgmonastery.com
 ================================================================
 """
 __version__ = '0.1.01022019'
+__MAYALOCAL = 'LIGHTLOOMLITE'
 
 
 # From Python =============================================================
@@ -38,9 +39,47 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
-reload(ATTR)
-
-d_profiles = {'modeling1':{'back': {'dag': {'orient': [-144.58960250011384,
+d_profiles = {'modeling2':{'back_right': {'dag': {'orient': [149.8269192017149,
+                                                            -34.31589051142867,
+                                                            86.96559860743753],
+                                                 'position': [37.86773955420067,
+                                                              12.584391673753146,
+                                                              -19.662372050992847]},
+                                         'settings': {'color': (0.0, 0.4120999872684479, 1.0),
+                                                      'intensity': 1.2048193216323853},
+                                         'type': 'directionalLight'},
+                          'back': {'dag': {'orient': [-139.1551534832984,
+                                                               7.0685525095093835,
+                                                               -17.677475166287874],
+                                                    'position': [5.338372934864596,
+                                                                 22.25696525807767,
+                                                                 -9.807179298371963]},
+                                            'settings': {'color': (1.0,
+                                                                   0.8830000162124634,
+                                                                   0.5550000071525574),
+                                                         'intensity': 0.2409638613462448},
+                                            'type': 'directionalLight'},
+                          'back_left': {'dag': {'orient': [-137.80030891127288,
+                                                                    5.401106924411733,
+                                                                    70.28216954100812],
+                                                         'position': [-28.801250988640763,
+                                                                      24.538696474173694,
+                                                                      -15.921167096897996]},
+                                                 'settings': {'color': (1.2760000228881836,
+                                                                        0.18950000405311584,
+                                                                        0.0),
+                                                              'intensity': 1.5060241222381592},
+                                                 'type': 'directionalLight'},
+                          'key': {'dag': {'orient': [-39.599421538287224,
+                                                              -33.48346679103192,
+                                                              -81.37923606699864],
+                                                   'position': [12.065361460355659,
+                                                                14.328787931728947,
+                                                                40.498967064890024]},
+                                           'settings': {'color': (1.0, 0.7455999851226807, 0.5),
+                                                        'intensity': 0.03999999910593033},
+                                           'type': 'directionalLight'}},
+              'modeling1':{'back': {'dag': {'orient': [-144.58960250011384,
                                                       2.2004948103566293,
                                                       -5.614774127338882],
                                            'position': [1.2204236414501435,
@@ -311,6 +350,8 @@ def uiMenu(parent):
     _keys = d_profiles.keys()
     _keys.sort()
     
+    mUI.MelMenuItemDiv(_uiRoot,label='Setup')
+    
     _uiToPersp = mc.menuItem(parent = _uiRoot,subMenu=True,
                              l='toPersp',
                              )
@@ -335,7 +376,11 @@ def uiMenu(parent):
                     ann = "Setup {0} to world".format(k),
                     c=cgmGEN.Callback(factory, **{'profile':k,'constrainTo':None}))
         
-    mUI.MelMenuItemDiv(_uiRoot)
+    mUI.MelMenuItemDiv(_uiRoot,label='Utilities')
+    mc.menuItem(parent = _uiRoot,
+                l='Get Light Dict',
+                ann = "Get light dict of selected lights",
+                c=cgmGEN.Callback(get_lightDict))    
     mc.menuItem(parent = _uiRoot,
                 l='Clean cgmLights',
                 ann = "Remove cgmLights from scene",
@@ -346,6 +391,7 @@ def get_lightDict(lights=None):
     if lights is None:
         lights = mc.ls(sl=1)
         if not lights:
+            log.warning("No lights found")
             return False
         
     _res = {}

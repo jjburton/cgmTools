@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'SEARCH'
+
 # From Python =============================================================
 import copy
 import re

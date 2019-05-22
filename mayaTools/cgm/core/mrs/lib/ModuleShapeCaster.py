@@ -96,7 +96,7 @@ class go(object):
         _str_funcName = "go.__init__(%s)"%self._strShortName
         log.info(">>> %s >>> "%(_str_funcName) + "="*75)
 
-        assert moduleInstance.isTemplated(),"Module is not templated: '%s'"%moduleInstance.getShortName()        	
+        assert moduleInstance.isTemplated(),"Module is not formed: '%s'"%moduleInstance.getShortName()        	
         self._mi_module = moduleInstance# Link for shortness	
 
         #>>> Gather info
@@ -106,7 +106,7 @@ class go(object):
             self.l_moduleColors = self._mi_module.getModuleColors()
             self._mi_puppet = self._mi_module.modulePuppet
             self.l_coreNames = self._mi_module.coreNames.value
-            self._mi_templateNull = self._mi_module.templateNull#speed link
+            self._mi_formNull = self._mi_module.formNull#speed link
             self._mi_rigNull = self._mi_module.rigNull#speed link
             self._targetMesh = self._mi_puppet.getUnifiedGeo()
             if not self._targetMesh:
@@ -116,7 +116,7 @@ class go(object):
                 else:
                     raise ValueError,"Need a mesh"
             self._ml_targetObjects = cgmMeta.validateObjListArg(targetObjects, cgmMeta.cgmObject,noneValid=True)
-            self._ml_controlObjects = self._mi_templateNull.msgList_get('controlObjects')
+            self._ml_controlObjects = self._mi_formNull.msgList_get('controlObjects')
             log.info('initial...done')
             #>>> part name 
             self.str_partName = self._mi_module.getPartNameBase()
@@ -260,7 +260,7 @@ class go(object):
 
     def _returnBaseThickness(self):
         #We're going to cast from the middle of our limb segment to reduce the chance of firing to nowhere
-        #Start by casting along template up and out
+        #Start by casting along form up and out
         _str_funcName = "go._returnBaseThickness(%s)"%self._strShortName
         log.info(">>> %s ..."%(_str_funcName) + "="*75)
         log.info("%s >> self.l_controlSnapObjects = %s"%(_str_funcName,self.l_controlSnapObjects))
@@ -514,7 +514,7 @@ class go(object):
         time_func = time.clock() 	
         
         multiplier = 1.1
-        #tmplRoot = self._mi_templateNull.root.mNode
+        #tmplRoot = self._mi_formNull.root.mNode
         tmplRoot = self._ml_controlObjects[0]
         #mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
         #mi_loc.doGroup()#group to zero
@@ -599,7 +599,7 @@ class go(object):
         if not d_return.get('hit'):
             log.info(d_return)
             log.info(self._targetMesh)
-            raise Exception,"build_hips>>failed to get hit. Master template object probably isn't in mesh"
+            raise Exception,"build_hips>>failed to get hit. Master form object probably isn't in mesh"
         dist = distance.returnDistanceBetweenPoints(mi_loc.getPosition(),d_return['hit'])
         mi_loc.tz = -dist *.2	
 
@@ -1201,7 +1201,7 @@ class go(object):
         
         #Build our top ==============================================================================
         multiplier = 1.1
-        #tmplRoot = self._mi_templateNull.root.mNode
+        #tmplRoot = self._mi_formNull.root.mNode
         tmplRoot = self._ml_controlObjects[-2]
         mi_loc = tmplRoot.doLoc(fastMode = True)#make loc for sizing
         mi_loc.doGroup()#group to zero
@@ -1479,7 +1479,7 @@ class go(object):
             if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 
             ml_controlSnapObjects = []
-            for mi_obj in mi_footModule.templateNull.msgList_get('controlObjects'):
+            for mi_obj in mi_footModule.formNull.msgList_get('controlObjects'):
                 ml_controlSnapObjects.append(mi_obj.helper)  
             log.debug("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
             if ml_controlSnapObjects[1].cgmName != 'ball':
@@ -1521,7 +1521,7 @@ class go(object):
             mi_ballPivot = mi_ballLoc.doLoc(fastMode = True)
             mi_ballPivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_ballPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
-            mi_ballPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
+            mi_ballPivot.addAttr('cgmTypeModifier','formPivot',lock=True)
             mi_ballPivot.doName()
             self.d_returnPivots['ball'] = mi_ballPivot.mNode 		
             self.md_returnPivots['ball'] = mi_ballPivot	
@@ -1534,7 +1534,7 @@ class go(object):
             mi_toePivot.__setattr__('r%s'%self.str_jointOrientation[2],0)
             mi_toePivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
             mi_toePivot.addAttr('cgmName','toe',lock=True)	
-            mi_toePivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
+            mi_toePivot.addAttr('cgmTypeModifier','formPivot',lock=True)
             mi_toePivot.doName()	
             #mc.rotate (objRot[0], objRot[1], objRot[2], str_pivotToe, ws=True)	
             self.d_returnPivots['toe'] = mi_toePivot.mNode 		
@@ -1560,7 +1560,7 @@ class go(object):
             mi_innerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
             mi_innerPivot.addAttr('cgmName','ball',lock=True)	
             mi_innerPivot.addAttr('cgmDirectionModifier','inner',lock=True)		    
-            mi_innerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
+            mi_innerPivot.addAttr('cgmTypeModifier','formPivot',lock=True)
             mi_innerPivot.doName()		
             self.d_returnPivots['inner'] = mi_innerPivot.mNode 		
             self.md_returnPivots['inner'] = mi_innerPivot	
@@ -1574,7 +1574,7 @@ class go(object):
             mi_outerPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
             mi_outerPivot.addAttr('cgmName','ball',lock=True)	
             mi_outerPivot.addAttr('cgmDirectionModifier','outer',lock=True)		    	    
-            mi_outerPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
+            mi_outerPivot.addAttr('cgmTypeModifier','formPivot',lock=True)
             mi_outerPivot.doName()	
             self.d_returnPivots['outer'] = mi_outerPivot.mNode 		
             self.md_returnPivots['outer'] = mi_outerPivot	
@@ -1593,7 +1593,7 @@ class go(object):
             mc.move (d_return['hit'][0],d_return['hit'][1],d_return['hit'][2], mi_heelPivot.mNode)
             mi_heelPivot.__setattr__('t%s'%self.str_jointOrientation[1],0)
             mi_heelPivot.addAttr('cgmName','heel',lock=True)	
-            mi_heelPivot.addAttr('cgmTypeModifier','templatePivot',lock=True)
+            mi_heelPivot.addAttr('cgmTypeModifier','formPivot',lock=True)
             mi_heelPivot.doName()		
             self.d_returnPivots['heel'] = mi_heelPivot.mNode 		
             self.md_returnPivots['heel'] = mi_heelPivot		
@@ -1604,15 +1604,15 @@ class go(object):
             raise Exception,"heel pivot fail << {0} >>".format(err)
         
         #Store em all
-        self._mi_templateNull.connectChildNode(mi_toePivot,'pivot_toe','module')
-        self._mi_templateNull.connectChildNode(mi_heelPivot,'pivot_heel','module')
-        self._mi_templateNull.connectChildNode(mi_ballPivot,'pivot_ball','module')
-        self._mi_templateNull.connectChildNode(mi_innerPivot,'pivot_inner','module')
-        self._mi_templateNull.connectChildNode(mi_outerPivot,'pivot_outer','module')
+        self._mi_formNull.connectChildNode(mi_toePivot,'pivot_toe','module')
+        self._mi_formNull.connectChildNode(mi_heelPivot,'pivot_heel','module')
+        self._mi_formNull.connectChildNode(mi_ballPivot,'pivot_ball','module')
+        self._mi_formNull.connectChildNode(mi_innerPivot,'pivot_inner','module')
+        self._mi_formNull.connectChildNode(mi_outerPivot,'pivot_outer','module')
 
         #Parent
         for p in mi_toePivot,mi_heelPivot,mi_ballPivot,mi_innerPivot,mi_outerPivot:
-            p.parent = self._mi_templateNull.mNode	
+            p.parent = self._mi_formNull.mNode	
         log.info("%s >> Complete Time >> %0.3f seconds " % (_str_funcName,(time.clock()-time_func)) + "-"*75)         
 
     #@cgmGeneral.Timer
@@ -1646,7 +1646,7 @@ class go(object):
             if mi_footModule in ml_children:log.debug("found match modules: %s"%mi_footModule)
 
             ml_controlSnapObjects = []
-            for mi_obj in mi_footModule.templateNull.msgList_get('controlObjects'):
+            for mi_obj in mi_footModule.formNull.msgList_get('controlObjects'):
                 ml_controlSnapObjects.append(mi_obj.helper)  
             log.debug("helperObjects: %s"%[i_obj.getShortName() for i_obj in ml_controlSnapObjects])
             if ml_controlSnapObjects[1].cgmName != 'ball':

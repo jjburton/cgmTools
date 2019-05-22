@@ -14,6 +14,7 @@ Key:
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -35,54 +36,57 @@ reload(cgmValid)
 
 #>>> Utilities
 #===================================================================
-d_functionStringSwaps = {'.':'_attr_', ' ':'',',':'_',
+d_functionStringSwaps = {'.':'_attr_', ' ':'_',',':'_',
                          '+':'_add_','-':'_minus_','><':'_avg_',#pma                                                 
                          '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
                          '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md
 
 def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?><., """, noNumberStart = True,
                       functionSwap = True, replaceChar = '', cleanDoubles = True, stripTailing=True):
-	"""
-	Modified from Hamish MacKenzie's zoo one
-	
-	:parameters:
-        arg(str) - String to clean
-        invalidChars(str) - Sequence of characters to remove
-		noNumberStart(bool) - remove numbers at start
-		functionSwap(bool) - whether to replace functions with string from dict
-		replaceChar(str) - Character to use to replace with
-		cleanDoubles(bool) - remove doubles
-		stripTrailing(bool) - remove trailing '_'
+    """
+    Modified from Hamish MacKenzie's zoo one
 
-	returns l_pos
-	"""
-	_str_funcName = 'stripInvalidChars'
-	try:
-		str_Clean = cgmValid.stringArg(arg,False,_str_funcName)
-		
-		for char in invalidChars:
-			if functionSwap and char in d_functionStringSwaps.keys():
-				str_Clean = str_Clean.replace( char, d_functionStringSwaps.get(char) )
-			else:
-				str_Clean = str_Clean.replace( char, replaceChar )
-		
-		if noNumberStart:
-			for n in range(10):		
-				while str_Clean.startswith( str(n) ):
-					log.debug("Cleaning : %s"%str(n))
-					str_Clean = str_Clean[ 1: ]	
-		if cleanDoubles and replaceChar:
-			doubleChar = replaceChar + replaceChar
-			while doubleChar in cleanStr:
-				str_Clean = str_Clean.replace( doubleChar, replaceChar )
-				
-		if stripTailing:
-			while str_Clean.endswith( '_' ):
-				str_Clean = str_Clean[ :-1 ]
-		return str_Clean		
-	except StandardError,error:
-		raise StandardError,"%s >>> error : %s"%(_str_funcName,error)	
-	
+    :parameters:
+    arg(str) - String to clean
+    invalidChars(str) - Sequence of characters to remove
+    	noNumberStart(bool) - remove numbers at start
+    	functionSwap(bool) - whether to replace functions with string from dict
+    	replaceChar(str) - Character to use to replace with
+    	cleanDoubles(bool) - remove doubles
+    	stripTrailing(bool) - remove trailing '_'
+
+    returns l_pos
+    """
+    _str_funcName = 'stripInvalidChars'
+    try:
+        str_Clean = cgmValid.stringArg(arg,False,_str_funcName)
+
+        for char in invalidChars:
+            if functionSwap and char in d_functionStringSwaps.keys():
+                str_Clean = str_Clean.replace( char, d_functionStringSwaps.get(char) )
+            else:
+                str_Clean = str_Clean.replace( char, replaceChar )
+
+        if noNumberStart:
+            for n in range(10):		
+                while str_Clean.startswith( str(n) ):
+                    log.debug("Cleaning : %s"%str(n))
+                    str_Clean = str_Clean[ 1: ]	
+        if cleanDoubles and replaceChar:
+            doubleChar = replaceChar + replaceChar
+            while doubleChar in str_Clean:
+                str_Clean = str_Clean.replace( doubleChar, replaceChar )
+
+        if stripTailing:
+            while str_Clean.endswith( '_' ):
+                str_Clean = str_Clean[ :-1 ]
+        return str_Clean		
+    except Exception,err:
+        cgmGeneral.cgmException(Exception,err)
+
+
+
+
 """
 				l_buffer = []
 				for k in d_functionStringSwaps.keys():

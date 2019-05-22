@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'CURVES'
+
 # From Python =============================================================
 import copy
 import re
@@ -27,7 +29,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import search_utils as SEARCH
-from cgm.core.lib import rigging_utils as RIGGING
+from cgm.core.lib import rigging_utils as CORERIG
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.lib import shape_utils as SHAPES
 from cgm.core.lib import name_utils as NAMES
@@ -255,9 +257,9 @@ def get_curve_shape_info(curve):
             log.debug("|{0}| >> shape: {1}".format(_str_func,shape))                            
             if cgmValid.get_mayaType(shape) == 'nurbsCurve':
                 #transform = mc.group(em=True)
-                #RIGGING.shapeParent_in_place(transform, shape)
+                #CORERIG.shapeParent_in_place(transform, shape)
                 #tmpShapeNode = mc.listRelatives (transform, shapes=True, fullPath=True)
-                _bfr = RIGGING.duplicate_shape(shape)
+                _bfr = CORERIG.duplicate_shape(shape)
                 log.debug(_bfr)
                 _d[shape] = (get_shape_info(_bfr[1]))
                 mc.delete(_bfr[0])
@@ -306,6 +308,7 @@ _d_shapeLibrary = {'circle':['circleX','circleY','circleZ','circle'],
                            'loftSquircle','loftSquircleUp','loftSquircleDown','loftSquirclePos','loftSquircleNeg',
                            'loftSquareUp','loftSquareDown','loftSquarePos','loftSquareNeg',
                            'loftSquircleDiamond',
+                           'loftCircleHalfUp','loftCircleHalfDown','loftCircleHalfPos','loftCircleHalfNeg',
                            'loftTriDown','loftTriUp','loftTriPos','loftTriNeg',],
                    'generic':['gear','masterAnim','hinge'],
                    'locator':['locator','pivotLocator','locatorForm','arrowsLocator','arrowsPointCenter','arrowForm',
@@ -315,7 +318,7 @@ _d_shapeLibrary = {'circle':['circleX','circleY','circleZ','circle'],
                                   'circleArrow1Interior','circleArrow2Axis']                 
                    }
 
-def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = True):
+def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = True, bakeScale = False, baseSize = None):
     """ 
     Get curve from a predefined set
 
@@ -734,12 +737,12 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
         _l_x.append(mc.curve( d = 2,p = [[0.4745148022916399, -0.05041503906249991, 2.089853379699031e-16], [0.4929338561110843, -0.02421061197916657, 2.1807026158642353e-16], [0.5113529099305287, 0.0019938151041667637, 2.27155185202944e-16], [0.49431053796872326, 0.02620442708333342, 2.2042319678674728e-16], [0.4772681660069177, 0.05041503906250008, 2.1369120837055054e-16], [0.4879493183506677, 0.05041503906250008, 2.1843459287517462e-16], [0.4986304706944177, 0.05041503906250008, 2.2317797737979873e-16], [0.5063683721701121, 0.03859456380208343, 2.262059627448006e-16], [0.5141062736458066, 0.02677408854166677, 2.2923394810980255e-16], [0.5184736781596955, 0.020033094618055657, 2.309406006202838e-16], [0.5211320982985844, 0.015475802951388996, 2.3196374665666326e-16], [0.5253096156596954, 0.021742078993055667, 2.3403540282669914e-16], [0.5288225279860843, 0.026584201388888996, 2.357627183024562e-16], [0.5373199780728899, 0.038499620225694545, 2.399479571691193e-16], [0.5458174281596955, 0.050415039062500104, 2.4413319603578246e-16], [0.556023862621501, 0.050415039062500104, 2.486657634513121e-16], [0.5662302970833065, 0.050415039062500104, 2.531983308668418e-16], [0.5488081508159455, 0.026679144965277894, 2.4464139753796705e-16], [0.5313860045485843, 0.002943250868055666, 2.3608446420909226e-16], [0.5501373608853899, -0.023735894097222106, 2.434901197454814e-16], [0.5688887172221955, -0.05041503906249989, 2.508957752818705e-16], [0.5583974520312233, -0.05041503906249989, 2.4623671761288415e-16], [0.547906186840251, -0.05041503906249989, 2.4157765994389784e-16], [0.5375573370138621, -0.034749348958333225, 2.3752301186665253e-16], [0.5272084871874733, -0.019083658854166557, 2.3346836378940723e-16], [0.5244551234721955, -0.014858669704861004, 2.323915750889813e-16], [0.5217017597569177, -0.010633680555555457, 2.3131478638855536e-16], [0.5084571308506677, -0.03052435980902768, 2.2474587472148724e-16], [0.4952125019444176, -0.05041503906249991, 2.1817696305441907e-16], [0.4848636521180288, -0.05041503906249991, 2.135811505121611e-16], [0.4745148022916399, -0.05041503906249991, 2.089853379699031e-16]],k = (0.0, 0.0, 0.3254268050901753, 0.3254268050901753, 0.6262376527494085, 0.6262376527494085, 0.7347581605619085, 0.7347581605619085, 0.8782980546885977, 0.8782980546885977, 1.8782980546885977, 1.8782980546885977, 2.8782980546885977, 2.8782980546885977, 3.026989876505583, 3.026989876505583, 3.1306872506375276, 3.1306872506375276, 3.429833927843584, 3.429833927843584, 3.7611481069729544, 3.7611481069729544, 3.867739361313232, 3.867739361313232, 4.058496584933301, 4.058496584933301, 4.109733158762769, 4.109733158762769, 4.352525128425401, 4.352525128425401, 4.457669442661512, 4.457669442661512)))
         
         for c in _l_y:
-            RIGGING.override_color(c,'greenBright')
+            CORERIG.override_color(c,'greenBright')
             
         for c in _l_x:
-            RIGGING.override_color(c,'red')
+            CORERIG.override_color(c,'red')
         for c in _l_z:
-            RIGGING.override_color(c,'blue')
+            CORERIG.override_color(c,'blue')
         
         _l_res = _l_x + _l_z + _l_y
     #>>> Loft Shapes =============================================================================================
@@ -799,7 +802,19 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
         _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125785e-16, 0.2500000000000019, 1.3805065841367712e-29], [-0.4999999999999992, 0.5000000000000002, 1.3188768259163797e-29], [-0.49999999999999933, 1.7763568394002513e-15, 1.3188768259163797e-29], [-0.49999999999999956, -0.49999999999999933, 1.3188768259163797e-29], [3.3306690738754716e-16, -0.24999999999999922, 1.3805065841367712e-29], [0.5000000000000006, 1.7763568394002513e-15, 1.439671152028347e-29], [5.551115123125785e-16, 0.2500000000000019, 1.3805065841367712e-29]],k = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0))
 )    
     elif name == 'loftCircle':
-        _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125783e-17, 0.5, 0.0], [-0.19134171618254486, 0.46193976625564337, 0.0], [-0.3535533905932737, 0.3535533905932739, 0.0], [-0.46193976625564326, 0.191341716182545, 0.0], [-0.4999999999999999, 1.3877787807814457e-16, 0.0], [-0.46193976625564337, -0.19134171618254492, 0.0], [-0.3535533905932737, -0.35355339059327373, 0.0], [-0.19134171618254484, -0.46193976625564337, 0.0], [2.7755575615628914e-17, -0.5, 0.0], [0.19134171618254492, -0.46193976625564337, 0.0], [0.35355339059327373, -0.35355339059327384, 0.0], [0.46193976625564337, -0.19134171618254492, 0.0], [0.4999999999999999, -5.551115123125783e-17, 0.0], [0.4619397662556432, 0.19134171618254492, 0.0], [0.3535533905932735, 0.35355339059327373, 0.0], [0.19134171618254467, 0.46193976625564337, 0.0], [5.551115123125783e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625)))    
+        _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125783e-17, 0.5, 0.0], [-0.19134171618254486, 0.46193976625564337, 0.0], [-0.3535533905932737, 0.3535533905932739, 0.0], [-0.46193976625564326, 0.191341716182545, 0.0], [-0.4999999999999999, 1.3877787807814457e-16, 0.0], [-0.46193976625564337, -0.19134171618254492, 0.0], [-0.3535533905932737, -0.35355339059327373, 0.0], [-0.19134171618254484, -0.46193976625564337, 0.0], [2.7755575615628914e-17, -0.5, 0.0], [0.19134171618254492, -0.46193976625564337, 0.0], [0.35355339059327373, -0.35355339059327384, 0.0], [0.46193976625564337, -0.19134171618254492, 0.0], [0.4999999999999999, -5.551115123125783e-17, 0.0], [0.4619397662556432, 0.19134171618254492, 0.0], [0.3535533905932735, 0.35355339059327373, 0.0], [0.19134171618254467, 0.46193976625564337, 0.0], [5.551115123125783e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625)))
+    elif name == 'loftCircleHalfUp':
+        _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125783e-17, 0.5, 0.0], [-0.19134171618254486, 0.46193976625564337, 0.0], [-0.3535533905932737, 0.3535533905932739, 0.0], [-0.46193976625564326, 0.191341716182545, 0.0], [-0.4999999999999999, 1.3877787807814457e-16, 0.0], [-0.3749999999999998, 1.1449174941446927e-16, 0.0], [-0.24999999999999978, 9.020562075079397e-17, 0.0], [-0.125, 6.591949208711867e-17, 0.0], [0.0, 4.163336342344337e-17, 0.0], [0.125, 1.7347234759768046e-17, 0.0], [0.24999999999999978, -6.938893903907228e-18, 0.0], [0.3749999999999998, -3.122502256758253e-17, 0.0], [0.4999999999999999, -5.551115123125783e-17, 0.0], [0.4619397662556432, 0.19134171618254492, 0.0], [0.3535533905932735, 0.35355339059327373, 0.0], [0.19134171618254467, 0.46193976625564337, 0.0], [5.551115123125783e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625))
+)
+    elif name == 'loftCircleHalfDown':
+        _l_res.append(mc.curve( periodic = True,d = 1,p = [[0.0, 4.163336342344337e-17, 0.0], [-0.125, 6.591949208711867e-17, 0.0], [-0.25, 9.020562075079397e-17, 0.0], [-0.3749999999999999, 1.1449174941446927e-16, 0.0], [-0.4999999999999999, 1.3877787807814457e-16, 0.0], [-0.46193976625564337, -0.19134171618254492, 0.0], [-0.3535533905932737, -0.35355339059327373, 0.0], [-0.19134171618254484, -0.46193976625564337, 0.0], [2.7755575615628914e-17, -0.5, 0.0], [0.19134171618254492, -0.46193976625564337, 0.0], [0.35355339059327373, -0.35355339059327384, 0.0], [0.46193976625564337, -0.19134171618254492, 0.0], [0.4999999999999999, -5.551115123125783e-17, 0.0], [0.3749999999999999, -3.122502256758253e-17, 0.0], [0.2499999999999999, -6.938893903907228e-18, 0.0], [0.125, 1.734723475976807e-17, 0.0], [0.0, 4.163336342344337e-17, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625))
+)
+    elif name == 'loftCircleHalfPos':
+        _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125783e-17, 0.5, 0.0], [5.551115123125783e-17, 0.375, 0.0], [5.551115123125783e-17, 0.25, 0.0], [5.551115123125783e-17, 0.125, 0.0], [5.551115123125783e-17, 0.0, 0.0], [5.551115123125783e-17, -0.125, 0.0], [5.551115123125783e-17, -0.25, 0.0], [5.551115123125783e-17, -0.375, 0.0], [2.7755575615628914e-17, -0.5, 0.0], [0.19134171618254492, -0.46193976625564337, 0.0], [0.35355339059327373, -0.35355339059327384, 0.0], [0.46193976625564337, -0.19134171618254492, 0.0], [0.4999999999999999, -5.551115123125783e-17, 0.0], [0.4619397662556432, 0.19134171618254492, 0.0], [0.3535533905932735, 0.35355339059327373, 0.0], [0.19134171618254467, 0.46193976625564337, 0.0], [5.551115123125783e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625))
+)
+    elif name == 'loftCircleHalfNeg':
+        _l_res.append(mc.curve( periodic = True,d = 1,p = [[5.551115123125783e-17, 0.5, 0.0], [-0.19134171618254486, 0.46193976625564337, 0.0], [-0.3535533905932737, 0.3535533905932739, 0.0], [-0.46193976625564326, 0.191341716182545, 0.0], [-0.4999999999999999, 1.3877787807814457e-16, 0.0], [-0.46193976625564337, -0.19134171618254492, 0.0], [-0.3535533905932737, -0.35355339059327373, 0.0], [-0.19134171618254484, -0.46193976625564337, 0.0], [2.7755575615628914e-17, -0.5, 0.0], [0.0, -0.3571428571428571, 0.0], [0.0, -0.2142857142857142, 0.0], [0.0, -0.0714285714285714, 0.0], [0.0, 2.7755575615628914e-17, 0.0], [0.0, 0.07142857142857145, 0.0], [0.0, 0.2142857142857143, 0.0], [0.0, 0.35714285714285715, 0.0], [5.551115123125783e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625))
+)
     elif name in ['loftWideUp','wideUp']:
         _l_res.append(mc.curve( periodic = True,d = 1,p = [[8.335329097072826e-17, 0.5, 0.0], [-0.2750089961432068, 0.46193976625564304, 0.0], [-0.4506455454189614, 0.35355339059327395, 0.0], [-0.49999999999999994, 0.1913417161825448, 0.0], [-0.46162417185035953, 0.0, 0.0], [-0.38083274142786333, -0.1913417161825448, 0.0], [-0.27542780943755313, -0.35355339059327395, 0.0], [-0.14636429500230266, -0.46193976625564304, 0.0], [0.0, -0.5, 0.0], [0.14636429500230283, -0.46193976625564304, 0.0], [0.2754278094375532, -0.35355339059327395, 0.0], [0.38083278217167593, -0.1913417161825448, 0.0], [0.46162417185035937, 0.0, 0.0], [0.5000000000000001, 0.1913417161825448, 0.0], [0.45064554541896124, 0.35355339059327395, 0.0], [0.2750089961432065, 0.46193976625564304, 0.0], [8.335329097072826e-17, 0.5, 0.0]],k = (0.39018064403225655, 0.7803612880645132, 1.1705419320967698, 1.5607225761290264, 1.950903220161283, 2.3410838641935396, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625)))
     elif name in ['loftWideDown','wideDown']:
@@ -817,22 +832,46 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
         _res = SHAPES.combine(_l_res)
         
     if size is not None:
+        _sizeUse = size
+        
+        #First get it to a uniform 1.0
+        if baseSize is not None:
+            if cgmValid.isListArg(baseSize):
+                TRANS.scale_to_boundingBox(_res,baseSize)
+                for a in 'xyz':
+                    v = ATTR.get(_res,'s{0}'.format(a))
+                    if MATH.is_float_equivalent(v,0):
+                        ATTR.set(_res,'s{0}'.format(a),1.0)
+            else:
+                if absoluteSize:
+                    _f_current = DIST.get_bb_size(_res,True,True)
+                    multiplier = baseSize/_f_current
+                    mc.scale(multiplier,multiplier,multiplier, _res,relative = False,os=True)
+                else:
+                    mc.scale(baseSize,baseSize,baseSize,_res,os=True)
+            mc.makeIdentity(_res, apply=True,s=1)            
+        
+        #...
         if cgmValid.isListArg(size):
             TRANS.scale_to_boundingBox(_res,size)
+            for a in 'xyz':
+                v = ATTR.get(_res,'s{0}'.format(a))
+                if MATH.is_float_equivalent(v,0):
+                    ATTR.set(_res,'s{0}'.format(a),1.0)
         else:
             if absoluteSize:
                 _f_current = DIST.get_bb_size(_res,True,True)
                 multiplier = size/_f_current
-                mc.scale(multiplier,multiplier,multiplier, _res,relative = True)
-                
+                mc.scale(multiplier,multiplier,multiplier, _res,relative = True,os=True)
             else:
                 mc.scale(size,size,size,_res,os=True)
-        mc.makeIdentity(_res, apply=True,s=1)    
+        if bakeScale:
+            mc.makeIdentity(_res, apply=True,s=1)    
 
     _d_directionRotates = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
     _r_factor = _d_directionRotates.get(direction)
     mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res, ws=True)
-    mc.makeIdentity(_res, apply=True,r =1, n= 1)
+    mc.makeIdentity(_res, apply=True,r =1, n= 1,s=0)
 
     return _res
 
@@ -868,6 +907,58 @@ def rebuild_linear(target = None):
         l_curves.append( mc.curve (d=1, ep = l_pos, k = [i for i in range(0,knot_len)], os=True))
         
     return l_curves
+
+def connect(targets = None, points = 4):
+    """
+    Connect shapes
+    """
+    _str_func = 'connect'    
+    
+    sel = mc.ls(sl=True)
+    if targets is None:
+        targets = sel
+    if not targets:
+        raise ValueError,"No targets specified"
+    
+    l_shapes = []
+    _len = False
+    l_mainCurves=[]
+    for o in targets:
+        _l_shapes = mc.listRelatives(o,shapes=True,fullPath=True)
+        if not _len:
+            _len = len(_l_shapes)
+        if len(_l_shapes) != _len:
+            log.warning("|{0}| >>  {1} | len{2} doesn't match base: {3}".format(_str_func, o,
+                                                                                len(_l_shapes,
+                                                                                    _len)))
+            continue
+        l_mainCurves.append(o)
+        l_shapes.append(_l_shapes)
+        
+    d_epPos = {}
+    for i,crv in enumerate(targets):
+        _l = getUSplitList(crv,points+1,rebuild=True,rebuildSpans=30)[:-1]
+        for ii,p in enumerate(_l):
+            if not d_epPos.get(ii):
+                d_epPos[ii] = []
+            _l = d_epPos[ii]
+            _l.append(p)
+
+    for k,points in d_epPos.iteritems():
+        log.debug("|{0}| >> {1} | k: {1} | points: {2}".format(_str_func,k,points))
+        try:
+            crv_connect = mc.curve (d=1, ep = points, os=True) 
+
+            #CURVES.create_fromList(posList=points)
+            l_mainCurves.append(crv_connect)
+        except Exception,err:
+            print err
+
+    for crv in l_mainCurves[1:]:
+        CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)    
+    
+    return l_mainCurves[0]
+
 
 def join_shapes(targets = None, component = 'ep',mode='all'):
     _str_func = 'join_shapes'    
@@ -910,7 +1001,7 @@ def join_shapes(targets = None, component = 'ep',mode='all'):
         
                 _l = d_compPos[_key]
                 _l.append(POS.get(comp))
-    pprint.pprint(d_compPos)
+    #pprint.pprint(d_compPos)
     _cnt = 0
     for k,points in d_compPos.iteritems():
         l_use = []        
@@ -931,7 +1022,7 @@ def join_shapes(targets = None, component = 'ep',mode='all'):
         _cnt +=1
     
     for crv in l_mainCurves[1:]:
-        RIGGING.shapeParent_in_place(l_mainCurves[0], crv, False)
+        CORERIG.shapeParent_in_place(l_mainCurves[0], crv, False)
 
 
     
@@ -944,7 +1035,9 @@ def controlCurve_update(target = None):
 
     
 def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
-                        sizeMode = 'guess',size = 1, sizeMulti = None, direction = 'z+'):
+                        sizeMode = 'fixed',size = 1, sizeMulti = None,
+                        bakeScale = True,
+                        direction = 'z+'):
     """ 
     Get curve from a predefined set
 
@@ -957,6 +1050,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
             fixed
             cast - NOT IMPLEMENTED
         size(float)
+        sizeRelative(bool) - whether to create at 1.0 and scale from that
         sizeMulti(float/None) - Multiplier for detected size
         direction(str) - Direction the curve should face
 
@@ -985,14 +1079,16 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         else:
             _size = size
         
-        #Create shape        
-        _curveShape = create_fromName(shape,size = _size,direction=direction)
+        #pprint.pprint(vars())
+        #Create shape
+        _curveShape = create_fromName(shape,size = _size, direction=direction, bakeScale=bakeScale)
+            
         if t:
             _curveShape = mc.rename(_curveShape,"{0}_crv".format(NAMES.get_base(t)))
             SNAP.go(_curveShape,t,True,True,True,True)
             ATTR.set_message(_curveShape,'cgmSource',t)
         #Color
-        RIGGING.override_color(_curveShape,color)
+        CORERIG.override_color(_curveShape,color)
         _res.append(_curveShape)
                     
     return _res
@@ -1036,6 +1132,7 @@ def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
 def getUSplitList(curve=None, points=3, markPoints=False,
                   startSplitFactor=None, insetSplitFactor=None,
                   rebuild=False, rebuildSpans=10,minU=None,maxU=None,
+                  returnU=False,
                   reverse=False):
     """
     Function to split a curve up u positionally 
@@ -1051,6 +1148,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         'minU'(None) -- specify minU to use
         'maxU'(None) -- specify maxU to use
         'reverse'(False) -- Reverse before split
+        'returnU'(False) -- if you just want the u values
     :returns
         list of positions(list)
     """ 
@@ -1117,86 +1215,88 @@ def getUSplitList(curve=None, points=3, markPoints=False,
 
         _range = (f_minU - f_maxU)
         l_uValues = [f_minU]
-        if points == 1:
-            l_uValues = [_range/2]
+        if int_points == 1:
+            l_uValues = [(f_maxU-f_minU)/2]
             
-        elif startSplitFactor:
-            if points < 5:
-                raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
-            log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))
-            
-            #Figure out our u's
-            f_base = startSplitFactor * _range 
-            l_uValues.append( f_base )
-            f_len = f_maxU - (f_base *2)	
-            int_toMake = f_points-4
-            f_factor = f_len/(int_toMake+1)
-            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
-            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
-            log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
-            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
-            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-            for i in range(1,int_points-3):
-                l_uValues.append(((i*f_factor + f_base)))
-            l_uValues.append(f_maxU - f_base)
-            l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
-
-        elif insetSplitFactor:
-            log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
-            #Figure out our u's
-            f_base = insetSplitFactor * _range 
-            f_len = f_maxU - (f_base *2)	
-            f_factor = f_len/(f_points-1)
-            log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
-            log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
-            log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
-            log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-            for i in range(1,int_points-1):
-                l_uValues.append((i*f_factor))
-            l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
-            """
-        elif f_kwMinU is not False or f_kwMaxU is not False:
-            log.debug("%s >> Sub mode. "%(_str_func))
-            if f_kwMinU is not False:
-                if f_kwMinU > f_maxU:
-                    raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
-                f_useMinU = f_kwMinU
-            else:f_useMinU = 0.0
-            if f_kwMaxU is not False:
-                if f_kwMaxU > f_maxU:
-                    raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
-                f_useMaxU = f_kwMaxU
-            else:f_useMaxU = f_maxU
-
-            if int_points == 1:
-                l_uValues = [(f_useMaxU - f_useMinU)/2]
-            elif int_points == 2:
-                l_uValues = [f_useMaxU,f_useMinU]		    
-            else:
-                l_uValues = [f_useMinU]
-                f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
-                log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
-                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-                for i in range(1,int_points-1):
-                    l_uValues.append((i*f_factor) + f_useMinU)
-                l_uValues.append(f_useMaxU)"""
         else:
-            #Figure out our u's
-            log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))
-            if int_points == 3:
-                l_uValues.append(f_maxU/2)
-                l_uValues.append(f_maxU)
-            else:
-                f_factor = f_maxU/(f_points-1)
+            if startSplitFactor:
+                if points < 5:
+                    raise StandardError,"Need at least 5 points for startSplitFactor. Points : %s"%(points)
+                log.debug("%s >> startSplitFactor : %s"%(_str_func,startSplitFactor))
+                
+                #Figure out our u's
+                f_base = startSplitFactor * _range 
+                l_uValues.append( f_base )
+                f_len = f_maxU - (f_base *2)	
+                int_toMake = f_points-4
+                f_factor = f_len/(int_toMake+1)
                 log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                log.debug("%s >> f_len : %s"%(_str_func,f_len)) 	
+                log.debug("%s >> int_toMake : %s"%(_str_func,int_toMake)) 						
+                log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
+                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                for i in range(1,int_points-3):
+                    l_uValues.append(((i*f_factor + f_base)))
+                l_uValues.append(f_maxU - f_base)
+                l_uValues.append(f_maxU)
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  	
+
+            elif insetSplitFactor:
+                log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
+                #Figure out our u's
+                f_base = insetSplitFactor * _range 
+                f_len = f_maxU - (f_base *2)	
+                f_factor = f_len/(f_points-1)
+                log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
+                log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
                 log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
                 for i in range(1,int_points-1):
-                    l_uValues.append(i*f_factor)
+                    l_uValues.append((i*f_factor))
                 l_uValues.append(f_maxU)
-            log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
+                """
+            elif f_kwMinU is not False or f_kwMaxU is not False:
+                log.debug("%s >> Sub mode. "%(_str_func))
+                if f_kwMinU is not False:
+                    if f_kwMinU > f_maxU:
+                        raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
+                    f_useMinU = f_kwMinU
+                else:f_useMinU = 0.0
+                if f_kwMaxU is not False:
+                    if f_kwMaxU > f_maxU:
+                        raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
+                    f_useMaxU = f_kwMaxU
+                else:f_useMaxU = f_maxU
+    
+                if int_points == 1:
+                    l_uValues = [(f_useMaxU - f_useMinU)/2]
+                elif int_points == 2:
+                    l_uValues = [f_useMaxU,f_useMinU]		    
+                else:
+                    l_uValues = [f_useMinU]
+                    f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
+                    log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
+                    log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                    for i in range(1,int_points-1):
+                        l_uValues.append((i*f_factor) + f_useMinU)
+                    l_uValues.append(f_useMaxU)"""
+            else:
+                #Figure out our u's
+                log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))
+                if int_points == 3:
+                    l_uValues.append(f_maxU/2)
+                    l_uValues.append(f_maxU)
+                else:
+                    f_factor = f_maxU/(f_points-1)
+                    log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
+                    log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                    for i in range(1,int_points-1):
+                        l_uValues.append(i*f_factor)
+                    l_uValues.append(f_maxU)
+                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
 
+        l_uValues = [float(v) for v in l_uValues]
         for u in l_uValues:
             l_spanUPositions.append(POS.get("{0}.u[{1}]".format(_shapeUse,u)))
             #l_spanUPositions.append(mc.pointPosition("%s.u[%f]"%(useCurve,u)))
@@ -1220,6 +1320,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
                 except StandardError,error:raise StandardError,"Scale fail : %s"%error
         
         mc.delete(useCurve)#Delete our use curve
+        if returnU:return l_uValues
         return l_spanUPositions
 
     except Exception,err:
@@ -2001,7 +2102,7 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
         
     #pprint.pprint(vars())
     
-def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
+def match(base=None, target = None, autoRebuild = True, keepOriginal = True, space = 'os'):
     _str_func = 'match'
     _d_base = get_shape_info(base)
     _d_target = get_shape_info(target)
@@ -2020,8 +2121,8 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True):
     _l_ep_source = mc.ls("{0}.cv[*]".format(base),flatten=True)
     _l_ep_target = mc.ls("{0}.cv[*]".format(target),flatten = True)
     for i,ep in enumerate(_l_ep_source):
-        _pos = POS.get(ep)
-        POS.set(_l_ep_target[i], _pos, space= 'os')
+        _pos = POS.get(ep,space=space)
+        POS.set(_l_ep_target[i], _pos, space= space)
         
     return True
 

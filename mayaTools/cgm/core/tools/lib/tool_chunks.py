@@ -39,32 +39,23 @@ from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.locator_utils as LOC
 from cgm.core.tools import meshTools
-reload(meshTools)
 from cgm.core.lib import node_utils as NODES
 import cgm.core.lib.sdk_utils as SDK
-reload(SDK)
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
-reload(ATTRTOOLS)
 
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgmUpdate as CGMUPDATE
-reload(CGMUPDATE)
-#import cgm.core.tools.updateTool as CGMUPDATE
-#reload(CGMUPDATE)
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-reload(UISNAPCALLS)
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.tools.lightLoomLite as LIGHTLOOMLITE
-reload(LIGHTLOOMLITE)
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
@@ -678,7 +669,7 @@ def uiSection_mrs(parent):
     mc.menuItem(parent = parent,
                 l='MRS Documentation',
                 ann = "Access to MRS Docmenation || Subscription required.",
-                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/documentation/"))      
+                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/"))      
 
     
 def uiSection_hotkeys(parent):
@@ -702,13 +693,18 @@ def uiSection_hotkeys(parent):
 
 from cgm.lib import optionVars
 from cgm.core.lib.wing import mayaWingServer as mWingServer
-from cgm.lib import cgmDeveloperLib
+reload(mWingServer)
+from cgm.core.tools.lib import cgmDeveloperLib
+reload(cgmDeveloperLib)
 from cgm.core.tests import cgmMeta_test as testCGM
 import cgm.core.tests.cgmTests as CGMTEST
-reload(CGMTEST)
+#reload(CGMTEST)
 
 def loadLocalPython():
-    mel.eval('python("import cgm.core;cgm.core._reload();import cgm.core.cgm_Meta as cgmMeta;import cgm.core.cgm_Deformers as cgmDeformers;import cgm.core.cgm_General as cgmGen;import cgm.core.cgm_PuppetMeta as cgmPM;import cgm.core.cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as VALID")')
+    mel.eval('python("import cgm.core.cgm_Meta as cgmMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;import pprint;")')
+    
+def reloadCore():
+    mel.eval('python("import cgm.core;cgm.core._reload();")')
 
 def load_MorpheusMaker( *a ):
     try:
@@ -739,8 +735,12 @@ def uiSection_dev(parent):
     
     mc.menuItem(parent = parent,
                 l='Load Local CGM Python',
-                ann = "Sets up standard cgm ptyhon imports for use in the script editor",
+                ann = "Sets up standard cgm python imports for use in the script editor",
                 c=lambda *a: loadLocalPython())
+    mc.menuItem(parent = parent,
+                l='Reload Core',
+                ann = "Reload the cgm core to local python",
+                c=lambda *a: reloadCore())    
     mc.menuItem(parent = parent,
                 l='Load Morpheus Maker',
                 ann = "Attempt to load the Morpheus Maker - ALPHA",

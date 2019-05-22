@@ -7,6 +7,8 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'SNAP'
+
 # From Python =============================================================
 import copy
 import re
@@ -151,7 +153,7 @@ def to_ground(obj=None):
     p_pivot[1] = p_pivot[1] - p_bottom[1] 
     POS.set(_obj,p_pivot)
     
-def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = False):
+def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", mode = 'local',vectorUp = None,ignoreAimAttrs = True):
     """
     Aim functionality.
     
@@ -166,16 +168,17 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             'matrix' -- use Bokser's fancy method
             'vector' -- maya standard with vector up axis
             'object' -- maya standard with object
+        ignoreAimAttrs(bool) -- whether to ignore the aim attribute on the control or look for them
 
     :returns
         success(bool)
     """ 
     try:
         _str_func = 'aimAtPoint'
+        _loc = False
         
         
         _obj = VALID.objString(obj, noneValid=False, calledFrom = __name__ + _str_func + ">> validate obj")
-        _loc = False
         try:position = position.x,position.y,position.z
         except:pass
         try:vectorUp = vectorUp.x,vectorUp.y,vectorUp.z
@@ -291,7 +294,8 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
         if _loc:mc.delete(_loc)
         return True
     except Exception,err:
-        if _loc:mc.delete(_loc)
+        try:mc.delete(_loc)
+        except:pass
         log.error( "aim_atPoint | obj: {0} | err: {1}".format(obj,err) )
         #cgmGEN.cgmExceptCB(Exception,err)
     

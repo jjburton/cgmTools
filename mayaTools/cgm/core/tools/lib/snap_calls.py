@@ -489,7 +489,7 @@ def snap(obj = None, targets = None,
                     _dist_base = DIST.get_distance_between_points(p_start, pos_obj)#...get our base distance
                     p_result = DIST.get_pos_by_vec_dist(pos_target,_vector_to_objPivot,-_dist_base)
 
-                    cgmGEN.func_snapShot(vars())
+                    #cgmGEN.func_snapShot(vars())
                     POS.set(_obj,p_result)
 
 

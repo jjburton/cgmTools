@@ -202,7 +202,7 @@ def getChildren(uiElement):
         if  uiElement in c.split('|') and not str(c).endswith(uiElement):
             l_.append(c)  
             
-    pprint.pprint(l_)    
+    #pprint.pprint(l_)    
     return l_
                 
 def killChildren(uiElement):
@@ -236,65 +236,75 @@ class cgmGUI(mUI.BaseMelWindow):
     l_allowedDockAreas = ['right', 'left']
     
     def __init__( self,*a,**kw):
-        _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
+        try:
+            _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)
+                    
+            log.info("|{0}| >>...".format(_str_func))        
+            
+            #Check our tool option var for debug mode to set logger level if so
+            if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
+                log.setLevel(logging.DEBUG)	
                 
-        log.info("|{0}| >>...".format(_str_func))        
-        
-        #Check our tool option var for debug mode to set logger level if so
-        if mc.optionVar(exists = "cgmVar_guiDebug") and mc.optionVar(q="cgmVar_guiDebug"):
-            log.setLevel(logging.DEBUG)	
+            #killChildren(self)
+            #>>> Standard cgm variables
+            #====================	    
+            self.l_optionVars = []
+            self.l_helpElements = []
+            self.l_oldGenElements = []
+            self.description = __description__
+            self.initializeTemplates() 
+            self.setup_baseVariables()	
+            self.__toolName__ = 'cgmGUI'
+            #>>> Insert our init, overloaded for other tools
             
-        
-        #killChildren(self)
-        #>>> Standard cgm variables
-        #====================	    
-        self.l_optionVars = []
-        self.l_helpElements = []
-        self.l_oldGenElements = []
-        self.description = __description__
-        self.initializeTemplates() 
-        self.setup_baseVariables()	
-        
-        #>>> Insert our init, overloaded for other tools
-        self.insert_init(self,*a,**kw)
+            self.pg_maya = doStartMayaProgressBar(statusMessage='Building...')
+            mc.progressBar(self.pg_maya,edit=True, status = '{0} | Init'.format(self.__toolName__),
+                           progress = 2, maxValue= 10)
             
-        #>>> Menu
-        self.build_menus()
-
-        #>>> Body
-        #====================        
-        self.build_layoutWrapper(self)
-
-        #====================
-        # Show and Dock
-        #====================
-        #Maya2011 QT docking - from Red9's examples
-        #if mayaVersion == 2011:
-        #'Maya2011 dock delete'
-
+            self.insert_init(self,*a,**kw)
+                
+            #>>> Menu
+            mc.progressBar(self.pg_maya,edit=True,status = '{0} | Menu'.format(self.__toolName__),
+                           progress = 6, maxValue= 10)            
+            self.build_menus()
+    
+            #>>> Body
+            #====================
+            mc.progressBar(self.pg_maya,edit=True,status = '{0} | Layout'.format(self.__toolName__),
+                           progress = 8, maxValue= 10)                        
+            self.build_layoutWrapper(self)
+    
+            #====================
+            # Show and Dock
+            #====================
+            #Maya2011 QT docking - from Red9's examples
+            #if mayaVersion == 2011:
+            #'Maya2011 dock delete'
+    
+            #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
+            """_dock = '{0}Dock'.format(__toolName__)        
+            self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
+                                          label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
+                                          floating = self.var_Dock.value,
+                                          allowedArea=self.l_allowedDockAreas,
+                                          width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
             
-        #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
-        """_dock = '{0}Dock'.format(__toolName__)        
-        self.uiDock =  mc.dockControl(_dock , area=self.l_allowedDockAreas[self.var_DockSide.value],
-                                      label=self.WINDOW_TITLE, content=self.WINDOW_NAME,
-                                      floating = self.var_Dock.value,
-                                      allowedArea=self.l_allowedDockAreas,
-                                      width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
-        
-        
-        _dock = '{0}Dock'.format(self.__toolName__)            
-        if mc.dockControl(_dock, exists=True):
-            log.info('Deleting {0}'.format(_dock))
-            mc.deleteUI(_dock, control=True)   
-        """    
-        if self.var_Dock and self.var_Dock.value:
-            try:
-                self.do_dock()
-            except Exception,err:
-                log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
-        """    
             
-        self.show()
+            _dock = '{0}Dock'.format(self.__toolName__)            
+            if mc.dockControl(_dock, exists=True):
+                log.info('Deleting {0}'.format(_dock))
+                mc.deleteUI(_dock, control=True)   
+            """    
+            if self.var_Dock and self.var_Dock.value:
+                try:
+                    self.do_dock()
+                except Exception,err:
+                    log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
+            """    
+            self.show()
+        except Exception,err:cgmGEN.cgmException(Exception,err)
+        finally:
+            mc.progressBar(self.pg_maya, edit=True, endProgress=True)
 
     def insert_init(self,*args,**kws):
         """ This is meant to be overloaded per gui """
@@ -1234,18 +1244,36 @@ def add_TextBlock(text, align = 'center'):
 def add_cgmFooter(parent = False):
     from cgm import images as cgmImagesFolder
     
-    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.20,.20,.20], h = 20)
     try:
         _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
-        _path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        #_path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
+        _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')        
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
+                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+                          #c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
         for arg in err.args:
             log.error(arg)
     return _row_cgm
-        
+
+def add_cgMonaseryFooter(parent = False):
+    from cgm import images as cgmImagesFolder
+    
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
+    try:
+        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
+        mc.iconTextButton(style='iconOnly',image =_path_image,
+                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+    except Exception,err:
+        log.warning("Failed to add cgmFooter")
+        for arg in err.args:
+            log.error(arg)
+    return _row_cgm
+
+
 def return_SplitLines(text, size):
     lineList = []
     wordsList = text.split(' ')
@@ -1359,7 +1387,7 @@ def doToggleModeState(OptionSelection,OptionList,OptionVarName,ListOfContainers,
             #doToggleMenuShowState(Container,False)
         cnt+=1
 
-def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True):
+def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....',interruptableState = True,**kws):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     DESCRIPTION:
@@ -1391,7 +1419,7 @@ def doStartMayaProgressBar(stepMaxValue = 100, statusMessage = 'Calculating....'
                     status=statusMessage,
                     minValue = 0,
                     step=1,
-                    maxValue= stepMaxValue )
+                    maxValue= stepMaxValue,**kws)
     return mayaMainProgressBar
 
 def doEndMayaProgressBar(mayaMainProgressBar = None):
@@ -1587,4 +1615,30 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='Enviornment Info',
                 ann = "Get your maya/os enviorment info. Useful for bug reporting to tool makers",
-                c=lambda *a: cgmGEN.report_enviornment())     
+                c=lambda *a: cgmGEN.report_enviornment())
+    
+    
+def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None,style = 'text'):
+    _str_func = 'uiPrompt_getValue'
+    if title is None:
+        _title = 'Need data...'
+    else:_title = title
+    
+    
+    _d = {'title':_title, 'button':['OK','Cancel'], 'defaultButton':'OK', 'messageAlign':'center', 'cancelButton':'Cancel','dismissString':'Cancel','style':style}
+    if message is None:
+        message = "Getting values is better with messages..."
+        
+    _d['message'] = message
+    if text is not None:
+        _d['text'] = text
+        
+    result = mc.promptDialog(**_d)
+    
+    if result == 'OK':
+        _v =  mc.promptDialog(query=True, text=True)
+        
+        return _v
+    else:
+        log.info("|{0}| >> Gather value cancelled".format(_str_func))
+        return None     

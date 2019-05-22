@@ -36,9 +36,10 @@ import cgmUpdate
 reload(cgmUpdate)
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 0.12272018 - 1'
+__version__ = '1.03042019'
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
+_l_branches = ['stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV']
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -232,7 +233,7 @@ class ui(cgmUI.cgmGUI):
         
         _lastUpdate = self.var_lastUpdate.getValue() or None
         
-        if _lastUpdate[0] != 'None':
+        if _lastUpdate and _lastUpdate[0] != 'None':
             try:_lastBranch = _lastUpdate[0] 
             except:pass
             try:_lastHash = _lastUpdate[1]
@@ -293,8 +294,9 @@ class ui(cgmUI.cgmGUI):
             _hash = d['hash']
             _msg = d['msg']
             _date = d['date']
+            _url = d['url']
             
-            _ann = '\n {0} commit {1} | {2} | {3} \n {4}'.format(_branch, i, _hash, _date, _msg)
+            _ann = '\n {0} commit {1} | {2} | {3} \n {4} \n {5}'.format(_branch, i, _hash, _date, _msg, _url)
             _report = '{0} | {1}'.format(_hash, _msg[:50])
             _label = "{0} - {1} | {3}...".format(i,_date, _hash[:8],_msg[:40])
             #log.debug(_report)
@@ -351,7 +353,6 @@ def buildRow_branches(self,parent):
     mUI.MelLabel(_row,l='Choose which branch you want to use:')
     
     #>>>Settings -------------------------------------------------------------------------------------
-    _l_branches = ['stable','master','MRS','MRSWORKSHOP','MRSWORKSHOPDEV']
     
 
     #cc = Callback(puppetBoxLib.uiModuleOptionMenuSet,self,self.moduleDirectionMenus,self.moduleDirections,'cgmDirection',i)

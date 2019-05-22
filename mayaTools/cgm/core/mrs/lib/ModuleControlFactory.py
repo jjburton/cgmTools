@@ -12,13 +12,13 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.cgmPy import validateArgs as VALID
@@ -70,6 +70,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
              makeMirrorable = True,#'(bool - True) -- Setup for mirrorability (using red9) -- implied by other mirror args
              addDynParentGroup = False,#'(False) -- Add a dynParent group setup
              addExtraGroups = False,#'(int - False) -- Number of nested extra groups desired
+             addSDKGroup = False,
              addConstraintGroup = False,#'(bool - False) -- If a group just above the control is desired for consraining
              freezeAll = False,#'(bool - False) -- Freeze all transforms on the control object
              noFreeze = False,
@@ -104,7 +105,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         mi_control = cgmMeta.validateObjArg(controlObject,'cgmControl', setClass=True)
         
         str_mirrorAxis = VALID.stringArg(mirrorAxis,calledFrom = _str_func)
-        str_mirrorSide = cgmGeneral.verify_mirrorSideArg(mirrorSide)#VALID.stringArg(mirrorSide,calledFrom = _str_func)
+        str_mirrorSide = cgmGEN.verify_mirrorSideArg(mirrorSide)#VALID.stringArg(mirrorSide,calledFrom = _str_func)
         b_makeMirrorable = VALID.boolArg(makeMirrorable,calledFrom = _str_func)
     
         _addMirrorAttributeBridges = kws.get('addMirrorAttributeBridges',False)
@@ -201,13 +202,21 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control._verifyAimable()  
        
         #First our master group:
-        i_masterGroup = (cgmMeta.asMeta(mi_control.doGroup(True), 'cgmObject', setClass=True))
-        i_masterGroup.doStore('cgmName',mi_control)
-        i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-        i_masterGroup.doName()
-        mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+        i_master = mi_control.getMessageAsMeta('masterGroup')
+        if not i_master:
+            i_masterGroup = mi_control.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass=True)
+        #i_masterGroup.doStore('cgmName',mi_control)
+        #i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+        #i_masterGroup.doName()
+        #mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+        
+        if addSDKGroup:
+            log.debug('addSDKGroup...')
+            mConstrain = mi_control.doGroup(True,True,asMeta=True,typeModifier = 'sdk',setClass=True)
+            
     
         if addDynParentGroup:
+            log.debug('addDynParentGroup...')            
             i_dynGroup = (cgmMeta.cgmObject(mi_control.doGroup(True)))
             i_dynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mi_control,dynGroup=i_dynGroup)
             i_dynGroup.doName()
@@ -218,6 +227,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control.connectChildNode(i_zeroGroup,'zeroGroup','groupChild')"""
     
         if addExtraGroups:
+            log.debug('addExtraGroups...')                        
             for i in range(addExtraGroups):
                 i_group = (cgmMeta.asMeta(mi_control.doGroup(True),'cgmObject',setClass=True))
                 if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
@@ -227,6 +237,8 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control.msgList_connect("extraGroups",ml_groups,'groupChild')
     
         if addConstraintGroup:#ConstraintGroups
+            log.debug('addConstraintGroup...')                        
+            
             i_constraintGroup = (cgmMeta.asMeta(mi_control.doGroup(True),'cgmObject',setClass=True))
             i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
             i_constraintGroup.doName()
@@ -236,6 +248,8 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
     
         #Space Pivot ============================================================================================
         if addSpacePivots:
+            log.debug('addSpacePivots...')                        
+            
             parent = mi_control.getMessage('masterGroup')[0]
             for i in range(int(addSpacePivots)):
                 #i_pivot = rUtils.create_spaceLocatorForObject(mi_control.mNode,parent)
@@ -275,7 +289,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             else:
                 mc.makeIdentity(mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)    
         
-        #Mirror attriubte Bridges ============================================================================================
+        #Mirror attriubte Bridges ==========================================================================
         if addForwardBack:
             mPlug_forwardBackDriver = cgmMeta.cgmAttr(mi_control,"forwardBack",attrType = 'float',keyable=True)
             try:
@@ -342,5 +356,5 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         #pprint.pprint(vars())
         
         return {'mObj':mi_control,'instance':mi_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}	
-    except Exception,err: cgmGeneral.cgmExceptCB(Exception,err)
+    except Exception,err: cgmGEN.cgmExceptCB(Exception,err)
 

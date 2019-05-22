@@ -4,6 +4,8 @@ Josh Burton
 www.cgmonks.com
 
 """
+__MAYALOCAL = 'SURF'
+
 # From Python =============================================================
 import copy
 import re
@@ -57,7 +59,9 @@ from cgm.lib import (distance,
 
 #>>> Utilities
 #===================================================================   
-def get_splitValues(surface = None, values = [], mode='u', 
+def get_splitValues(surface = None,
+                    values = [], mode='u',
+                    knotIndices = [],
                     insertMin=False, 
                     insertMax = False, 
                     preInset = None, 
@@ -95,7 +99,10 @@ def get_splitValues(surface = None, values = [], mode='u',
         
     l_sets = []
     
-    log.debug("|{0}| >>  l_base: {1}".format(_str_func,l_base))                    
+    log.debug("|{0}| >>  l_base: {1}".format(_str_func,l_base))
+    
+    if knotIndices:
+        values = [l_base[v] for v in knotIndices]
     
     for i,v in enumerate(values):
         log.debug("|{0}| >>  Processing: {1} | {2}".format(_str_func,i,v)+"-"*40)        
@@ -132,6 +139,12 @@ def get_splitValues(surface = None, values = [], mode='u',
                 _l.append(knot)"""
     
         if _last and insertMax:
+            l_add = []
+            for v2 in l_base:
+                if v2 > _l[-1]:
+                    l_add.append(v2)
+            for v2 in l_add:
+                _l.append(v2)
             _l.append(maxKnot)
             
         if _last != True:

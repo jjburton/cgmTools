@@ -9,6 +9,7 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'cgmDEFORMERS'
 
 import maya.cmds as mc
 import maya.mel as mel

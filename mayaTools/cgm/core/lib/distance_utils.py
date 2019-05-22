@@ -7,6 +7,9 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
+__MAYALOCAL = 'DIST'
+
+
 # From Python =============================================================
 import copy
 import re
@@ -27,7 +30,7 @@ import Red9.core.Red9_Meta as r9Meta
 
 # From cgm ==============================================================
 #NO LOC
-from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
@@ -37,6 +40,8 @@ from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LIST
+import cgm.core.lib.node_utils as NODES
+reload(NODES)
 #import cgm.core.lib.shape_utils as SHAPE
 reload(POS)
 reload(MATHUTILS)
@@ -44,6 +49,53 @@ reload(MATHUTILS)
 #from cgm.lib import attributes
 #>>> Utilities
 #===================================================================
+def scale_to_axisSize(arg = None, size = None, skip = None):
+    _str_func = 'scale_to_axisSize'
+    log.debug(cgmGEN.logString_start(_str_func))
+    _currentSize = get_axisSize(arg)
+    _currentScale = ATTR.get(arg,'scale')
+    _skip = VALID.listArg(skip)
+    _targetScale = []
+    for i,s in enumerate(size):
+        if skip and i in _skip:
+            _targetScale.append(_currentScale[i])
+        if s is not None:
+            v = (_currentScale[i] * s) / _currentSize[i]
+            _targetScale.append(v)
+        else:
+            _targetScale.append(_currentScale[i])
+    #log.info(_targetScale)
+    
+    for i,a in enumerate('xyz'):
+        if size[i]:
+            ATTR.set(arg,'s{0}'.format(a),_targetScale[i])
+
+def get_axisSize(arg):
+    try:
+        _str_func = 'get_axisSize'
+        bbSize = get_bb_size(arg)
+        
+        d_res = {'x':[],'y':[],'z':[]}
+        
+        _startPoint = POS.get(arg,'bb')
+        _res = []
+        for i,k in enumerate('xyz'):
+            log.debug("|{0}| >> On t: {1} | {2}".format(_str_func,arg,k))
+            
+            pos_pos = get_pos_by_axis_dist(arg,k+'+',bbSize[i]*1.5)
+            pos_neg = get_pos_by_axis_dist(arg,k+'-',bbSize[i]*1.5)
+            
+            pos1 = get_closest_point(pos_pos,arg)
+            pos2 = get_closest_point(pos_neg,arg)
+    
+            dist = get_distance_between_points(pos1[0],pos2[0])
+            _res.append(dist)
+            
+        return (_res)
+    except Exception,err:cgmGEN.cgmException(Exception,err)
+
+
+
 get_bb_size = POS.get_bb_size
 
 def get_bb_sizeOLD(arg = None, shapes = False, mode = None):
@@ -125,7 +177,14 @@ def get_size_byShapes(arg, mode = 'max'):
     else:
         raise ValueError,"|{0}| >> unknown mode: {1}".format(_str_func,mode)
         
-    
+def get_arcLen(arg):
+    shapes = mc.listRelatives(arg,shapes=True,path = 1)
+    shapeLengths = []
+    for shape in shapes:
+        infoNode = NODES.curveInfo(shape)
+        shapeLengths.append(mc.getAttr(infoNode+'.arcLength'))
+        mc.delete(infoNode)
+    return sum(shapeLengths)    
 
 def get_createSize(arg = None, mode = None):
     """
@@ -390,7 +449,7 @@ def set_vectorOffset(obj = None, origin = None, distance = 0, vector = None, mod
     POS.set(obj,newPos)
     return newPos
 
-def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv', vector = None, mode = 'origin'):
+def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv', vector = None, mode = 'origin',factor = .5, offsetMode = 'fixed'):
     """
     Attempt for more consistency 
     
@@ -429,9 +488,17 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         _l_source = mc.ls("{0}.{1}[*]".format(s,component),flatten=True,long=True)
         
         for ii,c in enumerate(_l_source):
-            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))            
-            set_vectorOffset(c,_origin,distance,vector,mode=mode)
-
+            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))
+            if offsetMode == 'fixed':
+                set_vectorOffset(c,_origin,distance,vector,mode=mode)
+            else:
+                pMe = POS.get(c)
+                _vec = MATHUTILS.get_vector_of_two_points(_origin,pMe)
+                d = get_distance_between_points(_origin,pMe)
+                newPos = get_pos_by_vec_dist(POS.get(c),_vec,d*factor)
+                POS.set(c,newPos)
+                
+                
         
     return True
 
@@ -447,6 +514,7 @@ def get_distance_between_points(point1,point2):
         distance(float)
     """       
     return sqrt( pow(point1[0]-point2[0], 2) + pow(point1[1]-point2[1], 2) + pow(point1[2]-point2[2], 2) )
+get_between_points = get_distance_between_points
 
 def get_average_position(posList):
     """
@@ -666,6 +734,10 @@ def get_closest_point(source = None, targetSurface = None, loc = False):
         POS.set(_loc,_pos) 
         
     return _pos, _l_res_distances[_idx], _shapes[_idx]
+
+def create_vectorCurve(pos=[0,0,0],vector=[0,1,0],distance=1,name='vectorCurve'):
+    l_pos = [pos,get_pos_by_vec_dist(pos,vector,distance)]
+    return mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True, name = name)
 
 def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     """
@@ -946,8 +1018,6 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
         _node = _created[1]
         _shape = _created[2]
         _type = _created[3]
-        
-        
 
         #_norm = get_normalized_uv(_shape, _u,_v)
         _res = {}
@@ -970,12 +1040,17 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
                 _res['normUV'] = _norm['uv']
                 _res['normalizedU'] = _norm['uValue']
                 _res['normalizedV'] = _norm['vValue']
+                
+                _res['normal'] = mc.pointOnSurface(_shape, u = _u, v= _v, normal=True)
+                _res['normalizedNormal'] = mc.pointOnSurface([targetSurface],u = _u, v= _v,
+                                                             normalizedNormal=True)
+                
             else:
                 _res['closestFaceIndex']=mc.getAttr(_node+'.closestFaceIndex')
                 _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
         mc.delete([_loc],_created[0],_node)
         return _res
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
     _str_func = 'get_normalizedWeightsByDistance'

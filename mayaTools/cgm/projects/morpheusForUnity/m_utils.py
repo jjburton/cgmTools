@@ -791,9 +791,9 @@ def ribbon_seal(driven1 = None,
                     mTrack = d['mTrack']
                     mSurf = d['mSurf']
                     
-                    follicle,shape = RIGCONSTRAINTS.attach_toShape(mTrack.mNode, mSurf.mNode, 'parent')
-                    mFollicle = cgmMeta.asMeta(follicle)
-                    mFollShape = cgmMeta.asMeta(shape)
+                    _res = RIGCONSTRAINTS.attach_toShape(mTrack.mNode, mSurf.mNode, 'parent')
+                    mFollicle = _res[-1]['mFollicle']#cgmMeta.asMeta(follicle)
+                    mFollShape = _res[-1]['mFollicleShape']#cgmMeta.asMeta(shape)
                 
                     md_follicleShapes[mObj] = mFollShape
                     md_follicles[mObj] = mFollicle

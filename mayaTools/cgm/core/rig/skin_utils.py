@@ -17,7 +17,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -81,7 +81,7 @@ def surface_copyWeights(sourceSurface, targetSurface):
     int_sourceCVs = len(l_cvsSource)
     int_targetCVs = len(l_cvsTarget)
     if int_sourceCVs != int_targetCVs:
-        pprint.pprint(vars)
+        #pprint.pprint(vars)
         raise ValueError, "|{0}| >> cvLens must match".format(_str_func,)
         
     l_influenceSource = CORESKIN.get_influences_fromMatrix(ml_skinSource[0].mNode)
@@ -138,7 +138,7 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
     
     cvStarts = [int(cv.split('[')[-1].split(']')[0]) for cv in l_cvs]
     cvEnds = [int(cv.split('[')[-2].split(']')[0]) for cv in l_cvs]
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     cvStarts = LISTS.get_noDuplicates(cvStarts)
     cvEnds = LISTS.get_noDuplicates(cvEnds)
@@ -167,12 +167,12 @@ def surface_tightenEnds(controlSurface,start = None, end = None,blendLength=3, h
         if start is None:
             pos_start = POS.get(l_cvs[0])
             start = DIST.get_closestTarget(pos_start,l_influenceObjects)
-            log.warning("|{0}| >> No start arg, guessed: {1}".format(_str_func,start))
+            log.debug("|{0}| >> No start arg, guessed: {1}".format(_str_func,start))
             
         if end is None:
             pos_end = POS.get(l_cvs[-1])
             end = DIST.get_closestTarget(pos_end,l_influenceObjects)
-            log.warning("|{0}| >> No end arg, guessed: {1}".format(_str_func,end))
+            log.debug("|{0}| >> No end arg, guessed: {1}".format(_str_func,end))
         
 
     #>>>Tie down start and ends
@@ -289,7 +289,7 @@ def curve_tightenEnds(curve,start = None, end = None,blendLength=3, hardLength =
     
     l_cvsUse = [int(cv.split('[')[-1].split(']')[0]) for cv in l_cvs]
     #cvEnds = [int(cv.split('[')[-2].split(']')[0]) for cv in l_cvs]
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     l_cvsUse = LISTS.get_noDuplicates(l_cvsUse)
     #cvEnds = LISTS.get_noDuplicates(cvEnds)
