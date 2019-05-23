@@ -922,24 +922,29 @@ def create_formLoftMesh(self, targets = None, mDatHolder = None, mFormNull = Non
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
-def noTransformNull_verify(self,mode='form'):
+def noTransformNull_verify(self,mode='form',forceNew=False):
     try:
         _plug = 'noTrans{0}Null'.format(STR.capFirst(mode[0]) + mode[1:])
-        if not self.getMessage(_plug):
-            str_prerigNull = mc.group(em=True)
-            mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
-            mNoTransformNull.connectParentNode(self, 'rigBlock',_plug) 
-            mNoTransformNull.doStore('cgmName', self)
-            mNoTransformNull.doStore('cgmType',_plug)
-            mNoTransformNull.doName()
-    
-            mNoTransformNull.dagLock()
-            #mNoTransformNull.p_parent = self.prerigNull
-            #mNoTransformNull.resetAttrs()
-            #mNoTransformNull.setAttrFlags()
-            #mNoTransformNull.inheritsTransform = False
-        else:
-            mNoTransformNull = self.getMessage(_plug,asMeta=True)[0]
+        mNoTransformNull = self.getMessageAsMeta(_plug)
+        if mNoTransformNull and not forceNew:
+            return mNoTransformNull
+        
+        if forceNew:
+            mNoTransformNull.delete()
+        
+        str_prerigNull = mc.group(em=True)
+        mNoTransformNull = cgmMeta.validateObjArg(str_prerigNull, mType = 'cgmObject',setClass = True)
+        mNoTransformNull.connectParentNode(self, 'rigBlock',_plug) 
+        mNoTransformNull.doStore('cgmName', self)
+        mNoTransformNull.doStore('cgmType',_plug)
+        mNoTransformNull.doName()
+
+        mNoTransformNull.dagLock()
+        #mNoTransformNull.p_parent = self.prerigNull
+        #mNoTransformNull.resetAttrs()
+        #mNoTransformNull.setAttrFlags()
+        #mNoTransformNull.inheritsTransform = False
+
     
         return mNoTransformNull    
     except Exception,err:

@@ -164,6 +164,7 @@ d_defaultSettings = {'version':__version__,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
+       
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -194,6 +195,14 @@ def define(self):
     
     ml_handles = []
     
+    #Make our handles creation data =======================================================
+    d_pairs = {}
+    d_creation = {}
+    l_order = []
+    d_curves = {}
+    d_curveCreation = {}
+    d_toParent = {}    
+    
     #rigBlock Handle ===========================================================
     log.debug("|{0}| >>  RigBlock Handle...".format(_str_func))            
     _size = MATH.average(self.baseSize[1:])
@@ -205,6 +214,8 @@ def define(self):
     mHandleFactory = self.asHandleFactory()
     self.addAttr('cgmColorLock',True,lock=True, hidden=True)
     mDefineNull = self.atUtils('stateNull_verify','define')
+    
+    mNoTransformNull = self.atUtils('noTransformNull_verify','define',forceNew=True)
     
     #Bounding sphere ==================================================================
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
@@ -225,6 +236,146 @@ def define(self):
     
     self.connectChildNode(mBBShape.mNode,'bbHelper')
     
+    #...
+    _browType = self.getEnumValueString('browType')
+    
+    if _browType == 'full':
+        log.debug("|{0}| >>  full brow setup...".format(_str_func))
+        _d_pairs = {}
+        _d = {}
+        l_sideKeys = ['start','edge','end','upperEdge','upperEnd']
+        for k in l_sideKeys:
+            _d_pairs[k+'Left'] = k+'Right'
+  
+        d_pairs.update(_d_pairs)
+        
+        #Going to just store the right values and then just flip the 
+        _d_scaleSpace = {
+            'human':{'center':[0,-1,1],
+                     'centerTop':[0,1,.8],
+                     'startRight':[-.2,-1,1],
+                     'edgeRight':[-.8,-1,.8],
+                     'endRight':[-1,-1.2,-1],
+                     'upperEdgeRight':[-.7,1,.5],
+                     'upperEndRight':[-1,1,-1],
+                    },}
+    
+        _d['center'] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+        _d['centerTop'] = copy.copy(_d['center'])
+        
+        for k in l_sideKeys:
+            _d[k+'Left'] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d[k+'Right'] =  {'color':'redWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+
+        _str_pose = 'human'
+        
+        for k,d in _d.iteritems():
+            if 'Left' in k:
+                k_use = str(k).replace('Left','Right')
+                _v = copy.copy(_d_scaleSpace[_str_pose].get(k_use))
+                if _v:
+                    _v[0] = -1 * _v[0]
+            else:
+                _v = _d_scaleSpace[_str_pose].get(k)
+                
+            if _v is not None:
+                _d[k]['scaleSpace'] = _v
+        
+        _keys = _d.keys()
+        _keys.sort()
+        l_order.extend(_keys)
+        d_creation.update(_d)
+        pprint.pprint(_d)
+        pprint.pprint(_d_scaleSpace)
+        _d_curveCreation = {
+            'browLine':{'keys':['endRight','edgeRight','startRight',
+                                'center',
+                                'startLeft','edgeLeft','endLeft'],'rebuild':0},
+            'upperLine':{'keys':['upperEndRight','upperEdgeRight',
+                                'centerTop',
+                                'upperEdgeLeft','upperEndLeft'],'rebuild':0},            
+            'browCenter':{'keys':['center','centerTop',],'rebuild':0},
+            'browWedgeRight':{'keys':['startRight','upperEdgeRight',],'rebuild':0},
+            'endRight':{'keys':['endRight','endRight',],'rebuild':0},
+            'browEdgeRight':{'keys':['edgeRight','upperEdgeRight',],'rebuild':0},            
+            'browWedgeLeft':{'keys':['startLeft','upperEdgeLeft',],'rebuild':0},
+            'endLeft':{'keys':['endLeft','endLeft',],'rebuild':0},
+            'browEdgeLeft':{'keys':['edgeLeft','upperEdgeLeft',],'rebuild':0},}
+        
+        d_curveCreation.update(_d_curveCreation)
+        #pprint.pprint(vars())
+        
+        
+    #make em...============================================================
+    log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
+    
+    #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/2, mDefineNull, mBBShape)
+
+    md_handles = md_res['md_handles']
+    ml_handles = md_res['ml_handles']
+    
+    
+    for k,p in d_toParent.iteritems():
+        md_handles[k].p_parent = md_handles[p]
+        
+
+    
+    #Mirror setup...
+    idx_ctr = 0
+    idx_side = 0
+    d = {}
+        
+    for tag,mHandle in md_handles.iteritems():
+        if cgmGEN.__mayaVersion__ >= 2018:
+            mController = mHandle.controller_get()
+            mController.visibilityMode = 2
+            
+        mHandle._verifyMirrorable()
+        _center = True
+        for p1,p2 in d_pairs.iteritems():
+            if p1 == tag or p2 == tag:
+                _center = False
+                break
+        if _center:
+            log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+            mHandle.mirrorSide = 0
+            mHandle.mirrorIndex = idx_ctr
+            idx_ctr +=1
+        mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+
+    #Self mirror wiring -------------------------------------------------------
+    for k,m in d_pairs.iteritems():
+        md_handles[k].mirrorSide = 1
+        md_handles[m].mirrorSide = 2
+        md_handles[k].mirrorIndex = idx_side
+        md_handles[m].mirrorIndex = idx_side
+        md_handles[k].doStore('mirrorHandle',md_handles[m])
+        md_handles[m].doStore('mirrorHandle',md_handles[k])
+        idx_side +=1
+
+    #Curves -------------------------------------------------------------------------
+    log.debug("|{0}| >>  Make the curves...".format(_str_func))    
+    md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
+    self.msgList_connect('defineHandles',ml_handles)#Connect    
+    self.msgList_connect('defineSubHandles',ml_handles)#Connect
+    self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect    
+    
+    md_curves = md_resCurves['md_curves']
+    self.UTILS.create_simpleFormLoftMesh(self,
+                                         [mObj.mNode for mObj in [md_curves['upperLine'],
+                                                                  md_curves['browLine']]],
+                                         mDefineNull,
+                                         polyType = 'bezier',
+                                         d_rebuild = d.get('rebuild',{}),
+                                         baseName = 'brow',
+                                         transparent = 1,
+                                         #vDriver = "{0}.numLidSplit_v".format(_short),
+                                         #uDriver = "{0}.numLidSplit_u".format(_short),
+                                         **d.get('kws',{}))    
+      
+    
+    
     return
 
         
@@ -240,7 +391,12 @@ def define(self):
 #=============================================================================================================
 def mirror_self(self,primeAxis = 'Left'):
     _str_func = 'mirror_self'
-    _idx_state = self.getState(False)
+    _idx_state = self.blockState
+    
+    log.debug("|{0}| >> define...".format(_str_func)+ '-'*80)
+    ml_mirrorHandles = self.msgList_get('defineSubHandles')
+    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+                                             mode = '',primeAxis = primeAxis.capitalize() )        
 
     if _idx_state > 0:
         log.debug("|{0}| >> form...".format(_str_func)+ '-'*80)
