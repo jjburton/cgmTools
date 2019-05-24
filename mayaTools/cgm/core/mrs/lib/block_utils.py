@@ -938,6 +938,8 @@ def noTransformNull_verify(self,mode='form',forceNew=False):
         mNoTransformNull.doStore('cgmName', self)
         mNoTransformNull.doStore('cgmType',_plug)
         mNoTransformNull.doName()
+        
+        mNoTransformNull.doConnectIn('v',"{0}.v".format(self.mNode))
 
         mNoTransformNull.dagLock()
         #mNoTransformNull.p_parent = self.prerigNull

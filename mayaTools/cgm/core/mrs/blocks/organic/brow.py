@@ -66,6 +66,7 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
+import cgm.core.lib.surface_Utils as SURF
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
@@ -140,9 +141,14 @@ l_attrsStandard = ['side',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:side',
+                 'formForeheadNum':'int',
+                 'formBrowNum':'int',
                  'paramStart':'float',
                  'paramMid':'float',
+                 'paramMid':'float',
                  'paramEnd':'float',
+                 'numSplit_u':'int',
+                 'numSplit_v':'int',
                  'addBrowUpr':'bool',
                  'addTemple':'bool',
                  'addEyeSqueeze':'bool',
@@ -160,7 +166,12 @@ d_defaultSettings = {'version':__version__,
                      'paramStart':.2,
                      'paramMid':.5,
                      'paramEnd':1.0,
+                     'numSplit_u':5,
+                     'numSplit_v':6,
                      'visLabels':True,
+                     'formForeheadNum':1,
+                     'formBrowNum':1,
+                     
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -243,35 +254,51 @@ def define(self):
         log.debug("|{0}| >>  full brow setup...".format(_str_func))
         _d_pairs = {}
         _d = {}
-        l_sideKeys = ['start','edge','end','upperEdge','upperEnd']
+        l_sideKeys = ['peak_1','peak_2','peak_3',
+                      'brow_1','brow_2','brow_3','brow_4',
+                      'base_1','base_2','base_3','base_4'
+                      ]
         for k in l_sideKeys:
-            _d_pairs[k+'Left'] = k+'Right'
+            _d_pairs[k+'_left'] = k+'_right'
   
         d_pairs.update(_d_pairs)
         
         #Going to just store the right values and then just flip the 
         _d_scaleSpace = {
-            'human':{'center':[0,-1,1],
-                     'centerTop':[0,1,.8],
-                     'startRight':[-.2,-1,1],
-                     'edgeRight':[-.8,-1,.8],
-                     'endRight':[-1,-1.2,-1],
-                     'upperEdgeRight':[-.7,1,.5],
-                     'upperEndRight':[-1,1,-1],
+            'human':{'base':[0,-1.1,1],
+                     'brow':[0,-.5,1],
+                     'peak':[0,1,.6],
+                     'base_1_right':[-.2,-1.1,1],
+                     'base_2_right':[-.55,-1.1,.8],
+                     'base_3_right':[-.8,-1.1,.5],
+                     'base_4_right':[-1,-1,-1],
+                     
+                     'brow_1_right':[-.2,-.5,1],
+                     'brow_2_right':[-.55,-.5,.8],
+                     'brow_3_right':[-.8,-.5,.5],
+                     'brow_4_right':[-1,-.7,-1],
+                     
+                     'peak_1_right':[-.2,1,.6],
+                     'peak_2_right':[-.55,1,.25],
+                     'peak_3_right':[-.8,1,-.5],
+                     
+
                     },}
     
-        _d['center'] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
-        _d['centerTop'] = copy.copy(_d['center'])
+        _d['brow'] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+        _d['peak'] = copy.copy(_d['brow'])
+        _d['base'] = copy.copy(_d['brow'])
+
         
         for k in l_sideKeys:
-            _d[k+'Left'] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
-            _d[k+'Right'] =  {'color':'redWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d[k+'_left'] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            _d[k+'_right'] =  {'color':'redWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
 
         _str_pose = 'human'
         
         for k,d in _d.iteritems():
-            if 'Left' in k:
-                k_use = str(k).replace('Left','Right')
+            if 'left' in k:
+                k_use = str(k).replace('left','right')
                 _v = copy.copy(_d_scaleSpace[_str_pose].get(k_use))
                 if _v:
                     _v[0] = -1 * _v[0]
@@ -285,22 +312,31 @@ def define(self):
         _keys.sort()
         l_order.extend(_keys)
         d_creation.update(_d)
-        pprint.pprint(_d)
-        pprint.pprint(_d_scaleSpace)
+        #pprint.pprint(_d)
+        #pprint.pprint(_d_scaleSpace)
         _d_curveCreation = {
-            'browLine':{'keys':['endRight','edgeRight','startRight',
-                                'center',
-                                'startLeft','edgeLeft','endLeft'],'rebuild':0},
-            'upperLine':{'keys':['upperEndRight','upperEdgeRight',
-                                'centerTop',
-                                'upperEdgeLeft','upperEndLeft'],'rebuild':0},            
-            'browCenter':{'keys':['center','centerTop',],'rebuild':0},
-            'browWedgeRight':{'keys':['startRight','upperEdgeRight',],'rebuild':0},
-            'endRight':{'keys':['endRight','endRight',],'rebuild':0},
-            'browEdgeRight':{'keys':['edgeRight','upperEdgeRight',],'rebuild':0},            
-            'browWedgeLeft':{'keys':['startLeft','upperEdgeLeft',],'rebuild':0},
-            'endLeft':{'keys':['endLeft','endLeft',],'rebuild':0},
-            'browEdgeLeft':{'keys':['edgeLeft','upperEdgeLeft',],'rebuild':0},}
+            'browLine':{'keys':['brow_4_right','brow_3_right','brow_2_right','brow_1_right',
+                                'brow',
+                                'brow_1_left','brow_2_left','brow_3_left','brow_4_left'],'rebuild':0},
+            'peakLine':{'keys':['peak_3_right','peak_2_right','peak_1_right',
+                                'peak',
+                                'peak_1_left','peak_2_left','peak_3_left'],'rebuild':0},
+            'baseLine':{'keys':['base_4_right','base_3_right','base_2_right','base_1_right',
+                                'base',
+                                'base_1_left','base_2_left','base_3_left','base_4_left'],'rebuild':0},
+            
+            'browCenter':{'keys':['base','brow','peak',],'rebuild':0},
+            'browStartRight':{'keys':['base_1_right','brow_1_right'],'rebuild':0},
+            'browMidRight':{'keys':['base_2_right','brow_2_right','peak_1_right',],'rebuild':0},
+            'browEdgeRight':{'keys':['base_3_right','brow_3_right','peak_2_right',],'rebuild':0},
+            'browEndRight':{'keys':['base_4_right','brow_4_right','peak_3_right',],'rebuild':0},
+            
+            'browStartLeft':{'keys':['base_1_left','brow_1_left'],'rebuild':0},
+            'browMidLeft':{'keys':['base_2_left','brow_2_left','peak_1_left',],'rebuild':0},
+            'browEdgeLeft':{'keys':['base_3_left','brow_3_left','peak_2_left',],'rebuild':0},
+            'browEndLeft':{'keys':['base_4_left','brow_4_left','peak_3_left',],'rebuild':0},            
+            
+            }
         
         d_curveCreation.update(_d_curveCreation)
         #pprint.pprint(vars())
@@ -310,7 +346,7 @@ def define(self):
     log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
     
     #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/2, mDefineNull, mBBShape)
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/6, mDefineNull, mBBShape)
 
     md_handles = md_res['md_handles']
     ml_handles = md_res['ml_handles']
@@ -362,18 +398,23 @@ def define(self):
     self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect    
     
     md_curves = md_resCurves['md_curves']
-    self.UTILS.create_simpleFormLoftMesh(self,
-                                         [mObj.mNode for mObj in [md_curves['upperLine'],
-                                                                  md_curves['browLine']]],
-                                         mDefineNull,
-                                         polyType = 'bezier',
-                                         d_rebuild = d.get('rebuild',{}),
-                                         baseName = 'brow',
-                                         transparent = 1,
-                                         #vDriver = "{0}.numLidSplit_v".format(_short),
-                                         #uDriver = "{0}.numLidSplit_u".format(_short),
-                                         **d.get('kws',{}))    
-      
+    """
+    mSurf = self.UTILS.create_simpleFormLoftMesh(self,
+                                                 [mObj.mNode for mObj in [md_curves['upperLine'],
+                                                                          md_curves['browLine'],
+                                                                          md_curves['baseLine']]],
+                                                 mDefineNull,
+                                                 polyType = 'bezier',
+                                                 d_rebuild = d.get('rebuild',{}),
+                                                 baseName = 'brow',
+                                                 transparent = 1,
+                                                 #vDriver = "{0}.numLidSplit_v".format(_short),
+                                                 #uDriver = "{0}.numLidSplit_u".format(_short),
+                                                 **d.get('kws',{}))"""
+    
+    
+    #Mid track curve
+    
     
     
     return
@@ -437,6 +478,11 @@ def formDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
+        mObj.v=1
+        
+    for mObj in self.msgList_get('defineCurves'):
+        mObj.template=0
+        mObj.v=1
             
     try:self.defineLoftMesh.template = False
     except:pass
@@ -444,6 +490,283 @@ def formDelete(self):
     
 @cgmGEN.Timer
 def form(self):
+    try:    
+        _str_func = 'form'
+        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+        log.debug("{0}".format(self))
+        
+        _short = self.p_nameShort
+        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
+        
+        #Initial checks ===============================================================================
+        log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)    
+
+        #Create temple Null  ==================================================================================
+        mFormNull = BLOCKUTILS.formNull_verify(self)
+        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
+        
+        mHandleFactory = self.asHandleFactory()
+        
+        self.bbHelper.v = False
+        _size = MATH.average(self.baseSize[1:]) * .2
+        
+        d_handleTags = {}
+        md_loftCurves = {}
+        md_curves = []
+        
+        #Brow Handles  ==================================================================================
+        log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)
+
+        
+        if self.browType == 0:#Full brow
+            log.debug("|{0}| >>  Full Brow...".format(_str_func))
+            
+            #Gather all our define dhandles and curves -----------------------------
+            log.debug("|{0}| >> Get our define curves/handles...".format(_str_func)+ '-'*40)    
+    
+            md_handles = {}
+            md_dCurves = {}
+            d_defPos = {}
+            
+            ml_defineHandles = self.msgList_get('defineSubHandles')
+            for mObj in ml_defineHandles:
+                md_handles[mObj.handleTag] = mObj
+                d_defPos[mObj.handleTag] = mObj.p_position
+                mObj.v=0
+                
+            for mObj in self.msgList_get('defineCurves'):
+                md_dCurves[mObj.handleTag] = mObj
+                mObj.template=1
+                mObj.v=0
+            
+            #
+            d_pairs = {}
+            d_creation = {}
+            l_order = []
+            d_curveCreation = {}
+            ml_subHandles = []
+            md_loftCreation = {}
+            d_curveKeys = {}
+            l_curveKeys = []
+            d_sections = {'brow':{'crvs':['baseLine','browLine'],
+                                  'numAttr':'formBrowNum'},
+                          'fore':{'crvs':['browLine','peakLine'],
+                                  'numAttr':'formForeheadNum'}}
+            
+            _done = []
+            
+            d_sectionPos = {}
+            for iii,section in enumerate(['brow','fore']):
+                log.debug(cgmGEN.logString_sub(_str_func,section + '...'))
+                #We need to get positions lists per line
+                l_posLists = []
+                _d_section = d_sections[section]
+                
+                _res_tmp = mc.loft([md_dCurves[k].mNode for k in _d_section['crvs']],
+                                   o = True, d = 1, po = 0, c = False,u=False, autoReverse=0,ch=True)
+                                    
+                str_meshShape = TRANS.shapes_get(_res_tmp[0])[0]
+                l_knots = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+                
+                _count = self.getMayaAttr(_d_section['numAttr'])
+                
+                if _count:
+                    l_uValues = MATH.get_splitValueList(l_knots[0],l_knots[1],2+_count)
+                else:
+                    l_uValues = l_knots
+                
+                for v in l_uValues:
+                    if iii and v == l_uValues[0]:
+                        continue
+                    
+                    _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
+                    
+                    if iii:
+                        _split = 7
+                    else:
+                        _split = 11
+                        
+                    _l_pos = CURVES.getUSplitList(_crv,_split,rebuild=1)
+                        
+                    #_l_source = mc.ls("{0}.{1}[*]".format(_crv,'ep'),flatten=True,long=True)
+                    #_l_pos = []
+                    #for i,ep in enumerate(_l_source):
+                        #p = POS.get(ep)
+                        #_l_pos.append(p)
+                        ##LOC.create(position=p,name='{0}_loc'.format(i))
+                    #_done.append(k)
+                    l_posLists.append(_l_pos)
+                    mc.delete(_crv)                
+                
+                """
+                for k in _d_section['crvs']:
+                    if k in _done:
+                        continue
+                    
+                    mCrv = md_dCurves[k]
+                    _l_source = mc.ls("{0}.{1}[*]".format(mCrv.mNode,'ep'),flatten=True,long=True)
+                    _l_pos = []
+                    for i,ep in enumerate(_l_source):
+                        p = POS.get(ep)
+                        _l_pos.append(p)
+                        #LOC.create(position=p,name='{0}_loc'.format(i))
+                    _done.append(k)
+                    l_posLists.append(_l_pos)"""
+                
+                """
+                if _count:
+                    log.debug(cgmGEN.logString_msg(_str_func,section + 'section split'))
+
+                    
+                    l_uValues.pop(0)
+                    l_uValues.pop(-1)
+                    
+                    for v in l_uValues:
+                        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
+                        
+                        _l_source = mc.ls("{0}.{1}[*]".format(_crv,'ep'),flatten=True,long=True)
+                        _l_pos = []
+                        for i,ep in enumerate(_l_source):
+                            p = POS.get(ep)
+                            _l_pos.append(p)
+                            #LOC.create(position=p,name='{0}_loc'.format(i))
+                        _done.append(k)
+                        l_posLists.insert(1,_l_pos)
+                        mc.delete(_crv)"""
+                        
+                mc.delete(_res_tmp)
+                
+                #Now we have our positions, we need to setup our handle sets
+                for i,l_pos in enumerate(l_posLists):
+                    _idx = MATH.get_midIndex(len(l_pos))
+                    _right = l_pos[:_idx]
+                    _left = l_pos[_idx+1:]
+                    _mid = l_pos[_idx]
+
+                    key_center = '{0}_{1}_center'.format(section,i+1)
+                    l_keys_left = []
+                    l_keys_right = []                   
+                    
+                    d_creation[key_center] =  {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'pos':_mid}
+                    
+
+                    for ii,v in enumerate(_right):
+                        k = '{0}_{1}_{2}'.format(section,i+1,ii+1)
+                        
+                        
+                        d_creation[k+'_left'] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'pos':_left[ii]}
+                        d_creation[k+'_right'] =  {'color':'redWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0,'pos':v}
+                        
+                        l_keys_right.append(k+'_right')
+                        l_keys_left.append(k+'_left')
+                        
+                        #LOC.create(position=v,name=k+'_right_loc')
+                        #LOC.create(position=_left[ii],name=k+'_left_loc')
+
+                    
+                    l_keys = l_keys_right + [key_center] + l_keys_left
+                                           
+                    
+                    key_curve = '{0}_{1}'.format(section,i+1)
+                    d_curveKeys[key_curve]= l_keys
+                    l_curveKeys.append(key_curve)
+                    
+                    
+                    d_curveCreation[key_curve] = {'keys':l_keys,
+                                                  'rebuild':1}
+                    
+                    l_keys_left.reverse()
+                    for i,k in enumerate(l_keys_left):
+                        d_pairs[k] = l_keys_right[i]                           
+                    
+                d_sectionPos[section] = l_posLists
+            
+            l_order = d_creation.keys()
+  
+            #LoftDeclarations....
+            md_loftCreation['brow'] = {'keys':l_curveKeys,
+                                         'rebuild':{'spansU':5,'spansV':5},
+                                         'kws':{'noRebuild':1}}
+
+            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
+                                                     mFormNull,statePlug = 'form')
+            
+            ml_subHandles.extend(md_res['ml_handles'])
+            md_handles.update(md_res['md_handles'])
+            
+ 
+            md_res = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull,'formCurve')
+            md_resCurves = md_res['md_curves']
+            
+            for k,d in md_loftCreation.iteritems():
+                ml_curves = [md_resCurves[k2] for k2 in d['keys']]
+                for mObj in ml_curves:
+                    mObj.v=False
+                
+                self.UTILS.create_simpleFormLoftMesh(self,
+                                                     [mObj.mNode for mObj in ml_curves],
+                                                     mFormNull,
+                                                     polyType = 'faceLoft',
+                                                     d_rebuild = d.get('rebuild',{}),
+                                                     baseName = k,
+                                                     transparent = False,
+                                                     vDriver = "{0}.numSplit_v".format(_short),
+                                                     uDriver = "{0}.numSplit_u".format(_short),
+                                                     **d.get('kws',{}))
+        
+            
+            
+            for tag,mHandle in md_handles.iteritems():
+                if cgmGEN.__mayaVersion__ >= 2018:
+                    mController = mHandle.controller_get()
+                    mController.visibilityMode = 2
+                    
+            #Mirror indexing -------------------------------------
+            log.debug("|{0}| >> Mirror Indexing...".format(_str_func)+'-'*40) 
+            
+            idx_ctr = 0
+            idx_side = 0
+            d = {}
+            
+            for tag,mHandle in md_handles.iteritems():
+                if mHandle in ml_defineHandles:
+                    continue
+                
+                mHandle._verifyMirrorable()
+                _center = True
+                for p1,p2 in d_pairs.iteritems():
+                    if p1 == tag or p2 == tag:
+                        _center = False
+                        break
+                if _center:
+                    log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+                    mHandle.mirrorSide = 0
+                    mHandle.mirrorIndex = idx_ctr
+                    idx_ctr +=1
+                mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+        
+            #Self mirror wiring -------------------------------------------------------
+            for k,m in d_pairs.iteritems():
+                try:
+                    md_handles[k].mirrorSide = 1
+                    md_handles[m].mirrorSide = 2
+                    md_handles[k].mirrorIndex = idx_side
+                    md_handles[m].mirrorIndex = idx_side
+                    md_handles[k].doStore('mirrorHandle',md_handles[m])
+                    md_handles[m].doStore('mirrorHandle',md_handles[k])
+                    idx_side +=1        
+                except Exception,err:
+                    log.error('Mirror error: {0}'.format(err))
+                        
+            self.msgList_connect('formHandles',ml_subHandles)#Connect
+            self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
+            return                        
+
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
+@cgmGEN.Timer
+def formBAK(self):
     try:    
         _str_func = 'form'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
