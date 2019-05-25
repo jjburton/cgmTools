@@ -67,6 +67,7 @@ import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.lib.string_utils as STR
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
@@ -111,7 +112,7 @@ _d_attrStateOn = {0:[],
 
 _d_attrStateOff = {0:[],
                    1:[],
-                   2:[],
+                   2:['blockScale','sy'],
                    3:[],
                    4:[]}
 #>>>Profiles ==============================================================================================
@@ -143,19 +144,24 @@ l_attrsStandard = ['side',
 d_attrsToMake = {'browType':'full:side',
                  'formForeheadNum':'int',
                  'formBrowNum':'int',
-                 'paramStart':'float',
-                 'paramMid':'float',
-                 'paramMid':'float',
-                 'paramEnd':'float',
+                 #'paramStart':'float',
+                 #'paramMid':'float',
+                 #'paramMid':'float',
+                 #'paramEnd':'float',
                  'numSplit_u':'int',
                  'numSplit_v':'int',
-                 'addBrowUpr':'bool',
-                 'addTemple':'bool',
                  'addEyeSqueeze':'bool',
                  'browSetup':'ribbon:undefined',
                  'numHandlesBrow':'int',
-                 'numJointsBrow':'int',
+                 'numBrowJoints':'int',
                  'profileOptions':'string',
+                 'controlBrowCenter':'bool',
+                 'numBrowControl':'int',
+                 'controlTemple':'bool',
+                 'jointDepth':'float',
+                 'controlOffset':'float',
+                 
+                 
 }
 
 d_defaultSettings = {'version':__version__,
@@ -163,15 +169,19 @@ d_defaultSettings = {'version':__version__,
                      'side':'none',
                      'nameList':['brow','squeeze'],
                      'loftDegree':'cubic',
-                     'paramStart':.2,
-                     'paramMid':.5,
-                     'paramEnd':1.0,
+                     #'paramStart':.2,
+                     #'paramMid':.5,
+                     #'paramEnd':1.0,
                      'numSplit_u':5,
                      'numSplit_v':6,
                      'visLabels':True,
                      'formForeheadNum':1,
                      'formBrowNum':1,
-                     
+                     'controlBrowCenter':True,
+                     'numBrowControl':3,
+                     'numBrowJoints':3,
+                     'jointDepth':-.01,
+                     'controlOffset':1,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -713,9 +723,7 @@ def form(self):
                                                      vDriver = "{0}.numSplit_v".format(_short),
                                                      uDriver = "{0}.numSplit_u".format(_short),
                                                      **d.get('kws',{}))
-        
-            
-            
+
             for tag,mHandle in md_handles.iteritems():
                 if cgmGEN.__mayaVersion__ >= 2018:
                     mController = mHandle.controller_get()
@@ -765,260 +773,6 @@ def form(self):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-@cgmGEN.Timer
-def formBAK(self):
-    try:    
-        _str_func = 'form'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        _short = self.p_nameShort
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
-        
-        #Initial checks ===============================================================================
-        log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)    
-        #_side = self.UTILS.get_side(self)
-        #_eyeType = self.getEnumValueString('eyeType')
-                
-        #if _eyeType not in ['sphere']:
-        #    return log.error("|{0}| >> loft setup mode not done: {1}".format(_str_func,_loftSetup))
-        
-        
-        #Create temple Null  ==================================================================================
-        mFormNull = BLOCKUTILS.formNull_verify(self)
-        mNoTransformNull = self.atUtils('noTransformNull_verify','form')
-        
-        mHandleFactory = self.asHandleFactory()
-        
-        self.bbHelper.v = False
-        _size = MATH.average(self.baseSize[1:])
-        
-        d_handleTags = {}
-        md_loftCurves = {}
-        md_curves = []
-        
-        #Brow Handles  ==================================================================================
-        log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)
-        
-        """
-        _sideMult = 1
-        _axisOuter = 'x+'
-        _axisInner = 'x-'
-        
-        if self.side == 1:
-            _sideMult = -1
-            _axisOuter = 'x-'
-            _axisInner = 'x+'
-            """
-        
-        if self.browType == 0:#Full brow
-            log.debug("|{0}| >>  Full Brow...".format(_str_func))            
-            _d_pairs = {'browLeft':'browRight',
-                        'browMidLeft':'browMidRight',
-                        'browMidLeftUp':'browMidRightUp',                        
-                        'browLeftUp':'browRightUp'}
-            
-            _d = {#'aim':{'color':'yellowBright','defaults':{'tz':1}},
-                  'browCenter':{'color':'yellowBright','tagOnly':True,'arrow':False,
-                                'vectorLine':False,'defaults':{}},
-                  'browLeft':{'color':'blue','tagOnly':True,'arrow':False,'jointLabel':False,
-                              'vectorLine':False,'defaults':{'tx':2}},
-                  'browRight':{'color':'red','tagOnly':True,'arrow':False,'jointLabel':False,
-                               'vectorLine':False,'defaults':{'tx':-2}},
-                  'browMidLeft':{'color':'blueSky','tagOnly':True,'arrow':False,'jointLabel':False,
-                              'vectorLine':False,'defaults':{'tx':1}},
-                  'browMidRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':False,
-                               'vectorLine':False,'defaults':{'tx':-1}},
-                  'templeLeft':{'color':'blueSky','tagOnly':True,'arrow':False,'jointLabel':False,
-                              'vectorLine':False,'defaults':{'tx':2,'tz':-1}},
-                  'templeRight':{'color':'redWhite','tagOnly':True,'arrow':False,'jointLabel':False,
-                               'vectorLine':False,'defaults':{'tx':-2,'tz':-1}},
-                  'browCenterUp':{'color':'yellowBright','tagOnly':True,'parentTag':'browCenter',
-                                  'jointLabel':False,
-                                   'defaults':{'ty':2.0}},
-                  'browLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browLeft','jointLabel':False,
-                              'defaults':{'tx':2,'ty':2}},
-                  'browRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browRight','jointLabel':False,
-                              'defaults':{'tx':-2,'ty':2}},
-                  'browMidLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'browMidLeft','jointLabel':False,
-                                'defaults':{'tx':1,'ty':2}},
-                  'browMidRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'browMidRight','jointLabel':False,
-                                 'defaults':{'tx':-1,'ty':2}},                  
-                  'templeLeftUp':{'color':'blueSky','tagOnly':True,'parentTag':'templeLeft','jointLabel':False,
-                                 'defaults':{'tx':2,'ty':2,'tz':-1}},
-                  'templeRightUp':{'color':'redWhite','tagOnly':True,'parentTag':'templeRight','jointLabel':False,
-                                    'defaults':{'tx':-2,'ty':2,'tz':-1}},              
-                  }        
-
-            _l_order = ['browCenter','browLeft','browRight','browMidLeft','browMidRight',
-                        'browCenterUp','browLeftUp','browRightUp','browMidLeftUp','browMidRightUp']
-                        
-            #if self.addTemple:
-            _l_order.extend(['templeLeft','templeRight','templeLeftUp','templeRightUp'])
-            _d_pairs['templeLeft']='templeRight'
-            _d_pairs['templeLeftUp']='templeRightUp'
-            
-            md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 5, mFormNull)
-        
-            md_handles = md_res['md_handles']
-            ml_handles = md_res['ml_handles']
-            
-            idx_ctr = 0
-            idx_side = 0
-            
-            for mHandle in ml_handles:
-                mHandle._verifyMirrorable()
-                _str_handle = mHandle.p_nameBase
-                if 'Center' in _str_handle:
-                    mHandle.mirrorSide = 0
-                    mHandle.mirrorIndex = idx_ctr
-                    idx_ctr +=1
-                mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
-    
-            #Self mirror wiring -------------------------------------------------------
-            for k,m in _d_pairs.iteritems():
-                md_handles[k].mirrorSide = 1
-                md_handles[m].mirrorSide = 2
-                md_handles[k].mirrorIndex = idx_side
-                md_handles[m].mirrorIndex = idx_side
-                md_handles[k].doStore('mirrorHandle',md_handles[m])
-                md_handles[m].doStore('mirrorHandle',md_handles[k])
-                idx_side +=1
-            
-            
-            """
-            d_positions = {'inner':self.getPositionByAxisDistance(_axisOuter,_size*.5),
-                           'outer':self.getPositionByAxisDistance(_axisInner,_size*.5),
-                           'upr':self.getPositionByAxisDistance('y+',_size*.25),
-                           'lwr':self.getPositionByAxisDistance('y-',_size*.25),
-                           }
-            md_handles['inner'].p_position = d_positions['inner']
-            md_handles['outer'].p_position = d_positions['outer']
-            md_handles['upr'].p_position = d_positions['upr']
-            md_handles['lwr'].p_position = d_positions['lwr']
-            
-            
-            _crvUpr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
-                                                                d_positions['upr'],
-                                                                d_positions['outer']])
-            
-            _crvLwr = CORERIG.create_at(create='curve',l_pos = [d_positions['inner'],
-                                                                d_positions['lwr'],
-                                                                d_positions['outer']])"""        
-        
-            
-            #Get our curve handles -----------------------------------------------
-            d_handleTags = {}
-            d_handleTags['browLine'] = ['templeRight','browRight','browMidRight','browCenter',
-                                       'browMidLeft','browLeft','templeLeft']
-            
-            d_handleTags['browUpr'] = ['templeRightUp','browRightUp','browMidRightUp',
-                                       'browCenterUp','browMidLeftUp','browLeftUp',
-                                       'templeLeftUp']
-            
-            d_handleTags['browLeft'] = ['browCenter','browMidLeft','browLeft','templeLeft']
-            d_handleTags['browRight'] = ['browCenter','browMidRight','browRight','templeRight']
-        
-        self.msgList_connect('formHandles',ml_handles)#Connect
-        
-        
-        #Track curve --------------------------------------------------------------------------
-        log.debug("|{0}| >> TrackCrvs...".format(_str_func)+'-'*40) 
-        
-        for tag,l_tags in d_handleTags.iteritems():
-            log.debug("|{0}| >>  curve: {1}...".format(_str_func,tag))            
-            
-            l_pos = []
-            for k in l_tags:
-                l_pos.append(md_handles[k].p_position)
-            
-            _crv = mc.curve(d=1,p=l_pos)
-            #CORERIG.create_at(create='curve',l_pos = l_pos)
-            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mCrv.p_parent = mNoTransformNull
-            mHandleFactory.color(mCrv.mNode)
-            mCrv.rename('{0}_loftCurve'.format(tag))            
-            mCrv.v=False
-            md_loftCurves[tag] = mCrv
-            
-            self.connectChildNode(mCrv, tag+'loftCurve','block')
-            
-            
-            l_clusters = []
-            for i,cv in enumerate(mCrv.getComponents('cv')):
-                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(md_handles[l_tags[i]].p_nameBase,i))
-                TRANS.parent_set( _res[1], md_handles[l_tags[i]].mNode)
-                l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
-        
-            #pprint.pprint(l_clusters)
-            mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,s=8,
-                            n="{0}_reparamRebuild".format(md_handles[l_tags[i]].p_nameBase))
-            
-        #Build our brow loft --------------------------------------------------------------------------
-        log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
-        self.UTILS.create_simpleFormLoftMesh(self,
-                                                 [md_loftCurves['browLine'].mNode,
-                                                  md_loftCurves['browUpr'].mNode],
-                                                 mFormNull,
-                                                 polyType = 'bezier',
-                                                 baseName = 'brow')
-        
-        #Build our brow loft --------------------------------------------------------------------------
-        log.debug("|{0}| >> Visualize brow...".format(_str_func)+'-'*40)
-        md_directCurves = {}
-        for tag in ['browLeft','browRight']:
-            mCrv = md_loftCurves[tag]
-            ml_temp = []
-            for k in ['start','mid','end']:
-                mLoc = cgmMeta.asMeta(self.doCreateAt())
-                mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
-                
-                self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
-                
-                mLoc.rename("{0}_{1}_formHelper".format(tag,k))
-                
-                mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
-                                                                             turnOnPercentage=True))
-                
-                mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,"param{0}".format(k.capitalize())))
-            
-            
-                mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
-            
-                mLoc.p_parent = mNoTransformNull
-                ml_temp.append(mLoc)
-                #mLoc.v=False
-                #mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
-                
-            #Joint curves......
-            _crv = mc.curve(d=1,p=[mObj.p_position for mObj in ml_temp])
-            
-            #CORERIG.create_at(create='curve',l_pos = l_pos)
-            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mCrv.p_parent = mNoTransformNull
-            mHandleFactory.color(mCrv.mNode)
-            mCrv.rename('{0}_jointCurve'.format(tag))            
-            mCrv.v=False
-            md_loftCurves[tag] = mCrv
-        
-            self.connectChildNode(mCrv, tag+'JointCurve','block')
-        
-            l_clusters = []
-            for i,cv in enumerate(mCrv.getComponents('cv')):
-                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_temp[i].p_nameBase,i))
-                TRANS.parent_set( _res[1], ml_temp[i].mNode)
-                l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
-                
-            mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,s=8,
-                            n="reparamRebuild")
-        
-        
-
-        
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)
 
 #=============================================================================================================
 #>> Prerig
@@ -1027,7 +781,9 @@ def prerigDelete(self):
     try:self.moduleEyelid.delete()
     except:pass
     
-    self.noTransFormNull.v=True
+    for a in 'blockScale','translate','rotate':
+        ATTR.set_lock(self.mNode, a, False)    
+    
     
 def create_handle(self,tag,pos,mJointTrack=None,
                   trackAttr=None,visualConnection=True,
@@ -1141,7 +897,437 @@ def prerig(self):
         self.atUtils('module_verify')
         mStateNull = self.UTILS.stateNull_verify(self,'prerig')
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
-        self.noTransFormNull.v=False
+        
+        #mRoot = self.getMessageAsMeta('rootHelper')
+        mHandleFactory = self.asHandleFactory()
+        
+        ml_handles = []
+        md_handles = {'brow':{'center':[],
+                              'left':[],
+                              'right':[]}}
+        md_jointHandles = {'brow':{'center':[],
+                              'left':[],
+                              'right':[]}}
+        
+        for a in 'blockScale','translate','rotate':
+            ATTR.set_lock(self.mNode, a, True)
+        
+        #Get base dat =============================================================================    
+        mBBHelper = self.bbHelper
+        mBrowLoft = self.getMessageAsMeta('browFormLoft')
+        
+        _size = MATH.average(self.baseSize[1:])
+        _size_base = _size * .25
+        _size_sub = _size_base * .5
+        
+        idx_ctr = 0
+        idx_side = 0
+        
+ 
+        #Anchors =====================================================================================
+        log.debug(cgmGEN.logString_sub('anchors'))
+        
+        def create_anchor(self, pos,mSurface,tag,k,side=None,controlType = 'main',nameDict=None, size = _size_sub):
+            mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass=1)
+            
+            #Position 
+            datClose = DIST.get_closest_point_data(mSurface.mNode, targetPoint=pos)
+            pClose = datClose['position']
+            
+            mHandle.p_position = pClose
+            
+            mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0]))
+            
+            pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',self.controlOffset * 2)
+            
+            mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
+                                              'cgmControl',setClass=1)
+            mBall.doSnapTo(mHandle)
+            mBall.p_position = pBall
+            
+            _crvLinear = CORERIG.create_at(create='curveLinear',
+                                           l_pos=[pClose,pBall])
+            
+            CORERIG.shapeParent_in_place(mHandle.mNode, mBall.mNode,False)
+            CORERIG.shapeParent_in_place(mHandle.mNode, _crvLinear,False)            
+  
+            mHandle._verifyMirrorable()
+            
+            mHandle.p_parent = mStateNull
+            
+            if nameDict:
+                RIGGEN.store_and_name(mHandle,nameDict)
+            else:
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType','anchor')
+                mHandle.doName()
+                
+            _key = tag
+            if k:
+                _key = _key+k.capitalize()
+                
+            mHandleFactory.color(mHandle.mNode, side = side, controlType=controlType)
+
+            return mHandle
+            
+        #we need to generate some positions
+        md_handles = {}
+        ml_handlesAll = []
+        md_mirrorDat = {'center':[],
+                        'left':[],
+                        'right':[]}
+        md_dCurves = {}
+        d_defPos = {}
+        
+        md_defineHandles = {}
+        ml_defineHandles = self.msgList_get('defineSubHandles')
+        for mObj in ml_defineHandles:
+            md_defineHandles[mObj.handleTag] = mObj
+            d_defPos[mObj.handleTag] = mObj.p_position
+            mObj.v=0
+            
+        d_anchorDat = {'brow':{'center':{'main':['base','brow']}}}
+        md_anchors = {}
+        
+        for side in 'left','right':
+            d_anchorDat['brow'][side] = {}
+            _d = d_anchorDat['brow'][side]
+            _d["start"] = ['base_1_{0}'.format(side),'brow_1_{0}'.format(side)]
+            _d["mid"] = ['base_2_{0}'.format(side),'brow_2_{0}'.format(side)]
+            _d["end"] = ['base_3_{0}'.format(side),'brow_3_{0}'.format(side)]
+            
+            if self.controlTemple:
+                _d["temple"]= ['base_4_{0}'.format(side),'brow_4_{0}'.format(side)]
+            
+            
+        #pprint.pprint(d_anchorDat)
+        #Get positions...
+        _d = {'cgmName':'browCenter',
+              'cgmType':'preHandle'}
+        
+        for section,sectionDat in d_anchorDat.iteritems():
+            md_anchors[section] = {}
+            for side,sideDat in sectionDat.iteritems():
+                md_anchors[section][side] = {}
+                for tag,dat in sideDat.iteritems():
+                    _dUse = copy.copy(_d)
+                    _dUse['cgmName'] = 'brow'+STR.capFirst(tag)
+                    _dUse['cgmDirection'] = side
+                    
+                    l_pos = []
+                    for key in dat:
+                        l_pos.append(md_defineHandles[key].p_position)
+                        
+                    posBase = DIST.get_average_position(l_pos)
+                    #LOC.create(position=posBase, name = tag+side)
+                    
+                    md_anchors[section][side][tag] = create_anchor(self,posBase, mBrowLoft, tag, None, side,nameDict=_dUse,size= _size_sub/2)
+        
+        
+        
+        #...get my anchors in lists...
+        md_anchorsLists = {}
+        
+        for section,sectionDat in d_anchorDat.iteritems():
+            md_anchorsLists[section] = {}
+            
+            for side,dat in sectionDat.iteritems():
+                if side == 'center':
+                    md_anchorsLists[section]['center'] =  [md_anchors[section][side]['main']]
+                    md_mirrorDat['center'].extend(md_anchorsLists[section]['center'])
+                    ml_handlesAll.extend(md_anchorsLists[section]['center'])
+                    
+                else:
+                    md_anchorsLists[section][side] =  [md_anchors[section][side]['start'],
+                                              md_anchors[section][side]['mid'],
+                                              md_anchors[section][side]['end']]
+                    
+                    md_mirrorDat[side].extend(md_anchorsLists[section][side])
+                    ml_handlesAll.extend(md_anchorsLists[section][side])
+
+
+        #...make our driver curves...
+        log.debug(cgmGEN.logString_msg('driver curves'))
+        d_curveCreation = {}
+        for section,sectionDat in md_anchorsLists.iteritems():
+            for side,dat in sectionDat.iteritems():
+                if side == 'center':
+                    pass
+                else:
+                    d_curveCreation[section+STR.capFirst(side)+'Driver'] = {'ml_handles': dat,
+                                             'rebuild':0}
+                
+        md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
+        md_resCurves = md_res['md_curves']
+        ml_resCurves = md_res['ml_curves']
+        
+        
+
+        #Handles ====================================================================================
+        def create_handle(pos, mSurface, tag, k, side,
+                          controlType = 'main',
+                          mainShape = 'squareRounded',
+                          subShape = 'sphere',
+                          size = _size_sub,
+                          offset = 1,
+                          mStateNull = mStateNull,
+                          mNoTransformNull = mNoTransformNull,
+                          mDriver = None,
+                          aimGroup = 0,nameDict = None):
+            
+            #Main handle ==================================================================================
+            #Create...
+            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName(mainShape, size = size), 
+                                              'cgmControl',setClass=1)
+            mHandle._verifyMirrorable()
+            mHandle.doSnapTo(self)
+            mHandle.p_parent = mStateNull
+            
+            mHandle.p_position = pos
+            
+            #Name...
+            if nameDict:
+                dUse = copy.copy(nameDict)
+                dUse['cgmType'] = 'prerigHandle'
+                
+                RIGGEN.store_and_name(mHandle,dUse)
+            else:
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType','prerigHandle')
+                mHandle.doName()
+                
+                
+            _key = tag
+            if k:
+                _key = _key+k.capitalize()
+            """
+            mMasterGroup = mHandle.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')"""
+
+
+            mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
+            mStateNull.connectChildNode(mHandle, _key+'prerigHelper','block')
+            
+            mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                                    aimVector = [0,0,1], upVector = [0,1,0],
+                                    worldUpObject = self.mNode,
+                                    worldUpType = 'objectrotation', 
+                                    worldUpVector = [0,1,0]))
+            
+            #Main handle ==================================================================================
+            #Create...
+            mJointHelper = cgmMeta.validateObjArg( CURVES.create_fromName('sphere', size = size/2), 
+                                              'cgmControl',setClass=1)
+            mJointHelper._verifyMirrorable()
+            mJointHelper.doSnapTo(self)
+            mJointHelper.p_parent = mStateNull
+            
+            mJointHelper.p_position = pos
+            
+            #Name...
+            if nameDict:
+                dUse = copy.copy(nameDict)
+                dUse['cgmType'] = 'jointHelper'                
+                RIGGEN.store_and_name(mJointHelper,dUse)
+            else:
+                mJointHelper.doStore('cgmName',tag)
+                mJointHelper.doStore('cgmType','jointHelper')
+                mJointHelper.doName()
+                
+                
+
+            """
+            mMasterGroup = mJointHelper.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')"""
+
+
+            mHandleFactory.color(mJointHelper.mNode,side = side, controlType=controlType)
+            mStateNull.connectChildNode(mHandle, _key+'jointHelper','block')
+            
+
+            #Attach group... -------------------------------------------------------------------------------
+            mTrack = mHandle.doCreateAt()
+            mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+            mTrack.p_parent = mNoTransformNull
+        
+            _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,'conPoint',driver= mDriver)
+            md = _res[-1]
+            mFollicle = md['mFollicle']
+            for k in ['mDriverLoc','mFollicle']:
+                md[k].p_parent = mNoTransformNull
+                md[k].v = False
+                
+            mDepth = mTrack.doCreateAt(setClass=1)
+            mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
+            mDepth.p_parent = mTrack
+            
+            mJointHelper.p_parent = mDepth
+            
+            mPush = mTrack.doCreateAt(setClass=1)
+            mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+            
+            mPush.p_parent = mTrack
+            
+            mJointHelper.p_parent = mDepth            
+            mHandle.p_parent = mPush
+            
+                
+            ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+            ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+            
+
+            if aimGroup:
+                mHandle.doGroup(True,True,
+                                asMeta=True,
+                                typeModifier = 'aim',
+                                setClass='cgmObject')
+        
+        
+            return mHandle,mJointHelper
+        
+        
+        
+        log.debug(cgmGEN.logString_sub('Handles'))
+        md_jointHandles = {}
+        
+        _d = {'cgmName':''}
+        
+        #...get our driverSetup
+        for section,sectionDat in md_anchorsLists.iteritems():
+            log.debug(cgmGEN.logString_msg(section))
+            
+            md_handles[section] = {}
+            md_jointHandles[section] = {}
+
+            for side,dat in sectionDat.iteritems():
+                log.debug(cgmGEN.logString_msg(side))
+                
+                md_handles[section][side] = []
+                md_jointHandles[section][side] = []
+                
+                _ml_handles = []
+                _ml_jointHelpers = []                
+                
+                tag = section+STR.capFirst(side)
+                
+                if side == 'center':
+                    d_use = copy.copy(_d)
+                    d_use['cgmName'] = tag
+                    d_use['cgmIterator'] = 0
+                    mAnchor = md_anchorsLists[section][side][0]
+                    p = mAnchor.p_position
+                    
+                    mHandle, mJointHelper = create_handle(p,mBrowLoft,tag,None,side,mDriver=mAnchor,nameDict=d_use)
+                    
+                    _ml_handles.append(mHandle)
+                    _ml_jointHelpers.append(mJointHelper)
+                
+                else:
+                    mCrv = md_resCurves.get(tag+'Driver')
+                    if mCrv:
+                        l_pos = CURVES.getUSplitList(mCrv.mNode, self.numBrowControl)
+                        mCrv.v=False
+                        d_use = copy.copy(_d)
+                        d_use['cgmName'] = tag
+
+                        for i,p in enumerate(l_pos):
+                            d_use['cgmIterator'] = i
+                            
+                            mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                            mDriver.rename("{0}_{1}_{2}_driver".format(side,section,i))
+                            mDriver.p_position = p
+                            mDriver.p_parent = mStateNull
+                            
+                            _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
+                            TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                            
+                            mHandle, mJointHelper = create_handle(p,mBrowLoft,tag,None,side,mDriver=mDriver,nameDict= d_use)
+                            
+                            _ml_handles.append(mHandle)
+                            _ml_jointHelpers.append(mJointHelper)
+                            
+                mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_handles)
+                mStateNull.msgList_connect('{0}jointHandles'.format(tag),_ml_jointHelpers)
+                md_mirrorDat[side].extend(_ml_handles + _ml_jointHelpers)
+                md_handles[section][side] = _ml_handles
+                md_jointHandles[section][side] = _ml_jointHelpers
+                
+                ml_handlesAll.extend(_ml_handles)
+                
+        
+        #CURVES ==========================================================================
+        log.debug(cgmGEN.logString_sub('curves'))
+        
+        #Make our visual joint curves for helping see things
+        d_visCurves = {}
+        md_browJointHelpers = md_jointHandles['brow']
+        for side in 'left','right':
+            d_visCurves['brow'+STR.capFirst(side)] = {'ml_handles': md_jointHandles['brow'][side],
+                                                      'rebuild':0}            
+        
+        md_res = self.UTILS.create_defineCurve(self, d_visCurves, {}, mNoTransformNull,'preCurve')
+        md_resCurves = md_res['md_curves']
+        ml_resCurves = md_res['ml_curves']        
+                        
+        
+        #Mirror setup --------------------------------
+        log.debug(cgmGEN.logString_sub('mirror'))
+        idx_ctr = 0
+        idx_side = 0
+        
+        log.debug(cgmGEN.logString_msg('mirror | center'))
+        for mHandle in md_mirrorDat['center']:
+            mHandle._verifyMirrorable()
+            mHandle.mirrorSide = 0
+            mHandle.mirrorIndex = idx_ctr
+            idx_ctr +=1
+            mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+
+        log.debug(cgmGEN.logString_msg('mirror | sides'))
+            
+        for i,mHandle in enumerate(md_mirrorDat['left']):
+            mLeft = mHandle 
+            mRight = md_mirrorDat['right'][i]
+            
+            for mObj in mLeft,mRight:
+                mObj._verifyMirrorable()
+                mObj.mirrorAxis = "translateX,rotateY,rotateZ"
+                mObj.mirrorIndex = idx_side
+            mLeft.mirrorSide = 1
+            mRight.mirrorSide = 2
+            mLeft.doStore('mirrorHandle',mRight)
+            mRight.doStore('mirrorHandle',mLeft)            
+            idx_side +=1
+ 
+        #Close out ======================================================================================
+        self.msgList_connect('prerigHandles', ml_handlesAll)
+        
+        self.blockState = 'prerig'
+        return
+    
+    
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+
+
+def prerigBAK(self):
+    try:
+        _str_func = 'prerig'
+        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+        self.blockState = 'prerig'
+        _side = self.UTILS.get_side(self)
+        
+        self.atUtils('module_verify')
+        mStateNull = self.UTILS.stateNull_verify(self,'prerig')
+        mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
         
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
@@ -1332,9 +1518,9 @@ def prerig(self):
             if _side in ['left','right']:
                 _d['cgmDirection'] = _side
                 
-            _factor = 100/(self.numJointsBrow-1)
+            _factor = 100/(self.numBrowJoints-1)
             
-            for i in range(self.numJointsBrow):
+            for i in range(self.numBrowJoints):
                 log.debug("|{0}| >>  Joint Handle: {1}|{2}...".format(_str_func,tag,i))            
                 _d['cgmIterator'] = i
                 
@@ -1521,25 +1707,44 @@ def skeleton_build(self, forceNew = True):
     if self.browType == 0:#Full brow
         log.debug("|{0}| >>  Full Brow...".format(_str_func))
         
-        #ml_left = mPrerigNull.msgList_get('browLeftJointHandles')
-        #ml_right = mPrerigNull.msgList_get('browRightJointHandles')
-        #ml_center = mPrerigNull.msgList_get('browCenterJointHandles')
+ 
         
-        for tag in 'left','right','center':
-            ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(tag.capitalize()))
-            ml_new = []
-            for mObj in ml_base:
-                mJnt = mObj.doCreateAt('joint')
-                mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-                mJnt.doStore('cgmType','skinJoint')
-                mJnt.doName()
-                ml_new.append(mJnt)
-                ml_joints.append(mJnt)
-                JOINT.freezeOrientation(mJnt.mNode)
+        for side in 'left','right','center':
+            _cap = side.capitalize()
+            ml_new = []            
+            if side == 'center':
+                ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(_cap))
+                for mObj in ml_base:
+                    mJnt = mObj.doCreateAt('joint')
+                    mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmType','skinJoint')
+                    mJnt.doName()
+                    ml_new.append(mJnt)
+                    ml_joints.append(mJnt)
+                    JOINT.freezeOrientation(mJnt.mNode)
+                    
+                    mJnt.p_parent = mRoot
+
+            else:
+                'browLeftPreCurve'
                 
-                mJnt.p_parent = mRoot
-                
-            mPrerigNull.msgList_connect('brow{0}Joints'.format(tag.capitalize()), ml_new)
+                if self.numBrowControl == self.numBrowJoints:
+                   ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(_cap))
+                    for mObj in ml_base:
+                        mJnt = mObj.doCreateAt('joint')
+                        mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                        mJnt.doStore('cgmType','skinJoint')
+                        mJnt.doName()
+                        ml_new.append(mJnt)
+                        ml_joints.append(mJnt)
+                        JOINT.freezeOrientation(mJnt.mNode)
+                        
+                        mJnt.p_parent = mRoot
+                else:
+                    mCrv = self.getMessageAsMeta("brow{0}PreCurve".format(_cap))
+                    raise NotImplemented,"Not done yet."
+                    
+            mPrerigNull.msgList_connect('brow{0}Joints'.format(_cap), ml_new)
             
                 
     #>> ===========================================================================

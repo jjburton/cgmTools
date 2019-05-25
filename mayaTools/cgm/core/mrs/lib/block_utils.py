@@ -8910,7 +8910,7 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
             _tagOnly = _dtmp.get('tagOnly',False)
             _handleKeys = _dtmp.get('keys')
             
-            ml_handles = [md_handles[k2] for k2 in _handleKeys]
+            ml_handles = _dtmp.get('ml_handles') or [md_handles[k2] for k2 in _handleKeys]
         
             l_pos = []
             for mHandle in ml_handles:
