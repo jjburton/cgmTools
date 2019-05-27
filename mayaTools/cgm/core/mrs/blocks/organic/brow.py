@@ -1068,7 +1068,301 @@ def prerig(self):
         
 
         #Handles ====================================================================================
-        def create_handle(pos, mSurface, tag, k, side,
+        def create_faceHandle(pos, mSurface, tag, k, side,
+                          controlType = 'main',
+                          mainShape = 'squareRounded',
+                          jointShape = 'axis3d',
+                          size = _size_sub,
+                          offset = 1,
+                          mStateNull = mStateNull,
+                          mNoTransformNull = mNoTransformNull,
+                          mDriver = None,
+                          mode = None,
+                          plugShape = 'prerigHelper',
+                          plugDag = 'jointHelper',
+                          aimGroup = 0,nameDict = None):
+            
+            #Main handle ==================================================================================
+            #Create...
+            _mainSize = size
+            if controlType == 'sub':
+                _mainSize = size*.7
+            mHandle = cgmMeta.validateObjArg( CURVES.create_fromName(mainShape, size = _mainSize), 
+                                              'cgmControl',setClass=1)
+            mHandle._verifyMirrorable()
+            mHandle.doSnapTo(self)
+            mHandle.p_parent = mStateNull
+            
+            mHandle.p_position = pos
+            
+            #Name...
+            if nameDict:
+                dUse = copy.copy(nameDict)
+                dUse['cgmType'] = plugShape
+                
+                RIGGEN.store_and_name(mHandle,dUse)
+            else:
+                mHandle.doStore('cgmName',tag)
+                mHandle.doStore('cgmType', plugShape)
+                mHandle.doName()
+                
+                
+            _key = tag
+            if k:
+                _key = _key+k.capitalize()
+            """
+            mMasterGroup = mHandle.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')"""
+
+
+            mHandleFactory.color(mHandle.mNode,side = side, controlType=controlType)
+            mStateNull.connectChildNode(mHandle, _key+plugShape,'block')
+            
+            mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                                    aimVector = [0,0,1], upVector = [0,1,0],
+                                    worldUpObject = self.mNode,
+                                    worldUpType = 'objectrotation', 
+                                    worldUpVector = [0,1,0]))
+            
+            #Main handle ==================================================================================
+            #Create...
+            mDagHelper = cgmMeta.validateObjArg( CURVES.create_fromName(jointShape, size = size/2,bakeScale=1), 
+                                              'cgmControl',setClass=1)
+            
+            
+            if jointShape in ['axis3d']:
+                mDagHelper.addAttr('cgmColorLock',True,lock=True,hidden=True)            
+            
+            mDagHelper._verifyMirrorable()
+            mDagHelper.doSnapTo(self)
+            mDagHelper.p_orient = mHandle.p_orient
+            mDagHelper.p_parent = mStateNull
+            
+            mDagHelper.p_position = pos
+            
+            #Name...
+            if nameDict:
+                dUse = copy.copy(nameDict)
+                dUse['cgmType'] = plugDag               
+                RIGGEN.store_and_name(mDagHelper,dUse)
+            else:
+                mDagHelper.doStore('cgmName',tag)
+                mDagHelper.doStore('cgmType',plugDag)
+                mDagHelper.doName()
+                
+                
+
+            """
+            mMasterGroup = mDagHelper.doGroup(True,True,
+                                           asMeta=True,
+                                           typeModifier = 'master',
+                                           setClass='cgmObject')"""
+
+
+            mHandleFactory.color(mDagHelper.mNode,side = side, controlType=controlType)
+            mStateNull.connectChildNode(mHandle, _key+plugDag,'block')
+            
+
+            #Attach group... -------------------------------------------------------------------------------
+            mTrack = mHandle.doCreateAt()
+            mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+            mTrack.p_parent = mNoTransformNull
+        
+            _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
+            md = _res[-1]
+            mFollicle = md['mFollicle']
+            for k in ['mDriverLoc','mFollicle']:
+                md[k].p_parent = mNoTransformNull
+                md[k].v = False
+                
+            mTrack.p_position = md['mFollicle'].p_position
+            mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                
+            mDepth = mTrack.doCreateAt(setClass=1)
+            mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
+            mDepth.p_parent = mTrack
+            
+            mDagHelper.p_parent = mDepth
+            
+            if mode == 'handle':
+                mPush = mTrack.doCreateAt(setClass=1)
+                mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+                
+                mPush.p_parent = mTrack
+                mHandle.p_parent = mPush
+                ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+            
+            else:
+                mHandle.p_parent = mTrack
+                mHandle.p_position = mTrack.p_position
+                mDagHelper.resetAttrs()
+                
+            ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+            
+
+            if aimGroup:
+                mHandle.doGroup(True,True,
+                                asMeta=True,
+                                typeModifier = 'aim',
+                                setClass='cgmObject')
+        
+        
+            return mHandle,mDagHelper
+        
+        
+        
+        log.debug(cgmGEN.logString_sub('Handles'))
+        md_prerigDags = {}
+        md_jointHelpers = {}
+        
+        _d = {'cgmName':''}
+        
+        #...get our driverSetup
+        for section,sectionDat in md_anchorsLists.iteritems():
+            log.debug(cgmGEN.logString_msg(section))
+            
+            md_handles[section] = {}
+            md_prerigDags[section] = {}
+            md_jointHelpers[section] = {}
+            for side,dat in sectionDat.iteritems():
+                log.debug(cgmGEN.logString_msg(side))
+                
+                md_handles[section][side] = []
+                md_prerigDags[section][side] = []
+                md_jointHelpers[side] = []
+                
+                _ml_shapes = []
+                _ml_prerigDags = []
+                _ml_jointShapes = []
+                _ml_jointHelpers = []
+                
+                tag = section+STR.capFirst(side)
+                
+                if side == 'center':
+                    d_use = copy.copy(_d)
+                    d_use['cgmName'] = tag
+                    d_use['cgmIterator'] = 0
+                    mAnchor = md_anchorsLists[section][side][0]
+                    p = mAnchor.p_position
+                    
+                    mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,mDriver=mDriver,controlType=_controlType, mode='handle', plugDag= 'preDag',plugShape= 'preShape',nameDict= d_use)
+                    
+                    _ml_shapes.append(mShape)
+                    _ml_prerigDags.append(mDag)
+                    
+                    #Joint stuff...
+                    mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                    mDriver.rename("{0}_{1}_{2}_joint_driver".format(side,section,i))
+                    mDriver.p_position = p
+                    mDriver.p_parent = mStateNull
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
+                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                    
+                    mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,
+                                                     mDriver=mDriver,
+                                                     mainShape='semiSphere',
+                                                     jointShape='sphere',
+                                                     size= _sizeDirect,
+                                                     mode='joint', plugDag= 'jointHelper',
+                                                     plugShape= 'directShape',
+                                                     nameDict= d_use)
+                    
+                    _ml_jointShapes.append(mShape)
+                    _ml_jointHelpers.append(mDag)                          
+                
+                else:
+                    mCrv = md_resCurves.get(tag+'Driver')
+                    if mCrv:
+                        #First do our controls....
+                        l_pos = CURVES.getUSplitList(mCrv.mNode, self.numBrowControl)
+                        mCrv.v=False
+                        d_use = copy.copy(_d)
+                        d_use['cgmName'] = tag
+
+                        for i,p in enumerate(l_pos):
+                            d_use['cgmIterator'] = i
+                            
+                            if p not in [l_pos[0],l_pos[-1]]:
+                                _controlType = 'sub'
+                            else:
+                                _controlType = 'main'
+                            
+                            mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                            mDriver.rename("{0}_{1}_{2}_pre_driver".format(side,section,i))
+                            mDriver.p_position = p
+                            mDriver.p_parent = mStateNull
+                            
+                            _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
+                            TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                            
+                            mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,mDriver=mDriver,controlType=_controlType, mode='handle', plugDag= 'preDag',plugShape= 'preShape',nameDict= d_use)
+                            
+                            _ml_shapes.append(mShape)
+                            _ml_prerigDags.append(mDag)
+                            
+                        #Now do our per joint handles
+                        l_pos = CURVES.getUSplitList(mCrv.mNode, self.numBrowJoints)
+                        _sizeDirect = _size_sub * .6
+                        for i,p in enumerate(l_pos):
+                            d_use['cgmIterator'] = i
+
+                            
+                            mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                            mDriver.rename("{0}_{1}_{2}_joint_driver".format(side,section,i))
+                            mDriver.p_position = p
+                            mDriver.p_parent = mStateNull
+                            
+                            _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
+                            TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                            
+                            mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,
+                                                             mDriver=mDriver,
+                                                             mainShape='semiSphere',
+                                                             jointShape='sphere',
+                                                             size= _sizeDirect,
+                                                             mode='joint',
+                                                             plugDag= 'jointHelper',
+                                                             plugShape= 'directShape',
+                                                             nameDict= d_use)
+                            
+                            _ml_jointShapes.append(mShape)
+                            _ml_jointHelpers.append(mDag)                        
+                            
+                mStateNull.msgList_connect('{0}PrerigShapes'.format(tag),_ml_shapes)
+                mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_prerigDags)
+                mStateNull.msgList_connect('{0}JointHelpers'.format(tag),_ml_jointHelpers)
+                mStateNull.msgList_connect('{0}JointShapes'.format(tag),_ml_jointShapes)                
+                md_mirrorDat[side].extend(_ml_shapes + _ml_prerigDags)
+                md_handles[section][side] = _ml_shapes
+                md_prerigDags[section][side] = _ml_prerigDags
+                md_jointHelpers[section][side] = _ml_jointHelpers
+                ml_handlesAll.extend(_ml_shapes + _ml_prerigDags)
+                if _ml_jointShapes:
+                    ml_handlesAll.extend(_ml_jointShapes)
+                    ml_handlesAll.extend(_ml_jointHelpers)
+                    md_mirrorDat[side].extend(_ml_jointShapes + _ml_jointHelpers)
+                
+        
+        #CURVES ==========================================================================
+        log.debug(cgmGEN.logString_sub('curves'))
+        
+        #Make our visual joint curves for helping see things
+        d_visCurves = {}
+        md_browJointHelpers = md_jointHelpers['brow']
+        for side in 'left','right':
+            d_visCurves['brow'+STR.capFirst(side)] = {'ml_handles': md_jointHelpers['brow'][side],
+                                                      'rebuild':0}            
+        
+        md_res = self.UTILS.create_defineCurve(self, d_visCurves, {}, mNoTransformNull,'preCurve')
+        md_resCurves = md_res['md_curves']
+        ml_resCurves = md_res['ml_curves']
+        
+        
+        #Joint handles ==========================================================================
+        def create_faceJointHelper(pos, mSurface, tag, k, side,
                           controlType = 'main',
                           mainShape = 'squareRounded',
                           subShape = 'sphere',
@@ -1191,91 +1485,34 @@ def prerig(self):
                                 setClass='cgmObject')
         
         
-            return mHandle,mJointHelper
+            return mHandle,mJointHelper        
         
+        """
+        log.debug(cgmGEN.logString_sub('joint handles'))
         
-        
-        log.debug(cgmGEN.logString_sub('Handles'))
-        md_jointHandles = {}
-        
-        _d = {'cgmName':''}
-        
-        #...get our driverSetup
-        for section,sectionDat in md_anchorsLists.iteritems():
-            log.debug(cgmGEN.logString_msg(section))
-            
-            md_handles[section] = {}
-            md_jointHandles[section] = {}
-
-            for side,dat in sectionDat.iteritems():
-                log.debug(cgmGEN.logString_msg(side))
-                
-                md_handles[section][side] = []
-                md_jointHandles[section][side] = []
-                
-                _ml_handles = []
-                _ml_jointHelpers = []                
-                
-                tag = section+STR.capFirst(side)
-                
-                if side == 'center':
-                    d_use = copy.copy(_d)
-                    d_use['cgmName'] = tag
-                    d_use['cgmIterator'] = 0
-                    mAnchor = md_anchorsLists[section][side][0]
-                    p = mAnchor.p_position
-                    
-                    mHandle, mJointHelper = create_handle(p,mBrowLoft,tag,None,side,mDriver=mAnchor,nameDict=d_use)
-                    
-                    _ml_handles.append(mHandle)
-                    _ml_jointHelpers.append(mJointHelper)
-                
-                else:
-                    mCrv = md_resCurves.get(tag+'Driver')
-                    if mCrv:
-                        l_pos = CURVES.getUSplitList(mCrv.mNode, self.numBrowControl)
-                        mCrv.v=False
-                        d_use = copy.copy(_d)
-                        d_use['cgmName'] = tag
-
-                        for i,p in enumerate(l_pos):
-                            d_use['cgmIterator'] = i
-                            
-                            mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
-                            mDriver.rename("{0}_{1}_{2}_driver".format(side,section,i))
-                            mDriver.p_position = p
-                            mDriver.p_parent = mStateNull
-                            
-                            _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
-                            TRANS.parent_set(_res[0], mNoTransformNull.mNode)
-                            
-                            mHandle, mJointHelper = create_handle(p,mBrowLoft,tag,None,side,mDriver=mDriver,nameDict= d_use)
-                            
-                            _ml_handles.append(mHandle)
-                            _ml_jointHelpers.append(mJointHelper)
-                            
-                mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_handles)
-                mStateNull.msgList_connect('{0}jointHandles'.format(tag),_ml_jointHelpers)
-                md_mirrorDat[side].extend(_ml_handles + _ml_jointHelpers)
-                md_handles[section][side] = _ml_handles
-                md_jointHandles[section][side] = _ml_jointHelpers
-                
-                ml_handlesAll.extend(_ml_handles)
-                
-        
-        #CURVES ==========================================================================
-        log.debug(cgmGEN.logString_sub('curves'))
-        
-        #Make our visual joint curves for helping see things
-        d_visCurves = {}
-        md_browJointHelpers = md_jointHandles['brow']
         for side in 'left','right':
-            d_visCurves['brow'+STR.capFirst(side)] = {'ml_handles': md_jointHandles['brow'][side],
-                                                      'rebuild':0}            
+            mCrv = d_visCurves['brow'+STR.capFirst(side)]         
+            if mCrv:
+                l_pos = CURVES.getUSplitList(mCrv.mNode, self.numBrowJoints)
+                d_use = copy.copy(_d)
+                d_use['cgmName'] = tag
+                
+                for i,p in enumerate(l_pos):
+                    d_use['cgmIterator'] = i
+                    
+                    mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                    mDriver.rename("{0}_{1}_{2}_driver".format(side,section,i))
+                    mDriver.p_position = p
+                    mDriver.p_parent = mStateNull
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
+                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                    
+                    mShape, mDag = create_handle(p,mBrowLoft,tag,None,side,mDriver=mDriver,nameDict= d_use)
+                    
+                    _ml_shapes.append(mShape)
+                    _ml_prerigDags.append(mDag)  """              
         
-        md_res = self.UTILS.create_defineCurve(self, d_visCurves, {}, mNoTransformNull,'preCurve')
-        md_resCurves = md_res['md_curves']
-        ml_resCurves = md_res['ml_curves']        
                         
         
         #Mirror setup --------------------------------
@@ -1727,22 +1964,22 @@ def skeleton_build(self, forceNew = True):
 
             else:
                 'browLeftPreCurve'
+                if self.numBrowControl != self.numBrowJoints:
+                    log.warning("differing browJoints to controls not supported yet")
                 
-                if self.numBrowControl == self.numBrowJoints:
-                   ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(_cap))
-                    for mObj in ml_base:
-                        mJnt = mObj.doCreateAt('joint')
-                        mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
-                        mJnt.doStore('cgmType','skinJoint')
-                        mJnt.doName()
-                        ml_new.append(mJnt)
-                        ml_joints.append(mJnt)
-                        JOINT.freezeOrientation(mJnt.mNode)
-                        
-                        mJnt.p_parent = mRoot
-                else:
-                    mCrv = self.getMessageAsMeta("brow{0}PreCurve".format(_cap))
-                    raise NotImplemented,"Not done yet."
+                ml_base = mPrerigNull.msgList_get('brow{0}JointHelpers'.format(_cap))
+                for mObj in ml_base:
+                    mJnt = mObj.doCreateAt('joint')
+                    mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmType','skinJoint')
+                    mJnt.doName()
+                    ml_new.append(mJnt)
+                    ml_joints.append(mJnt)
+                    JOINT.freezeOrientation(mJnt.mNode)
+                    
+                    mJnt.p_parent = mRoot
+                #else:
+                    #mCrv = self.getMessageAsMeta("brow{0}PreCurve".format(_cap))
                     
             mPrerigNull.msgList_connect('brow{0}Joints'.format(_cap), ml_new)
             
@@ -2119,8 +2356,8 @@ def rig_skeleton(self):
     
     #Brow joints ================================================================================
     log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)    
-    mBrowCurve = mBlock.getMessageAsMeta('browLineloftCurve')
-    _BrowCurve = mBrowCurve.getShapes()[0]
+    #mBrowCurve = mBlock.getMessageAsMeta('browLineloftCurve')
+    #_BrowCurve = mBrowCurve.getShapes()[0]
     md_handles = {'brow':{}}
     md_handleShapes = {'brow':{}}
     
@@ -2137,7 +2374,7 @@ def rig_skeleton(self):
             ml_joints.append(mJnt)
             JOINT.freezeOrientation(mJnt.mNode)
             mJnt.p_parent = False
-            mJnt.p_position = mHandle.masterGroup.p_position
+            mJnt.p_position = mHandle.p_position
             #DIST.get_closest_point(mHandle.mNode,_BrowCurve,True)[0]
 
         md_handles['brow'][k] = ml_new
@@ -2209,6 +2446,8 @@ def rig_shapes(self):
                     
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
+        mBrowLoft = self.getMessageAsMeta('browFormLoft')
+        
         for k,d in self.md_rigJoints.iteritems():
             log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
             for side,ml in d.iteritems():
