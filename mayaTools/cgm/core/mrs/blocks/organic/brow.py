@@ -1254,16 +1254,17 @@ def prerig(self):
                     _ml_prerigDags.append(mDag)
                     
                     #Joint stuff...
+                    """
                     mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
                     mDriver.rename("{0}_{1}_{2}_joint_driver".format(side,section,i))
                     mDriver.p_position = p
                     mDriver.p_parent = mStateNull
                     
                     _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mCrv.mNode,'conPoint')
-                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)
+                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)"""
                     
                     mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,
-                                                     mDriver=mDriver,
+                                                     mDriver=mAnchor,
                                                      mainShape='semiSphere',
                                                      jointShape='sphere',
                                                      size= _sizeDirect,
