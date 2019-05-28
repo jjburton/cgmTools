@@ -929,7 +929,7 @@ def noTransformNull_verify(self,mode='form',forceNew=False):
         if mNoTransformNull and not forceNew:
             return mNoTransformNull
         
-        if forceNew:
+        if forceNew and mNoTransformNull:
             mNoTransformNull.delete()
         
         str_prerigNull = mc.group(em=True)

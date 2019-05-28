@@ -1248,7 +1248,7 @@ def prerig(self):
                     mAnchor = md_anchorsLists[section][side][0]
                     p = mAnchor.p_position
                     
-                    mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,mDriver=mDriver,controlType=_controlType, mode='handle', plugDag= 'preDag',plugShape= 'preShape',nameDict= d_use)
+                    mShape, mDag = create_faceHandle(p,mBrowLoft,tag,None,side,mDriver=mAnchor,controlType=_controlType, mode='handle', plugDag= 'preDag',plugShape= 'preShape',nameDict= d_use)
                     
                     _ml_shapes.append(mShape)
                     _ml_prerigDags.append(mDag)
@@ -2900,12 +2900,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     for mObj in ml_defineHandles:
         md_defineObjs[mObj.handleTag] = mObj
         
-    l_toDo = ['base','peak']#'base'
+    l_toDo = ['peak']#'base'
 
     l_sideKeys = ['peak_2','peak_3',
                   'brow_4',
-                  'base_1','base_2','base_3','base_4'
-                  #'base_1','base_4'
+                  #'base_1','base_2','base_3','base_4'
+                  'base_3','base_4'
                   ]
     for k in l_sideKeys:
         l_toDo.append(k+'_left')
@@ -3024,16 +3024,18 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 #mShape.overrideEnabled = 0
     #            mShape.overrideDisplayType = 0
     #            ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
-        
+    """
     reload(MRSPOST)
-    #MRSPOST.skin_mesh(mMesh,ml_rigJoints+ml_proxyJoints,**{'maximumInfluences':3,'heatmapFalloff':10,'dropoffRate':10})
+    MRSPOST.skin_mesh(mMesh,ml_rigJoints+ml_proxyJoints,**{'maximumInfluences':6,'heatmapFalloff':10,'dropoffRate':2.5})"""
+    
     
     mc.skinCluster ([mJnt.mNode for mJnt in ml_rigJoints + ml_proxyJoints],
                     mMesh.mNode,
                     tsb=True,
                     bm=1,
+                    sm=0,
                     maximumInfluences = 5,
-                    normalizeWeights = 1, dropoffRate=2.5)    
+                    normalizeWeights = 1, dropoffRate=4)
 
     
     mRigNull.msgList_connect('proxyMesh', ml_proxy + ml_curves)

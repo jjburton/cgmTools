@@ -3273,8 +3273,8 @@ class rigFactory(object):
                 mSettings = self.d_module['mMasterControl'].controlVis
                 
             log.debug("|{0}| >> mModuleParent mSettings: {1}".format(_str_func,mSettings))
-            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub')
-            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect')
+            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub','bool')
+            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect','bool')
 
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
