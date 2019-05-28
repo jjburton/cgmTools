@@ -68,7 +68,8 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.lib.string_utils as STR
-
+import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.mrs.lib.post_utils as MRSPOST
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
     
@@ -1266,6 +1267,7 @@ def prerig(self):
                                                      mainShape='semiSphere',
                                                      jointShape='sphere',
                                                      size= _sizeDirect,
+                                                     controlType='sub',
                                                      mode='joint', plugDag= 'jointHelper',
                                                      plugShape= 'directShape',
                                                      nameDict= d_use)
@@ -1324,6 +1326,7 @@ def prerig(self):
                                                              jointShape='sphere',
                                                              size= _sizeDirect,
                                                              mode='joint',
+                                                             controlType='sub',
                                                              plugDag= 'jointHelper',
                                                              plugShape= 'directShape',
                                                              nameDict= d_use)
@@ -1950,7 +1953,7 @@ def skeleton_build(self, forceNew = True):
             _cap = side.capitalize()
             ml_new = []            
             if side == 'center':
-                ml_base = mPrerigNull.msgList_get('brow{0}JointHandles'.format(_cap))
+                ml_base = mPrerigNull.msgList_get('brow{0}JointHelpers'.format(_cap))
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
                     mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
@@ -2325,10 +2328,11 @@ def rig_skeleton(self):
     md_skinJoints = {'brow':{}}
     md_rigJoints = {'brow':{}}
     md_segJoints = {'brow':{}}
-    
+    md_directShapes = {'brow':{}}
     for k in ['center','left','right']:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
         ml_skin = self.mPrerigNull.msgList_get('brow{0}Joints'.format(k.capitalize()))
+        ml_directShapes = self.mPrerigNull.msgList_get('brow{0}JointShapes'.format(k.capitalize()))            
         md_skinJoints['brow'][k] = ml_skin
         ml_rig = []
         ml_seg = []
@@ -2345,6 +2349,7 @@ def rig_skeleton(self):
             
         md_rigJoints['brow'][k] = ml_rig
         md_segJoints['brow'][k] = ml_seg
+        md_directShapes['brow'][k] = ml_directShapes
         
     """
     for i,mJnt in enumerate(ml_rigJoints):
@@ -2354,7 +2359,7 @@ def rig_skeleton(self):
         """
     log.debug(cgmGEN._str_subLine)
     
-    #Brow joints ================================================================================
+    #Brow Handles ================================================================================
     log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)    
     #mBrowCurve = mBlock.getMessageAsMeta('browLineloftCurve')
     #_BrowCurve = mBrowCurve.getShapes()[0]
@@ -2363,7 +2368,9 @@ def rig_skeleton(self):
     
     for k in ['center','left','right']:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
-        ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))    
+        ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))
+        ml_handleShapes = self.mPrerigNull.msgList_get('brow{0}PrerigShapes'.format(k.capitalize()))
+        
         ml_new = []
         for mHandle in ml_helpers:
             mJnt = mHandle.doCreateAt('joint')
@@ -2378,7 +2385,7 @@ def rig_skeleton(self):
             #DIST.get_closest_point(mHandle.mNode,_BrowCurve,True)[0]
 
         md_handles['brow'][k] = ml_new
-        md_handleShapes['brow'][k] = ml_helpers
+        md_handleShapes['brow'][k] = ml_handleShapes
         
         ml_jointsToHide.extend(ml_new)
     log.debug(cgmGEN._str_subLine)
@@ -2388,7 +2395,7 @@ def rig_skeleton(self):
     self.md_segJoints = md_segJoints
     self.md_handles = md_handles
     self.md_handleShapes = md_handleShapes
-    
+    self.md_directShapes = md_directShapes
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
         try:mJnt.drawStyle =2
@@ -2446,7 +2453,6 @@ def rig_shapes(self):
                     
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
-        mBrowLoft = self.getMessageAsMeta('browFormLoft')
         
         for k,d in self.md_rigJoints.iteritems():
             log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
@@ -2454,13 +2460,16 @@ def rig_shapes(self):
                 log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
                 for i,mHandle in enumerate(ml):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                    CORERIG.shapeParent_in_place(mHandle.mNode,
+                                                 self.md_directShapes[k][side][i].mNode)                    
+                    """
                     crv = CURVES.create_fromName(name='cube',
                                                  direction = 'z+',
                                                  size = mHandle.radius*2)
                     SNAP.go(crv,mHandle.mNode)
                     mHandleFactory.color(crv,side=side,controlType='sub')
                     CORERIG.shapeParent_in_place(mHandle.mNode,
-                                                 crv,keepSource=False)
+                                                 crv,keepSource=False)"""
         for mJnt in ml_rigJoints:
             try:
                 mJnt.drawStyle =2
@@ -2821,26 +2830,30 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
-    raise ValueError,"This needs to be reworked to new block call"
-    _short = self.d_block['shortName']
     _str_func = 'build_proxyMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
      
-    mBlock = self.mBlock
-    mRigNull = self.mRigNull
-    m#Settings = mRigNull.settings
-    mPuppetSettings = self.d_module['mMasterControl'].controlSettings
-    mPrerigNull = mBlock.prerigNull
-    #directProxy = mBlock.proxyDirect
+    mBlock = self
+    mModule = self.moduleTarget
+    mRigNull = mModule.rigNull
+    mDeformNull = mModule.deformNull
+    #mSettings = mRigNull.settings
     
-    _side = BLOCKUTILS.get_side(self.mBlock)
+    mPuppet = self.atUtils('get_puppet')
+    mMaster = mPuppet.masterControl    
+    mPuppetSettings = mMaster.controlSettings
+    str_partName = mModule.get_partNameBase()
+    mPrerigNull = mBlock.prerigNull
+    
+    _side = BLOCKUTILS.get_side(self)
     
     ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
     if not ml_rigJoints:
         raise ValueError,"No rigJoints connected"
-    self.v_baseSize = [mBlock.blockScale * v for v in mBlock.baseSize]
+    
+    #self.v_baseSize = [mBlock.blockScale * v for v in mBlock.baseSize]
     
     #>> If proxyMesh there, delete --------------------------------------------------------------------------- 
     if puppetMeshMode:
@@ -2864,6 +2877,56 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
     ml_proxy = []
     ml_curves = []
+    
+    
+    #Get our brow geo
+    mBrowLoft = self.getMessageAsMeta('browFormLoft')
+    
+    d_kws = {'mode':'default',
+             'uNumber':self.numSplit_u,
+             'vNumber':self.numSplit_v,
+             }
+    mMesh = RIGCREATE.get_meshFromNurbs(mBrowLoft,**d_kws)    
+    ml_proxy.append(mMesh)
+    
+    #Get our rig joints =====================================================================
+    ml_exists = mRigNull.msgList_get('proxyJoints',asMeta=0)
+    if ml_exists:
+        mc.delete(ml_exists)
+        
+    md_defineObjs = {}
+    
+    ml_defineHandles = self.msgList_get('defineSubHandles')
+    for mObj in ml_defineHandles:
+        md_defineObjs[mObj.handleTag] = mObj
+        
+    l_toDo = ['base','peak']#'base'
+
+    l_sideKeys = ['peak_2','peak_3',
+                  'brow_4',
+                  'base_1','base_2','base_3','base_4'
+                  #'base_1','base_4'
+                  ]
+    for k in l_sideKeys:
+        l_toDo.append(k+'_left')
+        l_toDo.append(k+'_right')
+        
+    ml_proxyJoints= []
+    for k in l_toDo:
+        mJoint = self.doCreateAt('joint')
+        mJoint.p_position = md_defineObjs[k].p_position
+        mJoint.p_parent = mDeformNull
+        mJoint.v=False
+        mJoint.dagLock()
+        ml_proxyJoints.append(mJoint)
+
+    mRigNull.msgList_connect('proxyJoints', ml_proxyJoints)
+
+    #Create new rig joints
+    #Skin them all to the brow
+    
+    
+    """
     #Brow -------------
     mUprCurve = mBlock.getMessageAsMeta('browUprloftCurve')
     mUprUse = mUprCurve.doDuplicate(po=False)
@@ -2938,7 +3001,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #mDag.p_parent = mRigJoint
     ml_proxy.append(mLoftSurface)
         
-
+    """
 
 
     for mProxy in ml_proxy:
@@ -2962,10 +3025,23 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #            mShape.overrideDisplayType = 0
     #            ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
-        
+    reload(MRSPOST)
+    #MRSPOST.skin_mesh(mMesh,ml_rigJoints+ml_proxyJoints,**{'maximumInfluences':3,'heatmapFalloff':10,'dropoffRate':10})
+    
+    mc.skinCluster ([mJnt.mNode for mJnt in ml_rigJoints + ml_proxyJoints],
+                    mMesh.mNode,
+                    tsb=True,
+                    bm=1,
+                    maximumInfluences = 5,
+                    normalizeWeights = 1, dropoffRate=2.5)    
 
     
     mRigNull.msgList_connect('proxyMesh', ml_proxy + ml_curves)
+    """
+    _sl = []
+    for mObj in ml_proxyJoints + ml_rigJoints:
+        _sl.append(mObj.mNode)
+    mc.select(_sl)"""
 
 
 
