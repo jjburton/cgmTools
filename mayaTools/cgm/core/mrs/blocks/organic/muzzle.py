@@ -125,6 +125,13 @@ d_block_profiles = {'default':{},
                            'uprJaw':False,
                            'chinSetup':'none',
                                },
+                    'canine':{},
+                    'human':{'jawSetup':'simple',
+                             'lipSetup':'default',
+                             'noseSetup':'simple',
+                             'chinSetup':'single',
+                             'nostrilSetup':'simple'},
+                    'beak':{},
                     }
 """
 'eyebrow':{'baseSize':[17.6,7.2,8.4],
@@ -295,6 +302,20 @@ def define(self):
     d_curveCreation = {}
     d_toParent = {}
     _str_pose = 'human'        
+    l_mainHandles = []
+    
+    def get_handleScaleSpaces(d_base,d_scaleSpace,key,plug_left,plug_right):
+        for k,d in d_base.iteritems():
+            if plug_left in k:
+                k_use = str(k).replace(plug_left,plug_right)
+                _v = copy.copy(d_scaleSpace[_str_pose].get(k_use))
+                if _v:
+                    _v[0] = -1 * _v[0]
+            else:
+                _v = d_scaleSpace[key].get(k)
+                
+            if _v is not None:
+                d_base[k]['scaleSpace'] = _v        
     
     #Jaw ---------------------------------------------------------------------
     if self.jawSetup:
@@ -303,7 +324,7 @@ def define(self):
         
         _d_pairs = {}
         _d = {}
-        l_sideKeys = ['jaw','jawTop','jawFront','cheekBone','orb','jawNeck',
+        l_sideKeys = ['jaw','jawTop','jawFront','orbFront','orb','jawNeck','cheek','cheekBone',
                       ]
         
         for k in l_sideKeys:
@@ -314,23 +335,62 @@ def define(self):
             'human':{'jawRight':[-.85,-.3,-1],
                      'jawTopRight':[-1,.5,-1],
                      'jawFrontRight':[-.25,-1,.8],
-                     'cheekBoneRight':[-.7,.3,.3],
-                     'orbRight':[-.85,.4,-.3],
+                     'orbFrontRight':[-.6,.5,.5],
+                     'cheekBoneRight':[-.5,.1,.6],                     
+                     'cheekRight':[-.8,-.1,-.1],
+                     'orbRight':[-.85,.7,-.3],
                      
                      'jawNeck':[0,-1,-.1],
-                     'jawNeckRight':[-.5,-.8,-.25],
-                     'chin':[0,-1,1],
+                     'jawNeckRight':[-.4,-.8,-.25],
                      
-                     'sneerRight':[-.2,.6,.8],
-                     'nostrilTopRight':[-.3,.3,.9],
-                     'nostrilRight':[-.3,.2,.85],
-                     'noseUnderRight':[-.2,.1,.95],
-                     'noseBase':[0,0,1.1],
-                     'noseUnder':[0,.1,1.3],
-                     'noseTip':[0,.2,1.4],
-                     'bulb':[0,.4,1.3],
-                     'bridge':[0,.75,1],
-                     'noseTop':[0,1,.8],
+                     'chin':[0,-1,1],
+                     'chinRight':[-.2,-.9,1],
+                     'underLipRight':[-.2,-.6,1],
+                     
+                     'sneerRight':[-.2,.7,.8],
+                     'nostrilTopRight':[-.2,.45,.85],
+                     'nostrilRight':[-.25,.3,.85],
+                     #'nostrilBaseRight':[-.2,.2,.95],
+                     'noseBase':[0,.2,1.1],
+                     'noseUnder':[0,.2,1.3],
+                     'noseTip':[0,.3,1.4],
+                     'bulb':[0,.6,1.2],
+                     'bridge':[0,.8,1],
+                     'noseTop':[0,1,.9],
+                     
+                     'nostrilLineInnerRight':[-.04,.2,1.3],
+                     'nostrilLineOuterRight':[-.11,.2,1.3],
+                     
+                     
+                     'noseBaseRight':[-.1,.2,1.05],
+                     'nostrilBaseRight':[-.2,.2,1],
+                     'noseTipRight':[-.2,.3,1.3],
+                     'bulbRight':[-.1,.55,1.2],
+                     'bridgeRight':[-.1,.8,.95],
+                     'noseTopRight':[-.1,1,.75],                     
+                     
+                     'cornerFrontRight':[-.3,-.2,1],
+                     'cornerBackRight':[-.28,-.2,.9],
+                     'cornerBagRight':[-.3,-.2,.85],
+                     'cornerPeakRight':[-.4,-.2,.85],
+                     'uprFront':[0,-.2,1.05],
+                     'uprPeak':[0,-.1,1.17],
+                     'uprBack':[0,-.2,1],
+                     'uprGum':[0,0,1],
+                     'uprPeakRight':[-.1,-.1,1.17],
+                     'uprFrontRight':[-.1,-.2,1],
+                     'uprBackRight':[-.1,-.2,.9],
+                     
+                     
+                     'lwrFront':[0,-.3,1.15],
+                     'lwrPeak':[0,-.4,1.17],
+                     'lwrBack':[0,-.3,1],
+                     'lwrGum':[0,-.4,1],
+                     'lwrPeakRight':[-.1,-.4,1.17],
+                     'lwrFrontRight':[-.1,-.3,1.1],
+                     'lwrBackRight':[-.1,-.3,1],                     
+                     
+                     'smileRight':[-.5,-.2,.8],
                      
                     },}
         
@@ -342,6 +402,8 @@ def define(self):
             _d[k+'Left'] =  {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
             _d[k+'Right'] =  {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
         
+        get_handleScaleSpaces(_d,_d_scaleSpace,_str_pose,'Left','Right')
+        """
         for k,d in _d.iteritems():
             if 'Left' in k:
                 k_use = str(k).replace('Left','Right')
@@ -352,7 +414,7 @@ def define(self):
                 _v = _d_scaleSpace[_str_pose].get(k)
                 
             if _v is not None:
-                _d[k]['scaleSpace'] = _v
+                _d[k]['scaleSpace'] = _v"""
                 
         
         _keys = _d.keys()
@@ -364,28 +426,228 @@ def define(self):
         _d_curveCreation = {'jawLine':{'keys':['jawTopLeft','jawLeft','jawNeckLeft','jawFrontLeft',
                                                'jawFrontRight','jawNeckRight','jawRight','jawTopRight'],
                                        'rebuild':False},
-                            'cheekLineLeft':{'keys':['jawTopLeft','orbLeft','cheekBoneLeft'],
+                            'cheekLineLeft':{'keys':['jawTopLeft','orbLeft','orbFrontLeft'],
                                        'rebuild':False},
-                            'cheekLineRight':{'keys':['jawTopRight','orbRight','cheekBoneRight'],
+                            'cheekLineRight':{'keys':['jawTopRight','orbRight','orbFrontRight'],
                                              'rebuild':False},
-                            'smileLineLeft':{'keys':['cheekBoneLeft','jawFrontLeft'],
+                            'cheekFrameLeft':{'keys':['orbFrontLeft','cheekBoneLeft','jawFrontLeft'],
                                              'rebuild':False},
-                            'smileLineRight':{'keys':['cheekBoneRight','jawFrontRight'],
+                            'cheekFrameRight':{'keys':['orbFrontRight','cheekBoneRight','jawFrontRight'],
                                               'rebuild':False},
-                            'jawUnder':{'keys':['orbRight','jawNeckRight','jawNeck','jawNeckLeft','orbLeft'],
+                            'cheekCurveLeft':{'keys':['orbLeft','cheekLeft','jawNeckLeft'],
+                                             'rebuild':False},
+                            'cheekCurveRight':{'keys':['orbRight','cheekRight','jawNeckRight'],
+                                             'rebuild':False},                            
+                            'jawUnder':{'keys':['jawNeckRight','jawNeck','jawNeckLeft'],
                                               'rebuild':False},                            
                             }
         d_curveCreation.update(_d_curveCreation)
 
+    #lip ---------------------------------------------------------------------
+    if self.lipSetup:
+        _str_lipSetup = self.getEnumValueString('lipSetup')
+        log.debug(cgmGEN.logString_sub(_str_func,'lip setup: {0}'.format(_str_lipSetup)))
+        
+        #Declarations of keys...---------------------------------------------------------------------
+        _d_pairs = {}
+        _d = {}
+        l_sideKeys = ['cornerBag','cornerBack','cornerFront','cornerPeak',
+                      'smile',
+                      'uprPeak','uprFront','uprBack',
+                      'lwrPeak','lwrFront','lwrBack',
+                      
+                      ]
+        
+        l_centerKeys = ['uprFront','uprPeak','uprBack','uprGum',
+                        'lwrFront','lwrPeak','lwrBack','lwrGum']
+        
+        
+        for k in l_centerKeys:
+            _d[k] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            
+        
+        for k in l_sideKeys:
+            _d[k+'Left'] =  {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+            _d[k+'Right'] =  {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+        
+        #Mirror map left/right----------------------------------------------------------------
+        for k in l_sideKeys:
+            _d_pairs[k+'Left'] = k+'Right'
+        d_pairs.update(_d_pairs)#push to master list...        
+        
+        #Process scaleSpace------------------------------------------------------------------
+        get_handleScaleSpaces(_d,_d_scaleSpace,_str_pose,'Left','Right')
+
+        _keys = _d.keys()
+        _keys.sort()
+        l_order.extend(_keys)
+        d_creation.update(_d)
+        
+        #Heirarchy Mapping -------------------------------------------------------------------
+        #d_toParent['lwrPeak'] = 'lwrFront'
+        #d_toParent['lwrBack'] = 'lwrFront'
+        #d_toParent['lwrGum'] = 'lwrFront'
+        #d_toParent['lwrPeakLeft'] = 'lwrFront'
+        #d_toParent['lwrPeakRight'] = 'lwrFront'        
+        
+
+        for k2 in ['upr','lwr']:
+            for side in ['Left','Right','']:
+                for k in ['Peak','Back','Gum']:
+                    d_toParent[k2+k+side] = k2+'Front'+side
+        
+        d_toParent['uprFrontLeft'] = 'uprFront'
+        d_toParent['uprFrontRight'] = 'uprFront'
+        
+        d_toParent['lwrFrontLeft'] = 'lwrFront'
+        d_toParent['lwrFrontRight'] = 'lwrFront'        
+        
+        #pprint.pprint(d_toParent)
+        #return
+        
+        #d_toParent['uprPeak'] = 'uprFront'
+        #d_toParent['uprBack'] = 'uprFront'
+        #d_toParent['uprPeakLeft'] = 'uprFront'
+        #d_toParent['uprPeakRight'] = 'uprFront'
+        #d_toParent['uprGum'] = 'uprFront'
+        
+        d_toParent['cornerBagLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerBackLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerPeakLeft'] = 'cornerFrontLeft'
+        d_toParent['cornerBagRight'] = 'cornerFrontRight'
+        d_toParent['cornerBackRight'] = 'cornerFrontRight'
+        d_toParent['cornerPeakRight'] = 'cornerFrontRight'
+        
+        
+        l_mainHandles.extend(['cornerFrontLeft','cornerFrontRight',
+                              'lwrFrontLeft','lwrFrontRight',
+                              'uprFrontLeft','uprFrontRight',
+                             'lwrFront','uprFront'])
+        
+        #Curve Mapping 
+        _d_curveCreation = {'peakUpr':{'keys':['cornerFrontRight','uprPeakRight','uprPeak',
+                                               'uprPeakLeft','cornerFrontLeft'],
+                                       'rebuild':0},
+                            'peakLwr':{'keys':['cornerFrontRight','lwrPeakRight','lwrPeak','lwrPeakLeft','cornerFrontLeft'],
+                                       'color':'greenWhite',                                       
+                                       'rebuild':0},
+                            'lipUpr':{'keys':['cornerFrontRight','uprFrontRight','uprFront','uprFrontLeft','cornerFrontLeft'],
+                                       'rebuild':0},
+                            'lipLwr':{'keys':['cornerFrontRight','lwrFrontRight','lwrFront','lwrFrontLeft','cornerFrontLeft'],
+                                       'color':'greenWhite',                                       
+                                       'rebuild':0},
+                            
+                            'lipBackUpr':{'keys':['cornerBackRight','uprBackRight','uprBack','uprBackLeft','cornerBackLeft'],
+                                       'rebuild':0},
+                            'lipBackLwr':{'keys':['cornerBackRight','lwrBackRight','lwrBack',
+                                                  'lwrBackLeft','cornerBackLeft'],
+                                          'color':'greenWhite',                                       
+                                          'rebuild':0},                            
+                            'lipCrossUpr':{'keys':['uprGum','uprBack','uprFront','uprPeak'],
+                                           'rebuild':1},
+                            'lipCrossLwr':{'keys':['lwrGum','lwrBack','lwrFront','lwrPeak'],
+                                           'color':'greenBright',                                           
+                                           'rebuild':1},
+                            
+                            
+                            'lipCrossLwrLeft':{'keys':['lwrBackLeft','lwrFrontLeft','lwrPeakLeft'],
+                                               'color':'greenBright',
+                                               'rebuild':1},
+                            'lipCrossUprLeft':{'keys':['uprBackLeft','uprFrontLeft','uprPeakLeft'],
+                                               'rebuild':1},                            
+                            
+                            'lipCrossLwrRight':{'keys':['lwrBackRight','lwrFrontRight','lwrPeakRight'],
+                                                'color':'greenBright',
+                                                'rebuild':1},
+                            'lipCrossUprRight':{'keys':['uprBackRight','uprFrontRight','uprPeakRight'],
+                                                'rebuild':1},
+                            
+                            'lipCornerLeft':{'keys':['cornerBagLeft','cornerBackLeft',
+                                                     'cornerFrontLeft','cornerPeakLeft'],
+                                           'color':'blueWhite',                                           
+                                           'rebuild':0},
+                            'lipCornerRight':{'keys':['cornerBagRight','cornerBackRight',
+                                                     'cornerFrontRight','cornerPeakRight'],
+                                             'color':'redWhite',                                           
+                                             'rebuild':0},
+                            
+                            'lipToChinRight':{'keys':['cornerPeakRight','jawFrontRight'],
+                                              'color':'yellowWhite',
+                                              'rebuild':0},
+                            'lipToChinLeft':{'keys':['cornerPeakLeft','jawFrontLeft'],
+                                             'color':'yellowWhite',                                             
+                                              'rebuild':0},
+                            
+                            'smileLineLeft':{'keys':['smileLeft','jawFrontLeft'],
+                                             'color':'yellowWhite',                                             
+                                              'rebuild':0},
+                            'smileLineRight':{'keys':['smileRight','jawFrontRight'],
+                                             'color':'yellowWhite',                                             
+                                             'rebuild':0},
+                            
+                            'smileCrossLeft':{'keys':['cornerPeakLeft','smileLeft'],
+                                             'color':'yellowWhite',                                             
+                                              'rebuild':0},
+                            'smileCrossRight':{'keys':['cornerPeakLeft','smileRight'],
+                                             'color':'yellowWhite',                                             
+                                             'rebuild':0},                            
+                            
+                            }
+        d_curveCreation.update(_d_curveCreation)
+        
+        
+        
+        if self.noseSetup:
+            d_curveCreation['cheekLineLeft']['keys'].append('sneerLeft')
+            d_curveCreation['cheekLineRight']['keys'].append('sneerRight')
+            
+            d_curveCreation['smileLineLeft']['keys'].insert(0,'nostrilTopLeft')
+            d_curveCreation['smileLineRight']['keys'].insert(0,'nostrilTopRight')
+            
+            d_curveCreation['lipToChinLeft']['keys'].insert(0,'nostrilLeft')
+            d_curveCreation['lipToChinRight']['keys'].insert(0,'nostrilRight')
+            
+            d_curveCreation['overLipLeft'] = {'keys':['uprPeakLeft','noseBaseLeft',],
+                                                'color':'yellowWhite',
+                                                'rebuild':0}
+            d_curveCreation['overLipRight'] = {'keys':['uprPeakRight','noseBaseRight',],
+                                                'color':'yellowWhite',
+                                                'rebuild':0}
+            
+            d_curveCreation['overLip'] = {'keys':['uprPeak','noseBase',],
+                                                'color':'yellowWhite',
+                                                'rebuild':0}            
+        if self.jawSetup:
+            d_curveCreation['smileLineLeft']['keys'].insert(1,'cheekBoneLeft')
+            d_curveCreation['smileLineRight']['keys'].insert(1,'cheekBoneRight')            
+            
+            d_curveCreation['cheekFrameLeft']['keys'][-1]='smileLeft'
+            d_curveCreation['cheekFrameRight']['keys'][-1]='smileRight'
+            
+            
+            d_curveCreation['smileCrossLeft']['keys'].append('cheekLeft')
+            d_curveCreation['smileCrossRight']['keys'].append('cheekRight')            
+        
+        if self.chinSetup:
+            d_curveCreation['smileLineLeft']['keys'][-1] = 'chinLeft'
+            d_curveCreation['smileLineRight']['keys'][-1] = 'chinRight'
+            
+            d_curveCreation['underLipLeft'] = {'keys':['lwrPeakLeft','underLipLeft',],
+                                                'color':'yellowWhite',
+                                                'rebuild':0}
+            d_curveCreation['underLipRight'] = {'keys':['lwrPeakRight','underLipRight',],
+                                                'color':'yellowWhite',
+                                                'rebuild':0}
     #nose ---------------------------------------------------------------------
     if self.noseSetup:
-        
         _str_noseSetup = self.getEnumValueString('noseSetup')
         log.debug(cgmGEN.logString_sub(_str_func,'noseSetup: {0}'.format(_str_noseSetup)))
         
         _d_pairs = {}
         _d = {}
-        l_sideKeys = ['sneer','nostrilTop','nostril','noseUnder',
+        l_sideKeys = ['sneer','nostrilTop','nostril',
+                      'noseTop','bridge','bulb','noseTip','nostrilBase','noseBase',
+                      'nostrilLineInner','nostrilLineOuter',
                       ]        
         l_centerKeys = ['noseBase','noseUnder','noseTip','bulb','bridge','noseTop']
         
@@ -402,22 +664,10 @@ def define(self):
         for k in l_sideKeys:
             _d_pairs[k+'Left'] = k+'Right'
         d_pairs.update(_d_pairs)#push to master list...        
-        d_pairs.update(_d_pairs)#push to master list...
         
-        
-        for k,d in _d.iteritems():
-            if 'Left' in k:
-                k_use = str(k).replace('Left','Right')
-                _v = copy.copy(_d_scaleSpace[_str_pose].get(k_use))
-                if _v:
-                    _v[0] = -1 * _v[0]
-            else:
-                _v = _d_scaleSpace[_str_pose].get(k)
-                
-            if _v is not None:
-                _d[k]['scaleSpace'] = _v
-                
-        
+        #Process
+        get_handleScaleSpaces(_d,_d_scaleSpace,_str_pose,'Left','Right')
+
         _keys = _d.keys()
         _keys.sort()
         l_order.extend(_keys)
@@ -426,85 +676,111 @@ def define(self):
         
         _d_curveCreation = {'noseProfile':{'keys':['noseTop','bridge','bulb','noseTip','noseUnder','noseBase'],
                                    'rebuild':False},
-                            'noseCross':{'keys':['nostrilRight','noseTip','nostrilLeft'],
+                            'noseProfileLeft':{'keys':['noseTopLeft','bridgeLeft','bulbLeft',
+                                                       'noseTipLeft','nostrilLineOuterLeft'],
+                                               'rebuild':False},
+                            'noseProfileRight':{'keys':['noseTopRight','bridgeRight','bulbRight',
+                                                       'noseTipRight','nostrilLineOuterRight'],
+                                               'rebuild':False},                            
+                            
+                            'noseCross':{'keys':['nostrilRight','noseTipRight','noseTip',
+                                                 'noseTipLeft','nostrilLeft'],
                                            'rebuild':False},
-                            'noseRight':{'keys':['sneerRight','nostrilTopRight','nostrilRight','noseUnderRight'],
+                            'noseRight':{'keys':['sneerRight','nostrilTopRight','nostrilRight','nostrilBaseRight'],
                                          'rebuild':False},
-                            'noseLeft':{'keys':['sneerLeft','nostrilTopLeft','nostrilLeft','noseUnderLeft'],
+                            'noseLeft':{'keys':['sneerLeft','nostrilTopLeft','nostrilLeft','nostrilBaseLeft'],
                                          'rebuild':False},                            
                             #'noseLeft':{'keys':['sneerLeft','noseLeft'],
                             #             'rebuild':False},                            
-                            'noseUnder':{'keys':['noseUnderRight','noseUnder','noseUnderLeft'],
+                            #'noseUnder':{'keys':['nostrilBaseRight','noseUnder','nostrilBaseLeft'],
+                            #               'rebuild':False},
+                            'noseBridge':{'keys':['bridgeRight',
+                                                  'bridge',
+                                                  'bridgeLeft',],
+                                          'rebuild':False},
+                            
+                            'noseBase':{'keys':['nostrilBaseRight','noseBaseRight','noseBase','noseBaseLeft','nostrilBaseLeft'],'rebuild':False},
+                            
+                            'nostrilRight':{'keys':['nostrilBaseRight','nostrilLineOuterRight',
+                                                    'nostrilLineInnerRight','noseBaseRight'],
                                            'rebuild':False},
-                            'noseBase':{'keys':['noseUnderRight','noseBase','noseUnderLeft'],
+                            'nostrilLeft':{'keys':['nostrilBaseLeft','nostrilLineOuterLeft',
+                                                    'nostrilLineInnerLeft','noseBaseLeft'],
                                            'rebuild':False},
-                            'noseBulb':{'keys':['nostrilTopRight','bulb','nostrilTopLeft'],
-                                           'rebuild':False},                            
-                            'bridgeTop':{'keys':['sneerRight','noseTop','sneerLeft'],
+                            
+                            'noseTipUnder':{'keys':['nostrilLineInnerRight',
+                                                    'noseUnder',
+                                                    'nostrilLineInnerLeft',
+                                                    ],'rebuild':False},
+                            
+                            
+                            'noseBulb':{'keys':['nostrilTopRight','bulbRight','bulb','bulbLeft','nostrilTopLeft'],
+                                           'rebuild':False},
+                            'bridgeTop':{'keys':['sneerRight','noseTopRight','noseTop','noseTopLeft','sneerLeft'],
                                          'rebuild':False},
                             }
-        d_curveCreation.update(_d_curveCreation)        
+        d_curveCreation.update(_d_curveCreation)
         
-        """
-        log.debug("|{0}| >>  nose setup...".format(_str_func))
-        _str_jawSetup = self.getEnumValueString('noseSetup')
-        
-        _d_pairs = {'noseLeft':'noseRight',
-                    'sneerLeft':'sneerRight',
-                    }
-        d_pairs.update(_d_pairs)
+        d_curveCreation['cheekLineLeft']['keys'].append('sneerLeft')
+        d_curveCreation['cheekLineRight']['keys'].append('sneerRight')        
     
-        _d = {'noseTip':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-                         'vectorLine':False,'scaleSpace':[0,.45,1],},
-              'noseBase':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-                         'vectorLine':False,'scaleSpace':[0,.15,.8],},
-              #'bridgeHelp':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':False,
-              #            'vectorLine':False,'scaleSpace':[0,.7,1],
-              #            'defaults':{'tz':1}},
-              'bridge':{'color':'yellowBright','tagOnly':True,'arrow':False,'jointLabel':0,
-                         'vectorLine':False,'scaleSpace':[0,1,.5],},              
-              'noseLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                            'vectorLine':False,'scaleSpace':[.3,.3,.5],},
-              'noseRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                             'vectorLine':False,'scaleSpace':[-.3,.3,.5],},
-              'sneerLeft':{'color':'blueBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                          'vectorLine':False,'scaleSpace':[.2,.6,.3],
-                          },
-              'sneerRight':{'color':'redBright','tagOnly':True,'arrow':False,'jointLabel':True,
-                           'vectorLine':False,'scaleSpace':[-.2,.6,.3],
-                           },              
-              }
+    if self.chinSetup:
+        _str_chinSetup = self.getEnumValueString('chinSetup')
+        log.debug(cgmGEN.logString_sub(_str_func,'chinSetup: {0}'.format(_str_chinSetup)))
+        
+        _d_pairs = {}
+        _d = {}
+        l_sideKeys = ['chin','underLip',
+                      ]        
+        #l_centerKeys = ['noseBase','noseUnder','noseTip','bulb','bridge','noseTop']
+        #for k in l_centerKeys:
+        #    _d[k] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+        
+        for k in l_sideKeys:
+            _d[k+'Left'] =  {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+            _d[k+'Right'] =  {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+        
+        #Mirror map left/right
+        for k in l_sideKeys:
+            _d_pairs[k+'Left'] = k+'Right'
+        d_pairs.update(_d_pairs)#push to master list...        
+        
+        #Process
+        get_handleScaleSpaces(_d,_d_scaleSpace,_str_pose,'Left','Right')
+
+        _keys = _d.keys()
+        _keys.sort()
+        l_order.extend(_keys)
         d_creation.update(_d)
-        l_order.extend(['noseLeft','noseRight',
-                        'sneerLeft','sneerRight',
-                        'noseTip','noseBase','bridge'])
         
-
-        _d_curveCreation = {'noseProfile':{'keys':['bridge','noseTip','noseBase'],
+        
+        _d_curveCreation = {'chinLine':{'keys':['chinRight','chinLeft'],
                                    'rebuild':False},
-                            'noseCross':{'keys':['noseRight','noseTip','noseLeft'],
-                                           'rebuild':False},
-                            'noseRight':{'keys':['sneerRight','noseRight'],
-                                         'rebuild':False},
-                            'noseLeft':{'keys':['sneerLeft','noseLeft'],
-                                         'rebuild':False},                            
-                            'noseUnder':{'keys':['noseRight','noseBase','noseLeft'],
-                                           'rebuild':False},
-                            'bridgeTop':{'keys':['sneerRight','bridge','sneerLeft'],
-                                         'rebuild':False},
+                            'underLip':{'keys':['underLipRight','underLipLeft'],
+                                        'rebuild':False},                            
                             }
-        d_curveCreation.update(_d_curveCreation)   """     
-
-
-
-        #if self.noseSetup:
-            #_d_curveCreation['cheekLineLeft']['keys'].append('sneerLeft')
-            #_d_curveCreation['cheekLineRight']['keys'].append('sneerRight')
-            
+        d_curveCreation.update(_d_curveCreation)
         
+        if self.lipSetup:
+            #d_curveCreation['smileLineLeft']['keys'][-1] = 'chinLeft'
+            #d_curveCreation['smileLineRight']['keys'][-1] = 'chinRight'
+            
+            d_curveCreation['lipToChinLeft']['keys'].insert(-1,'underLipLeft')
+            d_curveCreation['lipToChinRight']['keys'].insert(-1,'underLipRight')
+            
+            d_curveCreation['lipToChinLeft']['keys'].insert(-1,'chinLeft')
+            d_curveCreation['lipToChinRight']['keys'].insert(-1,'chinRight')
+            
+        #if self.jawSetup:
+            #d_curveCreation['cheekFrameLeft']['keys'][-1] = 'chinLeft'
+            #d_curveCreation['cheekFrameRight']['keys'][-1] = 'chinRight'
+            
 
 
-    #make em...
+    #make em... ==============================================================================================
+    for tag in l_mainHandles:
+        d_creation[tag]['shape'] = 'locatorForm'
+        
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
     md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10, mDefineNull, mBBShape)
 
@@ -512,16 +788,18 @@ def define(self):
     ml_handles = md_res['ml_handles']
     
     for k,p in d_toParent.iteritems():
-        md_handles[k].p_parent = md_handles[p]
-
+        try:md_handles[k].p_parent = md_handles[p]
+        except Exception,err:
+            log.error(cgmGEN.logString_msg(_str_func,'{0} | {1}'.format(k,err)))
     idx_ctr = 0
     idx_side = 0
     d = {}
     
     for tag,mHandle in md_handles.iteritems():
-        if cgmGEN.__mayaVersion__ >= 2018:
-            mController = mHandle.controller_get()
-            mController.visibilityMode = 2
+        if tag not in l_mainHandles:
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mController = mHandle.controller_get()
+                mController.visibilityMode = 2
             
         mHandle._verifyMirrorable()
         _center = True
@@ -547,7 +825,16 @@ def define(self):
         idx_side +=1
 
     #Curves -------------------------------------------------------------------------
-    log.debug("|{0}| >>  Make the curves...".format(_str_func))    
+    log.debug("|{0}| >>  Make the curves...".format(_str_func))
+    
+    for k,d in d_curveCreation.iteritems():
+        if "Left" in k:
+            d_curveCreation[k]['color'] = 'blueWhite'
+        elif "Right" in k:
+            d_curveCreation[k]['color'] = 'redWhite'
+            
+    
+    
     md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
     self.msgList_connect('defineHandles',ml_handles)#Connect    
     self.msgList_connect('defineSubHandles',ml_handles)#Connect
