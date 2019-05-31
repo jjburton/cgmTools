@@ -24,9 +24,9 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
-__version__ = '1.05092019'
+__version__ = '1.05312019'
 
 import maya.cmds as mc
 
@@ -758,7 +758,7 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False,core=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
@@ -1786,3 +1786,27 @@ def get_uiString(self,showSide=True):
         log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
         log.error(err)
         return self.mNode
+    
+    
+def uiMenu_picker(self,parent = None):
+    _short = self.p_nameShort
+    ml_done = []
+    try:mc.setParent(parent)
+    except:pass
+    
+    md_dat,ml = controls_getDat(self)
+    
+    l_keys = ['root','settings','ik','fk','direct']
+    for k in l_keys:
+        _ml = md_dat.get(k)
+        if _ml:
+            mc.menuItem(en=True,divider = True, label = k)
+            for mControl in _ml:
+                _str = mControl.p_nameBase
+                d = {'ann':'[{0}] Control: {1} '.format(k,_str),
+                     'c':cgmGEN.Callback(mControl.select),
+                     'label':"{0}".format(_str)}            
+                mc.menuItem(**d)
+            
+    return
+

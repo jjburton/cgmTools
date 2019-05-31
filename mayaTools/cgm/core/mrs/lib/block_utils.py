@@ -11845,4 +11845,44 @@ def uiStatePickerMenu(self,parent = None):
             mc.menuItem(en=True,divider = True,
                         label = "Prerig")            
             for d in d_pre:
-                mc.menuItem(**d)            
+                mc.menuItem(**d)
+                
+                
+
+def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None):
+    """
+    """
+    _str_func = 'get_handleScaleSpace'
+    log.debug(cgmGEN.logString_start(_str_func))
+    str_self = self.mNode
+    
+    if not mBBHelper:
+        mBBHelper = self.getMessageAsMeta('bbHelper')
+        
+    _sel = None
+    if not ml_objs:
+        _sel = mc.ls(sl=1)
+        ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject')
+        
+    _res = {}
+    for mObj in ml_objs:
+        mLoc = mObj.doLoc()
+        mLoc.p_parent = mBBHelper
+        
+        _t = mLoc.translate
+        _l_v = []
+        for i,v in enumerate(_t):
+            if v:_l_v.append(2*v)
+            else:_l_v.append(0)
+            
+        _tag = mObj.getMayaAttr('handleTag')
+        if not _tag:
+            _tag = mObj.p_nameBase.split('_')[0]
+            
+        _res[str(_tag)] = _l_v
+        mLoc.delete()
+    
+    if _sel:
+        mc.select(_sel)
+    pprint.pprint(_res)
+    return _res

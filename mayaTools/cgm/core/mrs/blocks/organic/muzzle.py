@@ -125,7 +125,11 @@ d_block_profiles = {'default':{},
                            'uprJaw':False,
                            'chinSetup':'none',
                                },
-                    'canine':{},
+                    'canine':{'jawSetup':'simple',
+                              'lipSetup':'default',
+                              'noseSetup':'simple',
+                              'chinSetup':'none',
+                              'nostrilSetup':'simple'},
                     'human':{'jawSetup':'simple',
                              'lipSetup':'default',
                              'noseSetup':'simple',
@@ -196,6 +200,117 @@ d_defaultSettings = {'version':__version__,
                      'visLabels':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
+
+_d_scaleSpace = {
+    'canine':{'cheekBoneRight': [-0.5000000000000004,
+                                 0.10000000000000142,
+                                 0.3999999999999999],
+              'cheekRight': [-0.8000000000000007,
+                             -0.09999999999999964,
+                             -0.10000000000000003],
+              'jawFrontRight': [-0.25000000000000044, -1.0, 0.8000000000000003],
+              'jawNeck': [0, -1.0, -0.10000000000000003],
+              'jawNeckRight': [-0.5000000000000004, -0.7999999999999989, 0],
+              'jawRight': [-0.8500000000000005, -0.7999999999999989, -1.0],
+              'jawTopRight': [-1.0000000000000004, 0.5, -1.0],
+              'orbFrontRight': [-0.6000000000000005, 0.5, 0.25],
+              'orbRight': [-0.8500000000000005, 0.6999999999999993, -0.2999999999999999],
+             
+             
+             
+              'bridge': [0, 0.7498176416406359, 1.0360182177554098],
+               'bridgeRight': [-0.10000000000000053, 0.7498176416406359, 1.0360182177554098],
+               'bulb': [0, 0.5771649917634214, 1.4865237503303455],
+               'bulbRight': [-0.10000000000000053, 0.559579202989049, 1.486523750330346],
+               'noseBase': [0, 7.105427357601002e-15, 1.6041326792671367],
+               'noseBaseRight': [-0.10000000000000053,
+                                 7.105427357601002e-15,
+                                 1.6041326792671367],
+               'noseTip': [0, 0.3737935982860847, 1.6879084942027562],
+               'noseTipRight': [-0.1238331668221706,
+                                0.37326712883829316,
+                                1.6583195461638347],
+               'noseTop': [0, 1.0, 0.5],
+               'noseTopRight': [-0.10000000000000053, 1.0, 0.5],
+               'noseUnder': [0, 0.12141895581972761, 1.6669100954216],
+               'nostrilBaseRight': [-0.20000000000000062,
+                                    0.1695387717724195,
+                                    1.5151807895951994],
+               'nostrilLineInnerRight': [-0.07518023118280359,
+                                         0.14445261224951622,
+                                         1.6386126003323707],
+               'nostrilLineOuterRight': [-0.11000000000000032,
+                                         0.19748125577366338,
+                                         1.6238699713504001],
+               'nostrilRight': [-0.24404273259852172,
+                                0.3329156843133525,
+                                1.4985048303021893],
+               'nostrilTopRight': [-0.1841356867342694,
+                                   0.5068183782140139,
+                                   1.4606647904279297],
+               'sneerRight': [-0.3000000000000007, 0.6999999999999993, 0.3999999999999999],
+             
+        },
+    'human':{'jawRight':[-.85,-.3,-1],
+             'jawTopRight':[-1,.5,-1],
+             'jawFrontRight':[-.25,-1,.8],
+             'orbFrontRight':[-.6,.5,.5],
+             'cheekBoneRight':[-.5,.1,.6],                     
+             'cheekRight':[-.8,-.1,-.1],
+             'orbRight':[-.85,.7,-.3],
+             
+             'jawNeck':[0,-1,-.1],
+             'jawNeckRight':[-.4,-.8,-.25],
+             
+             'chin':[0,-1,1],
+             'chinRight':[-.2,-.9,1],
+             'underLipRight':[-.2,-.6,1],
+             
+             'sneerRight':[-.2,.7,.8],
+             'nostrilTopRight':[-.2,.45,.85],
+             'nostrilRight':[-.25,.3,.85],
+             #'nostrilBaseRight':[-.2,.2,.95],
+             'noseBase':[0,.2,1.1],
+             'noseUnder':[0,.2,1.3],
+             'noseTip':[0,.3,1.4],
+             'bulb':[0,.6,1.2],
+             'bridge':[0,.8,1],
+             'noseTop':[0,1,.9],
+             
+             'nostrilLineInnerRight':[-.04,.2,1.3],
+             'nostrilLineOuterRight':[-.11,.2,1.3],
+             
+             
+             'noseBaseRight':[-.1,.2,1.05],
+             'nostrilBaseRight':[-.2,.2,1],
+             'noseTipRight':[-.2,.3,1.3],
+             'bulbRight':[-.1,.55,1.2],
+             'bridgeRight':[-.1,.8,.95],
+             'noseTopRight':[-.1,1,.75],
+             
+             'cornerFrontRight':[-.3,-.2,1],
+             'cornerBackRight':[-.28,-.2,.9],
+             'cornerBagRight':[-.3,-.2,.85],
+             'cornerPeakRight':[-.4,-.2,.85],
+             'uprFront':[0,-.2,1.05],
+             'uprPeak':[0,-.1,1.17],
+             'uprBack':[0,-.2,1],
+             'uprGum':[0,0,1],
+             'uprPeakRight':[-.1,-.1,1.17],
+             'uprFrontRight':[-.1,-.2,1],
+             'uprBackRight':[-.1,-.2,.9],
+             
+             
+             'lwrFront':[0,-.3,1.15],
+             'lwrPeak':[0,-.4,1.17],
+             'lwrBack':[0,-.3,1],
+             'lwrGum':[0,-.4,1],
+             'lwrPeakRight':[-.1,-.4,1.17],
+             'lwrFrontRight':[-.1,-.3,1.1],
+             'lwrBackRight':[-.1,-.3,1],                     
+             
+             'smileRight':[-.5,-.2,.8],
+            },}
 
 #=============================================================================================================
 #>> Define
@@ -277,9 +392,15 @@ def define(self):
     #Bounding sphere ==================================================================
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
     mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    #mScaleNull = mBBShape.doCreateAt(setClass=True)
+    #mScaleNull.rename("scaleRef")
     mBBShape.p_parent = mDefineNull    
     mBBShape.tz = -.5
     mBBShape.ty = .5
+    
+    #mScaleNull.p_parent = mBBShape
+    #mScaleNull.p_position = POS.get(mBBShape.mNode,'bb')
+    #mScaleNull.dagLock()
     
     
     CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
@@ -301,7 +422,10 @@ def define(self):
     d_curves = {}
     d_curveCreation = {}
     d_toParent = {}
-    _str_pose = 'human'        
+    _str_pose = self.blockProfile#'human'        
+    if not _d_scaleSpace.get(_str_pose):
+        log.error(cgmGEN.logString_sub(_str_func,'Unregistered scaleSpace blockProfile: {0}'.format(_str_pose)))        
+        return False
     l_mainHandles = []
     
     def get_handleScaleSpaces(d_base,d_scaleSpace,key,plug_left,plug_right):
@@ -331,69 +455,7 @@ def define(self):
             _d_pairs[k+'Left'] = k+'Right'
         d_pairs.update(_d_pairs)#push to master list...
         
-        _d_scaleSpace = {
-            'human':{'jawRight':[-.85,-.3,-1],
-                     'jawTopRight':[-1,.5,-1],
-                     'jawFrontRight':[-.25,-1,.8],
-                     'orbFrontRight':[-.6,.5,.5],
-                     'cheekBoneRight':[-.5,.1,.6],                     
-                     'cheekRight':[-.8,-.1,-.1],
-                     'orbRight':[-.85,.7,-.3],
-                     
-                     'jawNeck':[0,-1,-.1],
-                     'jawNeckRight':[-.4,-.8,-.25],
-                     
-                     'chin':[0,-1,1],
-                     'chinRight':[-.2,-.9,1],
-                     'underLipRight':[-.2,-.6,1],
-                     
-                     'sneerRight':[-.2,.7,.8],
-                     'nostrilTopRight':[-.2,.45,.85],
-                     'nostrilRight':[-.25,.3,.85],
-                     #'nostrilBaseRight':[-.2,.2,.95],
-                     'noseBase':[0,.2,1.1],
-                     'noseUnder':[0,.2,1.3],
-                     'noseTip':[0,.3,1.4],
-                     'bulb':[0,.6,1.2],
-                     'bridge':[0,.8,1],
-                     'noseTop':[0,1,.9],
-                     
-                     'nostrilLineInnerRight':[-.04,.2,1.3],
-                     'nostrilLineOuterRight':[-.11,.2,1.3],
-                     
-                     
-                     'noseBaseRight':[-.1,.2,1.05],
-                     'nostrilBaseRight':[-.2,.2,1],
-                     'noseTipRight':[-.2,.3,1.3],
-                     'bulbRight':[-.1,.55,1.2],
-                     'bridgeRight':[-.1,.8,.95],
-                     'noseTopRight':[-.1,1,.75],                     
-                     
-                     'cornerFrontRight':[-.3,-.2,1],
-                     'cornerBackRight':[-.28,-.2,.9],
-                     'cornerBagRight':[-.3,-.2,.85],
-                     'cornerPeakRight':[-.4,-.2,.85],
-                     'uprFront':[0,-.2,1.05],
-                     'uprPeak':[0,-.1,1.17],
-                     'uprBack':[0,-.2,1],
-                     'uprGum':[0,0,1],
-                     'uprPeakRight':[-.1,-.1,1.17],
-                     'uprFrontRight':[-.1,-.2,1],
-                     'uprBackRight':[-.1,-.2,.9],
-                     
-                     
-                     'lwrFront':[0,-.3,1.15],
-                     'lwrPeak':[0,-.4,1.17],
-                     'lwrBack':[0,-.3,1],
-                     'lwrGum':[0,-.4,1],
-                     'lwrPeakRight':[-.1,-.4,1.17],
-                     'lwrFrontRight':[-.1,-.3,1.1],
-                     'lwrBackRight':[-.1,-.3,1],                     
-                     
-                     'smileRight':[-.5,-.2,.8],
-                     
-                    },}
-        
+
         l_centerKeys = ['jawNeck']
         for k in l_centerKeys:
             _d[k] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
@@ -430,17 +492,25 @@ def define(self):
                                        'rebuild':False},
                             'cheekLineRight':{'keys':['jawTopRight','orbRight','orbFrontRight'],
                                              'rebuild':False},
-                            'cheekFrameLeft':{'keys':['orbFrontLeft','cheekBoneLeft','jawFrontLeft'],
-                                             'rebuild':False},
-                            'cheekFrameRight':{'keys':['orbFrontRight','cheekBoneRight','jawFrontRight'],
-                                              'rebuild':False},
                             'cheekCurveLeft':{'keys':['orbLeft','cheekLeft','jawNeckLeft'],
                                              'rebuild':False},
                             'cheekCurveRight':{'keys':['orbRight','cheekRight','jawNeckRight'],
                                              'rebuild':False},                            
                             'jawUnder':{'keys':['jawNeckRight','jawNeck','jawNeckLeft'],
-                                              'rebuild':False},                            
+                                              'rebuild':False},
                             }
+        
+        if _str_pose == 'human':
+            _d_curveCreation['cheekFrameLeft'] = {'keys':['orbFrontLeft','cheekBoneLeft','jawFrontLeft'],
+                             'rebuild':False}
+            _d_curveCreation['cheekFrameRight'] = {'keys':['orbFrontRight','cheekBoneRight','jawFrontRight'],
+                              'rebuild':False}
+        elif _str_pose == 'canine':
+            _d_curveCreation['cheekFrameLeft'] = {'keys':['orbFrontLeft','cheekBoneLeft','jawNeckLeft'],
+                             'rebuild':False}
+            _d_curveCreation['cheekFrameRight'] = {'keys':['orbFrontRight','cheekBoneRight','jawNeckRight'],
+                              'rebuild':False}           
+        
         d_curveCreation.update(_d_curveCreation)
 
     #lip ---------------------------------------------------------------------
@@ -6018,8 +6088,34 @@ def build_proxyMeshBAK(self, forceNew = True, puppetMeshMode = False):
     mRigNull.msgList_connect('proxyMesh', ml_proxy + ml_curves)
 
 
-
-
+#UI ================================================================================================
+def uiFunc_getDefineScaleSpace(self):
+    ml_handles = self.msgList_get('defineHandles')
+    for mObj in ml_handles:
+        if 'Left' in mObj.handleTag:
+            ml_handles.remove(mObj)
+            
+    self.atUtils('get_handleScaleSpace',ml_handles)
+    
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,divider=True,
+                label = "|| Muzzle")
+    
+    mc.menuItem(ann = '[{0}] Get Define scale space values'.format(_short),
+                c = cgmGEN.Callback(uiFunc_getDefineScaleSpace,self),
+                label = "Get Define Scale Space Dat")
+    
+    mc.menuItem(en=True,divider = True,
+                label = "Utilities")
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "State Picker")
+    
+    self.atUtils('uiStatePickerMenu',parent)
+    
+    return
 
 
 

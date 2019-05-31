@@ -157,8 +157,10 @@ class ui(cgmUI.cgmGUI):
         log.debug("build menus... "+'-'*50)
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
-        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)
+        self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=lambda *a:self.buildMenu_picker(True), tearOff=1)                
         self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
+        
         
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
@@ -187,6 +189,99 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.debug("Snap menu rebuilt")
+        
+    def uiFunc_fillPickerMenu():
+        try:
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")
+        
+        
+        _ml,_l_strings = BLOCKGEN.get_uiModuleScollList_dat(showSide=1,presOnly=1)
+        
+        
+        def getString(pre,string):
+            i = 1
+            _check = ''.join([pre,string])
+            while _check in self._l_strings and i < 100:
+                _check = ''.join([pre,string,' | NAMEMATCH [{0}]'.format(i)])
+                i +=1
+            return _check
+        
+        def get_side(mNode):
+            _cgmDirection = mNode.getMayaAttr('cgmDirection')
+            if _cgmDirection:
+                if _cgmDirection[0].lower() == 'l':
+                    return 'left'
+                return 'right'
+            return 'center'
+        
+        for i,mBlock in enumerate(_ml):
+            _arg = get_side(mBlock)
+            _color = d_colors.get(_arg,d_colors['center'])
+            self._l_itc.append(_color)            
+            self._d_itc[mBlock] = _color
+            try:
+                _str_base = mBlock.UTILS.get_uiString(mBlock)#mBlock.p_nameBase#
+                #_modType = mBlock.getMayaAttr('moduleType')
+                #if _modType:
+                    #_str_base = _str_base + ' | [{0}]'.format(_modType)
+            except:_str_base = 'FAIL | {0}'.format(mBlock.mNode)
+            _pre = _l_strings[i]
+            self._l_strings.append(getString(_pre,_str_base))        
+        
+        
+    def buildMenu_picker(self,force=False, *args,**kws):
+        if self.uiMenu_snap and force is not True:
+            return
+        self.uiMenu_picker.clear()
+        
+        _menu = self.uiMenu_picker
+        
+        try:#Try to get our list dat
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")        
+        
+        if not mList._ml_scene:
+            mUI.MelMenuItem(_menu, l="None")
+        else:
+            for i,mObj in enumerate(mList._ml_scene):
+                _str = mList._l_strings[i]
+                _sub = mUI.MelMenuItem(_menu, l="{0}".format(_str),tearOff=True,
+                                       subMenu = True)
+                try:
+                    mObj.atUtils('uiMenu_picker',_sub)
+                except:
+                    pass
+        
+
+        mUI.MelMenuItemDiv(self.uiMenu_picker)
+        mUI.MelMenuItem(self.uiMenu_picker, l='Rebuild',
+                        c=cgmGEN.Callback(self.buildMenu_picker,True))
+        log.debug("Snap menu rebuilt")        
+        
+        """
+        try:
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")
+
+        _menu = self.uiMenu_picker
+
+        ml_blocks = mList.getSelectedBlocks()
+        if not ml_blocks:
+            mUI.MelMenuItem(_menu, l="None")
+            return log.error("Nothing selected")
+            
+        for mBlock in ml_blocks:
+            mBlockModule = mBlock.getBlockModule()
+            
+            _sub = mUI.MelMenuItem(_menu, l="{0}".format(mBlock.UTILS.get_uiString(mBlock)),tearOff=True,
+                                   subMenu = True)            
+            #if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
+            mBlock.atUtils('uiStatePickerMenu',_sub)"""
+        
         
     def buildMenu_switch(self, *args):
         log.debug("buildMenu_switch..."+'-'*50)

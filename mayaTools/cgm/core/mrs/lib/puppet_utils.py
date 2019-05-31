@@ -1475,3 +1475,27 @@ def get_uiString(self,showSide=True):
         log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
         log.error(err)
         return self.mNode
+    
+    
+    
+    
+def uiMenu_picker(self,parent = None):
+    _short = self.p_nameShort
+    ml_done = []
+    try:mc.setParent(parent)
+    except:pass
+    
+    md_dat,ml = controls_getDat(self)
+    
+    for k in l_controlOrder:
+        _ml = md_dat.get(k)
+        if _ml:
+            mc.menuItem(en=True,divider = True, label = k)
+            for mControl in _ml:
+                _str = mControl.p_nameBase
+                d = {'ann':'[{0}] Control: {1} '.format(k,_str),
+                     'c':cgmGEN.Callback(mControl.select),
+                     'label':"{0}".format(_str)}            
+                mc.menuItem(**d)
+            
+    return

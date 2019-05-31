@@ -1272,20 +1272,24 @@ class cgmNode(r9Meta.MetaClass):
             #if self.isTransform():
             #log.info("{0}>> transform loc: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
             #t1 = time.time()     
-            if fastMode:
-                buffer = cgmObject(mc.spaceLocator()[0])
-                buffer.rotateOrder = self.rotateOrder
-                
-                objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
-                objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
-                objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
+            #if fastMode:
+            buffer = cgmObject(mc.spaceLocator()[0])
+            buffer.rotateOrder = self.rotateOrder
             
-                mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
-                mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
-                for i,a in enumerate(['X','Y','Z']):
-                    ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+            if forceBBCenter:
+                objTrans = POS.get(self.mNode,'bb')
             else:
-                buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
+                objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
+                
+            objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
+            objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
+        
+            mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
+            mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
+            for i,a in enumerate(['X','Y','Z']):
+                ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+            #else:
+                #buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
         if not buffer:
             return False
         
@@ -1295,8 +1299,9 @@ class cgmNode(r9Meta.MetaClass):
         #if nameLink:
             #i_loc.connectChildNode(self,'cgmName')
         if not nameLink:
-            i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
-            i_loc.doName()
+            #i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+            #i_loc.doName()
+            i_loc.rename(NAMES.get_base(self.mNode)+'_loc')
             #log.info("{0}>> name: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
             #t1 = time.time()            
         #log.info("{0}>> total: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t_master)))            
