@@ -878,3 +878,97 @@ def build_aimSequence(l_driven = None,
         else:
             mObj.followRoot = .5
 
+d_wiring_l = {'modules':[u'L_feather1_limb', u'L_feather2_limb', u'L_feather3_limb',
+                         u'L_feather4_limb', u'L_feather5_limb', u'L_index_limb'],
+            'driven':{1:[0,3],
+                      2:[0,3],
+                      3:[0,5],
+                      4:[3,5],
+                      }}
+d_wiring_r = {'modules':[u'R_feather1_limb', u'R_feather2_limb', u'R_feather3_limb',
+                         u'R_feather4_limb', u'R_feather5_limb', u'R_index_limb'],
+            'driven':{1:[0,3],
+                      2:[0,3],
+                      3:[0,5],
+                      4:[3,5],
+                      }}
+def wing_temp(d_wiring=d_wiring_r):
+    """
+    
+    """
+    try:
+        _str_func = 'wing_temp'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        ml_roots = []
+        ml_parts = []
+        ml_rigNulls = []
+        ml_blendDrivers = []
+        
+        #Dat get...
+        for part in d_wiring['modules']:
+            mPart = cgmMeta.asMeta(part)
+            mRigNull = mPart.rigNull
+            ml_parts.append(mPart)
+            ml_rigNulls.append(mRigNull)
+            ml_roots.append(mRigNull.rigRoot)
+            ml_joints = mRigNull.msgList_get('blendJoints')
+            if not ml_joints:
+                for plug in 'fkAttachJoints','fkJoints':
+                    ml_test = mRigNull.msgList_get(plug)
+                    if ml_test:
+                        ml_joints = ml_test
+                        break
+            ml_blendDrivers.append(ml_joints[0])
+            
+        pprint.pprint(vars())
+        
+        #Generate driver locs...
+        for d,s in d_wiring['driven'].iteritems():
+            mPart = ml_parts[d]
+            mRoot = ml_roots[d]
+            mRigNull = ml_rigNulls[d]
+            mAttach = mRigNull.getMessageAsMeta('attachDriver')
+            
+            log.info(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(d,s)))
+            
+            #...loc -----------------------------------------------------------------------
+            log.info(cgmGEN.logString_msg(_str_func,'loc...'))
+            mLoc = mRoot.getMessageAsMeta('featherDriver')
+            if mLoc:
+                mLoc.delete()
+                
+            mLoc = ml_roots[d].doLoc()
+            mLoc.rename("{0}_featherLoc".format(mPart.p_nameBase))
+            mLoc.p_parent = mRoot.masterGroup.p_parent
+            mLoc.v=False
+            mLoc.doStore('cgmAlias','feather')
+            
+            mRoot.connectChildNode(mLoc.mNode,'featherDriver','mPart')
+            
+            #...drivers ------------------------------------------------------------
+            ml_drivers = [ml_blendDrivers[v] for v in s]
+            l_drivers = [mObj.mNode for mObj in ml_drivers]
+            _vList = DIST.get_normalizedWeightsByDistance(mLoc.mNode,
+                                                          l_drivers)
+            
+            _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
+            _orient = mc.orientConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+            for c in [_orient]:
+                CONSTRAINT.set_weightsByDistance(c[0],_vList)
+                
+            ATTR.set(_orient[0],'interpType',2)
+            mLoc.dagLock()
+            
+            mDynGroup = mRoot.dynParentGroup
+            mDynGroup.addDynParent(mLoc)
+            mDynGroup.rebuild()
+            
+            _len = len(ATTR.get_enumList(mRoot.mNode,'space'))
+            mRoot.space = _len -1
+            
+            
+
+        
+        return True
+    except Exception,err:cgmGEN.cgmException(Exception,err)
