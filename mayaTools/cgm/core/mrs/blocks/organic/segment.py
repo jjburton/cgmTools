@@ -467,6 +467,9 @@ def define(self):
               'rp':{'color':'redBright','defaults':{'tx':.5}},              
               'up':{'color':'greenBright','defaults':{'tz':-1}}}
         
+        for k,d in _d.iteritems():
+            d['arrow'] = 1
+            
         md_handles = {}
         ml_handles = []
         md_vector = {}
@@ -1073,6 +1076,7 @@ def skeleton_build(self, forceNew = True):
             mc.delete(_crv)        
     
         mOrientHelper = ml_formHandles[0].orientHelper
+
         
         reload(JOINT)
         mVecUp = self.atUtils('prerig_get_upVector')
@@ -1088,11 +1092,25 @@ def skeleton_build(self, forceNew = True):
             mJoint.doName()
             #mJoint.rename(_l_names[i])
             
+        #End Fixing --------------------------------
+        #if len(ml_handleJoints) > self.numControls:
+            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+
+        mEndOrient = self.ikOrientHandle
+        mEnd = ml_joints[-1]
+        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        mEnd.jointOrient = 0,0,0
+        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                         vectorUp=mEndOrient.getAxisVector('y+'))
+        JOINT.freezeOrientation(mEnd.mNode) 
+        #-------------------------------------------------------------------------
+            
         ml_joints[0].parent = False
         
         _radius = self.atUtils('get_shapeOffset')
         #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
         #MATH.get_space_value(5)
+
         
         for mJoint in ml_joints:
             mJoint.displayLocalAxis = 1

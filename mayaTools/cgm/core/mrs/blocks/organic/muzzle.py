@@ -387,7 +387,7 @@ def define(self):
     mHandleFactory = self.asHandleFactory()
     self.addAttr('cgmColorLock',True,lock=True, hidden=True)
     mDefineNull = self.atUtils('stateNull_verify','define')
-    mNoTransformNull = self.atUtils('noTransformNull_verify','define',forceNew=True)
+    mNoTransformNull = self.atUtils('noTransformNull_verify','define',forceNew=True,mVisLink=self)
     
     #Bounding sphere ==================================================================
     _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')

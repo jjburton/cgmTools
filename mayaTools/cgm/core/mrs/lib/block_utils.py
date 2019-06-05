@@ -922,7 +922,7 @@ def create_formLoftMesh(self, targets = None, mDatHolder = None, mFormNull = Non
 #=============================================================================================================
 #>> Prerig
 #=============================================================================================================
-def noTransformNull_verify(self,mode='form',forceNew=False):
+def noTransformNull_verify(self,mode='form',forceNew=False,mVisLink = None):
     try:
         _plug = 'noTrans{0}Null'.format(STR.capFirst(mode[0]) + mode[1:])
         mNoTransformNull = self.getMessageAsMeta(_plug)
@@ -939,7 +939,8 @@ def noTransformNull_verify(self,mode='form',forceNew=False):
         mNoTransformNull.doStore('cgmType',_plug)
         mNoTransformNull.doName()
         
-        mNoTransformNull.doConnectIn('v',"{0}.v".format(self.mNode))
+        if mVisLink:
+            mNoTransformNull.doConnectIn('v',"{0}.v".format(mVisLink.mNode))
 
         mNoTransformNull.dagLock()
         #mNoTransformNull.p_parent = self.prerigNull
@@ -6409,7 +6410,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         
         mHandleFactory = self.asHandleFactory()
         mRootUpHelper = self.vectorUpHelper
-        _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+        #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)            
         #pprint.pprint(vars())
         for i,n in enumerate(['start','end']):
@@ -9362,7 +9363,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
     
     
             mEndAimLoc = self.doCreateAt()
-            mEndAimLoc.p_parent = md_vector['end']
+            mEndAimLoc.p_parent =  md_handles.get('end')#md_vector['end']
             mEndAimLoc.resetAttrs()
             ATTR.set(mEndAimLoc.mNode,'tz',-2)
             mEndAimLoc.dagLock()
@@ -9780,6 +9781,7 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
         for mObj in ml_prerig:
             if mObj.cgmType in ['blockHandle','formHandle','preHandle','blockHelper']:
                 ml_preUse.append(mObj)
+                print mObj
                 
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
         except:
@@ -9788,10 +9790,14 @@ def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
             
         mStart = ml_preUse[idx_start]
         mEnd = ml_preUse[idx_end]
-        ml_toSnap = ml_preUse[idx_start:idx_end+1]
         
+        idx_startNew = ml_preUse.index(mStart)
+        idx_endNew = ml_preUse.index(mEnd)
+        
+        ml_toSnap = ml_preUse[idx_startNew:idx_endNew+1]
+        pprint.pprint(vars())
         if not ml_toSnap:
-            raise ValueError,"|{0}| >>  Nothing found to snap | {1}".format(_str_func,self)
+            raise ValueError,"|{0}| >>  Nothing found to snap | start: {1} | end: {2} | {3}".format(_str_func,idx_start,idx_end,self)
         
         #pprint.pprint(vars())
         
@@ -10009,7 +10015,7 @@ def prerig_get_upVector(self, markPos = False):
     closestDot = -1.0
     closestVector = rpVectorY
     
-    for v in [rpVectorX, rpVectorY, rpVectorZ]:
+    for v in [rpVectorX, rpVectorY, rpVectorZ]:#rpVectorX, rpVectorY, rpVectorZ
         dot = upOrientVectorY.dot(v)
         if( abs(dot) > closestDot):
             closestDot = abs(dot)
@@ -10068,7 +10074,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
     
     """
     try:
-        _str_func = 'get_midIK_basePosOrient'
+        _str_func = 'prerig_get_rpBasePos'
         log.debug(cgmGEN.logString_start(_str_func))
 
         
@@ -10115,12 +10121,34 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
             b_absMid = True
             
         #...Main vector -----------------------------------------------------------------------
-        try:mOrientHelper = self.vectorRpHelper#orientHelper
-        except Exception,err:
-            return log.warning("|{0}| >> No rp helper found: {1}".format(_str_func,self))
+        #try:mOrientHelper = self.vectorRpHelper#orientHelper
+        #except Exception,err:
+        #    return log.warning("|{0}| >> No rp helper found: {1}".format(_str_func,self))
         #vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
-        vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')        
-        log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_base))
+        #vec_base = MATH.get_obj_vector(mOrientHelper, 'y+')
+        
+        mVectorRP = self.vectorRpHelper
+        rpVectorY = mVectorRP.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
+        closestVector = rpVectorY
+        
+        ml_prerig = self.msgList_get('prerigHandles')
+        if ml_prerig:
+            log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+            
+            try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+            except:idx_start,idx_end = 0,len(ml_prerig)-1
+    
+            mLoc = mVectorRP.doLoc()
+            SNAP.aim_atPoint(mLoc.mNode, ml_prerig[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
+                    
+            closestVector =  mLoc.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
+            mLoc.delete()
+        vec_use = closestVector
+        log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_use))
+        
+        
+        
+        
         
         #...Get vector -----------------------------------------------------------------------
         if b_absMid:
@@ -10133,7 +10161,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         crv = CORERIG.create_at([ml_use[0].mNode,ml_use[-1].mNode], create= 'curveLinear')
         pos_close = DIST.get_closest_point(pos_mid, crv)[0]
         #log.debug("|{0}| >> Pos close: {1} | Pos mid: {2}".format(_str_func,pos_close,pos_mid))
-        vec_use = vec_base
+        #vec_use = vec_base
         #if MATH.is_vector_equivalent(pos_mid,pos_close,3):
         #    log.debug("|{0}| >> Mid on linear line, using base vector".format(_str_func))
         #    vec_use = vec_base
@@ -10160,7 +10188,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,
                                            DIST.get_distance_between_points(ml_handles[0].p_position,
                                                                                             pos_mid))
-        pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use)
+        #pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use)
         
         if markPos:
             crv = CORERIG.create_at(create='curve',l_pos= [pos_mid,pos_use])
@@ -10826,7 +10854,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 aimVector = mdOrient['mOrientation'].p_out.p_string
                 
         aimAlternate = mdOrient['mOrientation'].p_up.p_string
-        aimVector = mdOrient['mOrientation'].p_up.p_string
+        #aimVector = mdOrient['mOrientation'].p_up.p_string
 
         #Get our prerig handles if none provided
         if targets is None:

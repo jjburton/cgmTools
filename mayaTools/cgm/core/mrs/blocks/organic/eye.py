@@ -307,7 +307,7 @@ def define(self):
     if mNoTransformNull:
         mNoTransformNull.delete()
         
-    mNoTransformNull = self.atUtils('noTransformNull_verify','define')
+    mNoTransformNull = self.atUtils('noTransformNull_verify','define',mVisLink=self)
     ml_handles = []
     
     """

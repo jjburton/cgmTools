@@ -505,6 +505,7 @@ def define(self):
               'start':{'color':'white','name':'neckEnd','defaults':{},'noLock':['translate']},
               'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
               'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
+        
         for k,d in _d.iteritems():
             d['vectorLine'] = False
     
@@ -673,8 +674,11 @@ def form(self):
         mFormNull = BLOCKUTILS.formNull_verify(self)
         mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form')
         
-        _mVectorAim = MATH.get_obj_vector(md_vectorHandles['aim'].mNode,
+        mLoc = self.doLoc()
+        SNAP.aim_atPoint(mLoc.mNode, md_defineHandles['aim'].p_position, vectorUp=self.getAxisVector('y+'))
+        _mVectorAim = MATH.get_obj_vector(mLoc.mNode,
                                           asEuclid=True)
+        mLoc.delete()
         log.debug("vectorAim: {0}".format(_mVectorAim))
     
         pos_self = self.p_position
@@ -818,12 +822,24 @@ def form(self):
             
             #Get base dat =============================================================================
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
-            mRootUpHelper = self.vectorUpHelper    
-            _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+            mRootUpHelper = self.vectorUpHelper
+            mRootRpHelper = self.vectorRpHelper
+            
             mDefineStartObj = self.defineStartHelper
             mDefineEndObj = self.defineEndHelper
             mDefineUpObj = self.defineUpHelper
+            
+            """
+            mLoc = mRootRpHelper.doLoc()
+            SNAP.aim_atPoint(mLoc.mNode, md_defineHandles['end'].p_position, vectorUp=mRootRpHelper.getAxisVector('y+'))
+            _mVectorAim = MATH.get_obj_vector(mLoc.mNode,asEuclid=True) #self.vectorEndHelper.mNode
+            mLoc.delete()"""
+            
+            _mVectorAim = MATH.get_vector_of_two_points(mDefineStartObj.p_position,
+                                                        mDefineEndObj.p_position, True)
+            
+            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+
         
             mDefineLoftMesh = self.defineLoftMesh
             _v_range = DIST.get_distance_between_points(mDefineStartObj.p_position,
@@ -843,6 +859,8 @@ def form(self):
             _l_basePos.append(_end)
             log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
             
+            for i,p in enumerate(_l_basePos):
+                LOC.create(position=p)
             
             for mHandle in mDefineEndObj,mDefineStartObj:
                 mHandle.v=False

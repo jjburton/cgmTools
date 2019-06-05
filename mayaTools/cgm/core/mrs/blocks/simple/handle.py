@@ -443,7 +443,7 @@ def define(self):
         mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
     
         md_handles['aim'].p_parent = mAimGroup
-        md_vector['aim'].p_parent = mAimGroup
+        #md_vector['aim'].p_parent = mAimGroup
         
         _end = md_handles['end'].mNode
         
@@ -589,12 +589,14 @@ def form(self):
         
 
         #BaseDat ==================================================================================
+        mDefineEndObj = self.defineEndHelper
+        mDefineUpObj = self.defineUpHelper        
         self.defineLoftMesh.v = 0
         mRootUpHelper = self.defineUpHelper    
-        _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+        #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+        _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
-        mDefineEndObj = self.defineEndHelper
-        mDefineUpObj = self.defineUpHelper
+
         mDefineStartObj = self.defineStartHelper
         _l_basePos = [self.p_position]
         
@@ -652,7 +654,9 @@ def form(self):
         
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
             mRootUpHelper = self.vectorUpHelper    
-            _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+            #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+            _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
+            
             _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
             mDefineEndObj = self.defineEndHelper
             mDefineUpObj = self.defineUpHelper

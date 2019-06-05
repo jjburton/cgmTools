@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def echoLogger():
     log.info('info')
@@ -715,7 +715,7 @@ _d_attrStateOn = {0:['buildLeverBase'],
                   2:['ikExtendSetup','ikRPAim','ikRollSetup',
                     'followParentBank'],
                   3:[],
-                  4:[]}
+                  4:['proxyGeoRoot','proxyLoft']}
 
 _d_attrStateOff = {0:[],
                    1:[],
@@ -804,6 +804,9 @@ def define(self):
               'rp':{'color':'redBright','defaults':{'tx':.5}},
               'lever':{'color':'orange','defaults':{'tz':-.25}}}
         
+        for k,d in _d.iteritems():
+            d['arrow'] = 1
+            
         md_handles = {}
         ml_handles = []
         md_vector = {}
@@ -1098,7 +1101,6 @@ def form(self):
         mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])
         mHandleFactory.color(mBaseOrientCurve.mNode,controlType='sub')
         mc.select(cl=True)
-        
 
         #Lever Handle ===============================================================================
         log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
@@ -1294,6 +1296,8 @@ def form(self):
         if _b_lever:
             ml_handles_chain.insert(0,md_handles['lever'])
             
+        mVec_up = mBaseOrientCurve.getAxisVector('y+')
+        
         for i,mHandle in enumerate(ml_handles_chain):
             if mHandle in [md_handles['lever']]:#,md_handles['end']
                 continue
@@ -1312,6 +1316,11 @@ def form(self):
             
             _worldUpType = 'objectrotation'
             _worldUpBack = 'objectrotation'
+            
+            #if not i:
+            #    mUpObj = mBaseOrientCurve
+            #else:
+            mUpObj = mHandle
             
             if mHandle == md_handles['lever']:
                 _worldUpType = 'vector'
@@ -1340,25 +1349,25 @@ def form(self):
             if _aimForward and _aimBack is None:
                 mc.aimConstraint(_aimForward, mTransformedGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
-                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpObject = mUpObj.mNode,
                                  worldUpType = _worldUpType, 
                                  worldUpVector = [0,1,0])
             elif _aimBack and _aimForward is None:
                 mc.aimConstraint(_aimBack, mTransformedGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,-1], upVector = [0,1,0], 
-                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpObject = mUpObj.mNode,
                                  worldUpType = _worldUpBack, 
                                  worldUpVector = [0,1,0])
             else:
                 mAimForward = mLoft.doCreateAt()
-                mAimForward.p_parent = mLoft.p_parent
+                mAimForward.p_parent = mHandle
                 mAimForward.doStore('cgmName',mHandle)                
                 mAimForward.doStore('cgmTypeModifier','forward')
                 mAimForward.doStore('cgmType','aimer')
                 mAimForward.doName()
                 
                 mAimBack = mLoft.doCreateAt()
-                mAimBack.p_parent = mLoft.p_parent
+                mAimBack.p_parent = mHandle
                 mAimBack.doStore('cgmName',mHandle)                                
                 mAimBack.doStore('cgmTypeModifier','back')
                 mAimBack.doStore('cgmType','aimer')
@@ -1366,12 +1375,12 @@ def form(self):
                 
                 mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
-                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpObject = mHandle.mNode,
                                  worldUpType = _worldUpType, 
                                  worldUpVector = [0,1,0])
                 
                 if _backUpObj == None:
-                    _backUpObj =  mBaseOrientCurve.mNode
+                    _backUpObj =  ml_handles_chain[i-1].mNode
                     
                 mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                  aimVector = [0,0,-1], upVector = [0,1,0], 
@@ -1389,6 +1398,14 @@ def form(self):
                     mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
                     if not mHandleAimGroup:
                         mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
+                    
+                    #SNAP.aim_atPoint(mHandle.mNode,ml_handles_chain[i+1].p_position,vectorUp=mVec_up)
+                    
+                    
+                    if  ml_handles_chain[i-1] == ml_handles_chain[1]:
+                        mUpObj = mBaseOrientCurve
+                    else:
+                        mUpObj = ml_handles_chain[i-1]
                         
                     mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
@@ -1410,7 +1427,7 @@ def form(self):
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
                 
             else:
-                ATTR.set_standardFlags( mHandle.mNode, ['rotate','sz'])
+                ATTR.set_standardFlags( mHandle.mNode, ['sz'])
                 ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
         
@@ -1566,7 +1583,7 @@ def form(self):
                     if _leverLoftAimMode:
                         upObj = md_handles['lever'].mNode
                     else:
-                        upObj = mBaseOrientCurve.mNode
+                        upObj = _mStart.mNode#mBaseOrientCurve.mNode
                     
                     mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
                                      aimVector = [0,0,1], upVector = [0,1,0],
@@ -2468,22 +2485,32 @@ def skeleton_build(self, forceNew = True):
         #End joint fix when not end joint is there...
         
         #End Fixing --------------------------------
-        if len(ml_handleJoints) > self.numControls:
-            log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-            _idx_end = -1
-            if _buildToe == 2:
-                _idx_end -=1
-            if _buildBall == 2:
-                _idx_end -=1
-            mEnd = ml_handleJoints[_idx_end]
-            log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-            ml_children = mEnd.getChildren(asMeta=True)
-            if ml_children:
-                ml_children[0].p_parent = False
-                mEnd.jointOrient = 0,0,0
-                
-                ml_children[0].p_parent = mEnd
-                JOINT.freezeOrientation(ml_children[0].mNode)
+        #if len(ml_handleJoints) > self.numControls:
+            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+
+        mEndOrient = self.ikOrientHandle
+        
+        _idx_end = -1
+        if _buildToe == 2:
+            _idx_end -=1
+        if _buildBall == 2:
+            _idx_end -=1
+        mEnd = ml_handleJoints[_idx_end]
+        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        ml_children = mEnd.getChildren(asMeta=True)
+        if ml_children:
+            ml_children[0].p_parent = False
+            
+        mEnd.jointOrient = 0,0,0
+            
+        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                         vectorUp=mEndOrient.getAxisVector('y+'))
+        JOINT.freezeOrientation(mEnd.mNode)
+        
+        
+        if ml_children:
+            ml_children[0].p_parent = mEnd
+            JOINT.freezeOrientation(ml_children[0].mNode)
                 
  
                     
@@ -3155,7 +3182,7 @@ def rig_skeleton(self):
                         mJnt.preferredAngle = _jointOrient
                     else:
                         ATTR.set(mJnt.mNode,"preferredAngle{0}".format(self.str_mainRotAxis.capitalize()),10)
-                        
+            
             
             """
             ml_blendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
@@ -8657,8 +8684,8 @@ def get_handleIndices(self):
             elif str_ikEnd == 'tipBase':
                 idx_end -=1"""
                 
-        #if self.buildLeverEnd:
-            #idx_end -=1
+        if self.buildLeverEnd:
+            idx_end -=1
                 
         return idx_start,idx_end
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

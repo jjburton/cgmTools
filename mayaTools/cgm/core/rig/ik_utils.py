@@ -19,7 +19,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -2454,11 +2454,12 @@ def handle(startJoint,
             
         _foundPrerred = False
         for mJnt in ml_jointChain:
-            for attr in ['preferredAngleX','preferredAngleY','preferredAngleZ']:
-                if mJnt.getAttr(attr):
-                    log.debug("|{0}| >> Found preferred...".format(_str_func))                  
-                    _foundPrerred = True
-                    break
+            mc.joint(mJnt.mNode, e=True, spa=True, ch=1)            
+            #for attr in ['preferredAngleX','preferredAngleY','preferredAngleZ']:
+                #if mJnt.getAttr(attr):
+                    #log.debug("|{0}| >> Found preferred...".format(_str_func))                  
+                    #_foundPrerred = True
+                    #break
         
         #Attributes =====================================================================================
         #Master global control
@@ -2804,7 +2805,7 @@ def handle(startJoint,
         if addLengthMulti:
             d_return['ml_lengthMultiPlugs'] = ml_multiPlugs
     
-        if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
+        #if not _foundPrerred:log.warning("create_IKHandle>>> No preferred angle values found. The chain probably won't work as expected: %s"%l_jointChain)
         
         return d_return   
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -3300,7 +3301,7 @@ def handle_fixTwist(ikHandle, aimAxis = None):
         
         RIGGEN.matchValue_iterator(drivenAttr="%s.r%s"%(mStartJoint.mNode,aimAxis),
                                    driverAttr="%s.twist"%mIKHandle.mNode,
-                                   minIn = -170, maxIn = 180,
+                                   minIn = -170, maxIn = 179,
                                    maxIterations = 30,
                                    matchValue=0)
         log.debug("|{0}| >> drivenAttr='{1}',driverAttr='{2}.twist',minIn = -180, maxIn = 180, maxIterations = 75,matchValue=0.0001".format(_str_func,mPlug_rot.p_combinedName,mIKHandle.p_nameShort))        
