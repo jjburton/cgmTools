@@ -2346,14 +2346,15 @@ def uiCB_contextualAction(self,**kws):
     _primeAxis = False
     _keyResult = False
     err=None
-    if len(_keys):_keyResult=True
+    if len(_keys) > 1:
+        log.info("key result...")
+        _keyResult=True
+    
     _autoKey = mc.autoKeyframe(q=True,state=True)
     if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
     mc.refresh(su=1)
     
-
-            
     if _mode == 'pushKey':
         log.debug("|{0}| >> Push Key buffer".format(_str_func))
         self.mDat.snapShot_get()
@@ -2454,7 +2455,8 @@ def uiCB_contextualAction(self,**kws):
                     
                     if _mode == 'reset':
                         RIGGEN.reset_channels_fromMode(controls,_resetMode)
-                        key(f,controls)
+                        if _keyResult:
+                            key(f,controls)
                     
                     elif _mode in ['resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
                         l_use = controls
@@ -2480,9 +2482,10 @@ def uiCB_contextualAction(self,**kws):
                                     return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
                                     
                         RIGGEN.reset_channels_fromMode(l_use,_resetMode)
-                        for c in controls:
-                            if SEARCH.get_key_indices_from(c):
-                                mc.setKeyframe(c,time = f)
+                        if _keyResult:
+                            for c in controls:
+                                if SEARCH.get_key_indices_from(c):
+                                    mc.setKeyframe(c,time = f)
                                 
                         
                     elif _mode in ['key','bdKey''delete']:
