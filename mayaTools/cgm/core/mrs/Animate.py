@@ -2351,7 +2351,7 @@ def uiCB_contextualAction(self,**kws):
         _keyResult=True
     
     _autoKey = mc.autoKeyframe(q=True,state=True)
-    if _autoKey:mc.autoKeyframe(state=False)
+    #if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
     mc.refresh(su=1)
     
