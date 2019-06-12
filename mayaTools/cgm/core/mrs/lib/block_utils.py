@@ -11751,6 +11751,19 @@ def uiStatePickerMenu(self,parent = None):
                 d_define.append(d)
                 ml_done.append(mHandle)
                 
+    ml_define  = self.msgList_get('defineHandles')#    
+    for mHandle in ml_define:
+        if mHandle.v:
+            if mHandle in ml_done:continue
+            k = mHandle.getMayaAttr('handleTag') or mHandle.p_nameBase
+            d = {'ann':'[{0}] Define {1} Helper'.format(_short,k),
+                 'c':cgmGEN.Callback(mHandle.select),
+                 'label':"{0} Helper".format(k)}
+            d_define.append(d)
+            ml_done.append(mHandle)        
+    
+    
+                
     if d_define:
         mc.menuItem(en=True,divider = True, label = "Define")
         for d in d_define:
